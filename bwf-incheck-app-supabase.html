@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="B&W Incheck">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="B&W Incheck">
+<meta name="theme-color" content="#1a1208" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fffdf5" media="(prefers-color-scheme: light)">
+<title>B&W Flevoland – Incheck</title>
+<style id="theme-style"></style>
+<style>
+:root {
+  --font: 'Georgia', serif;
+  --mono: system-ui, -apple-system, sans-serif;
+}
+
+/* ── DARK THEME ── */
+body.dark {
+  --gold:       #d4a843;
+  --gold-light: #f0d080;
+  --gold-dim:   #a07828;
+  --bg:         #1a1208;
+  --surface:    #221a0a;
+  --card:       #2d2210;
+  --border:     #3d3018;
+  --text:       #f0e8d0;
+  --muted:      #a09070;
+  --input-bg:   #221a0a;
+  --success:    #4caf7d;
+  --err:        #e07070;
+  --shadow:     rgba(0,0,0,.4);
+}
+
+/* ── LIGHT THEME ── */
+body.light {
+  --gold:       #b8861e;
+  --gold-light: #d4a843;
+  --gold-dim:   #8a6010;
+  --bg:         #fffdf5;
+  --surface:    #f5f0e0;
+  --card:       #ffffff;
+  --border:     #e8dfc0;
+  --text:       #1a1208;
+  --muted:      #7a6840;
+  --input-bg:   #faf7ec;
+  --success:    #2e8a57;
+  --err:        #b0483a;
+  --shadow:     rgba(0,0,0,.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transition: background .3s, color .3s;
+}
+
+/* ── HEADER ── */
+.app-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px 10px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 1px 8px var(--shadow);
+}
+.logo-img {
+  width: 34px; height: 34px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+  border: 1.5px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gold); color: #1a1208; font-family: var(--font); font-weight: bold; font-size: 14px;
+}
+.app-title h1 { font-size: 14px; color: var(--gold); font-family: var(--font); font-weight: normal; letter-spacing: .3px; }
+.app-title p  { font-size: 11px; color: var(--muted); }
+.header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.theme-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); width: 32px; height: 32px;
+  border-radius: 50%; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── CONNECTION STATUS ── */
+.conn-status {
+  display: none; background: rgba(176,72,58,.1); color: var(--err);
+  border-bottom: 1px solid var(--err); padding: 8px 16px;
+  font-size: 12px; text-align: center;
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex; background: var(--card);
+  border-bottom: 2px solid var(--border);
+  position: sticky; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 99;
+}
+.tab {
+  flex: 1; padding: 11px 4px; text-align: center;
+  font-size: 12px; color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px; cursor: pointer;
+  transition: all .2s; font-weight: 500;
+}
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── SCREENS ── */
+.screen { display: none; padding: 14px 14px 0; }
+.screen.active { display: block; }
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px; margin-bottom: 14px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.card-title {
+  font-size: 10px; font-weight: 700;
+  color: var(--gold); letter-spacing: 1.2px;
+  text-transform: uppercase; margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: ''; display: block; width: 3px; height: 13px;
+  background: var(--gold); border-radius: 2px;
+}
+
+/* ── FORM ── */
+.field { margin-bottom: 11px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 10px; color: var(--muted);
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600;
+}
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--input-bg);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  color: var(--text); padding: 10px 12px; font-size: 15px;
+  font-family: var(--mono); transition: border-color .2s, box-shadow .2s;
+  -webkit-appearance: none; appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,168,67,.15);
+}
+body.light .field input, body.light .field select, body.light .field textarea {
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.06);
+}
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a09070' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px;
+}
+.field textarea { resize: vertical; min-height: 70px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── ARRANGEMENTS ── */
+.arr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.arr-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px; background: var(--input-bg);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  cursor: pointer; transition: all .15s; user-select: none;
+}
+.arr-item input[type=checkbox] { display: none; }
+.arr-cb {
+  width: 17px; height: 17px; flex-shrink: 0;
+  border: 1.5px solid var(--border); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; background: var(--card);
+}
+.arr-item.checked { border-color: var(--gold); background: rgba(212,168,67,.08); }
+.arr-item.checked .arr-cb { background: var(--gold); border-color: var(--gold); }
+.arr-item.checked .arr-cb::after { content: '✓'; font-size: 10px; color: #fff; font-weight: 800; }
+body.light .arr-item.checked .arr-cb::after { color: #1a1208; }
+.arr-item span { font-size: 12px; line-height: 1.3; color: var(--text); }
+
+/* ── TOTALS ── */
+.totals-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.total-box {
+  background: var(--input-bg); border: 1.5px solid var(--border);
+  border-radius: 9px; padding: 10px 10px 8px;
+}
+.total-box label { font-size: 9px; color: var(--muted); display: block; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .5px; }
+.total-box input {
+  width: 100%; background: none; border: none;
+  color: var(--text); font-size: 14px; font-family: var(--mono); padding: 0;
+}
+.total-box input:focus { outline: none; color: var(--gold); }
+
+/* ── TOGGLE ── */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 0; gap: 12px;
+}
+.toggle-row + .toggle-row { border-top: 1px solid var(--border); }
+.toggle-row p { font-size: 13px; line-height: 1.45; color: var(--text); }
+.toggle { position: relative; width: 46px; height: 27px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0; border-radius: 14px;
+  background: var(--border); cursor: pointer; transition: .25s;
+}
+.slider::before {
+  content: ''; position: absolute; width: 21px; height: 21px;
+  left: 3px; top: 3px; border-radius: 50%;
+  background: var(--muted); transition: .25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.toggle input:checked + .slider { background: var(--gold); }
+.toggle input:checked + .slider::before { transform: translateX(19px); background: white; }
+
+/* ── SIGNATURE ── */
+.sig-wrap {
+  background: var(--input-bg); border: 1.5px solid var(--border);
+  border-radius: 9px; overflow: hidden;
+}
+.sig-wrap canvas { display: block; width: 100%; touch-action: none; }
+.sig-hint { font-size: 11px; color: var(--muted); margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
+.sig-clear {
+  background: none; border: 1px solid var(--border);
+  color: var(--muted); padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; cursor: pointer;
+}
+
+/* ── BUTTONS ── */
+.btn-gold {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dim) 100%);
+  border: none; border-radius: 12px;
+  color: #1a1208; font-size: 15px; font-weight: 700;
+  cursor: pointer; letter-spacing: .3px;
+  box-shadow: 0 4px 16px rgba(212,168,67,.3);
+  transition: opacity .15s, transform .1s; margin-top: 8px;
+}
+.btn-gold:active { opacity: .9; transform: scale(.99); }
+.btn-gold:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn-outline {
+  width: 100%; padding: 13px;
+  background: none; border: 1.5px solid var(--gold);
+  border-radius: 12px; color: var(--gold);
+  font-size: 14px; cursor: pointer; margin-top: 8px;
+  transition: background .15s;
+}
+.btn-outline:active { background: rgba(212,168,67,.08); }
+
+/* ── OVERVIEW ── */
+.overview-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.overview-header h2 { font-family: var(--font); font-size: 19px; color: var(--text); font-weight: normal; }
+.badge {
+  background: var(--gold); color: #1a1208;
+  font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 10px;
+}
+.filter-bar {
+  display: flex; gap: 7px; margin-bottom: 14px;
+  overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0; padding: 7px 14px;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 20px; font-size: 12px; color: var(--muted);
+  cursor: pointer; transition: all .15s; font-weight: 500;
+}
+.filter-chip.active { background: rgba(212,168,67,.1); border-color: var(--gold); color: var(--gold); }
+
+.entry-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 10px;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 1px 6px var(--shadow);
+}
+.entry-card:active { transform: scale(.99); }
+.ec-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; }
+.ec-name { font-size: 16px; font-family: var(--font); color: var(--text); }
+.ec-loc {
+  font-size: 10px; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 3px 8px; border-radius: 5px; white-space: nowrap;
+}
+.ec-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+.ec-meta span { font-size: 12px; color: var(--muted); }
+.ec-meta strong { color: var(--text); }
+.ec-arr { margin-top: 7px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ec-amount { margin-top: 5px; font-size: 14px; color: var(--gold); font-family: var(--font); font-weight: bold; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 200;
+  padding: 20px 14px; overflow-y: auto;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+.modal {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 18px; width: 100%; max-width: 480px;
+  padding: 20px; margin: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+}
+.modal-header h3 { font-family: var(--font); color: var(--gold); font-weight: normal; font-size: 19px; }
+.modal-close {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); width: 30px; height: 30px;
+  border-radius: 50%; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.detail-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row .lbl { color: var(--muted); flex-shrink: 0; margin-right: 12px; }
+.detail-row .val { color: var(--text); text-align: right; word-break: break-word; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.modal-actions button { flex: 1; padding: 11px; border-radius: 10px; font-size: 13px; cursor: pointer; font-weight: 600; }
+.btn-delete { background: rgba(220,50,50,.1); color: #e07070; border: 1.5px solid rgba(220,50,50,.25) !important; }
+.btn-email  { background: rgba(212,168,67,.1); color: var(--gold); border: 1.5px solid var(--gold-dim) !important; }
+
+/* ── SETTINGS ── */
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-row .s-info h4 { font-size: 14px; color: var(--text); }
+.setting-row .s-info p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.setting-input {
+  background: var(--input-bg); border: 1.5px solid var(--border);
+  border-radius: 9px; color: var(--text); padding: 8px 10px;
+  font-size: 13px; font-family: var(--mono); min-width: 0; flex: 1; max-width: 200px;
+}
+.setting-input:focus { outline: none; border-color: var(--gold); }
+
+/* ── INSTALL CARD ── */
+.install-step {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.install-step:last-child { border-bottom: none; }
+.install-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--gold); color: #1a1208;
+  font-size: 12px; font-weight: 800; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.install-step p { font-size: 13px; color: var(--text); line-height: 1.5; padding-top: 2px; }
+.install-step p span { color: var(--muted); font-size: 12px; display: block; margin-top: 2px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--success); color: #fff;
+  padding: 12px 22px; border-radius: 12px; font-size: 14px; font-weight: 600;
+  z-index: 300; transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.err { background: var(--err); }
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 52px 20px; color: var(--muted); }
+.empty .icon { font-size: 44px; margin-bottom: 14px; }
+.empty p { font-size: 14px; line-height: 1.5; }
+</style>
+</head>
+<body class="light">
+
+<header class="app-header">
+  <div class="logo-img">B&W</div>
+  <div class="app-title">
+    <h1>Bed & Wellness Flevoland</h1>
+    <p>Incheck-systeem — gedeeld</p>
+  </div>
+  <div class="header-actions">
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" title="Wissel thema">🌙</button>
+  </div>
+</header>
+
+<div class="conn-status" id="connStatus"></div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="nieuw"         onclick="setTab('nieuw')">✦ Incheck</div>
+  <div class="tab"        data-tab="overzicht"     onclick="setTab('overzicht')">Overzicht</div>
+  <div class="tab"        data-tab="instellingen"  onclick="setTab('instellingen')">Instellingen</div>
+</div>
+
+<!-- ══ INCHECK ══ -->
+<div class="screen active" id="screen-nieuw">
+
+  <div class="card">
+    <div class="card-title">Reserveringsgegevens</div>
+    <div class="field">
+      <label>Locatie</label>
+      <select id="locatie" onchange="updateManagers()">
+        <option value="">Kies locatie…</option>
+        <option>Suite Angie — Almere</option>
+        <option>Malina Jacuzzi Suite — Lelystad</option>
+        <option>Malina Deluxe Zwembad Suite — Lelystad</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Locatiemanager</label>
+      <select id="manager">
+        <option value="">Kies eerst een locatie…</option>
+      </select>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Datum</label><input type="date" id="datum"></div>
+      <div class="field"><label>Reserveringsnr.</label><input type="text" id="resnr" placeholder="BWF-2026-…"></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Aantal personen</label><input type="number" id="personen" placeholder="2" min="1" max="20"></div>
+      <div class="field"><label>Betaalwijze</label>
+        <select id="betaalwijze">
+          <option value="">Selecteer…</option>
+          <option>Flatpay (PIN)</option>
+          <option>Contant</option>
+          <option>iDEAL</option>
+          <option>Bankoverschrijving</option>
+          <option>Reeds voldaan</option>
+        </select>
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>In-check tijd</label><input type="time" id="incheck"></div>
+      <div class="field"><label>Uit-check tijd</label><input type="time" id="uitcheck"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Betaling</div>
+    <div class="totals-grid">
+      <div class="total-box"><label>Totaal</label><input type="text" id="totaal" placeholder="€ 0,00"></div>
+      <div class="total-box"><label>Aanbetaald</label><input type="text" id="aanbetaald" placeholder="€ 0,00"></div>
+      <div class="total-box"><label>Nog te betalen</label><input type="text" id="restant" placeholder="€ 0,00"></div>
+    </div>
+    <div class="field">
+      <label>Deelbetaling — extra bedrag ter plaatse voldaan</label>
+      <input type="text" id="deelbetaling" placeholder="€ 0,00">
+    </div>
+    <div class="field">
+      <label>Opmerkingen betaling</label>
+      <textarea id="opmerkingen_betaling" placeholder="Bijv. rest volgt per bank, korting toegepast…"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Arrangementen</div>
+    <div class="arr-grid" id="arrGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Persoonsgegevens</div>
+    <div class="row-2">
+      <div class="field"><label>Voornaam</label><input type="text" id="voornaam" placeholder="Voornaam" autocomplete="given-name"></div>
+      <div class="field"><label>Achternaam</label><input type="text" id="achternaam" placeholder="Achternaam" autocomplete="family-name"></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Nationaliteit</label><input type="text" id="nationaliteit" placeholder="Nederlands"></div>
+      <div class="field"><label>Geboortedatum</label><input type="date" id="geboortedatum"></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Woonplaats</label><input type="text" id="woonplaats" placeholder="Stad" autocomplete="address-level2"></div>
+      <div class="field"><label>Telefoonnummer</label><input type="tel" id="telefoon" placeholder="+31 6…" autocomplete="tel"></div>
+    </div>
+    <div class="field"><label>E-mailadres</label><input type="email" id="email" placeholder="naam@email.nl" autocomplete="email"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Akkoord & Lidmaatschap</div>
+    <div class="toggle-row">
+      <p>Akkoord met huisregels en verantwoordelijk voor schade</p>
+      <label class="toggle"><input type="checkbox" id="akkoord"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <p>Gratis lid worden — 10% korting op reserveringen</p>
+      <label class="toggle"><input type="checkbox" id="lid"><span class="slider"></span></label>
+    </div>
+    <button class="btn-outline" style="margin-top:12px;" onclick="toonHuisregels()">📋 Bekijk huisregels</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Opmerkingen</div>
+    <div class="field">
+      <textarea id="opmerkingen" placeholder="Bijzonderheden, speciale wensen, notities voor de locatiemanager…" style="min-height:90px;"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Handtekening</div>
+    <div class="sig-wrap"><canvas id="sigCanvas" height="120"></canvas></div>
+    <div class="sig-hint">
+      <span>Teken hier met uw vinger</span>
+      <button class="sig-clear" onclick="clearSig()">✕ Wissen</button>
+    </div>
+  </div>
+
+  <button class="btn-gold" id="saveBtn" onclick="slaOp()">✓ Incheck opslaan</button>
+  <button class="btn-outline" onclick="stuurEmail()">✉ Doorsturen naar e-mail</button>
+  <div style="height:16px"></div>
+</div>
+
+<!-- ══ OVERZICHT ══ -->
+<div class="screen" id="screen-overzicht">
+  <div class="overview-header">
+    <h2>Inchecks</h2>
+    <span class="badge" id="countBadge">0</span>
+  </div>
+  <div class="filter-bar">
+    <div class="filter-chip active" data-filter="alle"     onclick="setFilter(this,'alle')">Alle</div>
+    <div class="filter-chip"        data-filter="Almere"   onclick="setFilter(this,'Almere')">Almere</div>
+    <div class="filter-chip"        data-filter="Lelystad" onclick="setFilter(this,'Lelystad')">Lelystad</div>
+    <div class="filter-chip"        data-filter="vandaag"  onclick="setFilter(this,'vandaag')">Vandaag</div>
+  </div>
+  <div id="entriesList"></div>
+</div>
+
+<!-- ══ INSTELLINGEN ══ -->
+<div class="screen" id="screen-instellingen">
+  <div class="card">
+    <div class="card-title">E-mail</div>
+    <div class="setting-row">
+      <div class="s-info"><h4>Ontvangst e-mailadres</h4><p>Inchecks worden hierheen gestuurd</p></div>
+      <input class="setting-input" id="emailSettings" type="email" placeholder="info@bwf.nl" onchange="saveSettings()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">App installeren op telefoon</div>
+    <div class="install-step">
+      <div class="install-num">1</div>
+      <p><strong>iPhone / iPad (Safari)</strong><span>Tik op het Deel-icoon (□↑) onderin → "Zet op beginscherm" → "Voeg toe"</span></p>
+    </div>
+    <div class="install-step">
+      <div class="install-num">2</div>
+      <p><strong>Android (Chrome)</strong><span>Tik op ⋮ rechts bovenin → "Toevoegen aan beginscherm" → "Installeren"</span></p>
+    </div>
+    <div class="install-step">
+      <div class="install-num">3</div>
+      <p><strong>Delen met medewerkers</strong><span>Host het bestand via GitHub Pages en stuur de link via WhatsApp</span></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Thema</div>
+    <div class="setting-row">
+      <div class="s-info"><h4>Donker / Licht</h4><p>Gebruik de 🌙 knop rechtsboven</p></div>
+      <button class="btn-outline" style="width:auto; margin:0; padding:8px 16px; font-size:13px;" onclick="toggleTheme()">Wissel thema</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Data</div>
+    <div class="setting-row">
+      <div class="s-info"><h4>Opgeslagen inchecks</h4><p>Gedeeld — voor het hele team</p></div>
+      <span style="color:var(--muted); font-size:14px; font-weight:700;" id="totalCount">0</span>
+    </div>
+    <div class="setting-row">
+      <div class="s-info"><h4 style="color:#e07070">Alle data wissen</h4><p>Verwijdert inchecks voor het HELE team. Kan niet ongedaan worden gemaakt.</p></div>
+      <button onclick="wisAlles()" style="background:rgba(220,50,50,.1);border:1.5px solid rgba(220,50,50,.25);color:#e07070;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;">Wissen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalNaam">Gast</h3>
+      <button class="modal-close" onclick="sluitModal()">×</button>
+    </div>
+    <div id="modalContent"></div>
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="verwijderHuidige()">🗑 Verwijderen</button>
+      <button class="btn-email"  onclick="emailHuidige()">✉ E-mailen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HUISREGELS MODAL ══ -->
+<div class="modal-overlay" id="huisregelsModal">
+  <div class="modal" style="max-height:85vh; overflow-y:auto;">
+    <div class="modal-header" style="position:sticky; top:0; background:var(--card); z-index:10; padding-bottom:12px;">
+      <h3 id="huisregelsTitle">Huisregels</h3>
+      <button class="modal-close" onclick="sluitHuisregels()">×</button>
+    </div>
+    <div id="huisregelsContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ARRANGEMENTS = [
+  "Geen gebruik all-inclusive","Verjaardag","Verjaardag deluxe",
+  "Romantisch arrangement","VIP arrangement","365 Valentine arrangement",
+  "Honeymoon overnachting","Verrassingsarrangement","Ontbijt arrangement",
+  "Lunch arrangement","Chickenwings menu","Luxe borrelplank",
+  "Burger menu","Luxe sushi schaal","Rozenbeer cadeau",
+  "Eigen consumptie","Fles wijn / Prosecco","Moët Ice Edition",
+  "Shisha","Huur massagetafel","Zeeprozenboeketcadeau"
+];
+
+/* ================= SUPABASE ================= */
+const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+
+async function sb(path, options={}){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+    },
+    body: options.body
+  });
+  if(!res.ok){
+    let detail = '';
+    try{ detail = (await res.json()).message; }catch(e){}
+    throw new Error(detail || `Serverfout (${res.status})`);
+  }
+  if(res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+let entries = [];
+let currentFilter = 'alle';
+let currentEntry  = null;
+let sigDrawing    = false;
+let sigCtx, sigCanvas;
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  buildArrangements();
+  initSig();
+  setToday();
+  loadSettings();
+  const saved = localStorage.getItem('bwf_theme') || 'light';
+  applyTheme(saved);
+  loadEntries();
+});
+
+async function loadEntries(){
+  const statusBox = document.getElementById('connStatus');
+  try{
+    entries = await sb('checkins?select=*&order=created_at.desc') || [];
+    statusBox.style.display = 'none';
+  }catch(err){
+    console.error('Fout bij laden inchecks:', err);
+    statusBox.style.display = 'block';
+    statusBox.textContent = '⚠ Geen verbinding met de database: ' + err.message;
+  }
+  renderEntries();
+}
+
+function setToday() {
+  document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+}
+
+function updateManagers() {
+  const loc = document.getElementById('locatie').value;
+  const mgr = document.getElementById('manager');
+  const almere   = ['Angela','Jerry','Michel'];
+  const lelystad = ['Ruth','Gildo','Senna','Jerry','Michel'];
+  let names = [];
+  if (loc.includes('Almere'))   names = almere;
+  if (loc.includes('Lelystad')) names = lelystad;
+  mgr.innerHTML = names.length
+    ? '<option value="">Kies manager…</option>' + names.map(n => '<option>' + n + '</option>').join('')
+    : '<option value="">Kies eerst een locatie…</option>';
+}
+function loadSettings() {
+  const s = JSON.parse(localStorage.getItem('bwf_settings') || '{}');
+  if (s.email) document.getElementById('emailSettings').value = s.email;
+}
+function saveSettings() {
+  localStorage.setItem('bwf_settings', JSON.stringify({ email: document.getElementById('emailSettings').value }));
+  showToast('✓ Instellingen opgeslagen (op dit apparaat)');
+}
+
+// ── THEME ── (blijft per apparaat, niet gedeeld)
+function applyTheme(t) {
+  document.body.className = t;
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️' : '🌙';
+  document.querySelector('meta[name="theme-color"][media*="dark"]').content = t === 'dark' ? '#1a1208' : '#fffdf5';
+  localStorage.setItem('bwf_theme', t);
+}
+function toggleTheme() {
+  applyTheme(document.body.classList.contains('dark') ? 'light' : 'dark');
+}
+
+// ── TABS ──
+function setTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelector('[data-tab="' + name + '"]').classList.add('active');
+  if (name === 'overzicht')    loadEntries();
+  if (name === 'instellingen') document.getElementById('totalCount').textContent = entries.length;
+}
+
+// ── ARRANGEMENTS ──
+function buildArrangements() {
+  document.getElementById('arrGrid').innerHTML = ARRANGEMENTS.map(a =>
+    '<div class="arr-item" onclick="toggleArr(this)">' +
+    '<input type="checkbox" value="' + a + '">' +
+    '<div class="arr-cb"></div>' +
+    '<span>' + a + '</span></div>'
+  ).join('');
+}
+function toggleArr(el) {
+  el.classList.toggle('checked');
+  el.querySelector('input').checked = el.classList.contains('checked');
+}
+function getCheckedArr() {
+  return [...document.querySelectorAll('#arrGrid .arr-item.checked')].map(el => el.querySelector('input').value);
+}
+
+// ── SIGNATURE ──
+function initSig() {
+  sigCanvas = document.getElementById('sigCanvas');
+  sigCtx = sigCanvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const resize = () => {
+    const r = sigCanvas.parentElement.getBoundingClientRect();
+    sigCanvas.width  = r.width * dpr;
+    sigCanvas.height = 120 * dpr;
+    sigCtx.scale(dpr, dpr);
+    sigCanvas.style.width  = r.width + 'px';
+    sigCanvas.style.height = '120px';
+  };
+  resize();
+  const pos = e => { const r = sigCanvas.getBoundingClientRect(), s = e.touches ? e.touches[0] : e; return { x: s.clientX - r.left, y: s.clientY - r.top }; };
+  const start = e => { sigDrawing = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); };
+  const move  = e => { if (!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.strokeStyle = '#d4a843'; sigCtx.lineWidth = 2.5; sigCtx.lineCap = 'round'; sigCtx.lineJoin = 'round'; sigCtx.stroke(); };
+  const end   = () => sigDrawing = false;
+  sigCanvas.addEventListener('mousedown', start);
+  sigCanvas.addEventListener('mousemove', move);
+  sigCanvas.addEventListener('mouseup', end);
+  sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); start(e); }, { passive: false });
+  sigCanvas.addEventListener('touchmove',  e => { e.preventDefault(); move(e);  }, { passive: false });
+  sigCanvas.addEventListener('touchend', end);
+}
+function clearSig() { sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); }
+
+// ── COLLECT ──
+function collectForm() {
+  return {
+    id: 'c' + Date.now(),
+    locatie:      document.getElementById('locatie').value,
+    manager:      document.getElementById('manager').value,
+    datum:        document.getElementById('datum').value,
+    resnr:        document.getElementById('resnr').value,
+    personen:     document.getElementById('personen').value,
+    incheck:      document.getElementById('incheck').value,
+    uitcheck:     document.getElementById('uitcheck').value,
+    arrangementen: getCheckedArr(),
+    totaal:       document.getElementById('totaal').value,
+    aanbetaald:   document.getElementById('aanbetaald').value,
+    restant:      document.getElementById('restant').value,
+    betaalwijze:  document.getElementById('betaalwijze').value,
+    deelbetaling: document.getElementById('deelbetaling').value,
+    opmerkingen_betaling: document.getElementById('opmerkingen_betaling').value,
+    opmerkingen:  document.getElementById('opmerkingen').value,
+    voornaam:     document.getElementById('voornaam').value,
+    achternaam:   document.getElementById('achternaam').value,
+    nationaliteit:document.getElementById('nationaliteit').value,
+    geboortedatum:document.getElementById('geboortedatum').value || null,
+    woonplaats:   document.getElementById('woonplaats').value,
+    telefoon:     document.getElementById('telefoon').value,
+    email:        document.getElementById('email').value,
+    lid:          document.getElementById('lid').checked,
+    akkoord:      document.getElementById('akkoord').checked,
+    handtekening: sigCanvas.toDataURL()
+  };
+}
+
+function resetForm() {
+  ['locatie','manager','resnr','personen','incheck','uitcheck','totaal','aanbetaald','restant',
+   'betaalwijze','deelbetaling','opmerkingen_betaling','opmerkingen',
+   'voornaam','achternaam','nationaliteit','geboortedatum','woonplaats','telefoon','email']
+   .forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  document.getElementById('lid').checked = false;
+  document.getElementById('akkoord').checked = false;
+  document.querySelectorAll('.arr-item.checked').forEach(el => { el.classList.remove('checked'); el.querySelector('input').checked = false; });
+  clearSig(); setToday();
+}
+
+// ── SAVE ──
+async function slaOp() {
+  const d = collectForm();
+  if (!d.voornaam || !d.achternaam) { showToast('⚠ Vul naam in'); return; }
+  if (!d.locatie)  { showToast('⚠ Kies een locatie'); return; }
+  if (!d.akkoord)  { showToast('⚠ Akkoordverklaring vereist'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Bezig met opslaan...';
+  try{
+    await sb('checkins', { method: 'POST', body: JSON.stringify(d) });
+    await loadEntries();
+    showToast('✓ Incheck opgeslagen!');
+    setTimeout(() => { resetForm(); setTab('overzicht'); }, 1400);
+  }catch(err){
+    console.error('Fout bij opslaan incheck:', err);
+    showToast('✕ Opslaan mislukt: ' + err.message, true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '✓ Incheck opslaan';
+  }
+}
+
+// ── EMAIL ──
+function buildBody(d) {
+  return 'Incheckformulier Bed & Wellness Flevoland\n\nRESERVERING\nLocatie: ' + d.locatie + '\nLocatiemanager: ' + (d.manager||'—') +
+    '\nDatum: ' + d.datum + '\nReserveringsnr: ' + d.resnr + '\nPersonen: ' + d.personen +
+    '\nIn-check: ' + d.incheck + '\nUit-check: ' + d.uitcheck +
+    '\n\nARRANGEMENTEN\n' + (d.arrangementen.join(', ') || '—') +
+    '\n\nBETALING\nTotaal: ' + d.totaal + '\nAanbetaald: ' + d.aanbetaald +
+    '\nNog te betalen: ' + d.restant + '\nBetaalwijze: ' + d.betaalwijze +
+    '\nDeelbetaling ter plaatse: ' + (d.deelbetaling||'—') +
+    '\nOpmerkingen betaling: ' + (d.opmerkingen_betaling||'—') +
+    '\n\nGAST\nNaam: ' + d.voornaam + ' ' + d.achternaam +
+    '\nNationaliteit: ' + d.nationaliteit + '\nGeboortedatum: ' + (d.geboortedatum||'') +
+    '\nWoonplaats: ' + d.woonplaats + '\nTelefoon: ' + d.telefoon +
+    '\nE-mail: ' + d.email + '\nLid: ' + (d.lid ? 'Ja' : 'Nee') +
+    '\nAkkoord: ' + (d.akkoord ? 'Ja' : 'Nee');
+}
+function stuurEmail() {
+  const d = collectForm();
+  const to = (JSON.parse(localStorage.getItem('bwf_settings') || '{}')).email || '';
+  window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent('Incheck: ' + d.voornaam + ' ' + d.achternaam + ' — ' + d.datum) + '&body=' + encodeURIComponent(buildBody(d));
+}
+function emailHuidige() {
+  if (!currentEntry) return;
+  const to = (JSON.parse(localStorage.getItem('bwf_settings') || '{}')).email || '';
+  const d = currentEntry;
+  window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent('Incheck: ' + d.voornaam + ' ' + d.achternaam + ' — ' + d.datum) + '&body=' + encodeURIComponent(buildBody(d));
+}
+
+// ── OVERVIEW ──
+function setFilter(el, f) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active'); currentFilter = f; renderEntries();
+}
+function renderEntries() {
+  const today = new Date().toISOString().split('T')[0];
+  const filtered = entries.filter(e => {
+    if (currentFilter === 'alle')    return true;
+    if (currentFilter === 'vandaag') return e.datum === today;
+    return e.locatie && e.locatie.includes(currentFilter);
+  });
+  document.getElementById('countBadge').textContent = filtered.length;
+  document.getElementById('totalCount').textContent  = entries.length;
+  const list = document.getElementById('entriesList');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Geen inchecks gevonden.<br>Maak een nieuwe incheck aan.</p></div>';
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const arr = e.arrangementen || [];
+    return '<div class="entry-card" onclick="openModal(\'' + e.id + '\')">' +
+    '<div class="ec-top"><div class="ec-name">' + e.voornaam + ' ' + e.achternaam + '</div>' +
+    '<div class="ec-loc">' + (e.locatie ? (e.locatie.split('—')[1] || e.locatie).trim() : '—') + '</div></div>' +
+    '<div class="ec-meta"><span>📅 <strong>' + (e.datum||'—') + '</strong></span><span>🕐 ' + (e.incheck||'—') + '–' + (e.uitcheck||'—') + '</span><span>👥 ' + (e.personen||'—') + '</span></div>' +
+    (arr.length ? '<div class="ec-arr">◆ ' + arr.join(' · ') + '</div>' : '') +
+    (e.totaal ? '<div class="ec-amount">' + e.totaal + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+// ── MODAL ──
+function openModal(id) {
+  currentEntry = entries.find(e => e.id === id);
+  if (!currentEntry) return;
+  const d = currentEntry;
+  const arr = d.arrangementen || [];
+  document.getElementById('modalNaam').textContent = d.voornaam + ' ' + d.achternaam;
+  document.getElementById('modalContent').innerHTML = [
+    ['Locatie', d.locatie], ['Locatiemanager', d.manager], ['Datum', d.datum], ['Reserveringsnr.', d.resnr],
+    ['Personen', d.personen], ['In-check', d.incheck], ['Uit-check', d.uitcheck],
+    ['Arrangementen', arr.join(', ') || '—'],
+    ['Totaal', d.totaal], ['Aanbetaald', d.aanbetaald], ['Nog te betalen', d.restant],
+    ['Betaalwijze', d.betaalwijze], ['Telefoon', d.telefoon], ['E-mail', d.email],
+    ['Lidmaatschap', d.lid ? 'Ja' : 'Nee'], ['Akkoord', d.akkoord ? '✓ Ja' : '✗ Nee'],
+    ['Deelbetaling', d.deelbetaling||'—'], ['Opmerkingen betaling', d.opmerkingen_betaling||'—'],
+    ['Opmerkingen', d.opmerkingen||'—'],
+  ].map(([l,v]) => '<div class="detail-row"><span class="lbl">' + l + '</span><span class="val">' + (v||'—') + '</span></div>').join('');
+  document.getElementById('detailModal').classList.add('open');
+}
+function sluitModal() { document.getElementById('detailModal').classList.remove('open'); currentEntry = null; }
+async function verwijderHuidige() {
+  if (!currentEntry || !confirm('Verwijder incheck van ' + currentEntry.voornaam + ' ' + currentEntry.achternaam + '?')) return;
+  try{
+    await sb(`checkins?id=eq.${currentEntry.id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    await loadEntries();
+    sluitModal();
+    showToast('Incheck verwijderd');
+  }catch(err){
+    console.error('Fout bij verwijderen incheck:', err);
+    showToast('✕ Verwijderen mislukt: ' + err.message, true);
+  }
+}
+
+// ── SETTINGS ──
+async function wisAlles() {
+  if (!confirm('⚠ LET OP: dit verwijdert ALLE inchecks voor het HELE team, van alle locaties en apparaten tegelijk. Dit kan niet ongedaan worden gemaakt.\n\nWeet je dit zeker?')) return;
+  if (!confirm('Laatste bevestiging: alle gedeelde inchecks definitief wissen?')) return;
+  try{
+    await sb('checkins?id=not.is.null', { method: 'DELETE', prefer: 'return=minimal' });
+    await loadEntries();
+    showToast('Alle data gewist');
+  }catch(err){
+    console.error('Fout bij wissen:', err);
+    showToast('✕ Wissen mislukt: ' + err.message, true);
+  }
+}
+
+// ── HUISREGELS ──
+const HR_DATA = {
+  secties: [
+    { t: 'Wellness gebruik', items: [
+      'Douchen vóór gebruik is verplicht.',
+      'Handdoekgebruik in de sauna is verplicht.',
+      'Badjas is verplicht bij de massagestoel.',
+      'Badproducten en oliën zijn verboden in de jacuzzi en het zwembad.',
+    ], note: 'Let op waterverbruik in Malina Deluxe: wij hebben een warmwaterboiler voor 12 personen. Koud water uit de kraan betekent overmatig verbruik. De temperatuur stijgt na 4 uur. Extra kosten worden doorberekend.'},
+    { t: 'Eten & Drinken', items: [
+      'Frisdranken, water, koffie, thee en snacks zijn inbegrepen.',
+      'Alcoholische dranken uit de minibar zijn tegen betaling.',
+      'Eigen eten en drinken meenemen kost €15 voor afvalverwerking en service.',
+      'Bestellingen van de menukaart zijn mogelijk tot 20:00 uur.',
+    ]},
+    { t: 'Alcohol, Drugs & Overlast', items: [
+      'Verboden: drugs, lachgas en verdovende middelen.',
+      'Tassencontrole bij vermoedens van overtreding.',
+      'Geen harde muziek of geluidsoverlast na 20:00 uur.',
+    ]},
+    { t: 'Roken', items: [
+      'Roken is verboden in de kamers en in de deuropening.',
+      'Ruikt de ruimte naar rook? Dan geldt een boete van €150.',
+      'Bed & Wellness Malina Jacuzzi Suite (Lelystad) is een volledig rookvrije locatie — roken voor de deur is eveneens niet toegestaan.',
+      'B&W Malina Deluxe Zwembad Suite en B&W Angie (Almere) beschikken beiden over een rookterras.',
+    ]},
+    { t: 'Uitchecken', items: [
+      'Uitchecken gebeurt op de geboekte tijd, tenzij anders afgesproken.',
+      'Gasten moeten de accommodatie netjes achterlaten; bij extreme vervuiling kan een toeslag van €150 gelden.',
+      '15 minuten voor uitcheck belt de locatiemanager aan; na de eindtijd wordt de ruimte gecontroleerd.',
+    ]},
+    { t: 'Meer tijd nodig?', items: [], note: 'Wilt u langer blijven? Later uitchecken is eventueel mogelijk tegen betaling van €50 per extra uur, op basis van beschikbaarheid. Informeer hiervoor bij de locatiemanager.'},
+    { t: 'Bereikbaarheid Locatiemanager', items: [
+      'De locatiemanager is bereikbaar tot 22:00 uur voor algemene vragen en ondersteuning tijdens uw verblijf.',
+      'Na 22:00 uur is de locatiemanager uitsluitend bereikbaar voor noodgevallen.',
+      'Scan de QR-code om direct via WhatsApp contact op te nemen met de locatiemanager.',
+    ]},
+  ]
+};
+
+function toonHuisregels() {
+  const loc = document.getElementById('locatie').value;
+  const isLey = loc.includes('Lelystad');
+  document.getElementById('huisregelsTitle').textContent = 'Huisregels Bed & Wellness Flevoland';
+
+  const intro = [
+    'Bij het inchecken begint uw gereserveerde tijd direct. U leest de huisregels, ondertekent het reserveringsformulier en krijgt een rondleiding door de accommodatie.',
+    'Neem altijd een geldig legitimatiebewijs mee. Legitimatieplicht geldt voor alle gasten bij overnachtingen. Minderjarigen moeten met ouder of voogd zijn; toegang kan geweigerd worden zonder restitutie.',
+  ];
+
+  const introHtml = intro.map(i =>
+    '<div style="display:flex;gap:8px;margin-bottom:8px;font-size:13px;color:var(--text);line-height:1.6;">' +
+    '<span style="color:var(--gold);flex-shrink:0;">◆</span><span>'+i+'</span></div>'
+  ).join('');
+
+  const sectiesHtml = HR_DATA.secties.map(s => {
+    const itemsHtml = s.items.map(i =>
+      '<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px;color:var(--text);line-height:1.5;">' +
+      '<span style="color:var(--gold);flex-shrink:0;">•</span><span>'+i+'</span></div>'
+    ).join('');
+    const noteHtml = s.note
+      ? '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:6px;line-height:1.5;padding-left:8px;border-left:2px solid var(--gold);">'+s.note+'</div>'
+      : '';
+    return '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">'+s.t+'</div>' +
+      itemsHtml + noteHtml + '</div>';
+  }).join('');
+
+  const footer = isLey
+    ? 'Bed & Wellness Flevoland · Birdielaan 4, 8241 BA Lelystad · 085-8001407'
+    : 'Bed & Wellness Flevoland · De Specerij 5, 1313 NA Almere · 085-8001404';
+
+  document.getElementById('huisregelsContent').innerHTML =
+    '<div style="margin-bottom:16px;">'+introHtml+'</div>' + sectiesHtml +
+    '<div style="margin-top:8px;padding:12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--muted);text-align:center;">'+footer+'</div>';
+
+  document.getElementById('huisregelsModal').classList.add('open');
+}
+function sluitHuisregels() {
+  document.getElementById('huisregelsModal').classList.remove('open');
+}
+
+
+// ── TOAST ──
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!isError);
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>
