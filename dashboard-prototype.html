@@ -120,6 +120,17 @@
   .checklist label{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink); margin:4px 0; }
   .checklist input[type=checkbox]{ width:auto; accent-color:var(--gold); }
 
+  #resTableBody tr{ cursor:pointer; }
+  #resTableBody tr:hover{ background:var(--cream); }
+  .detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px 18px; margin:14px 0; }
+  .detail-row{ padding:7px 0; border-bottom:1px solid var(--line); }
+  .detail-row .dlbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); display:block; }
+  .detail-row .dval{ font-size:13.5px; color:var(--ink); font-weight:600; margin-top:2px; }
+  .detail-row.full{ grid-column:1 / -1; }
+  .detail-status{ font-size:12px; padding:8px 12px; border-radius:10px; margin-bottom:8px; }
+  .detail-status.ok{ background:var(--ok-bg); color:var(--ok); }
+  .detail-status.warn{ background:var(--warn-bg); color:var(--warn); }
+
   @media print{
     .sidebar, header.topbar, .loc-tabs, .grid3, .btn{ display:none !important; }
     .main{ padding:0; max-width:100%; }
@@ -415,6 +426,22 @@
   </div>
 </div>
 
+<!-- ===== Reservering detail modal ===== -->
+<div class="modal-bg" id="resDetailModal">
+  <div class="modal" style="max-width:640px;">
+    <span class="close" onclick="closeModal('resDetailModal')">✕</span>
+    <h3 id="detailNaam">Gast</h3>
+    <p class="sub" id="detailLocatie"></p>
+    <div id="detailStatus"></div>
+    <div class="detail-grid" id="detailGrid"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+      <button class="btn" id="detailIncheckBtn" style="flex:1;min-width:220px;justify-content:center;">✎ Vul online incheckformulier in</button>
+      <button class="btn secondary" id="detailBewerkBtn">Bewerken</button>
+      <button class="btn danger" id="detailVerwijderBtn">Verwijderen</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ================= CONFIG ================= */
 const LOCATIONS = [
@@ -698,7 +725,7 @@ function renderReservationsTable(){
     const nog = Math.max(0,(parseFloat(r.totaal||0)-parseFloat(r.betaald||0)));
     const nogPill = nog<=0 ? '<span class="pill ok">Betaald</span>' : `<span class="pill warn">${euro(nog)}</span>`;
     const isCheckedIn = checkins.some(c => c.reservation_id === r.id);
-    return `<tr>
+    return `<tr onclick="openResDetail('${r.id}')">
       <td>${escapeHtml(r.voornaam)} ${escapeHtml(r.achternaam)} ${isCheckedIn ? '<span title="Incheckformulier gekoppeld" style="color:var(--ok);">✓</span>' : ''}</td>
       <td>${escapeHtml(r.telefoon||'—')}</td>
       <td>${escapeHtml(r.email||'—')}</td>
@@ -710,7 +737,7 @@ function renderReservationsTable(){
       <td>${euro(r.betaald)}</td>
       <td>${nogPill}</td>
       <td>${escapeHtml(staffNameById(r.toegewezen) || '—')}</td>
-      <td style="white-space:nowrap;">
+      <td style="white-space:nowrap;" onclick="event.stopPropagation();">
         <button class="btn secondary sm" onclick="openResModal('${r.id}')">Bewerken</button>
         <button class="btn danger sm" onclick="deleteReservation('${r.id}')">✕</button>
       </td>
@@ -868,6 +895,64 @@ async function deleteReservation(id){
 function deleteReservationFromModal(){
   const id = document.getElementById('r_id').value;
   if(id) deleteReservation(id).then(()=> closeModal('resModal'));
+}
+
+/* ================= RESERVERING DETAIL ================= */
+function openResDetail(id){
+  const r = reservations.find(x=>x.id===id);
+  if(!r) return;
+  const nog = Math.max(0,(parseFloat(r.totaal||0)-parseFloat(r.betaald||0)));
+  const isCheckedIn = checkins.some(c => c.reservation_id === r.id);
+
+  document.getElementById('detailNaam').textContent = `${r.voornaam || ''} ${r.achternaam || ''}`.trim() || 'Onbekende gast';
+  document.getElementById('detailLocatie').innerHTML =
+    `<span class="locbadge" style="background:${locColor(r.locatie)};">${escapeHtml(locName(r.locatie))}</span>`;
+
+  document.getElementById('detailStatus').innerHTML = isCheckedIn
+    ? '<div class="detail-status ok">✓ Incheckformulier is al ingevuld voor deze reservering.</div>'
+    : '<div class="detail-status warn">Nog geen incheckformulier ingevuld voor deze reservering.</div>';
+
+  const rows = [
+    ['Telefoonnummer', r.telefoon || '—'],
+    ['E-mailadres', r.email || '—'],
+    ['Check-in', `${r.checkindatum || '—'} ${r.checkintijd || ''}`],
+    ['Check-uit', `${r.checkuitdatum || '—'} ${r.checkuittijd || ''}`],
+    ['Arrangement', r.arrangement || '—'],
+    ['Toegewezen aan', staffNameById(r.toegewezen) || '—'],
+    ['Totaalbedrag', euro(r.totaal)],
+    ['Al betaald', euro(r.betaald)],
+    ['Nog te betalen', euro(nog)],
+    ['Reserveringsnr.', r.id],
+  ];
+  let html = rows.map(([lbl,val])=>
+    `<div class="detail-row"><span class="dlbl">${escapeHtml(lbl)}</span><span class="dval">${escapeHtml(String(val))}</span></div>`
+  ).join('');
+  if(r.opmerkingen){
+    html += `<div class="detail-row full"><span class="dlbl">Opmerkingen</span><span class="dval" style="font-weight:400;">${escapeHtml(r.opmerkingen)}</span></div>`;
+  }
+  document.getElementById('detailGrid').innerHTML = html;
+
+  document.getElementById('detailIncheckBtn').onclick = ()=> goToIncheckWithReservation(id);
+  document.getElementById('detailBewerkBtn').onclick = ()=>{ closeModal('resDetailModal'); openResModal(id); };
+  document.getElementById('detailVerwijderBtn').onclick = ()=> deleteReservation(id).then(()=> closeModal('resDetailModal'));
+
+  openModal('resDetailModal');
+}
+
+function goToIncheckWithReservation(id){
+  closeModal('resDetailModal');
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.querySelector('.nav-item[data-target="incheck"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('incheck').classList.add('active');
+  document.getElementById('pageTitle').textContent = 'Incheckformulier';
+
+  buildResKoppelSelect();
+  document.getElementById('c_reskoppel').value = id;
+  koppelReservering();
+
+  const formCard = document.getElementById('checkinForm');
+  if(formCard) formCard.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 /* ================= PERSONEEL ================= */
