@@ -1629,9 +1629,9 @@ function renderCheckinTable(){
       <td>${fmtMoney(c.totaal)}</td>
       <td>${fmtMoney(c.restant)}</td>
       <td style="white-space:nowrap;" onclick="event.stopPropagation();">
-        <button class="btn secondary sm" onclick="downloadCheckinPDF('${c.id}')" title="PDF downloaden">PDF</button>
-        <button class="btn secondary sm" onclick="editCheckin('${c.id}')" title="Bewerken">✎</button>
-        <button class="btn danger sm" onclick="deleteCheckin('${c.id}')" title="Verwijderen">✕</button>
+        <button class="btn secondary sm" onclick="downloadCheckinPDF('${c.id}')">PDF</button>
+        <button class="btn secondary sm" onclick="editCheckin('${c.id}')">Bewerken</button>
+        <button class="btn danger sm" onclick="deleteCheckin('${c.id}')">Verwijderen</button>
       </td>
     </tr>`;
   }).join('');
