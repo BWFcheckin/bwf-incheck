@@ -18,6 +18,40 @@
 
   .sidebar{ width:220px; flex-shrink:0; background:#211d17; color:#e9e2d0; padding:22px 14px; display:flex; flex-direction:column; gap:2px; }
   .sidebar .brand{ padding:6px 10px 18px; }
+  .hb-chapter{ border:1px solid var(--line); border-radius:12px; margin-bottom:10px; overflow:hidden; background:#fff; }
+  .hb-chapter summary{ list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; gap:10px; font-family:Georgia,serif; font-weight:600; font-size:15px; color:var(--ink); background:var(--gold-soft); }
+  .hb-chapter summary::-webkit-details-marker{ display:none; }
+  .hb-chapter summary::before{ content:'▸'; color:var(--gold-dark); transition:.15s; }
+  .hb-chapter[open] summary::before{ transform:rotate(90deg); }
+  .hb-chapter .hb-body{ padding:16px 20px 20px; font-size:13.5px; line-height:1.65; color:var(--ink); }
+  .hb-chapter .hb-body h4{ font-family:Georgia,serif; color:var(--gold-dark); margin:14px 0 6px; font-size:13.5px; }
+  .hb-chapter .hb-body ul{ margin:4px 0 10px; padding-left:20px; }
+  .hb-chapter .hb-body li{ margin-bottom:4px; }
+  .hb-chapter .hb-body table{ width:100%; border-collapse:collapse; margin:8px 0; font-size:13px; }
+  .hb-chapter .hb-body table th, .hb-chapter .hb-body table td{ border:1px solid var(--line); padding:6px 10px; text-align:left; }
+  .hb-chapter .hb-body table th{ background:var(--gold-soft); }
+  .hb-intro{ background:linear-gradient(135deg,var(--gold-soft),var(--cream)); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:18px; }
+  .hb-intro h2{ color:var(--ink); }
+  .hb-intro p{ color:var(--ink-soft); margin:8px 0 0; }
+  .hb-photo-row{ display:flex; gap:14px; flex-wrap:wrap; margin:10px 0 16px; }
+  .hb-photo-slot{ width:180px; }
+  .hb-photo-slot .hb-photo-inner{ width:180px; height:130px; border-radius:10px; overflow:hidden; border:1.5px dashed var(--line); background:var(--cream); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+  .hb-photo-slot .hb-photo-inner img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .hb-photo-slot .hb-photo-inner .hb-placeholder{ text-align:center; color:var(--ink-soft); font-size:12px; padding:8px; }
+  .hb-photo-slot .hb-photo-inner .hb-placeholder .plus{ font-size:20px; color:var(--gold-dark); display:block; margin-bottom:4px; }
+  .hb-photo-caption{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; text-align:center; }
+  .hb-photo-actions{ display:flex; gap:6px; justify-content:center; margin-top:4px; }
+  .hb-photo-actions button{ font-size:10.5px; padding:2px 7px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; color:var(--ink-soft); }
+  .hb-arr-card{ border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:14px; background:var(--cream); }
+  .hb-arr-card h4{ font-family:Georgia,serif; margin:0 0 4px; color:var(--ink); font-size:14.5px; display:flex; justify-content:space-between; align-items:center; }
+  .hb-arr-card .price{ color:var(--gold-dark); font-weight:700; font-size:13px; }
+  .hb-arr-card .hb-label{ font-weight:600; color:var(--gold-dark); font-size:12px; margin-top:8px; }
+  .hb-doclist{ margin:10px 0; }
+  .hb-doclist .hb-doc-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; margin-bottom:6px; font-size:13px; }
+  .hb-doclist .hb-doc-item a{ color:var(--ink); text-decoration:none; font-weight:600; }
+  .hb-doclist .hb-doc-item a:hover{ text-decoration:underline; }
+  .hb-doc-form{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .hb-doc-form input[type="text"]{ flex:1; min-width:160px; }
   .sidebar .brand strong{ font-family:Georgia,serif; color:var(--gold); font-size:16px; display:block; }
   .sidebar .brand span{ font-size:11px; color:#a99f8a; }
   .nav-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; font-size:13.5px; cursor:pointer; color:#cfc6b0; transition:.12s; }
@@ -147,6 +181,7 @@
     <div class="nav-item" data-target="reserveringen"><span class="nav-icon">🛎️</span> Reserveringen</div>
     <div class="nav-item" data-target="personeel"><span class="nav-icon">🧑‍🤝‍🧑</span> Personeel</div>
     <div class="nav-item" data-target="incheck"><span class="nav-icon">🖊️</span> Incheckformulier</div>
+    <div class="nav-item" data-target="handboek"><span class="nav-icon">📘</span> Personeelshandboek</div>
   </div>
 
   <div class="main">
@@ -369,6 +404,330 @@
           <tbody id="checkinTableBody"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- ================= PERSONEELSHANDBOEK ================= -->
+    <section class="section" id="handboek">
+      <div class="hb-intro">
+        <h2>Personeelshandboek — Bed &amp; Wellness Flevoland</h2>
+        <p>Alles wat je nodig hebt om op de locaties te werken: van openen en sluiten tot het volledig klaarzetten van elk arrangement. Klik een hoofdstuk open. Foto's en documenten die je hier toevoegt zijn direct zichtbaar voor het hele team.</p>
+      </div>
+
+      <details class="hb-chapter" open>
+        <summary>1. Welkom</summary>
+        <div class="hb-body">
+          <p>Welkom bij Bed &amp; Wellness Flevoland. Wij bieden onze gasten een luxe, ontspannen beleving op drie locaties: Suite Angie in Almere en de Malina Jacuzzi Suite en Malina Deluxe Zwembad Suite in Lelystad. Gastvrijheid, netheid en discretie staan bij ons voorop — elke gast moet zich welkom en volledig verzorgd voelen vanaf het moment van binnenkomst.</p>
+          <p>Dit handboek is jouw naslagwerk voor de dagelijkse werkzaamheden op locatie: checklists, arrangementen, hygiëneprotocollen, veiligheid en huisregels.</p>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>2. Locaties</summary>
+        <div class="hb-body">
+          <table>
+            <thead><tr><th>Locatie</th><th>Adres</th><th>Type</th></tr></thead>
+            <tbody>
+              <tr><td>Suite Angie</td><td>De Specerij 5, Almere</td><td>Wellnesssuite</td></tr>
+              <tr><td>Malina Jacuzzi Suite</td><td>Birdielaan 4, Lelystad</td><td>Jacuzzisuite</td></tr>
+              <tr><td>Malina Deluxe Zwembad Suite</td><td>Birdielaan 4, Lelystad</td><td>Zwembadsuite</td></tr>
+            </tbody>
+          </table>
+          <h4>Foto's van de locaties</h4>
+          <div class="hb-photo-row">
+            <div class="hb-photo-slot" data-key="suite_angie" data-label="Suite Angie"></div>
+            <div class="hb-photo-slot" data-key="suite_jacuzzi" data-label="Malina Jacuzzi Suite"></div>
+            <div class="hb-photo-slot" data-key="suite_deluxe" data-label="Malina Deluxe Zwembad Suite"></div>
+            <div class="hb-photo-slot" data-key="entree" data-label="Entree"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>3. Contactpersonen</summary>
+        <div class="hb-body">
+          <ul>
+            <li><strong>Angela</strong> — directie / eigenaar</li>
+            <li><strong>Michel, Jerry, Senna, Rut, Gildo</strong> — locatiepersoneel</li>
+          </ul>
+          <p>Bij twijfel of een probleem op locatie: neem altijd eerst contact op met Angela voordat je zelf een beslissing neemt richting de gast.</p>
+          <div class="hb-photo-row">
+            <div class="hb-photo-slot" data-key="team" data-label="Het team"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>4. Openen &amp; sluiten — checklist</summary>
+        <div class="hb-body">
+          <h4>Bij opening</h4>
+          <ul>
+            <li>Controleer temperatuur van jacuzzi/zwembad en verwarming van de ruimte</li>
+            <li>Controleer netheid: badkamer, bedlinnen, vloer, spiegels</li>
+            <li>Controleer voorraad: handdoeken, drinken, verzorgingsproducten, kaarsen</li>
+            <li>Zet verlichting en sfeerelementen (kaarsen, muziek) klaar</li>
+            <li>Check de reservering van de dag: aankomsttijd, arrangement, bijzonderheden</li>
+          </ul>
+          <h4>Bij sluiting</h4>
+          <ul>
+            <li>Ruim gebruikte glazen, flessen en servies op</li>
+            <li>Ververs/was handdoeken en linnen</li>
+            <li>Reinig jacuzzi/zwembad volgens protocol (zie hoofdstuk Hygiëne)</li>
+            <li>Sluit ramen, deuren en apparatuur af</li>
+            <li>Noteer bijzonderheden of schades in de overdracht</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>5. Reserveringsproces</summary>
+        <div class="hb-body">
+          <p>Reserveringen komen binnen via Planyo, WhatsApp, Booking.com of directe telefonische aanvragen. Controleer altijd: naam gast, datum/tijd, arrangement, aantal personen, aanbetaling en eventuele bijzonderheden (verjaardag, allergieën, honeymoon).</p>
+          <p>Bij aankomst vul je het online incheckformulier in (zie tab "Incheckformulier") en laat je de gast de huisregels en algemene voorwaarden bevestigen.</p>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>6. Arrangementen klaarzetten</summary>
+        <div class="hb-body">
+          <p>Elk arrangement heeft een vaste opbouw qua decoratie, food &amp; drinks en eindcontrole. Werk de checklist per arrangement altijd volledig af vóórdat de gast arriveert, en stuur na afloop van de opbouw altijd een foto naar Angela ter bevestiging — of upload hem hieronder in het juiste vakje, zodat het als vast referentiebeeld dient.</p>
+
+          <div class="hb-arr-card">
+            <h4>Dagverblijf (standaard)</h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_dagverblijf" data-label="Dagverblijf"></div></div>
+            <div class="hb-label">Voorbereiding</div>
+            <ul>
+              <li>Suite schoon en op temperatuur volgens checklist hoofdstuk 4</li>
+              <li>Handdoeken klaarleggen, geen extra versiering nodig</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Overnachtingsarrangementen <span style="font-weight:400;font-size:12px;">(Relax &amp; Stay / Wellness Experience / Early check-in / Late check-in)</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_overnachting" data-label="Overnachting"></div></div>
+            <div class="hb-label">Voorbereiding</div>
+            <ul>
+              <li>Inclusief bad- en bedlinnen en minibar/snackpakket — dubbel controleren dat dit is aangevuld</li>
+              <li>Bij "Wellness Experience": ontbijt voorbereiden en tijdig klaarzetten volgens de afgesproken tijd</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Romantisch arrangement <span class="price">€ 75</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_romantisch" data-label="Romantisch"></div></div>
+            <div class="hb-label">Decoratie</div>
+            <ul>
+              <li>Wellness versierd met ballonnen</li>
+              <li>Rozen en rozenblaadjes verspreid volgens vaste stijl</li>
+            </ul>
+            <div class="hb-label">Food &amp; drinks</div>
+            <ul>
+              <li>Ferrero Rocher bonbons klaarleggen</li>
+            </ul>
+            <div class="hb-label">Eindcontrole</div>
+            <ul>
+              <li>Bij Almere: 2 zeeprozen als cadeau toevoegen</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Verjaardag arrangement <span class="price">€ 75 · Deluxe € 125</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_verjaardag" data-label="Verjaardag"></div></div>
+            <div class="hb-label">Decoratie</div>
+            <ul>
+              <li>Wellness versierd met ballonnen</li>
+            </ul>
+            <div class="hb-label">Food &amp; drinks</div>
+            <ul>
+              <li>Taart met fruit klaarzetten (smaak vooraf navragen bij de gast)</li>
+            </ul>
+            <div class="hb-label">Bij upgrade "Verjaardag Deluxe"</div>
+            <ul>
+              <li>Extra romantische versiering</li>
+              <li>2 glazen prosecco</li>
+              <li>Borrelplank en chocolade bonbons toevoegen</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>VIP arrangement <span class="price">€ 250</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_vip" data-label="VIP"></div></div>
+            <div class="hb-label">Decoratie</div>
+            <ul>
+              <li>Wellness versierd met ballonnen</li>
+            </ul>
+            <div class="hb-label">Food &amp; drinks</div>
+            <ul>
+              <li>Fles Champagne Moët &amp; Chandon Ice koelen en klaarzetten</li>
+              <li>Gekozen keuze (sushi schaal of premium burgermenu) tijdig bij de keuken/leverancier doorgeven</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>365 Days of Valentine / Honeymoon <span class="price">€ 299</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_365valentine" data-label="365 Valentine / Honeymoon"></div></div>
+            <div class="hb-label">Decoratie</div>
+            <ul>
+              <li>Extra romantische, over-the-top versiering met heliumballonnen en rozen</li>
+            </ul>
+            <div class="hb-label">Food &amp; drinks</div>
+            <ul>
+              <li>Rozenbeer bonbons als cadeau klaarleggen</li>
+              <li>Flesje bubbels koelen</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Bruidsnacht arrangement</h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_bruidsnacht" data-label="Bruidsnacht"></div></div>
+            <div class="hb-label">Voorbereiding</div>
+            <ul>
+              <li>Check-in 01:00 / check-out 15:00 goed doorgeven aan de nachtdienst zodat er geen verwarring ontstaat</li>
+              <li>Romantische versiering, ontbijt en champagne voorbereiden</li>
+              <li>Extra aandacht voor privacy — geen storingen tenzij noodzakelijk</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Kids Pool Party <span class="price">vanaf € 850 · alleen Almere</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_kidspoolparty" data-label="Kids Pool Party"></div></div>
+            <div class="hb-label">Voorbereiding</div>
+            <ul>
+              <li>Aantal kinderen, begeleiders en diploma-status vooraf controleren in de aanvraag</li>
+              <li>Zwemvesten klaarleggen indien aangevraagd</li>
+              <li>Gekozen thema-versiering en ballonnenboog opbouwen vóór aankomst</li>
+            </ul>
+            <div class="hb-label">Food &amp; drinks</div>
+            <ul>
+              <li>Menukeuze (taart / hotdog &amp; patat / hamburger &amp; patat) tijdig bestellen</li>
+            </ul>
+            <div class="hb-label">Extra's</div>
+            <ul>
+              <li>Fotomoment, sweettabel e.d. volgens de aanvraag klaarzetten</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Bridal shower / Babyshower <span class="price">€ 1000 · alleen Almere</span></h4>
+            <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_bridalbabyshower" data-label="Bridal / Babyshower"></div></div>
+            <div class="hb-label">Decoratie</div>
+            <ul>
+              <li>Gekozen ballonkleuren (max. 3) ophangen volgens de aanvraag</li>
+            </ul>
+            <div class="hb-label">Food &amp; drinks</div>
+            <ul>
+              <li>Gekozen menu (high wine, high tea, burger/wings, of sushi) tijdig bestellen</li>
+            </ul>
+            <div class="hb-label">Optionele extra's</div>
+            <ul>
+              <li>Thema-versiering, ballonnenboog, gepersonaliseerde taart/cupcakes, sweettabel, fotomoment — voorbereiden volgens de aanvraag</li>
+            </ul>
+          </div>
+
+          <div class="hb-arr-card">
+            <h4>Overige services <span style="font-weight:400;font-size:12px;">(op aanvraag)</span></h4>
+            <div class="hb-label">Waterpijp</div>
+            <ul><li>Smaak navragen, klaarzetten in overleg met de gast</li></ul>
+            <div class="hb-label">Massagetafel</div>
+            <ul><li>Extra handdoek en olie klaarleggen</li></ul>
+            <div class="hb-label">Blinddoeken</div>
+            <ul><li>Schoon en voorradig houden</li></ul>
+          </div>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>7. HACCP &amp; voedselveiligheid</summary>
+        <div class="hb-body">
+          <p>Ook al serveren we geen volledige restaurantkeuken, alles wat we aan eten en drinken aanbieden (minibar, menukaart, ontbijt, snackpakketten) valt onder voedselveiligheid.</p>
+          <ul>
+            <li>Bewaar drank- en voedselproducten gekoeld waar vereist en check houdbaarheidsdata</li>
+            <li>Was handen voor het klaarzetten van drankjes/versnaperingen</li>
+            <li>Gebruik schone glazen en servies per gast — geen hergebruik zonder afwas</li>
+            <li>Meld bedorven of verdachte producten direct en gooi ze weg</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>8. Schoonmaakprotocollen</summary>
+        <div class="hb-body">
+          <ul>
+            <li>Jacuzzi/zwembad: reinigen en waterkwaliteit controleren volgens leveranciersinstructies na elk gebruik</li>
+            <li>Badkamer: volledig reinigen en desinfecteren tussen gasten</li>
+            <li>Linnen en handdoeken: altijd vers per boeking, nooit hergebruiken</li>
+            <li>Algemene ruimtes: stofzuigen, afnemen, spiegels poetsen</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>9. Veiligheid</summary>
+        <div class="hb-body">
+          <ul>
+            <li>Controleer elektrische apparatuur en verwarmingselementen regelmatig</li>
+            <li>Zorg dat vluchtwegen vrij zijn</li>
+            <li>Bij een incident of ongeval: eerst hulp verlenen, dan Angela informeren</li>
+            <li>Nooddiensten: 112. Huisartsenpost en dichtstbijzijnde EHBO-post staan op locatie vermeld</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>10. Huisregels</summary>
+        <div class="hb-body">
+          <p>De volledige huisregels per locatie (Almere / Lelystad) zijn beschikbaar als PDF via de tab "Incheckformulier". Gasten bevestigen deze bij het invullen van het incheckformulier. Kernpunten: geen roken binnen, respectvol gedrag, maximumaantal personen aanhouden, eindtijd van het arrangement respecteren.</p>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>11. Gedrag &amp; uiterlijk</summary>
+        <div class="hb-body">
+          <ul>
+            <li>Verzorgde, representatieve kleding passend bij de huisstijl</li>
+            <li>Vriendelijke, professionele houding naar gasten — discretie is essentieel</li>
+            <li>Op tijd aanwezig zijn, minimaal 30 minuten voor aankomst van de gast</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>12. Voorraadbeheer</summary>
+        <div class="hb-body">
+          <ul>
+            <li>Controleer dagelijks de voorraad handdoeken, drankjes, verzorgingsproducten en decoratiematerialen</li>
+            <li>Meld tekorten tijdig aan Angela zodat er bijbesteld kan worden</li>
+            <li>Bewaar producten volgens de aangegeven opslagcondities</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>13. Dagelijkse checklist</summary>
+        <div class="hb-body">
+          <ul>
+            <li>☐ Locatie geopend en gecontroleerd op netheid en temperatuur</li>
+            <li>☐ Reserveringen van de dag doorgenomen</li>
+            <li>☐ Arrangement(en) voorbereid</li>
+            <li>☐ Gast ontvangen, incheckformulier ingevuld</li>
+            <li>☐ Locatie na afloop gereinigd volgens protocol</li>
+            <li>☐ Overdracht/bijzonderheden genoteerd</li>
+            <li>☐ Locatie afgesloten</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="hb-chapter">
+        <summary>14. Documenten &amp; protocollen</summary>
+        <div class="hb-body">
+          <p>Upload hier extra referentiedocumenten (bijv. uitgebreid HACCP-plan, schoonmaakschema, leveranciersinstructies). Deze zijn gedeeld en zichtbaar voor het hele team.</p>
+          <div class="hb-doclist" id="hbDocList"></div>
+          <form class="hb-doc-form" onsubmit="return addHandboekDoc(event)">
+            <input type="text" id="hbDocTitel" placeholder="Titel document (bijv. HACCP-plan)" required>
+            <input type="file" id="hbDocFile" accept="application/pdf,image/*">
+            <button class="btn sm" type="submit">Toevoegen</button>
+          </form>
+        </div>
+      </details>
     </section>
 
   </div>
@@ -1092,6 +1451,124 @@ function updateDocumentLinks(){
   document.getElementById('c_voorwaarden_meta').textContent = vw ? `Versie: ${vw.bestandsnaam}` : 'Nog niet geüpload.';
 }
 
+/* ================= HANDBOEK: FOTO'S & DOCUMENTEN ================= */
+function hbFotoId(key){ return `handboek_foto_${key}`; }
+function findHbFoto(key){ return documenten.find(d=>d.id===hbFotoId(key)); }
+
+function renderHandboekFotos(){
+  document.querySelectorAll('.hb-photo-slot').forEach(slot=>{
+    const key = slot.dataset.key;
+    const label = slot.dataset.label;
+    const foto = findHbFoto(key);
+    const mime = (foto && foto.mimetype) ? foto.mimetype : 'image/jpeg';
+    slot.innerHTML = `
+      <div class="hb-photo-inner" onclick="document.getElementById('hbfile_${key}').click()">
+        ${foto ? `<img src="data:${mime};base64,${foto.data}" alt="${escapeHtml(label)}">` : `<div class="hb-placeholder"><span class="plus">+</span>Foto toevoegen</div>`}
+      </div>
+      <div class="hb-photo-caption">${escapeHtml(label)}</div>
+      <div class="hb-photo-actions">
+        <button type="button" onclick="event.stopPropagation();document.getElementById('hbfile_${key}').click()">${foto ? 'Vervangen' : 'Uploaden'}</button>
+        ${foto ? `<button type="button" onclick="event.stopPropagation();removeHandboekFoto('${key}')">Verwijderen</button>` : ''}
+      </div>
+      <input type="file" id="hbfile_${key}" accept="image/*" style="display:none" onchange="uploadHandboekFoto('${key}', this)">
+    `;
+  });
+}
+
+async function uploadHandboekFoto(key, inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  if(file.size > 4.5*1024*1024){ alert('Foto is te groot (max ~4,5 MB).'); return; }
+  try{
+    const base64 = await fileToBase64(file);
+    await sbUpsert('documenten', {
+      id: hbFotoId(key), type:'handboek_foto', locatie:key,
+      bestandsnaam:file.name, data:base64, mimetype:file.type,
+      updated_at:new Date().toISOString(),
+    });
+    await loadDocumenten();
+    renderHandboekFotos();
+  }catch(err){
+    console.error('Fout bij uploaden foto:', err);
+    alert('Uploaden is niet gelukt: ' + err.message);
+  }
+}
+
+async function removeHandboekFoto(key){
+  if(!confirm('Foto verwijderen?')) return;
+  try{
+    await sb(`documenten?id=eq.${hbFotoId(key)}`, { method:'DELETE', prefer:'return=minimal' });
+    await loadDocumenten();
+    renderHandboekFotos();
+  }catch(err){
+    console.error('Fout bij verwijderen foto:', err);
+    alert('Verwijderen is niet gelukt: ' + err.message);
+  }
+}
+
+function renderHandboekDocs(){
+  const wrap = document.getElementById('hbDocList');
+  if(!wrap) return;
+  const docs = documenten.filter(d=>d.type==='handboek_doc').sort((a,b)=> (b.updated_at||'').localeCompare(a.updated_at||''));
+  wrap.innerHTML = docs.length ? docs.map(d=>`
+    <div class="hb-doc-item">
+      <a href="#" onclick="viewHandboekDoc('${d.id}');return false;">📄 ${escapeHtml(d.locatie)}</a>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--ink-soft);font-size:11.5px;">${d.bestandsnaam ? escapeHtml(d.bestandsnaam) : ''}</span>
+        <button type="button" class="btn danger sm" style="padding:3px 8px;" onclick="deleteHandboekDoc('${d.id}')">✕</button>
+      </div>
+    </div>
+  `).join('') : '<p class="hint">Nog geen documenten geüpload.</p>';
+}
+
+async function addHandboekDoc(e){
+  e.preventDefault();
+  const titelEl = document.getElementById('hbDocTitel');
+  const fileEl = document.getElementById('hbDocFile');
+  const titel = titelEl.value.trim();
+  const file = fileEl.files[0];
+  if(!titel || !file){ alert('Vul een titel in en kies een bestand.'); return false; }
+  if(file.size > 4.5*1024*1024){ alert('Bestand is te groot (max ~4,5 MB).'); return false; }
+  try{
+    const base64 = await fileToBase64(file);
+    await sbUpsert('documenten', {
+      id: `handboek_doc_${Date.now()}`, type:'handboek_doc', locatie:titel,
+      bestandsnaam:file.name, data:base64, mimetype:file.type,
+      updated_at:new Date().toISOString(),
+    });
+    await loadDocumenten();
+    renderHandboekDocs();
+    titelEl.value=''; fileEl.value='';
+  }catch(err){
+    console.error('Fout bij uploaden document:', err);
+    alert('Uploaden is niet gelukt: ' + err.message);
+  }
+  return false;
+}
+
+function viewHandboekDoc(id){
+  const doc = documenten.find(d=>d.id===id);
+  if(!doc) return;
+  const mime = doc.mimetype || 'application/pdf';
+  const byteChars = atob(doc.data);
+  const byteNumbers = new Array(byteChars.length);
+  for(let i=0;i<byteChars.length;i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  const blob = new Blob([new Uint8Array(byteNumbers)], { type:mime });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+async function deleteHandboekDoc(id){
+  if(!confirm('Dit document verwijderen?')) return;
+  try{
+    await sb(`documenten?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' });
+    await loadDocumenten();
+    renderHandboekDocs();
+  }catch(err){
+    console.error('Fout bij verwijderen document:', err);
+    alert('Verwijderen is niet gelukt: ' + err.message);
+  }
+}
+
 /* ================= HANDTEKENING ================= */
 let sigCtx, sigDrawing = false, sigHasContent = false;
 function setupSignaturePad(){
@@ -1655,6 +2132,8 @@ function renderAll(){
   updateCheckinManagerOptions();
   updateDocumentLinks();
   buildResKoppelSelect();
+  renderHandboekFotos();
+  renderHandboekDocs();
 }
 
 /* ================= INIT ================= */
