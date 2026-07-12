@@ -215,8 +215,13 @@
         <h2>Personeelsleden</h2>
         <p class="desc">Deze lijst wordt gebruikt om reserveringen aan toe te wijzen.</p>
         <div id="staffChips"></div>
-        <form onsubmit="return addStaffMember(event)" style="display:flex;gap:8px;margin-top:12px;max-width:360px;">
-          <input type="text" id="newStaffName" placeholder="Naam nieuw personeelslid" required>
+        <form onsubmit="return addStaffMember(event)" style="display:flex;gap:8px;margin-top:12px;max-width:520px;flex-wrap:wrap;">
+          <input type="text" id="newStaffName" placeholder="Naam nieuw personeelslid" required style="flex:1;min-width:160px;">
+          <select id="newStaffLocatie" style="flex:1;min-width:160px;">
+            <option value="">Alle locaties</option>
+            <option value="angie">Suite Angie — Almere</option>
+            <option value="lelystad">Malina (Jacuzzi + Deluxe) — Lelystad</option>
+          </select>
           <button class="btn sm" type="submit">Toevoegen</button>
         </form>
       </div>
@@ -225,14 +230,42 @@
     <!-- ================= INCHECKFORMULIER ================= -->
     <section class="section" id="incheck">
       <div class="card">
+        <h2>Huisregels &amp; algemene voorwaarden beheren</h2>
+        <p class="desc">Upload hier de actuele PDF's. Gasten zien bij het invullen van het formulier automatisch de meest recente versie voor hun locatie.</p>
+        <div class="formgrid3">
+          <div>
+            <label>Huisregels — Almere</label>
+            <input type="file" id="doc_huisregels_almere" accept="application/pdf">
+            <button class="btn secondary sm" type="button" style="margin-top:6px;" onclick="uploadDocument('huisregels','almere','doc_huisregels_almere')">Uploaden</button>
+            <div class="hint" id="meta_huisregels_almere" style="margin-top:4px;"></div>
+          </div>
+          <div>
+            <label>Huisregels — Lelystad</label>
+            <input type="file" id="doc_huisregels_lelystad" accept="application/pdf">
+            <button class="btn secondary sm" type="button" style="margin-top:6px;" onclick="uploadDocument('huisregels','lelystad','doc_huisregels_lelystad')">Uploaden</button>
+            <div class="hint" id="meta_huisregels_lelystad" style="margin-top:4px;"></div>
+          </div>
+          <div>
+            <label>Algemene voorwaarden</label>
+            <input type="file" id="doc_voorwaarden_algemeen" accept="application/pdf">
+            <button class="btn secondary sm" type="button" style="margin-top:6px;" onclick="uploadDocument('voorwaarden','algemeen','doc_voorwaarden_algemeen')">Uploaden</button>
+            <div class="hint" id="meta_voorwaarden_algemeen" style="margin-top:4px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <h2>Online incheckformulier</h2>
         <p class="desc">Vul het formulier in bij aankomst van de gast. Opslaan bewaart het formulier gedeeld; versturen opent je e-mailprogramma met de gegevens klaar om te verzenden.</p>
         <form id="checkinForm" onsubmit="return false;">
           <div class="fieldset-label">Reserveringsgegevens</div>
           <div class="formgrid3">
-            <div><label>Locatie</label><select id="c_locatie"></select></div>
+            <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks();"></select></div>
             <div><label>Datum</label><input type="date" id="c_datum"></div>
             <div><label>Reserveringsnr.</label><input type="text" id="c_resnr" placeholder="optioneel"></div>
+          </div>
+          <div class="formgrid3">
+            <div><label>Locatiemanager</label><select id="c_manager"></select></div>
           </div>
           <div class="formgrid3">
             <div><label>Aantal personen</label><input type="number" id="c_personen" min="1" value="2"></div>
@@ -267,9 +300,32 @@
           <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
             <input type="checkbox" id="c_lid" style="width:auto;"> Gast wil gratis lid worden (10% korting)
           </label>
-          <label style="display:flex;align-items:center;gap:8px;">
-            <input type="checkbox" id="c_akkoord" style="width:auto;"> Gast heeft de huisregels doorgenomen en gaat akkoord
-          </label>
+
+          <div class="fieldset-label">Huisregels &amp; algemene voorwaarden</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px;">
+            <div style="flex:1;min-width:220px;">
+              <button class="btn secondary sm" type="button" onclick="viewDocument('huisregels')">📄 Huisregels bekijken</button>
+              <div class="hint" id="c_huisregels_meta" style="margin-top:4px;"></div>
+              <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <input type="checkbox" id="c_akkoord" style="width:auto;"> Gast heeft de huisregels doorgenomen en gaat akkoord
+              </label>
+            </div>
+            <div style="flex:1;min-width:220px;">
+              <button class="btn secondary sm" type="button" onclick="viewDocument('voorwaarden')">📄 Algemene voorwaarden bekijken</button>
+              <div class="hint" id="c_voorwaarden_meta" style="margin-top:4px;"></div>
+              <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <input type="checkbox" id="c_akkoord_voorwaarden" style="width:auto;"> Gast gaat akkoord met de algemene voorwaarden
+              </label>
+            </div>
+          </div>
+
+          <div class="fieldset-label">Handtekening gast</div>
+          <div style="border:1.5px solid var(--line);border-radius:10px;background:#fff;display:inline-block;">
+            <canvas id="c_sigpad" width="420" height="150" style="display:block;touch-action:none;cursor:crosshair;"></canvas>
+          </div>
+          <div style="margin-top:6px;">
+            <button class="btn secondary sm" type="button" onclick="clearSignature()">Handtekening wissen</button>
+          </div>
 
           <label>Opmerkingen</label>
           <textarea id="c_opmerking" placeholder="Overige opmerkingen, afspraken met de gast, etc."></textarea>
@@ -397,7 +453,12 @@ async function sb(path, options={}){
 let reservations = [];
 let staff = [];
 let checkins = [];
+let documenten = [];
 let activeLocation = '';
+function locGroup(locatieId){
+  // Almere = angie; Lelystad = jacuzzi + deluxe (zelfde pand, Birdielaan 4)
+  return locatieId === 'angie' ? 'almere' : 'lelystad';
+}
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
@@ -417,11 +478,32 @@ function escapeHtml(str){ const d = document.createElement('div'); d.textContent
 async function loadReservations(){ reservations = await sb('reservations?select=*&order=checkindatum.desc') || []; }
 async function loadStaff(){ staff = await sb('staff?select=*&order=naam.asc') || []; }
 async function loadCheckins(){ checkins = await sb('checkins?select=*&order=created_at.desc') || []; }
+async function loadDocumenten(){ documenten = await sb('documenten?select=*') || []; }
+
+async function sbUpsert(table, row){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=id`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=representation',
+    },
+    body: JSON.stringify(row)
+  });
+  if(!res.ok){
+    let detail = '';
+    try{ detail = (await res.json()).message; }catch(e){}
+    throw new Error(detail || `Serverfout (${res.status})`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
 
 async function loadAll(){
   const statusBox = document.getElementById('loadStatus');
   try{
-    await Promise.all([loadReservations(), loadStaff(), loadCheckins()]);
+    await Promise.all([loadReservations(), loadStaff(), loadCheckins(), loadDocumenten()]);
     statusBox.style.display = 'none';
   }catch(err){
     console.error('Fout bij laden vanuit database:', err);
@@ -768,19 +850,26 @@ function deleteReservationFromModal(){
 }
 
 /* ================= PERSONEEL ================= */
+function staffLocatieLabel(locatie){
+  if(locatie==='angie') return 'Almere';
+  if(locatie==='lelystad') return 'Lelystad';
+  return 'Alle locaties';
+}
 function renderStaffChips(){
   const wrap = document.getElementById('staffChips');
-  wrap.innerHTML = staff.map(s=>`<span class="chip">${escapeHtml(s.naam)} <button onclick="removeStaffMember('${s.id}')">✕</button></span>`).join('')
+  wrap.innerHTML = staff.map(s=>`<span class="chip">${escapeHtml(s.naam)} <em style="opacity:.65;font-style:normal;font-size:11px;">(${staffLocatieLabel(s.locatie)})</em> <button onclick="removeStaffMember('${s.id}')">✕</button></span>`).join('')
     || '<p class="hint">Nog geen personeelsleden.</p>';
 }
 async function addStaffMember(e){
   e.preventDefault();
   const input = document.getElementById('newStaffName');
+  const locatieSel = document.getElementById('newStaffLocatie');
   const naam = input.value.trim();
   if(!naam) return false;
   try{
-    await sb('staff', { method:'POST', body: JSON.stringify({ id:'p'+Date.now(), naam }) });
+    await sb('staff', { method:'POST', body: JSON.stringify({ id:'p'+Date.now(), naam, locatie: locatieSel.value || null }) });
     input.value = '';
+    locatieSel.value = '';
     await loadStaff();
     renderStaffChips();
     renderReservationsTable();
@@ -807,12 +896,133 @@ async function removeStaffMember(id){
   }
 }
 
+/* ================= DOCUMENTEN (huisregels & voorwaarden) ================= */
+function docId(type, groep){ return `${type}_${groep}`; }
+function findDocument(type, groep){ return documenten.find(d=>d.id===docId(type,groep)); }
+
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadDocument(type, groep, inputId){
+  const input = document.getElementById(inputId);
+  const file = input.files[0];
+  const metaEl = document.getElementById(`meta_${type}_${groep}`);
+  if(!file){ alert('Kies eerst een PDF-bestand.'); return; }
+  if(file.size > 4.5*1024*1024){ alert('Bestand is te groot (max ~4,5 MB).'); return; }
+  metaEl.textContent = 'Bezig met uploaden...';
+  try{
+    const base64 = await fileToBase64(file);
+    await sbUpsert('documenten', {
+      id: docId(type, groep),
+      type, locatie: groep,
+      bestandsnaam: file.name,
+      data: base64,
+      updated_at: new Date().toISOString(),
+    });
+    await loadDocumenten();
+    renderDocumentMeta();
+    updateDocumentLinks();
+    input.value = '';
+  }catch(err){
+    console.error('Fout bij uploaden document:', err);
+    metaEl.textContent = '✕ Uploaden mislukt: ' + err.message;
+  }
+}
+
+function renderDocumentMeta(){
+  ['huisregels_almere','huisregels_lelystad','voorwaarden_algemeen'].forEach(key=>{
+    const [type, ...rest] = key.split('_');
+    const groep = rest.join('_');
+    const doc = findDocument(type, groep);
+    const el = document.getElementById(`meta_${key}`);
+    if(!el) return;
+    el.textContent = doc
+      ? `Huidig: ${doc.bestandsnaam} (${new Date(doc.updated_at).toLocaleDateString('nl-NL')})`
+      : 'Nog geen bestand geüpload.';
+  });
+}
+
+function viewDocument(type){
+  const locatie = document.getElementById('c_locatie').value;
+  const groep = type === 'voorwaarden' ? 'algemeen' : locGroup(locatie);
+  const doc = findDocument(type, groep);
+  if(!doc){ alert('Er is nog geen ' + (type==='huisregels' ? 'huisregels-document' : 'algemene voorwaarden-document') + ' geüpload voor deze locatie.'); return; }
+  const byteChars = atob(doc.data);
+  const byteNumbers = new Array(byteChars.length);
+  for(let i=0;i<byteChars.length;i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  const blob = new Blob([new Uint8Array(byteNumbers)], { type:'application/pdf' });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+function updateDocumentLinks(){
+  const locatie = document.getElementById('c_locatie').value;
+  const groep = locGroup(locatie);
+  const hr = findDocument('huisregels', groep);
+  const vw = findDocument('voorwaarden', 'algemeen');
+  document.getElementById('c_huisregels_meta').textContent = hr ? `Versie: ${hr.bestandsnaam}` : 'Nog niet geüpload voor deze locatie.';
+  document.getElementById('c_voorwaarden_meta').textContent = vw ? `Versie: ${vw.bestandsnaam}` : 'Nog niet geüpload.';
+}
+
+/* ================= HANDTEKENING ================= */
+let sigCtx, sigDrawing = false, sigHasContent = false;
+function setupSignaturePad(){
+  const canvas = document.getElementById('c_sigpad');
+  sigCtx = canvas.getContext('2d');
+  sigCtx.lineWidth = 2;
+  sigCtx.lineCap = 'round';
+  sigCtx.strokeStyle = '#2b2620';
+
+  function pos(e){
+    const rect = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX - rect.left, y: p.clientY - rect.top };
+  }
+  function start(e){ sigDrawing = true; sigHasContent = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); e.preventDefault(); }
+  function move(e){ if(!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); e.preventDefault(); }
+  function end(){ sigDrawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, { passive:false });
+  canvas.addEventListener('touchmove', move, { passive:false });
+  canvas.addEventListener('touchend', end);
+}
+function clearSignature(){
+  const canvas = document.getElementById('c_sigpad');
+  sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  sigHasContent = false;
+}
+function getSignatureData(){
+  if(!sigHasContent) return null;
+  return document.getElementById('c_sigpad').toDataURL('image/png');
+}
+
+/* ================= LOCATIEMANAGER ================= */
+function updateCheckinManagerOptions(){
+  const locatie = document.getElementById('c_locatie').value;
+  const groep = locGroup(locatie);
+  const sel = document.getElementById('c_manager');
+  const relevant = staff.filter(s => !s.locatie || s.locatie === groep);
+  sel.innerHTML = '<option value="">— Kies locatiemanager —</option>' +
+    relevant.map(s=>`<option value="${s.id}">${escapeHtml(s.naam)}</option>`).join('');
+}
+
 /* ================= INCHECKFORMULIER ================= */
 function buildCheckinForm(){
   fillLocationSelect(document.getElementById('c_locatie'), false);
   document.getElementById('c_datum').value = todayStr();
   const wrap = document.getElementById('c_arrangementen');
   wrap.innerHTML = CHECKIN_ARRANGEMENTEN.map((a,i)=>`<label><input type="checkbox" value="${escapeHtml(a)}" id="carr_${i}"> ${escapeHtml(a)}</label>`).join('');
+  updateCheckinManagerOptions();
+  updateDocumentLinks();
+  if(!sigCtx) setupSignaturePad();
 }
 function updateCheckinNog(){
   const totaal = parseFloat(document.getElementById('c_totaal').value || 0);
@@ -845,12 +1055,20 @@ function collectCheckinData(){
     email: document.getElementById('c_email').value.trim(),
     lid: document.getElementById('c_lid').checked,
     akkoord: document.getElementById('c_akkoord').checked,
+    akkoord_voorwaarden: document.getElementById('c_akkoord_voorwaarden').checked,
+    manager: document.getElementById('c_manager').value || null,
+    handtekening: getSignatureData(),
     opmerkingen: document.getElementById('c_opmerking').value.trim(),
   };
 }
 async function saveCheckin(){
   const data = collectCheckinData();
   const statusEl = document.getElementById('checkinStatus');
+  if(!data.handtekening){
+    statusEl.textContent = '✕ Laat de gast eerst tekenen in het handtekeningveld.';
+    statusEl.className = 'status err';
+    throw new Error('Handtekening ontbreekt');
+  }
   statusEl.textContent = 'Bezig met opslaan...';
   statusEl.className = 'status';
   try{
@@ -871,7 +1089,7 @@ function checkinEmailBody(data){
   return [
     `Incheckformulier — ${locName(data.locatie)}`,
     ``,
-    `Datum: ${data.datum}    Reserveringsnr.: ${data.resnr || '-'}`,
+    `Datum: ${data.datum}    Reserveringsnr.: ${data.resnr || '-'}    Locatiemanager: ${staffNameById(data.manager) || '-'}`,
     `Aantal personen: ${data.personen}    In-check: ${data.incheck}    Uit-check: ${data.uitcheck}`,
     `Totaalbedrag: ${euro(data.totaal)}    Aanbetaald: ${euro(data.aanbetaald)}    Nog te betalen: ${euro(data.restant)}`,
     `Betaalwijze: ${data.betaalwijze}`,
@@ -885,6 +1103,8 @@ function checkinEmailBody(data){
     ``,
     `Gratis lid worden: ${data.lid ? 'Ja' : 'Nee'}`,
     `Akkoord huisregels: ${data.akkoord ? 'Ja' : 'Nee'}`,
+    `Akkoord algemene voorwaarden: ${data.akkoord_voorwaarden ? 'Ja' : 'Nee'}`,
+    `Handtekening: ${data.handtekening ? 'Ondertekend (zie opgeslagen formulier in dashboard)' : 'Niet ondertekend'}`,
     ``,
     `Opmerkingen: ${data.opmerkingen || '-'}`,
   ].join('\n');
@@ -907,6 +1127,7 @@ async function sendCheckinEmail(){
 function clearCheckinForm(){
   document.getElementById('checkinForm').reset();
   buildCheckinForm();
+  clearSignature();
   document.getElementById('c_nog').value = euro(0);
   document.getElementById('checkinStatus').textContent = '';
 }
@@ -937,6 +1158,9 @@ function renderAll(){
   renderReservationsTable();
   renderStaffChips();
   renderCheckinTable();
+  renderDocumentMeta();
+  updateCheckinManagerOptions();
+  updateDocumentLinks();
 }
 
 /* ================= INIT ================= */
