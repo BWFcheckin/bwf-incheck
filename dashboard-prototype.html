@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bed & Wellness Flevoland — Reserveringen (Dashboard Prototype)</title>
+<style>
+  :root{
+    --gold:#C9A84C; --gold-dark:#a98a34; --gold-soft:#f2ead0;
+    --cream:#FAF6EC; --ink:#2b2620; --ink-soft:#7a6f5c; --line:#e7ddc4;
+    --ok:#3f7d52; --ok-bg:#e9f3ec; --err:#b0483a; --err-bg:#fbeae7; --warn:#a97c2f; --warn-bg:#f7ecd6;
+    --loc-angie:#C9A84C; --loc-jacuzzi:#6f8ea6; --loc-deluxe:#b5766a;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Segoe UI',Arial,sans-serif; }
+  h1,h2,h3{ font-family:Georgia,'Times New Roman',serif; font-weight:600; margin:0; }
+  .app{ display:flex; min-height:100vh; }
+
+  .sidebar{ width:220px; flex-shrink:0; background:#211d17; color:#e9e2d0; padding:22px 14px; display:flex; flex-direction:column; gap:2px; }
+  .sidebar .brand{ padding:6px 10px 18px; }
+  .sidebar .brand strong{ font-family:Georgia,serif; color:var(--gold); font-size:16px; display:block; }
+  .sidebar .brand span{ font-size:11px; color:#a99f8a; }
+  .nav-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; font-size:13.5px; cursor:pointer; color:#cfc6b0; transition:.12s; }
+  .nav-item:hover{ background:#2c2820; color:#fff; }
+  .nav-item.active{ background:var(--gold); color:#211d17; font-weight:600; }
+  .nav-icon{ width:18px; text-align:center; }
+
+  .main{ flex:1; padding:26px 32px 70px; max-width:1180px; }
+  header.topbar{ display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid var(--gold); padding-bottom:14px; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  header.topbar h1{ font-size:22px; color:var(--gold-dark); }
+  header.topbar p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
+  .sharednote{ font-size:11.5px; color:var(--gold-dark); background:var(--gold-soft); padding:6px 12px; border-radius:20px; }
+
+  .loadstatus{ display:none; background:var(--err-bg); color:var(--err); border:1px solid var(--err); border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:16px; }
+
+  .loc-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px; }
+  .loc-tab{ font-size:12.5px; padding:7px 14px; border-radius:20px; border:1.5px solid var(--line); background:#fff; cursor:pointer; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+  .loc-tab .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .loc-tab.active{ border-color:var(--gold-dark); background:var(--gold-soft); color:var(--ink); font-weight:600; }
+
+  .section{ display:none; }
+  .section.active{ display:block; }
+
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+  @media(max-width:900px){ .grid3{ grid-template-columns:1fr; } }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:16px; }
+  .card h2{ font-size:16px; color:var(--gold-dark); margin-bottom:2px; }
+  .card p.desc{ font-size:12.5px; color:var(--ink-soft); margin:2px 0 12px; }
+  .stat .num{ font-family:Georgia,serif; font-size:27px; color:var(--gold-dark); }
+  .stat .lbl{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+
+  .btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; background:var(--gold); color:#fff; border:none; border-radius:10px; padding:9px 15px; font-size:13px; font-weight:600; transition:.15s; }
+  .btn:hover{ background:var(--gold-dark); }
+  .btn.secondary{ background:#fff; color:var(--gold-dark); border:1.5px solid var(--gold); }
+  .btn.secondary:hover{ background:var(--cream); }
+  .btn.sm{ padding:6px 11px; font-size:12px; border-radius:8px; }
+  .btn.danger{ background:#fff; color:var(--err); border:1.5px solid var(--err); }
+  .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.8px; }
+  th,td{ text-align:left; padding:8px 7px; border-bottom:1px solid var(--line); }
+  th{ color:var(--gold-dark); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+  tr:last-child td{ border-bottom:none; }
+
+  .pill{ font-size:10.5px; padding:3px 9px; border-radius:999px; font-weight:600; display:inline-block; }
+  .pill.ok{ background:var(--ok-bg); color:var(--ok); }
+  .pill.warn{ background:var(--warn-bg); color:var(--warn); }
+  .pill.err{ background:var(--err-bg); color:var(--err); }
+  .locbadge{ font-size:10.5px; padding:3px 9px; border-radius:999px; font-weight:600; color:#fff; display:inline-block; white-space:nowrap; }
+
+  .filterbar{ display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .filterbar select, .filterbar input{ padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-size:12.8px; background:#fff; }
+
+  /* month calendar */
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-head .navbtn{ background:#fff; border:1px solid var(--line); border-radius:8px; padding:5px 11px; cursor:pointer; font-size:14px; color:var(--gold-dark); }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+  .cal-grid .dow{ text-align:center; font-size:11px; color:var(--ink-soft); font-weight:600; padding:4px 0; }
+  .cal-cell{ min-height:78px; border:1px solid var(--line); border-radius:8px; padding:5px 6px; cursor:pointer; background:var(--cream); transition:.1s; }
+  .cal-cell:hover{ border-color:var(--gold); }
+  .cal-cell.empty{ background:transparent; border-color:transparent; cursor:default; }
+  .cal-cell.today{ border-color:var(--gold-dark); border-width:2px; }
+  .cal-cell .dnum{ font-size:12px; font-weight:700; color:var(--ink); }
+  .cal-cell .dots{ display:flex; gap:3px; flex-wrap:wrap; margin-top:5px; }
+  .cal-cell .dots .dot{ width:7px; height:7px; border-radius:50%; }
+  .cal-cell .cnt{ font-size:10.5px; color:var(--ink-soft); margin-top:2px; }
+
+  /* day view */
+  .day-picker{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .res-card{ border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; background:#fff; }
+  .res-card .rc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .res-card .rc-name{ font-family:Georgia,serif; font-size:15px; color:var(--ink); font-weight:700; }
+  .res-card .rc-meta{ font-size:12px; color:var(--ink-soft); margin-top:3px; }
+  .res-card .rc-actions{ display:flex; gap:6px; }
+  .res-card .rc-money{ margin-top:8px; font-size:12.5px; display:flex; gap:16px; flex-wrap:wrap; }
+  .res-card .rc-money b{ color:var(--gold-dark); }
+  .res-card .rc-note{ margin-top:6px; font-size:12px; color:var(--ink-soft); font-style:italic; }
+
+  form label{ display:block; font-size:11.5px; color:var(--ink-soft); margin:9px 0 3px; }
+  form input, form select, form textarea{ width:100%; padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:13px; font-family:inherit; }
+  form textarea{ resize:vertical; min-height:56px; }
+  .formgrid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  .formgrid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 14px; }
+  .fieldset-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--gold-dark); margin-top:16px; border-top:1px solid var(--line); padding-top:10px; font-weight:600; }
+  .hint{ font-size:11.5px; color:#a89b7c; margin-top:8px; line-height:1.5; }
+  .status{ margin-top:10px; font-size:12.5px; font-weight:600; }
+  .status.ok{ color:var(--ok); }
+  .status.err{ color:var(--err); }
+
+  .modal-bg{ display:none; position:fixed; inset:0; background:rgba(43,38,32,.45); align-items:center; justify-content:center; z-index:50; padding:16px; overflow-y:auto; }
+  .modal-bg.open{ display:flex; }
+  .modal{ background:#fff; border-radius:16px; padding:24px; width:100%; max-width:560px; box-shadow:0 20px 60px rgba(0,0,0,.25); max-height:88vh; overflow:auto; margin:auto; }
+  .modal h3{ color:var(--gold-dark); margin-bottom:4px; font-size:17px; }
+  .modal p.sub{ font-size:12px; color:var(--ink-soft); margin-bottom:12px; }
+  .modal .close{ float:right; cursor:pointer; font-size:18px; color:#a89b7c; }
+
+  .chip{ display:inline-flex; align-items:center; gap:7px; background:var(--cream); border:1px solid var(--line); border-radius:999px; padding:6px 8px 6px 13px; font-size:12.5px; margin:0 6px 6px 0; }
+  .chip button{ border:none; background:var(--err-bg); color:var(--err); width:18px; height:18px; border-radius:50%; cursor:pointer; font-size:11px; line-height:1; }
+  .checklist{ display:grid; grid-template-columns:1fr 1fr; gap:2px 14px; font-size:12.5px; margin:8px 0; }
+  .checklist label{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink); margin:4px 0; }
+  .checklist input[type=checkbox]{ width:auto; accent-color:var(--gold); }
+
+  @media print{
+    .sidebar, header.topbar, .loc-tabs, .grid3, .btn{ display:none !important; }
+    .main{ padding:0; max-width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="brand"><strong>Bed &amp; Wellness</strong><span>Flevoland — Reserveringen</span></div>
+    <div class="nav-item active" data-target="maand"><span class="nav-icon">📅</span> Maandoverzicht</div>
+    <div class="nav-item" data-target="dag"><span class="nav-icon">🗓️</span> Dagoverzicht</div>
+    <div class="nav-item" data-target="reserveringen"><span class="nav-icon">🛎️</span> Reserveringen</div>
+    <div class="nav-item" data-target="personeel"><span class="nav-icon">🧑‍🤝‍🧑</span> Personeel</div>
+    <div class="nav-item" data-target="incheck"><span class="nav-icon">🖊️</span> Incheckformulier</div>
+  </div>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Maandoverzicht</h1>
+        <p>Reserveringenoverzicht — Suite Angie, Malina Jacuzzi Suite &amp; Malina Deluxe Zwembad Suite</p>
+      </div>
+      <div class="sharednote">🗄️ Gedeeld via database — wijzigingen zijn direct zichtbaar voor het hele team, overal</div>
+    </header>
+
+    <div class="loadstatus" id="loadStatus"></div>
+
+    <div class="grid3">
+      <div class="card stat"><div class="num" id="statMaand">0</div><div class="lbl">Reserveringen deze maand</div></div>
+      <div class="card stat"><div class="num" id="statVandaag">0</div><div class="lbl">Vandaag actief</div></div>
+      <div class="card stat"><div class="num" id="statOpenstaand">€ 0</div><div class="lbl">Totaal nog te ontvangen</div></div>
+    </div>
+
+    <div class="loc-tabs" id="locTabs"></div>
+
+    <!-- ================= MAANDOVERZICHT ================= -->
+    <section class="section active" id="maand">
+      <div class="card">
+        <div class="cal-head">
+          <button class="navbtn" onclick="changeMonth(-1)">‹</button>
+          <h2 id="calLabel">—</h2>
+          <button class="navbtn" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="hint">Klik op een dag om het dagoverzicht te openen.</div>
+      </div>
+    </section>
+
+    <!-- ================= DAGOVERZICHT ================= -->
+    <section class="section" id="dag">
+      <div class="card">
+        <div class="day-picker">
+          <label style="margin:0;">Datum:</label>
+          <input type="date" id="dayPicker" onchange="onDayPick()">
+          <button class="btn secondary sm" onclick="shiftDay(-1)">‹ Vorige dag</button>
+          <button class="btn secondary sm" onclick="shiftDay(1)">Volgende dag ›</button>
+          <button class="btn sm" style="margin-left:auto;" onclick="openResModal(null, dayPickerValue())">+ Nieuwe reservering</button>
+        </div>
+        <div id="dayList"></div>
+      </div>
+    </section>
+
+    <!-- ================= RESERVERINGEN ================= -->
+    <section class="section" id="reserveringen">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h2>Alle reserveringen</h2>
+            <p class="desc">Handmatig ingevoerde reserveringen — doorzoekbaar en filterbaar.</p>
+          </div>
+          <button class="btn" onclick="openResModal(null)">+ Nieuwe reservering</button>
+        </div>
+        <div class="filterbar">
+          <input type="text" id="resSearch" placeholder="Zoek op naam..." oninput="renderReservationsTable()">
+          <input type="date" id="resFrom" onchange="renderReservationsTable()">
+          <input type="date" id="resTo" onchange="renderReservationsTable()">
+        </div>
+        <table>
+          <thead><tr>
+            <th>Naam</th><th>Locatie</th><th>Check-in</th><th>Check-uit</th><th>Arrangement</th>
+            <th>Totaal</th><th>Betaald</th><th>Nog te betalen</th><th>Toegewezen</th><th></th>
+          </tr></thead>
+          <tbody id="resTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= PERSONEEL ================= -->
+    <section class="section" id="personeel">
+      <div class="card">
+        <h2>Personeelsleden</h2>
+        <p class="desc">Deze lijst wordt gebruikt om reserveringen aan toe te wijzen.</p>
+        <div id="staffChips"></div>
+        <form onsubmit="return addStaffMember(event)" style="display:flex;gap:8px;margin-top:12px;max-width:360px;">
+          <input type="text" id="newStaffName" placeholder="Naam nieuw personeelslid" required>
+          <button class="btn sm" type="submit">Toevoegen</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ================= INCHECKFORMULIER ================= -->
+    <section class="section" id="incheck">
+      <div class="card">
+        <h2>Online incheckformulier</h2>
+        <p class="desc">Vul het formulier in bij aankomst van de gast. Opslaan bewaart het formulier gedeeld; versturen opent je e-mailprogramma met de gegevens klaar om te verzenden.</p>
+        <form id="checkinForm" onsubmit="return false;">
+          <div class="fieldset-label">Reserveringsgegevens</div>
+          <div class="formgrid3">
+            <div><label>Locatie</label><select id="c_locatie"></select></div>
+            <div><label>Datum</label><input type="date" id="c_datum"></div>
+            <div><label>Reserveringsnr.</label><input type="text" id="c_resnr" placeholder="optioneel"></div>
+          </div>
+          <div class="formgrid3">
+            <div><label>Aantal personen</label><input type="number" id="c_personen" min="1" value="2"></div>
+            <div><label>In-check tijd</label><input type="time" id="c_checkin"></div>
+            <div><label>Uit-check tijd</label><input type="time" id="c_checkuit"></div>
+          </div>
+          <div class="formgrid3">
+            <div><label>Totaalbedrag (€)</label><input type="number" id="c_totaal" step="0.01" oninput="updateCheckinNog()"></div>
+            <div><label>Aanbetaald (€)</label><input type="number" id="c_aanbetaald" step="0.01" oninput="updateCheckinNog()"></div>
+            <div><label>Nog te betalen (€)</label><input type="text" id="c_nog" readonly style="background:var(--cream);"></div>
+          </div>
+          <label>Betaalwijze</label>
+          <select id="c_betaalwijze">
+            <option>iDEAL</option><option>Contant</option><option>Bankoverschrijving</option><option>Anders</option>
+          </select>
+
+          <div class="fieldset-label">Arrangementen</div>
+          <div class="checklist" id="c_arrangementen"></div>
+
+          <div class="fieldset-label">Persoonsgegevens gast</div>
+          <div class="formgrid">
+            <div><label>Voornaam</label><input type="text" id="c_voornaam"></div>
+            <div><label>Achternaam</label><input type="text" id="c_achternaam"></div>
+            <div><label>Nationaliteit</label><input type="text" id="c_nationaliteit"></div>
+            <div><label>Geboortedatum</label><input type="date" id="c_geboortedatum"></div>
+            <div><label>Woonplaats</label><input type="text" id="c_woonplaats"></div>
+            <div><label>Telefoonnummer</label><input type="text" id="c_telefoon"></div>
+          </div>
+          <label>E-mailadres gast</label>
+          <input type="email" id="c_email">
+
+          <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+            <input type="checkbox" id="c_lid" style="width:auto;"> Gast wil gratis lid worden (10% korting)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="c_akkoord" style="width:auto;"> Gast heeft de huisregels doorgenomen en gaat akkoord
+          </label>
+
+          <label>Opmerkingen</label>
+          <textarea id="c_opmerking" placeholder="Overige opmerkingen, afspraken met de gast, etc."></textarea>
+
+          <div class="fieldset-label">Versturen</div>
+          <label>E-mailadres versturen naar</label>
+          <input type="email" id="c_sendto" placeholder="bijv. info@bedenwellnessflevoland.nl">
+
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+            <button class="btn secondary" type="button" onclick="saveCheckin()">Opslaan</button>
+            <button class="btn" type="button" onclick="sendCheckinEmail()">Opslaan &amp; versturen per e-mail</button>
+            <button class="btn secondary" type="button" onclick="clearCheckinForm()">Formulier leegmaken</button>
+          </div>
+          <div class="status" id="checkinStatus"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Recent opgeslagen incheckformulieren</h2>
+        <table>
+          <thead><tr><th>Datum</th><th>Locatie</th><th>Gast</th><th>Aantal pers.</th><th>Totaal</th><th>Nog te betalen</th></tr></thead>
+          <tbody id="checkinTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ===== Reservering modal ===== -->
+<div class="modal-bg" id="resModal">
+  <div class="modal">
+    <span class="close" onclick="closeModal('resModal')">✕</span>
+    <h3 id="resModalTitle">Nieuwe reservering</h3>
+    <p class="sub">Gegevens zijn gedeeld en direct zichtbaar voor het hele team.</p>
+    <form onsubmit="return saveReservation(event)">
+      <input type="hidden" id="r_id">
+      <label>Locatie</label>
+      <select id="r_locatie"></select>
+
+      <div class="formgrid">
+        <div><label>Voornaam</label><input type="text" id="r_voornaam"></div>
+        <div><label>Achternaam</label><input type="text" id="r_achternaam"></div>
+      </div>
+
+      <div class="formgrid">
+        <div><label>Check-in datum</label><input type="date" id="r_checkindatum"></div>
+        <div><label>Check-uit datum</label><input type="date" id="r_checkuitdatum"></div>
+      </div>
+      <div class="formgrid">
+        <div><label>Check-in tijd</label><input type="time" id="r_checkintijd"></div>
+        <div><label>Check-uit tijd</label><input type="time" id="r_checkuittijd"></div>
+      </div>
+
+      <label>Arrangement</label>
+      <select id="r_arrangement"></select>
+
+      <div class="formgrid3">
+        <div><label>Totaalbedrag (€)</label><input type="number" step="0.01" id="r_totaal" oninput="updateResNog()"></div>
+        <div><label>Al betaald (€)</label><input type="number" step="0.01" id="r_betaald" oninput="updateResNog()"></div>
+        <div><label>Nog te betalen (€)</label><input type="text" id="r_nog" readonly style="background:var(--cream);"></div>
+      </div>
+
+      <label>Toegewezen aan</label>
+      <select id="r_toegewezen"></select>
+
+      <label>Opmerkingen</label>
+      <textarea id="r_opmerkingen"></textarea>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn" type="submit" id="r_saveBtn" style="flex:1;justify-content:center;">Opslaan</button>
+        <button class="btn danger" type="button" id="r_deleteBtn" style="display:none;" onclick="deleteReservationFromModal()">Verwijderen</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const LOCATIONS = [
+  { id:'angie',   naam:'Suite Angie — Almere',                    color:'var(--loc-angie)' },
+  { id:'jacuzzi', naam:'Malina Jacuzzi Suite — Lelystad',          color:'var(--loc-jacuzzi)' },
+  { id:'deluxe',  naam:'Malina Deluxe Zwembad Suite — Lelystad',   color:'var(--loc-deluxe)' },
+];
+const ARRANGEMENTEN = [
+  'Geen', 'Verjaardag', 'Verjaardag Deluxe', 'VIP Arrangement',
+  '365 Valentine / Honeymoon', 'Romantisch Arrangement',
+  'Kids Pool Party', 'Bridal / Babyshower', 'Anders'
+];
+const CHECKIN_ARRANGEMENTEN = [
+  'Geen gebruik all-inclusive','Ontbijt arrangement','Verrassingsarrangement',
+  'Verjaardag','Lunch arrangement','Eigen consumptie',
+  'Verjaardag deluxe','Chickenwings menu','Fles wijn / Prosecco',
+  'Romantisch arrangement','Luxe borrelplank','Moët en Chandon Ice Edition',
+  'VIP arrangement','Burger menu','Shisha',
+  '365 Valentine arrangement','Luxe sushi schaal','Huur massagetafel',
+  'Honeymoon overnachting','Rozenbeer cadeau','Zeeprozenboeketcadeau'
+];
+
+/* ================= SUPABASE ================= */
+const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+
+async function sb(path, options={}){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+    },
+    body: options.body
+  });
+  if(!res.ok){
+    let detail = '';
+    try{ detail = (await res.json()).message; }catch(e){}
+    throw new Error(detail || `Serverfout (${res.status})`);
+  }
+  if(res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+let reservations = [];
+let staff = [];
+let checkins = [];
+let activeLocation = '';
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function locName(id){ const l = LOCATIONS.find(x=>x.id===id); return l ? l.naam : id; }
+function locColor(id){ const l = LOCATIONS.find(x=>x.id===id); return l ? l.color : '#999'; }
+function euro(n){ n = parseFloat(n||0); return '€ ' + n.toFixed(2).replace('.', ','); }
+function fmtMoney(v){
+  if(v === null || v === undefined || v === '') return '—';
+  const n = parseFloat(v);
+  if(!isNaN(n)) return euro(n);
+  return escapeHtml(String(v));
+}
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str ?? ''; return d.innerHTML; }
+
+/* ================= DATA LADEN ================= */
+async function loadReservations(){ reservations = await sb('reservations?select=*&order=checkindatum.desc') || []; }
+async function loadStaff(){ staff = await sb('staff?select=*&order=naam.asc') || []; }
+async function loadCheckins(){ checkins = await sb('checkins?select=*&order=created_at.desc') || []; }
+
+async function loadAll(){
+  const statusBox = document.getElementById('loadStatus');
+  try{
+    await Promise.all([loadReservations(), loadStaff(), loadCheckins()]);
+    statusBox.style.display = 'none';
+  }catch(err){
+    console.error('Fout bij laden vanuit database:', err);
+    statusBox.style.display = 'block';
+    statusBox.textContent = '⚠ Kan geen verbinding maken met de database: ' + err.message + '. Controleer je internetverbinding en herlaad de pagina.';
+  }
+  renderAll();
+}
+
+/* ================= NAVIGATIE ================= */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    const target = item.dataset.target;
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(target).classList.add('active');
+    document.getElementById('pageTitle').textContent = item.textContent.trim();
+  });
+});
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ================= LOCATIE TABS ================= */
+function buildLocTabs(){
+  const wrap = document.getElementById('locTabs');
+  wrap.innerHTML = '';
+  const allTab = document.createElement('div');
+  allTab.className = 'loc-tab' + (activeLocation==='' ? ' active' : '');
+  allTab.textContent = 'Alle locaties';
+  allTab.onclick = ()=>{ activeLocation=''; buildLocTabs(); renderAll(); };
+  wrap.appendChild(allTab);
+  LOCATIONS.forEach(l=>{
+    const t = document.createElement('div');
+    t.className = 'loc-tab' + (activeLocation===l.id ? ' active' : '');
+    t.innerHTML = `<span class="dot" style="background:${l.color};"></span>${l.naam}`;
+    t.onclick = ()=>{ activeLocation=l.id; buildLocTabs(); renderAll(); };
+    wrap.appendChild(t);
+  });
+}
+
+/* ================= HELPERS ================= */
+function filteredReservations(){
+  return activeLocation ? reservations.filter(r=>r.locatie===activeLocation) : reservations.slice();
+}
+function isActiveOn(r, dateStr){
+  return dateStr >= r.checkindatum && dateStr <= r.checkuitdatum;
+}
+
+/* ================= STATS ================= */
+function renderStats(){
+  const now = new Date();
+  const ym = now.toISOString().slice(0,7);
+  const thisMonth = filteredReservations().filter(r => (r.checkindatum||'').slice(0,7)===ym);
+  document.getElementById('statMaand').textContent = thisMonth.length;
+
+  const today = todayStr();
+  const activeToday = filteredReservations().filter(r=>isActiveOn(r, today));
+  document.getElementById('statVandaag').textContent = activeToday.length;
+
+  const openstaand = filteredReservations().reduce((sum,r)=> sum + Math.max(0,(parseFloat(r.totaal||0)-parseFloat(r.betaald||0))), 0);
+  document.getElementById('statOpenstaand').textContent = euro(openstaand);
+}
+
+/* ================= MAANDOVERZICHT ================= */
+const MONTHS = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+const DOWS = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
+
+function changeMonth(delta){
+  calMonth += delta;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  if(calMonth>11){ calMonth=0; calYear++; }
+  renderMonth();
+}
+function renderMonth(){
+  document.getElementById('calLabel').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  DOWS.forEach(d=>{
+    const el = document.createElement('div');
+    el.className = 'dow'; el.textContent = d;
+    grid.appendChild(el);
+  });
+  const firstDow = (new Date(calYear, calMonth, 1).getDay() + 6) % 7; // Monday-first
+  const numDays = new Date(calYear, calMonth+1, 0).getDate();
+
+  for(let i=0;i<firstDow;i++){
+    const el = document.createElement('div'); el.className = 'cal-cell empty'; grid.appendChild(el);
+  }
+  const list = filteredReservations();
+  for(let day=1; day<=numDays; day++){
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (dateStr===todayStr() ? ' today' : '');
+    const active = list.filter(r=>isActiveOn(r, dateStr));
+    const locsPresent = [...new Set(active.map(r=>r.locatie))];
+    cell.innerHTML = `
+      <div class="dnum">${day}</div>
+      <div class="dots">${locsPresent.map(id=>`<span class="dot" style="background:${locColor(id)};"></span>`).join('')}</div>
+      ${active.length ? `<div class="cnt">${active.length} reservering${active.length>1?'en':''}</div>` : ''}
+    `;
+    cell.onclick = ()=> goToDay(dateStr);
+    grid.appendChild(cell);
+  }
+}
+
+function goToDay(dateStr){
+  document.getElementById('dayPicker').value = dateStr;
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.querySelector('.nav-item[data-target="dag"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('dag').classList.add('active');
+  document.getElementById('pageTitle').textContent = 'Dagoverzicht';
+  renderDay();
+}
+
+/* ================= DAGOVERZICHT ================= */
+function dayPickerValue(){ return document.getElementById('dayPicker').value || todayStr(); }
+function onDayPick(){ renderDay(); }
+function shiftDay(delta){
+  const d = new Date(dayPickerValue());
+  d.setDate(d.getDate()+delta);
+  document.getElementById('dayPicker').value = d.toISOString().slice(0,10);
+  renderDay();
+}
+function renderDay(){
+  const dateStr = dayPickerValue();
+  const list = filteredReservations().filter(r=>isActiveOn(r, dateStr))
+    .sort((a,b)=>(a.checkintijd||'').localeCompare(b.checkintijd||''));
+  const wrap = document.getElementById('dayList');
+  if(!list.length){
+    wrap.innerHTML = '<p class="hint">Geen reserveringen op deze dag.</p>';
+    return;
+  }
+  wrap.innerHTML = list.map(r=>{
+    const nog = Math.max(0,(parseFloat(r.totaal||0)-parseFloat(r.betaald||0)));
+    return `<div class="res-card">
+      <div class="rc-top">
+        <div>
+          <div class="rc-name">${escapeHtml(r.voornaam)} ${escapeHtml(r.achternaam)}</div>
+          <div class="rc-meta">
+            <span class="locbadge" style="background:${locColor(r.locatie)};">${escapeHtml(locName(r.locatie))}</span>
+            &nbsp; ${r.checkindatum} ${r.checkintijd||''} → ${r.checkuitdatum} ${r.checkuittijd||''}
+            &nbsp;·&nbsp; ${escapeHtml(r.arrangement||'—')}
+            ${r.toegewezen ? `&nbsp;·&nbsp; Toegewezen: <strong>${escapeHtml(staffNameById(r.toegewezen))}</strong>` : ''}
+          </div>
+        </div>
+        <div class="rc-actions">
+          <button class="btn secondary sm" onclick="openResModal('${r.id}')">Bewerken</button>
+          <button class="btn danger sm" onclick="deleteReservation('${r.id}')">Verwijderen</button>
+        </div>
+      </div>
+      <div class="rc-money">
+        <span>Totaal: <b>${euro(r.totaal)}</b></span>
+        <span>Betaald: <b>${euro(r.betaald)}</b></span>
+        <span>Nog te betalen: <b>${euro(nog)}</b></span>
+      </div>
+      ${r.opmerkingen ? `<div class="rc-note">${escapeHtml(r.opmerkingen)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ================= RESERVERINGEN TABEL ================= */
+function renderReservationsTable(){
+  const search = (document.getElementById('resSearch')?.value || '').toLowerCase();
+  const from = document.getElementById('resFrom')?.value;
+  const to = document.getElementById('resTo')?.value;
+  let list = filteredReservations();
+  if(search) list = list.filter(r => (r.voornaam+' '+r.achternaam).toLowerCase().includes(search));
+  if(from) list = list.filter(r => r.checkindatum >= from);
+  if(to) list = list.filter(r => r.checkindatum <= to);
+  list.sort((a,b)=> (b.checkindatum||'').localeCompare(a.checkindatum||''));
+
+  const body = document.getElementById('resTableBody');
+  if(!list.length){
+    body.innerHTML = '<tr><td colspan="10" class="hint" style="padding:14px 4px;">Geen reserveringen gevonden.</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map(r=>{
+    const nog = Math.max(0,(parseFloat(r.totaal||0)-parseFloat(r.betaald||0)));
+    const nogPill = nog<=0 ? '<span class="pill ok">Betaald</span>' : `<span class="pill warn">${euro(nog)}</span>`;
+    return `<tr>
+      <td>${escapeHtml(r.voornaam)} ${escapeHtml(r.achternaam)}</td>
+      <td><span class="locbadge" style="background:${locColor(r.locatie)};">${escapeHtml(locName(r.locatie))}</span></td>
+      <td>${r.checkindatum||''} ${r.checkintijd||''}</td>
+      <td>${r.checkuitdatum||''} ${r.checkuittijd||''}</td>
+      <td>${escapeHtml(r.arrangement||'—')}</td>
+      <td>${euro(r.totaal)}</td>
+      <td>${euro(r.betaald)}</td>
+      <td>${nogPill}</td>
+      <td>${escapeHtml(staffNameById(r.toegewezen) || '—')}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn secondary sm" onclick="openResModal('${r.id}')">Bewerken</button>
+        <button class="btn danger sm" onclick="deleteReservation('${r.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ================= RESERVERING MODAL ================= */
+function fillLocationSelect(sel, includeEmpty){
+  sel.innerHTML = (includeEmpty ? '<option value="">Alle locaties</option>' : '') +
+    LOCATIONS.map(l=>`<option value="${l.id}">${l.naam}</option>`).join('');
+}
+function fillArrangementSelect(sel){
+  sel.innerHTML = ARRANGEMENTEN.map(a=>`<option value="${a}">${a}</option>`).join('');
+}
+function fillStaffSelect(sel, includeEmpty){
+  sel.innerHTML = (includeEmpty ? '<option value="">— Niemand —</option>' : '') +
+    staff.map(s=>`<option value="${s.id}">${escapeHtml(s.naam)}</option>`).join('');
+}
+function staffNameById(id){ const s = staff.find(x=>x.id===id); return s ? s.naam : ''; }
+
+function updateResNog(){
+  const totaal = parseFloat(document.getElementById('r_totaal').value || 0);
+  const betaald = parseFloat(document.getElementById('r_betaald').value || 0);
+  document.getElementById('r_nog').value = euro(Math.max(0, totaal-betaald));
+}
+
+function openResModal(id, presetDate){
+  fillLocationSelect(document.getElementById('r_locatie'), false);
+  fillArrangementSelect(document.getElementById('r_arrangement'));
+  fillStaffSelect(document.getElementById('r_toegewezen'), true);
+
+  if(id){
+    const r = reservations.find(x=>x.id===id);
+    if(!r) return;
+    document.getElementById('resModalTitle').textContent = 'Reservering bewerken';
+    document.getElementById('r_id').value = r.id;
+    document.getElementById('r_locatie').value = r.locatie;
+    document.getElementById('r_voornaam').value = r.voornaam;
+    document.getElementById('r_achternaam').value = r.achternaam;
+    document.getElementById('r_checkindatum').value = r.checkindatum;
+    document.getElementById('r_checkuitdatum').value = r.checkuitdatum;
+    document.getElementById('r_checkintijd').value = r.checkintijd || '';
+    document.getElementById('r_checkuittijd').value = r.checkuittijd || '';
+    document.getElementById('r_arrangement').value = r.arrangement || 'Geen';
+    document.getElementById('r_totaal').value = r.totaal || '';
+    document.getElementById('r_betaald').value = r.betaald || '';
+    document.getElementById('r_toegewezen').value = r.toegewezen || '';
+    document.getElementById('r_opmerkingen').value = r.opmerkingen || '';
+    document.getElementById('r_deleteBtn').style.display = 'inline-flex';
+    updateResNog();
+  } else {
+    document.getElementById('resModalTitle').textContent = 'Nieuwe reservering';
+    document.getElementById('r_id').value = '';
+    document.getElementById('r_locatie').value = activeLocation || LOCATIONS[0].id;
+    document.getElementById('r_voornaam').value = '';
+    document.getElementById('r_achternaam').value = '';
+    document.getElementById('r_checkindatum').value = presetDate || todayStr();
+    document.getElementById('r_checkuitdatum').value = presetDate || todayStr();
+    document.getElementById('r_checkintijd').value = '';
+    document.getElementById('r_checkuittijd').value = '';
+    document.getElementById('r_arrangement').value = 'Geen';
+    document.getElementById('r_totaal').value = '';
+    document.getElementById('r_betaald').value = '';
+    document.getElementById('r_toegewezen').value = '';
+    document.getElementById('r_opmerkingen').value = '';
+    document.getElementById('r_deleteBtn').style.display = 'none';
+    document.getElementById('r_nog').value = euro(0);
+  }
+  openModal('resModal');
+}
+
+async function saveReservation(e){
+  e.preventDefault();
+  const saveBtn = document.getElementById('r_saveBtn');
+  const voornaam = document.getElementById('r_voornaam').value.trim();
+  const achternaam = document.getElementById('r_achternaam').value.trim();
+  const checkindatum = document.getElementById('r_checkindatum').value;
+  const checkuitdatum = document.getElementById('r_checkuitdatum').value;
+  const locatie = document.getElementById('r_locatie').value;
+
+  const missing = [];
+  if(!locatie) missing.push('Locatie');
+  if(!voornaam) missing.push('Voornaam');
+  if(!achternaam) missing.push('Achternaam');
+  if(!checkindatum) missing.push('Check-in datum');
+  if(!checkuitdatum) missing.push('Check-uit datum');
+  if(missing.length){
+    alert('Vul de volgende verplichte velden in:\n— ' + missing.join('\n— '));
+    return false;
+  }
+  if(checkuitdatum < checkindatum){
+    alert('Check-uit datum kan niet vóór check-in datum liggen.');
+    return false;
+  }
+
+  const existingId = document.getElementById('r_id').value;
+  const id = existingId || ('r'+Date.now());
+  const obj = {
+    id,
+    locatie,
+    voornaam,
+    achternaam,
+    checkindatum,
+    checkuitdatum,
+    checkintijd: document.getElementById('r_checkintijd').value,
+    checkuittijd: document.getElementById('r_checkuittijd').value,
+    arrangement: document.getElementById('r_arrangement').value,
+    totaal: parseFloat(document.getElementById('r_totaal').value || 0),
+    betaald: parseFloat(document.getElementById('r_betaald').value || 0),
+    toegewezen: document.getElementById('r_toegewezen').value,
+    opmerkingen: document.getElementById('r_opmerkingen').value.trim(),
+  };
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Bezig met opslaan...';
+  try{
+    if(existingId){
+      await sb(`reservations?id=eq.${id}`, { method:'PATCH', body: JSON.stringify(obj) });
+    } else {
+      await sb('reservations', { method:'POST', body: JSON.stringify(obj) });
+    }
+    await loadReservations();
+    closeModal('resModal');
+    renderAll();
+  }catch(err){
+    console.error('Fout bij opslaan reservering:', err);
+    alert('Er ging iets mis bij het opslaan: ' + err.message + '\n\nControleer je internetverbinding en probeer het opnieuw.');
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Opslaan';
+  }
+  return false;
+}
+
+async function deleteReservation(id){
+  const r = reservations.find(x=>x.id===id);
+  if(!r) return;
+  if(!confirm(`Reservering van ${r.voornaam} ${r.achternaam} verwijderen?`)) return;
+  try{
+    await sb(`reservations?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' });
+    await loadReservations();
+    renderAll();
+  }catch(err){
+    console.error('Fout bij verwijderen reservering:', err);
+    alert('Verwijderen mislukt: ' + err.message);
+  }
+}
+function deleteReservationFromModal(){
+  const id = document.getElementById('r_id').value;
+  if(id) deleteReservation(id).then(()=> closeModal('resModal'));
+}
+
+/* ================= PERSONEEL ================= */
+function renderStaffChips(){
+  const wrap = document.getElementById('staffChips');
+  wrap.innerHTML = staff.map(s=>`<span class="chip">${escapeHtml(s.naam)} <button onclick="removeStaffMember('${s.id}')">✕</button></span>`).join('')
+    || '<p class="hint">Nog geen personeelsleden.</p>';
+}
+async function addStaffMember(e){
+  e.preventDefault();
+  const input = document.getElementById('newStaffName');
+  const naam = input.value.trim();
+  if(!naam) return false;
+  try{
+    await sb('staff', { method:'POST', body: JSON.stringify({ id:'p'+Date.now(), naam }) });
+    input.value = '';
+    await loadStaff();
+    renderStaffChips();
+    renderReservationsTable();
+    renderDay();
+  }catch(err){
+    console.error('Fout bij opslaan personeelslid:', err);
+    alert('Opslaan is niet gelukt: ' + err.message);
+  }
+  return false;
+}
+async function removeStaffMember(id){
+  const s = staff.find(x=>x.id===id);
+  if(!s) return;
+  if(!confirm(`"${s.naam}" verwijderen uit personeelslijst?`)) return;
+  try{
+    await sb(`staff?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' });
+    await loadStaff();
+    renderStaffChips();
+    renderReservationsTable();
+    renderDay();
+  }catch(err){
+    console.error('Fout bij verwijderen personeelslid:', err);
+    alert('Verwijderen is niet gelukt: ' + err.message);
+  }
+}
+
+/* ================= INCHECKFORMULIER ================= */
+function buildCheckinForm(){
+  fillLocationSelect(document.getElementById('c_locatie'), false);
+  document.getElementById('c_datum').value = todayStr();
+  const wrap = document.getElementById('c_arrangementen');
+  wrap.innerHTML = CHECKIN_ARRANGEMENTEN.map((a,i)=>`<label><input type="checkbox" value="${escapeHtml(a)}" id="carr_${i}"> ${escapeHtml(a)}</label>`).join('');
+}
+function updateCheckinNog(){
+  const totaal = parseFloat(document.getElementById('c_totaal').value || 0);
+  const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
+  document.getElementById('c_nog').value = euro(Math.max(0, totaal-aanbetaald));
+}
+function collectCheckinData(){
+  const arrangementen = CHECKIN_ARRANGEMENTEN.filter((a,i)=> document.getElementById('carr_'+i).checked);
+  const totaal = parseFloat(document.getElementById('c_totaal').value || 0);
+  const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
+  return {
+    id: 'c'+Date.now(),
+    locatie: document.getElementById('c_locatie').value,
+    datum: document.getElementById('c_datum').value,
+    resnr: document.getElementById('c_resnr').value.trim(),
+    personen: document.getElementById('c_personen').value,
+    incheck: document.getElementById('c_checkin').value,
+    uitcheck: document.getElementById('c_checkuit').value,
+    totaal,
+    aanbetaald,
+    restant: Math.max(0, totaal - aanbetaald),
+    betaalwijze: document.getElementById('c_betaalwijze').value,
+    arrangementen,
+    voornaam: document.getElementById('c_voornaam').value.trim(),
+    achternaam: document.getElementById('c_achternaam').value.trim(),
+    nationaliteit: document.getElementById('c_nationaliteit').value.trim(),
+    geboortedatum: document.getElementById('c_geboortedatum').value || null,
+    woonplaats: document.getElementById('c_woonplaats').value.trim(),
+    telefoon: document.getElementById('c_telefoon').value.trim(),
+    email: document.getElementById('c_email').value.trim(),
+    lid: document.getElementById('c_lid').checked,
+    akkoord: document.getElementById('c_akkoord').checked,
+    opmerkingen: document.getElementById('c_opmerking').value.trim(),
+  };
+}
+async function saveCheckin(){
+  const data = collectCheckinData();
+  const statusEl = document.getElementById('checkinStatus');
+  statusEl.textContent = 'Bezig met opslaan...';
+  statusEl.className = 'status';
+  try{
+    await sb('checkins', { method:'POST', body: JSON.stringify(data) });
+    await loadCheckins();
+    renderCheckinTable();
+    statusEl.textContent = '✓ Incheckformulier opgeslagen.';
+    statusEl.className = 'status ok';
+    return data;
+  }catch(err){
+    console.error('Fout bij opslaan incheckformulier:', err);
+    statusEl.textContent = '✕ Opslaan mislukt: ' + err.message;
+    statusEl.className = 'status err';
+    throw err;
+  }
+}
+function checkinEmailBody(data){
+  return [
+    `Incheckformulier — ${locName(data.locatie)}`,
+    ``,
+    `Datum: ${data.datum}    Reserveringsnr.: ${data.resnr || '-'}`,
+    `Aantal personen: ${data.personen}    In-check: ${data.incheck}    Uit-check: ${data.uitcheck}`,
+    `Totaalbedrag: ${euro(data.totaal)}    Aanbetaald: ${euro(data.aanbetaald)}    Nog te betalen: ${euro(data.restant)}`,
+    `Betaalwijze: ${data.betaalwijze}`,
+    ``,
+    `Arrangementen: ${data.arrangementen.length ? data.arrangementen.join(', ') : 'Geen'}`,
+    ``,
+    `Gast: ${data.voornaam} ${data.achternaam}`,
+    `Nationaliteit: ${data.nationaliteit}    Geboortedatum: ${data.geboortedatum || ''}`,
+    `Woonplaats: ${data.woonplaats}`,
+    `Telefoon: ${data.telefoon}    E-mail: ${data.email}`,
+    ``,
+    `Gratis lid worden: ${data.lid ? 'Ja' : 'Nee'}`,
+    `Akkoord huisregels: ${data.akkoord ? 'Ja' : 'Nee'}`,
+    ``,
+    `Opmerkingen: ${data.opmerkingen || '-'}`,
+  ].join('\n');
+}
+async function sendCheckinEmail(){
+  let data;
+  try{
+    data = await saveCheckin();
+  }catch(err){
+    return; // saveCheckin already surfaced the error
+  }
+  const to = document.getElementById('c_sendto').value.trim();
+  const subject = encodeURIComponent(`Incheckformulier — ${data.voornaam} ${data.achternaam} — ${locName(data.locatie)} — ${data.datum}`);
+  const body = encodeURIComponent(checkinEmailBody(data));
+  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+  const statusEl = document.getElementById('checkinStatus');
+  statusEl.textContent = '✓ Opgeslagen. Je e-mailprogramma wordt geopend om te versturen.';
+  statusEl.className = 'status ok';
+}
+function clearCheckinForm(){
+  document.getElementById('checkinForm').reset();
+  buildCheckinForm();
+  document.getElementById('c_nog').value = euro(0);
+  document.getElementById('checkinStatus').textContent = '';
+}
+function renderCheckinTable(){
+  const body = document.getElementById('checkinTableBody');
+  if(!checkins.length){
+    body.innerHTML = '<tr><td colspan="6" class="hint" style="padding:14px 4px;">Nog geen formulieren opgeslagen.</td></tr>';
+    return;
+  }
+  body.innerHTML = checkins.slice(0,20).map(c=>{
+    return `<tr>
+      <td>${c.datum||''}</td>
+      <td><span class="locbadge" style="background:${locColor(c.locatie)};">${escapeHtml(locName(c.locatie))}</span></td>
+      <td>${escapeHtml(c.voornaam)} ${escapeHtml(c.achternaam)}</td>
+      <td>${escapeHtml(String(c.personen ?? ''))}</td>
+      <td>${fmtMoney(c.totaal)}</td>
+      <td>${fmtMoney(c.restant)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ================= RENDER ALL ================= */
+function renderAll(){
+  renderStats();
+  renderMonth();
+  if(!document.getElementById('dayPicker').value) document.getElementById('dayPicker').value = todayStr();
+  renderDay();
+  renderReservationsTable();
+  renderStaffChips();
+  renderCheckinTable();
+}
+
+/* ================= INIT ================= */
+buildLocTabs();
+buildCheckinForm();
+document.getElementById('dayPicker').value = todayStr();
+loadAll();
+</script>
+</body>
+</html>
