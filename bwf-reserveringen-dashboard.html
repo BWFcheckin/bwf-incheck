@@ -196,7 +196,7 @@
         </div>
         <table>
           <thead><tr>
-            <th>Naam</th><th>Locatie</th><th>Check-in</th><th>Check-uit</th><th>Arrangement</th>
+            <th>Naam</th><th>Telefoon</th><th>E-mail</th><th>Locatie</th><th>Check-in</th><th>Check-uit</th><th>Arrangement</th>
             <th>Totaal</th><th>Betaald</th><th>Nog te betalen</th><th>Toegewezen</th><th></th>
           </tr></thead>
           <tbody id="resTableBody"></tbody>
@@ -311,6 +311,11 @@
       </div>
 
       <div class="formgrid">
+        <div><label>Telefoonnummer</label><input type="tel" id="r_telefoon" placeholder="+31 6…"></div>
+        <div><label>E-mailadres</label><input type="email" id="r_email" placeholder="naam@email.nl"></div>
+      </div>
+
+      <div class="formgrid">
         <div><label>Check-in datum</label><input type="date" id="r_checkindatum"></div>
         <div><label>Check-uit datum</label><input type="date" id="r_checkuitdatum"></div>
       </div>
@@ -369,6 +374,30 @@ const RES_KEY = 'reservations:list';
 const STAFF_KEY = 'staff:list';
 const CHECKIN_KEY = 'checkins:list';
 
+/* ================= SUPABASE ================= */
+const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+async function sb(path, options={}){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+    },
+    body: options.body
+  });
+  if(!res.ok){
+    let detail = '';
+    try{ detail = (await res.json()).message; }catch(e){}
+    throw new Error(detail || `Serverfout (${res.status})`);
+  }
+  if(res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
 let reservations = [];
 let staff = [];
 let checkins = [];
@@ -385,15 +414,16 @@ function escapeHtml(str){ const d = document.createElement('div'); d.textContent
 /* ================= STORAGE ================= */
 async function loadAll(){
   try{
-    const r = await window.storage.get(RES_KEY, true);
-    reservations = r && r.value ? JSON.parse(r.value) : [];
-  }catch(e){ reservations = []; }
+    reservations = await sb('reservations?select=*&order=checkindatum.desc') || [];
+  }catch(e){ console.error('Fout bij laden reserveringen:', e); reservations = []; }
 
   try{
-    const s = await window.storage.get(STAFF_KEY, true);
-    staff = s && s.value ? JSON.parse(s.value) : DEFAULT_STAFF.map((n,i)=>({id:'p'+i, naam:n}));
-    if(!s || !s.value) await persistStaff();
-  }catch(e){ staff = DEFAULT_STAFF.map((n,i)=>({id:'p'+i, naam:n})); }
+    staff = await sb('staff?select=*&order=naam.asc') || [];
+    if(!staff.length){
+      staff = DEFAULT_STAFF.map((n,i)=>({id:'p'+i, naam:n}));
+      for(const s of staff){ try{ await sb('staff', {method:'POST', body:JSON.stringify(s), prefer:'return=minimal'}); }catch(e){} }
+    }
+  }catch(e){ console.error('Fout bij laden personeel:', e); staff = DEFAULT_STAFF.map((n,i)=>({id:'p'+i, naam:n})); }
 
   try{
     const c = await window.storage.get(CHECKIN_KEY, true);
@@ -401,14 +431,6 @@ async function loadAll(){
   }catch(e){ checkins = []; }
 
   renderAll();
-}
-async function persistReservations(){
-  if(!window.storage) throw new Error('Gedeelde opslag is niet beschikbaar. Open deze pagina via de gepubliceerde/gedeelde link (niet als lokaal gedownload bestand).');
-  await window.storage.set(RES_KEY, JSON.stringify(reservations), true);
-}
-async function persistStaff(){
-  if(!window.storage) throw new Error('Gedeelde opslag is niet beschikbaar. Open deze pagina via de gepubliceerde/gedeelde link (niet als lokaal gedownload bestand).');
-  await window.storage.set(STAFF_KEY, JSON.stringify(staff), true);
 }
 async function persistCheckins(){
   if(!window.storage) throw new Error('Gedeelde opslag is niet beschikbaar. Open deze pagina via de gepubliceerde/gedeelde link (niet als lokaal gedownload bestand).');
@@ -581,7 +603,7 @@ function renderReservationsTable(){
 
   const body = document.getElementById('resTableBody');
   if(!list.length){
-    body.innerHTML = '<tr><td colspan="10" class="hint" style="padding:14px 4px;">Geen reserveringen gevonden.</td></tr>';
+    body.innerHTML = '<tr><td colspan="12" class="hint" style="padding:14px 4px;">Geen reserveringen gevonden.</td></tr>';
     return;
   }
   body.innerHTML = list.map(r=>{
@@ -589,6 +611,8 @@ function renderReservationsTable(){
     const nogPill = nog<=0 ? '<span class="pill ok">Betaald</span>' : `<span class="pill warn">${euro(nog)}</span>`;
     return `<tr>
       <td>${escapeHtml(r.voornaam)} ${escapeHtml(r.achternaam)}</td>
+      <td>${escapeHtml(r.telefoon||'—')}</td>
+      <td>${escapeHtml(r.email||'—')}</td>
       <td><span class="locbadge" style="background:${locColor(r.locatie)};">${escapeHtml(locName(r.locatie))}</span></td>
       <td>${r.checkindatum||''} ${r.checkintijd||''}</td>
       <td>${r.checkuitdatum||''} ${r.checkuittijd||''}</td>
@@ -638,6 +662,8 @@ function openResModal(id, presetDate){
     document.getElementById('r_locatie').value = r.locatie;
     document.getElementById('r_voornaam').value = r.voornaam;
     document.getElementById('r_achternaam').value = r.achternaam;
+    document.getElementById('r_telefoon').value = r.telefoon || '';
+    document.getElementById('r_email').value = r.email || '';
     document.getElementById('r_checkindatum').value = r.checkindatum;
     document.getElementById('r_checkuitdatum').value = r.checkuitdatum;
     document.getElementById('r_checkintijd').value = r.checkintijd || '';
@@ -655,6 +681,8 @@ function openResModal(id, presetDate){
     document.getElementById('r_locatie').value = activeLocation || LOCATIONS[0].id;
     document.getElementById('r_voornaam').value = '';
     document.getElementById('r_achternaam').value = '';
+    document.getElementById('r_telefoon').value = '';
+    document.getElementById('r_email').value = '';
     document.getElementById('r_checkindatum').value = presetDate || todayStr();
     document.getElementById('r_checkuitdatum').value = presetDate || todayStr();
     document.getElementById('r_checkintijd').value = '';
@@ -700,6 +728,8 @@ async function saveReservation(e){
       locatie,
       voornaam,
       achternaam,
+      telefoon: document.getElementById('r_telefoon').value.trim(),
+      email: document.getElementById('r_email').value.trim(),
       checkindatum,
       checkuitdatum,
       checkintijd: document.getElementById('r_checkintijd').value,
@@ -712,12 +742,13 @@ async function saveReservation(e){
     };
 
     if(id){
+      await sb(`reservations?id=eq.${id}`, {method:'PATCH', body:JSON.stringify(obj)});
       const idx = reservations.findIndex(x=>x.id===id);
       if(idx>-1) reservations[idx] = obj;
     } else {
+      await sb('reservations', {method:'POST', body:JSON.stringify(obj)});
       reservations.push(obj);
     }
-    await persistReservations();
     closeModal('resModal');
     renderAll();
   }catch(err){
@@ -731,9 +762,14 @@ async function deleteReservation(id){
   const r = reservations.find(x=>x.id===id);
   if(!r) return;
   if(!confirm(`Reservering van ${r.voornaam} ${r.achternaam} verwijderen?`)) return;
-  reservations = reservations.filter(x=>x.id!==id);
-  await persistReservations();
-  renderAll();
+  try{
+    await sb(`reservations?id=eq.${id}`, {method:'DELETE', prefer:'return=minimal'});
+    reservations = reservations.filter(x=>x.id!==id);
+    renderAll();
+  }catch(err){
+    console.error('Fout bij verwijderen reservering:', err);
+    alert('Verwijderen is niet gelukt: ' + (err && err.message ? err.message : err));
+  }
 }
 function deleteReservationFromModal(){
   const id = document.getElementById('r_id').value;
@@ -752,9 +788,10 @@ async function addStaffMember(e){
   const naam = input.value.trim();
   if(!naam) return false;
   const backup = staff.slice();
-  staff.push({ id:'p'+Date.now(), naam });
+  const newStaff = { id:'p'+Date.now(), naam };
+  staff.push(newStaff);
   try{
-    await persistStaff();
+    await sb('staff', {method:'POST', body:JSON.stringify(newStaff)});
     input.value = '';
     renderStaffChips();
   }catch(err){
@@ -771,7 +808,7 @@ async function removeStaffMember(id){
   const backup = staff.slice();
   staff = staff.filter(x=>x.id!==id);
   try{
-    await persistStaff();
+    await sb(`staff?id=eq.${id}`, {method:'DELETE', prefer:'return=minimal'});
     renderStaffChips();
     renderReservationsTable();
     renderDay();
