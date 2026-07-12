@@ -201,7 +201,7 @@
         </div>
         <table>
           <thead><tr>
-            <th>Naam</th><th>Locatie</th><th>Check-in</th><th>Check-uit</th><th>Arrangement</th>
+            <th>Naam</th><th>Telefoon</th><th>E-mail</th><th>Locatie</th><th>Check-in</th><th>Check-uit</th><th>Arrangement</th>
             <th>Totaal</th><th>Betaald</th><th>Nog te betalen</th><th>Toegewezen</th><th></th>
           </tr></thead>
           <tbody id="resTableBody"></tbody>
@@ -258,6 +258,13 @@
         <h2>Online incheckformulier</h2>
         <p class="desc">Vul het formulier in bij aankomst van de gast. Opslaan bewaart het formulier gedeeld; versturen opent je e-mailprogramma met de gegevens klaar om te verzenden.</p>
         <form id="checkinForm" onsubmit="return false;">
+          <div class="fieldset-label">Koppel aan reservering</div>
+          <label>Bestaande reservering (optioneel)</label>
+          <select id="c_reskoppel" onchange="koppelReservering()">
+            <option value="">— Niet koppelen, handmatig invullen —</option>
+          </select>
+          <div class="hint" id="koppelStatus">Kies een reservering om alle bekende gegevens automatisch in te vullen. De gast hoeft dan alleen nog te controleren, akkoord te geven en te tekenen.</div>
+
           <div class="fieldset-label">Reserveringsgegevens</div>
           <div class="formgrid3">
             <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks();"></select></div>
@@ -369,6 +376,11 @@
       <div class="formgrid">
         <div><label>Voornaam</label><input type="text" id="r_voornaam"></div>
         <div><label>Achternaam</label><input type="text" id="r_achternaam"></div>
+      </div>
+
+      <div class="formgrid">
+        <div><label>Telefoonnummer</label><input type="tel" id="r_telefoon" placeholder="+31 6…"></div>
+        <div><label>E-mailadres</label><input type="email" id="r_email" placeholder="naam@email.nl"></div>
       </div>
 
       <div class="formgrid">
@@ -679,14 +691,17 @@ function renderReservationsTable(){
 
   const body = document.getElementById('resTableBody');
   if(!list.length){
-    body.innerHTML = '<tr><td colspan="10" class="hint" style="padding:14px 4px;">Geen reserveringen gevonden.</td></tr>';
+    body.innerHTML = '<tr><td colspan="12" class="hint" style="padding:14px 4px;">Geen reserveringen gevonden.</td></tr>';
     return;
   }
   body.innerHTML = list.map(r=>{
     const nog = Math.max(0,(parseFloat(r.totaal||0)-parseFloat(r.betaald||0)));
     const nogPill = nog<=0 ? '<span class="pill ok">Betaald</span>' : `<span class="pill warn">${euro(nog)}</span>`;
+    const isCheckedIn = checkins.some(c => c.reservation_id === r.id);
     return `<tr>
-      <td>${escapeHtml(r.voornaam)} ${escapeHtml(r.achternaam)}</td>
+      <td>${escapeHtml(r.voornaam)} ${escapeHtml(r.achternaam)} ${isCheckedIn ? '<span title="Incheckformulier gekoppeld" style="color:var(--ok);">✓</span>' : ''}</td>
+      <td>${escapeHtml(r.telefoon||'—')}</td>
+      <td>${escapeHtml(r.email||'—')}</td>
       <td><span class="locbadge" style="background:${locColor(r.locatie)};">${escapeHtml(locName(r.locatie))}</span></td>
       <td>${r.checkindatum||''} ${r.checkintijd||''}</td>
       <td>${r.checkuitdatum||''} ${r.checkuittijd||''}</td>
@@ -736,6 +751,8 @@ function openResModal(id, presetDate){
     document.getElementById('r_locatie').value = r.locatie;
     document.getElementById('r_voornaam').value = r.voornaam;
     document.getElementById('r_achternaam').value = r.achternaam;
+    document.getElementById('r_telefoon').value = r.telefoon || '';
+    document.getElementById('r_email').value = r.email || '';
     document.getElementById('r_checkindatum').value = r.checkindatum;
     document.getElementById('r_checkuitdatum').value = r.checkuitdatum;
     document.getElementById('r_checkintijd').value = r.checkintijd || '';
@@ -753,6 +770,8 @@ function openResModal(id, presetDate){
     document.getElementById('r_locatie').value = activeLocation || LOCATIONS[0].id;
     document.getElementById('r_voornaam').value = '';
     document.getElementById('r_achternaam').value = '';
+    document.getElementById('r_telefoon').value = '';
+    document.getElementById('r_email').value = '';
     document.getElementById('r_checkindatum').value = presetDate || todayStr();
     document.getElementById('r_checkuitdatum').value = presetDate || todayStr();
     document.getElementById('r_checkintijd').value = '';
@@ -799,6 +818,8 @@ async function saveReservation(e){
     locatie,
     voornaam,
     achternaam,
+    telefoon: document.getElementById('r_telefoon').value.trim(),
+    email: document.getElementById('r_email').value.trim(),
     checkindatum,
     checkuitdatum,
     checkintijd: document.getElementById('r_checkintijd').value,
@@ -1022,7 +1043,58 @@ function buildCheckinForm(){
   wrap.innerHTML = CHECKIN_ARRANGEMENTEN.map((a,i)=>`<label><input type="checkbox" value="${escapeHtml(a)}" id="carr_${i}"> ${escapeHtml(a)}</label>`).join('');
   updateCheckinManagerOptions();
   updateDocumentLinks();
+  buildResKoppelSelect();
   if(!sigCtx) setupSignaturePad();
+}
+function buildResKoppelSelect(){
+  const sel = document.getElementById('c_reskoppel');
+  if(!sel) return;
+  const huidige = sel.value;
+  const sorted = reservations.slice().sort((a,b)=> (b.checkindatum||'').localeCompare(a.checkindatum||''));
+  sel.innerHTML = '<option value="">— Niet koppelen, handmatig invullen —</option>' +
+    sorted.map(r=>{
+      const naam = [r.voornaam, r.achternaam].filter(Boolean).join(' ') || 'Onbekende gast';
+      const alGekoppeld = checkins.some(c => c.reservation_id === r.id);
+      return `<option value="${r.id}">${escapeHtml(naam)} — ${escapeHtml(locName(r.locatie))} — ${r.checkindatum||'—'}${alGekoppeld ? ' (✓ al ingecheckt)' : ''}</option>`;
+    }).join('');
+  sel.value = huidige;
+}
+function koppelReservering(){
+  const id = document.getElementById('c_reskoppel').value;
+  const statusEl = document.getElementById('koppelStatus');
+  if(!id){
+    statusEl.textContent = 'Kies een reservering om alle bekende gegevens automatisch in te vullen. De gast hoeft dan alleen nog te controleren, akkoord te geven en te tekenen.';
+    return;
+  }
+  const r = reservations.find(x=>x.id===id);
+  if(!r) return;
+
+  document.getElementById('c_locatie').value = r.locatie;
+  updateCheckinManagerOptions();
+  updateDocumentLinks();
+  document.getElementById('c_datum').value = r.checkindatum || todayStr();
+  document.getElementById('c_resnr').value = r.id;
+  document.getElementById('c_checkin').value = r.checkintijd || '';
+  document.getElementById('c_checkuit').value = r.checkuittijd || '';
+  document.getElementById('c_totaal').value = r.totaal || '';
+  document.getElementById('c_aanbetaald').value = r.betaald || '';
+  updateCheckinNog();
+  document.getElementById('c_voornaam').value = r.voornaam || '';
+  document.getElementById('c_achternaam').value = r.achternaam || '';
+  document.getElementById('c_telefoon').value = r.telefoon || '';
+  document.getElementById('c_email').value = r.email || '';
+  if(r.opmerkingen) document.getElementById('c_opmerking').value = r.opmerkingen;
+
+  CHECKIN_ARRANGEMENTEN.forEach((a,i)=>{ document.getElementById('carr_'+i).checked = false; });
+  if(r.arrangement){
+    const idx = CHECKIN_ARRANGEMENTEN.findIndex(a => a.toLowerCase() === String(r.arrangement).toLowerCase());
+    if(idx > -1) document.getElementById('carr_'+idx).checked = true;
+  }
+
+  const alGekoppeld = checkins.some(c => c.reservation_id === r.id);
+  statusEl.textContent = alGekoppeld
+    ? '⚠ Let op: voor deze reservering bestaat al een incheckformulier. Bij opslaan wordt een nieuw, extra formulier toegevoegd.'
+    : '✓ Gegevens ingevuld vanuit de reservering. Controleer samen met de gast en vul de ontbrekende velden (personen, nationaliteit, geboortedatum, woonplaats) aan.';
 }
 function updateCheckinNog(){
   const totaal = parseFloat(document.getElementById('c_totaal').value || 0);
@@ -1035,6 +1107,7 @@ function collectCheckinData(){
   const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
   return {
     id: 'c'+Date.now(),
+    reservation_id: document.getElementById('c_reskoppel').value || null,
     locatie: document.getElementById('c_locatie').value,
     datum: document.getElementById('c_datum').value,
     resnr: document.getElementById('c_resnr').value.trim(),
@@ -1075,6 +1148,8 @@ async function saveCheckin(){
     await sb('checkins', { method:'POST', body: JSON.stringify(data) });
     await loadCheckins();
     renderCheckinTable();
+    buildResKoppelSelect();
+    renderReservationsTable();
     statusEl.textContent = '✓ Incheckformulier opgeslagen.';
     statusEl.className = 'status ok';
     return data;
@@ -1127,6 +1202,8 @@ async function sendCheckinEmail(){
 function clearCheckinForm(){
   document.getElementById('checkinForm').reset();
   buildCheckinForm();
+  document.getElementById('c_reskoppel').value = '';
+  document.getElementById('koppelStatus').textContent = 'Kies een reservering om alle bekende gegevens automatisch in te vullen. De gast hoeft dan alleen nog te controleren, akkoord te geven en te tekenen.';
   clearSignature();
   document.getElementById('c_nog').value = euro(0);
   document.getElementById('checkinStatus').textContent = '';
@@ -1161,6 +1238,7 @@ function renderAll(){
   renderDocumentMeta();
   updateCheckinManagerOptions();
   updateDocumentLinks();
+  buildResKoppelSelect();
 }
 
 /* ================= INIT ================= */
