@@ -52,6 +52,10 @@
   .hb-doclist .hb-doc-item a:hover{ text-decoration:underline; }
   .hb-doc-form{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .hb-doc-form input[type="text"]{ flex:1; min-width:160px; }
+  .hb-editbar{ display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .hb-edit-hint{ display:none; background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn); border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:14px; }
+  .hb-editable.hb-edit-mode{ outline:1.5px dashed var(--gold-dark); outline-offset:3px; border-radius:4px; cursor:text; }
+  .hb-editable.hb-edit-mode:focus{ outline-color:var(--gold); background:#fffdf6; }
   .sidebar .brand strong{ font-family:Georgia,serif; color:var(--gold); font-size:16px; display:block; }
   .sidebar .brand span{ font-size:11px; color:#a99f8a; }
   .nav-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; font-size:13.5px; cursor:pointer; color:#cfc6b0; transition:.12s; }
@@ -410,8 +414,14 @@
     <section class="section" id="handboek">
       <div class="hb-intro">
         <h2>Personeelshandboek — Bed &amp; Wellness Flevoland</h2>
-        <p>Alles wat je nodig hebt om op de locaties te werken: van openen en sluiten tot het volledig klaarzetten van elk arrangement. Klik een hoofdstuk open. Foto's en documenten die je hier toevoegt zijn direct zichtbaar voor het hele team.</p>
+        <p>Alles wat je nodig hebt om op de locaties te werken: van openen en sluiten tot het volledig klaarzetten van elk arrangement. Klik een hoofdstuk open. Foto's, documenten en teksten die je hier aanpast zijn direct zichtbaar voor het hele team.</p>
       </div>
+
+      <div class="hb-editbar">
+        <button type="button" class="btn secondary sm" id="hbEditBtn" onclick="toggleHbEdit()">✎ Teksten bewerken</button>
+        <button type="button" class="btn secondary sm" id="hbResetBtn" style="display:none;" onclick="resetHbTexts()">Herstel alle originele teksten</button>
+      </div>
+      <div class="hb-edit-hint" id="hbEditHint">Bewerkmodus actief — klik in een gouden gestippeld vak om de tekst aan te passen. Klik ernaast om op te slaan. Klik nogmaals op "Teksten bewerken" om te stoppen.</div>
 
       <details class="hb-chapter" open>
         <summary>1. Welkom</summary>
@@ -492,28 +502,33 @@
           <p>Elk arrangement heeft een vaste opbouw qua decoratie, food &amp; drinks en eindcontrole. Werk de checklist per arrangement altijd volledig af vóórdat de gast arriveert, en stuur na afloop van de opbouw altijd een foto naar Angela ter bevestiging — of upload hem hieronder in het juiste vakje, zodat het als vast referentiebeeld dient.</p>
 
           <div class="hb-arr-card">
-            <h4>Dagverblijf (standaard)</h4>
+            <h4 class="hb-editable" data-key="arr_dagverblijf_titel" contenteditable="false">Dagverblijf (standaard)</h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_dagverblijf" data-label="Dagverblijf"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_dagverblijf_body" contenteditable="false">
             <div class="hb-label">Voorbereiding</div>
             <ul>
               <li>Suite schoon en op temperatuur volgens checklist hoofdstuk 4</li>
               <li>Handdoeken klaarleggen, geen extra versiering nodig</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Overnachtingsarrangementen <span style="font-weight:400;font-size:12px;">(Relax &amp; Stay / Wellness Experience / Early check-in / Late check-in)</span></h4>
+            <h4 class="hb-editable" data-key="arr_overnachting_titel" contenteditable="false">Overnachtingsarrangementen <span style="font-weight:400;font-size:12px;">(Relax &amp; Stay / Wellness Experience / Early check-in / Late check-in)</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_overnachting" data-label="Overnachting"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_overnachting_body" contenteditable="false">
             <div class="hb-label">Voorbereiding</div>
             <ul>
               <li>Inclusief bad- en bedlinnen en minibar/snackpakket — dubbel controleren dat dit is aangevuld</li>
               <li>Bij "Wellness Experience": ontbijt voorbereiden en tijdig klaarzetten volgens de afgesproken tijd</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Romantisch arrangement <span class="price">€ 75</span></h4>
+            <h4 class="hb-editable" data-key="arr_romantisch_titel" contenteditable="false">Romantisch arrangement <span class="price">€ 75</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_romantisch" data-label="Romantisch"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_romantisch_body" contenteditable="false">
             <div class="hb-label">Decoratie</div>
             <ul>
               <li>Wellness versierd met ballonnen</li>
@@ -528,10 +543,12 @@
               <li>Bij Almere: 2 zeeprozen als cadeau toevoegen</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Verjaardag arrangement <span class="price">€ 75 · Deluxe € 125</span></h4>
+            <h4 class="hb-editable" data-key="arr_verjaardag_titel" contenteditable="false">Verjaardag arrangement <span class="price">€ 75 · Deluxe € 125</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_verjaardag" data-label="Verjaardag"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_verjaardag_body" contenteditable="false">
             <div class="hb-label">Decoratie</div>
             <ul>
               <li>Wellness versierd met ballonnen</li>
@@ -547,10 +564,12 @@
               <li>Borrelplank en chocolade bonbons toevoegen</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>VIP arrangement <span class="price">€ 250</span></h4>
+            <h4 class="hb-editable" data-key="arr_vip_titel" contenteditable="false">VIP arrangement <span class="price">€ 250</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_vip" data-label="VIP"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_vip_body" contenteditable="false">
             <div class="hb-label">Decoratie</div>
             <ul>
               <li>Wellness versierd met ballonnen</li>
@@ -561,10 +580,12 @@
               <li>Gekozen keuze (sushi schaal of premium burgermenu) tijdig bij de keuken/leverancier doorgeven</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>365 Days of Valentine / Honeymoon <span class="price">€ 299</span></h4>
+            <h4 class="hb-editable" data-key="arr_365valentine_titel" contenteditable="false">365 Days of Valentine / Honeymoon <span class="price">€ 299</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_365valentine" data-label="365 Valentine / Honeymoon"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_365valentine_body" contenteditable="false">
             <div class="hb-label">Decoratie</div>
             <ul>
               <li>Extra romantische, over-the-top versiering met heliumballonnen en rozen</li>
@@ -575,10 +596,12 @@
               <li>Flesje bubbels koelen</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Bruidsnacht arrangement</h4>
+            <h4 class="hb-editable" data-key="arr_bruidsnacht_titel" contenteditable="false">Bruidsnacht arrangement</h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_bruidsnacht" data-label="Bruidsnacht"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_bruidsnacht_body" contenteditable="false">
             <div class="hb-label">Voorbereiding</div>
             <ul>
               <li>Check-in 01:00 / check-out 15:00 goed doorgeven aan de nachtdienst zodat er geen verwarring ontstaat</li>
@@ -586,10 +609,12 @@
               <li>Extra aandacht voor privacy — geen storingen tenzij noodzakelijk</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Kids Pool Party <span class="price">vanaf € 850 · alleen Almere</span></h4>
+            <h4 class="hb-editable" data-key="arr_kidspoolparty_titel" contenteditable="false">Kids Pool Party <span class="price">vanaf € 850 · alleen Almere</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_kidspoolparty" data-label="Kids Pool Party"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_kidspoolparty_body" contenteditable="false">
             <div class="hb-label">Voorbereiding</div>
             <ul>
               <li>Aantal kinderen, begeleiders en diploma-status vooraf controleren in de aanvraag</li>
@@ -605,10 +630,12 @@
               <li>Fotomoment, sweettabel e.d. volgens de aanvraag klaarzetten</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Bridal shower / Babyshower <span class="price">€ 1000 · alleen Almere</span></h4>
+            <h4 class="hb-editable" data-key="arr_bridalbabyshower_titel" contenteditable="false">Bridal shower / Babyshower <span class="price">€ 1000 · alleen Almere</span></h4>
             <div class="hb-photo-row"><div class="hb-photo-slot" data-key="arr_bridalbabyshower" data-label="Bridal / Babyshower"></div></div>
+            <div class="hb-editable hb-arr-body" data-key="arr_bridalbabyshower_body" contenteditable="false">
             <div class="hb-label">Decoratie</div>
             <ul>
               <li>Gekozen ballonkleuren (max. 3) ophangen volgens de aanvraag</li>
@@ -622,9 +649,11 @@
               <li>Thema-versiering, ballonnenboog, gepersonaliseerde taart/cupcakes, sweettabel, fotomoment — voorbereiden volgens de aanvraag</li>
             </ul>
           </div>
+          </div>
 
           <div class="hb-arr-card">
-            <h4>Overige services <span style="font-weight:400;font-size:12px;">(op aanvraag)</span></h4>
+            <h4 class="hb-editable" data-key="arr_overige_titel" contenteditable="false">Overige services <span style="font-weight:400;font-size:12px;">(op aanvraag)</span></h4>
+            <div class="hb-editable hb-arr-body" data-key="arr_overige_body" contenteditable="false">
             <div class="hb-label">Waterpijp</div>
             <ul><li>Smaak navragen, klaarzetten in overleg met de gast</li></ul>
             <div class="hb-label">Massagetafel</div>
@@ -632,6 +661,8 @@
             <div class="hb-label">Blinddoeken</div>
             <ul><li>Schoon en voorradig houden</li></ul>
           </div>
+          </div>
+
         </div>
       </details>
 
@@ -1451,6 +1482,66 @@ function updateDocumentLinks(){
   document.getElementById('c_voorwaarden_meta').textContent = vw ? `Versie: ${vw.bestandsnaam}` : 'Nog niet geüpload.';
 }
 
+/* ================= HANDBOEK: BEWERKBARE TEKSTEN ================= */
+let hbEditMode = false;
+let hbSaveTimers = {};
+
+function hbTextId(key){ return `handboek_tekst_${key}`; }
+
+function applyHbTexts(){
+  document.querySelectorAll('.hb-editable[data-key]').forEach(el=>{
+    if(el === document.activeElement) return; // don't clobber what's being typed
+    const rec = documenten.find(d=>d.type==='handboek_tekst' && d.id===hbTextId(el.dataset.key));
+    if(rec && rec.data){ el.innerHTML = rec.data; }
+  });
+}
+
+function toggleHbEdit(){
+  hbEditMode = !hbEditMode;
+  document.querySelectorAll('.hb-editable').forEach(el=>{
+    el.contentEditable = hbEditMode ? 'true' : 'false';
+    el.classList.toggle('hb-edit-mode', hbEditMode);
+  });
+  document.getElementById('hbEditBtn').textContent = hbEditMode ? '✓ Klaar met bewerken' : '✎ Teksten bewerken';
+  document.getElementById('hbEditHint').style.display = hbEditMode ? 'block' : 'none';
+  document.getElementById('hbResetBtn').style.display = hbEditMode ? 'inline-flex' : 'none';
+}
+
+async function saveHbText(key, html){
+  try{
+    await sbUpsert('documenten', {
+      id: hbTextId(key), type:'handboek_tekst', locatie:key,
+      bestandsnaam: key, data: html,
+      updated_at: new Date().toISOString(),
+    });
+    const idx = documenten.findIndex(d=>d.id===hbTextId(key));
+    const rec = { id:hbTextId(key), type:'handboek_tekst', locatie:key, bestandsnaam:key, data:html, updated_at:new Date().toISOString() };
+    if(idx>-1) documenten[idx] = rec; else documenten.push(rec);
+  }catch(err){
+    console.error('Fout bij opslaan tekst:', err);
+  }
+}
+
+document.addEventListener('focusout', (e)=>{
+  const el = e.target;
+  if(el.classList && el.classList.contains('hb-editable') && hbEditMode){
+    const key = el.dataset.key;
+    clearTimeout(hbSaveTimers[key]);
+    hbSaveTimers[key] = setTimeout(()=> saveHbText(key, el.innerHTML), 200);
+  }
+}, true);
+
+async function resetHbTexts(){
+  if(!confirm('Alle aangepaste teksten in het handboek terugzetten naar de originele tekst? Dit kan niet ongedaan worden gemaakt.')) return;
+  try{
+    await sb('documenten?type=eq.handboek_tekst', { method:'DELETE', prefer:'return=minimal' });
+    location.reload();
+  }catch(err){
+    console.error('Fout bij herstellen teksten:', err);
+    alert('Herstellen is niet gelukt: ' + err.message);
+  }
+}
+
 /* ================= HANDBOEK: FOTO'S & DOCUMENTEN ================= */
 function hbFotoId(key){ return `handboek_foto_${key}`; }
 function findHbFoto(key){ return documenten.find(d=>d.id===hbFotoId(key)); }
@@ -2134,6 +2225,7 @@ function renderAll(){
   buildResKoppelSelect();
   renderHandboekFotos();
   renderHandboekDocs();
+  applyHbTexts();
 }
 
 /* ================= INIT ================= */
