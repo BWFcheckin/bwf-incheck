@@ -404,6 +404,19 @@ body.light .arr-item.checked .arr-cb::after { color: #1a1208; }
 <!-- ══ INCHECK ══ -->
 <div class="screen active" id="screen-nieuw">
 
+  <div class="card" style="border-color:var(--gold);">
+    <div class="card-title">Koppel aan reservering</div>
+    <div class="field">
+      <label>Bestaande reservering</label>
+      <select id="resKoppel" onchange="koppelReservering()">
+        <option value="">— Niet koppelen, handmatig invullen —</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <span id="koppelStatus" style="font-size:12px; color:var(--muted);">Kies een reservering om alle bekende gegevens automatisch in te vullen. De gast hoeft dan alleen nog te controleren, akkoord te geven en te tekenen.</span>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">Reserveringsgegevens</div>
     <div class="field">
@@ -644,10 +657,17 @@ async function sb(path, options={}){
 }
 
 let entries = [];
+let reserveringen = [];
 let currentFilter = 'alle';
 let currentEntry  = null;
 let sigDrawing    = false;
 let sigCtx, sigCanvas;
+
+const LOC_LABEL = {
+  angie:   'Suite Angie — Almere',
+  jacuzzi: 'Malina Jacuzzi Suite — Lelystad',
+  deluxe:  'Malina Deluxe Zwembad Suite — Lelystad',
+};
 
 // ── INIT ──
 window.addEventListener('load', () => {
@@ -658,7 +678,70 @@ window.addEventListener('load', () => {
   const saved = localStorage.getItem('bwf_theme') || 'light';
   applyTheme(saved);
   loadEntries();
+  loadReserveringen();
 });
+
+// ── RESERVERINGEN KOPPELEN ──
+async function loadReserveringen(){
+  try{
+    reserveringen = await sb('reservations?select=*&order=checkindatum.desc') || [];
+  }catch(err){
+    console.error('Fout bij laden reserveringen:', err);
+    reserveringen = [];
+  }
+  const sel = document.getElementById('resKoppel');
+  const huidige = sel.value;
+  sel.innerHTML = '<option value="">— Niet koppelen, handmatig invullen —</option>' +
+    reserveringen.map(r => {
+      const naam = [r.voornaam, r.achternaam].filter(Boolean).join(' ') || 'Onbekende gast';
+      const loc = LOC_LABEL[r.locatie] || r.locatie || '';
+      const datum = r.checkindatum || '—';
+      return `<option value="${r.id}">${naam} — ${loc} — ${datum}</option>`;
+    }).join('');
+  sel.value = huidige;
+}
+function koppelReservering(){
+  const id = document.getElementById('resKoppel').value;
+  const statusEl = document.getElementById('koppelStatus');
+  if(!id){
+    statusEl.textContent = 'Kies een reservering om alle bekende gegevens automatisch in te vullen. De gast hoeft dan alleen nog te controleren, akkoord te geven en te tekenen.';
+    return;
+  }
+  const r = reserveringen.find(x => x.id === id);
+  if(!r) return;
+
+  document.getElementById('locatie').value = LOC_LABEL[r.locatie] || '';
+  updateManagers();
+  document.getElementById('datum').value = r.checkindatum || '';
+  document.getElementById('resnr').value = r.id || '';
+  document.getElementById('incheck').value = r.checkintijd || '';
+  document.getElementById('uitcheck').value = r.checkuittijd || '';
+  document.getElementById('totaal').value = r.totaal != null ? ('€ ' + parseFloat(r.totaal).toFixed(2).replace('.', ',')) : '';
+  document.getElementById('aanbetaald').value = r.betaald != null ? ('€ ' + parseFloat(r.betaald).toFixed(2).replace('.', ',')) : '';
+  const restant = Math.max(0, parseFloat(r.totaal||0) - parseFloat(r.betaald||0));
+  document.getElementById('restant').value = '€ ' + restant.toFixed(2).replace('.', ',');
+
+  document.getElementById('voornaam').value = r.voornaam || '';
+  document.getElementById('achternaam').value = r.achternaam || '';
+  document.getElementById('telefoon').value = r.telefoon || '';
+  document.getElementById('email').value = r.email || '';
+
+  // Arrangement matchen met checkboxlijst indien mogelijk
+  document.querySelectorAll('.arr-item.checked').forEach(el => { el.classList.remove('checked'); el.querySelector('input').checked = false; });
+  if(r.arrangement){
+    document.querySelectorAll('#arrGrid .arr-item').forEach(el => {
+      const val = el.querySelector('input').value;
+      if(val.toLowerCase() === String(r.arrangement).toLowerCase()){
+        el.classList.add('checked');
+        el.querySelector('input').checked = true;
+      }
+    });
+  }
+
+  if(r.opmerkingen) document.getElementById('opmerkingen').value = r.opmerkingen;
+
+  statusEl.textContent = '✓ Gegevens ingevuld vanuit de reservering. Controleer samen met de gast en vul de ontbrekende velden (personen, nationaliteit, geboortedatum, woonplaats) aan.';
+}
 
 async function loadEntries(){
   const statusBox = document.getElementById('connStatus');
@@ -716,6 +799,7 @@ function setTab(name) {
   document.getElementById('screen-' + name).classList.add('active');
   document.querySelector('[data-tab="' + name + '"]').classList.add('active');
   if (name === 'overzicht')    loadEntries();
+  if (name === 'nieuw')        loadReserveringen();
   if (name === 'instellingen') document.getElementById('totalCount').textContent = entries.length;
 }
 
@@ -767,6 +851,7 @@ function clearSig() { sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
 function collectForm() {
   return {
     id: 'c' + Date.now(),
+    reservation_id: document.getElementById('resKoppel').value || null,
     locatie:      document.getElementById('locatie').value,
     manager:      document.getElementById('manager').value,
     datum:        document.getElementById('datum').value,
@@ -802,6 +887,8 @@ function resetForm() {
    .forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   document.getElementById('lid').checked = false;
   document.getElementById('akkoord').checked = false;
+  document.getElementById('resKoppel').value = '';
+  document.getElementById('koppelStatus').textContent = 'Kies een reservering om alle bekende gegevens automatisch in te vullen. De gast hoeft dan alleen nog te controleren, akkoord te geven en te tekenen.';
   document.querySelectorAll('.arr-item.checked').forEach(el => { el.classList.remove('checked'); el.querySelector('input').checked = false; });
   clearSig(); setToday();
 }
