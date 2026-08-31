@@ -1,0 +1,1079 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C5F62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Urenstaat">
+<meta name="robots" content="noindex, nofollow">
+<title>Urenstaat Ruth Tilburg</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F3F6F4;
+    --surface: #FFFFFF;
+    --surface-2: #EAEFEC;
+    --ink: #17211E;
+    --ink-2: #4C5A56;
+    --ink-3: #7C8A85;
+    --line: #DCE3DF;
+    --line-strong: #C3CEC9;
+    --accent: #1C5F62;
+    --accent-ink: #103F42;
+    --accent-soft: #DFEDEB;
+    --ochre: #8A6321;
+    --ochre-soft: #F3E9D8;
+    --good: #3E7A52;
+    --danger: #9B3B33;
+    --shadow: 0 1px 2px rgba(23,33,30,.05), 0 10px 28px -18px rgba(23,33,30,.35);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #111614;
+      --surface: #191F1D;
+      --surface-2: #212826;
+      --ink: #E7EDE9;
+      --ink-2: #A7B4AF;
+      --ink-3: #7E8C87;
+      --line: #2A322F;
+      --line-strong: #3B4540;
+      --accent: #6CBEBD;
+      --accent-ink: #A9DBD9;
+      --accent-soft: #15302F;
+      --ochre: #D6AC6B;
+      --ochre-soft: #2C2417;
+      --good: #75B48A;
+      --danger: #D98077;
+      --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #111614;
+    --surface: #191F1D;
+    --surface-2: #212826;
+    --ink: #E7EDE9;
+    --ink-2: #A7B4AF;
+    --ink-3: #7E8C87;
+    --line: #2A322F;
+    --line-strong: #3B4540;
+    --accent: #6CBEBD;
+    --accent-ink: #A9DBD9;
+    --accent-soft: #15302F;
+    --ochre: #D6AC6B;
+    --ochre-soft: #2C2417;
+    --good: #75B48A;
+    --danger: #D98077;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  h1, h2, h3 { font-family: "Fraunces", ui-serif, Georgia, serif; font-weight: 600; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(1.7rem, 1.2rem + 1.8vw, 2.3rem); letter-spacing: -.01em; line-height: 1.15; }
+  h2 { font-size: 1.05rem; letter-spacing: .002em; }
+  .eyebrow {
+    font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 8px;
+  }
+  .lede { color: var(--ink-2); margin: 10px 0 0; max-width: 60ch; }
+  .num { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  header.page { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; }
+  header.page > div:first-child { flex: 1 1 380px; }
+
+  .status {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: .78rem; font-weight: 500; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 12px; white-space: nowrap;
+  }
+  .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none; }
+  .status[data-s="saved"] .dot { background: var(--good); }
+  .status[data-s="saving"] .dot { background: var(--ochre); animation: pulse 1s ease-in-out infinite; }
+  .status[data-s="error"] .dot, .status[data-s="readonly"] .dot { background: var(--danger); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+
+  .headtools { display: flex; align-items: center; gap: 10px; }
+
+  .wrap.login { max-width: 460px; padding-top: 12vh; }
+  .loginbox { padding: 32px 30px; display: grid; gap: 18px; }
+  .loginbox h1 { font-size: 1.7rem; }
+  .loginbox .lede { margin: 0; }
+  .loginbox .eyebrow { margin: 0; }
+  .loginbox form { display: grid; gap: 14px; }
+  .loginbox input[type="password"] {
+    font: inherit; letter-spacing: .18em; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 11px 13px; width: 100%;
+  }
+  .loginbox .btn { justify-self: start; }
+  .loginbox .notice { margin: 0; }
+
+  .monthbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 30px 0 16px;
+  }
+  .monthbar h2 { font-size: 1.35rem; min-width: 8.5ch; }
+  .iconbtn {
+    width: 34px; height: 34px; display: grid; place-items: center;
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2);
+    border-radius: 8px; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0;
+  }
+  .iconbtn:hover { border-color: var(--accent); color: var(--accent); }
+  .spacer { flex: 1; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .stat { padding: 16px 18px; }
+  .stat .label { font-size: .73rem; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .stat .value { font-size: 1.75rem; font-weight: 500; margin-top: 6px; letter-spacing: -.01em; }
+  .stat.accent .value { color: var(--accent); }
+  .stat.money .value { color: var(--ochre); }
+  .stat .sub { font-size: .8rem; color: var(--ink-3); margin-top: 3px; }
+
+  .reserve {
+    margin-top: 12px; padding: 16px 18px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px 40px;
+  }
+  .reserve .who { flex: 1 1 260px; }
+  .reserve .label { font-size: .73rem; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .reserve .sub { font-size: .84rem; color: var(--ink-3); margin-top: 3px; }
+  .reserve .figs { display: flex; gap: 36px; flex-wrap: wrap; }
+  .reserve .v { font-size: 1.35rem; font-weight: 500; margin-top: 4px; }
+  .reserve .v.hi { color: var(--accent); }
+
+  .section-title { margin: 30px 0 12px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .section-title .hint { font-size: .82rem; color: var(--ink-3); }
+
+  form.entry { padding: 18px; display: grid; gap: 16px; }
+  .field { display: grid; gap: 7px; }
+  .field > label, .grouplabel {
+    font-size: .73rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 600; color: var(--ink-3);
+  }
+  .row2 { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 16px; }
+  @media (max-width: 620px) { .row2 { grid-template-columns: 1fr; } }
+
+  input[type="date"], input[type="text"], select {
+    font: inherit; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; width: 100%;
+  }
+  input[type="date"] { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  select { cursor: pointer; appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+    background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+  select.invalid { border-color: var(--danger); }
+  input:focus-visible, select:focus-visible, button:focus-visible, .seg button:focus-visible, .chk:focus-within {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .opt { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-3); opacity: .8; }
+
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg button {
+    font: inherit; font-weight: 500; cursor: pointer;
+    background: var(--surface-2); color: var(--ink-2);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 13px;
+    display: flex; align-items: baseline; gap: 7px;
+  }
+  .seg button .h { font-size: .8rem; color: var(--ink-3); font-family: "IBM Plex Mono", monospace; }
+  .seg button[aria-pressed="true"] {
+    background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600;
+  }
+  .seg button[aria-pressed="true"] .h { color: var(--accent); }
+
+  .chk {
+    display: flex; align-items: center; gap: 9px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--line-strong);
+    border-radius: 8px; padding: 9px 13px; font-weight: 500; color: var(--ink-2);
+  }
+  .chk input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+  .chk .h { font-size: .8rem; color: var(--ink-3); font-family: "IBM Plex Mono", monospace; }
+  .chk:has(input:checked), .chk.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+  .chk:has(input:checked) .h, .chk.on .h { color: var(--accent); }
+
+  .formfoot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 16px; }
+  .preview { font-size: 1.05rem; font-weight: 500; }
+  .preview .u { color: var(--accent); }
+  .preview .sep { color: var(--ink-3); margin: 0 8px; }
+  .preview .e { color: var(--ochre); }
+  .preview .fee { color: var(--ink-3); font-size: .85rem; margin-left: 12px; }
+  .chk.fee:has(input:checked), .chk.fee.on { background: var(--ochre-soft); border-color: var(--ochre); color: var(--ochre); }
+  .chk.fee:has(input:checked) .h, .chk.fee.on .h { color: var(--ochre); }
+  .chk.fee input { accent-color: var(--ochre); }
+
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--surface);
+    border: 1px solid var(--accent); border-radius: 8px; padding: 10px 18px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: transparent; color: var(--ink-2); border-color: var(--line-strong); }
+  .btn.ghost:hover { color: var(--accent); border-color: var(--accent); filter: none; }
+  .btn.small { padding: 7px 13px; font-size: .85rem; font-weight: 500; }
+
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  th {
+    text-align: left; font-size: .71rem; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; padding: 12px 14px; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  .ta-r { text-align: right; }
+  .date { white-space: nowrap; }
+  .date .dow { color: var(--ink-3); font-size: .8rem; margin-right: 6px; text-transform: capitalize; }
+  .note { color: var(--ink-3); font-size: .84rem; display: block; margin-top: 2px; }
+  .suite { white-space: nowrap; }
+
+  .pill {
+    display: inline-block; font-size: .74rem; font-weight: 600; letter-spacing: .02em;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+    background: var(--accent-soft); color: var(--accent-ink); border: 1px solid transparent;
+  }
+  .pill.add { background: var(--ochre-soft); color: var(--ochre); margin-left: 6px; }
+  .pill.fee { background: transparent; color: var(--ochre); border-color: var(--ochre); margin-left: 6px; }
+  .pill.soft { background: var(--surface-2); color: var(--ink-2); margin-left: 6px; font-weight: 500; }
+  .acts { display: flex; gap: 6px; justify-content: flex-end; }
+  .linkbtn {
+    font: inherit; font-size: .84rem; background: none; border: none; cursor: pointer;
+    color: var(--ink-3); padding: 4px 6px; border-radius: 6px;
+  }
+  .linkbtn:hover { color: var(--accent); background: var(--accent-soft); }
+  .linkbtn.del:hover { color: var(--danger); background: transparent; text-decoration: underline; }
+
+  tfoot td { border-top: 2px solid var(--line-strong); border-bottom: none; font-weight: 600; padding-top: 14px; }
+
+  .empty { padding: 38px 20px; text-align: center; color: var(--ink-3); }
+  .empty strong { display: block; color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+
+  details.rules { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 16px; }
+  details.rules summary { cursor: pointer; font-weight: 600; color: var(--ink-2); }
+  details.rules summary::marker { color: var(--accent); }
+  details.rules ul { color: var(--ink-2); padding-left: 20px; line-height: 1.7; }
+  details.rules code { font-family: "IBM Plex Mono", monospace; font-size: .88em; color: var(--accent); }
+
+  .notice {
+    margin-top: 18px; padding: 12px 15px; border-radius: 8px; font-size: .88rem;
+    background: var(--ochre-soft); color: var(--ochre); border: 1px solid transparent;
+  }
+  .notice.hidden { display: none; }
+
+  .yearly { margin-top: 34px; }
+  .yearly td, .yearly th { padding: 10px 14px; }
+  .yearly .cur td { background: var(--accent-soft); }
+  .monthlink { background: none; border: none; font: inherit; color: var(--ink); cursor: pointer; padding: 0; text-align: left; }
+  .monthlink:hover { color: var(--accent); text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<script>
+(function () {
+  "use strict";
+
+  /* ===================================================================
+     INSTELLINGEN — al ingevuld, dezelfde database als je dashboard.
+     Deze publishable key hoort in de pagina te staan; de beveiliging
+     loopt via de RLS-regels op de tabel uren_registratie.
+     =================================================================== */
+  var SUPABASE_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
+  var TABEL = "uren_registratie";
+  var MEDEWERKER = "Ruth Tilburg";
+  /* Het account waarmee de toegangscode hoort. Maak dit account aan in
+     Supabase → Authentication → Users → Add user, met "Auto Confirm User"
+     aangevinkt. Het wachtwoord van dat account is de toegangscode. */
+  var TOEGANG_ACCOUNT = "uren@bedenwellnessflevoland.nl";
+  /* =================================================================== */
+
+  var RATE = 16.5;
+  var HOLIDAY_PCT = 0.08;
+  var LS_KEY = "urenstaat-ruth-v1";
+  var SESSION_KEY = "urenstaat-ruth-sessie";
+  var POLL_MS = 20000;
+
+  var TYPES = [
+    { id: "volledig", label: "Volledig", full: "Incheck + uitcheck + schoonmaak", hours: { dagverblijf: 2.5, overnachting: 3 } },
+    { id: "incheck",  label: "Alleen incheck", full: "Alleen incheck", hours: { dagverblijf: 1, overnachting: 1 } },
+    { id: "uitcheck", label: "Uitcheck + schoonmaak", full: "Uitcheck + schoonmaak", hours: { dagverblijf: 1.5, overnachting: 2 } }
+  ];
+  var TYPE_BY_ID = {};
+  TYPES.forEach(function (t) { TYPE_BY_ID[t.id] = t; });
+
+  var LATE_FEE = 25;
+  var SUITES = ["Malina Jacuzzi", "Malina Zwembad"];
+  var VERBLIJF = [
+    { id: "dagverblijf", label: "Dagverblijf" },
+    { id: "overnachting", label: "Overnachting" }
+  ];
+  var VERBLIJF_LABEL = { dagverblijf: "Dagverblijf", overnachting: "Overnachting" };
+  var SOURCES = ["Privé sauna", "Origineel Overnachten", "Booking.com", "Telefonisch"];
+
+  var eur = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
+  var MONTHS = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+
+  function fmtHours(n) {
+    return n.toLocaleString("nl-NL", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  function hoursOf(e) {
+    var t = TYPE_BY_ID[e.type];
+    var v = e.verblijf === "overnachting" ? "overnachting" : "dagverblijf";
+    var h = t ? t.hours[v] : 0;
+    if (e.menu) h += 0.5;
+    if (e.arr) h += 1;
+    return Math.round(h * 100) / 100;
+  }
+  function amountOf(e) { return Math.round(hoursOf(e) * RATE * 100) / 100; }
+  function dateOf(e) { return new Date(e.date + "T12:00:00"); }
+  function monthKey(iso) { return iso.slice(0, 7); }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  /* ---------- state ---------- */
+
+  var state = { entries: [] };
+  try {
+    var cached = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+    if (cached && Array.isArray(cached.entries)) state = cached;
+  } catch (err) { /* verse start */ }
+
+  var view = { month: monthKey(todayISO()), editing: null, saveState: "idle" };
+  var draft = { date: todayISO(), type: "volledig", verblijf: "dagverblijf", menu: false, arr: false, late: false, suite: "", source: "", note: "" };
+
+  var readOnly = false;
+  var configured = /^https:\/\/.+\.supabase\.co$/.test(SUPABASE_URL) && SUPABASE_ANON_KEY.indexOf("PLAK-HIER") === -1 && SUPABASE_ANON_KEY.length > 20;
+  var pollTimer = null;
+
+  /* ---------- derived ---------- */
+
+  function sortedEntries() {
+    return state.entries.slice().sort(function (a, b) {
+      return a.date === b.date ? (a.id < b.id ? -1 : 1) : (a.date < b.date ? -1 : 1);
+    });
+  }
+  function entriesOfMonth(mk) {
+    return sortedEntries().filter(function (e) { return monthKey(e.date) === mk; });
+  }
+  function totals(list) {
+    var h = 0, lateCount = 0;
+    list.forEach(function (e) { h += hoursOf(e); if (e.late) lateCount++; });
+    h = Math.round(h * 100) / 100;
+    return {
+      hours: h,
+      amount: Math.round(h * RATE * 100) / 100,
+      count: list.length,
+      lateCount: lateCount,
+      lateAmount: lateCount * LATE_FEE
+    };
+  }
+  function allMonths() {
+    var keys = {};
+    state.entries.forEach(function (e) { keys[monthKey(e.date)] = true; });
+    keys[view.month] = true;
+    return Object.keys(keys).sort();
+  }
+  function monthLabel(mk) {
+    var p = mk.split("-");
+    return MONTHS[Number(p[1]) - 1] + " " + p[0];
+  }
+  function opbouwRange(mk) {
+    var y = Number(mk.slice(0, 4)), m = Number(mk.slice(5, 7));
+    var s = m >= 6 ? y : y - 1;
+    return {
+      start: s + "-06",
+      end: (s + 1) + "-05",
+      label: "juni " + s + " t/m mei " + (s + 1),
+      uitbetaling: "mei " + (s + 1)
+    };
+  }
+  function entriesInRange(r) {
+    return sortedEntries().filter(function (e) {
+      var mk = monthKey(e.date);
+      return mk >= r.start && mk <= r.end;
+    });
+  }
+  function shiftMonth(mk, delta) {
+    var p = mk.split("-");
+    var d = new Date(Number(p[0]), Number(p[1]) - 1 + delta, 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+
+  /* ---------- opslaan ---------- */
+
+  function setSave(s) {
+    view.saveState = s;
+    var el = document.getElementById("savechip");
+    if (!el) return;
+    var text = {
+      idle: "Verbinden…",
+      saving: "Opslaan…",
+      saved: "Opgeslagen",
+      synced: "Bijgewerkt",
+      local: "Alleen op dit apparaat",
+      setup: "Nog niet ingesteld",
+      error: "Geen verbinding — niet opgeslagen"
+    }[s] || "";
+    el.setAttribute("data-s", s === "synced" ? "saved" : s);
+    el.querySelector(".txt").textContent = text;
+  }
+
+  function cacheLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (err) { /* geen opslag */ }
+  }
+
+  /* ---------- toegang ---------- */
+
+  var session = null;
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (err) { session = null; }
+
+  function storeSession(s) {
+    session = s ? {
+      access_token: s.access_token,
+      refresh_token: s.refresh_token,
+      expires_at: Date.now() + ((s.expires_in || 3600) - 60) * 1000
+    } : null;
+    try {
+      if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch (err) { /* geen opslag */ }
+  }
+
+  function authCall(grant, body) {
+    return fetch(SUPABASE_URL + "/auth/v1/token?grant_type=" + grant, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) {
+          var err = new Error(data.error_description || data.msg || data.message || "Inloggen mislukt");
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    });
+  }
+
+  function login(code) {
+    return authCall("password", { email: TOEGANG_ACCOUNT, password: code })
+      .then(function (data) { storeSession(data); return data; });
+  }
+
+  function logout() {
+    storeSession(null);
+    state.entries = [];
+    try { localStorage.removeItem(LS_KEY); } catch (err) { /* geen opslag */ }
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    renderLogin();
+  }
+
+  function freshToken() {
+    if (!session) return Promise.reject(new Error("niet ingelogd"));
+    if (Date.now() < session.expires_at) return Promise.resolve(session.access_token);
+    return authCall("refresh_token", { refresh_token: session.refresh_token })
+      .then(function (data) { storeSession(data); return session.access_token; });
+  }
+
+  /* ---------- Supabase ---------- */
+
+  function api(path, opts) {
+    opts = opts || {};
+    return freshToken().then(function (token) {
+      var headers = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json"
+      };
+      if (opts.prefer) headers.Prefer = opts.prefer;
+      return fetch(SUPABASE_URL + "/rest/v1/" + path, {
+        method: opts.method || "GET",
+        headers: headers,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+    }).then(function (res) {
+      if (res.status === 401 || res.status === 403) {
+        storeSession(null);
+        renderLogin("Je sessie is verlopen. Vul de toegangscode opnieuw in.");
+        throw new Error("sessie verlopen");
+      }
+      if (!res.ok) {
+        return res.text().then(function (t) { throw new Error(res.status + " " + t); });
+      }
+      return res.status === 204 ? null : res.json();
+    });
+  }
+
+  function toRow(e) {
+    return {
+      medewerker: MEDEWERKER,
+      datum: e.date,
+      soort: e.type,
+      verblijf: e.verblijf || "dagverblijf",
+      menu: !!e.menu,
+      arrangement: !!e.arr,
+      laat_inchecken: !!e.late,
+      suite: e.suite || null,
+      bron: e.source || null,
+      opmerking: e.note || null,
+      uren: hoursOf(e),
+      uurtarief: RATE,
+      bedrag: amountOf(e)
+    };
+  }
+  function fromRow(r) {
+    return {
+      id: r.id,
+      date: r.datum,
+      type: r.soort,
+      verblijf: r.verblijf || "dagverblijf",
+      menu: !!r.menu,
+      arr: !!r.arrangement,
+      late: !!r.laat_inchecken,
+      suite: r.suite || "",
+      source: r.bron || "",
+      note: r.opmerking || ""
+    };
+  }
+
+  function pull(silent) {
+    if (!configured) { setSave("setup"); return Promise.resolve(); }
+    return api(TABEL + "?select=*&medewerker=eq." + encodeURIComponent(MEDEWERKER) + "&order=datum.asc")
+      .then(function (rows) {
+        var fresh = (rows || []).map(fromRow);
+        var changed = JSON.stringify(fresh) !== JSON.stringify(state.entries);
+        state.entries = fresh;
+        cacheLocal();
+        if (changed || !silent) render();
+        setSave("synced");
+      })
+      .catch(function () { setSave("error"); });
+  }
+
+  function pushNew(entry) {
+    if (!configured) { setSave("setup"); return; }
+    setSave("saving");
+    api(TABEL, { method: "POST", body: toRow(entry), prefer: "return=representation" })
+      .then(function (rows) {
+        if (rows && rows[0]) {
+          state.entries = state.entries.map(function (e) { return e.id === entry.id ? fromRow(rows[0]) : e; });
+          cacheLocal();
+          render();
+        }
+        setSave("saved");
+      })
+      .catch(function () { setSave("error"); });
+  }
+
+  function pushUpdate(entry) {
+    if (!configured) { setSave("setup"); return; }
+    setSave("saving");
+    api(TABEL + "?id=eq." + encodeURIComponent(entry.id), { method: "PATCH", body: toRow(entry), prefer: "return=minimal" })
+      .then(function () { setSave("saved"); })
+      .catch(function () { setSave("error"); });
+  }
+
+  function pushDelete(id) {
+    if (!configured) { setSave("setup"); return; }
+    setSave("saving");
+    api(TABEL + "?id=eq." + encodeURIComponent(id), { method: "DELETE", prefer: "return=minimal" })
+      .then(function () { setSave("saved"); })
+      .catch(function () { setSave("error"); });
+  }
+
+  /* ---------- inlogscherm ---------- */
+
+  function renderLogin(msg) {
+    var html = '<div class="wrap login">';
+    html += '<div class="card loginbox">';
+    html += '<p class="eyebrow">Bed &amp; Wellness Flevoland · Malina, Lelystad</p>';
+    html += "<h1>Urenstaat Ruth Tilburg</h1>";
+    html += '<p class="lede">Vul de toegangscode in om de urenstaat te openen. Je blijft daarna op dit apparaat ingelogd.</p>';
+    if (msg) html += '<div class="notice">' + esc(msg) + "</div>";
+    html += '<form id="loginform">';
+    html += '<div class="field"><label for="f-code">Toegangscode</label>';
+    html += '<input type="password" id="f-code" autocomplete="current-password" required autofocus></div>';
+    html += '<button type="submit" class="btn">Openen</button>';
+    html += "</form>";
+    html += "</div></div>";
+    document.getElementById("app").innerHTML = html;
+    var f = document.getElementById("f-code");
+    if (f) f.focus();
+  }
+
+  document.addEventListener("submit", function (ev) {
+    if (ev.target.id !== "loginform") return;
+    ev.preventDefault();
+    var input = document.getElementById("f-code");
+    var btn = ev.target.querySelector("button[type=submit]");
+    if (!input || !input.value) return;
+    btn.disabled = true;
+    btn.textContent = "Even geduld…";
+    login(input.value).then(function () {
+      start();
+    }).catch(function (err) {
+      btn.disabled = false;
+      btn.textContent = "Openen";
+      var m = /Invalid login/i.test(err.message) ? "Die code klopt niet. Probeer het opnieuw." : err.message;
+      renderLogin(m);
+    });
+  });
+
+  /* ---------- render ---------- */
+
+  function render() {
+    var list = entriesOfMonth(view.month);
+    var t = totals(list);
+    var editing = view.editing ? state.entries.filter(function (e) { return e.id === view.editing; })[0] : null;
+
+    var html = "";
+    html += '<div class="wrap">';
+
+    html += '<header class="page">';
+    html += '<div>';
+    html += '<p class="eyebrow">Bed &amp; Wellness Flevoland · Malina, Lelystad</p>';
+    html += "<h1>Urenstaat Ruth Tilburg</h1>";
+    html += '<p class="lede">Elke dienst wordt hier per reservering vastgelegd. De uren en het bedrag worden automatisch berekend op basis van de afspraken uit de oproepovereenkomst: ' + eur.format(RATE) + " bruto per actief uur, exclusief 8% vakantiebijslag.</p>";
+    html += "</div>";
+    html += '<div class="headtools">';
+    html += '<div id="savechip" class="status" data-s="' + esc(view.saveState) + '"><span class="dot"></span><span class="txt"></span></div>';
+    html += '<button class="linkbtn" data-act="logout">Afsluiten</button>';
+    html += "</div>";
+    html += "</header>";
+
+    html += '<div class="notice' + (readOnly ? "" : " hidden") + '" id="ro-notice">Deze urenstaat kan nu niet worden opgeslagen.</div>';
+
+    /* maandbalk */
+    html += '<div class="monthbar">';
+    html += '<button class="iconbtn" data-act="prev-month" aria-label="Vorige maand">‹</button>';
+    html += "<h2>" + esc(monthLabel(view.month)) + "</h2>";
+    html += '<button class="iconbtn" data-act="next-month" aria-label="Volgende maand">›</button>';
+    html += '<div class="spacer"></div>';
+    if (view.month !== monthKey(todayISO())) {
+      html += '<button class="btn ghost small" data-act="this-month">Naar deze maand</button>';
+    }
+    html += "</div>";
+
+    /* stats */
+    html += '<div class="stats">';
+    html += '<div class="card stat accent"><div class="label">Actieve uren</div><div class="value num">' + fmtHours(t.hours) + '</div><div class="sub">' + t.count + (t.count === 1 ? " dienst" : " diensten") + "</div></div>";
+    html += '<div class="card stat money"><div class="label">Bruto loon</div><div class="value num">' + eur.format(t.amount) + '</div><div class="sub">' + fmtHours(t.hours) + " u × " + eur.format(RATE) + "</div></div>";
+    html += '<div class="card stat"><div class="label">Vakantiebijslag 8%</div><div class="value num">' + eur.format(Math.round(t.amount * HOLIDAY_PCT * 100) / 100) + '</div><div class="sub">opbouw in deze maand</div></div>';
+    html += '<div class="card stat"><div class="label">Toeslag laat inchecken</div><div class="value num">' + eur.format(t.lateAmount) + '</div><div class="sub">' + t.lateCount + "× € 25 · gastbetaling, niet in het loon</div></div>";
+    html += "</div>";
+
+    var rng = opbouwRange(view.month);
+    var rt = totals(entriesInRange(rng));
+    html += '<div class="card reserve">';
+    html += '<div class="who"><div class="label">Reservering vakantiebijslag</div><div class="sub">Opbouwjaar ' + esc(rng.label) + " · uitbetaling in " + esc(rng.uitbetaling) + "</div></div>";
+    html += '<div class="figs">';
+    html += '<div><div class="label">Bruto opgebouwd</div><div class="v num">' + eur.format(rt.amount) + "</div></div>";
+    html += '<div><div class="label">Gereserveerd 8%</div><div class="v num hi">' + eur.format(Math.round(rt.amount * HOLIDAY_PCT * 100) / 100) + "</div></div>";
+    html += "</div></div>";
+
+    /* formulier */
+    if (!readOnly) {
+      html += '<div class="section-title"><h2>' + (editing ? "Dienst bewerken" : "Dienst toevoegen") + '</h2><span class="hint">' + (editing ? "Je past een bestaande regel aan." : "Datum en soort dienst kiezen — de rest rekent zichzelf uit.") + "</span></div>";
+      html += '<form class="card entry" id="entryform">';
+      html += '<div class="row2">';
+      html += '<div class="field"><label for="f-date">Datum</label><input type="date" id="f-date" value="' + esc(draft.date) + '" required></div>';
+      html += '<div class="field"><span class="grouplabel">Verblijfsvorm</span><div class="seg">';
+      VERBLIJF.forEach(function (v) {
+        html += '<button type="button" data-act="verblijf" data-verblijf="' + v.id + '" aria-pressed="' + (draft.verblijf === v.id ? "true" : "false") + '">' + esc(v.label) + '<span class="h">' + fmtHours(TYPE_BY_ID.volledig.hours[v.id]) + " u</span></button>";
+      });
+      html += "</div></div>";
+      html += "</div>";
+
+      html += '<div class="field"><span class="grouplabel">Soort dienst</span><div class="seg">';
+      TYPES.forEach(function (ty) {
+        html += '<button type="button" data-act="type" data-type="' + ty.id + '" aria-pressed="' + (draft.type === ty.id ? "true" : "false") + '">' + esc(ty.label) + '<span class="h">' + fmtHours(ty.hours[draft.verblijf] || ty.hours.dagverblijf) + " u</span></button>";
+      });
+      html += "</div></div>";
+
+      html += '<div class="row2">';
+      html += '<div class="field"><label for="f-suite">Suite</label><select id="f-suite" required>';
+      html += '<option value=""' + (draft.suite ? "" : " selected") + ">— kies een suite —</option>";
+      SUITES.forEach(function (s) {
+        html += '<option value="' + esc(s) + '"' + (draft.suite === s ? " selected" : "") + ">" + esc(s) + "</option>";
+      });
+      html += "</select></div>";
+      html += '<div class="field"><label for="f-source">Bron van de boeking <span class="opt">optioneel</span></label><select id="f-source">';
+      html += '<option value=""' + (draft.source ? "" : " selected") + ">— niet ingevuld —</option>";
+      SOURCES.forEach(function (s) {
+        html += '<option value="' + esc(s) + '"' + (draft.source === s ? " selected" : "") + ">" + esc(s) + "</option>";
+      });
+      html += "</select></div>";
+      html += "</div>";
+
+      html += '<div class="row2">';
+      html += '<div class="field"><span class="grouplabel">Toeslagen op de uren</span><div class="seg">';
+      html += '<label class="chk"><input type="checkbox" data-act="menu"' + (draft.menu ? " checked" : "") + '>Menu-optie<span class="h">+0,5 u</span></label>';
+      html += '<label class="chk"><input type="checkbox" data-act="arr"' + (draft.arr ? " checked" : "") + '>Arrangement<span class="h">+1 u</span></label>';
+      html += "</div></div>";
+      html += '<div class="field"><span class="grouplabel">Toeslag voor de gast</span><div class="seg">';
+      html += '<label class="chk fee"><input type="checkbox" data-act="late"' + (draft.late ? " checked" : "") + '>Laat inchecken in overleg<span class="h">€ 25</span></label>';
+      html += "</div></div>";
+      html += "</div>";
+
+      html += '<div class="field"><label for="f-note">Opmerking <span class="opt">optioneel</span></label><input type="text" id="f-note" placeholder="Bijv. naam gast, aankomsttijd of bijzonderheid" value="' + esc(draft.note) + '"></div>';
+
+      html += '<div class="formfoot">';
+      html += '<div class="preview"><span class="u num">' + fmtHours(hoursOf(draft)) + ' uur</span><span class="sep">·</span><span class="e num">' + eur.format(amountOf(draft)) + '</span><span class="fee num"' + (draft.late ? "" : " hidden") + ">+ € 25 gast</span></div>";
+      html += '<div class="spacer"></div>';
+      if (editing) html += '<button type="button" class="btn ghost" data-act="cancel-edit">Annuleren</button>';
+      html += '<button type="submit" class="btn">' + (editing ? "Wijziging opslaan" : "Dienst toevoegen") + "</button>";
+      html += "</div>";
+      html += "</form>";
+    }
+
+    /* tabel */
+    html += '<div class="section-title"><h2>Geregistreerde diensten</h2><span class="hint">' + esc(monthLabel(view.month)) + "</span></div>";
+    html += '<div class="card tablewrap">';
+    if (!list.length) {
+      html += '<div class="empty"><strong>Nog geen diensten in deze maand</strong>Voeg hierboven de eerste dienst toe.</div>';
+    } else {
+      html += "<table><thead><tr>";
+      html += "<th>Datum</th><th>Suite</th><th>Dienst</th><th class=\"ta-r\">Uren</th><th class=\"ta-r\">Bedrag</th><th></th>";
+      html += "</tr></thead><tbody>";
+      list.forEach(function (e) {
+        var d = dateOf(e);
+        var ty = TYPE_BY_ID[e.type];
+        html += '<tr data-id="' + esc(e.id) + '">';
+        html += '<td class="date"><span class="dow">' + d.toLocaleDateString("nl-NL", { weekday: "short" }) + '</span><span class="num">' + d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }) + "</span></td>";
+        html += '<td class="suite">' + (e.suite ? esc(e.suite) : '<span class="note">—</span>');
+        if (e.source) html += '<span class="note">' + esc(e.source) + "</span>";
+        html += "</td>";
+        html += "<td>";
+        html += '<span class="pill">' + esc(ty ? ty.label : e.type) + "</span>";
+        html += '<span class="pill soft">' + esc(VERBLIJF_LABEL[e.verblijf] || "Dagverblijf") + "</span>";
+        if (e.menu) html += '<span class="pill add">menu</span>';
+        if (e.arr) html += '<span class="pill add">arrangement</span>';
+        if (e.late) html += '<span class="pill fee">laat inchecken € 25</span>';
+        if (e.note) html += '<span class="note">' + esc(e.note) + "</span>";
+        html += "</td>";
+        html += '<td class="ta-r num">' + fmtHours(hoursOf(e)) + "</td>";
+        html += '<td class="ta-r num">' + eur.format(amountOf(e)) + "</td>";
+        html += '<td><div class="acts">';
+        if (!readOnly) {
+          html += '<button class="linkbtn" data-act="edit" data-id="' + esc(e.id) + '">Bewerken</button>';
+          html += '<button class="linkbtn del" data-act="del" data-id="' + esc(e.id) + '">Verwijderen</button>';
+        }
+        html += "</div></td></tr>";
+      });
+      html += "</tbody><tfoot><tr>";
+      html += '<td colspan="3">Totaal ' + esc(monthLabel(view.month)) + (t.lateCount ? '<span class="note">plus ' + eur.format(t.lateAmount) + " toeslag laat inchecken, door de gast betaald</span>" : "") + "</td>";
+      html += '<td class="ta-r num">' + fmtHours(t.hours) + "</td>";
+      html += '<td class="ta-r num">' + eur.format(t.amount) + "</td><td></td>";
+      html += "</tr></tfoot></table>";
+    }
+    html += "</div>";
+
+    html += '<div class="toolbar">';
+    html += '<button class="btn ghost small" data-act="csv-month">CSV van ' + esc(monthLabel(view.month)) + "</button>";
+    html += '<button class="btn ghost small" data-act="csv-all">CSV van alle maanden</button>';
+    html += "</div>";
+
+    /* jaaroverzicht */
+    var months = allMonths();
+    if (months.length > 1) {
+      html += '<div class="yearly">';
+      html += '<div class="section-title"><h2>Alle maanden</h2></div>';
+      html += '<div class="card tablewrap"><table><thead><tr><th>Maand</th><th class="ta-r">Diensten</th><th class="ta-r">Uren</th><th class="ta-r">Bruto</th></tr></thead><tbody>';
+      var gh = 0, ga = 0, gc = 0;
+      months.forEach(function (mk) {
+        var mt = totals(entriesOfMonth(mk));
+        gh += mt.hours; ga += mt.amount; gc += mt.count;
+        html += '<tr class="' + (mk === view.month ? "cur" : "") + '">';
+        html += '<td><button class="monthlink" data-act="goto-month" data-month="' + mk + '">' + esc(monthLabel(mk)) + "</button></td>";
+        html += '<td class="ta-r num">' + mt.count + "</td>";
+        html += '<td class="ta-r num">' + fmtHours(mt.hours) + "</td>";
+        html += '<td class="ta-r num">' + eur.format(mt.amount) + "</td></tr>";
+      });
+      html += "</tbody><tfoot><tr><td>Totaal</td>";
+      html += '<td class="ta-r num">' + gc + "</td>";
+      html += '<td class="ta-r num">' + fmtHours(Math.round(gh * 100) / 100) + "</td>";
+      html += '<td class="ta-r num">' + eur.format(Math.round(ga * 100) / 100) + "</td></tr></tfoot></table></div>";
+      html += "</div>";
+    }
+
+    /* rekenregels */
+    html += '<details class="rules"><summary>Hoe worden de uren berekend?</summary><ul>';
+    html += "<li><strong>Dagverblijf</strong> — volledig <code>2,5 u</code>, alleen incheck <code>1 u</code>, uitcheck + schoonmaak <code>1,5 u</code>.</li>";
+    html += "<li><strong>Overnachting</strong> — volledig <code>3 u</code>, alleen incheck <code>1 u</code>, uitcheck + schoonmaak <code>2 u</code>.</li>";
+    html += "<li><strong>Menu-optie</strong> — <code>+0,5 u</code> bovenop de dienst.</li>";
+    html += "<li><strong>Arrangement</strong> — <code>+1 u</code> bovenop de dienst.</li>";
+    html += "<li>Bij een overnachting worden alleen actieve uren vergoed, geen aanwezigheidsdienst.</li>";
+    html += "<li><strong>Laat inchecken in overleg</strong> — <code>€ 25</code>: dit betaalt de gast. Het wordt wel vastgelegd en meegenomen in de export, maar telt niet mee in de uren of het loon.</li>";
+    html += "<li>Suite en bron van de boeking worden per dienst vastgelegd; de suite is verplicht.</li>";
+    html += "<li>Tarief <code>" + eur.format(RATE) + "</code> bruto per actief uur.</li>";
+    html += "<li><strong>Vakantiebijslag 8%</strong> wordt opgebouwd van 1 juni tot en met 31 mei en in mei uitbetaald. De reservering hierboven telt alle diensten in het lopende opbouwjaar mee; de toeslag laat inchecken telt daar niet in mee.</li>";
+    html += "</ul></details>";
+
+    html += "</div>";
+
+    document.getElementById("app").innerHTML = html;
+    setSave(view.saveState);
+  }
+
+  /* ---------- CSV ---------- */
+
+  function csvFor(list, title) {
+    var rows = [["Datum", "Suite", "Bron boeking", "Verblijfsvorm", "Dienst", "Menu", "Arrangement", "Opmerking", "Uren", "Uurtarief", "Bedrag", "Toeslag laat inchecken"]];
+    list.forEach(function (e) {
+      var ty = TYPE_BY_ID[e.type];
+      rows.push([
+        e.date,
+        e.suite || "",
+        e.source || "",
+        VERBLIJF_LABEL[e.verblijf] || "Dagverblijf",
+        ty ? ty.full : e.type,
+        e.menu ? "ja" : "",
+        e.arr ? "ja" : "",
+        e.note || "",
+        String(hoursOf(e)).replace(".", ","),
+        String(RATE).replace(".", ","),
+        String(amountOf(e).toFixed(2)).replace(".", ","),
+        e.late ? String(LATE_FEE.toFixed(2)).replace(".", ",") : ""
+      ]);
+    });
+    var t = totals(list);
+    var pad = ["", "", "", "", "", "", "", ""];
+    rows.push([]);
+    rows.push(["Totaal " + title].concat(pad.slice(1), [String(t.hours).replace(".", ","), "", String(t.amount.toFixed(2)).replace(".", ","), String(t.lateAmount.toFixed(2)).replace(".", ",")]));
+    rows.push(["Vakantiebijslag 8%"].concat(pad.slice(1), ["", "", String((Math.round(t.amount * HOLIDAY_PCT * 100) / 100).toFixed(2)).replace(".", ","), ""]));
+    rows.push(["Toeslag laat inchecken wordt door de gast betaald en telt niet mee in het loon"]);
+    return rows.map(function (r) {
+      return r.map(function (c) {
+        c = String(c == null ? "" : c);
+        return /[";\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+      }).join(";");
+    }).join("\r\n");
+  }
+
+  function exportCsv(scope) {
+    var list = scope === "all" ? sortedEntries() : entriesOfMonth(view.month);
+    var title = scope === "all" ? "alle maanden" : monthLabel(view.month);
+    var name = "urenstaat-ruth-" + (scope === "all" ? "totaal" : view.month) + ".csv";
+    var data = "﻿" + csvFor(list, title);
+    try {
+      var blob = new Blob([data], { type: "text/csv;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    } catch (err) {
+      copyFallback(data);
+    }
+  }
+
+  function copyFallback(data) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(data).then(function () {
+        flashNotice("De urenstaat staat op je klembord — plak hem in Excel of Numbers.");
+      }).catch(function () {
+        flashNotice("Downloaden lukt hier niet. Open de link in je browser en probeer het opnieuw.");
+      });
+    } else {
+      flashNotice("Downloaden lukt hier niet. Open de link in je browser en probeer het opnieuw.");
+    }
+  }
+
+  function flashNotice(msg) {
+    var el = document.getElementById("ro-notice");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("hidden");
+    setTimeout(function () {
+      if (readOnly) {
+        el.textContent = "Deze urenstaat kan nu niet worden opgeslagen.";
+      } else {
+        el.classList.add("hidden");
+      }
+    }, 6000);
+  }
+
+  /* ---------- interactie ---------- */
+
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-act]");
+    if (!btn) return;
+    var act = btn.getAttribute("data-act");
+
+    if (act === "prev-month") { view.month = shiftMonth(view.month, -1); render(); }
+    else if (act === "next-month") { view.month = shiftMonth(view.month, 1); render(); }
+    else if (act === "this-month") { view.month = monthKey(todayISO()); render(); }
+    else if (act === "goto-month") { view.month = btn.getAttribute("data-month"); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if (act === "type") { draft.type = btn.getAttribute("data-type"); render(); }
+    else if (act === "verblijf") { draft.verblijf = btn.getAttribute("data-verblijf"); render(); }
+    else if (act === "cancel-edit") { view.editing = null; draft = { date: todayISO(), type: "volledig", verblijf: "dagverblijf", menu: false, arr: false, late: false, suite: "", source: "", note: "" }; render(); }
+    else if (act === "logout") { if (confirm("Afsluiten? Je moet de toegangscode dan opnieuw invullen.")) logout(); }
+    else if (act === "csv-month") exportCsv("month");
+    else if (act === "csv-all") exportCsv("all");
+    else if (act === "edit") {
+      var e = state.entries.filter(function (x) { return x.id === btn.getAttribute("data-id"); })[0];
+      if (!e) return;
+      view.editing = e.id;
+      draft = { date: e.date, type: e.type, verblijf: e.verblijf || "dagverblijf", menu: !!e.menu, arr: !!e.arr, late: !!e.late, suite: e.suite || "", source: e.source || "", note: e.note || "" };
+      render();
+      var f = document.getElementById("entryform");
+      if (f) f.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    else if (act === "del") {
+      var id = btn.getAttribute("data-id");
+      var ent = state.entries.filter(function (x) { return x.id === id; })[0];
+      if (!ent) return;
+      var d = dateOf(ent);
+      if (!confirm("Dienst van " + d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" }) + " verwijderen?")) return;
+      state.entries = state.entries.filter(function (x) { return x.id !== id; });
+      if (view.editing === id) { view.editing = null; }
+      cacheLocal();
+      render();
+      pushDelete(id);
+    }
+  });
+
+  document.addEventListener("change", function (ev) {
+    var el = ev.target;
+    var act = el.getAttribute && el.getAttribute("data-act");
+    if (act === "menu" || act === "arr" || act === "late") {
+      draft[act] = el.checked;
+      updatePreview();
+      var wrap = el.closest(".chk");
+      if (wrap) wrap.classList.toggle("on", el.checked);
+    } else if (el.id === "f-date") {
+      draft.date = el.value;
+    } else if (el.id === "f-suite") {
+      draft.suite = el.value;
+      el.classList.remove("invalid");
+    } else if (el.id === "f-source") {
+      draft.source = el.value;
+    }
+  });
+
+  document.addEventListener("input", function (ev) {
+    if (ev.target.id === "f-note") draft.note = ev.target.value;
+    if (ev.target.id === "f-date") draft.date = ev.target.value;
+  });
+
+  function updatePreview() {
+    var p = document.querySelector(".preview");
+    if (!p) return;
+    p.querySelector(".u").textContent = fmtHours(hoursOf(draft)) + " uur";
+    p.querySelector(".e").textContent = eur.format(amountOf(draft));
+    var fee = p.querySelector(".fee");
+    if (fee) fee.hidden = !draft.late;
+  }
+
+  document.addEventListener("submit", function (ev) {
+    if (ev.target.id !== "entryform") return;
+    ev.preventDefault();
+    if (readOnly) return;
+    var dateEl = document.getElementById("f-date");
+    if (!dateEl || !dateEl.value) { if (dateEl) dateEl.focus(); return; }
+    draft.date = dateEl.value;
+    var suiteEl = document.getElementById("f-suite");
+    draft.suite = suiteEl ? suiteEl.value : "";
+    if (!draft.suite) {
+      if (suiteEl) { suiteEl.classList.add("invalid"); suiteEl.focus(); }
+      flashNotice("Kies eerst een suite: Malina Jacuzzi of Malina Zwembad.");
+      return;
+    }
+    var sourceEl = document.getElementById("f-source");
+    draft.source = sourceEl ? sourceEl.value : "";
+    var noteEl = document.getElementById("f-note");
+    draft.note = noteEl ? noteEl.value.trim() : "";
+
+    var fields = {
+      date: draft.date, type: draft.type, verblijf: draft.verblijf, menu: draft.menu, arr: draft.arr,
+      late: draft.late, suite: draft.suite, source: draft.source, note: draft.note
+    };
+    var saved = null, isNew = false;
+    if (view.editing) {
+      state.entries = state.entries.map(function (e) {
+        if (e.id !== view.editing) return e;
+        var upd = { id: e.id };
+        Object.keys(fields).forEach(function (k) { upd[k] = fields[k]; });
+        saved = upd;
+        return upd;
+      });
+      view.editing = null;
+    } else {
+      isNew = true;
+      saved = { id: uid() };
+      Object.keys(fields).forEach(function (k) { saved[k] = fields[k]; });
+      state.entries.push(saved);
+    }
+    view.month = monthKey(draft.date);
+    draft = { date: draft.date, type: "volledig", verblijf: draft.verblijf, menu: false, arr: false, late: false, suite: draft.suite, source: "", note: "" };
+    cacheLocal();
+    render();
+    if (saved) { if (isNew) pushNew(saved); else pushUpdate(saved); }
+  });
+
+  /* ---------- start ---------- */
+
+  function start() {
+    render();
+    pull(false);
+    if (!pollTimer) {
+      pollTimer = setInterval(function () {
+        if (!document.hidden && session) pull(true);
+      }, POLL_MS);
+    }
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && session) pull(true);
+  });
+  window.addEventListener("online", function () { if (session) pull(true); });
+
+  if (!configured) {
+    render();
+    setSave("setup");
+    flashNotice("Deze pagina is nog niet gekoppeld aan Supabase. Vul bovenin het bestand de gegevens in bij SUPABASE_URL en SUPABASE_ANON_KEY.");
+  } else if (session) {
+    start();
+  } else {
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>
