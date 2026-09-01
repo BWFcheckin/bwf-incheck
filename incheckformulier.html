@@ -67,6 +67,24 @@
   .order-row .or-price{ color:var(--gold-dark); font-weight:600; }
   .order-row button{ border:none; background:var(--err-bg); color:var(--err); width:20px; height:20px; border-radius:50%; cursor:pointer; font-size:11px; }
 
+  .topsom{ background:#fff; border:1px solid var(--gold); border-radius:14px; padding:14px 18px; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+  .topsom h2{ font-size:16px; color:var(--gold-dark); margin-bottom:2px; }
+  .somgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+  .somvak{ background:var(--cream); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .somvak span{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:3px; }
+  .somvak b{ font-size:17px; color:var(--ink); font-family:Georgia,'Times New Roman',serif; }
+  .somvak.nog{ background:var(--gold-soft); border-color:var(--gold); }
+  .somvak.nog b{ color:var(--gold-dark); }
+  @media(max-width:700px){ .somgrid{ grid-template-columns:1fr 1fr; } }
+
+  .rekenlijst{ border:1px solid var(--line); border-radius:10px; overflow:hidden; margin:10px 0 4px; }
+  .rekenlijst div.rl{ display:flex; justify-content:space-between; gap:10px; padding:7px 12px; font-size:12.8px; border-bottom:1px solid var(--line); }
+  .rekenlijst div.rl:last-child{ border-bottom:none; }
+  .rekenlijst div.rl.kop{ background:var(--gold-soft); color:var(--gold-dark); font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.05em; }
+  .rekenlijst div.rl.tot{ background:var(--cream); font-weight:600; }
+  .rekenlijst div.rl.eind{ background:var(--gold-soft); color:var(--gold-dark); font-weight:700; font-size:14px; }
+  .rekenlijst div.rl.info{ color:var(--ink-soft); font-style:italic; }
+
   .subtotal-box{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--gold-soft); border:1px solid var(--gold); border-radius:10px; padding:10px 14px; margin-top:10px; font-size:13px; flex-wrap:wrap; }
   .subtotal-box b{ color:var(--gold-dark); font-size:15px; }
 
@@ -111,6 +129,26 @@
   <form id="checkinForm" onsubmit="return false;">
   <input type="hidden" id="c_id">
 
+  <!-- ================= OVERZICHT RESERVERING (bovenaan) ================= -->
+  <div class="topsom">
+    <h2>Reservering &amp; betaling</h2>
+    <p class="desc" style="margin:2px 0 0;">Vul in wat de gast vooraf heeft gereserveerd en online heeft betaald. Alles wat op locatie wordt bijgeboekt komt hier bovenop.</p>
+    <div class="formgrid3" style="margin-top:6px;">
+      <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
+        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+      <div><label>Totaal online betaald (&euro;)</label>
+        <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+      <div><label>Nog te betalen (&euro;)</label>
+        <input type="text" id="c_nog" readonly style="background:var(--cream);font-weight:600;"></div>
+    </div>
+    <div class="somgrid">
+      <div class="somvak"><span>Gereserveerd</span><b id="somReservering">&euro; 0,00</b></div>
+      <div class="somvak"><span>Online betaald</span><b id="somBetaald">&euro; 0,00</b></div>
+      <div class="somvak"><span>Extra&#39;s op locatie</span><b id="somExtras">&euro; 0,00</b></div>
+      <div class="somvak nog"><span>Nog te voldoen</span><b id="somNog">&euro; 0,00</b></div>
+    </div>
+  </div>
+
   <!-- ================= BOEKING ================= -->
   <div class="card">
     <h2>Boekingsgegevens</h2>
@@ -124,7 +162,7 @@
           <option>Anders</option>
         </select>
       </div>
-      <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks();"></select></div>
+      <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks(); synchroniseerPersoonSelects();"></select></div>
       <div><label>Reserveringsnr.</label><input type="text" id="c_resnr" placeholder="optioneel"></div>
     </div>
     <label>Type verblijf</label>
@@ -152,14 +190,14 @@
   <!-- ================= ARRANGEMENTEN ================= -->
   <div class="card">
     <h2>Arrangementen</h2>
-    <p class="desc">Selecteer het gekozen arrangement (of arrangementen) — tarief staat erbij vermeld.</p>
+    <p class="desc">Selecteer het gekozen arrangement (of arrangementen). Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
     <div id="arrangementSections"></div>
   </div>
 
   <!-- ================= VOORAF GERESERVEERD ================= -->
   <div class="card">
     <h2>Vooraf gereserveerd</h2>
-    <p class="desc">Vink aan wat de gast al vooraf heeft geboekt (meerdere mogelijk). Voor extra's die pas ter plekke worden besteld, gebruik de sectie "Bestellingen op locatie" hieronder.</p>
+    <p class="desc">Vink aan wat de gast al vooraf heeft geboekt (meerdere mogelijk). Dit zit al in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat pas ter plekke wordt besteld, zet je onder &quot;Bestellingen op locatie&quot;.</p>
     <div class="checklist" id="voorafChecklist"></div>
   </div>
 
@@ -180,6 +218,20 @@
       <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem('almere')">+ Toevoegen</button></div>
     </div>
 
+    <h3>Extra personen bijboeken &mdash; dagverblijf</h3>
+    <div class="order-add">
+      <div><label>Wie</label><select id="ordPersDag"></select></div>
+      <div class="qty"><label>Aantal</label><input type="number" id="ordPersDagQty" min="1" value="1"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="addPersoon('dagverblijf')">+ Toevoegen</button></div>
+    </div>
+
+    <h3>Extra personen bijboeken &mdash; overnachting</h3>
+    <div class="order-add">
+      <div><label>Wie</label><select id="ordPersNacht"></select></div>
+      <div class="qty"><label>Aantal</label><input type="number" id="ordPersNachtQty" min="1" value="1"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="addPersoon('overnachting')">+ Toevoegen</button></div>
+    </div>
+
     <div class="order-list" id="orderList"></div>
 
     <h3>Cadeau</h3>
@@ -193,7 +245,7 @@
           <option value="Anders">Anders (zie opmerking)</option>
         </select>
       </div>
-      <div><label>Prijs (€)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="updateSubtotalHint()"></div>
+      <div><label>Prijs (€)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
     </div>
 
     <h3>Service</h3>
@@ -235,13 +287,33 @@
     <div class="hint" id="checkoutPrijsHint"></div>
   </div>
 
-  <!-- ================= FINANCIEEL ================= -->
+  <!-- ================= EINDAFREKENING ================= -->
   <div class="card">
-    <h2>Financieel</h2>
-    <div class="formgrid3">
-      <div><label>Totaalbedrag (€)</label><input type="number" id="c_totaal" step="0.01" oninput="updateCheckinNog()"></div>
-      <div><label>Aanbetaald (€)</label><input type="number" id="c_aanbetaald" step="0.01" oninput="updateCheckinNog()"></div>
-      <div><label>Nog te betalen (€)</label><input type="text" id="c_nog" readonly style="background:var(--cream);"></div>
+    <h2>Eindafrekening</h2>
+    <p class="desc">Volledige opsomming: het gereserveerde bedrag plus alles wat op locatie is bijgeboekt. Je kunt het totaal ook handmatig aanpassen.</p>
+
+    <div class="rekenlijst" id="rekenLijst"></div>
+
+    <div class="subtotal-box">
+      <span>Berekend totaal (reservering + extra&#39;s op locatie):</span>
+      <b id="berekendSubtotaal">€ 0,00</b>
+      <button type="button" class="btn secondary sm" onclick="gebruikBerekendBedrag()">Neem dit over</button>
+    </div>
+
+    <div class="formgrid3" style="margin-top:6px;">
+      <div><label>Totaalbedrag &mdash; handmatig aan te passen (€)</label><input type="number" id="c_totaal" step="0.01" oninput="handmatigTotaal()"></div>
+      <div><label>Totaal extra&#39;s op locatie (€)</label><input type="text" id="c_extrasTotaal" readonly style="background:var(--cream);"></div>
+      <div><label>Hoe worden de extra&#39;s betaald</label>
+        <select id="c_extrasBetaalwijze" onchange="herberekenAlles()">
+          <option value="">— Nog niet betaald —</option>
+          <option>Contant</option>
+          <option>Flatpay (pin)</option>
+          <option>Mollie betaallink</option>
+          <option>Bankoverschrijving</option>
+          <option>Al inbegrepen in de reservering</option>
+          <option>Anders</option>
+        </select>
+      </div>
     </div>
 
     <div class="split-toggle">
@@ -250,7 +322,7 @@
     </div>
 
     <div id="betaalwijzeNormaal">
-      <label>Betaalwijze</label>
+      <label>Betaalwijze restbedrag</label>
       <select id="c_betaalwijze">
         <option>Contant</option>
         <option>Flatpay</option>
@@ -276,13 +348,7 @@
     </div>
 
     <label>Extra omzet (€) — overig, niet aan specifiek item gekoppeld</label>
-    <input type="number" id="c_extraomzet" step="0.01" min="0" value="0" oninput="updateSubtotalHint()">
-
-    <div class="subtotal-box">
-      <span>Berekend op basis van selecties hierboven (hulp, niet bindend):</span>
-      <b id="berekendSubtotaal">€ 0,00</b>
-      <button type="button" class="btn secondary sm" onclick="gebruikBerekendBedrag()">Gebruik dit bedrag</button>
-    </div>
+    <input type="number" id="c_extraomzet" step="0.01" min="0" value="0" oninput="herberekenAlles()">
   </div>
 
   <!-- ================= OPMERKINGEN ================= -->
@@ -415,11 +481,10 @@ const ARRANGEMENT_SECTIONS = [
   ]},
   { title:'Romantiek & Luxe', items:[
     { key:'valentine', naam:'365 Valentine arrangement', prijs:299 },
-    { key:'honeymoon', naam:'Honeymoon arrangement', prijs:null },
     { key:'vip', naam:'VIP arrangement', prijs:250 },
   ]},
   { title:'Verblijf', items:[
-    { key:'overnachting_arr', naam:'Overnachtingsarrangement (Relax & Stay / Wellness Experience)', prijs:null },
+    { key:'overnachting_arr', naam:'Honeymoon overnachting', prijs:null },
     { key:'verrassing', naam:'Verrassingsarrangement', prijs:2.50, note:'🕶️ Oogmasker meegeven bij inchecken' },
   ]},
 ];
@@ -442,6 +507,19 @@ const ALMERE_ORDER_ITEMS = [
   { naam:'Tapas plank', prijs:49 },
   { naam:'Champagne ontbijt', prijs:79 },
 ];
+// Extra personen bijboeken op locatie — tarief per locatie
+const EXTRA_PERSONEN = {
+  dagverblijf: {
+    angie:   { volwassene:60,  kind:25 },
+    jacuzzi: { volwassene:60,  kind:25 },
+    deluxe:  { volwassene:75,  kind:50 },
+  },
+  overnachting: {
+    angie:   { volwassene:100, kind:50 },
+    jacuzzi: { volwassene:100, kind:50 },
+    deluxe:  { volwassene:125, kind:75 },
+  },
+};
 const SERVICE_ITEMS = [
   { naam:'Shisha', prijs:30 },
   { naam:'Huur massagetafel', prijs:30 },
@@ -537,8 +615,7 @@ function buildArrangementSections(){
     <div class="checklist">
       ${sec.items.map((it,ii)=>`
         <label>
-          <span class="cl-name"><input type="checkbox" id="arr_${si}_${ii}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs ?? ''}" onchange="updateSubtotalHint()"> ${escapeHtml(it.naam)}</span>
-          <span class="prijs">${it.prijs!=null ? euro(it.prijs) : 'prijs op aanvraag'}</span>
+          <span class="cl-name"><input type="checkbox" id="arr_${si}_${ii}" data-naam="${escapeHtml(it.naam)}" onchange="herberekenAlles()"> ${escapeHtml(it.naam)}</span>
         </label>
         ${it.note ? `<div class="cl-note">${escapeHtml(it.note)}</div>` : ''}
       `).join('')}
@@ -549,7 +626,7 @@ function buildServiceChecklist(){
   const wrap = document.getElementById('serviceChecklist');
   wrap.innerHTML = SERVICE_ITEMS.map((it,i)=>`
     <label>
-      <span class="cl-name"><input type="checkbox" id="serv_${i}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs}" onchange="updateSubtotalHint()"> ${escapeHtml(it.naam)}</span>
+      <span class="cl-name"><input type="checkbox" id="serv_${i}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs}" onchange="herberekenAlles()"> ${escapeHtml(it.naam)}</span>
       <span class="prijs">${euro(it.prijs)}</span>
     </label>
   `).join('');
@@ -558,7 +635,7 @@ function buildVoorafChecklist(){
   const wrap = document.getElementById('voorafChecklist');
   wrap.innerHTML = VOORAF_ITEMS.map((it,i)=>`
     <label>
-      <span class="cl-name"><input type="checkbox" id="voor_${i}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs}" onchange="updateSubtotalHint()"> ${escapeHtml(it.naam)}</span>
+      <span class="cl-name"><input type="checkbox" id="voor_${i}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs}" onchange="herberekenAlles()"> ${escapeHtml(it.naam)}</span>
       <span class="prijs">${euro(it.prijs)}</span>
     </label>
   `).join('');
@@ -566,6 +643,46 @@ function buildVoorafChecklist(){
 function buildOrderSelect(){
   document.getElementById('ordItem').innerHTML = ORDER_ITEMS.map((it,i)=>`<option value="${i}">${escapeHtml(it.naam)} — ${euro(it.prijs)}</option>`).join('');
   document.getElementById('ordItemAlmere').innerHTML = ALMERE_ORDER_ITEMS.map((it,i)=>`<option value="${i}">${escapeHtml(it.naam)} — ${euro(it.prijs)}</option>`).join('');
+}
+function persoonOpties(type){
+  const tarieven = EXTRA_PERSONEN[type];
+  const uit = [];
+  LOCATIONS.forEach(l=>{
+    const t = tarieven[l.id];
+    if(!t) return;
+    uit.push(`<option value="${l.id}|volwassene">${escapeHtml(l.naam)} — volwassene (${euro(t.volwassene)})</option>`);
+    uit.push(`<option value="${l.id}|kind">${escapeHtml(l.naam)} — kind (${euro(t.kind)})</option>`);
+  });
+  return uit.join('');
+}
+function buildPersoonSelects(){
+  document.getElementById('ordPersDag').innerHTML = persoonOpties('dagverblijf');
+  document.getElementById('ordPersNacht').innerHTML = persoonOpties('overnachting');
+  synchroniseerPersoonSelects();
+}
+// zet de dropdowns standaard op de locatie die bovenin gekozen is
+function synchroniseerPersoonSelects(){
+  const loc = document.getElementById('c_locatie').value;
+  const dag = document.getElementById('ordPersDag');
+  const nacht = document.getElementById('ordPersNacht');
+  if(dag) dag.value = loc + '|volwassene';
+  if(nacht) nacht.value = loc + '|volwassene';
+}
+function addPersoon(type){
+  const selId = type === 'overnachting' ? 'ordPersNacht' : 'ordPersDag';
+  const qtyId = type === 'overnachting' ? 'ordPersNachtQty' : 'ordPersDagQty';
+  const keuze = document.getElementById(selId).value;
+  if(!keuze) return;
+  const [locId, soort] = keuze.split('|');
+  const prijs = (EXTRA_PERSONEN[type][locId] || {})[soort];
+  if(prijs == null) return;
+  const qtyEl = document.getElementById(qtyId);
+  const aantal = Math.max(1, parseInt(qtyEl.value || 1, 10));
+  const label = `Extra ${soort === 'kind' ? 'kind' : 'volwassene'} — ${type === 'overnachting' ? 'overnachting' : 'dagverblijf'} (${locName(locId)})`;
+  orderedItems.push({ naam: label, aantal: aantal, prijs: prijs });
+  qtyEl.value = 1;
+  renderOrderList();
+  herberekenAlles();
 }
 function toggleCadeauAnders(){ /* prijs blijft handmatig invulbaar, geen extra actie nodig */ }
 
@@ -581,12 +698,12 @@ function addOrderItem(which){
   orderedItems.push({ naam: it.naam, aantal: qty, prijs: it.prijs });
   qtyEl.value = 1;
   renderOrderList();
-  updateSubtotalHint();
+  herberekenAlles();
 }
 function removeOrderItem(i){
   orderedItems.splice(i,1);
   renderOrderList();
-  updateSubtotalHint();
+  herberekenAlles();
 }
 function renderOrderList(){
   const wrap = document.getElementById('orderList');
@@ -611,7 +728,7 @@ function updateCheckoutPrijs(){
   const type = document.getElementById('c_checkoutType').value;
   const hint = document.getElementById('checkoutPrijsHint');
   hint.textContent = type ? `Kosten voor deze service: ${euro(checkoutPrijs())}` : '';
-  updateSubtotalHint();
+  herberekenAlles();
 }
 
 /* ================= GESPLITST BETALEN ================= */
@@ -621,42 +738,96 @@ function toggleSplitBetaling(){
   document.getElementById('betaalwijzeSplit').style.display = split ? 'block' : 'none';
 }
 
-/* ================= BEREKEND SUBTOTAAL (hulp) ================= */
-function berekenSubtotaal(){
-  let total = 0;
-  ARRANGEMENT_SECTIONS.forEach((sec,si)=> sec.items.forEach((it,ii)=>{
-    const cb = document.getElementById(`arr_${si}_${ii}`);
-    if(cb && cb.checked && it.prijs) total += it.prijs;
-  }));
+/* ================= REKENMACHINE ================= */
+/* Reserveringsbedrag = alles wat vooraf is geboekt en betaald (arrangement + vooraf
+   gereserveerde extra's). Daar bovenop komt alles wat op locatie is bijgeboekt. */
+function reserveringsBedrag(){
+  return parseFloat(document.getElementById('c_resbedrag')?.value || 0) || 0;
+}
+function onlineBetaald(){
+  return parseFloat(document.getElementById('c_aanbetaald')?.value || 0) || 0;
+}
+// Losse regels van alles wat op locatie is bijgeboekt
+function extrasRegels(){
+  const regels = [];
+  orderedItems.forEach(o=> regels.push({ naam: `${o.aantal}x ${o.naam}`, bedrag: o.aantal*o.prijs }));
   SERVICE_ITEMS.forEach((it,i)=>{
     const cb = document.getElementById(`serv_${i}`);
-    if(cb && cb.checked) total += it.prijs;
+    if(cb && cb.checked) regels.push({ naam: it.naam, bedrag: it.prijs });
   });
-  VOORAF_ITEMS.forEach((it,i)=>{
-    const cb = document.getElementById(`voor_${i}`);
-    if(cb && cb.checked) total += it.prijs;
-  });
-  orderedItems.forEach(o=> total += o.aantal*o.prijs);
-  const cadeauPrijs = parseFloat(document.getElementById('c_cadeauprijs')?.value || 0);
-  total += cadeauPrijs;
-  total += checkoutPrijs();
-  const extra = parseFloat(document.getElementById('c_extraomzet')?.value || 0);
-  total += extra;
-  return total;
+  const cadeau = parseFloat(document.getElementById('c_cadeauprijs')?.value || 0) || 0;
+  if(cadeau) regels.push({ naam: 'Cadeau' + (document.getElementById('c_cadeau').value ? ' \u2014 ' + document.getElementById('c_cadeau').value : ''), bedrag: cadeau });
+  const co = checkoutPrijs();
+  if(co) regels.push({ naam: document.getElementById('c_checkoutType').value === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken', bedrag: co });
+  const extra = parseFloat(document.getElementById('c_extraomzet')?.value || 0) || 0;
+  if(extra) regels.push({ naam: 'Overige extra omzet', bedrag: extra });
+  return regels;
 }
-function updateSubtotalHint(){
-  const el = document.getElementById('berekendSubtotaal');
-  if(el) el.textContent = euro(berekenSubtotaal());
+function extrasTotaal(){
+  return extrasRegels().reduce((t,r)=> t + r.bedrag, 0);
 }
+function berekenSubtotaal(){
+  return reserveringsBedrag() + extrasTotaal();
+}
+// Handmatig ingevuld totaal wint; anders het berekende bedrag
+function actueelTotaal(){
+  const veld = document.getElementById('c_totaal');
+  const val = parseFloat(veld?.value);
+  return (veld && veld.value !== '' && !isNaN(val)) ? val : berekenSubtotaal();
+}
+function herberekenAlles(){
+  const res = reserveringsBedrag();
+  const betaald = onlineBetaald();
+  const extras = extrasTotaal();
+  const totaal = actueelTotaal();
+  const nog = Math.max(0, totaal - betaald);
+
+  const zet = (id,val)=>{ const el = document.getElementById(id); if(el) el.textContent = val; };
+  zet('somReservering', euro(res));
+  zet('somBetaald', euro(betaald));
+  zet('somExtras', euro(extras));
+  zet('somNog', euro(nog));
+  zet('berekendSubtotaal', euro(berekenSubtotaal()));
+
+  const nogVeld = document.getElementById('c_nog');
+  if(nogVeld) nogVeld.value = euro(nog);
+  const exVeld = document.getElementById('c_extrasTotaal');
+  if(exVeld) exVeld.value = euro(extras);
+
+  renderRekenLijst(res, betaald, extras, totaal, nog);
+}
+function renderRekenLijst(res, betaald, extras, totaal, nog){
+  const wrap = document.getElementById('rekenLijst');
+  if(!wrap) return;
+  const arrangementen = collectArrangementen();
+  const vooraf = collectVoorafGereserveerd();
+  const extrasWijze = document.getElementById('c_extrasBetaalwijze')?.value || '';
+  const rij = (l,b,cls='') => `<div class="rl ${cls}"><span>${escapeHtml(l)}</span><span>${b}</span></div>`;
+
+  let html = rij('Vooraf gereserveerd', '', 'kop');
+  if(arrangementen.length) html += rij('Arrangement: ' + arrangementen.join(', '), 'inbegrepen', 'info');
+  if(vooraf.length) html += rij('Vooraf geboekt: ' + vooraf.join(', '), 'inbegrepen', 'info');
+  html += rij('Reserveringsbedrag', euro(res), 'tot');
+  html += rij('Af: online betaald', '\u2212 ' + euro(betaald));
+  html += rij('Nog te betalen van de reservering', euro(Math.max(0, res - betaald)), 'tot');
+
+  html += rij("Bijgeboekt op locatie", '', 'kop');
+  const regels = extrasRegels();
+  if(!regels.length) html += rij('Nog niets bijgeboekt', '\u2014', 'info');
+  regels.forEach(r=> html += rij(r.naam, euro(r.bedrag)));
+  html += rij('Totaal extra\u2019s' + (extrasWijze ? ' \u2014 ' + extrasWijze : ' \u2014 betaalwijze nog niet gekozen'), euro(extras), 'tot');
+
+  html += rij('Totaalbedrag reservering + extra\u2019s', euro(totaal), 'tot');
+  html += rij('Nog te voldoen', euro(nog), 'eind');
+  wrap.innerHTML = html;
+}
+function updateSubtotalHint(){ herberekenAlles(); }
 function gebruikBerekendBedrag(){
   document.getElementById('c_totaal').value = berekenSubtotaal().toFixed(2);
-  updateCheckinNog();
+  herberekenAlles();
 }
-function updateCheckinNog(){
-  const totaal = parseFloat(document.getElementById('c_totaal').value || 0);
-  const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
-  document.getElementById('c_nog').value = euro(Math.max(0, totaal-aanbetaald));
-}
+function handmatigTotaal(){ herberekenAlles(); }
+function updateCheckinNog(){ herberekenAlles(); }
 
 /* ================= DOCUMENTEN (huisregels & voorwaarden) ================= */
 function findDocument(type, groep){ return documenten.find(d=>d.id===`${type}_${groep}`); }
@@ -781,7 +952,7 @@ function collectVoorafGereserveerd(){
   return VOORAF_ITEMS.filter((it,i)=> document.getElementById(`voor_${i}`)?.checked).map(it=>it.naam);
 }
 function collectCheckinData(){
-  const totaal = parseFloat(document.getElementById('c_totaal').value || 0);
+  const totaal = actueelTotaal();
   const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
   const existingId = document.getElementById('c_id').value;
   const verblijftypeEl = document.querySelector('input[name="verblijftype"]:checked');
@@ -809,6 +980,9 @@ function collectCheckinData(){
     checkout_extra_duur: document.getElementById('c_checkoutType').value ? document.getElementById('c_checkoutDuur').value : '',
     checkout_extra_prijs: checkoutPrijs(),
     checkout_extra_betaalwijze: document.getElementById('c_checkoutBetaalwijze').value,
+    reservering_bedrag: reserveringsBedrag(),
+    extras_totaal: extrasTotaal(),
+    extras_betaalwijze: document.getElementById('c_extrasBetaalwijze').value,
     totaal, aanbetaald, restant: Math.max(0, totaal-aanbetaald),
     betaalwijze: split ? 'Gesplitst' : document.getElementById('c_betaalwijze').value,
     split_betaling: split,
@@ -877,7 +1051,9 @@ function checkinEmailBody(data){
     `Service: ${data.service_items.length ? data.service_items.join(', ') : 'Geen'}`,
     data.checkout_extra_type ? `Eerder/later: ${data.checkout_extra_type} — ${euro(data.checkout_extra_prijs)} — betaald: ${data.checkout_extra_betaalwijze || '-'}` : '',
     ``,
-    `Totaalbedrag: ${euro(data.totaal)}    Aanbetaald: ${euro(data.aanbetaald)}    Nog te betalen: ${euro(data.restant)}`,
+    `Vooraf gereserveerd: ${euro(data.reservering_bedrag)}    Online betaald: ${euro(data.aanbetaald)}`,
+    `Extra's op locatie: ${euro(data.extras_totaal)} \u2014 betaald via: ${data.extras_betaalwijze || 'nog niet gekozen'}`,
+    `Totaalbedrag: ${euro(data.totaal)}    Nog te betalen: ${euro(data.restant)}`,
     betaalRegel,
     `Extra omzet: ${euro(data.extra_omzet)}`,
     ``,
@@ -922,8 +1098,11 @@ function clearCheckinForm(){
   renderGuestStatus();
   document.getElementById('c_splitToggle').checked = false;
   toggleSplitBetaling();
-  updateSubtotalHint();
-  document.getElementById('c_nog').value = euro(0);
+  document.getElementById('c_resbedrag').value = 0;
+  document.getElementById('c_aanbetaald').value = 0;
+  document.getElementById('c_extrasBetaalwijze').value = '';
+  synchroniseerPersoonSelects();
+  herberekenAlles();
   document.getElementById('c_sendto').value = 'info@bedenwellnessflevoland.nl';
   document.getElementById('checkinStatus').textContent = '';
 }
@@ -962,6 +1141,8 @@ function openCheckinDetail(id){
     ['Arrangementen', (c.arrangementen||[]).join(', ')||'Geen'],
     ['Vooraf gereserveerd', (c.vooraf_gereserveerd||[]).join(', ')||'Geen'],
     ['Bestellingen op locatie', (c.bestellingen||[]).map(o=>`${o.aantal}x ${o.naam}`).join(', ')||'Geen'],
+    ['Vooraf gereserveerd', euro(c.reservering_bedrag)], ['Online betaald', euro(c.aanbetaald)],
+    ["Extra's op locatie", euro(c.extras_totaal)], ["Extra's betaald via", c.extras_betaalwijze||'\u2014'],
     ['Totaalbedrag', euro(c.totaal)], ['Nog te betalen', euro(c.restant)],
     ['Betaalwijze', c.split_betaling ? `Gesplitst: ${euro(c.split_bedrag1)} (${c.split_wijze1}) + ${euro(c.split_bedrag2)} (${c.split_wijze2})` : (c.betaalwijze||'—')],
     ['Telefoon', c.telefoon||'—'], ['E-mail', c.email||'—'],
@@ -1008,9 +1189,10 @@ function editCheckinFromDetail(){
   document.getElementById('c_checkoutDuur').value = c.checkout_extra_duur || '0.5';
   document.getElementById('c_checkoutBetaalwijze').value = c.checkout_extra_betaalwijze || '';
   updateCheckoutPrijs();
+  document.getElementById('c_resbedrag').value = c.reservering_bedrag || 0;
+  document.getElementById('c_extrasBetaalwijze').value = c.extras_betaalwijze || '';
   document.getElementById('c_totaal').value = c.totaal || '';
-  document.getElementById('c_aanbetaald').value = c.aanbetaald || '';
-  updateCheckinNog();
+  document.getElementById('c_aanbetaald').value = c.aanbetaald || 0;
   document.getElementById('c_splitToggle').checked = !!c.split_betaling;
   toggleSplitBetaling();
   if(c.split_betaling){
@@ -1023,13 +1205,14 @@ function editCheckinFromDetail(){
   }
   document.getElementById('c_extraomzet').value = c.extra_omzet || 0;
   document.getElementById('c_opmerking').value = c.opmerkingen || '';
+  herberekenAlles();
   guestData = c.voornaam ? {
     voornaam:c.voornaam, achternaam:c.achternaam, woonplaats:c.woonplaats, nationaliteit:c.nationaliteit,
     telefoon:c.telefoon, email:c.email, akkoord:c.akkoord, akkoord_voorwaarden:c.akkoord_voorwaarden,
     lid:c.lid, handtekening:c.handtekening,
   } : null;
   renderGuestStatus();
-  updateSubtotalHint();
+  herberekenAlles();
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 async function deleteCheckinFromDetail(){
@@ -1053,7 +1236,7 @@ function renderAll(){
   renderCheckinTable();
   renderOrderList();
   renderGuestStatus();
-  updateSubtotalHint();
+  herberekenAlles();
 }
 
 /* ================= INIT ================= */
@@ -1063,8 +1246,10 @@ buildArrangementSections();
 buildServiceChecklist();
 buildVoorafChecklist();
 buildOrderSelect();
+buildPersoonSelects();
 document.getElementById('c_checkoutDuur').value = '0.5';
 toggleVerblijftype();
+herberekenAlles();
 loadAll();
 </script>
 </body>
