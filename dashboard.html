@@ -283,6 +283,16 @@ a.btn.small{padding:6px 12px}
 .qr-kaart img,.qr-kaart canvas{display:block;border-radius:4px}
 .qr-kaart .note{margin-top:0;max-width:170px;text-align:center}
 
+/* ---------- snelle links ---------- */
+.linkrij{display:flex;flex-wrap:wrap;gap:10px}
+.linkrij .btn{text-decoration:none}
+.linkbeheer{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.linkbeheer .rij{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);
+  border-radius:var(--r-m);background:var(--surface-2);font-size:13.5px}
+.linkbeheer .rij span.naam{font-weight:600}
+.linkbeheer .rij span.adres{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.linkbeheer .rij button{border:none;background:transparent;color:var(--crit);cursor:pointer;font-size:13px}
+
 /* ---------- incheck-knop ---------- */
 .topbar-right .btn{height:32px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;font-size:12.5px;
   text-decoration:none;margin-top:0}
@@ -371,6 +381,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <p>Wie staat wanneer op welke locatie. Klik een dag aan om die datum in het formulier te zetten.</p>
     </div>
     <div class="stats" id="planStats"></div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reserveringen &amp; links</h2>
+        <button class="btn ghost small" id="resSet" type="button">Links beheren</button></div>
+      <div class="card-body" id="resHouder"></div>
+    </div>
 
     <div class="card">
       <div class="card-head">
@@ -522,6 +538,24 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   </div>
 </dialog>
 
+<dialog id="resDialog">
+  <div class="card-body">
+    <h2>Links beheren</h2>
+    <p class="note" style="margin-top:0">Knoppen die in het tabblad Planning verschijnen &mdash; bijvoorbeeld je dashboard bij Priv&eacute; sauna, Planyo, Booking.com of Origineel Overnachten. Voor iedereen die dit dashboard gebruikt.</p>
+    <div class="linkbeheer" id="linkBeheer"></div>
+    <form method="dialog" id="resForm" style="margin-top:6px">
+      <div class="grid-form">
+        <div class="field"><label for="link-naam">Naam op de knop</label><input type="text" id="link-naam" placeholder="Bijv. Reserveringen"></div>
+        <div class="field"><label for="link-url">Webadres</label><input type="url" id="link-url" placeholder="https://..."></div>
+      </div>
+      <div style="display:flex;gap:9px;margin-top:14px;justify-content:space-between;align-items:center">
+        <button class="btn ghost" type="button" id="linkToevoegen">+ Link toevoegen</button>
+        <button class="btn" type="submit">Klaar</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="incheckDialog">
   <div class="card-body">
     <h2>Link naar het incheckformulier</h2>
@@ -545,8 +579,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   var SB_URL = String(window.SUPABASE_URL || "").trim().replace(/\/+$/, "");
   var SB_KEY = String(window.SUPABASE_KEY || "").trim();
   var SB_ACTIEF = SB_URL.indexOf("http") === 0 && SB_KEY.length > 20;
+  var LINKS_STANDAARD = [{ id: "res", naam: "Reserveringen", url: "https://privesauna.nl/" }];
 
-  var state = { medewerkers: [], planning: [], voorraad: [], overdracht: [], fotos: ["", "", ""], incheckUrl: "" };
+  var state = { medewerkers: [], planning: [], voorraad: [], overdracht: [], fotos: ["", "", ""], incheckUrl: "", links: kopie(LINKS_STANDAARD) };
   var vorige = null, saveTimer = null, ophaalTimer = null, bezig = false;
   var chip = document.getElementById("saveChip"), chipTxt = document.getElementById("saveTxt");
 
@@ -620,6 +655,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var inst = {};
       res[4].forEach(function(r){ inst[r.sleutel] = r.waarde; });
       state.incheckUrl = inst.incheck_url || "";
+      state.links = leesLinks(inst.snel_links);
+      if (!state.links.length) {
+        state.links = inst.reserveringen_url
+          ? [{ id: "res", naam: "Reserveringen", url: inst.reserveringen_url }]
+          : kopie(LINKS_STANDAARD);
+      }
       state.fotos = [inst.foto_1 || "", inst.foto_2 || "", inst.foto_3 || ""];
       vorige = kopie(state);
       renderAll();
@@ -648,6 +689,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function instellingRijen(){
     var lijst = [];
     if (!vorige || vorige.incheckUrl !== state.incheckUrl) lijst.push({ sleutel: "incheck_url", waarde: state.incheckUrl });
+    if (!vorige || JSON.stringify(vorige.links) !== JSON.stringify(state.links)) lijst.push({ sleutel: "snel_links", waarde: JSON.stringify(state.links) });
     for (var i = 0; i < 3; i++) {
       if (!vorige || (vorige.fotos || [])[i] !== state.fotos[i]) lijst.push({ sleutel: "foto_" + (i + 1), waarde: state.fotos[i] });
     }
@@ -838,6 +880,58 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       state.fotos[i] = dataUrl;
       renderFotos(); queueSave();
     });
+  });
+
+  /* ---------------- reserveringen & snelle links ---------------- */
+  var resDialog = document.getElementById("resDialog");
+  function leesLinks(waarde){
+    if (!waarde) return [];
+    try { var l = JSON.parse(waarde); return Object.prototype.toString.call(l) === "[object Array]" ? l : []; }
+    catch (e) { return []; }
+  }
+  function renderReserveringen(){
+    var houder = document.getElementById("resHouder");
+    if (!houder) return;
+    if (!state.links.length) {
+      houder.innerHTML = '<div class="empty"><strong>Nog geen links</strong>' +
+        'Klik op <strong>Links beheren</strong> hierboven om er een toe te voegen.</div>';
+      return;
+    }
+    houder.innerHTML = '<div class="linkrij">' + state.links.map(function(l){
+      return '<a class="btn groot" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.naam) + '</a>';
+    }).join("") + '</div><p class="note">Opent in een nieuw tabblad.</p>';
+  }
+  function renderLinkBeheer(){
+    var houder = document.getElementById("linkBeheer");
+    if (!houder) return;
+    if (!state.links.length) { houder.innerHTML = '<p class="note" style="margin:0">Nog geen links toegevoegd.</p>'; return; }
+    houder.innerHTML = state.links.map(function(l){
+      return '<div class="rij"><span class="naam">' + esc(l.naam) + '</span>' +
+        '<span class="adres">' + esc(l.url) + '</span>' +
+        '<button type="button" data-weg="' + esc(l.id) + '" aria-label="Verwijderen">Verwijderen</button></div>';
+    }).join("");
+  }
+  document.getElementById("resSet").addEventListener("click", function(){
+    renderLinkBeheer();
+    document.getElementById("link-naam").value = "";
+    document.getElementById("link-url").value = "";
+    if (resDialog.showModal) resDialog.showModal();
+  });
+  document.getElementById("linkBeheer").addEventListener("click", function(e){
+    var id = e.target.getAttribute("data-weg");
+    if (!id) return;
+    state.links = state.links.filter(function(l){ return l.id !== id; });
+    renderLinkBeheer(); renderReserveringen(); queueSave();
+  });
+  document.getElementById("linkToevoegen").addEventListener("click", function(){
+    var naam = document.getElementById("link-naam").value.trim();
+    var url = document.getElementById("link-url").value.trim();
+    if (!naam || !url) return;
+    if (url.indexOf("http") !== 0) url = "https://" + url;
+    state.links.push({ id: uid(), naam: naam, url: url });
+    document.getElementById("link-naam").value = "";
+    document.getElementById("link-url").value = "";
+    renderLinkBeheer(); renderReserveringen(); queueSave();
   });
 
   /* ---------------- incheckformulier ---------------- */
@@ -1069,7 +1163,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
   }
 
-  function renderAll(){ vulMedewerkerSelect(); renderPlanning(); renderTeam(); renderVoorraad(); renderOverdracht(); renderFotos(); renderIncheck(); }
+  function renderAll(){ vulMedewerkerSelect(); renderPlanning(); renderTeam(); renderVoorraad(); renderOverdracht(); renderFotos(); renderIncheck(); renderReserveringen(); }
   function mutate(fn){ fn(); renderAll(); queueSave(); }
 
   /* ---------------- formulieren ---------------- */
