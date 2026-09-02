@@ -283,6 +283,16 @@ a.btn.small{padding:6px 12px}
 .qr-kaart img,.qr-kaart canvas{display:block;border-radius:4px}
 .qr-kaart .note{margin-top:0;max-width:170px;text-align:center}
 
+/* ---------- groepskoppen voorraad ---------- */
+tr.groep td{background:var(--surface-2);border-bottom:1px solid var(--line);padding:8px 12px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--brass);font-weight:600}
+tr.groep td .aantal{float:right;color:var(--muted);letter-spacing:0;text-transform:none;font-weight:400}
+td.datum input[type="date"]{width:100%;min-width:132px;background:transparent;border:1px solid transparent;
+  border-radius:var(--r-s);padding:5px 7px;font-size:13px;font-family:var(--f-mono)}
+td.datum input[type="date"]:hover{border-color:var(--line)}
+td.datum input[type="date"]:focus{background:var(--surface-2);border-color:var(--accent);outline:none}
+.kop-acties{display:flex;gap:8px;flex-wrap:wrap}
+
 /* ---------- snelle links ---------- */
 .linkrij{display:flex;flex-wrap:wrap;gap:10px}
 .linkrij .btn{text-decoration:none}
@@ -446,13 +456,31 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="stats" id="voorraadStats"></div>
 
     <div class="card">
-      <div class="card-head"><h2>Bestellijst</h2><span class="hint">Pas &ldquo;te bestellen&rdquo; aan, vink af wat besteld is</span></div>
+      <div class="card-head"><h2>Bestellijst</h2>
+        <span class="kop-acties">
+          <button class="btn ghost small" type="button" id="bestelPrint">Uitdraaien / printen</button>
+          <button class="btn ghost small" type="button" id="bestelCsv">Opslaan als bestand</button>
+        </span></div>
       <div class="table-wrap" id="bestelTable"></div>
       <div class="card-foot"><span>Zodra een bestelling binnen is, telt <strong>Ontvangen</strong> het aantal bij de voorraad op.</span></div>
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Voorraad</h2><span class="hint">&minus; en + voor snel bijwerken</span></div>
+      <div class="card-head"><h2>Voorraad</h2><span class="hint" id="voorraadCount"></span></div>
+      <div class="card-body" style="padding-bottom:0">
+        <div class="filters">
+          <div class="field"><label for="f-zoek">Zoeken</label><input type="text" id="f-zoek" placeholder="Artikel of leverancier"></div>
+          <div class="field"><label for="f-cat">Categorie</label><select id="f-cat"></select></div>
+          <div class="field"><label for="f-status">Status</label><select id="f-status">
+            <option value="">Alle statussen</option>
+            <option value="bestellen">Te bestellen</option>
+            <option value="op">Op</option>
+            <option value="peil">Op peil</option>
+            <option value="besteld">Besteld</option>
+          </select></div>
+          <div class="field"><label>&nbsp;</label><button class="btn ghost" type="button" id="f-wis">Filter wissen</button></div>
+        </div>
+      </div>
       <div class="table-wrap" id="voorraadTable"></div>
     </div>
 
@@ -507,6 +535,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
             <div class="field"><label for="o-aan">Overdragen aan</label><select id="o-aan"></select></div>
             <div class="field"><label for="o-loc">Locatie</label><select id="o-loc"><option value="Malina Jacuzzi">Malina Jacuzzi</option><option value="Malina Zwembad">Malina Zwembad</option><option value="Almere">Almere</option></select></div>
             <div class="field"><label for="o-cat">Soort</label><select id="o-cat"><option value="info">Informatie</option><option value="storing">Storing</option><option value="defect">Defect</option><option value="klacht">Klacht</option></select></div>
+            <div class="field"><label for="o-datum">Datum</label><input type="date" id="o-datum"></div>
           </div>
           <div class="field" style="margin-top:12px"><label for="o-tekst">Bericht</label><textarea id="o-tekst" required placeholder="Bijv. bubbelbad suite 2 loopt langzaam leeg, monteur belt maandag terug"></textarea></div>
           <div style="margin-top:12px"><button class="btn" type="submit">Plaatsen</button></div>
@@ -593,8 +622,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   var TABELLEN = {
     medewerkers: ["naam", "rol", "locatie"],
     planning: ["datum", "medewerker_id", "locatie", "dienst", "notitie"],
-    voorraad: ["naam", "categorie", "aantal", "min_aantal", "leverancier", "besteld", "bestel_aantal"],
-    overdracht: ["ts", "auteur", "aan", "locatie", "cat", "tekst", "klaar"]
+    voorraad: ["naam", "categorie", "aantal", "min_aantal", "leverancier", "besteld", "bestel_aantal", "verwacht"],
+    overdracht: ["ts", "auteur", "aan", "locatie", "cat", "tekst", "klaar", "datum"]
   };
   var NAAR_DB = { medewerkerId: "medewerker_id", min: "min_aantal", bestelAantal: "bestel_aantal" };
   var VAN_DB = { medewerker_id: "medewerkerId", min_aantal: "min", bestel_aantal: "bestelAantal" };
@@ -1076,54 +1105,182 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if (typeof v.bestelAantal === "number" && v.bestelAantal > 0) return v.bestelAantal;
     return Math.max(v.min * 2 - v.aantal, 1);
   }
+  var vFilter = { zoek: "", cat: "", status: "" };
+  function statusSleutel(v){
+    if (v.besteld) return "besteld";
+    if (v.aantal <= 0) return "op";
+    if (v.aantal <= v.min) return "bestellen";
+    return "peil";
+  }
+  function catNaam(v){ return (v.categorie || "").trim() || "Zonder categorie"; }
+  function vulCatFilter(){
+    var el = document.getElementById("f-cat"), was = el.value, cats = [], i;
+    for (i = 0; i < state.voorraad.length; i++) {
+      var c = catNaam(state.voorraad[i]);
+      if (cats.indexOf(c) < 0) cats.push(c);
+    }
+    cats.sort(function(a, b){ return a.localeCompare(b); });
+    el.innerHTML = '<option value="">Alle categorie\u00ebn</option>' + cats.map(function(c){
+      return '<option value="' + esc(c) + '">' + esc(c) + "</option>";
+    }).join("");
+    if (was && cats.indexOf(was) >= 0) el.value = was; else if (was) vFilter.cat = "";
+  }
+  function filterItems(items){
+    var z = vFilter.zoek.toLowerCase();
+    return items.filter(function(v){
+      if (vFilter.cat && catNaam(v) !== vFilter.cat) return false;
+      if (vFilter.status && statusSleutel(v) !== vFilter.status) return false;
+      if (z && (v.naam + " " + (v.leverancier || "") + " " + (v.categorie || "")).toLowerCase().indexOf(z) < 0) return false;
+      return true;
+    });
+  }
+  function voorraadRij(v){
+    var st = status(v);
+    return "<tr>" +
+      '<td class="name"><input type="text" value="' + esc(v.naam) + '" data-vr="' + v.id + '" data-veld="naam" aria-label="Artikel"></td>' +
+      '<td><input type="text" list="categorieen" value="' + esc(v.categorie || "") + '" data-vr="' + v.id + '" data-veld="categorie" aria-label="Categorie"></td>' +
+      '<td class="num"><span class="stepper">' +
+        '<button class="icon-btn" type="button" data-min="' + v.id + '" title="Eentje eraf">\u2212</button>' +
+        '<input type="number" class="mini" min="0" step="1" value="' + v.aantal + '" data-vr="' + v.id + '" data-veld="aantal" aria-label="Voorraad">' +
+        '<button class="icon-btn ok" type="button" data-plus="' + v.id + '" title="Eentje erbij">+</button></span></td>' +
+      '<td class="num"><input type="number" class="mini" min="0" step="1" value="' + v.min + '" data-vr="' + v.id + '" data-veld="min" aria-label="Minimum"></td>' +
+      '<td><input type="text" list="leveranciers" value="' + esc(v.leverancier || "") + '" data-vr="' + v.id + '" data-veld="leverancier" aria-label="Leverancier"></td>' +
+      '<td><span class="pill ' + st.cls + '">' + st.txt + "</span></td>" +
+      '<td class="act num"><button class="icon-btn" type="button" data-del-vr="' + v.id + '" title="Verwijderen">\u2715</button></td></tr>';
+  }
   function renderVoorraad(){
     var items = state.voorraad.slice().sort(function(a, b){
-      return (a.categorie || "").localeCompare(b.categorie || "") || a.naam.localeCompare(b.naam); });
+      return catNaam(a).localeCompare(catNaam(b)) || a.naam.localeCompare(b.naam); });
+    vulCatFilter();
+    var zicht = filterItems(items);
 
-    document.getElementById("voorraadTable").innerHTML = items.length
-      ? '<table><thead><tr><th>Artikel</th><th>Categorie</th><th class="num">Voorraad</th><th class="num">Min.</th><th>Leverancier</th><th>Status</th><th class="num"></th></tr></thead><tbody>' +
-        items.map(function(v){
-          var s = status(v);
-          return "<tr>" +
-            '<td class="name"><input type="text" value="' + esc(v.naam) + '" data-vr="' + v.id + '" data-veld="naam" aria-label="Artikel"></td>' +
-            '<td><input type="text" list="categorieen" value="' + esc(v.categorie || "") + '" data-vr="' + v.id + '" data-veld="categorie" aria-label="Categorie"></td>' +
-            '<td class="num"><span class="stepper">' +
-              '<button class="icon-btn" type="button" data-min="' + v.id + '" title="Eentje eraf">−</button>' +
-              '<input type="number" class="mini" min="0" step="1" value="' + v.aantal + '" data-vr="' + v.id + '" data-veld="aantal" aria-label="Voorraad">' +
-              '<button class="icon-btn ok" type="button" data-plus="' + v.id + '" title="Eentje erbij">+</button></span></td>' +
-            '<td class="num"><input type="number" class="mini" min="0" step="1" value="' + v.min + '" data-vr="' + v.id + '" data-veld="min" aria-label="Minimum"></td>' +
-            '<td><input type="text" list="leveranciers" value="' + esc(v.leverancier || "") + '" data-vr="' + v.id + '" data-veld="leverancier" aria-label="Leverancier"></td>' +
-            '<td><span class="pill ' + s.cls + '">' + s.txt + "</span></td>" +
-            '<td class="act num"><button class="icon-btn" type="button" data-del-vr="' + v.id + '" title="Verwijderen">✕</button></td></tr>';
-        }).join("") + "</tbody></table>"
-      : '<div class="empty"><strong>Nog geen artikelen</strong>Voeg hieronder toe wat je bijhoudt.</div>';
+    // groeperen per categorie
+    var groepen = [], index = {};
+    zicht.forEach(function(v){
+      var c = catNaam(v);
+      if (index[c] === undefined) { index[c] = groepen.length; groepen.push({ naam: c, rijen: [] }); }
+      groepen[index[c]].rijen.push(v);
+    });
+    var body = groepen.map(function(g){
+      return '<tr class="groep"><td colspan="7">' + esc(g.naam) +
+        '<span class="aantal">' + g.rijen.length + " artikel" + (g.rijen.length === 1 ? "" : "en") + "</span></td></tr>" +
+        g.rijen.map(voorraadRij).join("");
+    }).join("");
+
+    document.getElementById("voorraadTable").innerHTML = zicht.length
+      ? '<table><thead><tr><th>Artikel</th><th>Categorie</th><th class="num">Voorraad</th><th class="num">Min.</th><th>Leverancier</th><th>Status</th><th class="num"></th></tr></thead><tbody>' + body + "</tbody></table>"
+      : (items.length
+          ? '<div class="empty"><strong>Niets gevonden</strong>Geen artikelen die aan dit filter voldoen.</div>'
+          : '<div class="empty"><strong>Nog geen artikelen</strong>Voeg hieronder toe wat je bijhoudt.</div>');
+    document.getElementById("voorraadCount").textContent = zicht.length === items.length
+      ? items.length + " artikelen in " + groepen.length + " categorie\u00ebn"
+      : zicht.length + " van " + items.length + " artikelen";
 
     var bestel = items.filter(function(v){ return v.aantal <= v.min || v.besteld; });
     document.getElementById("bestelTable").innerHTML = bestel.length
-      ? '<table><thead><tr><th>Artikel</th><th>Leverancier</th><th class="num">Nu</th><th class="num">Min.</th><th class="num">Te bestellen</th><th>Status</th><th class="num"></th></tr></thead><tbody>' +
+      ? '<table><thead><tr><th>Artikel</th><th>Leverancier</th><th class="num">Nu</th><th class="num">Min.</th><th class="num">Te bestellen</th><th>Verwacht</th><th>Status</th><th class="num"></th></tr></thead><tbody>' +
         bestel.map(function(v){
           return '<tr class="' + (v.besteld ? "done" : "") + '">' +
-            '<td class="name">' + esc(v.naam) + '<span class="meta">' + esc(v.categorie || "") + "</span></td>" +
+            '<td class="name">' + esc(v.naam) + '<span class="meta">' + esc(catNaam(v)) + "</span></td>" +
             '<td><input type="text" list="leveranciers" value="' + esc(v.leverancier || "") + '" data-vr="' + v.id + '" data-veld="leverancier" aria-label="Leverancier"></td>' +
             '<td class="num">' + v.aantal + '</td><td class="num">' + v.min + "</td>" +
             '<td class="num"><input type="number" class="mini" min="1" step="1" value="' + teBestellen(v) + '" data-vr="' + v.id + '" data-veld="bestelAantal" aria-label="Te bestellen"></td>' +
+            '<td class="datum"><input type="date" value="' + esc(v.verwacht || "") + '" data-vr="' + v.id + '" data-veld="verwacht" aria-label="Verwachte bezorgdatum"></td>' +
             "<td>" + (v.besteld ? '<span class="pill accent">Besteld</span>' : '<span class="pill warn">Nog bestellen</span>') + "</td>" +
             '<td class="act num"><button class="btn ghost small" type="button" data-besteld="' + v.id + '">' + (v.besteld ? "Toch niet" : "Besteld") + "</button> " +
             '<button class="btn small" type="button" data-ontvangen="' + v.id + '">Ontvangen</button></td></tr>';
         }).join("") + "</tbody></table>"
       : '<div class="empty"><strong>Niets te bestellen</strong>Alles staat boven het minimum.</div>';
 
+    var vandaagIso = today();
+    var teLaat = items.filter(function(v){ return v.besteld && v.verwacht && v.verwacht < vandaagIso; }).length;
     document.getElementById("voorraadStats").innerHTML =
-      stat("Artikelen", String(items.length), "in beheer", "") +
+      stat("Artikelen", String(items.length), groepen.length + " categorie\u00ebn zichtbaar", "") +
       stat("Te bestellen", String(items.filter(function(v){ return v.aantal <= v.min && !v.besteld; }).length), "onder minimum", "brass") +
-      stat("Besteld", String(items.filter(function(v){ return v.besteld; }).length), "onderweg", "ok") +
+      stat("Besteld", String(items.filter(function(v){ return v.besteld; }).length), teLaat ? teLaat + " over de verwachte datum" : "onderweg", "ok") +
       stat("Op", String(items.filter(function(v){ return v.aantal <= 0; }).length), "voorraad nul", "");
     document.getElementById("badge-voorraad").textContent = items.filter(function(v){ return v.aantal <= v.min && !v.besteld; }).length;
   }
 
+  /* ---- filters ---- */
+  document.getElementById("f-zoek").addEventListener("input", function(){ vFilter.zoek = this.value.trim(); renderVoorraad(); });
+  document.getElementById("f-cat").addEventListener("change", function(){ vFilter.cat = this.value; renderVoorraad(); });
+  document.getElementById("f-status").addEventListener("change", function(){ vFilter.status = this.value; renderVoorraad(); });
+  document.getElementById("f-wis").addEventListener("click", function(){
+    vFilter = { zoek: "", cat: "", status: "" };
+    document.getElementById("f-zoek").value = "";
+    document.getElementById("f-cat").value = "";
+    document.getElementById("f-status").value = "";
+    renderVoorraad();
+  });
+
+  /* ---- bestellijst uitdraaien en opslaan ---- */
+  function bestelRegels(){
+    return state.voorraad.filter(function(v){ return v.aantal <= v.min || v.besteld; })
+      .sort(function(a, b){
+        return (a.leverancier || "zzz").localeCompare(b.leverancier || "zzz") ||
+               catNaam(a).localeCompare(catNaam(b)) || a.naam.localeCompare(b.naam);
+      });
+  }
+  function datumNl(iso){ if (!iso) return ""; var p = iso.split("-"); return p[2] + "-" + p[1] + "-" + p[0]; }
+  document.getElementById("bestelPrint").addEventListener("click", function(){
+    var rijen = bestelRegels();
+    if (!rijen.length) { alert("Er staat op dit moment niets op de bestellijst."); return; }
+    var d = new Date();
+    var html = '<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Bestellijst Beden Wellness</title>' +
+      "<style>body{font-family:Helvetica,Arial,sans-serif;color:#241E19;margin:28px}" +
+      "h1{font-size:19px;margin:0 0 2px}p.sub{color:#7B6E62;font-size:12px;margin:0 0 18px}" +
+      "table{border-collapse:collapse;width:100%;font-size:12.5px}" +
+      "th{text-align:left;border-bottom:1.5px solid #241E19;padding:7px 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}" +
+      "td{border-bottom:1px solid #E3DAD0;padding:7px 8px}td.num{text-align:right}" +
+      "tr.lev td{background:#F4F1ED;font-weight:600}" +
+      ".vink{display:inline-block;width:13px;height:13px;border:1px solid #241E19;border-radius:2px}" +
+      "@media print{body{margin:12mm}}</style></head><body>" +
+      "<h1>Bestellijst &mdash; Beden Wellness Flevoland</h1>" +
+      '<p class="sub">Uitgedraaid op ' + d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) +
+        " om " + d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) +
+        (wie ? " door " + esc(wie) : "") + "</p>" +
+      "<table><thead><tr><th></th><th>Artikel</th><th>Categorie</th><th class=\"num\">Nu</th><th class=\"num\">Min.</th>" +
+      "<th class=\"num\">Bestellen</th><th>Verwacht</th><th>Status</th></tr></thead><tbody>";
+    var huidigeLev = null;
+    rijen.forEach(function(v){
+      var lev = v.leverancier || "Geen leverancier";
+      if (lev !== huidigeLev) { huidigeLev = lev; html += '<tr class="lev"><td colspan="8">' + esc(lev) + "</td></tr>"; }
+      html += '<tr><td><span class="vink"></span></td><td>' + esc(v.naam) + "</td><td>" + esc(catNaam(v)) + "</td>" +
+        '<td class="num">' + v.aantal + '</td><td class="num">' + v.min + '</td><td class="num">' + teBestellen(v) + "</td>" +
+        "<td>" + esc(datumNl(v.verwacht)) + "</td><td>" + (v.besteld ? "Besteld" : "Nog bestellen") + "</td></tr>";
+    });
+    html += "</tbody></table></body></html>";
+    var w = window.open("", "_blank");
+    if (!w) { alert("Je browser blokkeert het nieuwe venster. Sta pop-ups toe voor deze pagina."); return; }
+    w.document.write(html);
+    w.document.close();
+    setTimeout(function(){ try { w.focus(); w.print(); } catch (e) {} }, 350);
+  });
+  document.getElementById("bestelCsv").addEventListener("click", function(){
+    var rijen = bestelRegels();
+    if (!rijen.length) { alert("Er staat op dit moment niets op de bestellijst."); return; }
+    function veld(x){ return '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"'; }
+    var lijnen = [["Artikel", "Categorie", "Leverancier", "Voorraad", "Minimum", "Te bestellen", "Verwachte bezorgdatum", "Status"].map(veld).join(";")];
+    rijen.forEach(function(v){
+      lijnen.push([v.naam, catNaam(v), v.leverancier || "", v.aantal, v.min, teBestellen(v),
+        datumNl(v.verwacht), v.besteld ? "Besteld" : "Nog bestellen"].map(veld).join(";"));
+    });
+    var blob = new Blob(["\ufeff" + lijnen.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "bestellijst-" + today() + ".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  });
+
   /* ---------------- render: overdracht ---------------- */
   function renderOverdracht(){
-    var lijst = state.overdracht.slice().sort(function(a, b){ return b.ts - a.ts; });
+    var lijst = state.overdracht.slice().sort(function(a, b){
+      var da = a.datum || "", db = b.datum || "";
+      if (da !== db) return da < db ? 1 : -1;
+      return b.ts - a.ts;
+    });
     var open = lijst.filter(function(o){ return !o.klaar; });
     var html = lijst.map(function(o){
       var d = new Date(o.ts);
@@ -1133,8 +1290,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<div style="min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px">' +
         '<span class="pill ' + cls + '">' + lbl + "</span>" +
         '<span class="pill neutral">' + esc(o.auteur || "onbekend") + " &rarr; " + esc(o.aan || "iedereen") + "</span>" +
-        '<span style="font-size:12px;color:var(--muted)">' + esc(o.locatie || "") + " · " +
-        d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) + "</span></div>" +
+        '<span style="font-size:12px;color:var(--muted)">' + esc(o.locatie || "") + " · geplaatst " +
+        d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) + "</span>" +
+        '<span style="font-size:12px;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px">Datum ' +
+        '<input type="date" value="' + esc(o.datum || "") + '" data-od="' + o.id + '" data-veld="datum" ' +
+        'style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);padding:2px 6px;font-size:12px" ' +
+        'aria-label="Datum van dit punt"></span></div>' +
         '<div style="font-size:13.8px;white-space:pre-wrap">' + esc(o.tekst) + "</div></div>" +
         '<div style="white-space:nowrap"><button class="icon-btn ok" type="button" data-od-klaar="' + o.id + '" title="Afgehandeld">' + (o.klaar ? "↺" : "✓") + "</button>" +
         '<button class="icon-btn" type="button" data-del-od="' + o.id + '" title="Verwijderen">✕</button></div>' +
@@ -1193,7 +1354,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var v = { id: uid(), naam: naam, categorie: document.getElementById("v-cat").value.trim(),
       aantal: parseInt(document.getElementById("v-aantal").value, 10) || 0,
       min: parseInt(document.getElementById("v-min").value, 10) || 0,
-      leverancier: document.getElementById("v-lev").value.trim(), besteld: false, bestelAantal: 0 };
+      leverancier: document.getElementById("v-lev").value.trim(), besteld: false, bestelAantal: 0, verwacht: null };
     mutate(function(){ state.voorraad.push(v); });
     document.getElementById("voorraadForm").reset();
     document.getElementById("v-aantal").value = "0"; document.getElementById("v-min").value = "2";
@@ -1204,9 +1365,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var tekst = document.getElementById("o-tekst").value.trim(); if (!tekst) return;
     var o = { id: uid(), ts: Date.now(), auteur: document.getElementById("o-van").value || wie,
       aan: document.getElementById("o-aan").value, locatie: document.getElementById("o-loc").value,
-      cat: document.getElementById("o-cat").value, tekst: tekst, klaar: false };
+      cat: document.getElementById("o-cat").value, tekst: tekst, klaar: false,
+      datum: document.getElementById("o-datum").value || today() };
     mutate(function(){ state.overdracht.unshift(o); });
     document.getElementById("o-tekst").value = "";
+    document.getElementById("o-datum").value = today();
   });
 
   /* ---------------- inline bewerken ---------------- */
@@ -1216,8 +1379,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var i = vindIdx(state.voorraad, el.dataset.vr); if (i < 0) return;
       var veld = el.dataset.veld;
       if (veld === "aantal" || veld === "min" || veld === "bestelAantal") state.voorraad[i][veld] = Math.max(parseInt(el.value, 10) || 0, 0);
+      else if (veld === "verwacht") state.voorraad[i][veld] = el.value || null;
       else state.voorraad[i][veld] = el.value.trim();
       renderVoorraad(); renderPlanning(); queueSave();
+    } else if (el.dataset && el.dataset.od) {
+      var k = vindIdx(state.overdracht, el.dataset.od); if (k < 0) return;
+      state.overdracht[k][el.dataset.veld] = el.value;
+      renderOverdracht(); queueSave();
     } else if (el.dataset && el.dataset.mw) {
       var j = vindIdx(state.medewerkers, el.dataset.mw); if (j < 0) return;
       state.medewerkers[j][el.dataset.veld] = el.value.trim();
@@ -1246,7 +1414,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         i = vindIdx(state.voorraad, d.ontvangen); if (i < 0) return;
         var v = state.voorraad[i];
         v.aantal += teBestellen(v);
-        v.besteld = false; v.bestelAantal = 0;
+        v.besteld = false; v.bestelAantal = 0; v.verwacht = null;
       });
     }
     else if (d.odKlaar) { mutate(function(){ var k = vindIdx(state.overdracht, d.odKlaar); if (k >= 0) state.overdracht[k].klaar = !state.overdracht[k].klaar; }); }
@@ -1255,6 +1423,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* ---------------- init ---------------- */
   document.getElementById("p-datum").value = today();
+  document.getElementById("o-datum").value = today();
   paintWie();
   renderAll();
   showTab(active);
