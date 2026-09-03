@@ -193,6 +193,36 @@ td input.mini{width:78px;text-align:right;font-family:var(--f-mono);font-variant
 .banner strong{font-weight:600}
 .banner.crit{background:var(--crit-soft);color:var(--crit)}
 
+/* starttegels */
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px}
+.tegel{position:relative;overflow:hidden;text-align:left;cursor:pointer;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-l);padding:18px 18px 16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:6px;font:inherit;color:inherit;min-height:132px}
+.tegel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,var(--accent))}
+.tegel:hover{border-color:var(--c,var(--accent));transform:translateY(-1px)}
+.tegel .tico{width:34px;height:34px;border-radius:10px;background:var(--c,var(--accent));color:#fff;
+  display:grid;place-items:center;font-size:16px;margin-bottom:2px}
+.tegel .ttitel{font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.tegel .tsub{font-size:12.5px;color:var(--muted);line-height:1.45}
+.tegel .tgetal{position:absolute;top:16px;right:18px;font-family:var(--f-display);font-size:24px;
+  font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--c,var(--accent))}
+.tegel .tgetal small{font-size:11px;font-family:var(--f-mono);color:var(--muted);display:block;text-align:right;
+  font-weight:400;letter-spacing:.06em}
+
+/* welkomstcall */
+.extrarij{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:var(--r-s);background:var(--surface-2);margin-bottom:7px}
+.extrarij:hover{border-color:var(--accent)}
+.extrarij input[type="checkbox"]{accent-color:var(--accent);width:17px;height:17px;flex:none}
+.extrarij .enaam{flex:1;font-size:13.5px}
+.extrarij .enaam small{display:block;color:var(--muted);font-size:11.5px}
+.extrarij .eprijs{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+.extrarij input[type="number"]{width:58px;text-align:right;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-s);padding:4px 6px;font-size:13px}
+.extracat{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--brass);margin:14px 0 7px}
+.extracat:first-child{margin-top:0}
+
 /* systeembalk (boekingssystemen en agenda's) */
 .sysbalk{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:0 0 20px}
 .syskop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
@@ -313,8 +343,8 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
 <!-- ============ TOEGANGSSCHERM ============ -->
 <div class="slot" id="slot">
   <div class="slot-kaart">
-    <span class="mark">VR</span>
-    <h1>VR Dashboard</h1>
+    <span class="mark">B&amp;W</span>
+    <h1>Werkzaamheden &amp; Taken</h1>
     <p>Log in met je e-mailadres en wachtwoord.</p>
     <div class="field">
       <label for="slotMail">E-mailadres</label>
@@ -334,10 +364,10 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
 <div class="app" id="app" hidden>
   <header class="topbar">
     <div class="brand">
-      <span class="mark">VR</span>
+      <span class="mark">B&amp;W</span>
       <span class="brand-txt">
-        <strong>VR Dashboard</strong>
-        <span>Beden Wellness Flevoland</span>
+        <strong>Beden Wellness Flevoland</strong>
+        <span>Werkzaamheden &amp; Taken</span>
       </span>
     </div>
     <div class="topbar-right">
@@ -349,62 +379,57 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
   <div class="sysbalk" id="sysbalk" aria-label="Systemen en agenda's"></div>
 
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
-    <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="false" aria-controls="panel-overzicht">Overzicht</button>
+    <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Start</button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Taken<span class="badge" id="badge-taken">0</span></button>
+    <button class="tab" role="tab" id="tab-welkomstcall" data-tab="welkomstcall" aria-selected="false" aria-controls="panel-welkomstcall">Welkomstcalls<span class="badge" id="badge-welkomstcall">0</span></button>
+    <button class="tab" role="tab" id="tab-klanten" data-tab="klanten" aria-selected="false" aria-controls="panel-klanten">Klanten &amp; gasten<span class="badge" id="badge-klanten">0</span></button>
+    <button class="tab" role="tab" id="tab-bellen" data-tab="bellen" aria-selected="false" aria-controls="panel-bellen">Bellen<span class="badge" id="badge-bellen">0</span></button>
+    <button class="tab" role="tab" id="tab-werk" data-tab="werk" aria-selected="false" aria-controls="panel-werk">Werk &amp; tarieven<span class="badge" id="badge-werk">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
-    <button class="tab" role="tab" id="tab-gasten" data-tab="gasten" aria-selected="false" aria-controls="panel-gasten">Gastenregister<span class="badge" id="badge-gasten">0</span></button>
-    <button class="tab" role="tab" id="tab-werkzaamheden" data-tab="werkzaamheden" aria-selected="false" aria-controls="panel-werkzaamheden">Werkzaamheden<span class="badge" id="badge-werkzaamheden">0</span></button>
-    <button class="tab" role="tab" id="tab-tarieven" data-tab="tarieven" aria-selected="false" aria-controls="panel-tarieven">Tarieven<span class="badge" id="badge-tarieven">0</span></button>
-    <button class="tab" role="tab" id="tab-scripts" data-tab="scripts" aria-selected="false" aria-controls="panel-scripts">Belscripts<span class="badge" id="badge-scripts">0</span></button>
-    <button class="tab" role="tab" id="tab-documenten" data-tab="documenten" aria-selected="false" aria-controls="panel-documenten">Documenten<span class="badge" id="badge-documenten">0</span></button>
-    <button class="tab" role="tab" id="tab-bellijsten" data-tab="bellijsten" aria-selected="false" aria-controls="panel-bellijsten">Bellijsten<span class="badge" id="badge-bellijsten">0</span></button>
+    <button class="tab" role="tab" id="tab-uploads" data-tab="uploads" aria-selected="false" aria-controls="panel-uploads">Uploads<span class="badge" id="badge-uploads">0</span></button>
   </nav>
 
   <div id="lokaalBanner" class="banner" hidden><span>&#9888;</span><span><strong>Lokale modus.</strong>
     Er is nog geen Supabase-sleutel ingesteld, dus alles wordt alleen op dit apparaat bewaard.
     <button class="btn ghost small" id="bannerConfig" type="button" style="margin-left:6px">Verbinding instellen</button></span></div>
 
-  <!-- ============ OVERZICHT ============ -->
-  <section class="panel" id="panel-overzicht" role="tabpanel" aria-labelledby="tab-overzicht" hidden>
+  <!-- ============ START ============ -->
+  <section class="panel" id="panel-start" role="tabpanel" aria-labelledby="tab-start" hidden>
     <div class="page-head">
-      <span class="eyebrow">Dagelijks overzicht</span>
+      <span class="eyebrow">Waar wil je beginnen</span>
       <h1 id="welkomKop">Overzicht</h1>
-      <p>Alles wat openstaat en wat er deze maand is geregistreerd, op één plek.</p>
+      <p id="startUitleg">Klik op een tegel om erheen te gaan. De aantallen lopen mee met wat er openstaat.</p>
     </div>
-    <div class="linkstrook" data-linktab="overzicht"></div>
-    <div class="stats" id="ovStats"></div>
-    <div class="two-col">
-      <div>
-        <div class="card">
-          <div class="card-head"><h2>Openstaande taken</h2><span class="hint" id="ovTakenHint"></span></div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Taak</th><th>Voor</th><th>Deadline</th><th></th></tr></thead>
-            <tbody id="ovTaken"></tbody>
-          </table></div>
-        </div>
+    <div class="linkstrook" data-linktab="start"></div>
+    <div class="tegels" id="tegels"></div>
+    <div class="two-col" style="margin-top:20px">
+      <div class="card">
+        <div class="card-head"><h2>Openstaande taken</h2><span class="hint" id="ovTakenHint"></span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Taak</th><th>Voor</th><th>Deadline</th><th></th></tr></thead>
+          <tbody id="ovTaken"></tbody>
+        </table></div>
       </div>
-      <div>
-        <div class="card">
-          <div class="card-head"><h2>Laatste werkzaamheden</h2><span class="hint">bedragen staan bij Werkzaamheden</span></div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Datum</th><th>Werkzaamheid</th><th class="num">Aantal</th></tr></thead>
-            <tbody id="ovWerk"></tbody>
-          </table></div>
-        </div>
+      <div class="card">
+        <div class="card-head"><h2>Laatste werkzaamheden</h2><span class="hint">bedragen bij Werk &amp; tarieven</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Datum</th><th>Werkzaamheid</th><th class="num">Aantal</th></tr></thead>
+          <tbody id="ovWerk"></tbody>
+        </table></div>
       </div>
     </div>
+    <div class="stats" id="ovStats" style="margin-top:18px"></div>
   </section>
 
   <!-- ============ TAKEN ============ -->
   <section class="panel" id="panel-taken" role="tabpanel" aria-labelledby="tab-taken" hidden>
     <div class="page-head">
-      <span class="eyebrow">Wat moet er gebeuren</span>
+      <span class="eyebrow">Voor jezelf of voor een ander</span>
       <h1>Taken</h1>
-      <p>Zet een taak klaar, wijs hem toe en vink hem af zodra hij klaar is.</p>
+      <p>Zet een taak klaar, wijs hem toe aan jezelf of aan een collega, en vink hem af zodra hij klaar is.</p>
     </div>
     <div class="linkstrook" data-linktab="taken"></div>
-
-    <div class="card">
+<div class="card">
       <div class="card-head"><h2>Nieuwe taak</h2><span class="hint">verschijnt direct bij de juiste persoon</span></div>
       <div class="card-body">
         <div class="grid-form">
@@ -460,57 +485,169 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
     </div>
   </section>
 
-  <!-- ============ OVERDRACHT ============ -->
-  <section class="panel" id="panel-overdracht" role="tabpanel" aria-labelledby="tab-overdracht" hidden>
+  <!-- ============ WELKOMSTCALLS ============ -->
+  <section class="panel" id="panel-welkomstcall" role="tabpanel" aria-labelledby="tab-welkomstcall" hidden>
     <div class="page-head">
-      <span class="eyebrow">Van dienst naar dienst</span>
-      <h1>Overdracht</h1>
-      <p>Wat de volgende dienst moet weten. Iedereen met toegang kan hier een bericht achterlaten en afhandelen — zo blijft alleen het openstaande over.</p>
+      <span class="eyebrow">Bellen, bijboeken en bevestigen</span>
+      <h1>Welkomstcalls</h1>
+      <p>Loop het gesprek stap voor stap door, vink de extra's aan die de gast bijboekt, en stuur daarna in één klik een WhatsApp-bericht met de opsomming, de betaallink en het incheckformulier.</p>
     </div>
-    <div class="linkstrook" data-linktab="overdracht"></div>
+    <div class="linkstrook" data-linktab="welkomstcall"></div>
 
-    <div class="card">
-      <div class="card-head"><h2>Bericht achterlaten</h2><span class="hint">zichtbaar voor het hele team</span></div>
-      <div class="card-body">
-        <div class="grid-form">
-          <div class="field"><label for="odVan">Van</label><select id="odVan"></select></div>
-          <div class="field"><label for="odAan">Overdragen aan</label><select id="odAan"></select></div>
-          <div class="field"><label for="odLoc">Locatie</label><select id="odLoc">
-            <option value="Malina Jacuzzi">Malina Jacuzzi</option>
-            <option value="Malina Zwembad">Malina Zwembad</option>
-            <option value="Suite Angie Almere">Suite Angie Almere</option>
-            <option value="Algemeen">Algemeen</option></select></div>
-          <div class="field"><label for="odSoort">Soort</label><select id="odSoort">
-            <option value="info">Informatie</option><option value="storing">Storing</option>
-            <option value="defect">Defect</option><option value="klacht">Klacht</option>
-            <option value="voorraad">Voorraad</option></select></div>
-          <div class="field wide"><label for="odTekst">Bericht</label>
-            <textarea id="odTekst" placeholder="Bijv. bubbelbad Malina Jacuzzi loopt langzaam leeg, monteur belt maandag terug"></textarea></div>
-          <div><button class="btn" id="odOpslaan" type="button">Plaatsen</button></div>
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>Gesprek voorbereiden</h2>
+            <span><button class="btn ghost small" id="wcNieuw" type="button">Leeg formulier</button></span></div>
+          <div class="card-body">
+            <div class="grid-form">
+              <div class="field" style="grid-column:span 2"><label for="wcKlant">Klant uit het bestand</label>
+                <select id="wcKlant"></select></div>
+              <div class="field"><label for="wcNaam">Naam</label><input type="text" id="wcNaam" placeholder="voor- en achternaam"></div>
+              <div class="field"><label for="wcTel">Telefoon</label><input type="text" id="wcTel" inputmode="tel" placeholder="06…"></div>
+              <div class="field"><label for="wcMail">E-mail</label><input type="text" id="wcMail" inputmode="email"></div>
+              <div class="field"><label for="wcRef">Reserveringsnummer</label><input type="text" id="wcRef"></div>
+              <div class="field"><label for="wcLoc">Locatie</label><select id="wcLoc">
+                <option>Malina Jacuzzi</option><option>Malina Zwembad</option><option>Suite Angie Almere</option></select></div>
+              <div class="field"><label for="wcDatum">Datum verblijf</label><input type="date" id="wcDatum"></div>
+              <div class="field"><label for="wcTijd">Incheck</label><input type="text" id="wcTijd" placeholder="20:00"></div>
+              <div class="field"><label for="wcPers">Personen</label><input type="number" id="wcPers" min="1" step="1" value="2"></div>
+              <div class="field wide"><label for="wcGeleg">Gelegenheid</label>
+                <input type="text" id="wcGeleg" placeholder="verjaardag, jubileum, gewoon ontspannen…"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Extra's bijboeken</h2><span class="hint" id="wcExtraHint"></span></div>
+          <div class="card-body" id="wcExtras"></div>
+          <div class="card-foot"><span id="wcTotaalTekst"></span>
+            <span><button class="btn ghost small" id="wcExtraNieuw" type="button" hidden>+ Extra beheren</button></span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>Gespreksstappen</h2><span class="hint" id="wcScriptHint"></span></div>
+          <div class="card-body" id="wcScript"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Afronden</h2></div>
+          <div class="card-body">
+            <div class="preview" style="margin-top:0">
+              <strong id="wcTotaal">€ 0,00</strong>
+              <span class="sep"></span>
+              <span class="opbouw" id="wcOpbouw">Nog niets bijgeboekt</span>
+            </div>
+            <div class="grid-form" style="margin-top:14px">
+              <div class="field wide"><label for="wcBetaallink">Mollie-betaallink <span style="font-weight:400;color:var(--muted)">(plak hier de link die je in Mollie aanmaakt)</span></label>
+                <input type="text" id="wcBetaallink" inputmode="url" placeholder="https://pay.mollie.com/…"></div>
+              <div class="field wide"><label for="wcNotitie">Notitie</label><input type="text" id="wcNotitie" placeholder="wat is er afgesproken"></div>
+              <div class="field"><label for="wcStatus">Status</label><select id="wcStatus">
+                <option value="te bellen">te bellen</option><option value="gebeld">gebeld</option>
+                <option value="geen gehoor">geen gehoor</option><option value="terugbellen">terugbellen</option>
+                <option value="afgerond">afgerond</option></select></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+              <button class="btn" id="wcOpslaan" type="button">Opslaan</button>
+              <button class="btn ghost" id="wcWhatsapp" type="button">WhatsApp-bericht</button>
+              <button class="btn ghost" id="wcIncheck" type="button">Incheckformulier klaarzetten</button>
+              <button class="btn ghost" id="wcKopieer" type="button">Bericht kopiëren</button>
+            </div>
+            <div class="note" id="wcNote"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Openstaand</h2><span class="hint" id="odHint"></span></div>
-      <div class="card-body" id="odOpen"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Afgehandeld</h2><span class="hint">laatste 20</span></div>
-      <div class="card-body" id="odKlaar"></div>
+      <div class="card-head"><h2>Welkomstcalls</h2>
+        <div class="segment" id="wcFilter">
+          <button type="button" data-f="open" aria-pressed="true">Open</button>
+          <button type="button" data-f="alles" aria-pressed="false">Alles</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Gast</th><th>Verblijf</th><th>Status</th><th class="num">Bijgeboekt</th><th>Notitie</th><th></th></tr></thead>
+        <tbody id="wcLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="wcFoot"></span>
+        <button class="btn ghost small" id="wcExport" type="button">Exporteer CSV</button></div>
     </div>
   </section>
 
-  <!-- ============ GASTENREGISTER ============ -->
-  <section class="panel" id="panel-gasten" role="tabpanel" aria-labelledby="tab-gasten" hidden>
+  <!-- ============ KLANTEN & GASTEN ============ -->
+  <section class="panel" id="panel-klanten" role="tabpanel" aria-labelledby="tab-klanten" hidden>
     <div class="page-head">
-      <span class="eyebrow">Nachtregister &amp; toeristenbelasting</span>
-      <h1>Gastenregister</h1>
-      <p>Elke overnachting één regel. De belasting wordt per locatie berekend — Lelystad per persoon per nacht, Almere als percentage van de overnachtingsomzet.</p>
+      <span class="eyebrow">Klantenbestand, nachtregister en toeristenbelasting</span>
+      <h1>Klanten &amp; gasten</h1>
+      <p>Alle klantgegevens op één plek, en daaronder de overnachtingen waarop je de toeristenbelasting aangeeft.</p>
     </div>
-    <div class="linkstrook" data-linktab="gasten"></div>
+    <div class="linkstrook" data-linktab="klanten"></div>
 
+    <div class="card">
+      <div class="card-head"><h2>Nieuwe klant</h2><span class="hint">alleen naam is verplicht</span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field"><label for="klVoor">Voornaam</label><input type="text" id="klVoor"></div>
+          <div class="field"><label for="klAchter">Achternaam</label><input type="text" id="klAchter"></div>
+          <div class="field"><label for="klMail">E-mail</label><input type="text" id="klMail" inputmode="email"></div>
+          <div class="field"><label for="klTel">Telefoon</label><input type="text" id="klTel" inputmode="tel"></div>
+          <div class="field"><label for="klAdres">Adres</label><input type="text" id="klAdres"></div>
+          <div class="field"><label for="klPost">Postcode</label><input type="text" id="klPost"></div>
+          <div class="field"><label for="klPlaats">Woonplaats</label><input type="text" id="klPlaats"></div>
+          <div class="field"><label for="klGeb">Geboortedatum</label><input type="date" id="klGeb"></div>
+          <div class="field"><label for="klNat">Nationaliteit</label><input type="text" id="klNat" placeholder="Nederlandse"></div>
+          <div class="field"><label for="klBron">Boekingsbron</label><select id="klBron">
+            <option>Privésauna</option><option>Origineel Overnachten</option><option>Booking.com</option>
+            <option>Telefonisch</option><option>WhatsApp direct</option><option>Anders</option></select></div>
+          <div class="field"><label for="klRef">Reserveringsnummer</label><input type="text" id="klRef"></div>
+          <div class="field"><label class="check" for="klLid"><input type="checkbox" id="klLid"> <span>Lidmaatschap (10% korting)</span></label></div>
+          <div class="field wide"><label for="klVoorkeur">Voorkeuren</label><input type="text" id="klVoorkeur" placeholder="arrangement, drankjes, muziek"></div>
+          <div class="field wide"><label for="klAllerg">Allergieën of dieet</label><input type="text" id="klAllerg"></div>
+          <div class="field wide"><label for="klNotitie">Notitie</label><input type="text" id="klNotitie"></div>
+          <div><button class="btn" id="klOpslaan" type="button">Klant toevoegen</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Klantenbestand</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div class="field" style="min-width:190px"><input type="text" id="klZoek" placeholder="zoek op naam, telefoon of e-mail"></div>
+          <button class="btn ghost small" id="klImportBtn" type="button">Excel importeren</button>
+        </div>
+      </div>
+      <div id="klImport" hidden class="card-body" style="padding-bottom:0">
+        <div class="dropzone" id="klDrop">
+          <strong>Kies een .xlsx, .xls of .csv met klantgegevens</strong>
+          De eerste rij wordt gelezen als koppen
+          <input type="file" id="klFile" accept=".xlsx,.xls,.csv">
+        </div>
+        <div id="klMap" hidden style="margin-top:14px">
+          <div class="grid-form">
+            <div class="field"><label for="kmVoor">Kolom: voornaam</label><select id="kmVoor"></select></div>
+            <div class="field"><label for="kmAchter">Kolom: achternaam</label><select id="kmAchter"></select></div>
+            <div class="field"><label for="kmMail">Kolom: e-mail</label><select id="kmMail"></select></div>
+            <div class="field"><label for="kmTel">Kolom: telefoon</label><select id="kmTel"></select></div>
+            <div class="field"><label for="kmPlaats">Kolom: woonplaats</label><select id="kmPlaats"></select></div>
+            <div class="field"><label for="kmRef">Kolom: reserveringsnummer</label><select id="kmRef"></select></div>
+            <div><button class="btn" id="klImportOk" type="button">Importeren</button></div>
+          </div>
+          <div class="note" id="klVoorbeeld"></div>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Naam</th><th>Contact</th><th>Woonplaats</th><th>Bron</th><th>Laatste bezoek</th><th></th></tr></thead>
+        <tbody id="klLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="klFoot"></span>
+        <button class="btn ghost small" id="klExport" type="button">Exporteer CSV</button></div>
+    </div>
+
+    <div id="gastenBlok">
+    <h2 style="font-family:var(--f-display);font-size:17px;margin:26px 0 12px">Nachtregister &amp; toeristenbelasting</h2>
     <div class="card">
       <div class="card-head"><h2>Overnachting toevoegen</h2><span class="hint" id="gaHint"></span></div>
       <div class="card-body">
@@ -566,18 +703,92 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
       </table></div>
       <div class="card-foot"><span class="note" style="margin:0">Controleer de tarieven elk jaar bij je gemeente — ze wijzigen per 1 januari.</span></div>
     </div>
+    </div>
   </section>
 
-  <!-- ============ WERKZAAMHEDEN ============ -->
-  <section class="panel" id="panel-werkzaamheden" role="tabpanel" aria-labelledby="tab-werkzaamheden" hidden>
+  <!-- ============ BELLEN ============ -->
+  <section class="panel" id="panel-bellen" role="tabpanel" aria-labelledby="tab-bellen" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Lijsten en gespreksscripts</span>
+      <h1>Bellen</h1>
+      <p>Je bellijsten en de bijbehorende scripts staan hier naast elkaar: lijst afwerken links, script afvinken rechts.</p>
+    </div>
+    <div class="linkstrook" data-linktab="bellen"></div>
+<div class="card">
+      <div class="card-head"><h2>Excel of CSV importeren</h2></div>
+      <div class="card-body">
+        <div class="dropzone" id="belDrop">
+          <strong>Kies een .xlsx, .xls of .csv</strong>
+          De eerste rij wordt gelezen als koppen
+          <input type="file" id="belFile" accept=".xlsx,.xls,.csv">
+        </div>
+        <div id="belMap" hidden style="margin-top:16px">
+          <div class="grid-form">
+            <div class="field"><label for="belNaamLijst">Naam bellijst</label><input type="text" id="belNaamLijst"></div>
+            <div class="field"><label for="mapNaam">Kolom: naam</label><select id="mapNaam"></select></div>
+            <div class="field"><label for="mapTel">Kolom: telefoon</label><select id="mapTel"></select></div>
+            <div class="field"><label for="mapMail">Kolom: e-mail</label><select id="mapMail"></select></div>
+            <div class="field"><label for="mapRef">Kolom: referentie</label><select id="mapRef"></select></div>
+            <div class="field"><label for="mapExtra">Kolom: extra</label><select id="mapExtra"></select></div>
+            <div class="field"><label for="belToewijzen">Toewijzen aan</label><select id="belToewijzen"></select></div>
+            <div><button class="btn" id="belImport" type="button">Bellijst aanmaken</button></div>
+          </div>
+          <div class="note" id="belVoorbeeld"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Bellijsten</h2>
+        <div class="field" style="min-width:200px"><select id="belKeuze"></select></div></div>
+      <div class="card-body" id="belKop"></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Naam</th><th>Telefoon</th><th>Referentie</th><th>Status</th><th>Notitie</th><th></th></tr></thead>
+        <tbody id="belLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="belFoot"></span>
+        <span><button class="btn ghost small" id="belExport" type="button">Exporteer CSV</button>
+        <button class="btn ghost small" id="belWis" type="button">Bellijst verwijderen</button></span></div>
+    </div>
+    <h2 style="font-family:var(--f-display);font-size:17px;margin:26px 0 12px">Belscripts</h2>
+<div class="card">
+      <div class="card-head"><h2>Kies een script</h2>
+        <button class="btn small" id="scNieuw" type="button" hidden>+ Nieuw script</button></div>
+      <div class="card-body"><div class="linkrij" id="scKeuze"></div></div>
+    </div>
+
+    <div class="card" id="scKaart">
+      <div class="card-head">
+        <h2 id="scTitel">—</h2>
+        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="pill accent" id="scVoortgang">0 van 0</span>
+          <button class="btn ghost small" id="scReset" type="button">Begin opnieuw</button>
+          <button class="btn ghost small" id="scBewerk" type="button" hidden>Bewerken</button>
+        </span>
+      </div>
+      <div class="card-body">
+        <p class="note" id="scOms" style="margin-top:0"></p>
+        <div class="progress"><i id="scBalk" style="width:0%"></i></div>
+        <div id="scStappen" style="margin-top:16px"></div>
+        <div id="scBewerkKnoppen" hidden style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost small" id="scStapNieuw" type="button">+ Stap</button>
+          <button class="btn ghost small" id="scKopNieuw" type="button">+ Tussenkop</button>
+          <button class="btn ghost small" id="scTitelWijzig" type="button">Titel en uitleg wijzigen</button>
+          <button class="btn ghost small" id="scWis" type="button" style="margin-left:auto">Script verwijderen</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WERK & TARIEVEN ============ -->
+  <section class="panel" id="panel-werk" role="tabpanel" aria-labelledby="tab-werk" hidden>
     <div class="page-head">
       <span class="eyebrow" id="wzEyebrow">Registratie volgens tarievenlijst</span>
-      <h1 id="wzKop">Werkzaamheden</h1>
-      <p id="wzUitleg">Kies de werkzaamheid uit de tarievenlijst en vul het aantal in — het bedrag wordt automatisch berekend.</p>
+      <h1 id="wzKop">Werk &amp; tarieven</h1>
+      <p id="wzUitleg">Registreer wat je hebt gedaan; het bedrag rolt uit de tarievenlijst onderaan deze pagina.</p>
     </div>
-    <div class="linkstrook" data-linktab="werkzaamheden"></div>
-
-    <div class="card" id="mijnTarievenKaart" hidden>
+    <div class="linkstrook" data-linktab="werk"></div>
+<div class="card" id="mijnTarievenKaart" hidden>
       <div class="card-head"><h2>Jouw tarieven</h2><span class="hint" id="mijnUurtarief"></span></div>
       <div class="card-body" style="padding-bottom:6px">
         <p class="note" style="margin:0 0 14px">
@@ -631,19 +842,8 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
         <span><button class="btn ghost small" id="wzMarkeer" type="button">Selectie op betaald</button>
         <button class="btn ghost small" id="wzExport" type="button">Exporteer CSV</button></span></div>
     </div>
-  </section>
-
-  <!-- ============ TARIEVEN ============ -->
-  <section class="panel" id="panel-tarieven" role="tabpanel" aria-labelledby="tab-tarieven" hidden>
-    <div class="page-head">
-      <span class="eyebrow">Wat staat waar tegenover</span>
-      <h1>Tarievenlijst</h1>
-      <p>Alles wat je hier zet, kun je op het tabblad Werkzaamheden registreren.
-         Bij <strong>uren</strong> reken je met het uurtarief van de persoon; bij <strong>stukprijs</strong> met een vast bedrag per eenheid.</p>
-    </div>
-    <div class="linkstrook" data-linktab="tarieven"></div>
-
-    <div class="card">
+    <h2 style="font-family:var(--f-display);font-size:17px;margin:26px 0 12px" id="tarKop">Tarievenlijst en mensen</h2>
+<div class="card">
       <div class="card-head"><h2>Tarieven</h2><span class="hint">wijzigingen worden direct bewaard</span></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Werkzaamheid</th><th>Categorie</th><th>Soort</th><th>Eenheid</th><th class="num">Uren</th><th class="num">Stukprijs</th><th>Actief</th><th></th></tr></thead>
@@ -663,101 +863,56 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
     </div>
   </section>
 
-  <!-- ============ BELSCRIPTS ============ -->
-  <section class="panel" id="panel-scripts" role="tabpanel" aria-labelledby="tab-scripts" hidden>
+  <!-- ============ OVERDRACHT ============ -->
+  <section class="panel" id="panel-overdracht" role="tabpanel" aria-labelledby="tab-overdracht" hidden>
     <div class="page-head">
-      <span class="eyebrow">Wat zeg je aan de telefoon</span>
-      <h1>Belscripts</h1>
-      <p>Open het script dat bij het gesprek past en vink af wat je hebt gedaan. Je afvinkjes blijven staan tot je op <em>Begin opnieuw</em> klikt.</p>
+      <span class="eyebrow">Van dienst naar dienst</span>
+      <h1>Overdracht</h1>
+      <p>Wat de volgende dienst moet weten. Iedereen kan hier een bericht achterlaten en afhandelen.</p>
     </div>
-    <div class="linkstrook" data-linktab="scripts"></div>
-
-    <div class="card">
-      <div class="card-head"><h2>Gast bellen en appen</h2>
-        <span class="hint">gegevens overnemen uit SMG</span></div>
+    <div class="linkstrook" data-linktab="overdracht"></div>
+<div class="card">
+      <div class="card-head"><h2>Bericht achterlaten</h2><span class="hint">zichtbaar voor het hele team</span></div>
       <div class="card-body">
         <div class="grid-form">
-          <div class="field"><label for="gbNaam">Naam gast</label><input type="text" id="gbNaam" placeholder="bv. Sandra de Vries"></div>
-          <div class="field"><label for="gbTel">Telefoonnummer</label><input type="tel" id="gbTel" inputmode="tel" placeholder="06..."></div>
-          <div class="field"><label for="gbLoc">Locatie</label><select id="gbLoc">
-            <option value="">Kies...</option>
+          <div class="field"><label for="odVan">Van</label><select id="odVan"></select></div>
+          <div class="field"><label for="odAan">Overdragen aan</label><select id="odAan"></select></div>
+          <div class="field"><label for="odLoc">Locatie</label><select id="odLoc">
             <option value="Malina Jacuzzi">Malina Jacuzzi</option>
             <option value="Malina Zwembad">Malina Zwembad</option>
-            <option value="Suite Angie Almere">Suite Angie Almere</option></select></div>
-          <div class="field"><label for="gbDatum">Aankomst</label><input type="date" id="gbDatum"></div>
-          <div class="field"><label for="gbRef">Reserveringsnummer</label><input type="text" id="gbRef"></div>
+            <option value="Suite Angie Almere">Suite Angie Almere</option>
+            <option value="Algemeen">Algemeen</option></select></div>
+          <div class="field"><label for="odSoort">Soort</label><select id="odSoort">
+            <option value="info">Informatie</option><option value="storing">Storing</option>
+            <option value="defect">Defect</option><option value="klacht">Klacht</option>
+            <option value="voorraad">Voorraad</option></select></div>
+          <div class="field wide"><label for="odTekst">Bericht</label>
+            <textarea id="odTekst" placeholder="Bijv. bubbelbad Malina Jacuzzi loopt langzaam leeg, monteur belt maandag terug"></textarea></div>
+          <div><button class="btn" id="odOpslaan" type="button">Plaatsen</button></div>
         </div>
-
-        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:15px;align-items:center">
-          <a class="btn" id="gbBel" href="#">Bellen</a>
-          <a class="btn ghost" id="gbWa" href="#" target="_blank" rel="noopener">WhatsApp openen</a>
-          <button class="btn ghost" id="gbDeel" type="button">Incheckkaart delen</button>
-          <button class="btn ghost small" id="gbBewaar" type="button">Kaart opslaan</button>
-        </div>
-
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:15px;align-items:flex-start">
-          <canvas id="gbCanvas" width="1080" height="1350"
-            style="width:230px;height:auto;border:1px solid var(--line);border-radius:var(--r-m)"></canvas>
-          <p class="note" style="margin:0;flex:1;min-width:200px">
-            De kaart vult zich met de gegevens hierboven. Delen zet hem rechtstreeks in WhatsApp;
-            op een computer wordt hij opgeslagen zodat je hem er zelf bij kunt zetten.
-          </p>
-        </div>
-
-        <details style="margin-top:16px">
-          <summary class="hint" style="cursor:pointer">Instellingen</summary>
-          <div class="grid-form" style="margin-top:11px">
-            <div class="field"><label for="gbSchema">Waarmee opent de belknop</label>
-              <input type="text" id="gbSchema" value="tel:"></div>
-            <div class="field" style="grid-column:span 2"><label for="gbLink">Link incheckformulier</label>
-              <input type="text" id="gbLink" inputmode="url" value="https://bwfcheckin.github.io/bwf-incheck/"></div>
-          </div>
-          <p class="note">Met <strong>tel:</strong> opent de belapp die op de telefoon als standaard staat.
-            Heeft je zakelijke belapp een eigen link, zet die hier neer — het nummer komt er direct achter.
-            Deze twee instellingen blijven op dit apparaat bewaard.</p>
-        </details>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Kies een script</h2>
-        <button class="btn small" id="scNieuw" type="button" hidden>+ Nieuw script</button></div>
-      <div class="card-body"><div class="linkrij" id="scKeuze"></div></div>
+      <div class="card-head"><h2>Openstaand</h2><span class="hint" id="odHint"></span></div>
+      <div class="card-body" id="odOpen"></div>
     </div>
 
-    <div class="card" id="scKaart">
-      <div class="card-head">
-        <h2 id="scTitel">—</h2>
-        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="pill accent" id="scVoortgang">0 van 0</span>
-          <button class="btn ghost small" id="scReset" type="button">Begin opnieuw</button>
-          <button class="btn ghost small" id="scBewerk" type="button" hidden>Bewerken</button>
-        </span>
-      </div>
-      <div class="card-body">
-        <p class="note" id="scOms" style="margin-top:0"></p>
-        <div class="progress"><i id="scBalk" style="width:0%"></i></div>
-        <div id="scStappen" style="margin-top:16px"></div>
-        <div id="scBewerkKnoppen" hidden style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn ghost small" id="scStapNieuw" type="button">+ Stap</button>
-          <button class="btn ghost small" id="scKopNieuw" type="button">+ Tussenkop</button>
-          <button class="btn ghost small" id="scTitelWijzig" type="button">Titel en uitleg wijzigen</button>
-          <button class="btn ghost small" id="scWis" type="button" style="margin-left:auto">Script verwijderen</button>
-        </div>
-      </div>
+    <div class="card">
+      <div class="card-head"><h2>Afgehandeld</h2><span class="hint">laatste 20</span></div>
+      <div class="card-body" id="odKlaar"></div>
     </div>
   </section>
 
-  <!-- ============ DOCUMENTEN ============ -->
-  <section class="panel" id="panel-documenten" role="tabpanel" aria-labelledby="tab-documenten" hidden>
+  <!-- ============ UPLOADS ============ -->
+  <section class="panel" id="panel-uploads" role="tabpanel" aria-labelledby="tab-uploads" hidden>
     <div class="page-head">
       <span class="eyebrow">Handleidingen, contracten, formulieren</span>
-      <h1>Documenten</h1>
+      <h1>Uploads</h1>
       <p>Sleep een bestand hierin of voeg een link toe. Iedereen met toegang ziet dezelfde documenten.</p>
     </div>
-    <div class="linkstrook" data-linktab="documenten"></div>
-
-    <div class="card">
+    <div class="linkstrook" data-linktab="uploads"></div>
+<div class="card">
       <div class="card-head"><h2>Document toevoegen</h2>
         <button class="btn ghost small" id="docLinkBtn" type="button">Link toevoegen</button></div>
       <div class="card-body">
@@ -774,53 +929,6 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
       <div class="card-head"><h2>Alle documenten</h2>
         <div class="field" style="min-width:170px"><select id="docFilter"></select></div></div>
       <div class="card-body"><div class="docs" id="docLijst"></div></div>
-    </div>
-  </section>
-
-  <!-- ============ BELLIJSTEN ============ -->
-  <section class="panel" id="panel-bellijsten" role="tabpanel" aria-labelledby="tab-bellijsten" hidden>
-    <div class="page-head">
-      <span class="eyebrow">Van Excel naar belrondes</span>
-      <h1>Bellijsten</h1>
-      <p>Upload een Excel- of CSV-lijst, koppel de kolommen en werk de lijst daarna belletje voor belletje af.</p>
-    </div>
-    <div class="linkstrook" data-linktab="bellijsten"></div>
-
-    <div class="card">
-      <div class="card-head"><h2>Excel of CSV importeren</h2></div>
-      <div class="card-body">
-        <div class="dropzone" id="belDrop">
-          <strong>Kies een .xlsx, .xls of .csv</strong>
-          De eerste rij wordt gelezen als koppen
-          <input type="file" id="belFile" accept=".xlsx,.xls,.csv">
-        </div>
-        <div id="belMap" hidden style="margin-top:16px">
-          <div class="grid-form">
-            <div class="field"><label for="belNaamLijst">Naam bellijst</label><input type="text" id="belNaamLijst"></div>
-            <div class="field"><label for="mapNaam">Kolom: naam</label><select id="mapNaam"></select></div>
-            <div class="field"><label for="mapTel">Kolom: telefoon</label><select id="mapTel"></select></div>
-            <div class="field"><label for="mapMail">Kolom: e-mail</label><select id="mapMail"></select></div>
-            <div class="field"><label for="mapRef">Kolom: referentie</label><select id="mapRef"></select></div>
-            <div class="field"><label for="mapExtra">Kolom: extra</label><select id="mapExtra"></select></div>
-            <div class="field"><label for="belToewijzen">Toewijzen aan</label><select id="belToewijzen"></select></div>
-            <div><button class="btn" id="belImport" type="button">Bellijst aanmaken</button></div>
-          </div>
-          <div class="note" id="belVoorbeeld"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Bellijsten</h2>
-        <div class="field" style="min-width:200px"><select id="belKeuze"></select></div></div>
-      <div class="card-body" id="belKop"></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>Naam</th><th>Telefoon</th><th>Referentie</th><th>Status</th><th>Notitie</th><th></th></tr></thead>
-        <tbody id="belLijst"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="belFoot"></span>
-        <span><button class="btn ghost small" id="belExport" type="button">Exporteer CSV</button>
-        <button class="btn ghost small" id="belWis" type="button">Bellijst verwijderen</button></span></div>
     </div>
   </section>
 </div>
@@ -867,7 +975,7 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
 <div class="toast" id="toast"></div>
 <script>
 /* =======================================================================
-   Beden Wellness Flevoland — VR Dashboard
+   Beden Wellness Flevoland — Werkzaamheden & Takendashboard
    -----------------------------------------------------------------------
    INSTELLEN: zet hieronder je Supabase anon key tussen de quotes.
    Zolang die leeg is werkt de pagina in lokale modus (alleen dit apparaat).
@@ -909,10 +1017,11 @@ const TBL = { medewerkers:'wz_medewerkers', tarieven:'wz_tarieven', taken:'wz_ta
   werk:'wz_werkzaamheden', docs:'wz_documenten', bellijsten:'wz_bellijsten',
   belitems:'wz_bel_items', links:'wz_links', overdracht:'wz_overdracht',
   gasten:'wz_gastenregister', belasting:'wz_belastingtarief',
-  scripts:'wz_belscripts', stappen:'wz_belscript_stappen' };
+  scripts:'wz_belscripts', stappen:'wz_belscript_stappen',
+  klanten:'wz_klantbeheer', extras:'wz_extras', calls:'wz_welkomstcalls' };
 
 const S = { medewerkers:[], tarieven:[], taken:[], werk:[], docs:[], bellijsten:[], belitems:[], links:[],
-  overdracht:[], gasten:[], belasting:[], scripts:[], stappen:[] };
+  overdracht:[], gasten:[], belasting:[], scripts:[], stappen:[], klanten:[], extras:[], calls:[] };
 
 /* ---------------- inloggen via Supabase Auth ---------------- */
 const nieuweSleutel = k => /^sb_/.test(String(k||''));
@@ -976,7 +1085,7 @@ async function laadAlles(){
   if(online()){
     chip('saving','Laden…');
     try{
-      const [mw,ta,tk,wk,dc,bl,bi,lk,od,ga,bt,sc,st] = await Promise.all([
+      const [mw,ta,tk,wk,dc,bl,bi,lk,od,ga,bt,sc,st,kl,ex,wc] = await Promise.all([
         api(TBL.medewerkers+'?select=*&order=naam'),
         api(TBL.tarieven+'?select=*&order=sortering'),
         api(TBL.taken+'?select=*&order=aangemaakt.desc'),
@@ -989,10 +1098,13 @@ async function laadAlles(){
         api(TBL.gasten+'?select=*&order=aankomst.desc'),
         api(TBL.belasting+'?select=*&order=locatie'),
         api(TBL.scripts+'?select=*&order=sortering'),
-        api(TBL.stappen+'?select=*&order=volgorde')
+        api(TBL.stappen+'?select=*&order=volgorde'),
+        api(TBL.klanten+'?select=*&order=aangemaakt.desc'),
+        api(TBL.extras+'?select=*&order=sortering'),
+        api(TBL.calls+'?select=*&order=aangemaakt.desc')
       ]);
       Object.assign(S,{medewerkers:mw,tarieven:ta,taken:tk,werk:wk,docs:dc,bellijsten:bl,belitems:bi,links:lk,
-        overdracht:od, gasten:ga, belasting:bt, scripts:sc, stappen:st});
+        overdracht:od, gasten:ga, belasting:bt, scripts:sc, stappen:st, klanten:kl, extras:ex, calls:wc});
       chip('saved','Verbonden');
     }catch(e){
       console.error(e); chip('fout','Geen verbinding');
@@ -1134,24 +1246,27 @@ async function start(){
   $('#slot').hidden = true; $('#app').hidden = false;
   $('#whoName').textContent = IK.naam;
   $('#whoAvatar').textContent = IK.naam.slice(0,1).toUpperCase();
-  $('#welkomKop').textContent = isEigenaar() ? 'Overzicht' : 'Hallo '+IK.naam;
-  $('#tab-tarieven').hidden = !isEigenaar();
-  $('#tab-gasten').hidden = !magGasten();
+  $('#welkomKop').textContent = isEigenaar() ? 'Start' : 'Hallo '+IK.naam;
+  $('#tab-klanten').hidden = !magGasten();
+  const gb = $('#gastenBlok'); if(gb) gb.hidden = !magGasten();
+  [$('#tarLijst'), $('#mwLijst')].forEach(el=>{ const k = el && el.closest('.card'); if(k) k.hidden = !isEigenaar(); });
+  const tk2 = $('#tarKop'); if(tk2) tk2.hidden = !isEigenaar();
   /* een medewerker registreert uren — de eigenaar kijkt naar werkzaamheden van iedereen */
   const eigen = !isEigenaar();
-  $('#tab-werkzaamheden').firstChild.textContent = eigen ? 'Urenregistratie' : 'Werkzaamheden';
-  $('#wzKop').textContent = eigen ? 'Urenregistratie' : 'Werkzaamheden';
+  $('#tab-werk').firstChild.textContent = eigen ? 'Urenregistratie' : 'Werk & tarieven';
+  $('#wzKop').textContent = eigen ? 'Urenregistratie' : 'Werk & tarieven';
   $('#wzEyebrow').textContent = eigen ? 'Jouw uren en stukwerk' : 'Registratie volgens tarievenlijst';
   $('#wzUitleg').textContent = eigen
     ? 'Kies wat je hebt gedaan en vul het aantal in — de uren en het bedrag rekent de pagina zelf uit. Hieronder zie je precies wat elke werkzaamheid voor jou oplevert.'
-    : 'Kies de werkzaamheid uit de tarievenlijst en vul het aantal in — het bedrag wordt automatisch berekend.';
+    : 'Registreer wat er is gedaan; de tarievenlijst waarmee gerekend wordt staat onderaan deze pagina.';
   $('#lokaalBanner').hidden = online();
   vulSelects(); renderAlles();
   await zorgVoorSysteemknoppen(); renderSys();
-  await zorgVoorScripts(); renderScripts(); badges();
+  await zorgVoorScripts(); renderScripts(); renderWcScript();
+  await zorgVoorExtras(); renderExtras(); badges();
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   let t = null; try{ t = sessionStorage.getItem(LS.tab); }catch(e){}
-  kiesTab(t && $('#tab-'+t) && !$('#tab-'+t).hidden ? t : 'overzicht');
+  kiesTab(t && $('#tab-'+t) && !$('#tab-'+t).hidden ? t : 'start');
 }
 
 /* ---------------- tabs ---------------- */
@@ -1582,140 +1697,6 @@ $('#scWis').addEventListener('click', async ()=>{
   await verwijder('scripts', sc.id);
   scHuidig = null; scBewerken = false; renderScripts(); badges();
 });
-
-/* ---------------- BELLEN, APPEN EN INCHECKKAART ---------------- */
-const GB_ADRES = {
-  'Malina Jacuzzi':     'Birdielaan 4, Lelystad',
-  'Malina Zwembad':     'Birdielaan 4, Lelystad',
-  'Suite Angie Almere': 'De Specerij 5, Almere'
-};
-const GB_LS = 'wz_belhulp';
-
-function gbNummer(){
-  let n = ($('#gbTel').value || '').replace(/[^\d+]/g, '');
-  if(n.startsWith('00')) n = '+' + n.slice(2);
-  else if(n.startsWith('0')) n = '+31' + n.slice(1);
-  return n;
-}
-
-function gbDatumTekst(){
-  const d = $('#gbDatum').value;
-  if(!d) return '';
-  return new Date(d + 'T00:00:00').toLocaleDateString('nl-NL',
-    {weekday:'long', day:'numeric', month:'long'});
-}
-
-function gbBericht(){
-  const naam = ($('#gbNaam').value || '').split(' ')[0] || 'daar';
-  const loc = $('#gbLoc').value || 'onze suite';
-  const dag = gbDatumTekst();
-  return 'Hoi ' + naam + ', leuk je gesproken te hebben!\n\n' +
-    'Je verblijf in ' + loc + (dag ? ' op ' + dag : '') + ' staat klaar. ' +
-    'Inchecken kan vanaf 20:00 uur.\n\n' +
-    'Vul hier alvast je gegevens in en bekijk alle praktische informatie: ' +
-    ($('#gbLink').value || '') + '\n\nTot binnenkort!\nBed & Wellness Flevoland';
-}
-
-function gbTeken(){
-  const c = $('#gbCanvas'); if(!c) return;
-  const x = c.getContext('2d'), W = c.width, H = c.height;
-  const loc = $('#gbLoc').value;
-  const naam = ($('#gbNaam').value || '').split(' ')[0];
-
-  x.fillStyle = '#F4F1ED'; x.fillRect(0, 0, W, H);
-  x.fillStyle = '#483C34'; x.fillRect(0, 0, W, 300);
-
-  x.fillStyle = '#D7C7B4';
-  x.font = '500 32px "IBM Plex Mono", monospace';
-  x.fillText('BED & WELLNESS FLEVOLAND', 80, 132);
-  x.fillStyle = '#FFFFFF';
-  x.font = '700 86px "Bricolage Grotesque", sans-serif';
-  x.fillText(naam ? 'Welkom ' + naam : 'Welkom', 80, 232);
-
-  let y = 420;
-  const regel = (label, waarde) => {
-    if(!waarde) return;
-    x.fillStyle = '#7B6E62'; x.font = '400 30px "Public Sans", sans-serif';
-    x.fillText(label, 80, y);
-    x.fillStyle = '#241E19'; x.font = '600 44px "Public Sans", sans-serif';
-    x.fillText(waarde, 80, y + 56);
-    y += 128;
-  };
-  regel('Jouw suite', loc);
-  regel('Aankomst', gbDatumTekst());
-  regel('Inchecken vanaf', '20:00 uur');
-  regel('Adres', GB_ADRES[loc] || '');
-
-  y += 8;
-  x.fillStyle = '#E3DAD0'; x.fillRect(80, y, W - 160, 2);
-  y += 68;
-  x.fillStyle = '#241E19'; x.font = '600 40px "Bricolage Grotesque", sans-serif';
-  x.fillText('Goed om te weten', 80, y);
-  y += 62;
-
-  x.font = '400 34px "Public Sans", sans-serif';
-  [ 'Je krijgt een eigen sleutel en kunt vrij in en uit.',
-    'In de suite werken we met plastic, geen glaswerk.',
-    'Servies is gratis, vraag er gerust naar.',
-    'Eigen eten of drinken meenemen kost € 15.'
-  ].forEach(t => {
-    x.fillStyle = '#9A7B4F'; x.fillText('•', 80, y);
-    x.fillStyle = '#241E19'; x.fillText(t, 118, y);
-    y += 56;
-  });
-
-  x.fillStyle = '#483C34'; x.fillRect(0, H - 186, W, 186);
-  x.fillStyle = '#D7C7B4'; x.font = '400 30px "Public Sans", sans-serif';
-  x.fillText('Vul je gegevens in via de link in dit gesprek', 80, H - 108);
-  x.fillStyle = '#FFFFFF'; x.font = '500 34px "Public Sans", sans-serif';
-  x.fillText('info@bedenwellnessflevoland.nl', 80, H - 52);
-}
-
-function gbVernieuw(){
-  const n = gbNummer();
-  $('#gbBel').href = ($('#gbSchema').value.trim() || 'tel:') + n;
-  $('#gbWa').href = n
-    ? 'https://wa.me/' + n.replace('+','') + '?text=' + encodeURIComponent(gbBericht())
-    : 'https://wa.me/';
-  gbTeken();
-  try{ localStorage.setItem(GB_LS, JSON.stringify(
-    {schema:$('#gbSchema').value, link:$('#gbLink').value})); }catch(e){}
-}
-
-function gbKaartBlob(){ return new Promise(r => $('#gbCanvas').toBlob(r, 'image/png')); }
-function gbBewaarKaart(blob){
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'incheckinfo-' + ($('#gbRef').value || 'reservering') + '.png';
-  a.click(); URL.revokeObjectURL(a.href);
-}
-
-(function gbStart(){
-  try{
-    const b = JSON.parse(localStorage.getItem(GB_LS) || 'null');
-    if(b){ if(b.schema) $('#gbSchema').value = b.schema; if(b.link) $('#gbLink').value = b.link; }
-  }catch(e){}
-
-  ['#gbNaam','#gbTel','#gbLoc','#gbDatum','#gbRef','#gbSchema','#gbLink'].forEach(sel => {
-    const el = $(sel); if(el){ el.addEventListener('input', gbVernieuw); el.addEventListener('change', gbVernieuw); }
-  });
-
-  $('#gbDeel').addEventListener('click', async () => {
-    const blob = await gbKaartBlob();
-    const f = new File([blob], 'incheckinfo.png', {type:'image/png'});
-    if(navigator.canShare && navigator.canShare({files:[f]})){
-      try{ await navigator.share({files:[f], text: gbBericht()}); }catch(e){}
-    } else {
-      gbBewaarKaart(blob);
-      toast('Delen kan hier niet — de kaart is opgeslagen.');
-    }
-  });
-
-  $('#gbBewaar').addEventListener('click', async () => gbBewaarKaart(await gbKaartBlob()));
-
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(gbTeken);
-  gbVernieuw();
-})();
 
 /* ---------------- GASTENREGISTER / TOERISTENBELASTING ---------------- */
 const BELASTING_START = [
@@ -2555,21 +2536,472 @@ function csv(rows, naam){
 
 /* ---------------- badges & render ---------------- */
 function badges(){
-  $('#badge-taken').textContent = mijnTaken().filter(t=>t.status!=='klaar').length;
-  $('#badge-overdracht').textContent = S.overdracht.filter(o=>!o.afgehandeld).length;
-  $('#badge-gasten').textContent = S.gasten.filter(g=>String(g.aankomst).slice(0,4)===String(new Date().getFullYear())).length;
-  $('#badge-werkzaamheden').textContent = mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length;
-  $('#badge-tarieven').textContent = S.tarieven.filter(t=>t.actief!==false).length;
-  $('#badge-scripts').textContent = S.scripts.filter(s=>s.actief!==false).length;
-  $('#badge-documenten').textContent = S.docs.length;
-  $('#badge-bellijsten').textContent = mijnBel().length;
+  const zet = (id,v)=>{ const el=$('#badge-'+id); if(el) el.textContent = v; };
+  zet('taken', mijnTaken().filter(t=>t.status!=='klaar').length);
+  zet('welkomstcall', S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length);
+  zet('klanten', S.klanten.length);
+  zet('bellen', S.belitems.filter(i=>{
+        const l = S.bellijsten.find(b=>b.id===i.lijst_id);
+        return l && (isEigenaar() || !l.medewerker_id || l.medewerker_id===IK.id) && i.status==='te bellen';
+      }).length);
+  zet('werk', mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length);
+  zet('overdracht', S.overdracht.filter(o=>!o.afgehandeld).length);
+  zet('uploads', S.docs.length);
+  renderTegels();
 }
 function renderAlles(){
   renderSys(); renderLinks(); renderOverzicht(); renderTaken(); renderOverdracht(); renderGasten();
-  renderScripts(); renderWerk();
+  renderScripts(); renderWerk(); renderKlanten(); renderExtras(); renderCalls(); vulKlantKeuze();
   if(isEigenaar()){ renderTarieven(); renderMw(); }
   renderDocs(); renderBelKeuze(); renderBel(); badges();
 }
+
+
+
+/* startlijst extra's — wordt één keer aangemaakt als de lijst nog leeg is */
+const EXTRAS_START = [
+  {naam:'Arrangement 1',            categorie:'Arrangement', prijs:0,   per_persoon:false, omschrijving:'naam en prijs nog invullen', sortering:10},
+  {naam:'Arrangement 2',            categorie:'Arrangement', prijs:0,   per_persoon:false, omschrijving:'naam en prijs nog invullen', sortering:20},
+  {naam:'Romantisch arrangement',   categorie:'Arrangement', prijs:0,   per_persoon:false, omschrijving:'prijs nog invullen',        sortering:30},
+  {naam:'Ontbijt bij overnachting', categorie:'Menu',        prijs:0,   per_persoon:true,  omschrijving:'prijs per persoon',         sortering:40},
+  {naam:'Chicken wings menu',       categorie:'Menu',        prijs:17.5,per_persoon:true,  omschrijving:'vers bereid, per persoon',  sortering:50},
+  {naam:'Sushi schaal',             categorie:'Menu',        prijs:0,   per_persoon:false, omschrijving:'goed voor 2 tot 4 personen',sortering:60},
+  {naam:'Borrelplank',              categorie:'Menu',        prijs:0,   per_persoon:false, omschrijving:'prijs nog invullen',        sortering:70},
+  {naam:'Zeeprozen boeket',         categorie:'Cadeau',      prijs:0,   per_persoon:false, omschrijving:'prijs nog invullen',        sortering:80},
+  {naam:'Rozen hart',               categorie:'Cadeau',      prijs:0,   per_persoon:false, omschrijving:'prijs nog invullen',        sortering:90},
+  {naam:'Rozen beer',               categorie:'Cadeau',      prijs:0,   per_persoon:false, omschrijving:'prijs nog invullen',        sortering:100},
+  {naam:'Eerder inchecken 30 min',  categorie:'Tijd',        prijs:30,  per_persoon:false, omschrijving:'volgens incheckformulier',  sortering:110},
+  {naam:'Eerder inchecken 1 uur',   categorie:'Tijd',        prijs:50,  per_persoon:false, omschrijving:'volgens incheckformulier',  sortering:120},
+  {naam:'Eerder inchecken 2 uur',   categorie:'Tijd',        prijs:100, per_persoon:false, omschrijving:'volgens incheckformulier',  sortering:130},
+  {naam:'Eerder inchecken 3 uur',   categorie:'Tijd',        prijs:150, per_persoon:false, omschrijving:'volgens incheckformulier',  sortering:140},
+  {naam:'Eerder inchecken 4 uur',   categorie:'Tijd',        prijs:200, per_persoon:false, omschrijving:'volgens incheckformulier',  sortering:150},
+  {naam:'Later uitchecken 1 uur',   categorie:'Tijd',        prijs:50,  per_persoon:false, omschrijving:'zelfde tarief',             sortering:160},
+  {naam:'Laat inchecken in overleg',categorie:'Tijd',        prijs:25,  per_persoon:false, omschrijving:'toeslag volgens huisregels',sortering:170},
+  {naam:'Eigen consumptie',         categorie:'Overig',      prijs:15,  per_persoon:false, omschrijving:'fee voor afvalverwerking',  sortering:180}
+];
+async function zorgVoorExtras(){
+  if(S.extras.length) return;
+  await maak('extras', EXTRAS_START.map(e=>Object.assign({actief:true}, e)));
+}
+
+/* ---------------- STARTTEGELS ---------------- */
+const TEGELS = [
+  {tab:'taken',        titel:'Taken',              ico:'✓', kleur:'#483C34', sub:'aanmaken voor jezelf of toewijzen aan een ander',
+   getal:()=>mijnTaken().filter(t=>t.status!=='klaar').length, label:'open'},
+  {tab:'welkomstcall', titel:'Welkomstcalls',      ico:'☎', kleur:'#9A7B4F', sub:'bellen, extra’s bijboeken en bevestigen',
+   getal:()=>S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length, label:'te doen'},
+  {tab:'klanten',      titel:'Klanten & gasten',   ico:'👤', kleur:'#6F7A5A', sub:'klantenbestand, nachtregister en toeristenbelasting',
+   getal:()=>S.klanten.length, label:'klanten', recht:()=>magGasten()},
+  {tab:'bellen',       titel:'Bellen',             ico:'📋', kleur:'#A25E48', sub:'bellijsten met de scripts ernaast',
+   getal:()=>S.belitems.filter(i=>i.status==='te bellen').length, label:'te bellen'},
+  {tab:'werk',         titel:'Werk & tarieven',    ico:'⏱', kleur:'#7E6BA8', sub:'uren en stukwerk registreren',
+   getal:()=>mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length, label:'deze maand'},
+  {tab:'overdracht',   titel:'Overdracht',         ico:'↔', kleur:'#8F6420', sub:'wat de volgende dienst moet weten',
+   getal:()=>S.overdracht.filter(o=>!o.afgehandeld).length, label:'openstaand'},
+  {tab:'uploads',      titel:'Uploads',            ico:'📎', kleur:'#7B6E62', sub:'documenten, handleidingen en formulieren',
+   getal:()=>S.docs.length, label:'bestanden'}
+];
+function renderTegels(){
+  const doel = $('#tegels'); if(!doel) return;
+  doel.innerHTML = TEGELS.filter(t=>!t.recht || t.recht()).map(t=>`
+    <button class="tegel" type="button" data-tegel="${t.tab}" style="--c:${t.kleur}">
+      <span class="tgetal">${t.getal()}<small>${esc(t.label)}</small></span>
+      <span class="tico">${t.ico}</span>
+      <span class="ttitel">${esc(t.titel)}</span>
+      <span class="tsub">${esc(t.sub)}</span>
+    </button>`).join('');
+}
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-tegel]'); if(t) kiesTab(t.dataset.tegel);
+});
+
+/* ---------------- KLANTENBESTAND ---------------- */
+const klNaam = k => [k.voornaam || k.voorletters, k.achternaam].filter(Boolean).join(' ') || '—';
+const klBezoek = k => k.laatste_bezoek || k.datum_in || null;
+$('#klOpslaan').addEventListener('click', async ()=>{
+  const voor = $('#klVoor').value.trim(), achter = $('#klAchter').value.trim();
+  if(!voor && !achter){ toast('Vul minstens een naam in.'); return; }
+  await maak('klanten', {
+    type:'contact', voornaam:voor||null, achternaam:achter||null,
+    email:$('#klMail').value.trim()||null, telefoon:$('#klTel').value.trim()||null,
+    adres:$('#klAdres').value.trim()||null, postcode:$('#klPost').value.trim()||null,
+    woonplaats:$('#klPlaats').value.trim()||null, geboortedatum:$('#klGeb').value||null,
+    nationaliteit:$('#klNat').value.trim()||null, bron:$('#klBron').value,
+    referentie:$('#klRef').value.trim()||null, member:$('#klLid').checked,
+    voorkeuren:$('#klVoorkeur').value.trim()||null, allergieen:$('#klAllerg').value.trim()||null,
+    notitie:$('#klNotitie').value.trim()||null, aangemaakt_door:IK.id
+  });
+  ['#klVoor','#klAchter','#klMail','#klTel','#klAdres','#klPost','#klPlaats','#klGeb','#klNat','#klRef',
+   '#klVoorkeur','#klAllerg','#klNotitie'].forEach(s=>$(s).value='');
+  $('#klLid').checked = false;
+  renderKlanten(); vulKlantKeuze(); badges(); toast('Klant toegevoegd.');
+});
+function klSelectie(){
+  const q = ($('#klZoek').value||'').toLowerCase().trim();
+  let lijst = S.klanten.slice();
+  if(q) lijst = lijst.filter(k => (klNaam(k)+' '+(k.email||'')+' '+(k.telefoon||'')+' '+(k.woonplaats||'')+' '+(k.referentie||'')+' '+(k.bron||''))
+      .toLowerCase().includes(q));
+  return lijst.sort((a,b)=> String(a.achternaam||a.voornaam||a.voorletters||'').localeCompare(String(b.achternaam||b.voornaam||b.voorletters||'')));
+}
+function renderKlanten(){
+  const lijst = klSelectie();
+  $('#klLijst').innerHTML = lijst.length ? lijst.map(k=>`
+    <tr>
+      <td class="name">${esc(klNaam(k))}${k.member?' <span class="pill accent">member</span>':''}
+        ${k.type==='verblijf'?' <span class="pill neutral">verblijf</span>':''}
+        ${k.voorkeuren?`<span class="meta">${esc(k.voorkeuren)}</span>`:''}
+        ${k.allergieen?`<span class="meta">let op: ${esc(k.allergieen)}</span>`:''}</td>
+      <td>${k.telefoon?`<a class="tel" href="tel:${esc(String(k.telefoon).replace(/\s/g,''))}">${esc(k.telefoon)}</a>`:'—'}
+        ${k.email?`<span class="meta">${esc(k.email)}</span>`:''}</td>
+      <td>${esc(k.woonplaats||'')}${k.postcode?`<span class="meta">${esc(k.postcode)}</span>`:''}</td>
+      <td>${esc(k.bron||'')}${k.referentie?`<span class="meta">${esc(k.referentie)}</span>`:''}</td>
+      <td>${klBezoek(k)?dmy(klBezoek(k)):'—'}</td>
+      <td class="act">
+        <button class="btn ghost small" type="button" data-klcall="${k.id}">Welkomstcall</button>
+        ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-klwis="${k.id}">✕</button>`:''}
+      </td></tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty"><strong>Nog geen klanten</strong>Voeg er hierboven één toe of importeer een Excel-lijst.</div></td></tr>`;
+  $('#klFoot').textContent = lijst.length + ' van ' + S.klanten.length + ' klanten';
+}
+$('#klZoek').addEventListener('input', renderKlanten);
+document.addEventListener('click', async e=>{
+  const w = e.target.closest('[data-klwis]');
+  if(w){ if(!confirm('Deze klant verwijderen?')) return;
+    await verwijder('klanten', w.dataset.klwis); renderKlanten(); vulKlantKeuze(); badges(); return; }
+  const c = e.target.closest('[data-klcall]');
+  if(c){ kiesTab('welkomstcall'); $('#wcKlant').value = c.dataset.klcall; vulUitKlant(); }
+});
+$('#klExport').addEventListener('click', ()=>{
+  const rows = [['Voornaam','Achternaam','E-mail','Telefoon','Adres','Postcode','Woonplaats','Geboortedatum',
+    'Nationaliteit','Member','Bron','Reservering','Voorkeuren','Allergieën','Notitie']];
+  klSelectie().forEach(k=>rows.push([k.voornaam||k.voorletters||'',k.achternaam||'',k.email||'',k.telefoon||'',k.adres||'',
+    k.postcode||'',k.woonplaats||'',k.geboortedatum||'',k.nationaliteit||'',k.member?'ja':'nee',k.bron||'',
+    k.referentie||'',k.voorkeuren||'',k.allergieen||'',k.notitie||'']));
+  csv(rows, 'klanten-'+vandaag()+'.csv');
+});
+
+/* klanten importeren uit Excel of CSV */
+let klRijen = null, klKoppen = [];
+$('#klImportBtn').addEventListener('click', ()=>{ const b=$('#klImport'); b.hidden = !b.hidden; });
+$('#klFile').addEventListener('change', e=>{ if(e.target.files[0]) klLees(e.target.files[0]); });
+['dragover','dragleave','drop'].forEach(ev=>$('#klDrop').addEventListener(ev, e=>{
+  e.preventDefault(); $('#klDrop').classList.toggle('over', ev==='dragover');
+  if(ev==='drop' && e.dataTransfer.files[0]) klLees(e.dataTransfer.files[0]); }));
+function klLees(file){
+  const klaar = arr=>{
+    if(!arr.length){ toast('Het bestand lijkt leeg.'); return; }
+    klKoppen = arr[0].map((h,i)=>String(h||('Kolom '+(i+1))).trim());
+    klRijen  = arr.slice(1).filter(r=>r.some(c=>String(c||'').trim()!==''));
+    const opts = `<option value="">— geen —</option>`+klKoppen.map((h,i)=>`<option value="${i}">${esc(h)}</option>`).join('');
+    ['#kmVoor','#kmAchter','#kmMail','#kmTel','#kmPlaats','#kmRef'].forEach(s=>$(s).innerHTML = opts);
+    const raden = namen => klKoppen.findIndex(h=>namen.some(n=>h.toLowerCase().includes(n)));
+    const zet=(sel,i)=>{ if(i>=0) $(sel).value=String(i); };
+    zet('#kmVoor',  raden(['voornaam','first']));
+    zet('#kmAchter',raden(['achternaam','last','naam','name']));
+    zet('#kmMail',  raden(['mail','e-mail','email']));
+    zet('#kmTel',   raden(['tel','phone','mobiel','gsm']));
+    zet('#kmPlaats',raden(['plaats','woonplaats','city']));
+    zet('#kmRef',   raden(['reserv','boeking','ref','order']));
+    $('#klVoorbeeld').textContent = klRijen.length+' regels gevonden · kolommen: '+klKoppen.join(', ');
+    $('#klMap').hidden = false;
+  };
+  if(/\.csv$/i.test(file.name) || file.type==='text/csv'){
+    const r=new FileReader(); r.onload=ev=>{ try{ klaar(leesCsv(String(ev.target.result))); }
+      catch(err){ toast('Kon het bestand niet lezen: '+err.message); } };
+    r.readAsText(file,'utf-8'); return;
+  }
+  if(typeof XLSX === 'undefined'){ toast('De Excel-bibliotheek kon niet laden. Sla het bestand op als CSV.'); return; }
+  const r=new FileReader();
+  r.onload=ev=>{ try{
+      const wb = XLSX.read(ev.target.result,{type:'array'});
+      klaar(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, blankrows:false, raw:false}));
+    }catch(err){ toast('Kon het bestand niet lezen: '+err.message); } };
+  r.readAsArrayBuffer(file);
+}
+$('#klImportOk').addEventListener('click', async ()=>{
+  if(!klRijen || !klRijen.length){ toast('Kies eerst een bestand.'); return; }
+  const idx = s => { const v=$(s).value; return v===''?null:Number(v); };
+  const iV=idx('#kmVoor'), iA=idx('#kmAchter'), iM=idx('#kmMail'), iT=idx('#kmTel'), iP=idx('#kmPlaats'), iR=idx('#kmRef');
+  const rijen = klRijen.map(r=>({
+    voornaam:   iV!==null ? String(r[iV]??'').trim()||null : null,
+    achternaam: iA!==null ? String(r[iA]??'').trim()||null : null,
+    email:      iM!==null ? String(r[iM]??'').trim()||null : null,
+    telefoon:   iT!==null ? String(r[iT]??'').trim()||null : null,
+    woonplaats: iP!==null ? String(r[iP]??'').trim()||null : null,
+    referentie: iR!==null ? String(r[iR]??'').trim()||null : null,
+    type:'contact', bron:'Import', aangemaakt_door:IK.id
+  })).filter(k=>k.voornaam||k.achternaam||k.email||k.telefoon);
+  for(let i=0;i<rijen.length;i+=200) await maak('klanten', rijen.slice(i,i+200));
+  klRijen=null; $('#klMap').hidden=true; $('#klImport').hidden=true; $('#klFile').value='';
+  renderKlanten(); vulKlantKeuze(); badges(); toast(rijen.length+' klanten geïmporteerd.');
+});
+
+/* ---------------- WELKOMSTCALLS ---------------- */
+let wcKeuzes = {};      /* extraId -> aantal */
+let wcHuidig = null;    /* id van een opgeslagen call die je bewerkt */
+const INCHECK_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
+
+function vulKlantKeuze(){
+  const sel = $('#wcKlant'); if(!sel) return;
+  const h = sel.value;
+  sel.innerHTML = `<option value="">— handmatig invullen —</option>` +
+    S.klanten.slice().sort((a,b)=>String(klNaam(a)).localeCompare(String(klNaam(b))))
+      .map(k=>`<option value="${k.id}"${k.id===h?' selected':''}>${esc(klNaam(k))}${k.woonplaats?' · '+esc(k.woonplaats):''}</option>`).join('');
+}
+function vulUitKlant(){
+  const k = S.klanten.find(x=>x.id===$('#wcKlant').value);
+  if(!k) return;
+  $('#wcNaam').value = klNaam(k);
+  $('#wcTel').value  = k.telefoon || '';
+  $('#wcMail').value = k.email || '';
+  if(k.referentie) $('#wcRef').value = k.referentie;
+  wcHerbereken();
+}
+$('#wcKlant').addEventListener('change', vulUitKlant);
+
+function renderExtras(){
+  const doel = $('#wcExtras'); if(!doel) return;
+  const actief = S.extras.filter(e=>e.actief!==false).sort((a,b)=>(a.sortering||0)-(b.sortering||0));
+  const cats = [...new Set(actief.map(e=>e.categorie||'Overig'))];
+  doel.innerHTML = actief.length ? cats.map(c=>`
+    <div class="extracat">${esc(c)}</div>` +
+    actief.filter(e=>(e.categorie||'Overig')===c).map(e=>{
+      const aan = wcKeuzes[e.id] !== undefined;
+      return `<label class="extrarij">
+        <input type="checkbox" data-extra="${e.id}" ${aan?'checked':''}>
+        <span class="enaam">${esc(e.naam)}${e.omschrijving?`<small>${esc(e.omschrijving)}</small>`:''}</span>
+        ${e.per_persoon?'<span class="eprijs">p.p.</span>':''}
+        ${aan && !e.per_persoon ? `<input type="number" min="1" step="1" value="${wcKeuzes[e.id]}" data-extraaantal="${e.id}">` : ''}
+        ${isEigenaar()
+          ? `<input type="number" min="0" step="0.01" value="${Number(e.prijs||0)}" data-extraprijs="${e.id}" title="prijs aanpassen">`
+          : `<span class="eprijs">${eur(e.prijs)}</span>`}
+      </label>`;
+    }).join('')).join('')
+    : `<div class="empty"><strong>Nog geen extra's</strong>Voeg ze toe met de knop hieronder.</div>`;
+  $('#wcExtraNieuw').hidden = !isEigenaar();
+  $('#wcExtraHint').textContent = isEigenaar() ? 'je kunt de prijzen hier direct aanpassen' : '';
+  wcHerbereken();
+}
+function wcRegels(){
+  const personen = Number($('#wcPers').value)||1;
+  return Object.keys(wcKeuzes).map(id=>{
+    const e = S.extras.find(x=>x.id===id); if(!e) return null;
+    const aantal = e.per_persoon ? personen : (Number(wcKeuzes[id])||1);
+    return {id, naam:e.naam, categorie:e.categorie, prijs:Number(e.prijs||0), per_persoon:!!e.per_persoon,
+            aantal, bedrag:+(Number(e.prijs||0)*aantal).toFixed(2)};
+  }).filter(Boolean);
+}
+function wcHerbereken(){
+  const r = wcRegels();
+  const totaal = r.reduce((a,x)=>a+x.bedrag,0);
+  $('#wcTotaal').textContent = eur(totaal);
+  $('#wcOpbouw').textContent = r.length
+    ? r.map(x=>x.naam+(x.aantal>1?' ×'+x.aantal:'')).join(' · ')
+    : 'Nog niets bijgeboekt';
+  $('#wcTotaalTekst').innerHTML = r.length
+    ? `<strong style="color:var(--ink)">${r.length}</strong> extra's · <strong style="color:var(--ink)">${eur(totaal)}</strong>`
+    : 'Nog niets aangevinkt';
+  return {regels:r, totaal};
+}
+document.addEventListener('change', async e=>{
+  const c = e.target.closest('[data-extra]');
+  if(c){ const id=c.dataset.extra;
+    if(c.checked) wcKeuzes[id] = 1; else delete wcKeuzes[id];
+    renderExtras(); return; }
+  const a = e.target.closest('[data-extraaantal]');
+  if(a){ wcKeuzes[a.dataset.extraaantal] = Math.max(1, Number(a.value)||1); wcHerbereken(); return; }
+  const p = e.target.closest('[data-extraprijs]');
+  if(p){ await wijzig('extras', p.dataset.extraprijs, {prijs:Number(p.value)||0}); wcHerbereken(); return; }
+});
+['#wcPers'].forEach(s=>$(s).addEventListener('input', wcHerbereken));
+$('#wcExtraNieuw').addEventListener('click', async ()=>{
+  const naam = prompt('Naam van de extra (bv. Romantisch arrangement)?'); if(!naam) return;
+  const cat = prompt('Categorie: Arrangement, Menu, Cadeau, Tijd of Overig', 'Arrangement') || 'Overig';
+  const prijs = prompt('Prijs in euro (bv. 49.50)', '0');
+  const pp = confirm('Is dit een prijs per persoon?\n\nOK = per persoon, Annuleren = per keer');
+  await maak('extras', {naam:naam.trim(), categorie:cat.trim(), prijs:Number(String(prijs).replace(',','.'))||0,
+    per_persoon:pp, actief:true, sortering:(S.extras.length+1)*10});
+  renderExtras();
+});
+
+/* het welkomstcallscript naast het formulier */
+function renderWcScript(){
+  const doel = $('#wcScript'); if(!doel) return;
+  const sc = S.scripts.find(s=>/welkomst/i.test(s.titel)) || S.scripts[0];
+  if(!sc){ doel.innerHTML = `<div class="empty">Nog geen belscript. Maak er één aan bij Bellen.</div>`;
+           $('#wcScriptHint').textContent=''; return; }
+  const stappen = scStappenVan(sc.id);
+  const aan = new Set(scAangevinkt(sc.id));
+  const teDoen = stappen.filter(s=>s.soort==='stap');
+  $('#wcScriptHint').textContent = teDoen.filter(s=>aan.has(s.id)).length+' van '+teDoen.length+' · '+sc.titel;
+  doel.innerHTML = stappen.map(s=>{
+    if(s.soort==='kop') return `<div class="sckop">${esc(s.tekst)}</div>`;
+    if(s.soort==='tip') return `<div class="sctip"><span>💡</span><span>${esc(s.tekst)}</span></div>`;
+    return `<label class="scstap" data-aan="${aan.has(s.id)}">
+      <input type="checkbox" data-wcvink="${s.id}" data-script="${sc.id}" ${aan.has(s.id)?'checked':''}>
+      <span class="tekst">${esc(s.tekst)}</span></label>`;
+  }).join('');
+}
+document.addEventListener('change', e=>{
+  const v = e.target.closest('[data-wcvink]');
+  if(v){ scZetAan(v.dataset.script, v.dataset.wcvink, v.checked); renderWcScript(); renderScripts(); }
+});
+
+function wcFormulier(){
+  const {regels, totaal} = wcHerbereken();
+  return {
+    klant_id: $('#wcKlant').value || null,
+    naam: $('#wcNaam').value.trim() || null,
+    telefoon: $('#wcTel').value.trim() || null,
+    email: $('#wcMail').value.trim() || null,
+    locatie: $('#wcLoc').value,
+    datum: $('#wcDatum').value || null,
+    tijd: $('#wcTijd').value.trim() || null,
+    personen: Number($('#wcPers').value)||2,
+    referentie: $('#wcRef').value.trim() || null,
+    gelegenheid: $('#wcGeleg').value.trim() || null,
+    regels, totaal:+totaal.toFixed(2),
+    betaallink: $('#wcBetaallink').value.trim() || null,
+    incheck_link: $('#wcIncheckLink') ? $('#wcIncheckLink').value : null,
+    status: $('#wcStatus').value,
+    notitie: $('#wcNotitie').value.trim() || null,
+    medewerker_id: IK.id
+  };
+}
+function incheckLink(f){
+  const q = new URLSearchParams();
+  if(f.naam) q.set('naam', f.naam);
+  if(f.referentie) q.set('reservering', f.referentie);
+  if(f.locatie) q.set('locatie', f.locatie);
+  if(f.datum) q.set('datum', f.datum);
+  if(f.email) q.set('email', f.email);
+  if(f.telefoon) q.set('telefoon', f.telefoon);
+  return INCHECK_URL + '?' + q.toString();
+}
+function wcBericht(f){
+  const r = [];
+  r.push('Hallo'+(f.naam?' '+String(f.naam).split(' ')[0]:'')+',');
+  r.push('');
+  r.push('Wat leuk dat je bij Bed & Wellness Flevoland komt! Even kort wat we hebben afgesproken:');
+  r.push('');
+  if(f.locatie) r.push('• Locatie: '+f.locatie);
+  if(f.datum)   r.push('• Datum: '+dmy(f.datum)+(f.tijd?' vanaf '+f.tijd:''));
+  r.push('• Aantal personen: '+f.personen);
+  if(f.referentie) r.push('• Reservering: '+f.referentie);
+  if(f.regels.length){
+    r.push('');
+    r.push('Extra geboekt:');
+    f.regels.forEach(x=>r.push('• '+x.naam+(x.aantal>1?' ('+x.aantal+'×)':'')+' — '+eur(x.bedrag)));
+    r.push('');
+    r.push('Totaal bij te betalen: '+eur(f.totaal));
+  }
+  if(f.betaallink){ r.push(''); r.push('Betalen kan hier: '+f.betaallink); }
+  r.push('');
+  r.push('Alvast online inchecken en de huisregels doornemen kan hier: '+incheckLink(f));
+  r.push('Dat scheelt tijd bij aankomst, en je vindt er alle informatie over je verblijf.');
+  r.push('');
+  r.push('Tot snel!');
+  r.push('Bed & Wellness Flevoland');
+  return r.join('\n');
+}
+$('#wcWhatsapp').addEventListener('click', ()=>{
+  const f = wcFormulier();
+  const tel = String(f.telefoon||'').replace(/[^0-9]/g,'').replace(/^0/,'31');
+  const url = 'https://wa.me/'+(tel||'')+'?text='+encodeURIComponent(wcBericht(f));
+  window.open(url, '_blank', 'noopener');
+  $('#wcNote').textContent = tel ? 'WhatsApp is geopend met het bericht klaar.' :
+    'Geen telefoonnummer ingevuld — WhatsApp is geopend zonder ontvanger, kies daar zelf de contactpersoon.';
+});
+$('#wcKopieer').addEventListener('click', async ()=>{
+  const tekst = wcBericht(wcFormulier());
+  try{ await navigator.clipboard.writeText(tekst); toast('Bericht gekopieerd.'); }
+  catch(e){ $('#wcNote').textContent = tekst; toast('Kopiëren lukte niet — het bericht staat hieronder.'); }
+});
+$('#wcIncheck').addEventListener('click', ()=>{
+  const f = wcFormulier();
+  const link = incheckLink(f);
+  window.open(link, '_blank', 'noopener');
+  $('#wcNote').textContent = 'Incheckformulier geopend. De link met deze gegevens gaat automatisch mee in het WhatsApp-bericht.';
+});
+$('#wcNieuw').addEventListener('click', ()=>{
+  wcHuidig = null; wcKeuzes = {};
+  ['#wcNaam','#wcTel','#wcMail','#wcRef','#wcTijd','#wcGeleg','#wcBetaallink','#wcNotitie'].forEach(s=>$(s).value='');
+  $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcStatus').value='te bellen';
+  $('#wcNote').textContent=''; renderExtras();
+});
+$('#wcOpslaan').addEventListener('click', async ()=>{
+  const f = wcFormulier();
+  if(!f.naam && !f.klant_id){ toast('Vul een naam in of kies een klant.'); return; }
+  f.incheck_link = incheckLink(f);
+  if(f.status==='gebeld' || f.status==='afgerond') f.gebeld_op = new Date().toISOString();
+  if(wcHuidig) await wijzig('calls', wcHuidig, f);
+  else { const r = await maak('calls', f); if(r) wcHuidig = r[0].id; }
+  renderCalls(); badges(); toast('Welkomstcall bewaard.');
+});
+let wcFilterStand = 'open';
+$('#wcFilter').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
+  wcFilterStand = b.dataset.f;
+  $$('#wcFilter button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  renderCalls(); });
+function wcSelectie(){
+  let lijst = isEigenaar() ? S.calls : S.calls.filter(c=>!c.medewerker_id || c.medewerker_id===IK.id);
+  if(wcFilterStand==='open') lijst = lijst.filter(c=>c.status!=='afgerond' && c.status!=='gebeld');
+  return lijst;
+}
+function renderCalls(){
+  renderWcScript();
+  const lijst = wcSelectie();
+  $('#wcLijst').innerHTML = lijst.length ? lijst.map(c=>`
+    <tr class="${c.status==='afgerond'?'done':''}">
+      <td class="name">${esc(c.naam || klNaam(S.klanten.find(k=>k.id===c.klant_id)||{}))}
+        ${c.telefoon?`<span class="meta"><a class="tel" href="tel:${esc(String(c.telefoon).replace(/\s/g,''))}">${esc(c.telefoon)}</a></span>`:''}</td>
+      <td>${esc(c.locatie||'')}<span class="meta">${c.datum?dmy(c.datum):''}${c.tijd?' · '+esc(c.tijd):''}</span></td>
+      <td><select class="bel-status" data-wcstatus="${c.id}">
+        ${['te bellen','gebeld','geen gehoor','terugbellen','afgerond'].map(s=>
+          `<option value="${s}"${c.status===s?' selected':''}>${s}</option>`).join('')}</select></td>
+      <td class="num">${Number(c.totaal)?eur(c.totaal):'—'}</td>
+      <td>${esc(c.notitie||'')}</td>
+      <td class="act">
+        <button class="btn ghost small" type="button" data-wcopen="${c.id}">Openen</button>
+        ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-wcwis="${c.id}">✕</button>`:''}
+      </td></tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty"><strong>Geen welkomstcalls</strong>Vul hierboven een gesprek in en klik op Opslaan.</div></td></tr>`;
+  $('#wcFoot').textContent = lijst.length+' gesprekken getoond';
+}
+document.addEventListener('change', async e=>{
+  const s = e.target.closest('[data-wcstatus]');
+  if(s){ await wijzig('calls', s.dataset.wcstatus, {status:s.value,
+    gebeld_op:(s.value==='gebeld'||s.value==='afgerond')?new Date().toISOString():null});
+    renderCalls(); badges(); }
+});
+document.addEventListener('click', async e=>{
+  const w = e.target.closest('[data-wcwis]');
+  if(w){ if(!confirm('Deze welkomstcall verwijderen?')) return;
+    await verwijder('calls', w.dataset.wcwis); renderCalls(); badges(); return; }
+  const o = e.target.closest('[data-wcopen]');
+  if(o){
+    const c = S.calls.find(x=>x.id===o.dataset.wcopen); if(!c) return;
+    wcHuidig = c.id; wcKeuzes = {};
+    (c.regels||[]).forEach(r=>{ if(r && r.id) wcKeuzes[r.id] = r.per_persoon ? 1 : (r.aantal||1); });
+    $('#wcKlant').value = c.klant_id||''; $('#wcNaam').value = c.naam||'';
+    $('#wcTel').value = c.telefoon||''; $('#wcMail').value = c.email||'';
+    $('#wcRef').value = c.referentie||''; $('#wcLoc').value = c.locatie||'Malina Jacuzzi';
+    $('#wcDatum').value = c.datum||''; $('#wcTijd').value = c.tijd||'';
+    $('#wcPers').value = c.personen||2; $('#wcGeleg').value = c.gelegenheid||'';
+    $('#wcBetaallink').value = c.betaallink||''; $('#wcNotitie').value = c.notitie||'';
+    $('#wcStatus').value = c.status||'te bellen';
+    renderExtras(); kiesTab('welkomstcall'); window.scrollTo({top:0,behavior:'instant'});
+  }
+});
+$('#wcExport').addEventListener('click', ()=>{
+  const rows = [['Naam','Telefoon','E-mail','Locatie','Datum','Tijd','Personen','Reservering','Gelegenheid',
+    'Extra geboekt','Totaal','Status','Notitie']];
+  wcSelectie().forEach(c=>rows.push([c.naam||'', c.telefoon||'', c.email||'', c.locatie||'', c.datum||'',
+    c.tijd||'', c.personen||'', c.referentie||'', c.gelegenheid||'',
+    (c.regels||[]).map(r=>r.naam+(r.aantal>1?' x'+r.aantal:'')).join(' | '),
+    String(c.totaal??0).replace('.',','), c.status, c.notitie||'']));
+  csv(rows, 'welkomstcalls-'+vandaag()+'.csv');
+});
 
 /* ---------------- instellingen / uitloggen ---------------- */
 function openConfig(){
