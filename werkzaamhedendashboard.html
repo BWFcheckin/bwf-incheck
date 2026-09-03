@@ -673,6 +673,53 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
     <div class="linkstrook" data-linktab="scripts"></div>
 
     <div class="card">
+      <div class="card-head"><h2>Gast bellen en appen</h2>
+        <span class="hint">gegevens overnemen uit SMG</span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field"><label for="gbNaam">Naam gast</label><input type="text" id="gbNaam" placeholder="bv. Sandra de Vries"></div>
+          <div class="field"><label for="gbTel">Telefoonnummer</label><input type="tel" id="gbTel" inputmode="tel" placeholder="06..."></div>
+          <div class="field"><label for="gbLoc">Locatie</label><select id="gbLoc">
+            <option value="">Kies...</option>
+            <option value="Malina Jacuzzi">Malina Jacuzzi</option>
+            <option value="Malina Zwembad">Malina Zwembad</option>
+            <option value="Suite Angie Almere">Suite Angie Almere</option></select></div>
+          <div class="field"><label for="gbDatum">Aankomst</label><input type="date" id="gbDatum"></div>
+          <div class="field"><label for="gbRef">Reserveringsnummer</label><input type="text" id="gbRef"></div>
+        </div>
+
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:15px;align-items:center">
+          <a class="btn" id="gbBel" href="#">Bellen</a>
+          <a class="btn ghost" id="gbWa" href="#" target="_blank" rel="noopener">WhatsApp openen</a>
+          <button class="btn ghost" id="gbDeel" type="button">Incheckkaart delen</button>
+          <button class="btn ghost small" id="gbBewaar" type="button">Kaart opslaan</button>
+        </div>
+
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:15px;align-items:flex-start">
+          <canvas id="gbCanvas" width="1080" height="1350"
+            style="width:230px;height:auto;border:1px solid var(--line);border-radius:var(--r-m)"></canvas>
+          <p class="note" style="margin:0;flex:1;min-width:200px">
+            De kaart vult zich met de gegevens hierboven. Delen zet hem rechtstreeks in WhatsApp;
+            op een computer wordt hij opgeslagen zodat je hem er zelf bij kunt zetten.
+          </p>
+        </div>
+
+        <details style="margin-top:16px">
+          <summary class="hint" style="cursor:pointer">Instellingen</summary>
+          <div class="grid-form" style="margin-top:11px">
+            <div class="field"><label for="gbSchema">Waarmee opent de belknop</label>
+              <input type="text" id="gbSchema" value="tel:"></div>
+            <div class="field" style="grid-column:span 2"><label for="gbLink">Link incheckformulier</label>
+              <input type="text" id="gbLink" inputmode="url" value="https://bwfcheckin.github.io/bwf-incheck/"></div>
+          </div>
+          <p class="note">Met <strong>tel:</strong> opent de belapp die op de telefoon als standaard staat.
+            Heeft je zakelijke belapp een eigen link, zet die hier neer — het nummer komt er direct achter.
+            Deze twee instellingen blijven op dit apparaat bewaard.</p>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h2>Kies een script</h2>
         <button class="btn small" id="scNieuw" type="button" hidden>+ Nieuw script</button></div>
       <div class="card-body"><div class="linkrij" id="scKeuze"></div></div>
@@ -1535,6 +1582,140 @@ $('#scWis').addEventListener('click', async ()=>{
   await verwijder('scripts', sc.id);
   scHuidig = null; scBewerken = false; renderScripts(); badges();
 });
+
+/* ---------------- BELLEN, APPEN EN INCHECKKAART ---------------- */
+const GB_ADRES = {
+  'Malina Jacuzzi':     'Birdielaan 4, Lelystad',
+  'Malina Zwembad':     'Birdielaan 4, Lelystad',
+  'Suite Angie Almere': 'De Specerij 5, Almere'
+};
+const GB_LS = 'wz_belhulp';
+
+function gbNummer(){
+  let n = ($('#gbTel').value || '').replace(/[^\d+]/g, '');
+  if(n.startsWith('00')) n = '+' + n.slice(2);
+  else if(n.startsWith('0')) n = '+31' + n.slice(1);
+  return n;
+}
+
+function gbDatumTekst(){
+  const d = $('#gbDatum').value;
+  if(!d) return '';
+  return new Date(d + 'T00:00:00').toLocaleDateString('nl-NL',
+    {weekday:'long', day:'numeric', month:'long'});
+}
+
+function gbBericht(){
+  const naam = ($('#gbNaam').value || '').split(' ')[0] || 'daar';
+  const loc = $('#gbLoc').value || 'onze suite';
+  const dag = gbDatumTekst();
+  return 'Hoi ' + naam + ', leuk je gesproken te hebben!\n\n' +
+    'Je verblijf in ' + loc + (dag ? ' op ' + dag : '') + ' staat klaar. ' +
+    'Inchecken kan vanaf 20:00 uur.\n\n' +
+    'Vul hier alvast je gegevens in en bekijk alle praktische informatie: ' +
+    ($('#gbLink').value || '') + '\n\nTot binnenkort!\nBed & Wellness Flevoland';
+}
+
+function gbTeken(){
+  const c = $('#gbCanvas'); if(!c) return;
+  const x = c.getContext('2d'), W = c.width, H = c.height;
+  const loc = $('#gbLoc').value;
+  const naam = ($('#gbNaam').value || '').split(' ')[0];
+
+  x.fillStyle = '#F4F1ED'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#483C34'; x.fillRect(0, 0, W, 300);
+
+  x.fillStyle = '#D7C7B4';
+  x.font = '500 32px "IBM Plex Mono", monospace';
+  x.fillText('BED & WELLNESS FLEVOLAND', 80, 132);
+  x.fillStyle = '#FFFFFF';
+  x.font = '700 86px "Bricolage Grotesque", sans-serif';
+  x.fillText(naam ? 'Welkom ' + naam : 'Welkom', 80, 232);
+
+  let y = 420;
+  const regel = (label, waarde) => {
+    if(!waarde) return;
+    x.fillStyle = '#7B6E62'; x.font = '400 30px "Public Sans", sans-serif';
+    x.fillText(label, 80, y);
+    x.fillStyle = '#241E19'; x.font = '600 44px "Public Sans", sans-serif';
+    x.fillText(waarde, 80, y + 56);
+    y += 128;
+  };
+  regel('Jouw suite', loc);
+  regel('Aankomst', gbDatumTekst());
+  regel('Inchecken vanaf', '20:00 uur');
+  regel('Adres', GB_ADRES[loc] || '');
+
+  y += 8;
+  x.fillStyle = '#E3DAD0'; x.fillRect(80, y, W - 160, 2);
+  y += 68;
+  x.fillStyle = '#241E19'; x.font = '600 40px "Bricolage Grotesque", sans-serif';
+  x.fillText('Goed om te weten', 80, y);
+  y += 62;
+
+  x.font = '400 34px "Public Sans", sans-serif';
+  [ 'Je krijgt een eigen sleutel en kunt vrij in en uit.',
+    'In de suite werken we met plastic, geen glaswerk.',
+    'Servies is gratis, vraag er gerust naar.',
+    'Eigen eten of drinken meenemen kost € 15.'
+  ].forEach(t => {
+    x.fillStyle = '#9A7B4F'; x.fillText('•', 80, y);
+    x.fillStyle = '#241E19'; x.fillText(t, 118, y);
+    y += 56;
+  });
+
+  x.fillStyle = '#483C34'; x.fillRect(0, H - 186, W, 186);
+  x.fillStyle = '#D7C7B4'; x.font = '400 30px "Public Sans", sans-serif';
+  x.fillText('Vul je gegevens in via de link in dit gesprek', 80, H - 108);
+  x.fillStyle = '#FFFFFF'; x.font = '500 34px "Public Sans", sans-serif';
+  x.fillText('info@bedenwellnessflevoland.nl', 80, H - 52);
+}
+
+function gbVernieuw(){
+  const n = gbNummer();
+  $('#gbBel').href = ($('#gbSchema').value.trim() || 'tel:') + n;
+  $('#gbWa').href = n
+    ? 'https://wa.me/' + n.replace('+','') + '?text=' + encodeURIComponent(gbBericht())
+    : 'https://wa.me/';
+  gbTeken();
+  try{ localStorage.setItem(GB_LS, JSON.stringify(
+    {schema:$('#gbSchema').value, link:$('#gbLink').value})); }catch(e){}
+}
+
+function gbKaartBlob(){ return new Promise(r => $('#gbCanvas').toBlob(r, 'image/png')); }
+function gbBewaarKaart(blob){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'incheckinfo-' + ($('#gbRef').value || 'reservering') + '.png';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+(function gbStart(){
+  try{
+    const b = JSON.parse(localStorage.getItem(GB_LS) || 'null');
+    if(b){ if(b.schema) $('#gbSchema').value = b.schema; if(b.link) $('#gbLink').value = b.link; }
+  }catch(e){}
+
+  ['#gbNaam','#gbTel','#gbLoc','#gbDatum','#gbRef','#gbSchema','#gbLink'].forEach(sel => {
+    const el = $(sel); if(el){ el.addEventListener('input', gbVernieuw); el.addEventListener('change', gbVernieuw); }
+  });
+
+  $('#gbDeel').addEventListener('click', async () => {
+    const blob = await gbKaartBlob();
+    const f = new File([blob], 'incheckinfo.png', {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[f]})){
+      try{ await navigator.share({files:[f], text: gbBericht()}); }catch(e){}
+    } else {
+      gbBewaarKaart(blob);
+      toast('Delen kan hier niet — de kaart is opgeslagen.');
+    }
+  });
+
+  $('#gbBewaar').addEventListener('click', async () => gbBewaarKaart(await gbKaartBlob()));
+
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(gbTeken);
+  gbVernieuw();
+})();
 
 /* ---------------- GASTENREGISTER / TOERISTENBELASTING ---------------- */
 const BELASTING_START = [
