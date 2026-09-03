@@ -103,6 +103,25 @@
   .table-wrap th,.table-wrap td{ text-align:left; padding:8px 7px; border-bottom:1px solid var(--line); }
   .table-wrap th{ color:var(--gold-dark); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
   .table-wrap tr:hover{ background:var(--cream); cursor:pointer; }
+
+  /* ---- Inlogscherm ---- */
+  #loginScreen{ position:fixed; inset:0; background:var(--cream); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+  #loginScreen .box{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px 24px; max-width:380px; width:100%; box-shadow:0 4px 20px rgba(0,0,0,.07); }
+  #loginScreen h2{ font-size:19px; color:var(--gold-dark); }
+  #loginScreen p.desc{ font-size:12.5px; color:var(--ink-soft); margin:6px 0 16px; }
+  #appBody{ display:none; }
+  .logoutbar{ font-size:11.5px; color:var(--ink-soft); }
+  .logoutbar button{ background:none; border:none; color:var(--gold-dark); cursor:pointer; font-size:11.5px; text-decoration:underline; padding:0 0 0 8px; font-family:inherit; }
+
+  /* ---- Gastaanmeldingen ---- */
+  .aanmeld-lijst{ display:flex; flex-direction:column; gap:9px; }
+  .aanmeld{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+            border:1.5px solid var(--gold); background:var(--gold-soft); border-radius:11px; padding:11px 14px; }
+  .aanmeld .info{ font-size:13.5px; }
+  .aanmeld .info small{ display:block; color:var(--ink-soft); font-size:11.5px; margin-top:2px; }
+  .aanmeld-leeg{ font-size:12.5px; color:var(--ink-soft); }
+  .linkbox{ display:flex; gap:8px; align-items:center; margin-top:9px; flex-wrap:wrap; }
+  .linkbox input{ flex:1; min-width:220px; font-size:12px; background:var(--cream); }
   .locbadge{ font-size:10.5px; padding:3px 9px; border-radius:999px; font-weight:600; color:#fff; display:inline-block; white-space:nowrap; }
   .pill{ font-size:10.5px; padding:3px 9px; border-radius:999px; font-weight:600; display:inline-block; }
   .pill.ok{ background:var(--ok-bg); color:var(--ok); }
@@ -114,6 +133,24 @@
 </style>
 </head>
 <body>
+
+<!-- ===== Inloggen (alleen personeel) ===== -->
+<div id="loginScreen">
+  <div class="box">
+    <h2>Bed &amp; Wellness Flevoland</h2>
+    <p class="desc">Log in om het incheckformulier te openen.</p>
+    <form onsubmit="return false;">
+      <label>E-mailadres</label>
+      <input type="email" id="li_email" autocomplete="username">
+      <label>Wachtwoord</label>
+      <input type="password" id="li_pw" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+      <div class="status" id="loginStatus"></div>
+      <button class="btn" type="button" style="width:100%;justify-content:center;margin-top:14px;" onclick="doLogin()">Inloggen</button>
+    </form>
+  </div>
+</div>
+
+<div id="appBody">
 <div class="wrap">
 
   <header class="topbar">
@@ -121,10 +158,18 @@
       <h1>Incheckformulier</h1>
       <p>Bed &amp; Wellness Flevoland — Suite Angie, Malina Jacuzzi Suite &amp; Malina Deluxe Zwembad Suite</p>
     </div>
-    <div class="sharednote">🗄️ Gedeeld via database — dezelfde gegevens als het hoofddashboard</div>
+    <div>
+      <div class="sharednote">🗄️ Gedeeld via database — dezelfde gegevens als het hoofddashboard</div>
+      <div class="logoutbar" style="margin-top:6px;text-align:right;"><span id="huidigeGebruiker"></span><button type="button" onclick="doLogout()">Uitloggen</button></div>
+    </div>
   </header>
 
   <div class="loadstatus" id="loadStatus"></div>
+
+  <div class="aanmeld" id="aanmeldBanner" style="display:none;margin-bottom:16px;">
+    <div class="info" id="aanmeldBannerTekst"></div>
+    <button class="btn sm" type="button" onclick="document.getElementById('aanmeldLijst').scrollIntoView({behavior:'smooth',block:'center'})">Bekijken</button>
+  </div>
 
   <form id="checkinForm" onsubmit="return false;">
   <input type="hidden" id="c_id">
@@ -363,15 +408,37 @@
     <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn — niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
     <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
     <button type="button" class="btn" onclick="openGuestModal()">✎ Formulier voor de gast openen</button>
+
+    <h3>Of laat de gast het vooraf invullen</h3>
+    <p class="desc" style="margin-bottom:0;">Stuur de gast een link. Hij ziet alleen zijn eigen gegevens en kan geen andere incheckformulieren openen. Wat hij instuurt verschijnt hieronder bij "Aanmeldingen van gasten".</p>
+    <div class="linkbox">
+      <button class="btn secondary sm" type="button" onclick="maakGastLink(true)">Persoonlijke link maken</button>
+      <button class="btn secondary sm" type="button" onclick="maakGastLink(false)">Algemene link</button>
+    </div>
+    <div class="linkbox" id="gastLinkWrap" style="display:none;">
+      <input type="text" id="gastLinkVeld" readonly onclick="this.select()">
+      <button class="btn sm" type="button" onclick="kopieerGastLink()">Kopiëren</button>
+      <a class="btn secondary sm" id="gastLinkWa" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <div class="status" id="gastLinkStatus"></div>
+  </div>
+
+  <!-- ================= AANMELDINGEN VAN GASTEN ================= -->
+  <div class="card">
+    <h2>Aanmeldingen van gasten</h2>
+    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken — de klantgegevens en handtekening staan er dan al in.</p>
+    <div class="aanmeld-lijst" id="aanmeldLijst"></div>
   </div>
 
   <!-- ================= OPSLAAN & VERSTUREN ================= -->
   <div class="card">
     <h2>Opslaan &amp; versturen</h2>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-      <button class="btn secondary" type="button" onclick="saveCheckin()">Opslaan</button>
+      <button class="btn" type="button" onclick="saveCheckin(false)">Opslaan</button>
+      <button class="btn secondary" type="button" onclick="saveCheckin(true)">Opslaan als concept</button>
       <button class="btn secondary" type="button" onclick="clearCheckinForm()">Formulier leegmaken</button>
     </div>
+    <p class="desc" style="margin:-6px 0 14px;">Een concept is een formulier dat je alvast klaarzet — bijvoorbeeld voor een locatiemanager, of om de gastenlink aan te koppelen. Het telt nog niet mee als afgeronde incheck. Sla het op als "Opslaan" zodra het verblijf is afgerond.</p>
 
     <div class="formgrid">
       <div>
@@ -389,6 +456,13 @@
   </div>
   </form>
 
+  <!-- ================= KLAARGEZETTE CONCEPTEN ================= -->
+  <div class="card">
+    <h2>Klaargezette formulieren</h2>
+    <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
+    <div class="aanmeld-lijst" id="conceptLijst"></div>
+  </div>
+
   <!-- ================= RECENT OPGESLAGEN ================= -->
   <div class="card table-wrap">
     <h2>Recent opgeslagen incheckformulieren</h2>
@@ -399,6 +473,7 @@
   </div>
 
 </div>
+</div><!-- einde appBody -->
 
 <!-- ===== Gast-popup: alleen klantgegevens, huisregels, voorwaarden, member, handtekening ===== -->
 <div class="modal-bg" id="guestModal">
@@ -531,17 +606,88 @@ const VOORAF_ITEMS = [...ORDER_ITEMS, ...ALMERE_ORDER_ITEMS, ...SERVICE_ITEMS];
 const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
 
-async function sb(path, options={}){
+/* ================= INLOGGEN ================= */
+const AUTH_STORE = 'bwf_auth';
+let auth = null;   // { access_token, refresh_token, email }
+
+function laadAuth(){
+  try{ auth = JSON.parse(localStorage.getItem(AUTH_STORE) || 'null'); }catch(e){ auth = null; }
+  return auth;
+}
+function bewaarAuth(data, email){
+  auth = { access_token:data.access_token, refresh_token:data.refresh_token, email: email || data.user?.email || '' };
+  localStorage.setItem(AUTH_STORE, JSON.stringify(auth));
+}
+function wisAuth(){ auth = null; localStorage.removeItem(AUTH_STORE); }
+
+async function authFetch(pad, body){
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${pad}`, {
+    method:'POST',
+    headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error_description || data.msg || data.message || 'Inloggen mislukt');
+  return data;
+}
+
+async function doLogin(){
+  const email = document.getElementById('li_email').value.trim();
+  const pw = document.getElementById('li_pw').value;
+  const st = document.getElementById('loginStatus');
+  if(!email || !pw){ st.textContent = 'Vul je e-mailadres en wachtwoord in.'; st.className='status err'; return; }
+  st.textContent = 'Bezig met inloggen…'; st.className = 'status';
+  try{
+    const data = await authFetch('token?grant_type=password', { email, password: pw });
+    bewaarAuth(data, email);
+    document.getElementById('li_pw').value = '';
+    st.textContent = ''; st.className = 'status';
+    startApp();
+  }catch(err){
+    st.textContent = '✕ ' + (err.message === 'Invalid login credentials' ? 'E-mailadres of wachtwoord klopt niet.' : err.message);
+    st.className = 'status err';
+  }
+}
+
+async function vernieuwToken(){
+  if(!auth?.refresh_token) return false;
+  try{
+    const data = await authFetch('token?grant_type=refresh_token', { refresh_token: auth.refresh_token });
+    bewaarAuth(data, auth.email);
+    return true;
+  }catch(e){ return false; }
+}
+
+function doLogout(){
+  wisAuth();
+  document.getElementById('appBody').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function startApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appBody').style.display = 'block';
+  document.getElementById('huidigeGebruiker').textContent = auth?.email || '';
+  loadAll();
+}
+
+async function sb(path, options={}, opnieuw=true){
+  const token = auth?.access_token || SUPABASE_KEY;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method: options.method || 'GET',
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Prefer': options.prefer || 'return=representation',
     },
     body: options.body
   });
+  if((res.status === 401 || res.status === 403) && opnieuw && auth){
+    if(await vernieuwToken()) return sb(path, options, false);
+    doLogout();
+    throw new Error('Je sessie is verlopen — log opnieuw in.');
+  }
   if(!res.ok){
     let detail = '';
     try{ detail = (await res.json()).message; }catch(e){}
@@ -555,6 +701,8 @@ async function sb(path, options={}){
 let staff = [];
 let documenten = [];
 let checkins = [];
+let aanmeldingen = [];   // gastaanmeldingen met status 'nieuw'
+let actieveAanmelding = null;  // aanmelding die nu in het formulier staat
 let orderedItems = [];   // [{naam, aantal, prijs}]
 let guestData = null;    // filled via guest modal
 
@@ -577,11 +725,19 @@ function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 async function loadStaff(){ staff = await sb('staff?select=*&order=naam.asc') || []; }
 async function loadDocumenten(){ documenten = await sb('documenten?select=*') || []; }
 async function loadCheckins(){ checkins = await sb('checkins?select=*&order=created_at.desc') || []; }
+async function loadAanmeldingen(){
+  try{
+    aanmeldingen = await sb('gast_aanmeldingen?select=*&status=eq.nieuw&order=created_at.desc') || [];
+  }catch(e){
+    console.error('Gastaanmeldingen laden mislukt:', e);
+    aanmeldingen = [];
+  }
+}
 
 async function loadAll(){
   const statusBox = document.getElementById('loadStatus');
   try{
-    await Promise.all([loadStaff(), loadDocumenten(), loadCheckins()]);
+    await Promise.all([loadStaff(), loadDocumenten(), loadCheckins(), loadAanmeldingen()]);
     statusBox.style.display = 'none';
   }catch(err){
     console.error('Fout bij laden vanuit database:', err);
@@ -925,6 +1081,189 @@ function confirmGuestForm(){
   renderGuestStatus();
   closeGuestModal();
 }
+/* ================= CONCEPTEN ================= */
+function aanmeldingVoorConcept(conceptId){
+  return aanmeldingen.find(a=>a.checkin_id === conceptId) || null;
+}
+function renderConcepten(){
+  const lijst = document.getElementById('conceptLijst');
+  const concepten = checkins.filter(c=>c.status === 'concept');
+  if(!concepten.length){
+    lijst.innerHTML = '<div class="aanmeld-leeg">Er staan geen concepten klaar.</div>';
+    return;
+  }
+  lijst.innerHTML = concepten.map(c=>{
+    const a = aanmeldingVoorConcept(c.id);
+    const naam = a ? `${a.voornaam} ${a.achternaam}`
+                   : (`${c.voornaam||''} ${c.achternaam||''}`.trim() || 'Nog geen gastgegevens');
+    const details = [
+      c.datum ? new Date(c.datum).toLocaleDateString('nl-NL') : '',
+      locName(c.locatie),
+      c.resnr ? 'res. ' + c.resnr : '',
+      staffNameById(c.manager) ? 'voor ' + staffNameById(c.manager) : '',
+      a ? '✓ gast heeft ingevuld' : 'wacht nog op de gast'
+    ].filter(Boolean).join(' · ');
+    return `<div class="aanmeld" style="${a ? '' : 'border-color:var(--line);background:#fff;'}">
+      <div class="info">
+        <strong>${escapeHtml(naam)}</strong>
+        <small>${escapeHtml(details)}</small>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn sm" type="button" onclick="openConcept('${c.id}')">Verder invullen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openConcept(id){
+  const c = checkins.find(x=>x.id===id);
+  if(!c) return;
+  openDetailId = id;
+  editCheckinFromDetail();
+  const a = aanmeldingVoorConcept(id);
+  if(a){
+    actieveAanmelding = a;
+    guestData = {
+      voornaam:a.voornaam, achternaam:a.achternaam, woonplaats:a.woonplaats,
+      nationaliteit:a.nationaliteit, telefoon:a.telefoon, email:a.email,
+      akkoord:a.akkoord, akkoord_voorwaarden:a.akkoord_voorwaarden,
+      lid:a.lid, handtekening:a.handtekening
+    };
+    renderGuestStatus();
+  }
+  herberekenAlles();
+  document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ================= LINK VOOR DE GAST ================= */
+function gastPaginaUrl(){
+  return location.href.replace(/[^/]*$/, '') + 'gast.html';
+}
+function nieuweCode(){
+  const tekens = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for(let i=0;i<6;i++) out += tekens[Math.floor(Math.random()*tekens.length)];
+  return out;
+}
+function maakGastLink(persoonlijk){
+  const p = new URLSearchParams();
+  if(persoonlijk){
+    const conceptId = document.getElementById('c_id').value;
+    if(!conceptId){
+      const st = document.getElementById('gastLinkStatus');
+      st.textContent = 'Sla het formulier eerst op als concept. Dan koppelt de link de gast meteen aan dit formulier.';
+      st.className = 'status err';
+      return;
+    }
+    p.set('c', conceptId);
+    const resnr = document.getElementById('c_resnr').value.trim();
+    if(resnr) p.set('r', resnr);
+    p.set('loc', document.getElementById('c_locatie').value);
+    const datum = document.getElementById('c_datum').value;
+    if(datum) p.set('d', datum);
+  }
+  const url = gastPaginaUrl() + (p.toString() ? '?' + p.toString() : '');
+  document.getElementById('gastLinkVeld').value = url;
+  document.getElementById('gastLinkWrap').style.display = 'flex';
+  document.getElementById('gastLinkWa').href =
+    'https://wa.me/?text=' + encodeURIComponent('Welkom bij Bed & Wellness Flevoland! Vul je gegevens alvast in via deze link, dan hoef je bij aankomst niets meer te doen: ' + url);
+  const st = document.getElementById('gastLinkStatus');
+  st.textContent = persoonlijk
+    ? 'Persoonlijke link gemaakt — gekoppeld aan dit concept. Wat de gast invult komt hier automatisch in te staan.'
+    : 'Algemene link — de gast kiest zelf zijn suite en datum. Deze link kun je overal gebruiken.';
+  st.className = 'status ok';
+}
+function kopieerGastLink(){
+  const veld = document.getElementById('gastLinkVeld');
+  veld.select();
+  navigator.clipboard.writeText(veld.value).then(()=>{
+    const st = document.getElementById('gastLinkStatus');
+    st.textContent = '✓ Link gekopieerd.';
+    st.className = 'status ok';
+  }).catch(()=>{ document.execCommand('copy'); });
+}
+
+/* ================= AANMELDINGEN VAN GASTEN ================= */
+function renderAanmeldingen(){
+  const lijst = document.getElementById('aanmeldLijst');
+  const banner = document.getElementById('aanmeldBanner');
+  if(!aanmeldingen.length){
+    lijst.innerHTML = '<div class="aanmeld-leeg">Er staan nu geen nieuwe aanmeldingen open. Zodra een gast zijn link invult, verschijnt hij hier.</div>';
+    banner.style.display = 'none';
+    return;
+  }
+  lijst.innerHTML = aanmeldingen.map(a=>{
+    const details = [
+      a.datum ? new Date(a.datum).toLocaleDateString('nl-NL') : '',
+      locName(a.locatie),
+      a.code ? 'res. ' + escapeHtml(a.code) : '',
+      a.lid ? 'wil lid worden' : ''
+    ].filter(Boolean).join(' · ');
+    return `<div class="aanmeld">
+      <div class="info">
+        <strong>${escapeHtml(a.voornaam)} ${escapeHtml(a.achternaam)}</strong>
+        <small>${escapeHtml(details)}</small>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Formulier openen</button>
+        <button class="btn secondary sm" type="button" onclick="verwijderAanmelding('${a.id}')">Verwijderen</button>
+      </div>
+    </div>`;
+  }).join('');
+  banner.style.display = 'flex';
+  document.getElementById('aanmeldBannerTekst').innerHTML =
+    `<strong>${aanmeldingen.length} ${aanmeldingen.length===1?'gast heeft':'gasten hebben'} zich aangemeld</strong>
+     <small>${escapeHtml(aanmeldingen.map(a=>a.voornaam + ' ' + a.achternaam).join(', '))}</small>`;
+}
+
+function gebruikAanmelding(id){
+  const a = aanmeldingen.find(x=>x.id===id);
+  if(!a) return;
+  const concept = a.checkin_id ? checkins.find(c=>c.id===a.checkin_id) : null;
+  if(concept){
+    openDetailId = concept.id;
+    editCheckinFromDetail();
+  } else {
+    clearCheckinForm();
+    if(a.locatie){ document.getElementById('c_locatie').value = a.locatie; updateCheckinManagerOptions(); }
+    if(a.datum) document.getElementById('c_datum').value = a.datum;
+    if(a.code) document.getElementById('c_resnr').value = a.code;
+  }
+  actieveAanmelding = a;
+  guestData = {
+    voornaam:a.voornaam, achternaam:a.achternaam, woonplaats:a.woonplaats,
+    nationaliteit:a.nationaliteit, telefoon:a.telefoon, email:a.email,
+    akkoord:a.akkoord, akkoord_voorwaarden:a.akkoord_voorwaarden,
+    lid:a.lid, handtekening:a.handtekening
+  };
+  renderGuestStatus();
+  herberekenAlles();
+  document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+async function verwerkteAanmeldingWegstrepen(checkinId){
+  if(!actieveAanmelding) return;
+  try{
+    await sb(`gast_aanmeldingen?id=eq.${actieveAanmelding.id}`, {
+      method:'PATCH',
+      body: JSON.stringify({ status:'verwerkt', checkin_id: checkinId }),
+      prefer:'return=minimal'
+    });
+    actieveAanmelding = null;
+    await loadAanmeldingen();
+    renderAanmeldingen();
+  }catch(e){ console.error('Aanmelding afvinken mislukt:', e); }
+}
+
+async function verwijderAanmelding(id){
+  if(!confirm('Deze aanmelding verwijderen?')) return;
+  try{
+    await sb(`gast_aanmeldingen?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' });
+    if(actieveAanmelding?.id === id) actieveAanmelding = null;
+    await loadAanmeldingen();
+    renderAanmeldingen();
+  }catch(e){ alert('Verwijderen is niet gelukt: ' + e.message); }
+}
+
 function renderGuestStatus(){
   const el = document.getElementById('guestStatus');
   if(!guestData){
@@ -1004,14 +1343,15 @@ function collectCheckinData(){
     handtekening: guestData ? guestData.handtekening : null,
   };
 }
-async function saveCheckin(){
+async function saveCheckin(alsConcept){
   const statusEl = document.getElementById('checkinStatus');
-  if(!guestData){
-    statusEl.textContent = '✕ Laat eerst de gast het formulier invullen (zie "Klantgegevens & akkoord" hierboven).';
+  if(!alsConcept && !guestData){
+    statusEl.textContent = '✕ Laat eerst de gast het formulier invullen (zie "Klantgegevens & akkoord" hierboven), of sla het op als concept.';
     statusEl.className = 'status err';
     throw new Error('Gastgegevens ontbreken');
   }
   const data = collectCheckinData();
+  data.status = alsConcept ? 'concept' : 'definitief';
   const isEdit = !!document.getElementById('c_id').value && checkins.some(c=>c.id===data.id);
   statusEl.textContent = 'Bezig met opslaan...';
   statusEl.className = 'status';
@@ -1020,10 +1360,15 @@ async function saveCheckin(){
       await sb(`checkins?id=eq.${data.id}`, { method:'PATCH', body: JSON.stringify(data) });
     } else {
       await sb('checkins', { method:'POST', body: JSON.stringify(data) });
+      document.getElementById('c_id').value = data.id;
     }
+    if(!alsConcept) await verwerkteAanmeldingWegstrepen(data.id);
     await loadCheckins();
     renderCheckinTable();
-    statusEl.textContent = `✓ Incheckformulier ${isEdit ? 'bijgewerkt' : 'opgeslagen'}.`;
+    renderConcepten();
+    statusEl.textContent = alsConcept
+      ? '✓ Opgeslagen als concept. Je kunt er nu een persoonlijke gastenlink aan koppelen.'
+      : `✓ Incheckformulier ${isEdit ? 'bijgewerkt' : 'opgeslagen'}.`;
     statusEl.className = 'status ok';
     return data;
   }catch(err){
@@ -1071,7 +1416,7 @@ function checkinEmailBody(data){
 }
 async function sendCheckinEmail(inputId){
   let data;
-  try{ data = await saveCheckin(); }catch(err){ return; }
+  try{ data = await saveCheckin(false); }catch(err){ return; }
   const to = document.getElementById(inputId).value.trim();
   if(!to){
     const statusEl = document.getElementById('checkinStatus');
@@ -1095,6 +1440,7 @@ function clearCheckinForm(){
   orderedItems = [];
   renderOrderList();
   guestData = null;
+  actieveAanmelding = null;
   renderGuestStatus();
   document.getElementById('c_splitToggle').checked = false;
   toggleSplitBetaling();
@@ -1111,11 +1457,12 @@ function clearCheckinForm(){
 let openDetailId = null;
 function renderCheckinTable(){
   const body = document.getElementById('checkinTableBody');
-  if(!checkins.length){
+  const afgerond = checkins.filter(c=>c.status !== 'concept');
+  if(!afgerond.length){
     body.innerHTML = '<tr><td colspan="7" class="hint" style="padding:14px 4px;">Nog geen formulieren opgeslagen.</td></tr>';
     return;
   }
-  body.innerHTML = checkins.slice(0,25).map(c=>`
+  body.innerHTML = afgerond.slice(0,25).map(c=>`
     <tr onclick="openCheckinDetail('${c.id}')">
       <td>${c.datum||''}</td>
       <td><span class="locbadge" style="background:${c.locatie==='angie'?'var(--loc-angie)':(c.locatie==='jacuzzi'?'var(--loc-jacuzzi)':'var(--loc-deluxe)')};">${escapeHtml(locName(c.locatie))}</span></td>
@@ -1234,6 +1581,8 @@ async function deleteCheckinFromDetail(){
 function renderAll(){
   updateCheckinManagerOptions();
   renderCheckinTable();
+  renderConcepten();
+  renderAanmeldingen();
   renderOrderList();
   renderGuestStatus();
   herberekenAlles();
@@ -1250,7 +1599,14 @@ buildPersoonSelects();
 document.getElementById('c_checkoutDuur').value = '0.5';
 toggleVerblijftype();
 herberekenAlles();
-loadAll();
+
+/* Al eerder ingelogd op dit apparaat? Dan meteen door. */
+laadAuth();
+if(auth?.access_token){
+  startApp();
+} else {
+  document.getElementById('li_email').focus();
+}
 </script>
 </body>
 </html>

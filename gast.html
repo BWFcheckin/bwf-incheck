@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Inchecken — Bed &amp; Wellness Flevoland</title>
+<style>
+  :root{
+    --gold:#C9A84C; --gold-dark:#a98a34; --gold-soft:#f2ead0;
+    --cream:#FAF6EC; --ink:#2b2620; --ink-soft:#7a6f5c; --line:#e7ddc4;
+    --ok:#3f7d52; --ok-bg:#e9f3ec; --err:#b0483a; --err-bg:#fbeae7;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Segoe UI',Arial,sans-serif; }
+  h1,h2,h3{ font-family:Georgia,'Times New Roman',serif; font-weight:600; margin:0; }
+  .wrap{ max-width:560px; margin:0 auto; padding:26px 18px 60px; }
+
+  header.topbar{ border-bottom:2px solid var(--gold); padding-bottom:14px; margin-bottom:18px; }
+  header.topbar h1{ font-size:22px; color:var(--gold-dark); }
+  header.topbar p{ margin:4px 0 0; font-size:13px; color:var(--ink-soft); }
+  .chip{ display:inline-block; font-size:11.5px; color:var(--gold-dark); background:var(--gold-soft); padding:5px 12px; border-radius:20px; margin-top:10px; }
+
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:16px; }
+  .card h2{ font-size:16px; color:var(--gold-dark); margin-bottom:2px; }
+  .card p.desc{ font-size:12.5px; color:var(--ink-soft); margin:4px 0 14px; }
+
+  label{ display:block; font-size:12.5px; color:var(--ink-soft); margin:12px 0 4px; }
+  input[type=text],input[type=email],input[type=tel],input[type=date],select{
+    width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:9px;
+    font-size:15px; font-family:inherit; color:var(--ink); background:#fff;
+  }
+  input:focus,select:focus{ outline:none; border-color:var(--gold); }
+  .req-mark{ color:var(--err); }
+  .radio-row{ display:flex; gap:18px; margin-top:4px; }
+  .radio-row label{ display:flex; align-items:center; gap:7px; margin:0; font-size:14px; color:var(--ink); }
+  .radio-row input{ width:auto; }
+  .check-row{ display:flex; align-items:flex-start; gap:9px; margin-top:11px; font-size:13.5px; color:var(--ink); line-height:1.4; }
+  .check-row input{ width:auto; margin-top:2px; flex:none; }
+
+  .fieldset-label{ font-size:12.5px; color:var(--gold-dark); font-weight:600; margin-top:20px; padding-top:14px; border-top:1px solid var(--line); }
+
+  .btn{ display:inline-flex; align-items:center; gap:7px; border:none; border-radius:9px; padding:12px 18px;
+        background:var(--gold); color:#fff; font-size:14.5px; font-family:inherit; cursor:pointer; }
+  .btn:hover{ background:var(--gold-dark); }
+  .btn.secondary{ background:#fff; color:var(--gold-dark); border:1.5px solid var(--line); }
+  .btn.sm{ padding:8px 13px; font-size:13px; }
+  .btn:disabled{ opacity:.55; cursor:default; }
+  .btn:focus-visible{ outline:2px solid var(--gold-dark); outline-offset:2px; }
+
+  .sigbox{ border:1.5px solid var(--line); border-radius:10px; background:#fff; display:inline-block; margin-top:8px; max-width:100%; }
+  canvas{ display:block; touch-action:none; cursor:crosshair; max-width:100%; height:auto; }
+
+  .status{ font-size:13px; margin-top:14px; padding:10px 13px; border-radius:9px; display:none; }
+  .status.err{ display:block; background:var(--err-bg); color:var(--err); }
+  .status.busy{ display:block; background:var(--gold-soft); color:var(--gold-dark); }
+
+  .done{ text-align:center; padding:34px 22px; }
+  .done .mark{ font-size:40px; color:var(--ok); }
+  .done h2{ font-size:20px; margin:10px 0 8px; color:var(--gold-dark); }
+  .done p{ font-size:14px; color:var(--ink-soft); line-height:1.55; margin:0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <h1>Welkom bij Bed &amp; Wellness Flevoland</h1>
+    <p>Vul je gegevens hieronder in, dan staat je inchecken al klaar als je aankomt.</p>
+    <div class="chip" id="resChip" style="display:none;"></div>
+  </header>
+
+  <!-- ===== Formulier ===== -->
+  <div class="card" id="formCard">
+    <h2>Jouw gegevens</h2>
+    <p class="desc">Alle velden met een * zijn verplicht. Je gegevens worden alleen gebruikt voor je verblijf en het wettelijk verplichte nachtregister.</p>
+
+    <form id="gastForm" onsubmit="return false;">
+
+      <div id="verblijfWrap">
+        <label for="g_locatie">Welke suite heb je geboekt? <span class="req-mark">*</span></label>
+        <select id="g_locatie"></select>
+
+        <label for="g_datum">Datum van je verblijf <span class="req-mark">*</span></label>
+        <input type="date" id="g_datum">
+      </div>
+
+      <label for="g_voornaam">Voornaam <span class="req-mark">*</span></label>
+      <input type="text" id="g_voornaam" autocomplete="given-name" required>
+
+      <label for="g_achternaam">Achternaam <span class="req-mark">*</span></label>
+      <input type="text" id="g_achternaam" autocomplete="family-name" required>
+
+      <label for="g_woonplaats">Woonplaats <span class="req-mark">*</span></label>
+      <input type="text" id="g_woonplaats" autocomplete="address-level2" required>
+
+      <label for="g_nationaliteit">Nationaliteit <span class="req-mark">*</span></label>
+      <input type="text" id="g_nationaliteit" value="Nederlandse" required>
+
+      <label for="g_telefoon">Telefoonnummer <span class="req-mark">*</span></label>
+      <input type="tel" id="g_telefoon" autocomplete="tel" required>
+
+      <label for="g_email">E-mailadres <span class="req-mark">*</span></label>
+      <input type="email" id="g_email" autocomplete="email" required>
+
+      <label>Wil je gratis lid worden (10% korting)? <span class="req-mark">*</span></label>
+      <div class="radio-row">
+        <label><input type="radio" name="g_lid" value="ja"> Ja</label>
+        <label><input type="radio" name="g_lid" value="nee"> Nee</label>
+      </div>
+
+      <div class="fieldset-label">Huisregels &amp; algemene voorwaarden</div>
+      <button class="btn secondary sm" type="button" style="margin-top:10px;" onclick="viewDocument('huisregels')">📄 Huisregels bekijken</button>
+      <label class="check-row">
+        <input type="checkbox" id="g_akkoord"> Ik heb de huisregels gelezen en ga akkoord <span class="req-mark">*</span>
+      </label>
+      <button class="btn secondary sm" type="button" style="margin-top:12px;" onclick="viewDocument('voorwaarden')">📄 Algemene voorwaarden bekijken</button>
+      <label class="check-row">
+        <input type="checkbox" id="g_akkoordvw"> Ik heb de algemene voorwaarden gelezen en ga akkoord <span class="req-mark">*</span>
+      </label>
+
+      <div class="fieldset-label">Handtekening <span class="req-mark">*</span></div>
+      <p class="desc" style="margin:6px 0 0;">Zet je handtekening met je vinger of muis in het vak.</p>
+      <div class="sigbox">
+        <canvas id="g_sigpad" width="440" height="150"></canvas>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn secondary sm" type="button" onclick="clearSignature()">Handtekening wissen</button>
+      </div>
+
+      <div class="status" id="formStatus"></div>
+
+      <button class="btn" type="button" id="submitBtn" style="width:100%;justify-content:center;margin-top:18px;padding:14px;font-size:15.5px;" onclick="verstuur()">Inchecken versturen</button>
+    </form>
+  </div>
+
+  <!-- ===== Bedankscherm ===== -->
+  <div class="card done" id="doneCard" style="display:none;">
+    <div class="mark">✓</div>
+    <h2>Bedankt, <span id="doneNaam"></span>!</h2>
+    <p>Je gegevens zijn ontvangen. Bij aankomst rondt de locatiemanager het inchecken met je af — je hoeft niets meer in te vullen.<br><br>Tot snel bij Bed &amp; Wellness Flevoland.</p>
+  </div>
+
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+
+const LOCATIONS = [
+  { id:'angie',   naam:'Suite Angie — Almere' },
+  { id:'jacuzzi', naam:'Malina Jacuzzi Suite — Lelystad' },
+  { id:'deluxe',  naam:'Malina Deluxe Zwembad Suite — Lelystad' },
+];
+function locGroup(id){ return id === 'angie' ? 'almere' : 'lelystad'; }
+
+/* Deze pagina leest nooit gegevens van andere gasten: er wordt uitsluitend
+   verstuurd (POST) naar gast_aanmeldingen en gelezen uit documenten. */
+async function sb(path, options={}){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=minimal',
+    },
+    body: options.body
+  });
+  if(!res.ok){
+    let detail = '';
+    try{ detail = (await res.json()).message; }catch(e){}
+    throw new Error(detail || `Serverfout (${res.status})`);
+  }
+  if(res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+/* ================= LINK-PARAMETERS ================= */
+const params   = new URLSearchParams(location.search);
+const resCode  = (params.get('r') || '').trim();
+const linkLoc  = (params.get('loc') || '').trim();
+const linkDatum= (params.get('d') || '').trim();
+const conceptId= (params.get('c') || '').trim();   // koppelt aan een klaargezet formulier
+
+function initLink(){
+  const sel = document.getElementById('g_locatie');
+  sel.innerHTML = '<option value="">— Kies je suite —</option>' +
+    LOCATIONS.map(l=>`<option value="${l.id}">${l.naam}</option>`).join('');
+
+  const known = LOCATIONS.some(l=>l.id===linkLoc);
+  if(known) sel.value = linkLoc;
+  if(linkDatum) document.getElementById('g_datum').value = linkDatum;
+
+  // Staat alles al in de link, dan hoeft de gast suite en datum niet meer te kiezen
+  if(known && linkDatum) document.getElementById('verblijfWrap').style.display = 'none';
+
+  const chip = document.getElementById('resChip');
+  const stukjes = [];
+  if(resCode) stukjes.push('Reservering ' + resCode);
+  if(known)   stukjes.push(LOCATIONS.find(l=>l.id===linkLoc).naam);
+  if(stukjes.length){
+    chip.textContent = stukjes.join(' · ');
+    chip.style.display = 'inline-block';
+  }
+}
+
+/* ================= HUISREGELS & VOORWAARDEN ================= */
+let documenten = [];
+async function loadDocumenten(){
+  try{ documenten = await sb('documenten?select=*', { prefer:'return=representation' }) || []; }
+  catch(e){ console.error('Documenten laden mislukt:', e); }
+}
+function viewDocument(type){
+  const locatie = document.getElementById('g_locatie').value || linkLoc;
+  const groep = type === 'voorwaarden' ? 'algemeen' : locGroup(locatie);
+  if(type !== 'voorwaarden' && !locatie){
+    toon('Kies eerst je suite, dan laden we de juiste huisregels.', 'err');
+    return;
+  }
+  const doc = documenten.find(d=>d.id === `${type}_${groep}`);
+  if(!doc){
+    toon('Dit document staat er nog niet bij. Vraag het even op bij aankomst.', 'err');
+    return;
+  }
+  const chars = atob(doc.data);
+  const bytes = new Uint8Array(chars.length);
+  for(let i=0;i<chars.length;i++) bytes[i] = chars.charCodeAt(i);
+  const blob = new Blob([bytes], { type:'application/pdf' });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+/* ================= HANDTEKENING ================= */
+let sigCtx, sigDrawing = false, sigHasContent = false;
+function setupSignaturePad(){
+  const canvas = document.getElementById('g_sigpad');
+  sigCtx = canvas.getContext('2d');
+  sigCtx.lineWidth = 2;
+  sigCtx.lineCap = 'round';
+  sigCtx.strokeStyle = '#2b2620';
+  function pos(e){
+    const rect = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return { x:(p.clientX-rect.left)*(canvas.width/rect.width), y:(p.clientY-rect.top)*(canvas.height/rect.height) };
+  }
+  function start(e){ sigDrawing = true; sigHasContent = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); e.preventDefault(); }
+  function move(e){ if(!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); e.preventDefault(); }
+  function end(){ sigDrawing = false; }
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, { passive:false });
+  canvas.addEventListener('touchmove', move, { passive:false });
+  canvas.addEventListener('touchend', end);
+}
+function clearSignature(){
+  const c = document.getElementById('g_sigpad');
+  sigCtx.clearRect(0,0,c.width,c.height);
+  sigHasContent = false;
+}
+
+/* ================= VERSTUREN ================= */
+function toon(tekst, soort){
+  const el = document.getElementById('formStatus');
+  el.textContent = tekst;
+  el.className = 'status ' + soort;
+}
+
+let bezig = false;
+async function verstuur(){
+  if(bezig) return;
+
+  const locatie      = document.getElementById('g_locatie').value;
+  const datum        = document.getElementById('g_datum').value;
+  const voornaam     = document.getElementById('g_voornaam').value.trim();
+  const achternaam   = document.getElementById('g_achternaam').value.trim();
+  const woonplaats   = document.getElementById('g_woonplaats').value.trim();
+  const nationaliteit= document.getElementById('g_nationaliteit').value.trim();
+  const telefoon     = document.getElementById('g_telefoon').value.trim();
+  const email        = document.getElementById('g_email').value.trim();
+  const lidEl        = document.querySelector('input[name="g_lid"]:checked');
+  const akkoord      = document.getElementById('g_akkoord').checked;
+  const akkoordvw    = document.getElementById('g_akkoordvw').checked;
+
+  const mist = [];
+  if(!locatie) mist.push('Suite');
+  if(!datum) mist.push('Datum');
+  if(!voornaam) mist.push('Voornaam');
+  if(!achternaam) mist.push('Achternaam');
+  if(!woonplaats) mist.push('Woonplaats');
+  if(!nationaliteit) mist.push('Nationaliteit');
+  if(!telefoon) mist.push('Telefoonnummer');
+  if(!email) mist.push('E-mailadres');
+  if(!lidEl) mist.push('Wel of geen lid');
+  if(!akkoord) mist.push('Akkoord huisregels');
+  if(!akkoordvw) mist.push('Akkoord voorwaarden');
+  if(!sigHasContent) mist.push('Handtekening');
+  if(mist.length){ toon('Vul nog in: ' + mist.join(', '), 'err'); return; }
+
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toon('Controleer je e-mailadres.', 'err'); return; }
+
+  bezig = true;
+  document.getElementById('submitBtn').disabled = true;
+  toon('Bezig met versturen…', 'busy');
+
+  const rij = {
+    id: 'g' + Date.now() + Math.random().toString(36).slice(2,6),
+    code: resCode || null,
+    checkin_id: conceptId || null,
+    locatie, datum,
+    voornaam, achternaam, woonplaats, nationaliteit, telefoon, email,
+    lid: lidEl.value === 'ja',
+    akkoord, akkoord_voorwaarden: akkoordvw,
+    handtekening: document.getElementById('g_sigpad').toDataURL('image/png'),
+    status: 'nieuw'
+  };
+
+  try{
+    await sb('gast_aanmeldingen', { method:'POST', body: JSON.stringify(rij), prefer:'return=minimal' });
+    document.getElementById('doneNaam').textContent = voornaam;
+    document.getElementById('formCard').style.display = 'none';
+    document.getElementById('doneCard').style.display = 'block';
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }catch(err){
+    console.error('Versturen mislukt:', err);
+    bezig = false;
+    document.getElementById('submitBtn').disabled = false;
+    toon('Versturen is niet gelukt: ' + err.message + '. Probeer het opnieuw, of laat het weten bij aankomst.', 'err');
+  }
+}
+
+/* ================= START ================= */
+initLink();
+setupSignaturePad();
+loadDocumenten();
+</script>
+</body>
+</html>
