@@ -4,132 +4,193 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bed & Wellness Flevoland — Incheckformulier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
-  :root{
-    --gold:#C9A84C; --gold-dark:#a98a34; --gold-soft:#f2ead0;
-    --cream:#FAF6EC; --ink:#2b2620; --ink-soft:#7a6f5c; --line:#e7ddc4;
-    --ok:#3f7d52; --ok-bg:#e9f3ec; --err:#b0483a; --err-bg:#fbeae7; --warn:#a97c2f; --warn-bg:#f7ecd6;
-    --loc-angie:#C9A84C; --loc-jacuzzi:#6f8ea6; --loc-deluxe:#b5766a;
+:root{
+  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
+  --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
+  --accent:#483C34; --accent-ink:#FFFFFF; --accent-soft:#E8DFD5;
+  --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2; --warn:#8F6420; --warn-soft:#F6EBD9;
+  --crit:#A34434; --crit-soft:#F7E2DC;
+  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
+  --r-s:6px; --r-m:10px; --r-l:16px;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --loc-angie:#9A7B4F; --loc-jacuzzi:#6F7A5A; --loc-deluxe:#A25E48;
+  /* aliassen zodat bestaande inline-stijlen blijven werken */
+  --gold:var(--brass); --gold-dark:var(--accent); --gold-soft:var(--accent-soft);
+  --cream:var(--surface-2); --ink-soft:var(--muted);
+  --ok-bg:var(--ok-soft); --err:var(--crit); --err-bg:var(--crit-soft); --warn-bg:var(--warn-soft);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141110; --surface:#1D1917; --surface-2:#251F1C; --line:#38302A; --line-soft:#2B2421;
+    --ink:#F1EBE4; --ink-2:#D8CEC4; --muted:#A2958A;
+    --accent:#D7BFA6; --accent-ink:#241E19; --accent-soft:#33291F;
+    --brass:#E0BE86; --ok:#79C08F; --ok-soft:#16301F; --warn:#E0B26A; --warn-soft:#33260F;
+    --crit:#E89383; --crit-soft:#361B16;
+    --loc-angie:#E0BE86; --loc-jacuzzi:#AFBE92; --loc-deluxe:#E09B84;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.85);
   }
-  *{box-sizing:border-box;}
-  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Segoe UI',Arial,sans-serif; }
-  h1,h2,h3{ font-family:Georgia,'Times New Roman',serif; font-weight:600; margin:0; }
-  .wrap{ max-width:920px; margin:0 auto; padding:26px 20px 70px; }
+}
 
-  header.topbar{ display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid var(--gold); padding-bottom:14px; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
-  header.topbar h1{ font-size:21px; color:var(--gold-dark); }
-  header.topbar p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
-  .sharednote{ font-size:11.5px; color:var(--gold-dark); background:var(--gold-soft); padding:6px 12px; border-radius:20px; }
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+h1,h2,h3{ font-family:var(--f-display); font-weight:700; letter-spacing:-.015em; margin:0; }
+button,input,select,textarea{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+@media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
 
-  .loadstatus{ display:none; background:var(--err-bg); color:var(--err); border:1px solid var(--err); border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:16px; }
+.wrap{ max-width:1000px; margin:0 auto; padding:0 20px 72px; }
 
-  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:16px; }
-  .card h2{ font-size:16px; color:var(--gold-dark); margin-bottom:2px; }
-  .card h3{ font-size:13.5px; color:var(--ink); margin:14px 0 6px; }
-  .card p.desc{ font-size:12.5px; color:var(--ink-soft); margin:2px 0 12px; }
+header.topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 0 14px; margin-bottom:20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+header.topbar .brand{ display:flex; align-items:center; gap:13px; min-width:0; }
+header.topbar img.merk{ height:42px; width:auto; display:block; flex:none; }
+header.topbar h1{ font-size:19px; }
+header.topbar p{ margin:2px 0 0; font-family:var(--f-mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted); }
+.sharednote{ display:inline-flex; align-items:center; gap:7px; height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface); font-size:12px; color:var(--muted); white-space:nowrap; }
 
-  .btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; background:var(--gold); color:#fff; border:none; border-radius:10px; padding:9px 15px; font-size:13px; font-weight:600; transition:.15s; }
-  .btn:hover{ background:var(--gold-dark); }
-  .btn.secondary{ background:#fff; color:var(--gold-dark); border:1.5px solid var(--gold); }
-  .btn.secondary:hover{ background:var(--cream); }
-  .btn.sm{ padding:6px 11px; font-size:12px; border-radius:8px; }
-  .btn.danger{ background:#fff; color:var(--err); border:1.5px solid var(--err); }
-  .btn:disabled{ opacity:.55; cursor:not-allowed; }
+.loadstatus{ display:none; background:var(--crit-soft); color:var(--crit); border-radius:var(--r-m); padding:11px 14px; font-size:13px; margin-bottom:18px; }
 
-  form label{ display:block; font-size:11.5px; color:var(--ink-soft); margin:9px 0 3px; }
-  form input, form select, form textarea{ width:100%; padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:13px; font-family:inherit; }
-  form textarea{ resize:vertical; min-height:56px; }
-  .formgrid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
-  .formgrid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 14px; }
-  .fieldset-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--gold-dark); margin-top:16px; border-top:1px solid var(--line); padding-top:10px; font-weight:600; }
-  .hint{ font-size:11.5px; color:#a89b7c; margin-top:8px; line-height:1.5; }
-  .status{ margin-top:10px; font-size:12.5px; font-weight:600; }
-  .status.ok{ color:var(--ok); }
-  .status.err{ color:var(--err); }
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:18px; }
+.card h2{ font-size:16px; font-weight:600; }
+.card h3{ font-family:var(--f-mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--brass); font-weight:500; margin:20px 0 8px; }
+.card p.desc{ font-size:13px; color:var(--muted); margin:5px 0 14px; max-width:66ch; }
 
-  .checklist{ display:flex; flex-direction:column; gap:4px; margin:6px 0 4px; }
-  .checklist label{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; color:var(--ink); margin:0; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--cream); }
-  .checklist label span.prijs{ color:var(--gold-dark); font-weight:600; font-size:12.5px; white-space:nowrap; }
-  .checklist input[type=checkbox]{ width:auto; accent-color:var(--gold); margin-right:8px; }
-  .checklist label .cl-name{ display:flex; align-items:center; }
-  .cl-note{ font-size:11px; color:var(--warn); margin:2px 0 8px 4px; }
+.btn{ display:inline-flex; align-items:center; gap:7px; cursor:pointer; border:1px solid var(--accent);
+      background:var(--accent); color:var(--accent-ink); padding:9px 16px; border-radius:var(--r-s);
+      font-size:13.5px; font-weight:600; white-space:nowrap; text-decoration:none; }
+.btn:hover{ filter:brightness(1.12); }
+.btn.secondary{ background:var(--surface); color:var(--ink); border-color:var(--line); }
+.btn.secondary:hover{ border-color:var(--accent); color:var(--accent); filter:none; }
+.btn.danger{ background:var(--surface); color:var(--crit); border-color:var(--crit); }
+.btn.sm{ padding:6px 11px; font-size:12.5px; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
 
-  .radio-row{ display:flex; gap:14px; flex-wrap:wrap; margin:6px 0; }
-  .radio-row label{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink); background:var(--cream); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer; }
-  .radio-row input[type=radio]{ width:auto; accent-color:var(--gold); }
-  .radio-row label.selected{ border-color:var(--gold-dark); background:var(--gold-soft); font-weight:600; }
+form label{ display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin:12px 0 5px; }
+form input, form select, form textarea{ width:100%; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--r-s); padding:8px 10px; font-size:14px; font-family:inherit; }
+form textarea{ resize:vertical; min-height:64px; }
+form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:var(--surface); }
+.formgrid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+.formgrid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 14px; }
+@media(max-width:640px){ .formgrid,.formgrid3{ grid-template-columns:1fr; } }
+.fieldset-label{ font-family:var(--f-mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--brass);
+  margin-top:20px; border-top:1px solid var(--line-soft); padding-top:14px; font-weight:500; }
+.hint{ font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
+.status{ margin-top:10px; font-size:13px; font-weight:600; }
+.status.ok{ color:var(--ok); }
+.status.err{ color:var(--crit); }
 
-  .order-add{ display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px; }
-  .order-add > div{ flex:1; min-width:140px; }
-  .order-add .qty{ max-width:80px; }
-  .order-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:6px; }
-  .order-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--cream); font-size:12.8px; }
-  .order-row .or-price{ color:var(--gold-dark); font-weight:600; }
-  .order-row button{ border:none; background:var(--err-bg); color:var(--err); width:20px; height:20px; border-radius:50%; cursor:pointer; font-size:11px; }
+.checklist{ display:flex; flex-direction:column; gap:5px; margin:6px 0 4px; }
+.checklist label{ display:flex; align-items:center; justify-content:space-between; gap:9px; font-size:13.5px; color:var(--ink);
+  margin:0; padding:8px 11px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); cursor:pointer; }
+.checklist label span.prijs{ font-family:var(--f-mono); color:var(--brass); font-weight:500; font-size:12.5px; white-space:nowrap; }
+.checklist input[type=checkbox]{ width:16px; height:16px; accent-color:var(--accent); margin-right:9px; }
+.checklist label .cl-name{ display:flex; align-items:center; }
+.cl-note{ font-size:11.5px; color:var(--warn); margin:2px 0 8px 4px; }
 
-  .topsom{ background:#fff; border:1px solid var(--gold); border-radius:14px; padding:14px 18px; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,.04); }
-  .topsom h2{ font-size:16px; color:var(--gold-dark); margin-bottom:2px; }
-  .somgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
-  .somvak{ background:var(--cream); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
-  .somvak span{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:3px; }
-  .somvak b{ font-size:17px; color:var(--ink); font-family:Georgia,'Times New Roman',serif; }
-  .somvak.nog{ background:var(--gold-soft); border-color:var(--gold); }
-  .somvak.nog b{ color:var(--gold-dark); }
-  @media(max-width:700px){ .somgrid{ grid-template-columns:1fr 1fr; } }
+.radio-row{ display:flex; gap:10px; flex-wrap:wrap; margin:6px 0; }
+.radio-row label{ display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--r-s); padding:8px 13px; cursor:pointer; margin:0; }
+.radio-row input[type=radio]{ width:16px; height:16px; accent-color:var(--accent); }
+.radio-row label.selected{ border-color:var(--accent); background:var(--accent-soft); }
 
-  .rekenlijst{ border:1px solid var(--line); border-radius:10px; overflow:hidden; margin:10px 0 4px; }
-  .rekenlijst div.rl{ display:flex; justify-content:space-between; gap:10px; padding:7px 12px; font-size:12.8px; border-bottom:1px solid var(--line); }
-  .rekenlijst div.rl:last-child{ border-bottom:none; }
-  .rekenlijst div.rl.kop{ background:var(--gold-soft); color:var(--gold-dark); font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.05em; }
-  .rekenlijst div.rl.tot{ background:var(--cream); font-weight:600; }
-  .rekenlijst div.rl.eind{ background:var(--gold-soft); color:var(--gold-dark); font-weight:700; font-size:14px; }
-  .rekenlijst div.rl.info{ color:var(--ink-soft); font-style:italic; }
+.order-add{ display:flex; gap:9px; align-items:flex-end; flex-wrap:wrap; margin-bottom:11px; }
+.order-add > div{ flex:1; min-width:145px; }
+.order-add .qty{ max-width:86px; }
+.order-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:6px; }
+.order-row{ display:flex; align-items:center; justify-content:space-between; gap:9px; padding:8px 11px;
+  border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); font-size:13px; }
+.order-row .or-price{ font-family:var(--f-mono); color:var(--brass); font-weight:500; }
+.order-row button{ border:1px solid transparent; background:none; color:var(--muted); width:22px; height:22px;
+  border-radius:var(--r-s); cursor:pointer; font-size:12px; }
+.order-row button:hover{ color:var(--crit); border-color:var(--line); background:var(--surface); }
 
-  .subtotal-box{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--gold-soft); border:1px solid var(--gold); border-radius:10px; padding:10px 14px; margin-top:10px; font-size:13px; flex-wrap:wrap; }
-  .subtotal-box b{ color:var(--gold-dark); font-size:15px; }
+.topsom{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); padding:18px 20px;
+  margin-bottom:18px; box-shadow:var(--shadow); }
+.topsom h2{ font-size:16px; font-weight:600; }
+.somgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+.somvak{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-m); padding:13px 15px;
+  position:relative; overflow:hidden; }
+.somvak::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); opacity:.85; }
+.somvak span{ display:block; font-family:var(--f-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--muted); margin-bottom:4px; }
+.somvak b{ font-family:var(--f-display); font-size:23px; font-weight:700; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; color:var(--ink); }
+.somvak.nog::before{ background:var(--brass); }
+.somvak.nog b{ color:var(--brass); }
+@media(max-width:700px){ .somgrid{ grid-template-columns:1fr 1fr; } }
 
-  .guest-status{ font-size:12.5px; padding:10px 14px; border-radius:10px; margin-bottom:12px; }
-  .guest-status.empty{ background:var(--warn-bg); color:var(--warn); }
-  .guest-status.filled{ background:var(--ok-bg); color:var(--ok); }
+.rekenlijst{ border:1px solid var(--line); border-radius:var(--r-m); overflow:hidden; margin:12px 0 4px; }
+.rekenlijst div.rl{ display:flex; justify-content:space-between; gap:12px; padding:9px 13px; font-size:13.2px;
+  border-bottom:1px solid var(--line-soft); font-variant-numeric:tabular-nums; }
+.rekenlijst div.rl:last-child{ border-bottom:none; }
+.rekenlijst div.rl.kop{ background:var(--surface-2); color:var(--muted); font-family:var(--f-mono); font-weight:500;
+  text-transform:uppercase; font-size:10.5px; letter-spacing:.1em; }
+.rekenlijst div.rl.tot{ background:var(--surface-2); font-weight:600; }
+.rekenlijst div.rl.eind{ background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:14.5px; }
+.rekenlijst div.rl.info{ color:var(--muted); }
 
-  .modal-bg{ display:none; position:fixed; inset:0; background:rgba(43,38,32,.55); align-items:center; justify-content:center; z-index:50; padding:16px; overflow-y:auto; }
-  .modal-bg.open{ display:flex; }
-  .modal{ background:#fff; border-radius:16px; padding:26px; width:100%; max-width:520px; box-shadow:0 20px 60px rgba(0,0,0,.3); max-height:92vh; overflow:auto; margin:auto; }
-  .modal h3{ color:var(--gold-dark); margin-bottom:4px; font-size:19px; }
-  .modal p.sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:14px; }
-  .req-mark{ color:var(--err); }
+.subtotal-box{ display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface-2);
+  border:1px dashed var(--line); border-radius:var(--r-m); padding:12px 15px; margin-top:12px; font-size:13.5px; flex-wrap:wrap; }
+.subtotal-box b{ font-family:var(--f-display); font-size:19px; font-variant-numeric:tabular-nums; }
 
-  .table-wrap table{ width:100%; border-collapse:collapse; font-size:12.8px; }
-  .table-wrap th,.table-wrap td{ text-align:left; padding:8px 7px; border-bottom:1px solid var(--line); }
-  .table-wrap th{ color:var(--gold-dark); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
-  .table-wrap tr:hover{ background:var(--cream); cursor:pointer; }
+.guest-status{ font-size:13px; padding:11px 14px; border-radius:var(--r-m); margin-bottom:13px; }
+.guest-status.empty{ background:var(--warn-soft); color:var(--warn); }
+.guest-status.filled{ background:var(--ok-soft); color:var(--ok); }
 
-  /* ---- Inlogscherm ---- */
-  #loginScreen{ position:fixed; inset:0; background:var(--cream); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
-  #loginScreen .box{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px 24px; max-width:380px; width:100%; box-shadow:0 4px 20px rgba(0,0,0,.07); }
-  #loginScreen h2{ font-size:19px; color:var(--gold-dark); }
-  #loginScreen p.desc{ font-size:12.5px; color:var(--ink-soft); margin:6px 0 16px; }
-  #appBody{ display:none; }
-  .logoutbar{ font-size:11.5px; color:var(--ink-soft); }
-  .logoutbar button{ background:none; border:none; color:var(--gold-dark); cursor:pointer; font-size:11.5px; text-decoration:underline; padding:0 0 0 8px; font-family:inherit; }
+.modal-bg{ display:none; position:fixed; inset:0; background:rgba(9,16,15,.45); align-items:center; justify-content:center;
+  z-index:50; padding:16px; overflow-y:auto; }
+.modal-bg.open{ display:flex; }
+.modal{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); padding:24px; width:100%;
+  max-width:520px; box-shadow:var(--shadow); max-height:92vh; overflow:auto; margin:auto; }
+.modal h3{ font-size:18px; font-weight:600; margin-bottom:4px; }
+.modal p.sub{ font-size:13px; color:var(--muted); margin:0 0 16px; }
+.req-mark{ color:var(--crit); }
 
-  /* ---- Gastaanmeldingen ---- */
-  .aanmeld-lijst{ display:flex; flex-direction:column; gap:9px; }
-  .aanmeld{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-            border:1.5px solid var(--gold); background:var(--gold-soft); border-radius:11px; padding:11px 14px; }
-  .aanmeld .info{ font-size:13.5px; }
-  .aanmeld .info small{ display:block; color:var(--ink-soft); font-size:11.5px; margin-top:2px; }
-  .aanmeld-leeg{ font-size:12.5px; color:var(--ink-soft); }
-  .linkbox{ display:flex; gap:8px; align-items:center; margin-top:9px; flex-wrap:wrap; }
-  .linkbox input{ flex:1; min-width:220px; font-size:12px; background:var(--cream); }
-  .locbadge{ font-size:10.5px; padding:3px 9px; border-radius:999px; font-weight:600; color:#fff; display:inline-block; white-space:nowrap; }
-  .pill{ font-size:10.5px; padding:3px 9px; border-radius:999px; font-weight:600; display:inline-block; }
-  .pill.ok{ background:var(--ok-bg); color:var(--ok); }
-  .pill.warn{ background:var(--warn-bg); color:var(--warn); }
+.table-wrap{ overflow-x:auto; }
+.table-wrap table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+.table-wrap th{ text-align:left; font-family:var(--f-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted); font-weight:500; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
+.table-wrap td{ padding:11px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+.table-wrap tbody tr:last-child td{ border-bottom:0; }
+.table-wrap tbody tr:hover{ background:var(--surface-2); cursor:pointer; }
 
-  .split-row{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--cream); margin-top:8px; }
-  .split-toggle{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; }
-  .split-toggle input{ width:auto; accent-color:var(--gold); }
+#loginScreen{ position:fixed; inset:0; background:var(--bg); z-index:200; display:flex; align-items:center;
+  justify-content:center; padding:20px; }
+#loginScreen .box{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); padding:28px 26px;
+  max-width:390px; width:100%; box-shadow:var(--shadow); text-align:left; }
+#loginScreen img.merk{ height:52px; width:auto; display:block; margin:0 0 18px; }
+#loginScreen h2{ font-size:18px; font-weight:600; }
+#loginScreen p.desc{ font-size:13px; color:var(--muted); margin:6px 0 4px; }
+#appBody{ display:none; }
+.logoutbar{ font-family:var(--f-mono); font-size:10.5px; letter-spacing:.06em; color:var(--muted); }
+.logoutbar button{ background:none; border:none; color:var(--brass); cursor:pointer; font-family:inherit; font-size:10.5px;
+  text-decoration:underline; padding:0 0 0 8px; }
+
+.aanmeld-lijst{ display:flex; flex-direction:column; gap:10px; }
+.aanmeld{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  border:1px solid var(--accent); background:var(--accent-soft); border-radius:var(--r-m); padding:12px 15px; }
+.aanmeld .info{ font-size:14px; font-weight:600; }
+.aanmeld .info small{ display:block; color:var(--muted); font-size:12px; font-weight:400; margin-top:2px; }
+.aanmeld-leeg{ padding:26px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
+.linkbox{ display:flex; gap:9px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+.linkbox input{ flex:1; min-width:220px; font-family:var(--f-mono); font-size:12px; }
+.locbadge{ font-size:11.5px; padding:2px 9px; border-radius:999px; font-weight:600; color:var(--accent-ink);
+  display:inline-block; white-space:nowrap; }
+.pill{ font-size:11.5px; padding:2px 9px; border-radius:999px; font-weight:600; display:inline-block; }
+.pill.ok{ background:var(--ok-soft); color:var(--ok); }
+.pill.warn{ background:var(--warn-soft); color:var(--warn); }
+
+.split-row{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; padding:12px 14px; border:1px solid var(--line);
+  border-radius:var(--r-m); background:var(--surface-2); margin-top:10px; }
+.split-toggle{ display:flex; align-items:center; gap:9px; margin-top:12px; font-size:13.5px; }
+.split-toggle input{ width:16px; height:16px; accent-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -137,7 +198,8 @@
 <!-- ===== Inloggen (alleen personeel) ===== -->
 <div id="loginScreen">
   <div class="box">
-    <h2>Bed &amp; Wellness Flevoland</h2>
+    <img class="merk" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
+    <h2>Incheckformulier</h2>
     <p class="desc">Log in om het incheckformulier te openen.</p>
     <form onsubmit="return false;">
       <label>E-mailadres</label>
@@ -154,9 +216,12 @@
 <div class="wrap">
 
   <header class="topbar">
-    <div>
-      <h1>Incheckformulier</h1>
-      <p>Bed &amp; Wellness Flevoland — Suite Angie, Malina Jacuzzi Suite &amp; Malina Deluxe Zwembad Suite</p>
+    <div class="brand">
+      <img class="merk" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
+      <div>
+        <h1>Incheckformulier</h1>
+        <p>Suite Angie &middot; Malina Jacuzzi &middot; Malina Deluxe</p>
+      </div>
     </div>
     <div>
       <div class="sharednote">🗄️ Gedeeld via database — dezelfde gegevens als het hoofddashboard</div>
@@ -1103,7 +1168,7 @@ function renderConcepten(){
       staffNameById(c.manager) ? 'voor ' + staffNameById(c.manager) : '',
       a ? '✓ gast heeft ingevuld' : 'wacht nog op de gast'
     ].filter(Boolean).join(' · ');
-    return `<div class="aanmeld" style="${a ? '' : 'border-color:var(--line);background:#fff;'}">
+    return `<div class="aanmeld" style="${a ? '' : 'border-color:var(--line);background:var(--surface);'}">
       <div class="info">
         <strong>${escapeHtml(naam)}</strong>
         <small>${escapeHtml(details)}</small>
