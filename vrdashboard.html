@@ -1081,37 +1081,44 @@ async function api(path, opts, tweedePoging){
 
 function bewaarLokaal(){ try{ localStorage.setItem(LS.data, JSON.stringify(S)); }catch(e){ console.warn(e); } }
 
+/* elk onderdeel apart ophalen: ontbreekt er één tabel, dan blijft de rest werken */
+const LAADLIJST = [
+  ['medewerkers', () => TBL.medewerkers+'?select=*&order=naam'],
+  ['tarieven',    () => TBL.tarieven+'?select=*&order=sortering'],
+  ['taken',       () => TBL.taken+'?select=*&order=aangemaakt.desc'],
+  ['werk',        () => TBL.werk+'?select=*&order=datum.desc'],
+  ['docs',        () => TBL.docs+'?select=*&order=aangemaakt.desc'],
+  ['bellijsten',  () => TBL.bellijsten+'?select=*&order=aangemaakt.desc'],
+  ['belitems',    () => TBL.belitems+'?select=*&order=volgorde'],
+  ['links',       () => TBL.links+'?select=*&order=sortering'],
+  ['overdracht',  () => TBL.overdracht+'?select=*&order=aangemaakt.desc'],
+  ['gasten',      () => TBL.gasten+'?select=*&order=aankomst.desc'],
+  ['belasting',   () => TBL.belasting+'?select=*&order=locatie'],
+  ['scripts',     () => TBL.scripts+'?select=*&order=sortering'],
+  ['stappen',     () => TBL.stappen+'?select=*&order=volgorde'],
+  ['klanten',     () => TBL.klanten+'?select=*&order=aangemaakt.desc'],
+  ['extras',      () => TBL.extras+'?select=*&order=sortering'],
+  ['calls',       () => TBL.calls+'?select=*&order=aangemaakt.desc']
+];
+let LAADFOUTEN = [];
+
 async function laadAlles(){
-  if(online()){
-    chip('saving','Laden…');
-    try{
-      const [mw,ta,tk,wk,dc,bl,bi,lk,od,ga,bt,sc,st,kl,ex,wc] = await Promise.all([
-        api(TBL.medewerkers+'?select=*&order=naam'),
-        api(TBL.tarieven+'?select=*&order=sortering'),
-        api(TBL.taken+'?select=*&order=aangemaakt.desc'),
-        api(TBL.werk+'?select=*&order=datum.desc'),
-        api(TBL.docs+'?select=*&order=aangemaakt.desc'),
-        api(TBL.bellijsten+'?select=*&order=aangemaakt.desc'),
-        api(TBL.belitems+'?select=*&order=volgorde'),
-        api(TBL.links+'?select=*&order=sortering'),
-        api(TBL.overdracht+'?select=*&order=aangemaakt.desc'),
-        api(TBL.gasten+'?select=*&order=aankomst.desc'),
-        api(TBL.belasting+'?select=*&order=locatie'),
-        api(TBL.scripts+'?select=*&order=sortering'),
-        api(TBL.stappen+'?select=*&order=volgorde'),
-        api(TBL.klanten+'?select=*&order=aangemaakt.desc'),
-        api(TBL.extras+'?select=*&order=sortering'),
-        api(TBL.calls+'?select=*&order=aangemaakt.desc')
-      ]);
-      Object.assign(S,{medewerkers:mw,tarieven:ta,taken:tk,werk:wk,docs:dc,bellijsten:bl,belitems:bi,links:lk,
-        overdracht:od, gasten:ga, belasting:bt, scripts:sc, stappen:st, klanten:kl, extras:ex, calls:wc});
-      chip('saved','Verbonden');
-    }catch(e){
-      console.error(e); chip('fout','Geen verbinding');
-      toast('Verbinding met Supabase mislukt — controleer de sleutel.');
-      lokaalLaden();
-    }
-  } else { lokaalLaden(); chip('lokaal','Lokaal'); }
+  if(!online()){ lokaalLaden(); chip('lokaal','Lokaal'); return; }
+  chip('saving','Laden…');
+  LAADFOUTEN = [];
+  const uit = await Promise.all(LAADLIJST.map(async ([sleutel, pad]) => {
+    try{ return await api(pad()); }
+    catch(e){ console.warn('onderdeel overgeslagen:', sleutel, e.message); LAADFOUTEN.push(sleutel); return null; }
+  }));
+  if(uit[0] === null){                       /* de lijst met mensen is onmisbaar */
+    chip('fout','Geen verbinding');
+    toast('Verbinding met Supabase mislukt — controleer de sleutel en de rechten.');
+    lokaalLaden();
+    return;
+  }
+  LAADLIJST.forEach(([sleutel], i) => { S[sleutel] = uit[i] || []; });
+  chip('saved','Verbonden');
+  if(LAADFOUTEN.length) toast('Deze onderdelen konden niet geladen worden: '+LAADFOUTEN.join(', ')+'. Draai de bijbehorende SQL nog een keer.');
 }
 
 function lokaalLaden(){
@@ -1213,8 +1220,14 @@ async function naLogin(){
   await laadAlles();
   const mw = zoekMedewerker();
   if(!mw){
+    const mail = String((SESSIE && SESSIE.email) || '').toLowerCase();
     bewaarSessie(null);
-    toonSlot('Dit account staat nog niet in de lijst met mensen. Vraag Angela om je e-mailadres toe te voegen bij Tarieven → Mensen.');
+    if(LAADFOUTEN.indexOf('medewerkers') >= 0 || !S.medewerkers.length){
+      toonSlot('De lijst met mensen kon niet uit Supabase gelezen worden. Controleer de leesrechten (RLS) op de tabel wz_medewerkers.');
+    } else {
+      toonSlot('Je bent ingelogd als '+mail+', maar dat adres staat niet bij een van de mensen in Supabase ('
+        + S.medewerkers.map(m=>m.email).filter(Boolean).join(', ') + '). Zet je adres bij Tarieven → Mensen.');
+    }
     return;
   }
   if(mw.actief === false){
@@ -1331,6 +1344,7 @@ const SYSTEMEN_START = [
   {titel:'Personeelsdashboard',   url:'https://claude.ai/code/artifact/3d2c23a7-d8d7-4cf0-81c6-d043b721c8d0', kleur:'#483C34', sortering:50}
 ];
 async function zorgVoorSysteemknoppen(){
+  if(LAADFOUTEN.indexOf('links') >= 0) return;   /* tabel ontbreekt: niets proberen te vullen */
   if(S.links.some(l=>l.tab==='systeem')) return;
   await maak('links', SYSTEMEN_START.map(s=>Object.assign({tab:'systeem'}, s)));
 }
@@ -1567,10 +1581,11 @@ const SCRIPT_START = [{
   ]
 }];
 async function zorgVoorScripts(){
+  if(LAADFOUTEN.indexOf('scripts') >= 0) return;   /* tabel ontbreekt: niets proberen te vullen */
   if(S.scripts.length) return;
   for(const sc of SCRIPT_START){
     const rijen = await maak('scripts', {titel:sc.titel, omschrijving:sc.omschrijving, actief:true, sortering:10});
-    if(!rijen) return;
+    if(!rijen || !rijen.length || !rijen[0] || !rijen[0].id) return;
     const id = rijen[0].id;
     await maak('stappen', sc.stappen.map((s,i)=>({script_id:id, soort:s.soort, tekst:s.tekst, volgorde:(i+1)*10})));
   }
@@ -1708,6 +1723,7 @@ const BELASTING_START = [
    opmerking:'7% van de overnachtingsomzet; inwoners van Almere zijn vrijgesteld'}
 ];
 async function zorgVoorBelastingtarieven(){
+  if(LAADFOUTEN.indexOf('belasting') >= 0) return;   /* tabel ontbreekt: niets proberen te vullen */
   if(S.belasting.length) return;
   await maak('belasting', BELASTING_START.slice());
 }
@@ -2580,6 +2596,7 @@ const EXTRAS_START = [
   {naam:'Eigen consumptie',         categorie:'Overig',      prijs:15,  per_persoon:false, omschrijving:'fee voor afvalverwerking',  sortering:180}
 ];
 async function zorgVoorExtras(){
+  if(LAADFOUTEN.indexOf('extras') >= 0) return;   /* tabel ontbreekt: niets proberen te vullen */
   if(S.extras.length) return;
   await maak('extras', EXTRAS_START.map(e=>Object.assign({actief:true}, e)));
 }
