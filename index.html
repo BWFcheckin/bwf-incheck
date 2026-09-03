@@ -187,7 +187,67 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
 .staal.salie   {background:linear-gradient(135deg,#40584B 50%,#B08D57 50%)}
 .staal.leisteen{background:linear-gradient(135deg,#293D4A 50%,#C3A15B 50%)}
 
-@media (min-width:600px){ .tegels{grid-template-columns:repeat(3,1fr)} }
+/* ═══════════ SCHERMFORMATEN ═══════════ */
+
+/* Kleine telefoon (tot 420px) — alles onder elkaar */
+@media (max-width:419px){
+  .wrap{padding:0 1.1rem}
+  h1{font-size:1.75rem}
+  h2{font-size:1.35rem}
+  .teller b{font-size:1.9rem}
+  .teller{padding:.85rem .6rem}
+  .teller span{font-size:.68rem}
+  .tegels{grid-template-columns:1fr}
+  .tegel{min-height:0;padding:1.1rem 1rem}
+  .logo-klein{width:78px;margin-bottom:1.1rem}
+  .rij{grid-template-columns:3.2rem 1fr;gap:.7rem}
+  .paneel{padding:2rem 1.4rem 1.6rem}
+}
+
+/* Telefoon liggend en kleine tablet (420–767px) */
+@media (min-width:420px) and (max-width:767px){
+  .tegels{grid-template-columns:repeat(2,1fr)}
+}
+
+/* Tablet (768–1023px) */
+@media (min-width:768px){
+  .wrap{max-width:860px;padding:0 2rem}
+  .tegels{grid-template-columns:repeat(3,1fr)}
+  h1{font-size:2.3rem}
+  .logo-klein{width:110px}
+  header{padding:2.6rem 0 1.6rem}
+  section{padding:2.4rem 0}
+}
+
+/* Desktop (vanaf 1024px) — dagoverzicht en tegels naast elkaar */
+@media (min-width:1024px){
+  .wrap{max-width:1180px;padding:0 3rem}
+  .kolommen{display:grid;grid-template-columns:minmax(300px,.85fr) 1.15fr;
+    gap:3.5rem;align-items:start}
+  .kolommen section{padding:2.6rem 0}
+  .scheiding{display:none}
+  .tellers{grid-template-columns:repeat(3,1fr)}
+  .tegels{grid-template-columns:repeat(2,1fr)}
+  .tegel{min-height:8rem;padding:1.7rem 1.3rem}
+  h1{font-size:2.5rem}
+  .logo-klein{width:120px}
+  footer{padding:1.8rem 0 3rem}
+}
+
+/* Groot scherm (vanaf 1440px) */
+@media (min-width:1440px){
+  .wrap{max-width:1320px}
+  .tegels{grid-template-columns:repeat(3,1fr)}
+}
+
+/* Aanraakschermen — grotere trefvlakken */
+@media (hover:none){
+  .staal{width:28px;height:28px}
+  .themas{gap:.7rem}
+  .pil{padding:.6rem 1.1rem}
+  .btn-rand{padding:.6rem 1rem}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition:none !important}#login::before{transform:none}}
 </style>
 </head>
@@ -231,6 +291,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
     </header>
     <hr class="regel">
 
+    <div class="kolommen">
     <section aria-labelledby="kopVandaag">
       <h2 id="kopVandaag">Vandaag</h2>
       <div class="tellers">
@@ -240,7 +301,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
       </div>
       <div id="lijst"><p class="leeg">Bezig met laden…</p></div>
     </section>
-    <hr class="regel">
+    <hr class="regel scheiding">
 
     <section aria-labelledby="kopApps">
       <h2 id="kopApps">Werken</h2>
@@ -248,6 +309,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
       <h2 style="margin-top:2.2rem">Boekingskanalen</h2>
       <div class="extern" id="extern"></div>
     </section>
+    </div>
 
     <footer>
       <span id="wieben"></span>
@@ -278,11 +340,11 @@ const CONFIG = {
   standaardThema : 'espresso',   // espresso | salie | leisteen
 
   reserveringen : {
-    tabel      : 'reserveringen',
-    aankomst   : 'start_date',   // datumkolom aankomst
-    vertrek    : 'end_date',     // datumkolom vertrek
-    tijd       : 'start_time',   // tijdkolom (mag leeg blijven: '')
-    naam       : 'naam',
+    tabel      : 'reservations',
+    aankomst   : 'checkindatum',   // datumkolom aankomst
+    vertrek    : 'checkuitdatum',  // datumkolom vertrek
+    tijd       : 'checkintijd',    // tijdkolom (mag leeg blijven: '')
+    naam       : ['voornaam','achternaam'],  // één kolom mag ook: 'naam'
     locatie    : 'locatie'
   },
   checkins : {
@@ -412,7 +474,8 @@ async function laadDag(){
   const R = CONFIG.reserveringen;
   const dag = vandaag();
 
-  let velden = [R.aankomst, R.naam, R.locatie];
+  const naamVelden = Array.isArray(R.naam) ? R.naam : [R.naam];
+  let velden = [R.aankomst, ...naamVelden, R.locatie];
   if(R.tijd) velden.push(R.tijd);
 
   const { data: aank, error: fout } = await sb
@@ -437,7 +500,7 @@ async function laadDag(){
     : rijen.map(r => `
         <div class="rij">
           <span class="tijd">${(r[R.tijd] || '').toString().slice(0,5) || '—'}</span>
-          <span><span class="naam">${r[R.naam] || 'Naam onbekend'}</span>
+          <span><span class="naam">${naamVelden.map(v => r[v]).filter(Boolean).join(' ') || 'Naam onbekend'}</span>
                 <span class="plek">${r[R.locatie] || ''}</span></span>
           <span></span>
         </div>`).join('');
