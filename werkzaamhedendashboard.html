@@ -315,14 +315,18 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
   <div class="slot-kaart">
     <span class="mark">B&amp;W</span>
     <h1>Werkzaamheden &amp; Taken</h1>
-    <p>Kies je naam en vul je persoonlijke code in.</p>
-    <div class="mw-knoppen" id="slotMedewerkers"></div>
+    <p>Log in met je e-mailadres en wachtwoord.</p>
     <div class="field">
-      <label for="slotCode">Toegangscode</label>
-      <input type="password" id="slotCode" inputmode="numeric" autocomplete="off" placeholder="••••">
+      <label for="slotMail">E-mailadres</label>
+      <input type="text" id="slotMail" inputmode="email" autocomplete="username" placeholder="naam@bedenwellnessflevoland.nl">
     </div>
-    <button class="btn" id="slotOk" type="button" style="width:100%">Openen</button>
+    <div class="field">
+      <label for="slotCode">Wachtwoord</label>
+      <input type="password" id="slotCode" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn" id="slotOk" type="button" style="width:100%">Inloggen</button>
     <div class="slot-fout" id="slotFout"></div>
+    <button class="btn ghost small" id="slotVergeten" type="button" style="margin-top:14px">Wachtwoord vergeten</button>
     <button class="btn ghost small" id="slotConfig" type="button" style="margin-top:14px">Verbinding instellen</button>
   </div>
 </div>
@@ -651,10 +655,10 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
     <div class="card">
       <div class="card-head"><h2>Mensen</h2><span class="hint">naam, rol en toegangscode</span></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Naam</th><th>Rol</th><th>Code</th><th class="num">Uurtarief</th><th>Actief</th><th>Gastenregister</th><th></th></tr></thead>
+        <thead><tr><th>Naam</th><th>E-mailadres</th><th>Rol</th><th class="num">Uurtarief</th><th>Actief</th><th>Gastenregister</th><th></th></tr></thead>
         <tbody id="mwLijst"></tbody>
       </table></div>
-      <div class="card-foot"><span class="note" style="margin:0">De code is een eenvoudige afscherming, geen zware beveiliging — deel de link alleen met je eigen team.</span>
+      <div class="card-foot"><span class="note" style="margin:0">Het e-mailadres hier moet exact hetzelfde zijn als het account in Supabase — daarop wordt iemand herkend.</span>
         <button class="btn small" id="mwNieuw" type="button">+ Persoon toevoegen</button></div>
     </div>
   </section>
@@ -827,7 +831,7 @@ const STORAGE_BUCKET  = 'documenten';
 
 /* ---------------- configuratie / verbinding ---------------- */
 const LS = {
-  cfg:'wz_cfg', data:'wz_data', mw:'wz_mw', tab:'wz_tab'
+  cfg:'wz_cfg', data:'wz_data', mw:'wz_mw', tab:'wz_tab', sessie:'wz_sessie'
 };
 function cfg(){
   let c = {url:SUPABASE_URL, key:SUPABASE_ANON_KEY};
@@ -863,19 +867,57 @@ const TBL = { medewerkers:'wz_medewerkers', tarieven:'wz_tarieven', taken:'wz_ta
 const S = { medewerkers:[], tarieven:[], taken:[], werk:[], docs:[], bellijsten:[], belitems:[], links:[],
   overdracht:[], gasten:[], belasting:[], scripts:[], stappen:[] };
 
-/* Nieuwe sleutels (sb_publishable_...) horen alleen in de apikey-header;
-   de oude JWT-sleutels (eyJ...) willen er ook een Authorization-header bij. */
+/* ---------------- inloggen via Supabase Auth ---------------- */
 const nieuweSleutel = k => /^sb_/.test(String(k||''));
+let SESSIE = null;   /* {token, refresh, verloopt, email, uid} */
+try{ SESSIE = JSON.parse(localStorage.getItem(LS.sessie)||'null'); }catch(e){}
+function bewaarSessie(s){
+  SESSIE = s;
+  try{ s ? localStorage.setItem(LS.sessie, JSON.stringify(s)) : localStorage.removeItem(LS.sessie); }catch(e){}
+}
+const ingelogd = () => !!(SESSIE && SESSIE.token);
+
+/* de sleutel gaat altijd in de apikey-header; is er een sessie, dan gaat het
+   persoonlijke token mee als Authorization — daarop werken de RLS-regels */
 function heads(extra){
   const h = {'apikey':CFG.key, 'Content-Type':'application/json'};
-  if(!nieuweSleutel(CFG.key)) h['Authorization'] = 'Bearer '+CFG.key;
+  if(ingelogd()) h['Authorization'] = 'Bearer '+SESSIE.token;
+  else if(!nieuweSleutel(CFG.key)) h['Authorization'] = 'Bearer '+CFG.key;
   return Object.assign(h, extra||{});
 }
+async function authApi(pad, body){
+  const r = await fetch(CFG.url.replace(/\/$/,'')+'/auth/v1/'+pad, {
+    method:'POST', headers:{'apikey':CFG.key, 'Content-Type':'application/json'},
+    body: JSON.stringify(body||{})});
+  const txt = await r.text();
+  let data = null; try{ data = txt ? JSON.parse(txt) : null; }catch(e){}
+  if(!r.ok) throw new Error((data && (data.error_description || data.msg || data.message)) || ('fout '+r.status));
+  return data;
+}
+function zetSessie(d){
+  bewaarSessie({token:d.access_token, refresh:d.refresh_token,
+    verloopt: Date.now() + ((d.expires_in||3600)-60)*1000,
+    email: (d.user && d.user.email) || '', uid: (d.user && d.user.id) || ''});
+}
+async function inloggen(email, wachtwoord){
+  const d = await authApi('token?grant_type=password', {email:String(email).trim().toLowerCase(), password:wachtwoord});
+  zetSessie(d); return SESSIE;
+}
+async function vernieuwSessie(){
+  if(!SESSIE || !SESSIE.refresh) return false;
+  try{ const d = await authApi('token?grant_type=refresh_token', {refresh_token:SESSIE.refresh});
+       zetSessie(d); return true; }
+  catch(e){ bewaarSessie(null); return false; }
+}
 
-async function api(path, opts){
+async function api(path, opts, tweedePoging){
+  if(ingelogd() && SESSIE.verloopt && Date.now() > SESSIE.verloopt) await vernieuwSessie();
   const o = Object.assign({}, opts||{});
   o.headers = Object.assign(heads(), (opts && opts.headers) || {});
   const r = await fetch(CFG.url.replace(/\/$/,'')+'/rest/v1/'+path, o);
+  if((r.status===401 || r.status===403) && !tweedePoging && ingelogd()){
+    if(await vernieuwSessie()) return api(path, opts, true);
+  }
   if(!r.ok){ const t = await r.text(); throw new Error(r.status+' '+t.slice(0,200)); }
   const txt = await r.text();
   return txt ? JSON.parse(txt) : null;
@@ -922,13 +964,9 @@ function lokaalLaden(){
 }
 
 const START_MEDEWERKERS = [
-  {naam:'Angela',  rol:'eigenaar',   code:'2468', kleur:'#483C34'},
-  {naam:'Ruth',    rol:'medewerker', code:'1001', kleur:'#9A7B4F', uurtarief:16.50},
-  {naam:'Michel',  rol:'medewerker', code:'1002', kleur:'#6F7A5A'},
-  {naam:'Jerry',   rol:'medewerker', code:'1003', kleur:'#A25E48'},
-  {naam:'Hetty',   rol:'medewerker', code:'1004', kleur:'#7B6E62'},
-  {naam:'Vriendin',rol:'medewerker', code:'1005', kleur:'#8F6420'},
-  {naam:'Kelly',   rol:'medewerker', code:'1006', kleur:'#7E6BA8', gastenregister:true}
+  {naam:'Angela', rol:'eigenaar',   email:'', kleur:'#483C34', gastenregister:true},
+  {naam:'Kelly',  rol:'medewerker', email:'', kleur:'#7E6BA8', gastenregister:true},
+  {naam:'Senna',  rol:'medewerker', email:'', kleur:'#9A7B4F'}
 ];
 const START_TARIEVEN = [
   {taak:'Dagverblijf',              omschrijving:'Basisuren per reservering dagverblijf',        soort:'uur', eenheid:'reservering', uren:2.5, tarief:0, categorie:'Wellness'},
@@ -982,36 +1020,68 @@ let IK = null;
 const isEigenaar = () => IK && IK.rol === 'eigenaar';
 const mwNaam = id => (S.medewerkers.find(m=>m.id===id)||{}).naam || '—';
 const mwKleur = id => (S.medewerkers.find(m=>m.id===id)||{}).kleur || 'var(--muted)';
-const mijnTaken = () => isEigenaar() ? S.taken : S.taken.filter(t=>t.medewerker_id===IK.id);
+/* een medewerker ziet de taken die aan haar zijn toegewezen én de taken die zij zelf heeft uitgezet */
+const mijnTaken = () => isEigenaar() ? S.taken
+  : S.taken.filter(t => t.medewerker_id===IK.id || t.aangemaakt_door===IK.id);
 const mijnWerk  = () => isEigenaar() ? S.werk  : S.werk.filter(w=>w.medewerker_id===IK.id);
 const mijnBel   = () => isEigenaar() ? S.bellijsten : S.bellijsten.filter(b=>!b.medewerker_id || b.medewerker_id===IK.id);
 
 /* ---------------- toegangsscherm ---------------- */
-function toonSlot(){
-  const wrap = $('#slotMedewerkers');
-  wrap.innerHTML = S.medewerkers.filter(m=>m.actief!==false)
-    .map(m=>`<button class="mw-knop" type="button" data-id="${m.id}" aria-pressed="false">${esc(m.naam)}</button>`).join('');
+function toonSlot(melding){
   $('#slot').hidden = false; $('#app').hidden = true;
+  $('#slotFout').textContent = melding || '';
 }
-let slotKeuze = null;
 function slotBind(){
-  $('#slotMedewerkers').addEventListener('click', e=>{
-    const b = e.target.closest('.mw-knop'); if(!b) return;
-    slotKeuze = b.dataset.id;
-    $$('#slotMedewerkers .mw-knop').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
-    $('#slotCode').focus();
-  });
-  $('#slotCode').addEventListener('keydown', e=>{ if(e.key==='Enter') probeerLogin(); });
+  ['#slotMail','#slotCode'].forEach(s=>$(s).addEventListener('keydown', e=>{ if(e.key==='Enter') probeerLogin(); }));
   $('#slotOk').addEventListener('click', probeerLogin);
   $('#slotConfig').addEventListener('click', openConfig);
+  $('#slotVergeten').addEventListener('click', async ()=>{
+    const email = $('#slotMail').value.trim();
+    if(!email){ $('#slotFout').textContent = 'Vul eerst je e-mailadres in.'; return; }
+    try{ await authApi('recover', {email:email.toLowerCase()});
+      $('#slotFout').style.color = 'var(--ok)';
+      $('#slotFout').textContent = 'Er is een e-mail onderweg om je wachtwoord opnieuw in te stellen.';
+    }catch(e){ $('#slotFout').textContent = 'Dat lukte niet: '+e.message; }
+  });
 }
-function probeerLogin(){
-  const mw = S.medewerkers.find(m=>m.id===slotKeuze);
-  if(!mw){ $('#slotFout').textContent = 'Kies eerst je naam.'; return; }
-  if(String($('#slotCode').value).trim() !== String(mw.code)){ $('#slotFout').textContent = 'Die code klopt niet.'; return; }
-  $('#slotFout').textContent = '';
-  IK = mw; try{ sessionStorage.setItem(LS.mw, mw.id); }catch(e){}
+/* koppelt het ingelogde account aan de juiste persoon uit de lijst */
+function zoekMedewerker(){
+  const mail = String((SESSIE && SESSIE.email) || '').toLowerCase();
+  return S.medewerkers.find(m => String(m.email||'').toLowerCase() === mail && mail) ||
+         S.medewerkers.find(m => m.auth_id && SESSIE && m.auth_id === SESSIE.uid) || null;
+}
+async function naLogin(){
+  await laadAlles();
+  const mw = zoekMedewerker();
+  if(!mw){
+    bewaarSessie(null);
+    toonSlot('Dit account staat nog niet in de lijst met mensen. Vraag Angela om je e-mailadres toe te voegen bij Tarieven → Mensen.');
+    return;
+  }
+  if(mw.actief === false){
+    bewaarSessie(null);
+    toonSlot('Dit account staat op inactief. Vraag Angela om het weer aan te zetten.');
+    return;
+  }
+  IK = mw;
+  if(!mw.auth_id && SESSIE.uid) wijzig('medewerkers', mw.id, {auth_id:SESSIE.uid});
   start();
+}
+async function probeerLogin(){
+  const email = $('#slotMail').value.trim(), ww = $('#slotCode').value;
+  $('#slotFout').style.color = '';
+  if(!email || !ww){ $('#slotFout').textContent = 'Vul je e-mailadres en wachtwoord in.'; return; }
+  $('#slotOk').disabled = true; $('#slotFout').textContent = 'Bezig met inloggen…';
+  try{
+    await inloggen(email, ww);
+    $('#slotCode').value = '';
+    await naLogin();
+  }catch(e){
+    const m = String(e.message||'');
+    $('#slotFout').textContent = /invalid/i.test(m)
+      ? 'E-mailadres of wachtwoord klopt niet.'
+      : (/confirm/i.test(m) ? 'Dit account is nog niet bevestigd.' : 'Inloggen mislukt: '+m);
+  }finally{ $('#slotOk').disabled = false; }
 }
 async function start(){
   $('#slot').hidden = true; $('#app').hidden = false;
@@ -1048,14 +1118,21 @@ function kiesTab(naam){
 $('#tabs').addEventListener('click', e=>{ const t = e.target.closest('.tab'); if(t) kiesTab(t.dataset.tab); });
 
 /* ---------------- selects vullen ---------------- */
+/* eigen naam alleen (urenregistratie) */
 function mwOpties(alleOptie){
   const lijst = isEigenaar() ? S.medewerkers.filter(m=>m.actief!==false) : [IK];
   return (alleOptie?`<option value="">${alleOptie}</option>`:'') +
     lijst.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
 }
+/* iedereen — voor het toewijzen van taken, dat mag ook een medewerker */
+function mwOptiesAllen(alleOptie){
+  return (alleOptie?`<option value="">${alleOptie}</option>`:'') +
+    S.medewerkers.filter(m=>m.actief!==false)
+      .map(m=>`<option value="${m.id}"${IK&&m.id===IK.id?' selected':''}>${esc(m.naam)}</option>`).join('');
+}
 function vulSelects(){
-  $('#tkMw').innerHTML  = mwOpties('Niet toegewezen');
-  $('#emMw').innerHTML  = mwOpties('Niet toegewezen');
+  $('#tkMw').innerHTML  = mwOptiesAllen('Niet toegewezen');
+  $('#emMw').innerHTML  = mwOptiesAllen('Niet toegewezen');
   /* overdracht: iedereen mag aan iedereen overdragen, ook als medewerker */
   const allen = S.medewerkers.filter(m=>m.actief!==false);
   $('#odVan').innerHTML = allen.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
@@ -1242,7 +1319,8 @@ $('#tkOpslaan').addEventListener('click', async ()=>{
   await maak('taken', {
     titel, omschrijving:$('#tkOms').value.trim()||null,
     medewerker_id:$('#tkMw').value||null, deadline:$('#tkDeadline').value||null,
-    prioriteit:$('#tkPrio').value, status:'open', link:$('#tkLink').value.trim()||null
+    prioriteit:$('#tkPrio').value, status:'open', link:$('#tkLink').value.trim()||null,
+    aangemaakt_door: IK.id
   });
   $('#tkTitel').value=''; $('#tkOms').value=''; $('#tkLink').value=''; $('#tkDeadline').value='';
   renderTaken(); renderOverzicht(); badges(); toast('Taak toegevoegd.');
@@ -1265,6 +1343,7 @@ function renderTaken(){
         ${t.link?` <a href="${esc(t.link)}" target="_blank" rel="noopener">↗ link</a>`:''}
         ${t.van?`<span class="meta">van ${esc(t.van)}${t.email_datum?' · '+esc(String(t.email_datum).slice(0,25)):''}</span>`:''}
         ${t.omschrijving?`<span class="meta">${esc(kort(t.omschrijving))}</span>`:''}
+        ${t.aangemaakt_door && t.aangemaakt_door!==t.medewerker_id?`<span class="meta">uitgezet door ${esc(mwNaam(t.aangemaakt_door))}</span>`:''}
         ${bijlagenVan(t.id).length?`<span class="meta">📎 ${bijlagenVan(t.id).map(d=>
           `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titel)}</a>`).join(' · ')}</span>`:''}</td>
       <td>${esc(mwNaam(t.medewerker_id))}</td>
@@ -1786,7 +1865,8 @@ async function mailNaarTaak(mail, herkomst){
     omschrijving: (mail.tekst||'').slice(0,4000) || null,
     medewerker_id: $('#emMw').value || null,
     deadline: null, prioriteit: $('#emPrio').value, status:'open', link:null,
-    bron:'email', van: mail.van || null, email_datum: mail.datum || null
+    bron:'email', van: mail.van || null, email_datum: mail.datum || null,
+    aangemaakt_door: IK.id
   });
   if(!rijen) return null;
   const taak = rijen[0];
@@ -1995,10 +2075,12 @@ function renderMw(){
   $('#mwLijst').innerHTML = S.medewerkers.map(m=>`
     <tr>
       <td class="name"><input type="text" value="${esc(m.naam)}" data-mw="${m.id}" data-veld="naam"></td>
+      <td><input type="text" value="${esc(m.email||'')}" data-mw="${m.id}" data-veld="email"
+        placeholder="nog geen account" style="min-width:190px">
+        ${m.email && !m.auth_id ? '<span class="meta">nog niet ingelogd</span>' : ''}</td>
       <td><select data-mw="${m.id}" data-veld="rol">
         <option value="medewerker"${m.rol!=='eigenaar'?' selected':''}>medewerker</option>
         <option value="eigenaar"${m.rol==='eigenaar'?' selected':''}>eigenaar</option></select></td>
-      <td><input type="text" value="${esc(m.code||'')}" data-mw="${m.id}" data-veld="code" style="min-width:80px"></td>
       <td class="num"><input type="number" class="mini" step="0.01" min="0" value="${m.uurtarief??''}" data-mw="${m.id}" data-veld="uurtarief"></td>
       <td><input type="checkbox" ${m.actief!==false?'checked':''} data-mwact="${m.id}" style="accent-color:var(--accent);width:16px;height:16px"></td>
       <td><input type="checkbox" ${m.rol==='eigenaar'||m.gastenregister?'checked':''} ${m.rol==='eigenaar'?'disabled':''}
@@ -2037,10 +2119,12 @@ $('#tarNieuw').addEventListener('click', async ()=>{
 });
 $('#mwNieuw').addEventListener('click', async ()=>{
   const naam = prompt('Naam van de nieuwe persoon?'); if(!naam) return;
-  const code = prompt('Toegangscode voor '+naam+'?', String(1000+Math.floor(Math.random()*9000)));
-  if(!code) return;
-  await maak('medewerkers', {naam:naam.trim(), rol:'medewerker', code:String(code).trim(), kleur:'#9A7B4F', actief:true});
+  const email = prompt('E-mailadres waarmee '+naam.trim()+' inlogt:\n\nMaak dit account daarna ook aan in Supabase → Authentication → Users.', '');
+  if(email===null) return;
+  await maak('medewerkers', {naam:naam.trim(), email:(email||'').trim().toLowerCase()||null,
+    rol:'medewerker', kleur:'#9A7B4F', actief:true});
   renderMw(); vulSelects();
+  if(email) toast('Vergeet niet dit account in Supabase aan te maken met hetzelfde e-mailadres.');
 });
 
 /* ---------------- DOCUMENTEN ---------------- */
@@ -2321,20 +2405,28 @@ function openConfig(){
 $('#bannerConfig').addEventListener('click', openConfig);
 $('#whoBtn').addEventListener('click', ()=>{
   const d = $('#dlgWho'); d.returnValue=''; d.showModal();
-  d.addEventListener('close', function h(){
+  d.addEventListener('close', async function h(){
     d.removeEventListener('close', h); if(d.returnValue!=='ok') return;
-    try{ sessionStorage.removeItem(LS.mw); }catch(e){}
-    IK = null; slotKeuze = null; $('#slotCode').value=''; toonSlot();
+    try{ await authApi('logout', {}); }catch(e){}
+    bewaarSessie(null); IK = null;
+    $('#slotCode').value=''; $('#slotMail').value='';
+    location.reload();
   });
 });
 
 /* ---------------- opstarten ---------------- */
 (async function init(){
   slotBind();
-  await laadAlles();
-  let vorige = null; try{ vorige = sessionStorage.getItem(LS.mw); }catch(e){}
-  const mw = S.medewerkers.find(m=>m.id===vorige);
-  if(mw){ IK = mw; start(); } else toonSlot();
+  if(!online()){                      /* geen sleutel: lokale modus, zonder inloggen */
+    lokaalLaden(); chip('lokaal','Lokaal');
+    IK = S.medewerkers.find(m=>m.rol==='eigenaar') || S.medewerkers[0];
+    start(); return;
+  }
+  if(ingelogd()){
+    chip('saving','Laden…');
+    try{ await naLogin(); }
+    catch(e){ console.error(e); bewaarSessie(null); toonSlot('Je sessie is verlopen — log opnieuw in.'); }
+  } else toonSlot();
 })();
 </script>
 </body>
