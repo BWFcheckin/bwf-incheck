@@ -1,1677 +1,563 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bed & Wellness Flevoland — Incheckformulier</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Inchecken — Bed &amp; Wellness Flevoland</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
-  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
-  --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
-  --accent:#483C34; --accent-ink:#FFFFFF; --accent-soft:#E8DFD5;
-  --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2; --warn:#8F6420; --warn-soft:#F6EBD9;
-  --crit:#A34434; --crit-soft:#F7E2DC;
-  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
-  --r-s:6px; --r-m:10px; --r-l:16px;
-  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
-  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
-  --loc-angie:#9A7B4F; --loc-jacuzzi:#6F7A5A; --loc-deluxe:#A25E48;
-  /* aliassen zodat bestaande inline-stijlen blijven werken */
-  --gold:var(--brass); --gold-dark:var(--accent); --gold-soft:var(--accent-soft);
-  --cream:var(--surface-2); --ink-soft:var(--muted);
-  --ok-bg:var(--ok-soft); --err:var(--crit); --err-bg:var(--crit-soft); --warn-bg:var(--warn-soft);
+  --bg:#F5F2EC; --surface:#FFFFFF; --surface-2:#FAF8F3; --ink:#17282A; --ink-2:#3E5557;
+  --muted:#6E8385; --line:#E1DBD0; --line-soft:#EEE9E0;
+  --accent:#14625E; --accent-ink:#0E4A47; --accent-soft:#DDE9E6;
+  --copper:#A9662F; --good:#2E7A55; --crit:#9E3B31;
+  --shadow:0 1px 2px rgba(23,40,42,.05), 0 10px 30px rgba(23,40,42,.07);
+  --f-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --f-body:"Karla","Helvetica Neue",Arial,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
-@media (prefers-color-scheme: dark){
+@media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#141110; --surface:#1D1917; --surface-2:#251F1C; --line:#38302A; --line-soft:#2B2421;
-    --ink:#F1EBE4; --ink-2:#D8CEC4; --muted:#A2958A;
-    --accent:#D7BFA6; --accent-ink:#241E19; --accent-soft:#33291F;
-    --brass:#E0BE86; --ok:#79C08F; --ok-soft:#16301F; --warn:#E0B26A; --warn-soft:#33260F;
-    --crit:#E89383; --crit-soft:#361B16;
-    --loc-angie:#E0BE86; --loc-jacuzzi:#AFBE92; --loc-deluxe:#E09B84;
-    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.85);
+    --bg:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --ink:#E9EFEC; --ink-2:#C3D1CF;
+    --muted:#8CA09E; --line:#2B3939; --line-soft:#233030;
+    --accent:#5FB8AC; --accent-ink:#8FD3C9; --accent-soft:#1D3634;
+    --copper:#D89B62; --good:#5CB68A; --crit:#D4776B;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.28);
   }
 }
-
-*,*::before,*::after{ box-sizing:border-box; }
-html{ -webkit-text-size-adjust:100%; }
-body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
-h1,h2,h3{ font-family:var(--f-display); font-weight:700; letter-spacing:-.015em; margin:0; }
-button,input,select,textarea{ font:inherit; color:inherit; }
-:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
-@media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
-
-.wrap{ max-width:1000px; margin:0 auto; padding:0 20px 72px; }
-
-header.topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 0 14px; margin-bottom:20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-header.topbar .brand{ display:flex; align-items:center; gap:13px; min-width:0; }
-header.topbar img.merk{ height:42px; width:auto; display:block; flex:none; }
-header.topbar h1{ font-size:19px; }
-header.topbar p{ margin:2px 0 0; font-family:var(--f-mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted); }
-.sharednote{ display:inline-flex; align-items:center; gap:7px; height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface); font-size:12px; color:var(--muted); white-space:nowrap; }
-
-.loadstatus{ display:none; background:var(--crit-soft); color:var(--crit); border-radius:var(--r-m); padding:11px 14px; font-size:13px; margin-bottom:18px; }
-
-.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:18px; }
-.card h2{ font-size:16px; font-weight:600; }
-.card h3{ font-family:var(--f-mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--brass); font-weight:500; margin:20px 0 8px; }
-.card p.desc{ font-size:13px; color:var(--muted); margin:5px 0 14px; max-width:66ch; }
-
-.btn{ display:inline-flex; align-items:center; gap:7px; cursor:pointer; border:1px solid var(--accent);
-      background:var(--accent); color:var(--accent-ink); padding:9px 16px; border-radius:var(--r-s);
-      font-size:13.5px; font-weight:600; white-space:nowrap; text-decoration:none; }
-.btn:hover{ filter:brightness(1.12); }
-.btn.secondary{ background:var(--surface); color:var(--ink); border-color:var(--line); }
-.btn.secondary:hover{ border-color:var(--accent); color:var(--accent); filter:none; }
-.btn.danger{ background:var(--surface); color:var(--crit); border-color:var(--crit); }
-.btn.sm{ padding:6px 11px; font-size:12.5px; }
-.btn:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
-
-form label{ display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin:12px 0 5px; }
-form input, form select, form textarea{ width:100%; background:var(--surface-2); border:1px solid var(--line);
-  border-radius:var(--r-s); padding:8px 10px; font-size:14px; font-family:inherit; }
-form textarea{ resize:vertical; min-height:64px; }
-form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:var(--surface); }
-.formgrid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
-.formgrid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 14px; }
-@media(max-width:640px){ .formgrid,.formgrid3{ grid-template-columns:1fr; } }
-.fieldset-label{ font-family:var(--f-mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--brass);
-  margin-top:20px; border-top:1px solid var(--line-soft); padding-top:14px; font-weight:500; }
-.hint{ font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
-.status{ margin-top:10px; font-size:13px; font-weight:600; }
-.status.ok{ color:var(--ok); }
-.status.err{ color:var(--crit); }
-
-.checklist{ display:flex; flex-direction:column; gap:5px; margin:6px 0 4px; }
-.checklist label{ display:flex; align-items:center; justify-content:space-between; gap:9px; font-size:13.5px; color:var(--ink);
-  margin:0; padding:8px 11px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); cursor:pointer; }
-.checklist label span.prijs{ font-family:var(--f-mono); color:var(--brass); font-weight:500; font-size:12.5px; white-space:nowrap; }
-.checklist input[type=checkbox]{ width:16px; height:16px; accent-color:var(--accent); margin-right:9px; }
-.checklist label .cl-name{ display:flex; align-items:center; }
-.cl-note{ font-size:11.5px; color:var(--warn); margin:2px 0 8px 4px; }
-
-.radio-row{ display:flex; gap:10px; flex-wrap:wrap; margin:6px 0; }
-.radio-row label{ display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink); background:var(--surface-2);
-  border:1px solid var(--line); border-radius:var(--r-s); padding:8px 13px; cursor:pointer; margin:0; }
-.radio-row input[type=radio]{ width:16px; height:16px; accent-color:var(--accent); }
-.radio-row label.selected{ border-color:var(--accent); background:var(--accent-soft); }
-
-.order-add{ display:flex; gap:9px; align-items:flex-end; flex-wrap:wrap; margin-bottom:11px; }
-.order-add > div{ flex:1; min-width:145px; }
-.order-add .qty{ max-width:86px; }
-.order-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:6px; }
-.order-row{ display:flex; align-items:center; justify-content:space-between; gap:9px; padding:8px 11px;
-  border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); font-size:13px; }
-.order-row .or-price{ font-family:var(--f-mono); color:var(--brass); font-weight:500; }
-.order-row button{ border:1px solid transparent; background:none; color:var(--muted); width:22px; height:22px;
-  border-radius:var(--r-s); cursor:pointer; font-size:12px; }
-.order-row button:hover{ color:var(--crit); border-color:var(--line); background:var(--surface); }
-
-.topsom{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); padding:18px 20px;
-  margin-bottom:18px; box-shadow:var(--shadow); }
-.topsom h2{ font-size:16px; font-weight:600; }
-.somgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
-.somvak{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-m); padding:13px 15px;
-  position:relative; overflow:hidden; }
-.somvak::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); opacity:.85; }
-.somvak span{ display:block; font-family:var(--f-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.1em;
-  color:var(--muted); margin-bottom:4px; }
-.somvak b{ font-family:var(--f-display); font-size:23px; font-weight:700; letter-spacing:-.02em;
-  font-variant-numeric:tabular-nums; color:var(--ink); }
-.somvak.nog::before{ background:var(--brass); }
-.somvak.nog b{ color:var(--brass); }
-@media(max-width:700px){ .somgrid{ grid-template-columns:1fr 1fr; } }
-
-.rekenlijst{ border:1px solid var(--line); border-radius:var(--r-m); overflow:hidden; margin:12px 0 4px; }
-.rekenlijst div.rl{ display:flex; justify-content:space-between; gap:12px; padding:9px 13px; font-size:13.2px;
-  border-bottom:1px solid var(--line-soft); font-variant-numeric:tabular-nums; }
-.rekenlijst div.rl:last-child{ border-bottom:none; }
-.rekenlijst div.rl.kop{ background:var(--surface-2); color:var(--muted); font-family:var(--f-mono); font-weight:500;
-  text-transform:uppercase; font-size:10.5px; letter-spacing:.1em; }
-.rekenlijst div.rl.tot{ background:var(--surface-2); font-weight:600; }
-.rekenlijst div.rl.eind{ background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:14.5px; }
-.rekenlijst div.rl.info{ color:var(--muted); }
-
-.subtotal-box{ display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface-2);
-  border:1px dashed var(--line); border-radius:var(--r-m); padding:12px 15px; margin-top:12px; font-size:13.5px; flex-wrap:wrap; }
-.subtotal-box b{ font-family:var(--f-display); font-size:19px; font-variant-numeric:tabular-nums; }
-
-.guest-status{ font-size:13px; padding:11px 14px; border-radius:var(--r-m); margin-bottom:13px; }
-.guest-status.empty{ background:var(--warn-soft); color:var(--warn); }
-.guest-status.filled{ background:var(--ok-soft); color:var(--ok); }
-
-.modal-bg{ display:none; position:fixed; inset:0; background:rgba(9,16,15,.45); align-items:center; justify-content:center;
-  z-index:50; padding:16px; overflow-y:auto; }
-.modal-bg.open{ display:flex; }
-.modal{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); padding:24px; width:100%;
-  max-width:520px; box-shadow:var(--shadow); max-height:92vh; overflow:auto; margin:auto; }
-.modal h3{ font-size:18px; font-weight:600; margin-bottom:4px; }
-.modal p.sub{ font-size:13px; color:var(--muted); margin:0 0 16px; }
-.req-mark{ color:var(--crit); }
-
-.table-wrap{ overflow-x:auto; }
-.table-wrap table{ width:100%; border-collapse:collapse; font-size:13.5px; }
-.table-wrap th{ text-align:left; font-family:var(--f-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
-  color:var(--muted); font-weight:500; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
-.table-wrap td{ padding:11px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
-.table-wrap tbody tr:last-child td{ border-bottom:0; }
-.table-wrap tbody tr:hover{ background:var(--surface-2); cursor:pointer; }
-
-#loginScreen{ position:fixed; inset:0; background:var(--bg); z-index:200; display:flex; align-items:center;
-  justify-content:center; padding:20px; }
-#loginScreen .box{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); padding:28px 26px;
-  max-width:390px; width:100%; box-shadow:var(--shadow); text-align:left; }
-#loginScreen img.merk{ height:52px; width:auto; display:block; margin:0 0 18px; }
-#loginScreen h2{ font-size:18px; font-weight:600; }
-#loginScreen p.desc{ font-size:13px; color:var(--muted); margin:6px 0 4px; }
-#appBody{ display:none; }
-.logoutbar{ font-family:var(--f-mono); font-size:10.5px; letter-spacing:.06em; color:var(--muted); }
-.logoutbar button{ background:none; border:none; color:var(--brass); cursor:pointer; font-family:inherit; font-size:10.5px;
-  text-decoration:underline; padding:0 0 0 8px; }
-
-.aanmeld-lijst{ display:flex; flex-direction:column; gap:10px; }
-.aanmeld{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-  border:1px solid var(--accent); background:var(--accent-soft); border-radius:var(--r-m); padding:12px 15px; }
-.aanmeld .info{ font-size:14px; font-weight:600; }
-.aanmeld .info small{ display:block; color:var(--muted); font-size:12px; font-weight:400; margin-top:2px; }
-.aanmeld-leeg{ padding:26px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
-.linkbox{ display:flex; gap:9px; align-items:center; margin-top:10px; flex-wrap:wrap; }
-.linkbox input{ flex:1; min-width:220px; font-family:var(--f-mono); font-size:12px; }
-.locbadge{ font-size:11.5px; padding:2px 9px; border-radius:999px; font-weight:600; color:var(--accent-ink);
-  display:inline-block; white-space:nowrap; }
-.pill{ font-size:11.5px; padding:2px 9px; border-radius:999px; font-weight:600; display:inline-block; }
-.pill.ok{ background:var(--ok-soft); color:var(--ok); }
-.pill.warn{ background:var(--warn-soft); color:var(--warn); }
-
-.split-row{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; padding:12px 14px; border:1px solid var(--line);
-  border-radius:var(--r-m); background:var(--surface-2); margin-top:10px; }
-.split-toggle{ display:flex; align-items:center; gap:9px; margin-top:12px; font-size:13.5px; }
-.split-toggle input{ width:16px; height:16px; accent-color:var(--accent); }
+:root[data-theme="dark"]{
+  --bg:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --ink:#E9EFEC; --ink-2:#C3D1CF;
+  --muted:#8CA09E; --line:#2B3939; --line-soft:#233030;
+  --accent:#5FB8AC; --accent-ink:#8FD3C9; --accent-soft:#1D3634;
+  --copper:#D89B62; --good:#5CB68A; --crit:#D4776B;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding:26px 18px 80px}
+header.kop{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+header.kop h1{font-family:var(--f-display);font-size:23px;font-weight:600;letter-spacing:-.015em}
+header.kop .merk{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:var(--f-data)}
+header.kop .rechts{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--good)} .dot.crit{background:var(--crit)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.card h2{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:13px}
+.veld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.veld.breed{grid-column:1/-1}
+label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.uitleg{font-size:12.5px;color:var(--muted)}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:15px}
+input[type="date"],input[type="number"]{font-family:var(--f-data);font-size:14px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input.fout{border-color:var(--crit)}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{flex:1;min-width:0;background:var(--surface-2);border:0;padding:11px 4px;color:var(--muted);
+  cursor:pointer;font:inherit;font-size:14px;font-weight:600;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.vink{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface-2);cursor:pointer}
+.vink input{width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.vink span{font-size:14px;text-transform:none;letter-spacing:normal;color:var(--ink);font-weight:400}
+.knop{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:9px;
+  border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.knop:hover{background:var(--accent-ink)}
+.knop:disabled{opacity:.55;cursor:not-allowed}
+.knop.stil{background:none;color:var(--ink);border-color:var(--line);font-weight:600}
+.knop.stil:hover{border-color:var(--accent);color:var(--accent-ink)}
+.knop.klein{padding:7px 13px;font-size:13.5px;font-weight:600}
+/* zoeken */
+.zoekhouder{position:relative}
+.zoeklijst{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:30;background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);max-height:290px;overflow-y:auto;padding:5px}
+.zoeklijst button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;
+  padding:9px 11px;cursor:pointer;font:inherit;color:inherit}
+.zoeklijst button:hover,.zoeklijst button:focus{background:var(--accent-soft);color:var(--accent-ink)}
+.zoeklijst .naam{font-weight:700;font-size:14.5px}
+.zoeklijst .meta{font-size:12.5px;color:var(--muted);display:block;margin-top:1px}
+.zoeklijst .leeg{padding:12px;font-size:13.5px;color:var(--muted)}
+.gekoppeld{display:flex;align-items:flex-start;gap:13px;flex-wrap:wrap;padding:13px 15px;border-radius:11px;
+  background:var(--accent-soft);border:1px solid var(--accent)}
+.gekoppeld .info{flex:1;min-width:180px}
+.gekoppeld .naam{font-family:var(--f-display);font-size:16px;font-weight:600}
+.gekoppeld .meta{font-size:13px;color:var(--ink-2);margin-top:2px}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11.5px;font-weight:700;
+  border:1px solid var(--good);color:var(--good);margin-left:6px}
+.pill.nieuw{border-color:var(--copper);color:var(--copper)}
+.preview{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:13px 15px;
+  display:flex;gap:22px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.preview .p{display:flex;flex-direction:column}
+.preview .p b{font-family:var(--f-data);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.preview .p span{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.preview .note{font-size:12.5px;color:var(--ink-2);flex:1 1 180px}
+.melding{padding:11px 14px;border-radius:9px;font-size:14px;font-weight:600;margin-top:14px}
+.melding.fout{background:rgba(158,59,49,.1);color:var(--crit);border:1px solid var(--crit)}
+.acties{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:18px}
+.klaar{text-align:center;padding:8px 4px}
+.klaar .vinkje{width:56px;height:56px;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent);
+  color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px}
+.klaar h2{font-family:var(--f-display);font-size:21px;font-weight:600;border:0;padding:0;margin:0 0 8px}
+.klaar p{color:var(--ink-2);margin:0 auto 6px;max-width:44ch}
+.overzicht{text-align:left;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;
+  padding:14px 16px;margin:18px 0 4px}
+.overzicht div{display:flex;justify-content:space-between;gap:16px;padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:14px}
+.overzicht div:last-child{border-bottom:0}
+.overzicht span{color:var(--muted)}
+.overzicht b{font-weight:600;text-align:right}
+/* poort */
+#poort{position:fixed;inset:0;z-index:90;background:var(--bg);display:grid;place-items:center;padding:22px}
+.poortkaart{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+  padding:28px 26px;width:100%;max-width:360px}
+.poortkaart h1{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0 0 4px}
+.poortkaart p{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+.poortkaart form{display:flex;flex-direction:column;gap:12px}
+.poortfout{color:var(--crit);font-size:13px}
+@media(max-width:600px){ .wrap{padding:18px 13px 60px} .card{padding:15px} }
 </style>
 </head>
 <body>
 
-<!-- ===== Inloggen (alleen personeel) ===== -->
-<div id="loginScreen">
-  <div class="box">
-    <img class="merk" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
-    <h2>Incheckformulier</h2>
-    <p class="desc">Log in om het incheckformulier te openen.</p>
-    <form onsubmit="return false;">
-      <label>E-mailadres</label>
-      <input type="email" id="li_email" autocomplete="username">
-      <label>Wachtwoord</label>
-      <input type="password" id="li_pw" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
-      <div class="status" id="loginStatus"></div>
-      <button class="btn" type="button" style="width:100%;justify-content:center;margin-top:14px;" onclick="doLogin()">Inloggen</button>
+<div id="poort" hidden>
+  <div class="poortkaart">
+    <h1>Inchecken</h1>
+    <p>Bed &amp; Wellness Flevoland — vul de toegangscode van het team in.</p>
+    <form id="poortForm">
+      <div class="veld"><label for="poortInput">Toegangscode</label>
+        <input type="password" id="poortInput" autocomplete="current-password" required></div>
+      <p class="poortfout" id="poortFout" hidden>Die code klopt niet.</p>
+      <button class="knop" type="submit">Openen</button>
     </form>
   </div>
 </div>
 
-<div id="appBody">
-<div class="wrap">
-
-  <header class="topbar">
-    <div class="brand">
-      <img class="merk" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
-      <div>
-        <h1>Incheckformulier</h1>
-        <p>Suite Angie &middot; Malina Jacuzzi &middot; Malina Deluxe</p>
-      </div>
-    </div>
+<div class="wrap" id="app" hidden>
+  <header class="kop">
     <div>
-      <div class="sharednote">🗄️ Gedeeld via database — dezelfde gegevens als het hoofddashboard</div>
-      <div class="logoutbar" style="margin-top:6px;text-align:right;"><span id="huidigeGebruiker"></span><button type="button" onclick="doLogout()">Uitloggen</button></div>
+      <div class="merk">Bed &amp; Wellness Flevoland</div>
+      <h1>Gast inchecken</h1>
     </div>
+    <div class="rechts"><span class="dot" id="statusDot"></span><span id="statusTxt">Verbinden…</span></div>
   </header>
 
-  <div class="loadstatus" id="loadStatus"></div>
-
-  <div class="aanmeld" id="aanmeldBanner" style="display:none;margin-bottom:16px;">
-    <div class="info" id="aanmeldBannerTekst"></div>
-    <button class="btn sm" type="button" onclick="document.getElementById('aanmeldLijst').scrollIntoView({behavior:'smooth',block:'center'})">Bekijken</button>
-  </div>
-
-  <form id="checkinForm" onsubmit="return false;">
-  <input type="hidden" id="c_id">
-
-  <!-- ================= OVERZICHT RESERVERING (bovenaan) ================= -->
-  <div class="topsom">
-    <h2>Reservering &amp; betaling</h2>
-    <p class="desc" style="margin:2px 0 0;">Vul in wat de gast vooraf heeft gereserveerd en online heeft betaald. Alles wat op locatie wordt bijgeboekt komt hier bovenop.</p>
-    <div class="formgrid3" style="margin-top:6px;">
-      <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
-        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-      <div><label>Totaal online betaald (&euro;)</label>
-        <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-      <div><label>Nog te betalen (&euro;)</label>
-        <input type="text" id="c_nog" readonly style="background:var(--cream);font-weight:600;"></div>
-    </div>
-    <div class="somgrid">
-      <div class="somvak"><span>Gereserveerd</span><b id="somReservering">&euro; 0,00</b></div>
-      <div class="somvak"><span>Online betaald</span><b id="somBetaald">&euro; 0,00</b></div>
-      <div class="somvak"><span>Extra&#39;s op locatie</span><b id="somExtras">&euro; 0,00</b></div>
-      <div class="somvak nog"><span>Nog te voldoen</span><b id="somNog">&euro; 0,00</b></div>
-    </div>
-  </div>
-
-  <!-- ================= BOEKING ================= -->
-  <div class="card">
-    <h2>Boekingsgegevens</h2>
-    <div class="formgrid3">
-      <div><label>Boeking via</label>
-        <select id="c_boekingvia">
-          <option>Prive sauna</option>
-          <option>Booking.com</option>
-          <option>Origineel overnachten</option>
-          <option>Telefonisch</option>
-          <option>Anders</option>
-        </select>
-      </div>
-      <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks(); synchroniseerPersoonSelects();"></select></div>
-      <div><label>Reserveringsnr.</label><input type="text" id="c_resnr" placeholder="optioneel"></div>
-    </div>
-    <label>Type verblijf</label>
-    <div class="radio-row" id="verblijftypeRow">
-      <label><input type="radio" name="verblijftype" value="dagverblijf" checked onchange="toggleVerblijftype()"> Dagverblijf</label>
-      <label><input type="radio" name="verblijftype" value="overnachting" onchange="toggleVerblijftype()"> Overnachting</label>
-    </div>
-    <div class="formgrid3">
-      <div><label id="datumLabel">Datum</label><input type="date" id="c_datum"></div>
-      <div id="checkuitdatumWrap" style="display:none;"><label>Check-uit datum</label><input type="date" id="c_checkuitdatum"></div>
-      <div><label>Locatiemanager</label><select id="c_manager"></select></div>
-    </div>
-    <div class="formgrid3">
-      <div><label>Aantal personen</label><input type="number" id="c_personen" min="1" value="2"></div>
-      <div><label>Aantal kinderen</label><input type="number" id="c_kinderen" min="0" value="0"></div>
-      <div></div>
-    </div>
-    <div class="formgrid3">
-      <div><label>In-check tijd</label><input type="time" id="c_checkin"></div>
-      <div><label>Uit-check tijd</label><input type="time" id="c_checkuit"></div>
-      <div></div>
-    </div>
-  </div>
-
-  <!-- ================= ARRANGEMENTEN ================= -->
-  <div class="card">
-    <h2>Arrangementen</h2>
-    <p class="desc">Selecteer het gekozen arrangement (of arrangementen). Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
-    <div id="arrangementSections"></div>
-  </div>
-
-  <!-- ================= VOORAF GERESERVEERD ================= -->
-  <div class="card">
-    <h2>Vooraf gereserveerd</h2>
-    <p class="desc">Vink aan wat de gast al vooraf heeft geboekt (meerdere mogelijk). Dit zit al in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat pas ter plekke wordt besteld, zet je onder &quot;Bestellingen op locatie&quot;.</p>
-    <div class="checklist" id="voorafChecklist"></div>
-  </div>
-
-  <!-- ================= BESTELLINGEN OP LOCATIE ================= -->
-  <div class="card">
-    <h2>Bestellingen op locatie</h2>
-    <h3>Eten &amp; drinken</h3>
-    <div class="order-add">
-      <div><label>Item</label><select id="ordItem"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordQty" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem('main')">+ Toevoegen</button></div>
-    </div>
-
-    <h3>Eten &amp; drinken — alleen Almere (Suite Angie)</h3>
-    <div class="order-add">
-      <div><label>Item</label><select id="ordItemAlmere"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordQtyAlmere" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem('almere')">+ Toevoegen</button></div>
-    </div>
-
-    <h3>Extra personen bijboeken &mdash; dagverblijf</h3>
-    <div class="order-add">
-      <div><label>Wie</label><select id="ordPersDag"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordPersDagQty" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addPersoon('dagverblijf')">+ Toevoegen</button></div>
-    </div>
-
-    <h3>Extra personen bijboeken &mdash; overnachting</h3>
-    <div class="order-add">
-      <div><label>Wie</label><select id="ordPersNacht"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordPersNachtQty" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addPersoon('overnachting')">+ Toevoegen</button></div>
-    </div>
-
-    <div class="order-list" id="orderList"></div>
-
-    <h3>Cadeau</h3>
-    <div class="formgrid">
-      <div><label>Cadeau</label>
-        <select id="c_cadeau" onchange="toggleCadeauAnders()">
-          <option value="">— Geen —</option>
-          <option value="Zeeprozen boeket">Zeeprozen boeket</option>
-          <option value="Rozen hart">Rozen hart</option>
-          <option value="Rozen beer">Rozen beer</option>
-          <option value="Anders">Anders (zie opmerking)</option>
-        </select>
-      </div>
-      <div><label>Prijs (€)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-    </div>
-
-    <h3>Service</h3>
-    <div class="checklist" id="serviceChecklist"></div>
-  </div>
-
-  <!-- ================= EERDER/LATER UITCHECKEN ================= -->
-  <div class="card">
-    <h2>Eerder in- of later uitchecken</h2>
-    <p class="desc">Extra service naast wat vooraf gereserveerd is.</p>
-    <div class="formgrid3">
-      <div><label>Type</label>
-        <select id="c_checkoutType" onchange="updateCheckoutPrijs()">
-          <option value="">Geen</option>
-          <option value="eerder">Eerder inchecken</option>
-          <option value="later">Later uitchecken</option>
-        </select>
-      </div>
-      <div><label>Duur</label>
-        <select id="c_checkoutDuur" onchange="updateCheckoutPrijs()">
-          <option value="0.5">30 minuten (€30)</option>
-          <option value="1">1 uur (€50)</option>
-          <option value="2">2 uur (€100)</option>
-          <option value="3">3 uur (€150)</option>
-          <option value="4">4 uur (€200)</option>
-        </select>
-      </div>
-      <div><label>Hoe betaald</label>
-        <select id="c_checkoutBetaalwijze">
-          <option value="">—</option>
-          <option>Contant</option>
-          <option>Flatpay</option>
-          <option>Mollie betaallink</option>
-          <option>Al inbegrepen in totaal</option>
-          <option>Anders</option>
-        </select>
-      </div>
-    </div>
-    <div class="hint" id="checkoutPrijsHint"></div>
-  </div>
-
-  <!-- ================= EINDAFREKENING ================= -->
-  <div class="card">
-    <h2>Eindafrekening</h2>
-    <p class="desc">Volledige opsomming: het gereserveerde bedrag plus alles wat op locatie is bijgeboekt. Je kunt het totaal ook handmatig aanpassen.</p>
-
-    <div class="rekenlijst" id="rekenLijst"></div>
-
-    <div class="subtotal-box">
-      <span>Berekend totaal (reservering + extra&#39;s op locatie):</span>
-      <b id="berekendSubtotaal">€ 0,00</b>
-      <button type="button" class="btn secondary sm" onclick="gebruikBerekendBedrag()">Neem dit over</button>
-    </div>
-
-    <div class="formgrid3" style="margin-top:6px;">
-      <div><label>Totaalbedrag &mdash; handmatig aan te passen (€)</label><input type="number" id="c_totaal" step="0.01" oninput="handmatigTotaal()"></div>
-      <div><label>Totaal extra&#39;s op locatie (€)</label><input type="text" id="c_extrasTotaal" readonly style="background:var(--cream);"></div>
-      <div><label>Hoe worden de extra&#39;s betaald</label>
-        <select id="c_extrasBetaalwijze" onchange="herberekenAlles()">
-          <option value="">— Nog niet betaald —</option>
-          <option>Contant</option>
-          <option>Flatpay (pin)</option>
-          <option>Mollie betaallink</option>
-          <option>Bankoverschrijving</option>
-          <option>Al inbegrepen in de reservering</option>
-          <option>Anders</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="split-toggle">
-      <input type="checkbox" id="c_splitToggle" onchange="toggleSplitBetaling()">
-      <label for="c_splitToggle" style="margin:0;">Klant betaalt gesplitst (deels contant, deels Flatpay/Mollie)</label>
-    </div>
-
-    <div id="betaalwijzeNormaal">
-      <label>Betaalwijze restbedrag</label>
-      <select id="c_betaalwijze">
-        <option>Contant</option>
-        <option>Flatpay</option>
-        <option>Mollie betaallink</option>
-        <option>Bankoverschrijving</option>
-        <option>Anders</option>
-      </select>
-    </div>
-
-    <div id="betaalwijzeSplit" style="display:none;">
-      <div class="split-row">
-        <div><label>Deel 1 — bedrag (€)</label><input type="number" id="c_split1bedrag" step="0.01" min="0"></div>
-        <div><label>Deel 1 — wijze</label>
-          <select id="c_split1wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Anders</option></select>
+  <div id="formulier">
+    <div class="card">
+      <h2>Wie checkt in?</h2>
+      <div id="klantZoek">
+        <div class="veld zoekhouder">
+          <label for="zoek">Zoek de gast in het klantenbestand</label>
+          <input type="search" id="zoek" placeholder="Achternaam, woonplaats of e-mailadres" autocomplete="off">
+          <span class="uitleg">Typ twee letters. Is het een nieuwe gast? Vul de gegevens hieronder gewoon in — de klant wordt dan aangemaakt.</span>
+          <div class="zoeklijst" id="zoeklijst" hidden></div>
         </div>
       </div>
-      <div class="split-row">
-        <div><label>Deel 2 — bedrag (€)</label><input type="number" id="c_split2bedrag" step="0.01" min="0"></div>
-        <div><label>Deel 2 — wijze</label>
-          <select id="c_split2wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Anders</option></select>
+      <div id="klantGekoppeld" hidden></div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="veld"><label for="voorletters">Voorletter(s)</label><input type="text" id="voorletters" placeholder="A.M." autocomplete="off"></div>
+        <div class="veld"><label for="achternaam">Achternaam</label><input type="text" id="achternaam" placeholder="de Vries" autocomplete="off"></div>
+        <div class="veld"><label for="woonplaats">Woonplaats</label><input type="text" id="woonplaats" placeholder="Almere" autocomplete="off"></div>
+        <div class="veld"><label for="geboorte">Geboortedatum</label><input type="date" id="geboorte"></div>
+        <div class="veld" id="wrapNat"><label for="nationaliteit">Nationaliteit</label>
+          <input type="text" id="nationaliteit" placeholder="Nederlandse" list="natlijst" autocomplete="off">
+          <datalist id="natlijst"><option>Nederlandse</option><option>Belgische</option><option>Duitse</option>
+            <option>Britse</option><option>Poolse</option><option>Amerikaanse</option></datalist>
+        </div>
+        <div class="veld"><label for="email">E-mailadres</label><input type="email" id="email" placeholder="naam@voorbeeld.nl" autocomplete="off"></div>
+        <div class="veld"><label for="telefoon">Telefoonnummer</label><input type="tel" id="telefoon" placeholder="06 12345678" autocomplete="off"></div>
+        <div class="veld"><label for="member">Member</label>
+          <label class="vink" for="member"><input type="checkbox" id="member"><span>Wil member worden</span></label>
         </div>
       </div>
     </div>
 
-    <label>Extra omzet (€) — overig, niet aan specifiek item gekoppeld</label>
-    <input type="number" id="c_extraomzet" step="0.01" min="0" value="0" oninput="herberekenAlles()">
-  </div>
-
-  <!-- ================= OPMERKINGEN ================= -->
-  <div class="card">
-    <h2>Opmerkingen</h2>
-    <textarea id="c_opmerking" placeholder="Overige opmerkingen, afspraken met de gast, etc."></textarea>
-  </div>
-
-  <!-- ================= KLANT LATEN TEKENEN ================= -->
-  <div class="card">
-    <h2>Klantgegevens &amp; akkoord</h2>
-    <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn — niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
-    <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
-    <button type="button" class="btn" onclick="openGuestModal()">✎ Formulier voor de gast openen</button>
-
-    <h3>Of laat de gast het vooraf invullen</h3>
-    <p class="desc" style="margin-bottom:0;">Stuur de gast een link. Hij ziet alleen zijn eigen gegevens en kan geen andere incheckformulieren openen. Wat hij instuurt verschijnt hieronder bij "Aanmeldingen van gasten".</p>
-    <div class="linkbox">
-      <button class="btn secondary sm" type="button" onclick="maakGastLink(true)">Persoonlijke link maken</button>
-      <button class="btn secondary sm" type="button" onclick="maakGastLink(false)">Algemene link</button>
-    </div>
-    <div class="linkbox" id="gastLinkWrap" style="display:none;">
-      <input type="text" id="gastLinkVeld" readonly onclick="this.select()">
-      <button class="btn sm" type="button" onclick="kopieerGastLink()">Kopiëren</button>
-      <a class="btn secondary sm" id="gastLinkWa" target="_blank" rel="noopener">WhatsApp</a>
-    </div>
-    <div class="status" id="gastLinkStatus"></div>
-  </div>
-
-  <!-- ================= AANMELDINGEN VAN GASTEN ================= -->
-  <div class="card">
-    <h2>Aanmeldingen van gasten</h2>
-    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken — de klantgegevens en handtekening staan er dan al in.</p>
-    <div class="aanmeld-lijst" id="aanmeldLijst"></div>
-  </div>
-
-  <!-- ================= OPSLAAN & VERSTUREN ================= -->
-  <div class="card">
-    <h2>Opslaan &amp; versturen</h2>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-      <button class="btn" type="button" onclick="saveCheckin(false)">Opslaan</button>
-      <button class="btn secondary" type="button" onclick="saveCheckin(true)">Opslaan als concept</button>
-      <button class="btn secondary" type="button" onclick="clearCheckinForm()">Formulier leegmaken</button>
-    </div>
-    <p class="desc" style="margin:-6px 0 14px;">Een concept is een formulier dat je alvast klaarzet — bijvoorbeeld voor een locatiemanager, of om de gastenlink aan te koppelen. Het telt nog niet mee als afgeronde incheck. Sla het op als "Opslaan" zodra het verblijf is afgerond.</p>
-
-    <div class="formgrid">
-      <div>
-        <label>Versturen naar (standaard)</label>
-        <input type="email" id="c_sendto" value="info@bedenwellnessflevoland.nl">
-        <button class="btn" type="button" style="margin-top:8px;" onclick="sendCheckinEmail('c_sendto')">Opslaan &amp; versturen naar dit adres</button>
-      </div>
-      <div>
-        <label>Versturen naar jezelf (locatiemanager)</label>
-        <input type="email" id="c_sendself" placeholder="jouw eigen e-mailadres">
-        <button class="btn secondary" type="button" style="margin-top:8px;" onclick="sendCheckinEmail('c_sendself')">Opslaan &amp; versturen naar mezelf</button>
+    <div class="card">
+      <h2>Verblijf</h2>
+      <div class="grid">
+        <div class="veld"><label for="soort">Soort verblijf</label>
+          <div class="seg" id="soort">
+            <button type="button" data-val="overnachting" aria-pressed="true">Overnachting</button>
+            <button type="button" data-val="dagverblijf" aria-pressed="false">Dagverblijf</button>
+          </div>
+        </div>
+        <div class="veld"><label for="locatie">Locatie</label><select id="locatie"></select></div>
+        <div class="veld"><label for="datumIn" id="lblIn">Datum inchecken</label><input type="date" id="datumIn"></div>
+        <div class="veld" id="wrapUit"><label for="datumUit">Datum uitchecken</label><input type="date" id="datumUit"></div>
+        <div class="veld" id="wrapNachten"><label for="nachten">Aantal nachten</label><input type="number" id="nachten" min="0" step="1" value="1"></div>
+        <div class="veld"><label for="personen">Aantal personen</label><input type="number" id="personen" min="1" step="1" value="2"></div>
+        <div class="veld" id="wrapKind"><label for="kinderen">Waarvan t/m 11 jaar</label>
+          <input type="number" id="kinderen" min="0" step="1" value="0">
+          <span class="uitleg">Vrijgesteld in Lelystad</span></div>
+        <div class="veld"><label for="bron">Boeking via</label>
+          <select id="bron">
+            <option value="">—</option><option>Privé sauna</option><option>Origineel Overnachten</option>
+            <option>Booking.com</option><option>Telefonisch</option><option>Eigen website</option>
+            <option>Herhaalgast</option><option>Op locatie</option><option>Anders</option>
+          </select></div>
       </div>
     </div>
-    <div class="status" id="checkinStatus"></div>
-  </div>
-  </form>
 
-  <!-- ================= KLAARGEZETTE CONCEPTEN ================= -->
-  <div class="card">
-    <h2>Klaargezette formulieren</h2>
-    <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
-    <div class="aanmeld-lijst" id="conceptLijst"></div>
-  </div>
-
-  <!-- ================= RECENT OPGESLAGEN ================= -->
-  <div class="card table-wrap">
-    <h2>Recent opgeslagen incheckformulieren</h2>
-    <table>
-      <thead><tr><th>Datum</th><th>Locatie</th><th>Gast</th><th>Aantal pers.</th><th>Totaal</th><th>Nog te betalen</th><th></th></tr></thead>
-      <tbody id="checkinTableBody"></tbody>
-    </table>
+    <div class="card">
+      <h2>Bedragen</h2>
+      <div class="grid">
+        <div class="veld"><label for="kale">Kale logiesprijs (€)</label><input type="number" id="kale" min="0" step="0.01" placeholder="0,00">
+          <span class="uitleg">Alleen verblijf, zonder eten, drinken of extra's</span></div>
+        <div class="veld"><label for="totaal">Totaal betaald (€)</label><input type="number" id="totaal" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="veld breed"><label for="notitie">Notitie</label><input type="text" id="notitie" placeholder="Arrangement, late incheck, bijzonderheden…"></div>
+      </div>
+      <div class="preview" id="preview"></div>
+      <div class="melding fout" id="fout" hidden></div>
+      <div class="acties">
+        <button class="knop" id="opslaan" type="button">Inchecken en opslaan</button>
+        <button class="knop stil" id="leeg" type="button">Formulier leegmaken</button>
+      </div>
+    </div>
   </div>
 
-</div>
-</div><!-- einde appBody -->
-
-<!-- ===== Gast-popup: alleen klantgegevens, huisregels, voorwaarden, member, handtekening ===== -->
-<div class="modal-bg" id="guestModal">
-  <div class="modal">
-    <h3>Welkom!</h3>
-    <p class="sub">Vul hieronder je gegevens in om in te checken.</p>
-    <form id="guestForm" onsubmit="return false;">
-      <label>Voornaam <span class="req-mark">*</span></label>
-      <input type="text" id="g_voornaam" required>
-      <label>Achternaam <span class="req-mark">*</span></label>
-      <input type="text" id="g_achternaam" required>
-      <label>Woonplaats <span class="req-mark">*</span></label>
-      <input type="text" id="g_woonplaats" required>
-      <label>Nationaliteit <span class="req-mark">*</span></label>
-      <input type="text" id="g_nationaliteit" required>
-      <label>Telefoonnummer <span class="req-mark">*</span></label>
-      <input type="text" id="g_telefoon" required>
-      <label>E-mailadres <span class="req-mark">*</span></label>
-      <input type="email" id="g_email" required>
-
-      <label>Wil je gratis lid worden (10% korting)? <span class="req-mark">*</span></label>
-      <div class="radio-row" id="lidRow">
-        <label><input type="radio" name="g_lid" value="ja"> Ja</label>
-        <label><input type="radio" name="g_lid" value="nee"> Nee</label>
-      </div>
-
-      <div class="fieldset-label">Huisregels &amp; algemene voorwaarden</div>
-      <button class="btn secondary sm" type="button" style="margin-top:8px;" onclick="viewDocument('huisregels')">📄 Huisregels bekijken</button>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-        <input type="checkbox" id="g_akkoord" style="width:auto;" required> Ik heb de huisregels gelezen en ga akkoord <span class="req-mark">*</span>
-      </label>
-      <button class="btn secondary sm" type="button" style="margin-top:10px;" onclick="viewDocument('voorwaarden')">📄 Algemene voorwaarden bekijken</button>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-        <input type="checkbox" id="g_akkoordvw" style="width:auto;" required> Ik heb de algemene voorwaarden gelezen en ga akkoord <span class="req-mark">*</span>
-      </label>
-
-      <div class="fieldset-label">Handtekening <span class="req-mark">*</span></div>
-      <div style="border:1.5px solid var(--line);border-radius:10px;background:#fff;display:inline-block;margin-top:8px;">
-        <canvas id="g_sigpad" width="440" height="150" style="display:block;touch-action:none;cursor:crosshair;max-width:100%;"></canvas>
-      </div>
-      <div style="margin-top:6px;">
-        <button class="btn secondary sm" type="button" onclick="clearSignature()">Handtekening wissen</button>
-      </div>
-
-      <div class="status err" id="guestFormStatus" style="margin-top:12px;"></div>
-      <div style="display:flex;gap:10px;margin-top:14px;">
-        <button class="btn" type="button" style="flex:1;justify-content:center;" onclick="confirmGuestForm()">Bevestigen</button>
-        <button class="btn secondary" type="button" onclick="closeGuestModal()">Annuleren</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ===== Detail modal voor eerder opgeslagen formulier (alleen voor personeel) ===== -->
-<div class="modal-bg" id="checkinDetailModal">
-  <div class="modal" style="max-width:640px;">
-    <h3 id="cdNaam">Gast</h3>
-    <p class="sub" id="cdLocatie"></p>
-    <div id="cdGrid"></div>
-    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-      <button class="btn secondary" type="button" onclick="editCheckinFromDetail()">Bewerken</button>
-      <button class="btn danger" type="button" onclick="deleteCheckinFromDetail()">Verwijderen</button>
-      <button class="btn secondary" type="button" onclick="closeModal('checkinDetailModal')">Sluiten</button>
+  <div class="card klaar" id="klaarKaart" hidden>
+    <div class="vinkje">✓</div>
+    <h2 id="klaarTitel">Ingecheckt</h2>
+    <p id="klaarTekst"></p>
+    <div class="overzicht" id="overzicht"></div>
+    <div class="acties" style="justify-content:center">
+      <button class="knop" id="nogEen" type="button">Volgende gast inchecken</button>
+      <a class="knop stil" href="klantbeheer.html">Naar klantbeheer</a>
     </div>
   </div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const LOCATIONS = [
-  { id:'angie',   naam:'Suite Angie — Almere' },
-  { id:'jacuzzi', naam:'Malina Jacuzzi Suite — Lelystad' },
-  { id:'deluxe',  naam:'Malina Deluxe Zwembad Suite — Lelystad' },
-];
-const ARRANGEMENT_SECTIONS = [
-  { title:'Vieringen', items:[
-    { key:'verjaardag', naam:'Verjaardag arrangement', prijs:75 },
-    { key:'verjaardag_deluxe', naam:'Verjaardag Deluxe arrangement', prijs:125 },
-    { key:'romantisch', naam:'Romantisch arrangement', prijs:75 },
-  ]},
-  { title:'Romantiek & Luxe', items:[
-    { key:'valentine', naam:'365 Valentine arrangement', prijs:299 },
-    { key:'vip', naam:'VIP arrangement', prijs:250 },
-  ]},
-  { title:'Verblijf', items:[
-    { key:'overnachting_arr', naam:'Honeymoon overnachting', prijs:null },
-    { key:'verrassing', naam:'Verrassingsarrangement', prijs:2.50, note:'🕶️ Oogmasker meegeven bij inchecken' },
-  ]},
-];
-const ORDER_ITEMS = [
-  { naam:'Burgermenu Crispy Chicken', prijs:39 },
-  { naam:'Chickenwingsarrangement', prijs:35 },
-  { naam:'Borrelplank', prijs:30 },
-  { naam:'Sushi', prijs:75 },
-  { naam:'Ontbijt/Lunch', prijs:39 },
-  { naam:'Mocktail karaf', prijs:30 },
-  { naam:'Fles Prosecco', prijs:30 },
-  { naam:'Fles Chardonnay', prijs:30 },
-  { naam:'Fles Zoete Wit', prijs:30 },
-  { naam:'Fles Moët & Chandon', prijs:125 },
-  { naam:'Fles Champagne', prijs:50 },
-];
-const ALMERE_ORDER_ITEMS = [
-  { naam:'Black Angus Burger menu', prijs:39 },
-  { naam:'Black Angus Burger menu + upgrade (milkshakes & chickenwings)', prijs:46 },
-  { naam:'Tapas plank', prijs:49 },
-  { naam:'Champagne ontbijt', prijs:79 },
-];
-// Extra personen bijboeken op locatie — tarief per locatie
-const EXTRA_PERSONEN = {
-  dagverblijf: {
-    angie:   { volwassene:60,  kind:25 },
-    jacuzzi: { volwassene:60,  kind:25 },
-    deluxe:  { volwassene:75,  kind:50 },
-  },
-  overnachting: {
-    angie:   { volwassene:100, kind:50 },
-    jacuzzi: { volwassene:100, kind:50 },
-    deluxe:  { volwassene:125, kind:75 },
-  },
+(function(){
+"use strict";
+
+var SUPABASE = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  tabel: "wz_klantbeheer",
+  instellingen: "wz_klantbeheer_instellingen",
+  dashboardInstellingen: "instellingen"
 };
-const SERVICE_ITEMS = [
-  { naam:'Shisha', prijs:30 },
-  { naam:'Huur massagetafel', prijs:30 },
-];
-// Alles wat vooraf gereserveerd kan worden — voor de aanvink-checklist
-const VOORAF_ITEMS = [...ORDER_ITEMS, ...ALMERE_ORDER_ITEMS, ...SERVICE_ITEMS];
+var POORT_SLEUTEL = "bw-toegang";
+var STANDAARD = {
+  tariefLelystad: 3.10, percentageAlmere: 7, prijsInclusief: "ja",
+  bedrijf: "Bed & Wellness Flevoland",
+  locaties: [
+    {id:"angie",   naam:"Suite Angie",                 gemeente:"Almere"},
+    {id:"jacuzzi", naam:"Malina Jacuzzi Suite",        gemeente:"Lelystad"},
+    {id:"zwembad", naam:"Malina Deluxe Zwembad Suite", gemeente:"Lelystad"}
+  ]
+};
+var inst = JSON.parse(JSON.stringify(STANDAARD));
+var records = [], klanten = [], gekozen = null, soort = "overnachting", bezig = false;
 
-/* ================= SUPABASE ================= */
-const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
-
-/* ================= INLOGGEN ================= */
-const AUTH_STORE = 'bwf_auth';
-let auth = null;   // { access_token, refresh_token, email }
-
-function laadAuth(){
-  try{ auth = JSON.parse(localStorage.getItem(AUTH_STORE) || 'null'); }catch(e){ auth = null; }
-  return auth;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function eur(n){ var v = (Math.round(num(n)*100)/100).toFixed(2).split(".");
+  return "€ " + v[0].replace(/\B(?=(\d{3})+(?!\d))/g,".") + "," + v[1]; }
+function dNL(iso){ if(!iso) return ""; var p = String(iso).split("-"); return p.length===3 ? p[2]+"-"+p[1]+"-"+p[0] : iso; }
+function vandaag(){ return new Date().toISOString().slice(0,10); }
+function nachtenTussen(a,b){ if(!a||!b) return 0;
+  var d = (new Date(b+"T12:00:00") - new Date(a+"T12:00:00"))/86400000; return d>0 ? Math.round(d) : 0; }
+function headers(extra){
+  var h = {"apikey":SUPABASE.key, "Authorization":"Bearer "+SUPABASE.key, "Content-Type":"application/json"};
+  if(extra) for(var k in extra) h[k] = extra[k];
+  return h;
 }
-function bewaarAuth(data, email){
-  auth = { access_token:data.access_token, refresh_token:data.refresh_token, email: email || data.user?.email || '' };
-  localStorage.setItem(AUTH_STORE, JSON.stringify(auth));
+function api(pad){ return fetch(SUPABASE.url.replace(/\/+$/,"") + "/rest/v1/" + pad, {headers: headers()})
+  .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+function status(soortSt, tekst){
+  $("statusDot").className = "dot" + (soortSt ? " " + soortSt : "");
+  $("statusTxt").textContent = tekst;
 }
-function wisAuth(){ auth = null; localStorage.removeItem(AUTH_STORE); }
+function locVan(id){ for(var i=0;i<inst.locaties.length;i++) if(inst.locaties[i].id===id) return inst.locaties[i];
+  return inst.locaties[0] || {naam:"—", gemeente:""}; }
 
-async function authFetch(pad, body){
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/${pad}`, {
-    method:'POST',
-    headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json().catch(()=>({}));
-  if(!res.ok) throw new Error(data.error_description || data.msg || data.message || 'Inloggen mislukt');
-  return data;
-}
-
-async function doLogin(){
-  const email = document.getElementById('li_email').value.trim();
-  const pw = document.getElementById('li_pw').value;
-  const st = document.getElementById('loginStatus');
-  if(!email || !pw){ st.textContent = 'Vul je e-mailadres en wachtwoord in.'; st.className='status err'; return; }
-  st.textContent = 'Bezig met inloggen…'; st.className = 'status';
-  try{
-    const data = await authFetch('token?grant_type=password', { email, password: pw });
-    bewaarAuth(data, email);
-    document.getElementById('li_pw').value = '';
-    st.textContent = ''; st.className = 'status';
-    startApp();
-  }catch(err){
-    st.textContent = '✕ ' + (err.message === 'Invalid login credentials' ? 'E-mailadres of wachtwoord klopt niet.' : err.message);
-    st.className = 'status err';
+/* ---------- toeristenbelasting ---------- */
+function belasting(r){
+  if(r.type !== "overnachting") return {bedrag:0, uitleg:"Dagverblijf — geen toeristenbelasting."};
+  var g = locVan(r.locatieId).gemeente;
+  if(g === "Lelystad"){
+    var b = Math.max(0, num(r.personen) - num(r.kinderen));
+    return {bedrag: b * num(r.nachten) * num(inst.tariefLelystad),
+      uitleg: b + " pers. × " + num(r.nachten) + " nacht(en) × " + eur(inst.tariefLelystad)};
   }
-}
-
-async function vernieuwToken(){
-  if(!auth?.refresh_token) return false;
-  try{
-    const data = await authFetch('token?grant_type=refresh_token', { refresh_token: auth.refresh_token });
-    bewaarAuth(data, auth.email);
-    return true;
-  }catch(e){ return false; }
-}
-
-function doLogout(){
-  wisAuth();
-  document.getElementById('appBody').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-}
-
-function startApp(){
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appBody').style.display = 'block';
-  document.getElementById('huidigeGebruiker').textContent = auth?.email || '';
-  loadAll();
-}
-
-async function sb(path, options={}, opnieuw=true){
-  const token = auth?.access_token || SUPABASE_KEY;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    method: options.method || 'GET',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Prefer': options.prefer || 'return=representation',
-    },
-    body: options.body
-  });
-  if((res.status === 401 || res.status === 403) && opnieuw && auth){
-    if(await vernieuwToken()) return sb(path, options, false);
-    doLogout();
-    throw new Error('Je sessie is verlopen — log opnieuw in.');
+  if(g === "Almere"){
+    var p = num(inst.percentageAlmere);
+    var grond = inst.prijsInclusief === "ja" ? num(r.kalePrijs)/(1+p/100) : num(r.kalePrijs);
+    return {bedrag: grond*p/100, uitleg: p + "% over logiesomzet " + eur(grond)};
   }
-  if(!res.ok){
-    let detail = '';
-    try{ detail = (await res.json()).message; }catch(e){}
-    throw new Error(detail || `Serverfout (${res.status})`);
+  return {bedrag:0, uitleg:"Geen tarief ingesteld voor " + (g || "deze gemeente") + "."};
+}
+
+/* ---------- klanten samenstellen ---------- */
+function sleutel(r){ return ((r.achternaam||"")+"|"+(r.voorletters||"")+"|"+(r.woonplaats||"")).toLowerCase(); }
+function bouwKlanten(){
+  var map = {}, i;
+  for(i=0;i<records.length;i++){
+    var r = records[i], k = sleutel(r);
+    if(!map[k]) map[k] = {key:k, voorletters:r.voorletters||"", achternaam:r.achternaam||"",
+      woonplaats:r.woonplaats||"", email:"", telefoon:"", geboortedatum:"", nationaliteit:"",
+      overnachtingen:0, dagverblijven:0, nachten:0, besteed:0, member:false, laatste:"", contact:0};
+    var m = map[k];
+    if(r.email) m.email = r.email;
+    if(r.telefoon) m.telefoon = r.telefoon;
+    if(r.geboortedatum && !m.geboortedatum) m.geboortedatum = r.geboortedatum;
+    if(r.nationaliteit && !m.nationaliteit) m.nationaliteit = r.nationaliteit;
+    if(r.type === "overnachting"){ m.overnachtingen++; m.nachten += num(r.nachten); }
+    else if(r.type === "klant") m.contact++;
+    else m.dagverblijven++;
+    m.besteed += num(r.totaal_betaald !== undefined ? r.totaal_betaald : r.totaalBetaald);
+    if(r.member) m.member = true;
+    var d = r.datum_in || r.contact_datum || "";
+    if(d && d > m.laatste) m.laatste = d;
   }
-  if(res.status === 204) return null;
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  klanten = [];
+  for(var key in map) klanten.push(map[key]);
+  klanten.sort(function(a,b){ return (b.laatste||"").localeCompare(a.laatste||""); });
+}
+function volleNaam(k){ return (k.voorletters ? k.voorletters + " " : "") + k.achternaam; }
+function bezoekTekst(k){
+  var d = [];
+  if(k.overnachtingen) d.push(k.overnachtingen + "× overnacht");
+  if(k.dagverblijven) d.push(k.dagverblijven + "× dagverblijf");
+  if(!d.length) d.push("nog geen verblijf");
+  return d.join(" · ");
 }
 
-let staff = [];
-let documenten = [];
-let checkins = [];
-let aanmeldingen = [];   // gastaanmeldingen met status 'nieuw'
-let actieveAanmelding = null;  // aanmelding die nu in het formulier staat
-let orderedItems = [];   // [{naam, aantal, prijs}]
-let guestData = null;    // filled via guest modal
-
-function locGroup(locatieId){ return locatieId === 'angie' ? 'almere' : 'lelystad'; }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
-function locName(id){ const l = LOCATIONS.find(x=>x.id===id); return l ? l.naam : id; }
-function euro(n){ n = parseFloat(n||0); return '€ ' + n.toFixed(2).replace('.', ','); }
-function fmtMoney(v){
-  if(v === null || v === undefined || v === '') return '—';
-  const n = parseFloat(v);
-  if(!isNaN(n)) return euro(n);
-  return escapeHtml(String(v));
+/* ---------- zoeken ---------- */
+function zoekResultaten(term){
+  term = term.trim().toLowerCase();
+  if(term.length < 2) return null;
+  return klanten.filter(function(k){
+    return (volleNaam(k) + " " + k.woonplaats + " " + k.email + " " + k.telefoon).toLowerCase().indexOf(term) >= 0;
+  }).slice(0, 8);
 }
-function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str ?? ''; return d.innerHTML; }
-function staffNameById(id){ const s = staff.find(x=>x.id===id); return s ? s.naam : ''; }
-function openModal(id){ document.getElementById(id).classList.add('open'); }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-
-/* ================= DATA LADEN ================= */
-async function loadStaff(){ staff = await sb('staff?select=*&order=naam.asc') || []; }
-async function loadDocumenten(){ documenten = await sb('documenten?select=*') || []; }
-async function loadCheckins(){ checkins = await sb('checkins?select=*&order=created_at.desc') || []; }
-async function loadAanmeldingen(){
-  try{
-    aanmeldingen = await sb('gast_aanmeldingen?select=*&status=eq.nieuw&order=created_at.desc') || [];
-  }catch(e){
-    console.error('Gastaanmeldingen laden mislukt:', e);
-    aanmeldingen = [];
-  }
-}
-
-async function loadAll(){
-  const statusBox = document.getElementById('loadStatus');
-  try{
-    await Promise.all([loadStaff(), loadDocumenten(), loadCheckins(), loadAanmeldingen()]);
-    statusBox.style.display = 'none';
-  }catch(err){
-    console.error('Fout bij laden vanuit database:', err);
-    statusBox.style.display = 'block';
-    statusBox.textContent = '⚠ Kan geen verbinding maken met de database: ' + err.message + '. Controleer je internetverbinding en herlaad de pagina.';
-  }
-  renderAll();
-}
-
-/* ================= OPBOUW FORMULIER ================= */
-function fillLocationSelect(sel){
-  sel.innerHTML = LOCATIONS.map(l=>`<option value="${l.id}">${l.naam}</option>`).join('');
-}
-function updateCheckinManagerOptions(){
-  const locatie = document.getElementById('c_locatie').value;
-  const groep = locGroup(locatie);
-  const sel = document.getElementById('c_manager');
-  const relevant = staff.filter(s => !s.locatie || s.locatie === groep);
-  sel.innerHTML = '<option value="">— Kies locatiemanager —</option>' +
-    relevant.map(s=>`<option value="${s.id}">${escapeHtml(s.naam)}${s.rol==='locatiemanager' ? ' (Locatiemanager)' : ''}</option>`).join('');
-}
-function toggleVerblijftype(){
-  const val = document.querySelector('input[name="verblijftype"]:checked').value;
-  document.getElementById('checkuitdatumWrap').style.display = val === 'overnachting' ? 'block' : 'none';
-  document.getElementById('datumLabel').textContent = val === 'overnachting' ? 'Check-in datum' : 'Datum';
-}
-function buildArrangementSections(){
-  const wrap = document.getElementById('arrangementSections');
-  wrap.innerHTML = ARRANGEMENT_SECTIONS.map((sec,si)=>`
-    <h3>${escapeHtml(sec.title)}</h3>
-    <div class="checklist">
-      ${sec.items.map((it,ii)=>`
-        <label>
-          <span class="cl-name"><input type="checkbox" id="arr_${si}_${ii}" data-naam="${escapeHtml(it.naam)}" onchange="herberekenAlles()"> ${escapeHtml(it.naam)}</span>
-        </label>
-        ${it.note ? `<div class="cl-note">${escapeHtml(it.note)}</div>` : ''}
-      `).join('')}
-    </div>
-  `).join('');
-}
-function buildServiceChecklist(){
-  const wrap = document.getElementById('serviceChecklist');
-  wrap.innerHTML = SERVICE_ITEMS.map((it,i)=>`
-    <label>
-      <span class="cl-name"><input type="checkbox" id="serv_${i}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs}" onchange="herberekenAlles()"> ${escapeHtml(it.naam)}</span>
-      <span class="prijs">${euro(it.prijs)}</span>
-    </label>
-  `).join('');
-}
-function buildVoorafChecklist(){
-  const wrap = document.getElementById('voorafChecklist');
-  wrap.innerHTML = VOORAF_ITEMS.map((it,i)=>`
-    <label>
-      <span class="cl-name"><input type="checkbox" id="voor_${i}" data-naam="${escapeHtml(it.naam)}" data-prijs="${it.prijs}" onchange="herberekenAlles()"> ${escapeHtml(it.naam)}</span>
-      <span class="prijs">${euro(it.prijs)}</span>
-    </label>
-  `).join('');
-}
-function buildOrderSelect(){
-  document.getElementById('ordItem').innerHTML = ORDER_ITEMS.map((it,i)=>`<option value="${i}">${escapeHtml(it.naam)} — ${euro(it.prijs)}</option>`).join('');
-  document.getElementById('ordItemAlmere').innerHTML = ALMERE_ORDER_ITEMS.map((it,i)=>`<option value="${i}">${escapeHtml(it.naam)} — ${euro(it.prijs)}</option>`).join('');
-}
-function persoonOpties(type){
-  const tarieven = EXTRA_PERSONEN[type];
-  const uit = [];
-  LOCATIONS.forEach(l=>{
-    const t = tarieven[l.id];
-    if(!t) return;
-    uit.push(`<option value="${l.id}|volwassene">${escapeHtml(l.naam)} — volwassene (${euro(t.volwassene)})</option>`);
-    uit.push(`<option value="${l.id}|kind">${escapeHtml(l.naam)} — kind (${euro(t.kind)})</option>`);
-  });
-  return uit.join('');
-}
-function buildPersoonSelects(){
-  document.getElementById('ordPersDag').innerHTML = persoonOpties('dagverblijf');
-  document.getElementById('ordPersNacht').innerHTML = persoonOpties('overnachting');
-  synchroniseerPersoonSelects();
-}
-// zet de dropdowns standaard op de locatie die bovenin gekozen is
-function synchroniseerPersoonSelects(){
-  const loc = document.getElementById('c_locatie').value;
-  const dag = document.getElementById('ordPersDag');
-  const nacht = document.getElementById('ordPersNacht');
-  if(dag) dag.value = loc + '|volwassene';
-  if(nacht) nacht.value = loc + '|volwassene';
-}
-function addPersoon(type){
-  const selId = type === 'overnachting' ? 'ordPersNacht' : 'ordPersDag';
-  const qtyId = type === 'overnachting' ? 'ordPersNachtQty' : 'ordPersDagQty';
-  const keuze = document.getElementById(selId).value;
-  if(!keuze) return;
-  const [locId, soort] = keuze.split('|');
-  const prijs = (EXTRA_PERSONEN[type][locId] || {})[soort];
-  if(prijs == null) return;
-  const qtyEl = document.getElementById(qtyId);
-  const aantal = Math.max(1, parseInt(qtyEl.value || 1, 10));
-  const label = `Extra ${soort === 'kind' ? 'kind' : 'volwassene'} — ${type === 'overnachting' ? 'overnachting' : 'dagverblijf'} (${locName(locId)})`;
-  orderedItems.push({ naam: label, aantal: aantal, prijs: prijs });
-  qtyEl.value = 1;
-  renderOrderList();
-  herberekenAlles();
-}
-function toggleCadeauAnders(){ /* prijs blijft handmatig invulbaar, geen extra actie nodig */ }
-
-/* ================= BESTELLINGEN (eten & drinken) ================= */
-function addOrderItem(which){
-  const isAlmere = which === 'almere';
-  const list = isAlmere ? ALMERE_ORDER_ITEMS : ORDER_ITEMS;
-  const idx = parseInt(document.getElementById(isAlmere ? 'ordItemAlmere' : 'ordItem').value, 10);
-  const qtyEl = document.getElementById(isAlmere ? 'ordQtyAlmere' : 'ordQty');
-  const qty = Math.max(1, parseInt(qtyEl.value || 1, 10));
-  const it = list[idx];
-  if(!it) return;
-  orderedItems.push({ naam: it.naam, aantal: qty, prijs: it.prijs });
-  qtyEl.value = 1;
-  renderOrderList();
-  herberekenAlles();
-}
-function removeOrderItem(i){
-  orderedItems.splice(i,1);
-  renderOrderList();
-  herberekenAlles();
-}
-function renderOrderList(){
-  const wrap = document.getElementById('orderList');
-  if(!orderedItems.length){ wrap.innerHTML = '<p class="hint">Nog niets besteld.</p>'; return; }
-  wrap.innerHTML = orderedItems.map((o,i)=>`
-    <div class="order-row">
-      <span>${o.aantal}x ${escapeHtml(o.naam)}</span>
-      <span class="or-price">${euro(o.aantal*o.prijs)}</span>
-      <button type="button" onclick="removeOrderItem(${i})">✕</button>
-    </div>
-  `).join('');
-}
-
-/* ================= EERDER/LATER UITCHECKEN ================= */
-function checkoutPrijs(){
-  const type = document.getElementById('c_checkoutType').value;
-  if(!type) return 0;
-  const duur = parseFloat(document.getElementById('c_checkoutDuur').value);
-  return duur === 0.5 ? 30 : duur*50;
-}
-function updateCheckoutPrijs(){
-  const type = document.getElementById('c_checkoutType').value;
-  const hint = document.getElementById('checkoutPrijsHint');
-  hint.textContent = type ? `Kosten voor deze service: ${euro(checkoutPrijs())}` : '';
-  herberekenAlles();
-}
-
-/* ================= GESPLITST BETALEN ================= */
-function toggleSplitBetaling(){
-  const split = document.getElementById('c_splitToggle').checked;
-  document.getElementById('betaalwijzeNormaal').style.display = split ? 'none' : 'block';
-  document.getElementById('betaalwijzeSplit').style.display = split ? 'block' : 'none';
-}
-
-/* ================= REKENMACHINE ================= */
-/* Reserveringsbedrag = alles wat vooraf is geboekt en betaald (arrangement + vooraf
-   gereserveerde extra's). Daar bovenop komt alles wat op locatie is bijgeboekt. */
-function reserveringsBedrag(){
-  return parseFloat(document.getElementById('c_resbedrag')?.value || 0) || 0;
-}
-function onlineBetaald(){
-  return parseFloat(document.getElementById('c_aanbetaald')?.value || 0) || 0;
-}
-// Losse regels van alles wat op locatie is bijgeboekt
-function extrasRegels(){
-  const regels = [];
-  orderedItems.forEach(o=> regels.push({ naam: `${o.aantal}x ${o.naam}`, bedrag: o.aantal*o.prijs }));
-  SERVICE_ITEMS.forEach((it,i)=>{
-    const cb = document.getElementById(`serv_${i}`);
-    if(cb && cb.checked) regels.push({ naam: it.naam, bedrag: it.prijs });
-  });
-  const cadeau = parseFloat(document.getElementById('c_cadeauprijs')?.value || 0) || 0;
-  if(cadeau) regels.push({ naam: 'Cadeau' + (document.getElementById('c_cadeau').value ? ' \u2014 ' + document.getElementById('c_cadeau').value : ''), bedrag: cadeau });
-  const co = checkoutPrijs();
-  if(co) regels.push({ naam: document.getElementById('c_checkoutType').value === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken', bedrag: co });
-  const extra = parseFloat(document.getElementById('c_extraomzet')?.value || 0) || 0;
-  if(extra) regels.push({ naam: 'Overige extra omzet', bedrag: extra });
-  return regels;
-}
-function extrasTotaal(){
-  return extrasRegels().reduce((t,r)=> t + r.bedrag, 0);
-}
-function berekenSubtotaal(){
-  return reserveringsBedrag() + extrasTotaal();
-}
-// Handmatig ingevuld totaal wint; anders het berekende bedrag
-function actueelTotaal(){
-  const veld = document.getElementById('c_totaal');
-  const val = parseFloat(veld?.value);
-  return (veld && veld.value !== '' && !isNaN(val)) ? val : berekenSubtotaal();
-}
-function herberekenAlles(){
-  const res = reserveringsBedrag();
-  const betaald = onlineBetaald();
-  const extras = extrasTotaal();
-  const totaal = actueelTotaal();
-  const nog = Math.max(0, totaal - betaald);
-
-  const zet = (id,val)=>{ const el = document.getElementById(id); if(el) el.textContent = val; };
-  zet('somReservering', euro(res));
-  zet('somBetaald', euro(betaald));
-  zet('somExtras', euro(extras));
-  zet('somNog', euro(nog));
-  zet('berekendSubtotaal', euro(berekenSubtotaal()));
-
-  const nogVeld = document.getElementById('c_nog');
-  if(nogVeld) nogVeld.value = euro(nog);
-  const exVeld = document.getElementById('c_extrasTotaal');
-  if(exVeld) exVeld.value = euro(extras);
-
-  renderRekenLijst(res, betaald, extras, totaal, nog);
-}
-function renderRekenLijst(res, betaald, extras, totaal, nog){
-  const wrap = document.getElementById('rekenLijst');
-  if(!wrap) return;
-  const arrangementen = collectArrangementen();
-  const vooraf = collectVoorafGereserveerd();
-  const extrasWijze = document.getElementById('c_extrasBetaalwijze')?.value || '';
-  const rij = (l,b,cls='') => `<div class="rl ${cls}"><span>${escapeHtml(l)}</span><span>${b}</span></div>`;
-
-  let html = rij('Vooraf gereserveerd', '', 'kop');
-  if(arrangementen.length) html += rij('Arrangement: ' + arrangementen.join(', '), 'inbegrepen', 'info');
-  if(vooraf.length) html += rij('Vooraf geboekt: ' + vooraf.join(', '), 'inbegrepen', 'info');
-  html += rij('Reserveringsbedrag', euro(res), 'tot');
-  html += rij('Af: online betaald', '\u2212 ' + euro(betaald));
-  html += rij('Nog te betalen van de reservering', euro(Math.max(0, res - betaald)), 'tot');
-
-  html += rij("Bijgeboekt op locatie", '', 'kop');
-  const regels = extrasRegels();
-  if(!regels.length) html += rij('Nog niets bijgeboekt', '\u2014', 'info');
-  regels.forEach(r=> html += rij(r.naam, euro(r.bedrag)));
-  html += rij('Totaal extra\u2019s' + (extrasWijze ? ' \u2014 ' + extrasWijze : ' \u2014 betaalwijze nog niet gekozen'), euro(extras), 'tot');
-
-  html += rij('Totaalbedrag reservering + extra\u2019s', euro(totaal), 'tot');
-  html += rij('Nog te voldoen', euro(nog), 'eind');
-  wrap.innerHTML = html;
-}
-function updateSubtotalHint(){ herberekenAlles(); }
-function gebruikBerekendBedrag(){
-  document.getElementById('c_totaal').value = berekenSubtotaal().toFixed(2);
-  herberekenAlles();
-}
-function handmatigTotaal(){ herberekenAlles(); }
-function updateCheckinNog(){ herberekenAlles(); }
-
-/* ================= DOCUMENTEN (huisregels & voorwaarden) ================= */
-function findDocument(type, groep){ return documenten.find(d=>d.id===`${type}_${groep}`); }
-function viewDocument(type){
-  const locatie = document.getElementById('c_locatie').value;
-  const groep = type === 'voorwaarden' ? 'algemeen' : locGroup(locatie);
-  const doc = findDocument(type, groep);
-  if(!doc){ alert('Er is nog geen ' + (type==='huisregels' ? 'huisregels-document' : 'algemene voorwaarden-document') + ' geüpload voor deze locatie.'); return; }
-  const byteChars = atob(doc.data);
-  const byteNumbers = new Array(byteChars.length);
-  for(let i=0;i<byteChars.length;i++) byteNumbers[i] = byteChars.charCodeAt(i);
-  const blob = new Blob([new Uint8Array(byteNumbers)], { type:'application/pdf' });
-  window.open(URL.createObjectURL(blob), '_blank');
-}
-function updateDocumentLinks(){ /* links worden opgehaald op moment van bekijken */ }
-
-/* ================= HANDTEKENING (in de gast-popup) ================= */
-let sigCtx, sigDrawing = false, sigHasContent = false;
-function setupSignaturePad(){
-  const canvas = document.getElementById('g_sigpad');
-  sigCtx = canvas.getContext('2d');
-  sigCtx.lineWidth = 2;
-  sigCtx.lineCap = 'round';
-  sigCtx.strokeStyle = '#2b2620';
-  function pos(e){
-    const rect = canvas.getBoundingClientRect();
-    const p = e.touches ? e.touches[0] : e;
-    return { x: (p.clientX - rect.left) * (canvas.width/rect.width), y: (p.clientY - rect.top) * (canvas.height/rect.height) };
-  }
-  function start(e){ sigDrawing = true; sigHasContent = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); e.preventDefault(); }
-  function move(e){ if(!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); e.preventDefault(); }
-  function end(){ sigDrawing = false; }
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', start, { passive:false });
-  canvas.addEventListener('touchmove', move, { passive:false });
-  canvas.addEventListener('touchend', end);
-}
-function clearSignature(){
-  const canvas = document.getElementById('g_sigpad');
-  sigCtx.clearRect(0, 0, canvas.width, canvas.height);
-  sigHasContent = false;
-}
-function getSignatureData(){ return sigHasContent ? document.getElementById('g_sigpad').toDataURL('image/png') : null; }
-
-/* ================= GAST-POPUP ================= */
-function openGuestModal(){
-  if(!sigCtx) setupSignaturePad();
-  document.getElementById('guestFormStatus').textContent = '';
-  if(guestData){
-    document.getElementById('g_voornaam').value = guestData.voornaam;
-    document.getElementById('g_achternaam').value = guestData.achternaam;
-    document.getElementById('g_woonplaats').value = guestData.woonplaats;
-    document.getElementById('g_nationaliteit').value = guestData.nationaliteit;
-    document.getElementById('g_telefoon').value = guestData.telefoon;
-    document.getElementById('g_email').value = guestData.email;
-    document.getElementById('g_akkoord').checked = guestData.akkoord;
-    document.getElementById('g_akkoordvw').checked = guestData.akkoord_voorwaarden;
-    document.querySelectorAll('input[name="g_lid"]').forEach(r=>{ r.checked = (r.value === (guestData.lid ? 'ja':'nee')); });
-  }
-  openModal('guestModal');
-}
-function closeGuestModal(){ closeModal('guestModal'); }
-function confirmGuestForm(){
-  const statusEl = document.getElementById('guestFormStatus');
-  const voornaam = document.getElementById('g_voornaam').value.trim();
-  const achternaam = document.getElementById('g_achternaam').value.trim();
-  const woonplaats = document.getElementById('g_woonplaats').value.trim();
-  const nationaliteit = document.getElementById('g_nationaliteit').value.trim();
-  const telefoon = document.getElementById('g_telefoon').value.trim();
-  const email = document.getElementById('g_email').value.trim();
-  const akkoord = document.getElementById('g_akkoord').checked;
-  const akkoordvw = document.getElementById('g_akkoordvw').checked;
-  const lidEl = document.querySelector('input[name="g_lid"]:checked');
-  const handtekening = getSignatureData();
-
-  const missing = [];
-  if(!voornaam) missing.push('Voornaam');
-  if(!achternaam) missing.push('Achternaam');
-  if(!woonplaats) missing.push('Woonplaats');
-  if(!nationaliteit) missing.push('Nationaliteit');
-  if(!telefoon) missing.push('Telefoonnummer');
-  if(!email) missing.push('E-mailadres');
-  if(!lidEl) missing.push('Wel/geen lid worden');
-  if(!akkoord) missing.push('Akkoord huisregels');
-  if(!akkoordvw) missing.push('Akkoord algemene voorwaarden');
-  if(!handtekening) missing.push('Handtekening');
-  if(missing.length){
-    statusEl.textContent = 'Vul nog in: ' + missing.join(', ');
+function tekenZoeklijst(){
+  var res = zoekResultaten($("zoek").value);
+  if(res === null){ $("zoeklijst").hidden = true; return; }
+  if(!res.length){
+    $("zoeklijst").hidden = false;
+    $("zoeklijst").innerHTML = '<div class="leeg">Geen klant gevonden. Vul de gegevens hieronder in — dan maak je een nieuwe klant aan.</div>';
     return;
   }
+  $("zoeklijst").hidden = false;
+  $("zoeklijst").innerHTML = res.map(function(k,i){
+    return '<button type="button" data-kies="' + i + '">' +
+      '<span class="naam">' + esc(volleNaam(k)) + (k.member ? '<span class="pill">member</span>' : "") + "</span>" +
+      '<span class="meta">' + esc([k.woonplaats, k.email, bezoekTekst(k)].filter(Boolean).join(" · ")) +
+      (k.laatste ? " · laatst " + dNL(k.laatste) : "") + "</span></button>";
+  }).join("");
+  $("zoeklijst")._res = res;
+}
+function kiesKlant(k){
+  gekozen = k;
+  $("voorletters").value = k.voorletters; $("achternaam").value = k.achternaam;
+  $("woonplaats").value = k.woonplaats; $("geboorte").value = k.geboortedatum;
+  $("nationaliteit").value = k.nationaliteit; $("email").value = k.email; $("telefoon").value = k.telefoon;
+  $("member").checked = k.member;
+  if(!$("bron").value && (k.overnachtingen + k.dagverblijven) > 0) $("bron").value = "Herhaalgast";
+  $("zoek").value = ""; $("zoeklijst").hidden = true;
+  $("klantZoek").hidden = true;
+  $("klantGekoppeld").hidden = false;
+  $("klantGekoppeld").innerHTML = '<div class="gekoppeld"><div class="info">' +
+    '<div class="naam">' + esc(volleNaam(k)) + (k.member ? '<span class="pill">member</span>' : "") + "</div>" +
+    '<div class="meta">' + esc([k.woonplaats, k.email, k.telefoon].filter(Boolean).join(" · ")) + "</div>" +
+    '<div class="meta">' + esc(bezoekTekst(k)) + (k.besteed ? " · " + eur(k.besteed) + " besteed" : "") +
+    (k.laatste ? " · laatst " + dNL(k.laatste) : "") + "</div></div>" +
+    '<button class="knop stil klein" type="button" id="ontkoppel">Andere gast</button></div>';
+  $("ontkoppel").addEventListener("click", ontkoppel);
+  tekenPreview();
+}
+function ontkoppel(){
+  gekozen = null;
+  $("klantGekoppeld").hidden = true; $("klantGekoppeld").innerHTML = "";
+  $("klantZoek").hidden = false;
+  $("zoek").value = ""; $("zoek").focus();
+}
+$("zoek") && $("zoek").addEventListener("input", tekenZoeklijst);
+$("zoeklijst").addEventListener("click", function(e){
+  var b = e.target.closest("[data-kies]"); if(!b) return;
+  var res = $("zoeklijst")._res || [];
+  var k = res[+b.dataset.kies]; if(k) kiesKlant(k);
+});
+document.addEventListener("click", function(e){
+  if(!e.target.closest(".zoekhouder")) $("zoeklijst").hidden = true;
+});
 
-  guestData = { voornaam, achternaam, woonplaats, nationaliteit, telefoon, email, akkoord, akkoord_voorwaarden:akkoordvw, lid: lidEl.value==='ja', handtekening };
-  renderGuestStatus();
-  closeGuestModal();
+/* ---------- formulier ---------- */
+function zetSoort(s){
+  soort = s;
+  var kn = $("soort").querySelectorAll("button");
+  for(var i=0;i<kn.length;i++) kn[i].setAttribute("aria-pressed", kn[i].dataset.val === s ? "true" : "false");
+  var nacht = s === "overnachting";
+  $("wrapUit").hidden = !nacht; $("wrapNachten").hidden = !nacht;
+  $("wrapKind").hidden = !nacht; $("wrapNat").hidden = !nacht;
+  $("lblIn").textContent = nacht ? "Datum inchecken" : "Datum bezoek";
+  tekenPreview();
 }
-/* ================= CONCEPTEN ================= */
-function aanmeldingVoorConcept(conceptId){
-  return aanmeldingen.find(a=>a.checkin_id === conceptId) || null;
-}
-function renderConcepten(){
-  const lijst = document.getElementById('conceptLijst');
-  const concepten = checkins.filter(c=>c.status === 'concept');
-  if(!concepten.length){
-    lijst.innerHTML = '<div class="aanmeld-leeg">Er staan geen concepten klaar.</div>';
-    return;
-  }
-  lijst.innerHTML = concepten.map(c=>{
-    const a = aanmeldingVoorConcept(c.id);
-    const naam = a ? `${a.voornaam} ${a.achternaam}`
-                   : (`${c.voornaam||''} ${c.achternaam||''}`.trim() || 'Nog geen gastgegevens');
-    const details = [
-      c.datum ? new Date(c.datum).toLocaleDateString('nl-NL') : '',
-      locName(c.locatie),
-      c.resnr ? 'res. ' + c.resnr : '',
-      staffNameById(c.manager) ? 'voor ' + staffNameById(c.manager) : '',
-      a ? '✓ gast heeft ingevuld' : 'wacht nog op de gast'
-    ].filter(Boolean).join(' · ');
-    return `<div class="aanmeld" style="${a ? '' : 'border-color:var(--line);background:var(--surface);'}">
-      <div class="info">
-        <strong>${escapeHtml(naam)}</strong>
-        <small>${escapeHtml(details)}</small>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn sm" type="button" onclick="openConcept('${c.id}')">Verder invullen</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-function openConcept(id){
-  const c = checkins.find(x=>x.id===id);
-  if(!c) return;
-  openDetailId = id;
-  editCheckinFromDetail();
-  const a = aanmeldingVoorConcept(id);
-  if(a){
-    actieveAanmelding = a;
-    guestData = {
-      voornaam:a.voornaam, achternaam:a.achternaam, woonplaats:a.woonplaats,
-      nationaliteit:a.nationaliteit, telefoon:a.telefoon, email:a.email,
-      akkoord:a.akkoord, akkoord_voorwaarden:a.akkoord_voorwaarden,
-      lid:a.lid, handtekening:a.handtekening
-    };
-    renderGuestStatus();
-  }
-  herberekenAlles();
-  document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-/* ================= LINK VOOR DE GAST ================= */
-function gastPaginaUrl(){
-  return location.href.replace(/[^/]*$/, '') + 'gast.html';
-}
-function nieuweCode(){
-  const tekens = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for(let i=0;i<6;i++) out += tekens[Math.floor(Math.random()*tekens.length)];
-  return out;
-}
-function maakGastLink(persoonlijk){
-  const p = new URLSearchParams();
-  if(persoonlijk){
-    const conceptId = document.getElementById('c_id').value;
-    if(!conceptId){
-      const st = document.getElementById('gastLinkStatus');
-      st.textContent = 'Sla het formulier eerst op als concept. Dan koppelt de link de gast meteen aan dit formulier.';
-      st.className = 'status err';
-      return;
-    }
-    p.set('c', conceptId);
-    const resnr = document.getElementById('c_resnr').value.trim();
-    if(resnr) p.set('r', resnr);
-    p.set('loc', document.getElementById('c_locatie').value);
-    const datum = document.getElementById('c_datum').value;
-    if(datum) p.set('d', datum);
-  }
-  const url = gastPaginaUrl() + (p.toString() ? '?' + p.toString() : '');
-  document.getElementById('gastLinkVeld').value = url;
-  document.getElementById('gastLinkWrap').style.display = 'flex';
-  document.getElementById('gastLinkWa').href =
-    'https://wa.me/?text=' + encodeURIComponent('Welkom bij Bed & Wellness Flevoland! Vul je gegevens alvast in via deze link, dan hoef je bij aankomst niets meer te doen: ' + url);
-  const st = document.getElementById('gastLinkStatus');
-  st.textContent = persoonlijk
-    ? 'Persoonlijke link gemaakt — gekoppeld aan dit concept. Wat de gast invult komt hier automatisch in te staan.'
-    : 'Algemene link — de gast kiest zelf zijn suite en datum. Deze link kun je overal gebruiken.';
-  st.className = 'status ok';
-}
-function kopieerGastLink(){
-  const veld = document.getElementById('gastLinkVeld');
-  veld.select();
-  navigator.clipboard.writeText(veld.value).then(()=>{
-    const st = document.getElementById('gastLinkStatus');
-    st.textContent = '✓ Link gekopieerd.';
-    st.className = 'status ok';
-  }).catch(()=>{ document.execCommand('copy'); });
-}
-
-/* ================= AANMELDINGEN VAN GASTEN ================= */
-function renderAanmeldingen(){
-  const lijst = document.getElementById('aanmeldLijst');
-  const banner = document.getElementById('aanmeldBanner');
-  if(!aanmeldingen.length){
-    lijst.innerHTML = '<div class="aanmeld-leeg">Er staan nu geen nieuwe aanmeldingen open. Zodra een gast zijn link invult, verschijnt hij hier.</div>';
-    banner.style.display = 'none';
-    return;
-  }
-  lijst.innerHTML = aanmeldingen.map(a=>{
-    const details = [
-      a.datum ? new Date(a.datum).toLocaleDateString('nl-NL') : '',
-      locName(a.locatie),
-      a.code ? 'res. ' + escapeHtml(a.code) : '',
-      a.lid ? 'wil lid worden' : ''
-    ].filter(Boolean).join(' · ');
-    return `<div class="aanmeld">
-      <div class="info">
-        <strong>${escapeHtml(a.voornaam)} ${escapeHtml(a.achternaam)}</strong>
-        <small>${escapeHtml(details)}</small>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Formulier openen</button>
-        <button class="btn secondary sm" type="button" onclick="verwijderAanmelding('${a.id}')">Verwijderen</button>
-      </div>
-    </div>`;
-  }).join('');
-  banner.style.display = 'flex';
-  document.getElementById('aanmeldBannerTekst').innerHTML =
-    `<strong>${aanmeldingen.length} ${aanmeldingen.length===1?'gast heeft':'gasten hebben'} zich aangemeld</strong>
-     <small>${escapeHtml(aanmeldingen.map(a=>a.voornaam + ' ' + a.achternaam).join(', '))}</small>`;
-}
-
-function gebruikAanmelding(id){
-  const a = aanmeldingen.find(x=>x.id===id);
-  if(!a) return;
-  const concept = a.checkin_id ? checkins.find(c=>c.id===a.checkin_id) : null;
-  if(concept){
-    openDetailId = concept.id;
-    editCheckinFromDetail();
-  } else {
-    clearCheckinForm();
-    if(a.locatie){ document.getElementById('c_locatie').value = a.locatie; updateCheckinManagerOptions(); }
-    if(a.datum) document.getElementById('c_datum').value = a.datum;
-    if(a.code) document.getElementById('c_resnr').value = a.code;
-  }
-  actieveAanmelding = a;
-  guestData = {
-    voornaam:a.voornaam, achternaam:a.achternaam, woonplaats:a.woonplaats,
-    nationaliteit:a.nationaliteit, telefoon:a.telefoon, email:a.email,
-    akkoord:a.akkoord, akkoord_voorwaarden:a.akkoord_voorwaarden,
-    lid:a.lid, handtekening:a.handtekening
-  };
-  renderGuestStatus();
-  herberekenAlles();
-  document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-async function verwerkteAanmeldingWegstrepen(checkinId){
-  if(!actieveAanmelding) return;
-  try{
-    await sb(`gast_aanmeldingen?id=eq.${actieveAanmelding.id}`, {
-      method:'PATCH',
-      body: JSON.stringify({ status:'verwerkt', checkin_id: checkinId }),
-      prefer:'return=minimal'
-    });
-    actieveAanmelding = null;
-    await loadAanmeldingen();
-    renderAanmeldingen();
-  }catch(e){ console.error('Aanmelding afvinken mislukt:', e); }
-}
-
-async function verwijderAanmelding(id){
-  if(!confirm('Deze aanmelding verwijderen?')) return;
-  try{
-    await sb(`gast_aanmeldingen?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' });
-    if(actieveAanmelding?.id === id) actieveAanmelding = null;
-    await loadAanmeldingen();
-    renderAanmeldingen();
-  }catch(e){ alert('Verwijderen is niet gelukt: ' + e.message); }
-}
-
-function renderGuestStatus(){
-  const el = document.getElementById('guestStatus');
-  if(!guestData){
-    el.className = 'guest-status empty';
-    el.textContent = 'Nog niet ingevuld door de gast.';
-  } else {
-    el.className = 'guest-status filled';
-    el.textContent = `✓ Ingevuld door ${guestData.voornaam} ${guestData.achternaam} — ${guestData.lid ? 'wil lid worden' : 'wil geen lid worden'}, akkoord met huisregels en voorwaarden.`;
-  }
-}
-
-/* ================= VERZAMELEN & OPSLAAN ================= */
-function collectServiceItems(){
-  return SERVICE_ITEMS.filter((it,i)=> document.getElementById(`serv_${i}`)?.checked).map(it=>it.naam);
-}
-function collectArrangementen(){
-  const out = [];
-  ARRANGEMENT_SECTIONS.forEach((sec,si)=> sec.items.forEach((it,ii)=>{
-    const cb = document.getElementById(`arr_${si}_${ii}`);
-    if(cb && cb.checked) out.push(it.naam);
-  }));
-  return out;
-}
-function collectVoorafGereserveerd(){
-  return VOORAF_ITEMS.filter((it,i)=> document.getElementById(`voor_${i}`)?.checked).map(it=>it.naam);
-}
-function collectCheckinData(){
-  const totaal = actueelTotaal();
-  const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
-  const existingId = document.getElementById('c_id').value;
-  const verblijftypeEl = document.querySelector('input[name="verblijftype"]:checked');
-  const split = document.getElementById('c_splitToggle').checked;
+function leesForm(){
   return {
-    id: existingId || ('c'+Date.now()),
-    locatie: document.getElementById('c_locatie').value,
-    boeking_via: document.getElementById('c_boekingvia').value,
-    verblijftype: verblijftypeEl ? verblijftypeEl.value : 'dagverblijf',
-    datum: document.getElementById('c_datum').value,
-    checkuitdatum: verblijftypeEl && verblijftypeEl.value==='overnachting' ? (document.getElementById('c_checkuitdatum').value || null) : null,
-    resnr: document.getElementById('c_resnr').value.trim(),
-    manager: document.getElementById('c_manager').value || null,
-    personen: document.getElementById('c_personen').value,
-    aantal_kinderen: document.getElementById('c_kinderen').value || 0,
-    incheck: document.getElementById('c_checkin').value,
-    uitcheck: document.getElementById('c_checkuit').value,
-    arrangementen: collectArrangementen(),
-    vooraf_gereserveerd: collectVoorafGereserveerd(),
-    bestellingen: orderedItems,
-    cadeau: document.getElementById('c_cadeau').value,
-    cadeau_prijs: parseFloat(document.getElementById('c_cadeauprijs').value || 0),
-    service_items: collectServiceItems(),
-    checkout_extra_type: document.getElementById('c_checkoutType').value,
-    checkout_extra_duur: document.getElementById('c_checkoutType').value ? document.getElementById('c_checkoutDuur').value : '',
-    checkout_extra_prijs: checkoutPrijs(),
-    checkout_extra_betaalwijze: document.getElementById('c_checkoutBetaalwijze').value,
-    reservering_bedrag: reserveringsBedrag(),
-    extras_totaal: extrasTotaal(),
-    extras_betaalwijze: document.getElementById('c_extrasBetaalwijze').value,
-    totaal, aanbetaald, restant: Math.max(0, totaal-aanbetaald),
-    betaalwijze: split ? 'Gesplitst' : document.getElementById('c_betaalwijze').value,
-    split_betaling: split,
-    split_bedrag1: split ? parseFloat(document.getElementById('c_split1bedrag').value || 0) : null,
-    split_wijze1: split ? document.getElementById('c_split1wijze').value : null,
-    split_bedrag2: split ? parseFloat(document.getElementById('c_split2bedrag').value || 0) : null,
-    split_wijze2: split ? document.getElementById('c_split2wijze').value : null,
-    extra_omzet: parseFloat(document.getElementById('c_extraomzet').value || 0),
-    opmerkingen: document.getElementById('c_opmerking').value.trim(),
-    voornaam: guestData ? guestData.voornaam : '',
-    achternaam: guestData ? guestData.achternaam : '',
-    woonplaats: guestData ? guestData.woonplaats : '',
-    nationaliteit: guestData ? guestData.nationaliteit : '',
-    telefoon: guestData ? guestData.telefoon : '',
-    email: guestData ? guestData.email : '',
-    lid: guestData ? guestData.lid : false,
-    akkoord: guestData ? guestData.akkoord : false,
-    akkoord_voorwaarden: guestData ? guestData.akkoord_voorwaarden : false,
-    handtekening: guestData ? guestData.handtekening : null,
+    type: soort, locatieId: $("locatie").value,
+    datumIn: $("datumIn").value, datumUit: soort === "overnachting" ? $("datumUit").value : "",
+    nachten: soort === "overnachting" ? num($("nachten").value) : 0,
+    voorletters: $("voorletters").value.trim(), achternaam: $("achternaam").value.trim(),
+    geboortedatum: $("geboorte").value, woonplaats: $("woonplaats").value.trim(),
+    email: $("email").value.trim(), telefoon: $("telefoon").value.trim(),
+    nationaliteit: soort === "overnachting" ? $("nationaliteit").value.trim() : "",
+    personen: num($("personen").value), kinderen: soort === "overnachting" ? num($("kinderen").value) : 0,
+    kalePrijs: num($("kale").value), totaalBetaald: num($("totaal").value),
+    member: $("member").checked, bron: $("bron").value, notitie: $("notitie").value.trim()
   };
 }
-async function saveCheckin(alsConcept){
-  const statusEl = document.getElementById('checkinStatus');
-  if(!alsConcept && !guestData){
-    statusEl.textContent = '✕ Laat eerst de gast het formulier invullen (zie "Klantgegevens & akkoord" hierboven), of sla het op als concept.';
-    statusEl.className = 'status err';
-    throw new Error('Gastgegevens ontbreken');
-  }
-  const data = collectCheckinData();
-  data.status = alsConcept ? 'concept' : 'definitief';
-  const isEdit = !!document.getElementById('c_id').value && checkins.some(c=>c.id===data.id);
-  statusEl.textContent = 'Bezig met opslaan...';
-  statusEl.className = 'status';
-  try{
-    if(isEdit){
-      await sb(`checkins?id=eq.${data.id}`, { method:'PATCH', body: JSON.stringify(data) });
-    } else {
-      await sb('checkins', { method:'POST', body: JSON.stringify(data) });
-      document.getElementById('c_id').value = data.id;
-    }
-    if(!alsConcept) await verwerkteAanmeldingWegstrepen(data.id);
-    await loadCheckins();
-    renderCheckinTable();
-    renderConcepten();
-    statusEl.textContent = alsConcept
-      ? '✓ Opgeslagen als concept. Je kunt er nu een persoonlijke gastenlink aan koppelen.'
-      : `✓ Incheckformulier ${isEdit ? 'bijgewerkt' : 'opgeslagen'}.`;
-    statusEl.className = 'status ok';
-    return data;
-  }catch(err){
-    console.error('Fout bij opslaan incheckformulier:', err);
-    statusEl.textContent = '✕ Opslaan mislukt: ' + err.message + ' (heb je de databasemigratie al gedraaid?)';
-    statusEl.className = 'status err';
-    throw err;
-  }
+function tekenPreview(){
+  var r = leesForm(), b = belasting(r), l = locVan(r.locatieId);
+  var koppel = gekozen
+    ? "Bekende gast — wordt bijgeschreven bij " + volleNaam(gekozen) + "."
+    : ($("achternaam").value.trim() ? "Nieuwe gast — wordt als klant aangemaakt." : "Nog geen gast gekozen.");
+  $("preview").innerHTML =
+    '<div class="p"><span>Gemeente</span><b>' + esc(l.gemeente || "—") + "</b></div>" +
+    '<div class="p"><span>Toeristenbelasting</span><b>' + eur(b.bedrag) + "</b></div>" +
+    '<div class="p"><span>Totaal betaald</span><b>' + eur(r.totaalBetaald) + "</b></div>" +
+    '<div class="note">' + esc(b.uitleg) + "<br>" + esc(koppel) + "</div>";
 }
-function checkinEmailBody(data){
-  const betaalRegel = data.split_betaling
-    ? `Betaalwijze: Gesplitst — deel 1: ${euro(data.split_bedrag1)} (${data.split_wijze1}), deel 2: ${euro(data.split_bedrag2)} (${data.split_wijze2})`
-    : `Betaalwijze: ${data.betaalwijze}`;
-  return [
-    `Incheckformulier — ${locName(data.locatie)}`,
-    ``,
-    `Boeking via: ${data.boeking_via}    Type verblijf: ${data.verblijftype}`,
-    `Datum: ${data.datum}${data.checkuitdatum ? '  t/m  '+data.checkuitdatum : ''}    Reserveringsnr.: ${data.resnr || '-'}    Locatiemanager: ${staffNameById(data.manager) || '-'}`,
-    `Aantal personen: ${data.personen} (waarvan ${data.aantal_kinderen || 0} kinderen)    In-check: ${data.incheck}    Uit-check: ${data.uitcheck}`,
-    ``,
-    `Arrangementen: ${data.arrangementen.length ? data.arrangementen.join(', ') : 'Geen'}`,
-    `Vooraf gereserveerd: ${data.vooraf_gereserveerd.length ? data.vooraf_gereserveerd.join(', ') : 'Geen'}`,
-    `Bestellingen op locatie: ${data.bestellingen.length ? data.bestellingen.map(o=>`${o.aantal}x ${o.naam} (${euro(o.aantal*o.prijs)})`).join(', ') : 'Geen'}`,
-    `Cadeau: ${data.cadeau || '-'} ${data.cadeau_prijs ? '('+euro(data.cadeau_prijs)+')' : ''}`,
-    `Service: ${data.service_items.length ? data.service_items.join(', ') : 'Geen'}`,
-    data.checkout_extra_type ? `Eerder/later: ${data.checkout_extra_type} — ${euro(data.checkout_extra_prijs)} — betaald: ${data.checkout_extra_betaalwijze || '-'}` : '',
-    ``,
-    `Vooraf gereserveerd: ${euro(data.reservering_bedrag)}    Online betaald: ${euro(data.aanbetaald)}`,
-    `Extra's op locatie: ${euro(data.extras_totaal)} \u2014 betaald via: ${data.extras_betaalwijze || 'nog niet gekozen'}`,
-    `Totaalbedrag: ${euro(data.totaal)}    Nog te betalen: ${euro(data.restant)}`,
-    betaalRegel,
-    `Extra omzet: ${euro(data.extra_omzet)}`,
-    ``,
-    `Gast: ${data.voornaam} ${data.achternaam}`,
-    `Nationaliteit: ${data.nationaliteit}    Woonplaats: ${data.woonplaats}`,
-    `Telefoon: ${data.telefoon}    E-mail: ${data.email}`,
-    ``,
-    `Gratis lid worden: ${data.lid ? 'Ja' : 'Nee'}`,
-    `Akkoord huisregels: ${data.akkoord ? 'Ja' : 'Nee'}`,
-    `Akkoord algemene voorwaarden: ${data.akkoord_voorwaarden ? 'Ja' : 'Nee'}`,
-    `Handtekening: ${data.handtekening ? 'Ondertekend (zie opgeslagen formulier in dashboard)' : 'Niet ondertekend'}`,
-    ``,
-    `Opmerkingen: ${data.opmerkingen || '-'}`,
-  ].filter(Boolean).join('\n');
+function fout(t){
+  var el = $("fout");
+  if(!t){ el.hidden = true; return; }
+  el.hidden = false; el.textContent = t; el.scrollIntoView({behavior:"smooth", block:"center"});
 }
-async function sendCheckinEmail(inputId){
-  let data;
-  try{ data = await saveCheckin(false); }catch(err){ return; }
-  const to = document.getElementById(inputId).value.trim();
-  if(!to){
-    const statusEl = document.getElementById('checkinStatus');
-    statusEl.textContent = '✕ Vul een e-mailadres in om naar te versturen.';
-    statusEl.className = 'status err';
-    return;
-  }
-  const subject = encodeURIComponent(`Incheckformulier — ${data.voornaam} ${data.achternaam} — ${locName(data.locatie)} — ${data.datum}`);
-  const body = encodeURIComponent(checkinEmailBody(data));
-  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-  const statusEl = document.getElementById('checkinStatus');
-  statusEl.textContent = '✓ Opgeslagen. Je e-mailprogramma wordt geopend om te versturen.';
-  statusEl.className = 'status ok';
+function leegForm(){
+  ["voorletters","achternaam","woonplaats","geboorte","nationaliteit","email","telefoon","kale","totaal","notitie","datumUit"]
+    .forEach(function(id){ $(id).value = ""; });
+  $("personen").value = 2; $("kinderen").value = 0; $("nachten").value = 1;
+  $("member").checked = false; $("bron").value = ""; $("datumIn").value = vandaag();
+  ontkoppel(); zetSoort("overnachting"); fout("");
 }
-function clearCheckinForm(){
-  document.getElementById('checkinForm').reset();
-  document.getElementById('c_id').value = '';
-  document.getElementById('c_datum').value = todayStr();
-  toggleVerblijftype();
-  updateCheckinManagerOptions();
-  orderedItems = [];
-  renderOrderList();
-  guestData = null;
-  actieveAanmelding = null;
-  renderGuestStatus();
-  document.getElementById('c_splitToggle').checked = false;
-  toggleSplitBetaling();
-  document.getElementById('c_resbedrag').value = 0;
-  document.getElementById('c_aanbetaald').value = 0;
-  document.getElementById('c_extrasBetaalwijze').value = '';
-  synchroniseerPersoonSelects();
-  herberekenAlles();
-  document.getElementById('c_sendto').value = 'info@bedenwellnessflevoland.nl';
-  document.getElementById('checkinStatus').textContent = '';
-}
+function opslaan(){
+  if(bezig) return;
+  fout("");
+  var r = leesForm(), mis = [];
+  if(!r.achternaam) mis.push("de achternaam");
+  if(!r.datumIn) mis.push("de datum");
+  if(r.type === "overnachting" && r.nachten < 1) mis.push("minstens één nacht");
+  $("achternaam").classList.toggle("fout", !r.achternaam);
+  $("datumIn").classList.toggle("fout", !r.datumIn);
+  if(mis.length){ fout("Vul nog in: " + mis.join(", ") + "."); return; }
 
-/* ================= RECENT OPGESLAGEN (personeel) ================= */
-let openDetailId = null;
-function renderCheckinTable(){
-  const body = document.getElementById('checkinTableBody');
-  const afgerond = checkins.filter(c=>c.status !== 'concept');
-  if(!afgerond.length){
-    body.innerHTML = '<tr><td colspan="7" class="hint" style="padding:14px 4px;">Nog geen formulieren opgeslagen.</td></tr>';
-    return;
-  }
-  body.innerHTML = afgerond.slice(0,25).map(c=>`
-    <tr onclick="openCheckinDetail('${c.id}')">
-      <td>${c.datum||''}</td>
-      <td><span class="locbadge" style="background:${c.locatie==='angie'?'var(--loc-angie)':(c.locatie==='jacuzzi'?'var(--loc-jacuzzi)':'var(--loc-deluxe)')};">${escapeHtml(locName(c.locatie))}</span></td>
-      <td>${escapeHtml(c.voornaam)} ${escapeHtml(c.achternaam)}</td>
-      <td>${escapeHtml(String(c.personen ?? ''))}</td>
-      <td>${fmtMoney(c.totaal)}</td>
-      <td>${fmtMoney(c.restant)}</td>
-      <td></td>
-    </tr>
-  `).join('');
+  var rij = {
+    id: "b" + Date.now() + "-" + Math.floor(Math.random()*100000),
+    type: r.type, locatie_id: r.locatieId,
+    datum_in: r.datumIn, datum_uit: r.datumUit || null, nachten: r.nachten, contact_datum: null,
+    voorletters: r.voorletters, achternaam: r.achternaam, geboortedatum: r.geboortedatum || null,
+    woonplaats: r.woonplaats, email: r.email, telefoon: r.telefoon, nationaliteit: r.nationaliteit,
+    personen: r.personen, kinderen: r.kinderen, kale_prijs: r.kalePrijs, totaal_betaald: r.totaalBetaald,
+    member: r.member, bron: r.bron, notitie: r.notitie, aangemaakt: new Date().toISOString()
+  };
+  bezig = true; $("opslaan").disabled = true; $("opslaan").textContent = "Opslaan…";
+  fetch(SUPABASE.url.replace(/\/+$/,"") + "/rest/v1/" + SUPABASE.tabel,
+    {method:"POST", headers: headers({"Prefer":"return=minimal"}), body: JSON.stringify([rij])})
+    .then(function(res){ if(!res.ok) throw new Error(res.status); toonKlaar(r, rij); })
+    ["catch"](function(){
+      bezig = false; $("opslaan").disabled = false; $("opslaan").textContent = "Inchecken en opslaan";
+      fout("Opslaan mislukt. Controleer de verbinding en probeer het opnieuw.");
+    });
 }
-function openCheckinDetail(id){
-  const c = checkins.find(x=>x.id===id);
-  if(!c) return;
-  openDetailId = id;
-  document.getElementById('cdNaam').textContent = `${c.voornaam||''} ${c.achternaam||''}`.trim() || 'Onbekende gast';
-  document.getElementById('cdLocatie').textContent = locName(c.locatie);
-  const rows = [
-    ['Boeking via', c.boeking_via||'—'], ['Type verblijf', c.verblijftype||'—'],
-    ['Datum', c.datum||'—'], ['Check-uit datum', c.checkuitdatum||'—'],
-    ['Locatiemanager', staffNameById(c.manager)||'—'],
-    ['Aantal personen', c.personen||'—'], ['Waarvan kinderen', c.aantal_kinderen||'0'],
-    ['Arrangementen', (c.arrangementen||[]).join(', ')||'Geen'],
-    ['Vooraf gereserveerd', (c.vooraf_gereserveerd||[]).join(', ')||'Geen'],
-    ['Bestellingen op locatie', (c.bestellingen||[]).map(o=>`${o.aantal}x ${o.naam}`).join(', ')||'Geen'],
-    ['Vooraf gereserveerd', euro(c.reservering_bedrag)], ['Online betaald', euro(c.aanbetaald)],
-    ["Extra's op locatie", euro(c.extras_totaal)], ["Extra's betaald via", c.extras_betaalwijze||'\u2014'],
-    ['Totaalbedrag', euro(c.totaal)], ['Nog te betalen', euro(c.restant)],
-    ['Betaalwijze', c.split_betaling ? `Gesplitst: ${euro(c.split_bedrag1)} (${c.split_wijze1}) + ${euro(c.split_bedrag2)} (${c.split_wijze2})` : (c.betaalwijze||'—')],
-    ['Telefoon', c.telefoon||'—'], ['E-mail', c.email||'—'],
-    ['Opmerkingen', c.opmerkingen||'—'],
+function toonKlaar(r, rij){
+  var was = gekozen, l = locVan(r.locatieId), b = belasting(r);
+  records.push(rij); bouwKlanten();
+  $("klaarTitel").textContent = was ? volleNaam(was) + " is ingecheckt" : "Ingecheckt en klant aangemaakt";
+  $("klaarTekst").textContent = was
+    ? "Het verblijf is bijgeschreven bij deze bestaande klant" + (r.type === "overnachting" ? " en staat in het nachtregister." : ".")
+    : "Er is een nieuwe klant aangemaakt" + (r.type === "overnachting" ? " en het verblijf staat in het nachtregister." : ".");
+  var regels = [
+    ["Klant", (r.voorletters ? r.voorletters + " " : "") + r.achternaam],
+    ["Soort", r.type === "overnachting" ? "Overnachting" : "Dagverblijf"],
+    ["Locatie", l.naam],
+    [r.type === "overnachting" ? "Inchecken" : "Datum", dNL(r.datumIn)]
   ];
-  document.getElementById('cdGrid').innerHTML = rows.map(([l,v])=>`<div class="hint"><b style="color:var(--ink);">${escapeHtml(l)}:</b> ${escapeHtml(String(v))}</div>`).join('');
-  openModal('checkinDetailModal');
+  if(r.type === "overnachting"){ regels.push(["Uitchecken", dNL(r.datumUit)]); regels.push(["Nachten", String(r.nachten)]); }
+  regels.push(["Personen", String(r.personen) + (r.kinderen ? " (waarvan " + r.kinderen + " kind)" : "")]);
+  regels.push(["Totaal betaald", eur(r.totaalBetaald)]);
+  regels.push(["Toeristenbelasting", eur(b.bedrag)]);
+  $("overzicht").innerHTML = regels.map(function(x){
+    return "<div><span>" + esc(x[0]) + "</span><b>" + esc(x[1]) + "</b></div>"; }).join("");
+  $("formulier").hidden = true; $("klaarKaart").hidden = false;
+  window.scrollTo({top:0, behavior:"smooth"});
 }
-function editCheckinFromDetail(){
-  const c = checkins.find(x=>x.id===openDetailId);
-  if(!c) return;
-  closeModal('checkinDetailModal');
-  document.getElementById('c_id').value = c.id;
-  document.getElementById('c_boekingvia').value = c.boeking_via || 'Prive sauna';
-  document.getElementById('c_locatie').value = c.locatie || '';
-  updateCheckinManagerOptions();
-  document.querySelectorAll('input[name="verblijftype"]').forEach(r=> r.checked = (r.value === (c.verblijftype||'dagverblijf')));
-  toggleVerblijftype();
-  document.getElementById('c_datum').value = c.datum || '';
-  document.getElementById('c_checkuitdatum').value = c.checkuitdatum || '';
-  document.getElementById('c_resnr').value = c.resnr || '';
-  document.getElementById('c_manager').value = c.manager || '';
-  document.getElementById('c_personen').value = c.personen || '';
-  document.getElementById('c_kinderen').value = c.aantal_kinderen || 0;
-  document.getElementById('c_checkin').value = c.incheck || '';
-  document.getElementById('c_checkuit').value = c.uitcheck || '';
-  ARRANGEMENT_SECTIONS.forEach((sec,si)=> sec.items.forEach((it,ii)=>{
-    const cb = document.getElementById(`arr_${si}_${ii}`);
-    if(cb) cb.checked = (c.arrangementen||[]).includes(it.naam);
-  }));
-  VOORAF_ITEMS.forEach((it,i)=>{
-    const cb = document.getElementById(`voor_${i}`);
-    if(cb) cb.checked = (c.vooraf_gereserveerd||[]).includes(it.naam);
+
+$("soort").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-val]"); if(b) zetSoort(b.dataset.val);
+});
+["datumIn","datumUit"].forEach(function(id){
+  $(id).addEventListener("change", function(){
+    if(soort === "overnachting"){
+      var n = nachtenTussen($("datumIn").value, $("datumUit").value);
+      if(n > 0) $("nachten").value = n;
+      else if(id === "datumIn" && $("datumIn").value && !$("datumUit").value){
+        var d = new Date($("datumIn").value + "T12:00:00"); d.setDate(d.getDate()+1);
+        $("datumUit").value = d.toISOString().slice(0,10); $("nachten").value = 1;
+      }
+    }
+    tekenPreview();
   });
-  orderedItems = (c.bestellingen||[]).slice();
-  renderOrderList();
-  document.getElementById('c_cadeau').value = c.cadeau || '';
-  document.getElementById('c_cadeauprijs').value = c.cadeau_prijs || 0;
-  SERVICE_ITEMS.forEach((it,i)=>{
-    const cb = document.getElementById(`serv_${i}`);
-    if(cb) cb.checked = (c.service_items||[]).includes(it.naam);
+});
+["locatie","nachten","personen","kinderen","kale","totaal","achternaam"].forEach(function(id){
+  $(id).addEventListener("input", tekenPreview); $(id).addEventListener("change", tekenPreview);
+});
+$("opslaan").addEventListener("click", opslaan);
+$("leeg").addEventListener("click", function(){ leegForm(); });
+$("nogEen").addEventListener("click", function(){
+  bezig = false; $("opslaan").disabled = false; $("opslaan").textContent = "Inchecken en opslaan";
+  leegForm(); $("klaarKaart").hidden = true; $("formulier").hidden = false;
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+/* ---------- laden ---------- */
+function vulLocaties(){
+  $("locatie").innerHTML = inst.locaties.map(function(l){
+    return '<option value="' + esc(l.id) + '">' + esc(l.naam) + " — " + esc(l.gemeente) + "</option>"; }).join("");
+}
+function start(){
+  $("app").hidden = false;
+  $("datumIn").value = vandaag();
+  vulLocaties(); zetSoort("overnachting"); tekenPreview();
+  status("", "Laden…");
+  Promise.all([
+    api(SUPABASE.tabel + "?select=*"),
+    api(SUPABASE.instellingen + "?id=eq.algemeen&select=data")
+  ]).then(function(res){
+    records = res[0] || [];
+    var d = res[1] && res[1][0] && res[1][0].data;
+    if(d) inst = Object.assign({}, STANDAARD, d);
+    bouwKlanten(); vulLocaties(); tekenPreview();
+    status("ok", klanten.length + " klanten beschikbaar");
+  })["catch"](function(){
+    status("crit", "Geen verbinding");
+    fout("De klantenlijst kon niet worden geladen. Je kunt wel invoeren, maar zoeken werkt nu niet.");
   });
-  document.getElementById('c_checkoutType').value = c.checkout_extra_type || '';
-  document.getElementById('c_checkoutDuur').value = c.checkout_extra_duur || '0.5';
-  document.getElementById('c_checkoutBetaalwijze').value = c.checkout_extra_betaalwijze || '';
-  updateCheckoutPrijs();
-  document.getElementById('c_resbedrag').value = c.reservering_bedrag || 0;
-  document.getElementById('c_extrasBetaalwijze').value = c.extras_betaalwijze || '';
-  document.getElementById('c_totaal').value = c.totaal || '';
-  document.getElementById('c_aanbetaald').value = c.aanbetaald || 0;
-  document.getElementById('c_splitToggle').checked = !!c.split_betaling;
-  toggleSplitBetaling();
-  if(c.split_betaling){
-    document.getElementById('c_split1bedrag').value = c.split_bedrag1 || '';
-    document.getElementById('c_split1wijze').value = c.split_wijze1 || 'Contant';
-    document.getElementById('c_split2bedrag').value = c.split_bedrag2 || '';
-    document.getElementById('c_split2wijze').value = c.split_wijze2 || 'Flatpay';
-  } else {
-    document.getElementById('c_betaalwijze').value = c.betaalwijze || 'Contant';
-  }
-  document.getElementById('c_extraomzet').value = c.extra_omzet || 0;
-  document.getElementById('c_opmerking').value = c.opmerkingen || '';
-  herberekenAlles();
-  guestData = c.voornaam ? {
-    voornaam:c.voornaam, achternaam:c.achternaam, woonplaats:c.woonplaats, nationaliteit:c.nationaliteit,
-    telefoon:c.telefoon, email:c.email, akkoord:c.akkoord, akkoord_voorwaarden:c.akkoord_voorwaarden,
-    lid:c.lid, handtekening:c.handtekening,
-  } : null;
-  renderGuestStatus();
-  herberekenAlles();
-  window.scrollTo({ top:0, behavior:'smooth' });
 }
-async function deleteCheckinFromDetail(){
-  const c = checkins.find(x=>x.id===openDetailId);
-  if(!c) return;
-  if(!confirm(`Incheckformulier van ${c.voornaam} ${c.achternaam} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
-  try{
-    await sb(`checkins?id=eq.${c.id}`, { method:'DELETE', prefer:'return=minimal' });
-    await loadCheckins();
-    renderCheckinTable();
-    closeModal('checkinDetailModal');
-  }catch(err){
-    console.error('Fout bij verwijderen incheckformulier:', err);
-    alert('Verwijderen is niet gelukt: ' + err.message);
-  }
+function poortStart(){
+  var opgeslagen = "";
+  try{ opgeslagen = localStorage.getItem(POORT_SLEUTEL) || ""; }catch(e){}
+  api(SUPABASE.dashboardInstellingen + "?select=waarde&sleutel=eq.toegangscode").then(function(r){
+    var code = r && r[0] ? r[0].waarde : "";
+    if(!code || opgeslagen === code){ $("poort").hidden = true; start(); return; }
+    $("poort").hidden = false;
+    $("poortForm").addEventListener("submit", function(e){
+      e.preventDefault();
+      if($("poortInput").value.trim() === code){
+        try{ localStorage.setItem(POORT_SLEUTEL, code); }catch(e2){}
+        $("poort").hidden = true; start();
+      } else { $("poortFout").hidden = false; $("poortInput").select(); }
+    });
+    $("poortInput").focus();
+  })["catch"](function(){ $("poort").hidden = true; start(); });
 }
-
-/* ================= RENDER ALL ================= */
-function renderAll(){
-  updateCheckinManagerOptions();
-  renderCheckinTable();
-  renderConcepten();
-  renderAanmeldingen();
-  renderOrderList();
-  renderGuestStatus();
-  herberekenAlles();
-}
-
-/* ================= INIT ================= */
-fillLocationSelect(document.getElementById('c_locatie'));
-document.getElementById('c_datum').value = todayStr();
-buildArrangementSections();
-buildServiceChecklist();
-buildVoorafChecklist();
-buildOrderSelect();
-buildPersoonSelects();
-document.getElementById('c_checkoutDuur').value = '0.5';
-toggleVerblijftype();
-herberekenAlles();
-
-/* Al eerder ingelogd op dit apparaat? Dan meteen door. */
-laadAuth();
-if(auth?.access_token){
-  startApp();
-} else {
-  document.getElementById('li_email').focus();
-}
+poortStart();
+})();
 </script>
 </body>
 </html>
