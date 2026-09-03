@@ -221,9 +221,10 @@ h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
 
 /* ───────────── tegels ───────────── */
 .tegels{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
-  background:var(--line);border:1px solid var(--line)}
+  background:transparent;padding:1px}
 .tegel:hover .t{color:var(--gold-tekst)}
 .tegel{display:block;text-decoration:none;background:var(--wit);
+  outline:1px solid var(--line);
   padding:1.5rem 1.15rem 1.6rem;min-height:7rem;transition:background .2s ease}
 .tegel:hover,.tegel:focus-visible{background:var(--zacht)}
 .tegel .t{display:block;font-family:'Cormorant Garamond',serif;font-size:1.42rem;
