@@ -19,7 +19,7 @@
   --paper:#FAF9F7;   /* achtergrond, warm gebroken wit */
   --wit:#FFFFFF;     /* kaarten en panelen            */
   --brand:#483C34;   /* primair, donker espresso      */
-  --muted:#6B5D52;   /* secundaire tekst, warm taupe  */
+  --muted:#5C4F45;   /* secundaire tekst, warm taupe  */
   --zacht:#E8E3DE;   /* zachte vlakken, licht beige   */
   --gold:#D2AF37;    /* accent, luxe goud             */
   --gold-tekst:#9A7E1F; /* accent op wit, leesbaar    */
@@ -32,7 +32,7 @@
   --paper:#F5F7F3;
   --wit:#FFFFFF;
   --brand:#40584B;
-  --muted:#796B60;
+  --muted:#655A50;
   --zacht:#E3EAE3;
   --gold:#B08D57;
   --gold-tekst:#8C6F42;
@@ -45,7 +45,7 @@
   --paper:#F5F7F8;
   --wit:#FFFFFF;
   --brand:#293D4A;
-  --muted:#68747A;
+  --muted:#576369;
   --zacht:#E5EBEE;
   --gold:#C3A15B;
   --gold-tekst:#96793F;
@@ -54,7 +54,7 @@
 }
 
 :root{
-  --line:color-mix(in srgb, var(--brand) 15%, transparent);
+  --line:color-mix(in srgb, var(--brand) 24%, transparent);
   --goldline:color-mix(in srgb, var(--gold) 55%, transparent);
 }
 
@@ -64,7 +64,7 @@ body{
   background:var(--paper);
   color:var(--brand);
   font-family:'Jost',system-ui,-apple-system,sans-serif;
-  font-weight:300;font-size:16px;line-height:1.6;
+  font-weight:400;font-size:16px;line-height:1.6;
   -webkit-font-smoothing:antialiased;
 }
 a{color:inherit}
@@ -94,11 +94,11 @@ button{font:inherit;cursor:pointer}
   padding:2.4rem 2rem 2rem;text-align:center;
 }
 .logo{width:132px;height:auto;margin:0 auto 1.4rem;display:block}
-.welkom{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;
+.welkom{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
   font-size:1.8rem;line-height:1.25;margin:0 0 .35rem;letter-spacing:.01em}
 .sub{color:var(--muted);font-size:.88rem;margin:0 0 1.9rem}
 .veld{text-align:left;margin:0 0 1.05rem}
-label{display:block;font-size:.78rem;color:var(--muted);margin:0 0 .4rem;letter-spacing:.04em}
+label{display:block;font-size:.79rem;font-weight:500;color:var(--muted);margin:0 0 .4rem;letter-spacing:.04em}
 input[type=email],input[type=password]{
   width:100%;padding:.72rem .85rem;background:var(--paper);color:var(--brand);
   border:1px solid var(--line);border-radius:0;font:inherit;font-size:.95rem;
@@ -107,7 +107,7 @@ input:focus{border-color:var(--gold-tekst);outline:none;background:var(--wit)}
 input::placeholder{color:color-mix(in srgb, var(--muted) 60%, white)}
 .btn{
   width:100%;padding:.8rem 1rem;border:1px solid var(--brand);border-radius:0;
-  background:var(--brand);color:var(--paper);font-weight:400;letter-spacing:.06em;font-size:.9rem;
+  background:var(--brand);color:var(--paper);font-weight:500;letter-spacing:.06em;font-size:.9rem;
   transition:background .2s ease,color .2s ease;
 }
 .btn:hover:not(:disabled){background:transparent;color:var(--brand)}
@@ -126,32 +126,93 @@ input::placeholder{color:color-mix(in srgb, var(--muted) 60%, white)}
 .msg.ok{display:block;color:var(--ok);border-color:var(--ok);
   background:color-mix(in srgb, var(--ok) 8%, white)}
 
+/* ───────────── zijbalk (alleen desktop) ───────────── */
+.zijbalk{display:none}
+
+@media (min-width:1024px){
+  .navbalk{display:none}
+
+  .zijbalk{
+    display:flex;flex-direction:column;gap:2rem;
+    position:fixed;top:0;left:0;bottom:0;width:264px;z-index:30;
+    background:var(--wit);border-right:1px solid var(--line);
+    padding:2rem 1.5rem;overflow-y:auto;
+  }
+  .zij-merk img{width:118px;height:auto;display:block}
+
+  .zij-wie{display:flex;align-items:center;gap:.75rem;
+    padding-bottom:1.4rem;border-bottom:1px solid var(--line)}
+  .initialen{
+    width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+    background:var(--brand);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;
+    font-size:.82rem;font-weight:500;letter-spacing:.04em;
+  }
+  .zij-mail{font-size:.78rem;color:var(--muted);line-height:1.3;word-break:break-word}
+
+  .zij-nav{display:flex;flex-direction:column;gap:.15rem;flex:1}
+  .zij-kop{font-size:.68rem;letter-spacing:.14em;color:var(--muted);
+    text-transform:uppercase;margin:1.4rem 0 .5rem;font-weight:500}
+  .zij-kop:first-child{margin-top:0}
+  .zij-link{
+    display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+    text-decoration:none;color:var(--brand);font-size:.92rem;font-weight:500;
+    padding:.55rem .7rem;border-left:2px solid transparent;
+    transition:background .18s ease,border-color .18s ease,color .18s ease;
+  }
+  .zij-link:hover,.zij-link:focus-visible{background:var(--zacht);border-left-color:var(--gold)}
+  .zij-link .aantal{font-size:.72rem;color:var(--muted);font-weight:400}
+
+  .zij-kaart{background:var(--zacht);padding:1.1rem;margin-top:auto}
+  .zij-kaart b{display:block;font-family:'Cormorant Garamond',serif;
+    font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+  .zij-kaart p{margin:0 0 .9rem;font-size:.78rem;color:var(--muted);line-height:1.45}
+  .zij-kaart .btn-rand{width:100%;text-align:center;background:var(--wit)}
+
+  .inhoud{margin-left:264px;min-height:100dvh}
+}
+
+/* ───────────── navigatiebalk (telefoon en tablet) ───────────── */
+.navbalk{position:sticky;top:0;z-index:20;
+  background:color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line)}
+.navinner{max-width:760px;margin:0 auto;padding:0 1.4rem;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1rem}
+.navlogo{height:30px;width:auto;display:block}
+.navlinks{display:flex;gap:1.4rem;overflow-x:auto;scrollbar-width:none;padding:.85rem 0}
+.navlinks::-webkit-scrollbar{display:none}
+.navlink{text-decoration:none;color:var(--muted);font-size:.87rem;font-weight:500;
+  white-space:nowrap;padding-bottom:.2rem;border-bottom:2px solid transparent;
+  transition:color .2s ease,border-color .2s ease}
+.navlink:hover,.navlink:focus-visible{color:var(--brand);border-color:var(--gold)}
+
 /* ───────────── kop ───────────── */
 header{padding:2rem 0 1.4rem}
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:1.2rem}
 .logo-klein{width:96px;height:auto;display:block;margin:0 0 1.5rem}
-h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;
+h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
   font-size:2.1rem;margin:0;line-height:1.15;letter-spacing:.01em}
 .datum{color:var(--muted);font-size:.85rem;margin:.35rem 0 0;letter-spacing:.03em}
 .regel{height:1px;background:var(--line);border:none;margin:0}
 
 /* ───────────── vandaag ───────────── */
 section{padding:2rem 0}
-h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;
-  font-size:1.55rem;margin:0 0 1.2rem;letter-spacing:.01em}
+h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
+  font-size:1.6rem;margin:0 0 1.2rem;letter-spacing:.01em;scroll-margin-top:5rem}
 .tellers{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
   background:var(--line);border:1px solid var(--line);margin:0 0 1.8rem}
 .teller{background:var(--wit);padding:1.1rem .9rem}
-.teller b{display:block;font-family:'Cormorant Garamond',serif;font-weight:300;
+.teller b{display:block;font-family:'Cormorant Garamond',serif;font-weight:500;
   font-size:2.5rem;line-height:1;color:var(--brand)}
-.teller span{display:block;color:var(--muted);font-size:.74rem;margin-top:.45rem;letter-spacing:.05em}
+.teller span{display:block;color:var(--muted);font-size:.76rem;margin-top:.45rem;letter-spacing:.04em;font-weight:500}
 .rij{display:grid;grid-template-columns:3.8rem 1fr auto;gap:1rem;align-items:baseline;
   padding:1rem 0;border-bottom:1px solid var(--line)}
 .rij:first-child{border-top:1px solid var(--line)}
-.tijd{color:var(--gold-tekst);font-variant-numeric:tabular-nums;font-weight:400;
+.tijd{color:var(--gold-tekst);font-variant-numeric:tabular-nums;font-weight:500;
   font-size:1.05rem;letter-spacing:.02em}
-.naam{font-weight:400;font-size:1.02rem}
-.plek{color:var(--muted);font-size:.83rem;display:block;margin-top:.1rem}
+.naam{font-weight:500;font-size:1.02rem}
+.plek{color:var(--muted);font-size:.85rem;display:block;margin-top:.1rem}
 .leeg{color:var(--muted);font-size:.9rem;padding:1.1rem 0;font-style:italic}
 .fout{color:var(--fout);line-height:1.55;font-size:.9rem;
   background:color-mix(in srgb, var(--fout) 7%, white);
@@ -161,12 +222,13 @@ h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;
 /* ───────────── tegels ───────────── */
 .tegels{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
   background:var(--line);border:1px solid var(--line)}
+.tegel:hover .t{color:var(--gold-tekst)}
 .tegel{display:block;text-decoration:none;background:var(--wit);
-  padding:1.5rem 1.15rem 1.6rem;min-height:7rem;transition:background .25s ease}
+  padding:1.5rem 1.15rem 1.6rem;min-height:7rem;transition:background .2s ease}
 .tegel:hover,.tegel:focus-visible{background:var(--zacht)}
-.tegel .t{display:block;font-family:'Cormorant Garamond',serif;font-size:1.4rem;
-  font-weight:400;line-height:1.2}
-.tegel .d{display:block;color:var(--muted);font-size:.8rem;margin-top:.45rem;line-height:1.45}
+.tegel .t{display:block;font-family:'Cormorant Garamond',serif;font-size:1.42rem;
+  font-weight:600;line-height:1.2}
+.tegel .d{display:block;color:var(--muted);font-size:.83rem;margin-top:.45rem;line-height:1.45}
 #groepen h2{margin-top:2.2rem}
 #groepen h2:first-child{margin-top:0}
 .tegel.binnenkort{position:relative;background:var(--paper);cursor:default;opacity:.72}
@@ -175,7 +237,7 @@ h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;
 .tag{position:absolute;top:.8rem;right:.8rem;font-size:.63rem;letter-spacing:.08em;
   color:var(--muted);border:1px solid var(--line);padding:.15rem .45rem}
 .extern{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1rem}
-.pil{text-decoration:none;font-size:.83rem;color:var(--muted);letter-spacing:.03em;
+.pil{text-decoration:none;font-size:.85rem;font-weight:500;color:var(--brand);letter-spacing:.03em;
   background:var(--wit);border:1px solid var(--line);padding:.5rem 1rem;
   transition:border-color .2s ease,color .2s ease}
 .pil:hover,.pil:focus-visible{border-color:var(--gold-tekst);color:var(--gold-tekst)}
@@ -198,7 +260,9 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
 
 /* Kleine telefoon (tot 420px) — alles onder elkaar */
 @media (max-width:419px){
-  .wrap{padding:0 1.1rem}
+  .wrap,.navinner{padding:0 1.1rem}
+  .navlinks{gap:1.1rem}
+  .navlink{font-size:.82rem}
   h1{font-size:1.75rem}
   h2{font-size:1.35rem}
   .teller b{font-size:1.9rem}
@@ -218,7 +282,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
 
 /* Tablet (768–1023px) */
 @media (min-width:768px){
-  .wrap{max-width:860px;padding:0 2rem}
+  .wrap,.navinner{max-width:860px;padding:0 2rem}
   .tegels{grid-template-columns:repeat(3,1fr)}
   h1{font-size:2.3rem}
   .logo-klein{width:110px}
@@ -228,7 +292,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
 
 /* Desktop (vanaf 1024px) — dagoverzicht en tegels naast elkaar */
 @media (min-width:1024px){
-  .wrap{max-width:1180px;padding:0 3rem}
+  .wrap,.navinner{max-width:none;padding:0 3rem}
   .kolommen{display:grid;grid-template-columns:minmax(300px,.85fr) 1.15fr;
     gap:3.5rem;align-items:start}
   .kolommen section{padding:2.6rem 0}
@@ -243,8 +307,11 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
 
 /* Groot scherm (vanaf 1440px) */
 @media (min-width:1440px){
-  .wrap{max-width:1320px}
   .tegels{grid-template-columns:repeat(3,1fr)}
+  .kolommen{grid-template-columns:minmax(320px,.7fr) 1.3fr;gap:4rem}
+}
+@media (min-width:1800px){
+  .wrap{padding:0 5rem}
 }
 
 /* Aanraakschermen — grotere trefvlakken */
@@ -284,23 +351,46 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
 
 <!-- ══════════ PORTAAL ══════════ -->
 <main id="portaal" class="hidden">
+
+  <div class="navbalk">
+    <div class="navinner">
+      <img class="navlogo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">
+      <div class="navlinks" id="navlinks"></div>
+      <button class="btn-rand" id="knopUit">Uitloggen</button>
+    </div>
+  </div>
+
+  <aside class="zijbalk">
+    <div class="zij-merk">
+      <img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
+    </div>
+
+    <div class="zij-wie">
+      <span class="initialen" id="initialen">–</span>
+      <span class="zij-mail" id="zijMail"></span>
+    </div>
+
+    <nav class="zij-nav" id="zijNav"></nav>
+
+    <div class="zij-kaart">
+      <b>Meer toevoegen</b>
+      <p id="zijTeller"></p>
+      <button class="btn-rand" id="knopUit2">Uitloggen</button>
+    </div>
+  </aside>
+
+  <div class="inhoud">
   <div class="wrap">
 
     <header>
-      <img class="logo-klein" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
-      <div class="top">
-        <div>
-          <h1 id="groet">Goedemorgen</h1>
-          <p class="datum" id="datum"></p>
-        </div>
-        <button class="btn-rand" id="knopUit">Uitloggen</button>
-      </div>
+      <h1 id="groet">Goedemorgen</h1>
+      <p class="datum" id="datum"></p>
     </header>
     <hr class="regel">
 
     <div class="kolommen">
-    <section aria-labelledby="kopVandaag">
-      <h2 id="kopVandaag">Vandaag</h2>
+    <section aria-labelledby="vandaag">
+      <h2 id="vandaag">Vandaag</h2>
       <div class="tellers">
         <div class="teller"><b id="cAankomst">–</b><span>aankomsten</span></div>
         <div class="teller"><b id="cVertrek">–</b><span>vertrekken</span></div>
@@ -327,6 +417,7 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
       </div>
     </footer>
 
+  </div>
   </div>
 </main>
 
@@ -473,16 +564,21 @@ $('#knopReset').addEventListener('click', async () => {
   toon(error ? 'err' : 'ok', error ? error.message : 'Er staat een herstelmail in je inbox.');
 });
 
-$('#knopUit').addEventListener('click', async () => {
+async function uitloggen(){
   await sb.auth.signOut();
   location.reload();
-});
+}
+$('#knopUit').addEventListener('click', uitloggen);
+$('#knopUit2').addEventListener('click', uitloggen);
 
 sb.auth.onAuthStateChange((_e, sessie) => {
   if(sessie){
     $('#login').classList.add('hidden');
     $('#portaal').classList.remove('hidden');
     $('#wieben').textContent = sessie.user.email;
+    $('#zijMail').textContent = sessie.user.email;
+    $('#initialen').textContent =
+      (sessie.user.email || '?').replace(/@.*/,'').slice(0,2).toUpperCase();
     startPortaal();
   }else{
     $('#login').classList.remove('hidden');
@@ -503,8 +599,29 @@ function startPortaal(){
   $('#datum').textContent = nu.toLocaleDateString('nl-NL',
     { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
+  const slug = t => t.toLowerCase().replace(/[^a-z]/g,'');
+
+  const nogTeBouwen = GROEPEN.flatMap(g => g.tegels).filter(t => !t.url).length;
+
+  $('#zijNav').innerHTML =
+    `<span class="zij-kop">Overzicht</span>
+     <a class="zij-link" href="#vandaag">Vandaag</a>
+     <span class="zij-kop">Onderdelen</span>` +
+    GROEPEN.map(g => {
+      const klaar = g.tegels.filter(t => t.url).length;
+      return `<a class="zij-link" href="#${slug(g.kop)}">${g.kop}
+              <span class="aantal">${klaar}/${g.tegels.length}</span></a>`;
+    }).join('');
+
+  $('#zijTeller').textContent =
+    `${nogTeBouwen} onderdelen staan klaar als tegel maar zijn nog niet gebouwd.`;
+
+  $('#navlinks').innerHTML =
+    `<a class="navlink" href="#vandaag">Vandaag</a>` +
+    GROEPEN.map(g => `<a class="navlink" href="#${slug(g.kop)}">${g.kop}</a>`).join('');
+
   $('#groepen').innerHTML = GROEPEN.map(g => `
-    <h2>${g.kop}</h2>
+    <h2 id="${slug(g.kop)}">${g.kop}</h2>
     <div class="tegels">` + g.tegels.map(x => x.url
       ? `<a class="tegel" href="${x.url}"><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
       : `<div class="tegel binnenkort"><span class="t">${x.t}</span><span class="d">${x.d}</span>
