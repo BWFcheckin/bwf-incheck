@@ -1,5 +1,136 @@
 <!-- ============================================================
+     BWF-INLOGSLOT — <!-- ============================================================
      BWF-INLOGSLOT — plak dit blok vlak vóór </body> in klantbeheer.html
+     Zorgt dat de pagina pas werkt na inloggen, met dezelfde accounts
+     als het VR-dashboard. Verder hoef je niets in je pagina te wijzigen.
+     ============================================================ -->
+<style>
+#bwfSlot{position:fixed;inset:0;z-index:99999;background:#F4F1ED;display:grid;place-items:center;padding:20px;
+  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;color:#241E19}
+#bwfSlot .k{width:100%;max-width:380px;background:#fff;border:1px solid #E3DAD0;border-radius:16px;
+  box-shadow:0 1px 2px rgba(36,30,25,.06),0 8px 24px -16px rgba(36,30,25,.3);padding:26px 24px;text-align:center}
+#bwfSlot .m{width:38px;height:38px;margin:0 auto 14px;border-radius:11px;background:#483C34;color:#fff;
+  display:grid;place-items:center;font-weight:700;font-size:15px}
+#bwfSlot h1{font-size:20px;font-weight:700;margin:0 0 4px}
+#bwfSlot p{color:#7B6E62;font-size:13px;margin:0 0 18px}
+#bwfSlot label{display:block;text-align:left;font-size:12px;font-weight:600;color:#4B4239;margin:0 0 5px}
+#bwfSlot input{width:100%;box-sizing:border-box;background:#FAF7F3;border:1px solid #E3DAD0;border-radius:6px;
+  padding:9px 10px;font-size:14px;margin-bottom:12px}
+#bwfSlot button{width:100%;cursor:pointer;border:1px solid #483C34;background:#483C34;color:#fff;
+  padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600}
+#bwfSlot .f{color:#A34434;font-size:12.5px;min-height:18px;margin-top:10px}
+#bwfUit{position:fixed;right:14px;bottom:14px;z-index:99998;background:#fff;border:1px solid #E3DAD0;
+  border-radius:999px;padding:7px 13px;font-size:12.5px;cursor:pointer;
+  font-family:"Public Sans",Arial,sans-serif;color:#7B6E62;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+#bwfUit:hover{color:#A34434;border-color:#A34434}
+</style>
+
+<div id="bwfSlot">
+  <div class="k">
+    <div class="m">B&amp;W</div>
+    <h1>Klantbeheer</h1>
+    <p>Log in met hetzelfde e-mailadres en wachtwoord als in het VR-dashboard.</p>
+    <label for="bwfMail">E-mailadres</label>
+    <input type="text" id="bwfMail" inputmode="email" autocomplete="username">
+    <label for="bwfWw">Wachtwoord</label>
+    <input type="password" id="bwfWw" autocomplete="current-password">
+    <button type="button" id="bwfOk">Inloggen</button>
+    <div class="f" id="bwfFout"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* de instellingen uit je eigen pagina overnemen, met een terugval */
+  var CFG = (typeof SUPABASE === 'object' && SUPABASE && SUPABASE.url) ? SUPABASE : {
+    url: (window.SUPABASE_URL || 'https://iuyjvtlauktnjprbmbjj.supabase.co'),
+    key: (window.SUPABASE_KEY || 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U')
+  };
+  var SLEUTEL = 'wz_sessie';                 /* zelfde sessie als het dashboard */
+  var slot = document.getElementById('bwfSlot');
+
+  function sessie(){
+    try{ return JSON.parse(localStorage.getItem(SLEUTEL) || 'null'); }catch(e){ return null; }
+  }
+  function bewaar(s){
+    try{ s ? localStorage.setItem(SLEUTEL, JSON.stringify(s)) : localStorage.removeItem(SLEUTEL); }catch(e){}
+  }
+  function auth(pad, body){
+    return fetch(CFG.url.replace(/\/$/,'') + '/auth/v1/' + pad, {
+      method:'POST', headers:{'apikey':CFG.key,'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    }).then(function(r){ return r.text().then(function(t){
+      var d = null; try{ d = t ? JSON.parse(t) : null; }catch(e){}
+      if(!r.ok) throw new Error((d && (d.error_description||d.msg||d.message)) || ('fout '+r.status));
+      return d; }); });
+  }
+  function zet(d){
+    bewaar({token:d.access_token, refresh:d.refresh_token,
+      verloopt: Date.now() + ((d.expires_in||3600)-60)*1000,
+      email:(d.user&&d.user.email)||'', uid:(d.user&&d.user.id)||''});
+  }
+
+  /* elk verzoek naar Supabase krijgt het persoonlijke token mee */
+  var origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input && input.url) || '';
+    if(url.indexOf(CFG.url) === 0 && url.indexOf('/auth/v1/') === -1){
+      var s = sessie();
+      if(s && s.token){
+        init = init || {};
+        var h = new Headers(init.headers || (typeof input === 'object' && input.headers) || {});
+        h.set('apikey', CFG.key);
+        h.set('Authorization', 'Bearer ' + s.token);
+        init.headers = h;
+      }
+    }
+    return origFetch(input, init);
+  };
+
+  function open_(){
+    slot.style.display = 'none';
+    var uit = document.createElement('button');
+    uit.id = 'bwfUit'; uit.type = 'button';
+    uit.textContent = 'Uitloggen (' + ((sessie()||{}).email || '') + ')';
+    uit.onclick = function(){ bewaar(null); location.reload(); };
+    document.body.appendChild(uit);
+    /* pagina opnieuw laten laden nu het token er is */
+    if(typeof window.bwfNaLogin === 'function') window.bwfNaLogin();
+    else if(typeof laadAlles === 'function') try{ laadAlles(); }catch(e){}
+    else if(typeof laden === 'function') try{ laden(); }catch(e){}
+    else location.reload();
+  }
+
+  function inloggen(){
+    var mail = document.getElementById('bwfMail').value.trim();
+    var ww   = document.getElementById('bwfWw').value;
+    var fout = document.getElementById('bwfFout');
+    if(!mail || !ww){ fout.textContent = 'Vul je e-mailadres en wachtwoord in.'; return; }
+    fout.textContent = 'Bezig met inloggen…';
+    auth('token?grant_type=password', {email:mail.toLowerCase(), password:ww})
+      .then(function(d){ zet(d); fout.textContent=''; open_(); })
+      .catch(function(e){
+        fout.textContent = /invalid/i.test(e.message)
+          ? 'E-mailadres of wachtwoord klopt niet.' : 'Inloggen mislukt: ' + e.message;
+      });
+  }
+  document.getElementById('bwfOk').addEventListener('click', inloggen);
+  ['bwfMail','bwfWw'].forEach(function(id){
+    document.getElementById(id).addEventListener('keydown', function(e){ if(e.key==='Enter') inloggen(); });
+  });
+
+  /* al ingelogd? token vernieuwen en meteen door */
+  var s = sessie();
+  if(s && s.token){
+    if(s.verloopt && Date.now() > s.verloopt && s.refresh){
+      auth('token?grant_type=refresh_token', {refresh_token:s.refresh})
+        .then(function(d){ zet(d); open_(); })
+        .catch(function(){ bewaar(null); });
+    } else { open_(); }
+  }
+})();
+</script>
+<!-- ============ einde BWF-inlogslot ============ --></body> in klantbeheer.html
      Zorgt dat de pagina pas werkt na inloggen, met dezelfde accounts
      als het VR-dashboard. Verder hoef je niets in je pagina te wijzigen.
      ============================================================ -->
