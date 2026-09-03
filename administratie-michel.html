@@ -301,6 +301,17 @@
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink);
   }
   .maandchk { padding: 7px 12px; font-size: .9rem; }
+  .tegels { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 0 0 4px; }
+  .tegel {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px;
+  }
+  .tegel:hover { border-color: var(--accent); }
+  .tegel .naam { font-weight: 600; color: var(--accent); display: flex; align-items: baseline; gap: 6px; }
+  .tegel .naam .pijl { font-size: .85rem; color: var(--ink-3); }
+  .tegel:hover .naam .pijl { color: var(--accent); }
+  .tegel .uitleg { font-size: .82rem; color: var(--ink-3); margin-top: 3px; }
   .row5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
   @media (max-width: 900px) { .row5 { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 620px) { .row5 { grid-template-columns: 1fr 1fr; } }
@@ -374,6 +385,13 @@
   var SUPABASE_ANON_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   var TABEL = "psm_administratie";
   var STANDAARD_EMAIL = "michelretz@hotmail.com";
+
+  /* Tegels naar je andere pagina's. Zelf een tegel toevoegen? Zet er een
+     regel bij met naam, uitleg en link. Ze openen in een nieuw tabblad. */
+  var TEGELS = [
+    { naam: "Dashboard BWF", uitleg: "Reserveringen, personeel en handboek",
+      url: "https://bwfcheckin.github.io/bwf-incheck/dashboard.html" }
+  ];
   /* =================================================================== */
 
   var LS_KEY = "psm-admin-v1";
@@ -1388,6 +1406,17 @@
     html += '<button data-act="tab" data-tab="taxi" aria-pressed="' + (view.tab === "taxi" ? "true" : "false") + '">Rittenregistratie ' + esc(TAXI_NAAM) + '</button>';
     html += "</div>";
 
+    if (TEGELS.length) {
+      html += '<div class="tegels">';
+      TEGELS.forEach(function (t) {
+        html += '<a class="tegel" href="' + esc(t.url) + '" target="_blank" rel="noopener">';
+        html += '<span class="naam">' + esc(t.naam) + ' <span class="pijl">\u2197</span></span>';
+        if (t.uitleg) html += '<span class="uitleg">' + esc(t.uitleg) + "</span>";
+        html += "</a>";
+      });
+      html += "</div>";
+    }
+
     html += view.tab === "taxi" ? taxiHtml() : bwfHtml();
 
     html += "</div>";
@@ -2185,4 +2214,4 @@
 })();
 </script>
 </body>
-</html> 
+</html>
