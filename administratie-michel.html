@@ -408,7 +408,30 @@
   var LOC_BY_ID = {};
   LOCATIES.forEach(function (l) { LOC_BY_ID[l.id] = l; });
 
-  var VERG_PRESETS = [50, 60, 100, 130, 150];
+  /* Tarieven en vergoedingen \u2014 bijlage A. Pas hier de bedragen aan.
+     "een" = verjaardag OF romantisch, "combi" = allebei. */
+  var TARIEVEN = {
+    PSM:  { dag: { geen: 50, een: 70, combi: 80 },  dagBoven400: 100, nacht: { geen: 100, een: 120, combi: 130 } },
+    PSMD: { dag: { geen: 60, een: 90, combi: 100 }, dagBoven400: 110, nacht: { geen: 130, een: 150, combi: 160 } }
+  };
+  var TARIEF_GRENS = 400;
+  var TARIEF_NOSHOW = 15;
+  var TARIEF_TWEEDAAGS = 25;
+  var EXTRAS = [
+    { id: "borrelplank", label: "Borrelplank", bedrag: 10 },
+    { id: "pizza", label: "Pizza", bedrag: 5 },
+    { id: "fruitschaal", label: "Fruitschaal", bedrag: 10 },
+    { id: "lunch", label: "Lunch/ontbijt", bedrag: 10 }
+  ];
+  var ARR_SOORTEN = [
+    { id: "geen", label: "Geen arrangement" },
+    { id: "een", label: "Verjaardag of romantisch" },
+    { id: "combi", label: "Combinatie van beide" }
+  ];
+  var VERBLIJF = [
+    { id: "dag", label: "Dagverblijf" },
+    { id: "nacht", label: "Overnachting" }
+  ];
   var TAXI_NAAM = "MBThere B.V.";
   var WIJZEN = [
     { id: "bank", label: "Bank" },
@@ -459,6 +482,57 @@
   function money(v) { return eur.format(Math.round(num(v) * 100) / 100); }
   function r2(v) { return Math.round(num(v) * 100) / 100; }
 
+  /* ---------- vergoeding volgens de tarievenlijst ---------- */
+
+  function tariefTabel(loc) { return TARIEVEN[loc === "PSMD" ? "PSMD" : "PSM"]; }
+
+  function verblijfUitTijden(van, tot) {
+    if (!van || !tot) return "";
+    return tot <= van ? "nacht" : "dag";
+  }
+
+  function arrSoortUitTekst(tekst) {
+    var t = String(tekst || "").toLowerCase();
+    var rom = /rom\b|romantisch|honeymoon|valentine/.test(t);
+    var bday = /verjaardag|b-?day|bday|bdd|\bbd\b|birthday/.test(t);
+    if (rom && bday) return "combi";
+    if (rom || bday) return "een";
+    return "geen";
+  }
+
+  function berekenVergoeding(b) {
+    if (b.noShow) return TARIEF_NOSHOW;
+    var tab = tariefTabel(b.loc);
+    var soort = b.arrSoort || "geen";
+    var basis;
+    if (b.verblijf === "nacht") {
+      basis = tab.nacht[soort];
+      if (b.tweedaags) basis += TARIEF_TWEEDAAGS;
+    } else if (b.verblijf === "dag") {
+      basis = num(b.bedrag) > TARIEF_GRENS ? tab.dagBoven400 : tab.dag[soort];
+    } else {
+      return null;
+    }
+    (b.extras || []).forEach(function (id) {
+      EXTRAS.forEach(function (x) { if (x.id === id) basis += x.bedrag; });
+    });
+    return r2(basis);
+  }
+
+  function tariefUitleg(b) {
+    if (b.noShow) return "No-show";
+    if (!b.verblijf) return "Kies eerst dagverblijf of overnachting";
+    var loc = b.loc === "PSMD" ? "Malina Deluxe" : (b.loc === "PSA" ? "Suite Angie (tarief Malina)" : "Malina");
+    var soort = ARR_SOORTEN.filter(function (a) { return a.id === (b.arrSoort || "geen"); })[0];
+    var delen = [loc, b.verblijf === "nacht" ? "overnachting" : (num(b.bedrag) > TARIEF_GRENS ? "dagverblijf boven " + money(TARIEF_GRENS) : "dagverblijf onder " + money(TARIEF_GRENS))];
+    if (b.verblijf === "nacht" || num(b.bedrag) <= TARIEF_GRENS) delen.push((soort ? soort.label : "geen arrangement").toLowerCase());
+    if (b.verblijf === "nacht" && b.tweedaags) delen.push("2-daags +" + money(TARIEF_TWEEDAAGS));
+    (b.extras || []).forEach(function (id) {
+      EXTRAS.forEach(function (x) { if (x.id === id) delen.push(x.label.toLowerCase() + " +" + money(x.bedrag)); });
+    });
+    return delen.join(" \u00b7 ");
+  }
+
   /* ---------- historie uit het Excel-bestand ---------- */
 
   var SEED_BOEKINGEN = "2025-04-03|PSMD|Roze|19:00|21:00|All-incl./3 pax|0|||100|Rest:€209,-\n2025-04-04|PSMD|566915|13:00|16:30|MT/CBM|391|||70|\n2025-04-04|PSMD|570274|19:00|11:00|ECT|436|||130|\n2025-04-04|PSM|572140|15:30|17:30||131|||50|\n2025-04-04|PSM|572173|19:30|21:30|Rom.|180|||70|\n2025-04-05|PSMD|544747|19:00|11:00|Rom./ZRB/Fruit|555.5|||150|\n2025-04-05|PSMD|558403|14:30|16:30|Rom.|276|||90|\n2025-04-05|PSM|571703|16:00|18:00||131|||50|\n2025-04-06|PSMD|570072|19:00|11:00|Rom./SishaAppel|515|||150|\n2025-04-06|PSMD|571485|12:30|16:30|LBP|431|||70|\n2025-04-06|PSM|573464|17:00|22:00|Sisha|310|||50|\n2025-04-07|PSMD|556789|19:00|13:00|ECT|436|||130|\n2025-04-07|PSM|569673|15:00|11:15|Rom./LBP|480|||130|\n2025-04-08|PSMD|567891|19:00|13:00|BDD/LBP/RB/ECT/|645|||160|Floats/Sisha Appel\n2025-04-12|PSMD|552194|19:00|13:00|Rom./Lunch/CBM|595|||170|\n2025-04-12|PSM|577546|17:15|21:15||251|||50|\n2025-04-13|PSMD|Roze|14:30|17:30||328|||60|\n2025-04-13|PSMD|Roze|19:00|21:00|Rom./CadeauBon|299|||90|\n2025-04-16|PSMD|576451|19:00|11:00|Rom./Ontbijt|549.5|||160|\n2025-04-17|PSMD|573871|19:00|11:00|ECT|456|||130|\n2025-04-18|PSMD|578683|19:00|11:00|BD|506|||150|\n2025-04-18|PSM|Roze|17:15|11:30||349|||100|\n2025-04-19|PSMD|559900|19:00|11:00|Sisha Appel|498.5|||130|\n2025-04-19|PSMD|578086|12:30|15:30|LBP/Prossecco|390|||70|\n2025-04-19|PSM|579376|20:00|22:00|Rom.|300|||70|\n2025-04-20|PSMD|580276|19:00|11:00||435.5|||130|\n2025-04-23|PSM|580420|17:15|11:30|Geen All-in|380|||50|\n2025-04-24|PSMD|562168|19:00|11:00|BDD/LBP/Sisha|570|||160|\n2025-04-24|PSMD|580965|12:30|15:30||330|||60|\n2025-04-25|PSMD|582239|18:30|21:30|LBP|360|||70|\n2025-04-25|PSM|582284|15:00|18:00||255.5|||50|\n2025-04-28|PSM|578140|17:15|11:30|Geen All-in|380|||100|\n2025-05-01|PSA|Roze|19:00|21:00|All-incl./3 pax|0|||100|Rest:€209,-\n2025-05-02|PSA|584013|10:30|12:30||210|||50|\n2025-05-02|PSA|584835|14:00|16:00|Milkshake|187.25|||50|\n2025-05-02|PSA|Roze|21:00|11:00||0|||100|\n2025-05-03|PSMD|579084|12:30|15:30|Rom./Sisha Appel|405|||0|JE Binnen gelaten\n2025-05-03|PSM|584481|20:00|11:30|Ontbijt|419|||110|\n2025-05-03|PSMD|584574|19:00|11:00|Prossecco 2x|491|||130|\n2025-05-03|PSM|585171|14:00|17:00||251|||25|1/2 JEBinnen gelaten\n2025-05-04|PSMD|584573|12:30|15:30|Floats|355|||60|\n2025-05-07|PSMD|573458|19:00|13:00|Rom./ECT/LBP/|689.5|||160|Sisha/Fruit/Pross.\n2025-05-09|PSM|575786|17:00|11:15|Rom./LBP/Ontbijt/|528|||140|Pross./ Geen All-in\n2025-05-09|PSMD|587211|21:30|11:00|CWM/Sisha Mint|466|||140|\n2025-05-10|PSMD|565908|19:00|11:00|Rom./LBP/Ontbijt/|670|||170|Pross.\n2025-05-10|PSMD|587153|12:30|15:30||330|||60|\n2025-05-10|PSM|587781|16:00|19:00|LBP/Sisha Appel|311|||60|\n2025-05-11|PSM|579146|17:15|21:15|LBP/Chardonnay|459|||110|Geen All-in\n2025-05-11|PSM|587915|11:30|14:30|Ontbijt/SishaDruif|320|||60|\n2025-05-12|PSMD|588073|17:00|20:00|Sisha Appel|331|||60|\n2025-05-14|PSMD|Roze|19:00|10:15|Ontbijt|421|||140|\n2025-05-17|PSMD|561133|19:00|21:30|Sisha Appel|309|||60|\n2025-05-17|PSM|581209|17:15|11:30||351|||100|\n2025-05-17|PSMD|588870|12:30|16:30||430|||110|\n2025-05-18|PSMD|567481|19:00|13:00|BD/RB|585.5|||150|\n2025-05-18|PSMD|589609|13:00|16:00||330|||60|\n2025-05-23|PSMD|587121|19:00|10:15|MT/Sisha Kauwgum|586|||130|Invallen voor JE\n2025-05-23|PSM|592254|16:00|19:00|Cardonnay 2x|311|||50|Invallen voor JE\n2025-05-24|PSMD|578415|19:00|11:00|Rom.|506|||150|\n2025-05-24|PSM|581780|17:15|11:30|Rom.|400|||120|\n2025-05-24|PSM|592488|11:30|14:30|Lunch|294.5|||60|\n2025-05-24|PSMD|592617|13:00|16:00||330|||60|\n2025-05-25|PSMD|583988|17:00|11:00|BDD|656|||160|\n2025-05-25|PSMD|592585|12:30|15:30|MT|355|||60|\n2025-05-30|PSMD|594919|17:00|20:00|VIP/Sushi/Sisha|685|||120|LBP\n2025-05-30|PSMD|594938|21:30|11:00|ECT/Rom. Toegev.|426|||160|Ontbijt/ Masker\n2025-05-30|PSM|595267|21:00|10:00|Rom.|400|||120|\n2025-05-31|PSMD|587354|19:00|11:00|RB/ECT/Chard|591|||130|\n2025-05-31|PSM|594309|21:00|10:00|Chard./ Sisha Appel|543|||100|Secret Rooms\n2025-06-01|PSMD|595560|21:30|11:00|ECT|430.5|||130|\n2025-06-06|PSM|594477|20:00|10:00|Rom./ECT/G.All-in|405|||120|\n2025-06-06|PSMD|597853|19:00|11:00|Rom./MT|635.5|||150|\n2025-06-07|PSM|586121|21:00|15:00|Late C/o|491|||100|\n2025-06-07|PSMD|586594|19:00|11:00|Ontbijt/Fruitschaal|660.5|||150|\n2025-06-07|PSM|596292|16:30|19:30||251|||50|\n2025-06-07|PSMD|598322|13:00|16:00||334.5|||60|\n2025-06-08|PSMD|595452|19:00|11:00|Rom./Sushi/ECT|706|||150|\n2025-06-08|PSM|597058|20:00|10:00|BD|601|||120|\n2025-06-13|PSA|||||||||\n2025-06-14|PSA|||||||||\n2025-06-15|PSA|||||||||\n2025-06-20|PSMD|602775|21:30|11:00||401|||130|\n2025-06-21|PSMD|546925|19:00|13:00|Rom./Floats/Surpr.|585.5|||150|\n2025-06-21|PSMD|584541|12:30|15:30||330|||60|\n2025-06-21|PSM|602376|20:00|10:00|LBP/MT/Sisha Appel|436|||110|\n2025-06-22|PSMD|603603|21:30|11:00||401|||130|\n2025-06-22|PSMD|603689|17:00|20:00|Sisha Appel|360|||60|\n2025-06-23|PSM|603996|12:00|16:00||281|||50|\n2025-06-27|PSMD|558682|19:00|11:00|Rom./Sisha Appel|519.5|||150|\n2025-06-27|PSM|597903|13:00|16:00||251|||50|\n2025-06-28|PSM|597011|20:00|10:00||351|||110|\n2025-06-28|PSMD|598231|21:30|11:00|Ontbijt|440|||140|\n2025-06-29|PSMD|603091|12:30|15:30|Rom.|405|||110|\n2025-07-04|PSMD|605554|19:00|11:00|Rom.|606|||150|\n2025-07-05|PSMD|592699|21:30|11:00|Rom.|476|||150|\n2025-07-06|PSMD|608410|17:00|20:00||310|||60|\n2025-07-06|PSMD|608760|12:30|15:30||330|||60|\n2025-07-06|PSMD|608881|21:30|11:00|VIP/LBP/O.Masker|653.5|||170|\n2025-07-07|PSMD|609323|13:00|16:00||301|||60|\n2025-07-11|PSMD|610825|12:30|15:30||330|||60|SM inwerken\n2025-07-12|PSMD|608048|21:30|11:00|G.All-incl./RB/EC|431|||130|\n2025-07-12|PSMD|610565|12:30|15:30|Sisha|360|||60|\n2025-07-12|PSMD|611023|17:00|20:00||330|||60|\n2025-07-13|PSMD|611117|12:30|16:30|Lunch/ZRB|504|||120|\n2025-07-16|PSMD|OR|19:00|12:00|SM-C/i. Spoed|401|||130|Avondje uit SM\n2025-07-17|PSMD|606293|21:30|12:00|SE-C/i. Spoed|401|||130|Avondje uit.\n2025-07-18|PSMD|611208|19:00|11:00|Rom./Ontb./LBP/|747|||170|O.Masker/RB-JL fst\n2025-07-19|PSA|570598|18:00|11:00|Rom./RB|490|||120|\n2025-07-19|PSA|Roze|12:00|16:00|Veggie Lunch|330|||50|\n2025-07-22|PSA|613561|16:00|19:00||201|||50|\n2025-07-22|PSA|Roze|12:00|15:00||350.5|||50|\n2025-07-25|PSA|Telefoon|16:00|11:00|Overn. Met Baby|480|||100|\n2025-07-26|PSA|613512|19:00|12:00|VIP/Ontb./EC|845|||130|\n2025-07-26|PSA|615176|13:00|16:00||379|||50|\n2025-07-29|PSA|Roze|18:00|21:00|Gdmakertje 17/7|156.1|||50|\n2025-07-30|PSA|616702|13:00|16:00||202|||50|\n2025-08-01|PSMD|617961|21:30|11:00|EC|426|||130|\n2025-08-01|PSMD|618014|12:30|16:30|JustM./LBP/CB|833.5|||140|MT/RB/EC/ZRB\n2025-08-01|PSM|OR|20:00|11:00|01/08-03/08 - 2N.|698|||200|\n2025-08-02|PSMD|615464|13:00|16:00||330|||60|\n2025-08-02|PSMD|617134|21:30|11:00|Rom./Rb|501|||130|\n2025-08-03|PSM|618846|11:30|14:30||251|||50|\n2025-08-04|PSMD|OR|20:00|13:00|04/08-06/08 - 2N.|958|||260|\n2025-08-06|PSM|619286|16:30|19:30|Alleen C/i: Senna|231|||0|\n2025-08-06|PSA|619368|20:00|11:00||352||||\n2025-08-07|PSMD|OR|20:39|10:00|07/08-09/08 - 2N.|1136|||140|1/2 B./ Ontb.\n2025-08-08|PSM|OR|19:00|10:00||349|||100|\n2025-08-09|PSMD|615117|13:00|18:00|2uur verlenging|430|||60|Foutje, >400€ ;)\n2025-08-09|PSMD|WA|21:30|11:00|Geen All-incl.|341.1|||130|\n2025-08-10|PSMD|619399|17:00|20:00||330|||60|\n2025-08-10|PSMD|621453|12:30|15:30|RB/ZRB|390|||60|\n2025-08-13|PSA|BC|19:00|11:00|13/08-15/08 - 2N.|926||||2xOntb.\n2025-08-15|PSMD|614291|19:00|11:00|EC/RB|561|||130|\n2025-08-15|PSMD|Telefoon|12:30|16:30|Tom van Kempen|0|||0|(06-24243538) Fout\n2025-08-16|PSMD|620768|13:00|16:00|Sisha|360|||60|\n2025-08-16|PSMD|OR|19:00|11:00||529|||130|\n2025-08-16|PSM|Telefoon|14:00|10:00|Dhr. Bakker|550|||100|\n2025-08-17|PSMD|623246|18:30|21:30|Rom./Sushi/shisha|565|||150|MT/ Chardonnay\n2025-08-17|PSMD|Telefoon|14:00|17:00||328|||60|\n2025-08-21|PSMD|0|23:20|12:00|Bking st er nt in?|399|||130|\n2025-08-22|PSM|622176|16:00|19:00||261|||50|\n2025-08-22|PSM|623285|21:00|10:00||355|||100|\n2025-08-23|PSMD|623469|21:00|11:00|B-Day Dluxe/Ontb.|615|||170|LBP\n2025-08-23|PSM|OR|20:00|10:00||398|||120|\n2025-08-24|PSM|0|13:00|16:00|Geen info.|0|||0|\n2025-08-24|PSMD|626084|21:30|11:00||405.5|||130|\n2025-08-24|PSMD|626506|17:00|20:00|EC|355|||60|\n2025-08-25|PSMD|Roze|14:30|17:30|B-Day 6pax|674|||110|(Gedeeld met SM?)\n2025-09-05|PSMD|595164|19:00|11:00|Ontb./LBP|570|||150|\n2025-09-06|PSMD|546211|18:30|22:30|Rom./LBP|493.5|||120|\n2025-09-06|PSM|621677|20:00|10:00|Rom.|430|||120|\n2025-09-06|PSMD|631629|12:30|15:30|B-Day|405|||110|\n2025-09-07|PSMD|629252|13:00|16:00|Rom.|449.5|||110|\n2025-09-07|PSMD|OR|19:00|11:00|Wilinfo. Villa Verh.|554|||130|\n2025-09-12|PSMD|632003|21:30|11:00|CW menu|466|||140|\n2025-09-12|PSM|OR|19:00|11:00|1xRom./Ontb./LBP|885|||260|12/09-14/09 2N\n2025-09-12|PSMD|WA|13:00|17:00||348|||60|\n2025-09-14|PSMD|633636|21:30|11:00|Ontb.|440|||140|\n2025-09-14|PSMD|634274|13:00|16:00||330|||60|\n2025-09-19|PSMD|635871|21:30|11:00||460|||130|\n2025-09-19|PSM|636112|12:00|16:00||301|||50|\n2025-09-19|PSM|OR|21:00|10:00|Ontb.|388|||110|\n2025-09-20|PSMD|542818|19:00|11:00|No Show (Verpltst)|563.5|||0|\n2025-09-20|PSM|636129|20:00|10:00|Rom.|412.5|||120|\n2025-09-26|PSMD|633289|21:30|11:00||401|||130|\n2025-09-27|PSMD|631989|16:30|19:30|5pax. Lunch|755.5|||130|\n2025-09-27|PSMD|637524|19:00|11:00||531|||130|\n2025-09-27|PSM|638030|16:30|19:30||281|||50|\n2025-09-27|PSM|639748|21:00|10:00||408.5|||100|\n2025-10-03|PSMD|638454|21:30|11:00|RB/Prosecco|456|||130|\n2025-10-04|PSM|637731|12:00|16:00|X|305.5|||50|\n2025-10-04|PSM|637862|20:00|10:00|VIP/Rom/LBP/Sushi|605.5|||160|\n2025-10-04|PSMD|OR|19:00|11:00|2pax + 2Kids|349|||100|PSM Prijs & beloning\n2025-10-05|PSMD|634767|21:30|11:00|X|401|||130|\n2025-10-05|PSMD|Whatsapp|17:00|20:00|Eigen Sisha|358|||60|No Show!\n2025-10-10|PSMD|634870|21:30|11:00|LBP/EigenCons.|426|||140|\n2025-10-10|PSM|OR|20:00|12:00|10 okt. - 12 okt.|698|||200|\n2025-10-11|PSMD|636645|19:00|11:00|Ontb./LBP|600|||150|\n2025-10-11|PSMD|Whatsapp|12:30|16:30|Workshop ASR|||||\n2025-10-12|PSMD|643212|12:30|15:00|X|271|||60|\n2025-10-12|PSMD|644807|17:00|20:00|X|330|||60|\n2025-10-17|PSM|648097|18:00|10:00|X|401|||100|\n2025-10-17|PSMD|Roze|18:00|22:00|CCB|425|||120|Roze, Whatssapp?\n2025-10-18|PSMD|646112|19:00|10:15|Ontb./Mass.tafel|595|||140|\n2025-10-18|PSMD|648066|12:30|16:30|X|533|||110|\n2025-10-18|PSM|OR|20:00|10:00|X|349|||100|\n2025-10-19|PSMD|635819|17:00|20:00||310|||60|\n2025-10-19|PSMD|Whatsapp|12:00|15:00|8pax all-incl.|778|||110|\n2025-10-25|PSA|Whatsapp|||Overn.+Ontbijt||||110|JE's Bday Lelystad\n2025-10-31|PSM|650104|11:30|15:30|X|255.5|||60|\n2025-10-31|PSMD|654444|21:30|11:00|Rom./Psecco/MT|531|||150|\n2025-10-31|PSMD|Whatsapp|17:00|19:30|X|269|||60|\n2025-10-31|PSM|Whatsapp|20:00|10:00|31 okt. - 02 nov.|773|||220|Ontbijt 2x\n2025-11-01|PSMD|643024|12:30|15:00|Geen all-incl./ RB|276|||60|ZeepRB ipv RB\n2025-11-01|PSMD|OR|19:00|11:00|X|529|||130|\n2025-11-02|PSMD|652907|17:00|20:00|LBP|360|||70|\n2025-11-02|PSMD|655062|12:30|15:00|X|271|||60|\n2025-11-07|PSM|OR|18:00|11:00|2N./Rom/ontb.2x|825|||260|07/11-09/11\n2025-11-07|PSMD|WA|19:00|11:00|LBP/Psecco|475|||130|\n2025-11-08|PSMD|657331|19:00|11:00||531|||130|\n2025-11-09|PSMD|639625|19:00|11:00|Rom/LSA/ZRB/Mask|844.5|||150|2 Volw/ 1 Tiener\n2025-11-09|PSMD|653001|12:30|15:00|X|271|||60|\n2025-11-09|PSM|WA|13:30|16:30||249|||50|\n2025-11-14|PSMD|646816|21:30|11:00|Geen all-incl./ ECT|406|||130|\n2025-11-14|PSM|OR|20:00|11:00|2N./Ontb?InfoASR?|698|||200|14/11-16/11 C/o.\n2025-11-15|PSMD|B.com|21:30|11:00|All-incl.|449|||130|C/i: 21:00-22:00\n2025-11-16|PSMD|Roze|19:00|11:00|Geen Boeking!||||0|Fantoom Boeking\n2025-11-16|PSMD|WA|13:00|15:30|All-incl.|269|||60|\n2025-11-21|PSMD|654540|21:30|11:00|Rom/Spatlasse/MT|506|||150|\n2025-11-21|PSM|663078|20:00|10:00|L'66|381|||100|\n2025-11-22|PSMD|642840|21:30|11:00|Geen all-incl.|381|||130|ASR&JE Spanje\n2025-11-22|PSMD|643033|13:00|16:00|MT|355|||60|ASR&JE Spanje\n2025-11-22|PSM|OR|20:00|10:00|Info opvragen bij ASR|0|||0|ASR&JE Spanje\n2025-11-24|PSA|B.com|19:00|11:00|Info opvragen bij ASR|303.58|||100|ASR&JE Spanje\n2025-11-24|PSA|WA|12:00|15:00|MT|249|||50|ASR&JE Spanje\n2025-11-25|||||JE Cash betaald|||||Cash\n2025-11-28|PSMD|WA|19:00|11:00|Ontb.|529|||140|€200 aanbet./ €329\n2025-11-28|PSM|WA|20:00|10:00|BDDeluxe/L'66/MT|529|||130|Sushi/Mocktail A'bei\n2025-11-29|PSM|658711|20:00|10:00||351|||100|\n2025-11-29|PSMD|OR|19:00|11:00||529|||130|\n2025-11-30|PSMD|661332|12:30|15:30|3pax&1kind|457|||110|\n2025-11-30|PSMD|664576|17:00|20:00||334.5|||60|\n2025-11-30|PSM|665435|17:00|20:00||231|||50|\n2025-12-05|PSMD|669559|17:00|20:00||330|||60|\n2025-12-05|PSMD|Roze|21:30|11:00||399|||130|\n2025-12-06|PSMD|655645|21:30|11:00|Rom/ZR/Ch.Wijn|578|||150|Mask/Sisha Appel\n2025-12-06|PSM|666657|20:00|10:00|Extra Dekbed ivm|351|||100|\n2025-12-07|PSMD|669779|21:30|11:00|VIP/Rom./M&Ch|651|||150|LBP\n2025-12-07|PSMD|669786|12:30|16:30|Sisha L'99|460|||110|\n2025-12-07|PSM|Roze|13:00|15:00||159|||50|\n2025-12-12|PSMD|655939|12:30|15:30|Rom./ZR/MtailTrop|459.5|||110|>400\n2025-12-12|PSMD|WA|20:00|12:00|2N./BDD/Ontb2x|1075|||300|150+130+20=300\n2025-12-14|PSM|673345|20:00|10:00|Luxe Sushi Schaal|456|||100|\n2025-12-14|PSMD|Roze|19:00|22:00|BDD/LBP|433|||120|>400+10=120\n2025-12-19|PSM|662854|20:00|10:00|2N.|669.5|||200|\n2025-12-19|PSMD|WA|21:00|09:00|Cancelled last min.||||0|0624243538 Anton\n2025-12-20|PSMD|657627|19:00|17:00|Extra late C/o.|886|||140|\n2025-12-20|PSMD|Roze|12:30|16:30|BD Dochter Cees|0|||60|Plus een thee worst!\n2025-12-21|PSMD|WA|19:00|11:00|Ontb/RB/Huwelijk|575|||160|\n2025-12-27|PSMD|655337|21:30|11:00|NoShow!|405.5|||15|\n2025-12-27|PSM|676020|11:00|14:00|2 pax kaal|231|||50|\n2025-12-27|PSMD|677778|17:00|20:00|2 pax kaal|330|||60|\n2025-12-27|PSMD|679005|12:30|15:00||271|||60|\n2025-12-27|PSM|679077|20:00|10:00||351|||100|\n2025-12-28|PSM|654355|12:00|15:00|CB|294.5|||60|C.burgers vinden!!\n2025-12-28|PSMD|672077|19:00|11:00|2 pax kaal|531|||130|€264,50 Cash\n2025-12-28|PSMD|678407|12:30|15:30|4 pax + 1 kind|608|||110|\n2025-12-28|PSMD|679897|17:00|20:00||231|||50|\n2025-12-29|PSM|679521|11:30|15:30|Rom|339|||70|Mocht deze claimen\n2026-01-09|PSMD|W.A.|19:00|11:00|Bday, Vooraf bet.||||150|\n2026-01-10|PSMD|632285|19:00|11:00||531|261||130|\n2026-01-10|PSM|686105|21:30|10:00|Rom./LBP/Shisha|462.5|30||130|Verrassing · LBP bijgeboekt\n2026-01-11|PSMD|669799|12:30|15:30|G.All-in|314.5|||50|\n2026-01-27|PSM|694100|11:30|15:30||251||124.5|50|\n2026-01-28|PSMD|692039|11:00|17:00|G.All-in/ ECT|390.5|||60|\n2026-01-28|PSMD|O.R.|19:00|11:00|Ontb.|468|||140|\n2026-01-29|PSM|W.A.|19:00|22:00||229||229|50|\n2026-01-30|PSMD|695204|11:30|14:00|Rom./Pros./MT|436|||110|Geen ZRB\n2026-02-06|PSM|694077|20:00|10:00||381|0|0|100|\n2026-02-06|PSMD|O.R.|15:00|11:00|LBP/Ontbijt|1196|0|0|260|2N.\n2026-02-07|PSM|698626|20:00|10:00|ECT/Wijn|436|0|0|100|\n2026-02-07|PSM|700348|12:00|15:00||255|0|124.5|50|\n2026-02-08|PSMD|697998|19:00|11:00||481|0|0|130|\n2026-02-08|PSMD|700056|13:00|16:00||353|0|0|60|\n2026-02-08|PSM|700736|12:00|15:00|Rom./CBM/ZRB|335|0|0|50|CBM ipv ZRB\n2026-02-20|PSMD|3785-07-05 00:00:00|19:00|11:00|Rom/Ontb/LBP/RB|760|0|0|170|Prosecco/Shisha\n2026-02-21|PSMD|698099|15:00|11:00|ECT/MT|581|0|0|130|\n2026-02-21|PSM|699221|20:00|10:00|Rom/Ontb/MT|464|0|231|0|Comp ivm gloor.\n2026-02-22|PSMD|688904|19:00|11:00|Rom/Champagne|656|0|0|150|\n2026-02-23|PSMD|706643|19:00|11:00|MT|456|0|0|130|\n2026-02-24|PSMD|W.A.|15:00|11:00|LBP/Sisha|475|0|475|140|Prosecco v/h Huis\n2026-02-25|PSMD|703601|19:00|11:00|ZRB/RBC/ECT|486|0|242|130|\n2026-02-26|PSMD|693575|19:00|11:00|ECT|460|0|0|130|\n2026-03-04|PSMD|690680|19:00|11:00|Sushi/pinot/pros.|444.5|0|379|140|Ontb/MT · Extra's Cash€160\n2026-03-04|PSMD|710799|12:30|15:30||281|0|0|60|\n2026-03-05|PSMD|710166|19:00|11:00|ECT/Sisha|466|0|232|130|\n2026-03-12|PSMD|O.R.|19:00|11:00||529|0|0|130|\n2026-03-18|PSMD|700606|20:00|23:00||281|||60|\n2026-03-24|PSM|O.R.|15:00|10:00|Rom./Ontb.|437|0|0|130|\n2026-03-25|PSMD|718366|12:30|15:30|Geen All-in|261|0|129.5|60|\n2026-03-27|PSMD|709845|15:00|11:00|Geen All-in/ ECT|536|267|0|130|\n2026-03-28|PSMD|700610|19:00|11:00|Ontb.|520|0|0|140|\n2026-03-28|PSMD|711599|13:00|17:00|8pax/LBP3x|727|0|0|140|1u +\n2026-03-28|PSM|718723|12:00|18:00|LBP|327|162.5|0|60|15 mins +\n2026-03-28|PSM|O.R.|20:00|10:00|Ontb./ Bier2x|418|12||110|€12 Bier\n2026-03-29|PSMD|716039|15:00|18:00|Bday|376|0|187|90|\n2026-03-29|PSMD|716831|21:00|11:00|Shisha Mi Amore|511|254|0|130|1u +\n2026-04-28|PSM|718323|20:00|10:00||351|0|176.5|100|\n2026-05-02|PSM|733051|20:00|11:00||381|0|0|100|\n2026-05-02|PSMD|W.A.|21:00|12:00|Rom./Ontb./Moet|779|579|0|160|\n2026-05-03|PSMD|733380|15:00|18:00||301|0|0|60|\n2026-05-03|PSMD|B.Com|20:00|10:00|Ontb./Shisha/2Bier|939|0|81|165|270? · 2nachten: 03-05 Mei\n2026-05-04|PSM|731703|20:00|11:00|Ontb./Chardonnay|420|0|0|110|\n2026-05-05|PSMD|722907|19:00|11:00|Geen All-in|411|0|0|130|\n2026-05-05|PSMD|727943|11:30|14:00|CB menu|320|0|0|70|\n2026-05-05|PSM|732034|20:00|11:00|Ontb.|437|0|0|110|\n2026-05-06|PSMD|B.Com|19:00|10:00|BDD/Pros0.0/|654|0|175|150|Echte rozen+kaarsen\n2026-05-23|PSMD|735376|19:00|10:00|Ontb.|570|0|0|140|\n2026-05-23|PSM|O.R.|20:00|11:00||379|189.5|0|100|Cash of bank, weet niet\n2026-06-10|PSMD|747429|12:30|16:30||351|0|0|60|\n2026-06-24|PSM|752779|12:00|17:00|Lunch|340|0|0|60|\n2026-06-24|PSMD|O.R.|19:00|11:00|Ontb/ CBMenu|468|0|0|150|\n2026-07-03|PSMD|756483|19:00|11:00|2 pross, 1 retour.|595.5|0|0|130|\n2026-07-04|PSMD|751059|19:00|11:00|Rom/LBP/CBM/|613|0|344.5|170|Chard. · 39,- CBMenu\n2026-07-04|PSMD|753246|13:00|17:00|ECT|366|0|0|60|\n2026-07-04|PSM|W.A.|13:30|18:30|Rom./RB/ZRB/Shis|468|0|414|100|ZRB nasturen.\n2026-07-05|PSMD|757114|13:00|16:00||301|0|70|60|\n2026-07-05|PSM|757780|20:00|10:00||401|0|0|100|\n2026-07-05|PSMD|O.R.|19:00|12:00|RB Niet vooradig|529|0|55|130|55€ extra sisha\n2026-07-10|PSMD|757474|12:30|16:30|ECT|370.5|0|0|60|\n2026-07-11|PSMD|758671|12:30|15:30|ECT geannuleerd|316|0|142|60|1Bier€6 · min 15 ECT+6 v. Bier\n2026-07-11|PSMD|759310|19:00|11:00||535.5|0|0|130|\n2026-07-12|PSM|743955|15:00|18:00||231|0|0|50|\n2026-07-12|PSMD|754248|13:00|17:00||351|174.5|0|60|Volgens mij pin bet.\n2026-07-17|PSA||20:00|11:00|||0|0|100|Mijn Boeking?\n2026-07-18|PSA||12:00|16:00||551|0|0||Mijn Boeking?\n2026-07-25|PSA|764290|20:00|11:00|RookT.|461|0|229.5|130|Cash?\n2026-07-26|PSA|763686|13:30|16:30|BD/ BAM|365|0|181.5|100|Cash?\n2026-07-26|PSA|W.A.|18:00|21:00|KIM BD||||0|299,- · Senna gedraaid\n2026-07-29|PSA|765320|13:00|11:00||478|0|0|130|\n2026-07-30|PSA|744858|13:00|11:00|ECT/Rt/Gn Mass.|571|0|332|130|Cash?\n2026-07-31|PSA|764085|12:00|16:00|5 Pers. 3 Kids|353.5|0|0|60|\n2026-08-01|PSA|764262|19:00|11:00|Ontb|530|0|264.5|140|Cash? · Festival, Ik de kids\n2026-08-02|PSA|W.A.|13:00|16:00||226|0|226|60|Cash? · Nogmaals de kids?…";
@@ -471,7 +545,10 @@
         id: uid(), soort: "boeking", date: c[0], loc: c[1] || "", ref: c[2] || "",
         van: c[3] || "", tot: c[4] || "", arr: c[5] || "",
         bedrag: numOrNull(c[6]), bank: numOrNull(c[7]), cash: numOrNull(c[8]),
-        verg: numOrNull(c[9]), note: c[10] || "", bron: "excel"
+        verg: numOrNull(c[9]), note: c[10] || "", bron: "excel",
+        verblijf: verblijfUitTijden(c[3] || "", c[4] || ""),
+        arrSoort: arrSoortUitTekst((c[5] || "") + " " + (c[10] || "")),
+        extras: [], tweedaags: false, noShow: false, uitbetaald: false, handmatigTarief: true
       };
     });
   }
@@ -500,7 +577,9 @@
 
   function leegDraft() {
     return { date: todayISO(), loc: "PSMD", ref: "", van: "", tot: "", arr: "",
-             bedrag: "", bank: "", cash: "", verg: "", note: "" };
+             bedrag: "", bank: "", cash: "", verg: "", note: "",
+             verblijf: "", arrSoort: "geen", extras: [], tweedaags: false, noShow: false,
+             uitbetaald: false, handmatigTarief: false };
   }
   function leegDienst() {
     var d = { dienstnr: "", chauffeur: "", kenteken: "", date: todayISO(), tijd: "",
@@ -688,7 +767,11 @@
       boeking_nr: e.ref || null, tijd_van: e.van || null, tijd_tot: e.tot || null,
       arrangement: e.arr || null, bedrag: numOrNull(e.bedrag),
       bank_op_locatie: numOrNull(e.bank), cash_op_locatie: numOrNull(e.cash),
-      vergoeding: numOrNull(e.verg), opmerking: e.note || null
+      vergoeding: numOrNull(e.verg), voldaan: !!e.uitbetaald, opmerking: e.note || null,
+      data: {
+        verblijf: e.verblijf || "", arrSoort: e.arrSoort || "geen", extras: e.extras || [],
+        tweedaags: !!e.tweedaags, noShow: !!e.noShow, handmatigTarief: !!e.handmatigTarief
+      }
     };
   }
   function fromRow(r) {
@@ -713,11 +796,16 @@
         bedrag: r.bedrag, btw: r.btw, wijze: r.wijze || "", voldaan: !!r.voldaan, note: r.opmerking || ""
       };
     }
+    var d = r.data || {};
     return {
       id: r.id, soort: "boeking", date: r.datum, loc: r.locatie || "", ref: r.boeking_nr || "",
       van: r.tijd_van || "", tot: r.tijd_tot || "", arr: r.arrangement || "",
       bedrag: r.bedrag, bank: r.bank_op_locatie, cash: r.cash_op_locatie,
-      verg: r.vergoeding, note: r.opmerking || ""
+      verg: r.vergoeding, note: r.opmerking || "", uitbetaald: !!r.voldaan,
+      verblijf: d.verblijf || verblijfUitTijden(r.tijd_van, r.tijd_tot),
+      arrSoort: d.arrSoort || arrSoortUitTekst((r.arrangement || "") + " " + (r.opmerking || "")),
+      extras: d.extras || [], tweedaags: !!d.tweedaags, noShow: !!d.noShow,
+      handmatigTarief: !!d.handmatigTarief
     };
   }
 
@@ -897,7 +985,7 @@
       if (wijze) notitie.push(wijze);
       if (open) notitie.push("nog te betalen op locatie " + money(open));
 
-      return {
+      var b = {
         date: datum,
         loc: locatieUit(blok) || locatieUit(tekst) || draft.loc,
         ref: ref,
@@ -907,9 +995,13 @@
         bedrag: totaal === null ? "" : totaal,
         bank: open ? "" : 0,
         cash: open ? "" : 0,
-        verg: nacht ? 130 : 60,
-        note: notitie.join(" \u00b7 ")
+        note: notitie.join(" \u00b7 "),
+        verblijf: verblijfUitTijden(van, tot) || (nacht ? "nacht" : "dag"),
+        arrSoort: arrSoortUitTekst(arr),
+        extras: [], tweedaags: false, noShow: false, uitbetaald: false, handmatigTarief: false
       };
+      b.verg = berekenVergoeding(b);
+      return b;
     }).filter(function (b) { return b.date; });
   }
 
@@ -1446,10 +1538,12 @@
 
     /* stats */
     html += '<div class="stats">';
-    html += '<div class="card stat accent"><div class="label">Vergoeding ' + esc(NAAM) + '</div><div class="value num">' + money(t.verg) + '</div><div class="sub">' + t.count + (t.count === 1 ? " boeking" : " boekingen") + "</div></div>";
-    html += '<div class="card stat money"><div class="label">Omzet boekingen</div><div class="value num">' + money(t.bedrag) + '</div><div class="sub">totaal van de kolom bedrag</div></div>';
-    html += '<div class="card stat"><div class="label">Bank op locatie</div><div class="value num">' + money(t.bank) + '</div><div class="sub">ter plekke gepind</div></div>';
-    html += '<div class="card stat"><div class="label">Cash op locatie</div><div class="value num">' + money(t.cash) + '</div><div class="sub">ter plekke contant</div></div>';
+    var uit = 0;
+    list.forEach(function (e) { if (e.uitbetaald) uit += num(e.verg); });
+    html += '<div class="card stat accent"><div class="label">Vergoeding ' + esc(NAAM) + '</div><div class="value num">' + money(t.verg) + '</div><div class="sub">' + t.count + (t.count === 1 ? " boeking" : " boekingen") + " \u00b7 " + money(r2(t.verg - uit)) + " nog uit te betalen</div></div>";
+    html += '<div class="card stat money"><div class="label">Totale omzet</div><div class="value num">' + money(t.bedrag) + '</div><div class="sub">inclusief wat op locatie is afgerekend</div></div>';
+    html += '<div class="card stat"><div class="label">Pin op locatie</div><div class="value num">' + money(t.bank) + '</div><div class="sub">onderdeel van de omzet</div></div>';
+    html += '<div class="card stat"><div class="label">Contant op locatie</div><div class="value num">' + money(t.cash) + '</div><div class="sub">vooraf betaald ' + money(r2(t.bedrag - t.bank - t.cash)) + "</div></div>";
     html += "</div>";
 
     /* saldo */
@@ -1495,19 +1589,48 @@
     html += "</div>";
 
     html += '<div class="row3">';
-    html += '<div class="field"><label for="f-bedrag">Bedrag boeking</label><input type="number" step="0.01" inputmode="decimal" id="f-bedrag" value="' + esc(draft.bedrag) + '"></div>';
-    html += '<div class="field"><label for="f-bank">Bank op locatie</label><input type="number" step="0.01" inputmode="decimal" id="f-bank" value="' + esc(draft.bank) + '"></div>';
-    html += '<div class="field"><label for="f-cash">Cash op locatie</label><input type="number" step="0.01" inputmode="decimal" id="f-cash" value="' + esc(draft.cash) + '"></div>';
+    html += '<div class="field"><label for="f-bedrag">Totale omzet boeking <span class="opt">incl. locatie</span></label><input type="number" step="0.01" inputmode="decimal" id="f-bedrag" value="' + esc(draft.bedrag) + '"></div>';
+    html += '<div class="field"><label for="f-bank">Pin op locatie</label><input type="number" step="0.01" inputmode="decimal" id="f-bank" value="' + esc(draft.bank) + '"></div>';
+    html += '<div class="field"><label for="f-cash">Contant op locatie</label><input type="number" step="0.01" inputmode="decimal" id="f-cash" value="' + esc(draft.cash) + '"></div>';
     html += "</div>";
+    var opLocatie = r2(num(draft.bank) + num(draft.cash));
+    var vooraf = r2(num(draft.bedrag) - opLocatie);
+    if (num(draft.bedrag) || opLocatie) {
+      html += '<p class="mini">Van de ' + money(draft.bedrag) + " is " + money(opLocatie) + " op locatie afgerekend, dus " + money(vooraf) + " vooraf via de boeking." +
+        (vooraf < 0 ? " <strong>Let op: er is meer op locatie betaald dan het totaalbedrag.</strong>" : "") + "</p>";
+    }
 
     html += '<div class="row2">';
-    html += '<div class="field"><label for="f-verg">Vergoeding ' + esc(NAAM) + '</label><input type="number" step="0.01" inputmode="decimal" id="f-verg" value="' + esc(draft.verg) + '"></div>';
-    html += '<div class="field"><span class="grouplabel">Snel invullen</span><div class="seg">';
-    VERG_PRESETS.forEach(function (p) {
-      html += '<button type="button" data-act="verg" data-verg="' + p + '" aria-pressed="' + (num(draft.verg) === p ? "true" : "false") + '">' + money(p) + "</button>";
+    html += '<div class="field"><span class="grouplabel">Verblijf</span><div class="seg">';
+    VERBLIJF.forEach(function (v) {
+      html += '<button type="button" data-act="verblijf" data-verblijf="' + v.id + '" aria-pressed="' + (draft.verblijf === v.id ? "true" : "false") + '">' + esc(v.label) + "</button>";
+    });
+    html += "</div></div>";
+    html += '<div class="field"><span class="grouplabel">Arrangement voor het tarief</span><div class="seg">';
+    ARR_SOORTEN.forEach(function (a) {
+      html += '<button type="button" data-act="arrsoort" data-arrsoort="' + a.id + '" aria-pressed="' + ((draft.arrSoort || "geen") === a.id ? "true" : "false") + '">' + esc(a.label) + "</button>";
     });
     html += "</div></div>";
     html += "</div>";
+
+    html += '<div class="field"><span class="grouplabel">Toeslagen en extra\u2019s</span><div class="seg">';
+    EXTRAS.forEach(function (x) {
+      var aan = (draft.extras || []).indexOf(x.id) > -1;
+      html += '<label class="chk' + (aan ? " on" : "") + '"><input type="checkbox" data-act="extra" data-extra="' + x.id + '"' + (aan ? " checked" : "") + ">" + esc(x.label) + ' <span class="h">+' + money(x.bedrag) + "</span></label>";
+    });
+    html += '<label class="chk' + (draft.tweedaags ? " on" : "") + '"><input type="checkbox" data-act="tweedaags"' + (draft.tweedaags ? " checked" : "") + '>2-daagse overnachting <span class="h">+' + money(TARIEF_TWEEDAAGS) + "</span></label>";
+    html += '<label class="chk fee' + (draft.noShow ? " on" : "") + '"><input type="checkbox" data-act="noshow"' + (draft.noShow ? " checked" : "") + '>No-show <span class="h">' + money(TARIEF_NOSHOW) + "</span></label>";
+    html += "</div></div>";
+
+    var berekend = berekenVergoeding(draft);
+    html += '<div class="row2">';
+    html += '<div class="field"><label for="f-verg">Vergoeding ' + esc(NAAM) + '</label><input type="number" step="0.01" inputmode="decimal" id="f-verg" value="' + esc(draft.verg) + '"></div>';
+    html += '<div class="field"><span class="grouplabel">Volgens de tarievenlijst</span>';
+    html += '<p class="mini">' + (berekend === null ? "Kies dagverblijf of overnachting, dan reken ik het tarief uit." : "<strong>" + money(berekend) + "</strong> \u2014 " + esc(tariefUitleg(draft))) + "</p>";
+    if (berekend !== null && draft.handmatigTarief) {
+      html += '<div class="imp" style="margin-top:8px;"><button type="button" class="btn ghost small" data-act="tarief-terug">Tarief overnemen</button><span class="mini">je hebt het bedrag zelf aangepast</span></div>';
+    }
+    html += "</div></div>";
 
     html += '<div class="field"><label for="f-note">Opmerking <span class="opt">optioneel</span></label><input type="text" id="f-note" placeholder="Bijv. cash nog controleren" value="' + esc(draft.note) + '"></div>';
 
@@ -1524,22 +1647,28 @@
     if (!list.length) {
       html += '<div class="empty"><strong>Nog geen boekingen in deze maand</strong>Voeg hierboven de eerste boeking toe.</div>';
     } else {
-      html += "<table><thead><tr><th>Datum</th><th>Locatie</th><th>Boeking</th><th class=\"ta-r\">Bedrag</th><th class=\"ta-r\">Bank</th><th class=\"ta-r\">Cash</th><th class=\"ta-r\">Vergoeding</th><th></th></tr></thead><tbody>";
+      html += "<table><thead><tr><th>Datum</th><th>Locatie</th><th>Boeking</th><th class=\"ta-r\">Totale omzet</th><th class=\"ta-r\">Pin</th><th class=\"ta-r\">Contant</th><th class=\"ta-r\">Vergoeding</th><th>Uitbet.</th><th></th></tr></thead><tbody>";
       list.forEach(function (e) {
         var d = dateOf(e);
         html += '<tr data-id="' + esc(e.id) + '">';
         html += '<td class="date"><span class="dow">' + d.toLocaleDateString("nl-NL", { weekday: "short" }) + '</span><span class="num">' + d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }) + "</span>";
         if (e.van || e.tot) html += '<span class="note num">' + esc(e.van) + (e.tot ? " \u2013 " + esc(e.tot) : "") + "</span>";
         html += "</td>";
-        html += '<td class="suite">' + (e.loc ? '<span class="pill">' + esc(e.loc) + "</span>" : '<span class="note">\u2014</span>') + "</td>";
+        html += '<td class="suite">' + (e.loc ? '<span class="pill">' + esc(e.loc) + "</span>" : '<span class="note">\u2014</span>');
+        if (e.verblijf) html += '<span class="note">' + (e.verblijf === "nacht" ? "overnachting" : "dagverblijf") + "</span>";
+        html += "</td>";
         html += "<td>" + (e.ref ? '<span class="num">' + esc(e.ref) + "</span>" : '<span class="note">\u2014</span>');
         if (e.arr) html += '<span class="note">' + esc(e.arr) + "</span>";
         if (e.note) html += '<span class="note">' + esc(e.note) + "</span>";
         html += "</td>";
-        html += '<td class="ta-r num">' + (e.bedrag === null || e.bedrag === undefined || e.bedrag === "" ? "\u2014" : money(e.bedrag)) + "</td>";
+        html += '<td class="ta-r num">' + (e.bedrag === null || e.bedrag === undefined || e.bedrag === "" ? "\u2014" : money(e.bedrag));
+        var opLoc = r2(num(e.bank) + num(e.cash));
+        if (opLoc) html += '<span class="note num">vooraf ' + money(r2(num(e.bedrag) - opLoc)) + "</span>";
+        html += "</td>";
         html += '<td class="ta-r num">' + (num(e.bank) ? money(e.bank) : "\u2014") + "</td>";
         html += '<td class="ta-r num">' + (num(e.cash) ? money(e.cash) : "\u2014") + "</td>";
         html += '<td class="ta-r num">' + (e.verg === null || e.verg === undefined || e.verg === "" ? "\u2014" : money(e.verg)) + "</td>";
+        html += '<td><label class="chk maandchk' + (e.uitbetaald ? " on" : "") + '"><input type="checkbox" data-act="rij-uitbetaald" data-id="' + esc(e.id) + '"' + (e.uitbetaald ? " checked" : "") + "></label></td>";
         html += '<td><div class="acts">';
         html += '<button class="linkbtn" data-act="edit" data-id="' + esc(e.id) + '">Bewerken</button>';
         html += '<button class="linkbtn del" data-act="del" data-id="' + esc(e.id) + '">Verwijderen</button>';
@@ -1550,7 +1679,7 @@
       html += '<td class="ta-r num">' + money(t.bedrag) + "</td>";
       html += '<td class="ta-r num">' + money(t.bank) + "</td>";
       html += '<td class="ta-r num">' + money(t.cash) + "</td>";
-      html += '<td class="ta-r num">' + money(t.verg) + "</td><td></td>";
+      html += '<td class="ta-r num">' + money(t.verg) + "</td><td></td><td></td>";
       html += "</tr></tfoot></table>";
     }
     html += "</div>";
@@ -1639,6 +1768,33 @@
     html += alBet ? '<span class="done">\u2713 Betalingen staan er al in</span>' : '<button class="btn ghost small" data-act="imp-bet">10 facturen en betalingen overnemen</button>';
     html += "</div>";
     html += '<p class="mini" style="margin-top:12px;">Let op: bij de facturen 10001 t/m 10005 stond in het Excel-bestand geen exacte betaaldatum. Die staan nu op de 1e van de maand met een opmerking erbij. Facturen 10006 en 10007 uit het tabblad \u201cPSA 2025 Temp.\u201d zijn niet overgenomen \u2014 die kun je hierboven zelf toevoegen.</p>';
+    html += "</div></details>";
+
+    /* tarievenlijst */
+    html += '<details class="block"><summary>Tarievenlijst \u2014 hoe de vergoeding wordt berekend</summary><div class="inner">';
+    html += '<p class="mini">Zodra je locatie, verblijf, bedrag en arrangement invult, vult de vergoeding zichzelf in volgens deze lijst. Vul je zelf een ander bedrag in, dan blijft dat staan \u2014 met de knop \u201cTarief overnemen\u201d ga je terug naar de lijst.</p>';
+    html += '<div class="tablewrap" style="margin-top:14px;"><table><thead><tr><th>Situatie</th><th class="ta-r">Malina</th><th class="ta-r">Malina Deluxe</th></tr></thead><tbody>';
+    var regels = [
+      ["Dagverblijf onder " + money(TARIEF_GRENS) + ", geen arrangement", TARIEVEN.PSM.dag.geen, TARIEVEN.PSMD.dag.geen],
+      ["Dagverblijf onder " + money(TARIEF_GRENS) + ", verjaardag of romantisch", TARIEVEN.PSM.dag.een, TARIEVEN.PSMD.dag.een],
+      ["Dagverblijf onder " + money(TARIEF_GRENS) + ", combinatie", TARIEVEN.PSM.dag.combi, TARIEVEN.PSMD.dag.combi],
+      ["Dagverblijf boven " + money(TARIEF_GRENS), TARIEVEN.PSM.dagBoven400, TARIEVEN.PSMD.dagBoven400],
+      ["Overnachting zonder arrangement", TARIEVEN.PSM.nacht.geen, TARIEVEN.PSMD.nacht.geen],
+      ["Overnachting met 1 arrangement", TARIEVEN.PSM.nacht.een, TARIEVEN.PSMD.nacht.een],
+      ["Overnachting met combinatie", TARIEVEN.PSM.nacht.combi, TARIEVEN.PSMD.nacht.combi]
+    ];
+    regels.forEach(function (r) {
+      html += "<tr><td>" + esc(r[0]) + '</td><td class="ta-r num">' + money(r[1]) + '</td><td class="ta-r num">' + money(r[2]) + "</td></tr>";
+    });
+    html += "</tbody></table></div>";
+    html += '<div class="tablewrap" style="margin-top:14px;"><table><thead><tr><th>Overige tarieven</th><th class="ta-r">Bedrag</th></tr></thead><tbody>';
+    html += '<tr><td>No-show (spa klaargezet)</td><td class="ta-r num">' + money(TARIEF_NOSHOW) + "</td></tr>";
+    html += '<tr><td>2-daagse overnachting, boven op het standaardtarief</td><td class="ta-r num">+' + money(TARIEF_TWEEDAAGS) + "</td></tr>";
+    EXTRAS.forEach(function (x) {
+      html += "<tr><td>" + esc(x.label) + ' klaarmaken</td><td class="ta-r num">+' + money(x.bedrag) + "</td></tr>";
+    });
+    html += "</tbody></table></div>";
+    html += '<p class="mini" style="margin-top:12px;">Voor Suite Angie gelden dezelfde tarieven als voor de Malina Jacuzzi Suite. Het boekingsbedrag is altijd de totale omzet, inclusief wat er op locatie contant of per pin is afgerekend \u2014 die twee komen er dus niet bovenop.</p>';
     html += "</div></details>";
 
     /* instellen */
@@ -1795,14 +1951,18 @@
   /* ---------- CSV ---------- */
 
   function csvFor(list, betList, titel) {
-    var rows = [["Datum","Locatie","Boeking#","Van","Tot","Arrangement","Bedrag","Bank op locatie","Cash op locatie","Vergoeding " + NAAM,"Opmerking"]];
+    var rows = [["Datum","Boekingsnummer","Locatie","Verblijf","Van","Tot","Arrangement","Totale omzet boeking","Contant op locatie","Pin op locatie","Vooraf betaald","Vergoeding " + NAAM,"Uitbetaald","Opmerking"]];
     list.forEach(function (e) {
-      rows.push([e.date, e.loc || "", e.ref || "", e.van || "", e.tot || "", e.arr || "",
-        dec(e.bedrag), dec(e.bank), dec(e.cash), dec(e.verg), e.note || ""]);
+      var opLoc = r2(num(e.bank) + num(e.cash));
+      rows.push([e.date, e.ref || "", e.loc || "", e.verblijf === "nacht" ? "overnachting" : (e.verblijf === "dag" ? "dagverblijf" : ""),
+        e.van || "", e.tot || "", e.arr || "",
+        dec(e.bedrag), dec(e.cash), dec(e.bank), dec(r2(num(e.bedrag) - opLoc)),
+        dec(e.verg), e.uitbetaald ? "ja" : "nee", e.note || ""]);
     });
     var t = totalen(list);
     rows.push([]);
-    rows.push(["Totaal " + titel, "", "", "", "", "", dec(t.bedrag), dec(t.bank), dec(t.cash), dec(t.verg), ""]);
+    rows.push(["Totaal " + titel, "", "", "", "", "", "", dec(t.bedrag), dec(t.cash), dec(t.bank),
+      dec(r2(t.bedrag - t.bank - t.cash)), dec(t.verg), "", ""]);
     if (betList && betList.length) {
       rows.push([]);
       rows.push(["Facturen en uitbetalingen"]);
@@ -1933,7 +2093,9 @@
     else if (act === "this-month") { view.month = monthKey(todayISO()); render(); }
     else if (act === "goto-month") { view.month = btn.getAttribute("data-month"); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     else if (act === "loc") { leesForm(); draft.loc = btn.getAttribute("data-loc"); render(); }
-    else if (act === "verg") { leesForm(); draft.verg = btn.getAttribute("data-verg"); render(); }
+    else if (act === "verblijf") { leesForm(); draft.verblijf = btn.getAttribute("data-verblijf"); herbereken(); render(); }
+    else if (act === "arrsoort") { leesForm(); draft.arrSoort = btn.getAttribute("data-arrsoort"); herbereken(); render(); }
+    else if (act === "tarief-terug") { leesForm(); draft.handmatigTarief = false; herbereken(); render(); }
     else if (act === "wijze") { leesBetForm(); betDraft.wijze = btn.getAttribute("data-wijze"); render(); }
     else if (act === "cancel-edit") { view.editing = null; draft = leegDraft(); render(); }
     else if (act === "cancel-bet") { view.editingBet = null; betDraft = leegBetaling(); render(); }
@@ -1954,7 +2116,10 @@
       view.editing = e.id;
       draft = { date: e.date, loc: e.loc || "", ref: e.ref || "", van: e.van || "", tot: e.tot || "",
                 arr: e.arr || "", bedrag: e.bedrag == null ? "" : e.bedrag, bank: e.bank == null ? "" : e.bank,
-                cash: e.cash == null ? "" : e.cash, verg: e.verg == null ? "" : e.verg, note: e.note || "" };
+                cash: e.cash == null ? "" : e.cash, verg: e.verg == null ? "" : e.verg, note: e.note || "",
+                verblijf: e.verblijf || verblijfUitTijden(e.van, e.tot), arrSoort: e.arrSoort || "geen",
+                extras: (e.extras || []).slice(), tweedaags: !!e.tweedaags, noShow: !!e.noShow,
+                uitbetaald: !!e.uitbetaald, handmatigTarief: true, verblijfHand: true, arrSoortHand: true };
       render();
       var f = document.getElementById("entryform");
       if (f) f.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2015,6 +2180,16 @@
     draft.cash = val("f-cash");
     draft.verg = val("f-verg");
     draft.note = val("f-note").trim();
+    if (!draft.verblijfHand) {
+      var afgeleid = verblijfUitTijden(draft.van, draft.tot);
+      if (afgeleid) draft.verblijf = afgeleid;
+    }
+  }
+
+  function herbereken() {
+    if (draft.handmatigTarief) return;
+    var w = berekenVergoeding(draft);
+    if (w !== null) draft.verg = w;
   }
   function leesBetForm() {
     if (!document.getElementById("betform")) return;
@@ -2034,6 +2209,27 @@
       zetMaandBetaald(el.getAttribute("data-month") || view.month, el.checked);
       return;
     }
+    if (act === "extra") {
+      leesForm();
+      var id = el.getAttribute("data-extra");
+      draft.extras = (draft.extras || []).filter(function (x) { return x !== id; });
+      if (el.checked) draft.extras.push(id);
+      herbereken();
+      render();
+      return;
+    }
+    if (act === "tweedaags") { leesForm(); draft.tweedaags = el.checked; herbereken(); render(); return; }
+    if (act === "noshow") { leesForm(); draft.noShow = el.checked; herbereken(); render(); return; }
+    if (act === "rij-uitbetaald") {
+      var rid = el.getAttribute("data-id");
+      var rij = state.entries.filter(function (x) { return x.id === rid; })[0];
+      if (!rij) return;
+      rij.uitbetaald = el.checked;
+      cacheLocal();
+      pushUpdate(rij);
+      render();
+      return;
+    }
     if (act === "voldaan") {
       betDraft.voldaan = el.checked;
       var wrap = el.closest(".chk");
@@ -2044,8 +2240,15 @@
   document.addEventListener("input", function (ev) {
     if (ev.target.id === "f-paste") view.paste = ev.target.value;
     if (ev.target.id === "f-verg") {
+      draft.handmatigTarief = true;
       var p = document.querySelector(".preview .u");
       if (p) p.textContent = money(ev.target.value);
+    }
+    if (["f-bedrag", "f-van", "f-tot", "f-arr", "f-bank", "f-cash"].indexOf(ev.target.id) > -1) {
+      leesForm();
+      if (!draft.arrSoortHand && ev.target.id === "f-arr") draft.arrSoort = arrSoortUitTekst(draft.arr);
+      herbereken();
+      render();
     }
   });
 
@@ -2054,10 +2257,14 @@
       ev.preventDefault();
       leesForm();
       if (!draft.date) { var de = document.getElementById("f-date"); if (de) de.focus(); return; }
+      herbereken();
       var velden = {
         soort: "boeking", date: draft.date, loc: draft.loc, ref: draft.ref, van: draft.van, tot: draft.tot,
         arr: draft.arr, bedrag: numOrNull(draft.bedrag), bank: numOrNull(draft.bank),
-        cash: numOrNull(draft.cash), verg: numOrNull(draft.verg), note: draft.note
+        cash: numOrNull(draft.cash), verg: numOrNull(draft.verg), note: draft.note,
+        verblijf: draft.verblijf, arrSoort: draft.arrSoort, extras: draft.extras || [],
+        tweedaags: !!draft.tweedaags, noShow: !!draft.noShow, uitbetaald: !!draft.uitbetaald,
+        handmatigTarief: !!draft.handmatigTarief
       };
       bewaar(velden, "editing");
       var vorigeLoc = draft.loc;
