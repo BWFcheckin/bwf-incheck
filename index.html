@@ -167,6 +167,13 @@ h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;
 .tegel .t{display:block;font-family:'Cormorant Garamond',serif;font-size:1.4rem;
   font-weight:400;line-height:1.2}
 .tegel .d{display:block;color:var(--muted);font-size:.8rem;margin-top:.45rem;line-height:1.45}
+#groepen h2{margin-top:2.2rem}
+#groepen h2:first-child{margin-top:0}
+.tegel.binnenkort{position:relative;background:var(--paper);cursor:default;opacity:.72}
+.tegel.binnenkort .t{color:var(--muted)}
+.tegel.binnenkort:hover{background:var(--paper)}
+.tag{position:absolute;top:.8rem;right:.8rem;font-size:.63rem;letter-spacing:.08em;
+  color:var(--muted);border:1px solid var(--line);padding:.15rem .45rem}
 .extern{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1rem}
 .pil{text-decoration:none;font-size:.83rem;color:var(--muted);letter-spacing:.03em;
   background:var(--wit);border:1px solid var(--line);padding:.5rem 1rem;
@@ -303,10 +310,9 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
     </section>
     <hr class="regel scheiding">
 
-    <section aria-labelledby="kopApps">
-      <h2 id="kopApps">Werken</h2>
-      <div class="tegels" id="tegels"></div>
-      <h2 style="margin-top:2.2rem">Boekingskanalen</h2>
+    <section aria-label="Onderdelen">
+      <div id="groepen"></div>
+      <h2>Boekingskanalen</h2>
       <div class="extern" id="extern"></div>
     </section>
     </div>
@@ -339,12 +345,12 @@ const CONFIG = {
 
   standaardThema : 'espresso',   // espresso | salie | leisteen
 
-    reserveringen : {
+  reserveringen : {
     tabel      : 'reservations',
-    aankomst   : 'checkindatum',
-    vertrek    : 'checkuitdatum',
-    tijd       : 'checkintijd',
-    naam       : ['voornaam','achternaam'],
+    aankomst   : 'checkindatum',   // datumkolom aankomst
+    vertrek    : 'checkuitdatum',  // datumkolom vertrek
+    tijd       : 'checkintijd',    // tijdkolom (mag leeg blijven: '')
+    naam       : ['voornaam','achternaam'],  // één kolom mag ook: 'naam'
     locatie    : 'locatie'
   },
   checkins : {
@@ -353,15 +359,55 @@ const CONFIG = {
   }
 };
 
-const TEGELS = [
-  { t:'Dashboard',  d:'Reserveringen en dagelijks overzicht', url:'dashboard.html' },
-  { t:'Inchecken',  d:'Incheckformulier voor gasten',         url:'incheckformulier.html' },
-  { t:'Uren Ruth',  d:'Urenregistratie',                      url:'uren-ruth.html' }
-  // Voeg hier regels toe zodra er meer pagina's bijkomen, bijvoorbeeld:
-  // { t:'Gastenapp Angie', d:'Almere — De Specerij 5', url:'bwf-gastenapp.html?suite=angie' },
-  // Staat een app in een andere repo? Zet dan de volledige URL neer:
-  // { t:'Gastenapp', d:'Voor gasten', url:'https://bwfcheckin.github.io/andere-repo/bwf-gastenapp.html' }
+const GROEPEN = [
+  {
+    kop:'Dagelijks',
+    tegels:[
+      { t:'Reserveringen',  d:'Dagelijks overzicht en inchecken', url:'dashboard-prototype.html' },
+      { t:'Incheckformulier',d:'Formulier voor gasten',           url:'incheckformulier.html' },
+      { t:'Incheck-app',    d:'Online inchecken door de gast',    url:'bwf-incheck-app-licht.html' },
+      { t:'Gastenapp',      d:'App voor gasten per suite',        url:null }
+    ]
+  },
+  {
+    kop:'Personeel',
+    tegels:[
+      { t:'Personeelsdashboard', d:'Handboek, voorraad, overdracht', url:'dashboard.html' },
+      { t:'Planning',            d:'Maandkalender per medewerker',   url:null },
+      { t:'Urenregistratie',     d:'Uren per medewerker',            url:'uren-ruth.html' },
+      { t:'Contracten',          d:'Overeenkomsten en tarieven',     url:null },
+      { t:'Werkzaamheden',       d:'Taken en bellijsten',            url:null }
+    ]
+  },
+  {
+    kop:'Administratie',
+    tegels:[
+      { t:'Gastenregister',  d:'Nachtregister en toeristenbelasting', url:null },
+      { t:'Klantenbestand',  d:'Gasten, segmenten en historie',       url:null },
+      { t:'Financieel',      d:'Omzet, kosten en btw',                url:null },
+      { t:'Documenten',      d:'Huisregels en voorwaarden',           url:null },
+      { t:'Leveranciers',    d:'Vaste afspraken en bestellingen',     url:null }
+    ]
+  },
+  {
+    kop:'Marketing',
+    tegels:[
+      { t:'Contentplanning', d:'Social media en berichten', url:null },
+      { t:'Advertenties',    d:'Campagnes en budget',       url:null },
+      { t:'Events',          d:'Retreats en arrangementen', url:null }
+    ]
+  },
+  {
+    kop:'Assistent',
+    tegels:[
+      { t:'Virtuele assistent', d:'Vragen stellen over je eigen gegevens', url:null }
+    ]
+  }
 ];
+// url:null = tegel wordt grijs met "nog te bouwen". Zodra de pagina bestaat,
+// vervang null door de bestandsnaam tussen aanhalingstekens, bijvoorbeeld:
+//   url:'bwf-gastenapp.html?suite=angie'
+// Een pagina in een andere repo? Zet de volledige https-link neer.
 
 const EXTERN = [
   { t:'Planyo',                url:'https://www.planyo.com' },
@@ -457,9 +503,13 @@ function startPortaal(){
   $('#datum').textContent = nu.toLocaleDateString('nl-NL',
     { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
-  $('#tegels').innerHTML = TEGELS.map(x =>
-    `<a class="tegel" href="${x.url}"><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
-  ).join('');
+  $('#groepen').innerHTML = GROEPEN.map(g => `
+    <h2>${g.kop}</h2>
+    <div class="tegels">` + g.tegels.map(x => x.url
+      ? `<a class="tegel" href="${x.url}"><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
+      : `<div class="tegel binnenkort"><span class="t">${x.t}</span><span class="d">${x.d}</span>
+         <span class="tag">nog te bouwen</span></div>`
+    ).join('') + `</div>`).join('');
 
   $('#extern').innerHTML = EXTERN.map(x =>
     `<a class="pil" href="${x.url}" target="_blank" rel="noopener">${x.t}</a>`
