@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Boeking aanmelden — Bed &amp; Wellness Flevoland</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F5F2EC; --surface:#FFFFFF; --surface-2:#FAF8F3; --ink:#17282A; --ink-2:#3E5557;
+  --muted:#6E8385; --line:#E1DBD0; --line-soft:#EEE9E0;
+  --accent:#14625E; --accent-ink:#0E4A47; --accent-soft:#DDE9E6;
+  --copper:#A9662F; --good:#2E7A55; --crit:#9E3B31;
+  --shadow:0 1px 2px rgba(23,40,42,.05), 0 10px 30px rgba(23,40,42,.07);
+  --f-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --f-body:"Karla","Helvetica Neue",Arial,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --ink:#E9EFEC; --ink-2:#C3D1CF;
+    --muted:#8CA09E; --line:#2B3939; --line-soft:#233030;
+    --accent:#5FB8AC; --accent-ink:#8FD3C9; --accent-soft:#1D3634;
+    --copper:#D89B62; --good:#5CB68A; --crit:#D4776B;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.28);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --ink:#E9EFEC; --ink-2:#C3D1CF;
+  --muted:#8CA09E; --line:#2B3939; --line-soft:#233030;
+  --accent:#5FB8AC; --accent-ink:#8FD3C9; --accent-soft:#1D3634;
+  --copper:#D89B62; --good:#5CB68A; --crit:#D4776B;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6}
+.wrap{max-width:720px;margin:0 auto;padding:34px 18px 80px}
+header.kop{text-align:center;margin-bottom:26px}
+header.kop .merk{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+header.kop h1{font-family:var(--f-display);font-size:31px;font-weight:600;margin:8px 0 10px;letter-spacing:-.015em;text-wrap:balance}
+header.kop p{margin:0 auto;max-width:52ch;color:var(--ink-2);font-size:15px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:24px}
+fieldset{border:0;padding:0;margin:0 0 24px}
+fieldset:last-of-type{margin-bottom:0}
+.legend{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--ink);margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.veld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.veld.breed{grid-column:1/-1}
+label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.uitleg{font-size:12.5px;color:var(--muted)}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:16px}
+input[type="date"],input[type="number"]{font-family:var(--f-data);font-size:15px}
+textarea{min-height:88px;resize:vertical;font-size:15px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input.fout,select.fout{border-color:var(--crit)}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{flex:1;min-width:0;background:var(--surface-2);border:0;padding:12px 4px;color:var(--muted);cursor:pointer;font:inherit;font-size:14.5px;font-weight:600;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.vink{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);cursor:pointer}
+.vink input{width:19px;height:19px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.vink .tekst{font-size:14.5px;text-transform:none;letter-spacing:normal;color:var(--ink);font-weight:400}
+.vink .tekst b{display:block;font-weight:700;color:var(--ink)}
+.vink .tekst span{color:var(--muted);font-size:13px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.samenvatting{background:var(--accent-soft);border:1px solid var(--line);border-radius:11px;padding:14px 16px;font-size:14.5px;color:var(--ink-2);margin-top:22px}
+.samenvatting b{color:var(--ink)}
+.verstuur{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+.knop{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.knop:hover{background:var(--accent-ink)}
+.knop:disabled{opacity:.55;cursor:not-allowed}
+.knop.stil{background:none;color:var(--ink);border-color:var(--line);font-weight:600}
+.knop.stil:hover{background:var(--surface-2);color:var(--accent-ink)}
+.melding{padding:12px 14px;border-radius:9px;font-size:14px;font-weight:600}
+.melding.fout{background:rgba(158,59,49,.1);color:var(--crit);border:1px solid var(--crit)}
+.klaar{text-align:center;padding:14px 4px}
+.klaar .vinkje{width:62px;height:62px;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:31px;margin:0 auto 18px}
+.klaar h2{font-family:var(--f-display);font-size:24px;font-weight:600;margin:0 0 10px}
+.klaar p{color:var(--ink-2);margin:0 auto 8px;max-width:46ch}
+.overzicht{text-align:left;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;padding:16px 18px;margin:22px 0 6px}
+.overzicht div{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid var(--line-soft);font-size:14.5px}
+.overzicht div:last-child{border-bottom:0}
+.overzicht span{color:var(--muted)}
+.overzicht b{font-weight:600;text-align:right}
+footer.voet{text-align:center;margin-top:26px;font-size:13px;color:var(--muted)}
+@media(max-width:600px){ .wrap{padding:24px 14px 60px} .card{padding:18px} header.kop h1{font-size:26px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="kop">
+    <div class="merk">Bed &amp; Wellness Flevoland</div>
+    <h1>Je verblijf aanmelden</h1>
+    <p>Vul je gegevens in en wij zetten je boeking klaar. De gegevens zijn nodig voor het wettelijk verplichte nachtregister; we gebruiken ze niet voor iets anders.</p>
+  </header>
+
+  <div class="card" id="formKaart">
+    <fieldset>
+      <p class="legend">Je verblijf</p>
+      <div class="grid">
+        <div class="veld">
+          <label for="soort">Soort verblijf</label>
+          <div class="seg" id="soort">
+            <button type="button" data-val="overnachting" aria-pressed="true">Overnachting</button>
+            <button type="button" data-val="dagverblijf" aria-pressed="false">Dagverblijf</button>
+          </div>
+        </div>
+        <div class="veld"><label for="locatie">Suite</label><select id="locatie"></select></div>
+        <div class="veld"><label for="datumIn" id="lblIn">Aankomstdatum</label><input type="date" id="datumIn" required></div>
+        <div class="veld" id="wrapUit"><label for="datumUit">Vertrekdatum</label><input type="date" id="datumUit"></div>
+        <div class="veld"><label for="personen">Aantal personen</label><input type="number" id="personen" min="1" max="12" step="1" value="2"></div>
+        <div class="veld" id="wrapKind">
+          <label for="kinderen">Waarvan t/m 11 jaar</label>
+          <input type="number" id="kinderen" min="0" max="12" step="1" value="0">
+          <span class="uitleg">Alleen invullen als er kinderen meekomen</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <p class="legend">Je gegevens</p>
+      <div class="grid">
+        <div class="veld"><label for="voorletters">Voorletter(s)</label><input type="text" id="voorletters" placeholder="A.M." autocomplete="given-name"></div>
+        <div class="veld"><label for="achternaam">Achternaam</label><input type="text" id="achternaam" placeholder="de Vries" autocomplete="family-name" required></div>
+        <div class="veld"><label for="geboorte">Geboortedatum</label><input type="date" id="geboorte" autocomplete="bday"></div>
+        <div class="veld"><label for="woonplaats">Woonplaats</label><input type="text" id="woonplaats" placeholder="Almere" autocomplete="address-level2"></div>
+        <div class="veld" id="wrapNat">
+          <label for="nationaliteit">Nationaliteit</label>
+          <input type="text" id="nationaliteit" placeholder="Nederlandse" list="natlijst" autocomplete="off">
+          <datalist id="natlijst">
+            <option>Nederlandse</option><option>Belgische</option><option>Duitse</option>
+            <option>Britse</option><option>Poolse</option><option>Amerikaanse</option>
+          </datalist>
+        </div>
+        <div class="veld"><label for="email">E-mailadres</label><input type="email" id="email" placeholder="naam@voorbeeld.nl" autocomplete="email" required></div>
+        <div class="veld"><label for="telefoon">Telefoonnummer</label><input type="tel" id="telefoon" placeholder="06 12345678" autocomplete="tel"></div>
+        <div class="veld breed"><label for="opmerking">Opmerking of wens</label><textarea id="opmerking" placeholder="Bijvoorbeeld: aankomst rond 20:00, allergieën, arrangement…"></textarea></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <p class="legend">Membership</p>
+      <label class="vink" for="member">
+        <input type="checkbox" id="member">
+        <span class="tekst"><b>Ja, ik wil member worden</b><span>Je hoort dan als eerste over nieuwe arrangementen en membervoordelen. Vrijblijvend — we nemen contact met je op.</span></span>
+      </label>
+    </fieldset>
+
+    <div class="hp" aria-hidden="true"><label for="website">Laat dit veld leeg</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+
+    <div class="samenvatting" id="samenvatting"></div>
+
+    <div class="verstuur">
+      <div class="melding fout" id="fout" hidden></div>
+      <button class="knop" id="verstuurKnop" type="button">Boeking definitief aanmelden</button>
+      <p class="uitleg" style="text-align:center">Je ontvangt van ons persoonlijk bericht ter bevestiging.</p>
+    </div>
+  </div>
+
+  <div class="card klaar" id="klaarKaart" hidden>
+    <div class="vinkje">✓</div>
+    <h2>Bedankt, je aanmelding staat genoteerd</h2>
+    <p>We hebben je gegevens ontvangen en nemen contact met je op om je boeking te bevestigen.</p>
+    <div class="overzicht" id="overzicht"></div>
+    <div class="verstuur"><button class="knop stil" id="nogEen" type="button">Nog een aanmelding invullen</button></div>
+  </div>
+
+  <footer class="voet" id="voet"></footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* Zelfde Supabase-project en tabel als klantbeheer.html */
+var SUPABASE = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  tabel: "wz_klantbeheer",
+  instellingen: "wz_klantbeheer_instellingen"
+};
+var BRON = "Online formulier";
+var STANDAARD_LOCATIES = [
+  {id:"angie",   naam:"Suite Angie",                 gemeente:"Almere"},
+  {id:"jacuzzi", naam:"Malina Jacuzzi Suite",        gemeente:"Lelystad"},
+  {id:"zwembad", naam:"Malina Deluxe Zwembad Suite", gemeente:"Lelystad"}
+];
+var bedrijf = "Bed & Wellness Flevoland";
+var locaties = STANDAARD_LOCATIES.slice();
+var soort = "overnachting", bezig = false;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function dNL(iso){ if(!iso) return ""; var p = String(iso).split("-"); return p.length===3 ? p[2]+"-"+p[1]+"-"+p[0] : iso; }
+function nachtenTussen(a,b){ if(!a||!b) return 0;
+  var d = (new Date(b+"T12:00:00") - new Date(a+"T12:00:00"))/86400000; return d>0 ? Math.round(d) : 0; }
+function headers(extra){
+  var h = {"apikey":SUPABASE.key, "Authorization":"Bearer "+SUPABASE.key, "Content-Type":"application/json"};
+  if(extra) for(var k in extra) h[k] = extra[k];
+  return h;
+}
+function fout(tekst){
+  var el = $("fout");
+  if(!tekst){ el.hidden = true; return; }
+  el.hidden = false; el.textContent = tekst; el.scrollIntoView({behavior:"smooth", block:"center"});
+}
+function markeer(id, mis){ $(id).classList.toggle("fout", !!mis); }
+
+function vulLocaties(){
+  $("locatie").innerHTML = locaties.map(function(l){
+    return '<option value="'+esc(l.id)+'">'+esc(l.naam)+"</option>"; }).join("");
+}
+function haalInstellingen(){
+  fetch(SUPABASE.url.replace(/\/+$/,"") + "/rest/v1/" + SUPABASE.instellingen + "?id=eq.algemeen&select=data",
+    {headers: headers()})
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      var d = rows && rows[0] && rows[0].data;
+      if(d && d.locaties && d.locaties.length){ locaties = d.locaties; vulLocaties(); }
+      if(d && d.bedrijf){ bedrijf = d.bedrijf; }
+      $("voet").textContent = bedrijf;
+    })["catch"](function(){ $("voet").textContent = bedrijf; });
+}
+function zetSoort(s){
+  soort = s;
+  var kn = $("soort").querySelectorAll("button");
+  for(var i=0;i<kn.length;i++) kn[i].setAttribute("aria-pressed", kn[i].dataset.val === s ? "true":"false");
+  var nacht = s === "overnachting";
+  $("wrapUit").hidden = !nacht; $("wrapKind").hidden = !nacht; $("wrapNat").hidden = !nacht;
+  $("lblIn").textContent = nacht ? "Aankomstdatum" : "Datum van je bezoek";
+  tekenSamenvatting();
+}
+function gekozenLocatie(){
+  for(var i=0;i<locaties.length;i++) if(locaties[i].id === $("locatie").value) return locaties[i];
+  return locaties[0] || {naam:"—"};
+}
+function tekenSamenvatting(){
+  var l = gekozenLocatie(), pers = num($("personen").value), inD = $("datumIn").value;
+  if(soort === "dagverblijf"){
+    $("samenvatting").innerHTML = "<b>Dagverblijf</b> in " + esc(l.naam) +
+      (inD ? " op <b>" + dNL(inD) + "</b>" : "") + " voor <b>" + pers + (pers===1 ? " persoon" : " personen") + "</b>.";
+    return;
+  }
+  var n = nachtenTussen(inD, $("datumUit").value);
+  $("samenvatting").innerHTML = "<b>" + (n ? n + " nacht" + (n===1?"":"en") : "Overnachting") + "</b> in " +
+    esc(l.naam) + (inD ? " vanaf <b>" + dNL(inD) + "</b>" : "") +
+    ($("datumUit").value ? " tot <b>" + dNL($("datumUit").value) + "</b>" : "") +
+    " voor <b>" + pers + (pers===1 ? " persoon" : " personen") + "</b>.";
+}
+function leegForm(){
+  ["voorletters","achternaam","geboorte","woonplaats","nationaliteit","email","telefoon","opmerking","datumUit","website"]
+    .forEach(function(id){ $(id).value = ""; });
+  $("personen").value = 2; $("kinderen").value = 0; $("member").checked = false;
+  $("datumIn").value = ""; zetSoort("overnachting"); fout("");
+  ["achternaam","email","datumIn","datumUit"].forEach(function(id){ markeer(id, false); });
+}
+function verstuur(){
+  if(bezig) return;
+  fout("");
+  var achternaam = $("achternaam").value.trim(), email = $("email").value.trim(), inD = $("datumIn").value;
+  var mis = [];
+  markeer("achternaam", !achternaam); if(!achternaam) mis.push("je achternaam");
+  markeer("email", !email || email.indexOf("@") < 1); if(!email || email.indexOf("@") < 1) mis.push("een geldig e-mailadres");
+  markeer("datumIn", !inD); if(!inD) mis.push("de datum");
+  var nachten = 0;
+  if(soort === "overnachting"){
+    nachten = nachtenTussen(inD, $("datumUit").value);
+    markeer("datumUit", !nachten);
+    if(!nachten) mis.push("een vertrekdatum die na de aankomstdatum ligt");
+  }
+  if(mis.length){ fout("Vul nog even in: " + mis.join(", ") + "."); return; }
+
+  var pers = Math.max(1, num($("personen").value));
+  var kind = soort === "overnachting" ? Math.min(pers, Math.max(0, num($("kinderen").value))) : 0;
+  var rij = {
+    id: "f" + Date.now() + "-" + Math.floor(Math.random()*100000),
+    type: soort,
+    locatie_id: $("locatie").value,
+    datum_in: inD,
+    datum_uit: soort === "overnachting" ? $("datumUit").value : null,
+    nachten: nachten,
+    contact_datum: null,
+    voorletters: $("voorletters").value.trim(),
+    achternaam: achternaam,
+    geboortedatum: $("geboorte").value || null,
+    woonplaats: $("woonplaats").value.trim(),
+    email: email,
+    telefoon: $("telefoon").value.trim(),
+    nationaliteit: soort === "overnachting" ? $("nationaliteit").value.trim() : "",
+    personen: pers, kinderen: kind,
+    kale_prijs: 0, totaal_betaald: 0,
+    member: $("member").checked,
+    bron: BRON,
+    notitie: $("opmerking").value.trim(),
+    aangemaakt: new Date().toISOString()
+  };
+
+  bezig = true;
+  $("verstuurKnop").disabled = true;
+  $("verstuurKnop").textContent = "Bezig met versturen…";
+
+  /* Verborgen veld ingevuld = bot. Doe alsof het gelukt is, sla niets op. */
+  if($("website").value){ setTimeout(function(){ toonKlaar(rij); }, 400); return; }
+
+  fetch(SUPABASE.url.replace(/\/+$/,"") + "/rest/v1/" + SUPABASE.tabel,
+    {method:"POST", headers: headers({"Prefer":"return=minimal"}), body: JSON.stringify([rij])})
+    .then(function(r){ if(!r.ok) throw new Error("status " + r.status); toonKlaar(rij); })
+    ["catch"](function(){
+      bezig = false;
+      $("verstuurKnop").disabled = false;
+      $("verstuurKnop").textContent = "Boeking definitief aanmelden";
+      fout("Het versturen lukte niet. Probeer het nog een keer, of bel ons even.");
+    });
+}
+function toonKlaar(rij){
+  var l = gekozenLocatie();
+  var regels = [
+    ["Soort", rij.type === "overnachting" ? "Overnachting" : "Dagverblijf"],
+    ["Suite", l.naam],
+    [rij.type === "overnachting" ? "Aankomst" : "Datum", dNL(rij.datum_in)]
+  ];
+  if(rij.type === "overnachting"){
+    regels.push(["Vertrek", dNL(rij.datum_uit)]);
+    regels.push(["Nachten", String(rij.nachten)]);
+  }
+  regels.push(["Personen", String(rij.personen) + (rij.kinderen ? " (waarvan " + rij.kinderen + " kind)" : "")]);
+  regels.push(["Op naam van", ((rij.voorletters ? rij.voorletters + " " : "") + rij.achternaam)]);
+  regels.push(["E-mail", rij.email]);
+  if(rij.member) regels.push(["Membership", "Ja, graag meer informatie"]);
+  $("overzicht").innerHTML = regels.map(function(r){
+    return "<div><span>" + esc(r[0]) + "</span><b>" + esc(r[1]) + "</b></div>"; }).join("");
+  $("formKaart").hidden = true;
+  $("klaarKaart").hidden = false;
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+$("soort").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-val]"); if(b) zetSoort(b.dataset.val);
+});
+["locatie","datumIn","datumUit","personen","kinderen"].forEach(function(id){
+  $(id).addEventListener("change", tekenSamenvatting);
+  $(id).addEventListener("input", tekenSamenvatting);
+});
+$("datumIn").addEventListener("change", function(){
+  if(soort === "overnachting" && $("datumIn").value && !$("datumUit").value){
+    var d = new Date($("datumIn").value + "T12:00:00");
+    d.setDate(d.getDate() + 1);
+    $("datumUit").value = d.toISOString().slice(0,10);
+    tekenSamenvatting();
+  }
+});
+$("verstuurKnop").addEventListener("click", verstuur);
+$("nogEen").addEventListener("click", function(){
+  leegForm(); bezig = false;
+  $("verstuurKnop").disabled = false;
+  $("verstuurKnop").textContent = "Boeking definitief aanmelden";
+  $("klaarKaart").hidden = true; $("formKaart").hidden = false;
+  tekenSamenvatting(); window.scrollTo({top:0, behavior:"smooth"});
+});
+
+var vandaag = new Date().toISOString().slice(0,10);
+$("datumIn").min = vandaag; $("datumUit").min = vandaag;
+$("voet").textContent = bedrijf;
+vulLocaties(); haalInstellingen(); zetSoort("overnachting"); tekenSamenvatting();
+})();
+</script>
+</body>
+</html>

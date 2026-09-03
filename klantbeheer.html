@@ -1,0 +1,1625 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Klantbeheer BWF</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F5F2EC; --surface:#FFFFFF; --surface-2:#FAF8F3; --ink:#17282A; --ink-2:#3E5557;
+  --muted:#6E8385; --line:#E1DBD0; --line-soft:#EEE9E0;
+  --accent:#14625E; --accent-ink:#0E4A47; --accent-soft:#DDE9E6;
+  --copper:#A9662F; --good:#2E7A55; --crit:#9E3B31;
+  --shadow:0 1px 2px rgba(23,40,42,.05), 0 8px 24px rgba(23,40,42,.06);
+  --shadow-lg:0 18px 50px rgba(23,40,42,.22);
+  --radius:10px;
+  --f-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --f-body:"Karla","Helvetica Neue",Arial,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --ink:#E9EFEC; --ink-2:#C3D1CF;
+    --muted:#8CA09E; --line:#2B3939; --line-soft:#233030;
+    --accent:#5FB8AC; --accent-ink:#8FD3C9; --accent-soft:#1D3634;
+    --copper:#D89B62; --good:#5CB68A; --crit:#D4776B;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    --shadow-lg:0 18px 50px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --ink:#E9EFEC; --ink-2:#C3D1CF;
+  --muted:#8CA09E; --line:#2B3939; --line-soft:#233030;
+  --accent:#5FB8AC; --accent-ink:#8FD3C9; --accent-soft:#1D3634;
+  --copper:#D89B62; --good:#5CB68A; --crit:#D4776B;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  --shadow-lg:0 18px 50px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;margin:0}
+a{color:var(--accent-ink)}
+button{font-family:inherit;font-size:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.topbar-in{max-width:1220px;margin:0 auto;padding:13px 18px 0;display:flex;flex-direction:column;gap:11px}
+.brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:21px;letter-spacing:-.01em}
+.brand .sub{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.brand .spacer{flex:1}
+.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--good)} .dot.local{background:var(--copper)}
+.navrow{display:flex;align-items:flex-end;gap:10px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;flex:1}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;color:var(--muted);cursor:pointer;white-space:nowrap;font-weight:500}
+nav.tabs button:hover{color:var(--ink)}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs .telling{font-family:var(--f-data);font-size:11px;margin-left:6px;color:var(--muted)}
+main{max-width:1220px;margin:0 auto;padding:22px 18px 90px}
+section[hidden]{display:none!important}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-head{padding:15px 18px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.card-head h2{font-size:17px}
+.card-head p{margin:0;font-size:13px;color:var(--muted);flex:1 1 200px}
+.card-body{padding:18px}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.field .hint{font-size:12px;color:var(--muted)}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:15px}
+input[type="number"],input[type="date"]{font-family:var(--f-data);font-size:14px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;background:var(--surface-2);border:0;padding:9px 6px;color:var(--muted);cursor:pointer;font-weight:600;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.check{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);cursor:pointer}
+.check input{width:17px;height:17px;flex:none;accent-color:var(--accent)}
+.field label.check{text-transform:none;letter-spacing:normal;font-size:14px;font-weight:400;color:var(--ink)}
+fieldset{border:0;padding:0;margin:0}
+.legend{font-family:var(--f-display);font-size:14px;font-weight:600;color:var(--ink-2);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line-soft)}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-ink);color:#fff}
+.btn.ghost{background:none}
+.btn.small{padding:6px 11px;font-size:13px}
+.btn.danger:hover{border-color:var(--crit);color:var(--crit)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+
+.preview{background:var(--accent-soft);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+.preview .p-item{display:flex;flex-direction:column}
+.preview .p-item b{font-family:var(--f-data);font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}
+.preview .p-item span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.preview .p-note{font-size:12.5px;color:var(--ink-2);flex:1 1 200px}
+
+.table-wrap{overflow-x:auto;border-top:1px solid var(--line-soft)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+th{position:sticky;top:0;background:var(--surface-2);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);z-index:1}
+td.num,th.num{text-align:right;font-family:var(--f-data);font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--surface-2)}
+tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--line)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.linkbtn:hover{text-decoration:underline}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;border:1px solid}
+.pill.nacht{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+.pill.dag{color:var(--copper);border-color:var(--copper);background:transparent}
+.pill.member{color:var(--good);border-color:var(--good);background:transparent}
+.rowbtn{background:none;border:0;color:var(--muted);cursor:pointer;padding:3px 6px;border-radius:6px;font-size:13px}
+.rowbtn:hover{color:var(--accent-ink);background:var(--accent-soft)}
+.rowbtn.del:hover{color:var(--crit);background:transparent}
+.empty{padding:44px 18px;text-align:center;color:var(--muted)}
+.empty b{display:block;font-family:var(--f-display);font-size:16px;color:var(--ink);margin-bottom:5px}
+
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;padding:15px 18px;border-bottom:1px solid var(--line-soft);background:var(--surface-2);border-radius:var(--radius) var(--radius) 0 0}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 8px 6px 13px;border-radius:999px;background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;font-weight:600}
+.chip button{background:none;border:0;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:2px 5px;border-radius:50%}
+.chip button:hover{background:rgba(0,0,0,.08)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
+.tile{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--radius);padding:13px 15px}
+.tile span{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:4px}
+.tile b{font-family:var(--f-data);font-size:21px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tile small{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.tile.hero{background:var(--accent);border-color:var(--accent)}
+.tile.hero span{color:rgba(255,255,255,.78)}
+.tile.hero b{color:#fff;font-size:25px}
+.tile.hero small{color:rgba(255,255,255,.82)}
+
+.note{font-size:13px;color:var(--ink-2);background:var(--surface-2);border-left:3px solid var(--accent);padding:11px 14px;border-radius:0 8px 8px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(150%);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;z-index:80;transition:transform .28s ease;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+.overlay{position:fixed;inset:0;background:rgba(15,22,23,.5);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:22px 12px;overflow-y:auto}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);width:100%;max-width:920px;margin:auto}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--surface);border-radius:14px 14px 0 0;z-index:2}
+.modal-head h2{font-size:18px;flex:1}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:18px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--line-soft);display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;bottom:0;background:var(--surface);border-radius:0 0 14px 14px}
+.sluit{background:none;border:1px solid var(--line);border-radius:8px;width:34px;height:34px;cursor:pointer;color:var(--muted);font-size:17px;line-height:1}
+.sluit:hover{color:var(--crit);border-color:var(--crit)}
+.loc-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.loc-row input,.loc-row select{width:auto;flex:1 1 130px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kv div{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:9px 12px}
+.kv span{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.kv b{font-weight:600}
+@media(max-width:640px){
+  main{padding:16px 12px 80px}
+  .topbar-in{padding:11px 12px 0}
+  .card-body,.modal-body{padding:14px}
+  .filters{padding:14px}
+  .brand h1{font-size:19px}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <h1>Klantbeheer</h1>
+      <div class="sub">Bed &amp; Wellness Flevoland</div>
+      <div class="spacer"></div>
+      <div class="status"><span class="dot" id="storeDot"></span><span id="storeTxt">Opslag verbinden…</span></div>
+    </div>
+    <div class="navrow">
+      <nav class="tabs" role="tablist">
+        <button role="tab" id="tab-klanten" aria-selected="true" data-tab="klanten">Klantenbestand<span class="telling" id="telKlanten"></span></button>
+        <button role="tab" id="tab-nacht" aria-selected="false" data-tab="nacht">Nachtregister<span class="telling" id="telNacht"></span></button>
+        <button role="tab" id="tab-members" aria-selected="false" data-tab="members">Members<span class="telling" id="telMembers"></span></button>
+      </nav>
+      <button class="btn primary small" id="btnNieuw" type="button">+ Registratie</button>
+      <button class="btn small" id="btnNieuweKlant" type="button">+ Klant</button>
+      <button class="btn ghost small" id="btnInstellingen" type="button">Instellingen</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="card" id="aanvulBalk" hidden style="border-color:var(--copper);margin-bottom:18px">
+    <div class="card-head" style="border-bottom:0">
+      <h2 style="font-size:16px">Nieuw binnengekomen via het formulier</h2>
+      <p id="aanvulTekst"></p>
+      <div class="btn-row"><button class="btn" id="aanvulKnop" type="button">Eerste aanvullen</button></div>
+    </div>
+  </div>
+
+  <!-- ======== KLANTENBESTAND ======== -->
+  <section id="pane-klanten" class="stack">
+    <div class="card">
+      <div class="filters">
+        <div class="field"><label for="kType">Toon</label><select id="kType">
+          <option value="alles">Alle klanten</option>
+          <option value="overnachting">Met overnachting</option>
+          <option value="dagverblijf">Met dagverblijf</option>
+          <option value="contact">Alleen contacten (nog geen verblijf)</option>
+        </select></div>
+        <div class="field"><label for="kMember">Members</label><select id="kMember">
+          <option value="alles">Alles</option><option value="ja">Alleen members</option><option value="nee">Geen members</option>
+        </select></div>
+        <div class="field"><label for="kJaar">Bezocht in</label><select id="kJaar"></select></div>
+        <div class="field"><label for="kZoek">Zoeken</label><input type="search" id="kZoek" placeholder="Naam, woonplaats of e-mail"></div>
+      </div>
+      <div class="card-head">
+        <h2>Klantenbestand</h2>
+        <p id="kSub"></p>
+        <div class="btn-row">
+          <button class="btn" id="kCsv" type="button">Lijst uitdraaien (CSV)</button>
+          <button class="btn" id="kPdf" type="button">PDF</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="kTabel"></table></div>
+    </div>
+  </section>
+
+  <!-- ======== NACHTREGISTER ======== -->
+  <section id="pane-nacht" class="stack" hidden>
+    <div class="card">
+      <div class="filters">
+        <div class="field"><label for="nJaar">Jaar</label><select id="nJaar"></select></div>
+        <div class="field"><label for="nGemeente">Gemeente</label><select id="nGemeente"></select></div>
+        <div class="field"><label for="nLocatie">Locatie</label><select id="nLocatie"></select></div>
+        <div class="field"><label for="nVan">Vanaf</label><input type="date" id="nVan"></div>
+        <div class="field"><label for="nTot">Tot en met</label><input type="date" id="nTot"></div>
+        <div class="field"><label for="nZoek">Zoeken</label><input type="search" id="nZoek" placeholder="Naam of woonplaats"></div>
+      </div>
+      <div class="card-head">
+        <h2>Nachtregister</h2>
+        <p id="nSub"></p>
+        <div class="btn-row">
+          <button class="btn" id="nCsv" type="button">Lijst uitdraaien (CSV)</button>
+          <button class="btn" id="nPdf" type="button">PDF</button>
+          <button class="btn" id="nMail" type="button">Mailen</button>
+        </div>
+      </div>
+      <div class="card-body" id="nFocusBalk" hidden></div>
+      <div class="table-wrap"><table id="nTabel"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Overnachtingen per locatie</h2><p>Draai per suite een eigen lijst uit.</p></div>
+      <div class="table-wrap"><table id="nLocTabel"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Toeristenbelasting</h2><p>Berekend over exact dezelfde selectie als het nachtregister hierboven.</p></div>
+      <div class="card-body stack" id="nBelasting"></div>
+    </div>
+  </section>
+
+  <!-- ======== MEMBERS ======== -->
+  <section id="pane-members" class="stack" hidden>
+    <div class="card">
+      <div class="filters">
+        <div class="field"><label for="mSort">Sorteren op</label><select id="mSort">
+          <option value="laatste">Laatste bezoek</option>
+          <option value="besteed">Totaal besteed</option>
+          <option value="bezoeken">Aantal bezoeken</option>
+          <option value="naam">Naam</option>
+        </select></div>
+        <div class="field"><label for="mMail">E-mailadres</label><select id="mMail">
+          <option value="alles">Alle members</option>
+          <option value="ja">Alleen met e-mailadres</option>
+          <option value="nee">Alleen zonder e-mailadres</option>
+        </select></div>
+        <div class="field"><label for="mZoek">Zoeken</label><input type="search" id="mZoek" placeholder="Naam of woonplaats"></div>
+      </div>
+      <div class="card-head">
+        <h2>Members</h2>
+        <p id="mSub"></p>
+        <div class="btn-row">
+          <button class="btn" id="mCsv" type="button">Memberslijst (CSV)</button>
+          <button class="btn" id="mPdf" type="button">PDF</button>
+          <button class="btn primary" id="mMailKnop" type="button">Members mailen</button>
+        </div>
+      </div>
+      <div class="card-body"><div class="tiles" id="mTiles"></div></div>
+      <div class="table-wrap"><table id="mTabel"></table></div>
+    </div>
+  </section>
+</main>
+
+<!-- ======== MODAL: REGISTRATIE ======== -->
+<div class="overlay" id="mdReg" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="formTitel">
+    <div class="modal-head">
+      <h2 id="formTitel">Nieuwe registratie</h2>
+      <button class="sluit" type="button" data-sluit="mdReg" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-body">
+      <fieldset>
+        <p class="legend">Verblijf</p>
+        <div class="grid">
+          <div class="field">
+            <label for="fType">Soort verblijf</label>
+            <div class="seg" id="fType">
+              <button type="button" data-val="overnachting" aria-pressed="true">Overnachting</button>
+              <button type="button" data-val="dagverblijf" aria-pressed="false">Dagverblijf</button>
+            </div>
+          </div>
+          <div class="field"><label for="fLocatie">Locatie</label><select id="fLocatie"></select></div>
+          <div class="field"><label for="fIn" id="lblIn">Datum inchecken</label><input type="date" id="fIn"></div>
+          <div class="field" id="wrapUit"><label for="fUit">Datum uitchecken</label><input type="date" id="fUit"></div>
+          <div class="field" id="wrapNachten"><label for="fNachten">Aantal nachten</label><input type="number" id="fNachten" min="0" step="1" value="1"></div>
+          <div class="field"><label for="fBron">Boeking via</label>
+            <select id="fBron">
+              <option value="">—</option><option>Privé sauna</option><option>Origineel Overnachten</option>
+              <option>Booking.com</option><option>Telefonisch</option><option>Eigen website</option>
+              <option>Herhaalgast</option><option>Anders</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <p class="legend">Gast</p>
+        <div class="grid">
+          <div class="field"><label for="fVoorletters">Voorletter(s)</label><input type="text" id="fVoorletters" placeholder="A.M." autocomplete="off"></div>
+          <div class="field">
+            <label for="fAchternaam">Achternaam</label>
+            <input type="text" id="fAchternaam" placeholder="de Vries" list="gastenlijst" autocomplete="off">
+            <datalist id="gastenlijst"></datalist>
+            <span class="hint" id="gastHint" hidden></span>
+          </div>
+          <div class="field"><label for="fGeboorte">Geboortedatum</label><input type="date" id="fGeboorte"></div>
+          <div class="field"><label for="fWoonplaats">Woonplaats</label><input type="text" id="fWoonplaats" placeholder="Almere" autocomplete="off"></div>
+          <div class="field" id="wrapNat">
+            <label for="fNationaliteit">Nationaliteit</label>
+            <input type="text" id="fNationaliteit" placeholder="Nederlandse" list="natlist" autocomplete="off">
+            <datalist id="natlist">
+              <option>Nederlandse</option><option>Belgische</option><option>Duitse</option>
+              <option>Britse</option><option>Poolse</option><option>Amerikaanse</option>
+            </datalist>
+          </div>
+          <div class="field"><label for="fEmail">E-mailadres</label><input type="email" id="fEmail" placeholder="naam@voorbeeld.nl" autocomplete="off"></div>
+          <div class="field"><label for="fTelefoon">Telefoonnummer</label><input type="tel" id="fTelefoon" placeholder="06 12345678" autocomplete="off"></div>
+          <div class="field"><label for="fPersonen">Aantal personen</label><input type="number" id="fPersonen" min="1" step="1" value="2"></div>
+          <div class="field" id="wrapKind">
+            <label for="fKinderen">Waarvan t/m 11 jaar</label>
+            <input type="number" id="fKinderen" min="0" step="1" value="0">
+            <span class="hint">Vrijgesteld in Lelystad</span>
+          </div>
+          <div class="field"><label for="fMember">Member worden</label>
+            <label class="check" for="fMember"><input type="checkbox" id="fMember"><span>Ja, gast wil member worden</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <p class="legend">Bedragen</p>
+        <div class="grid">
+          <div class="field">
+            <label for="fKale">Kale logiesprijs (€)</label>
+            <input type="number" id="fKale" min="0" step="0.01" placeholder="0,00">
+            <span class="hint">Alleen verblijf, zonder eten, drinken of extra's</span>
+          </div>
+          <div class="field"><label for="fTotaal">Totaal betaald (€)</label><input type="number" id="fTotaal" min="0" step="0.01" placeholder="0,00"></div>
+          <div class="field" style="grid-column:span 2"><label for="fNotitie">Notitie</label><input type="text" id="fNotitie" placeholder="Arrangement, bijzonderheden…"></div>
+        </div>
+      </fieldset>
+
+      <div class="preview" id="preview"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" id="btnOpslaan" type="button" disabled>Registratie opslaan</button>
+      <button class="btn ghost" type="button" data-sluit="mdReg">Annuleren</button>
+      <span class="hint" id="saveHint"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MODAL: LOSSE KLANT ======== -->
+<div class="overlay" id="mdNieuweKlant" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="klantFormTitel" style="max-width:760px">
+    <div class="modal-head">
+      <h2 id="klantFormTitel">Nieuwe klant</h2>
+      <button class="sluit" type="button" data-sluit="mdNieuweKlant" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="note">Voor een klant zonder verblijf — een aanvraag, een lead of iemand die member wil worden. Boekt deze persoon later, dan wordt de registratie automatisch aan dit contact gekoppeld.</p>
+      <div class="grid">
+        <div class="field"><label for="cVoorletters">Voorletter(s)</label><input type="text" id="cVoorletters" placeholder="A.M." autocomplete="off"></div>
+        <div class="field"><label for="cAchternaam">Achternaam</label><input type="text" id="cAchternaam" placeholder="de Vries" autocomplete="off"></div>
+        <div class="field"><label for="cWoonplaats">Woonplaats</label><input type="text" id="cWoonplaats" placeholder="Almere" autocomplete="off"></div>
+        <div class="field"><label for="cGeboorte">Geboortedatum</label><input type="date" id="cGeboorte"></div>
+        <div class="field"><label for="cEmail">E-mailadres</label><input type="email" id="cEmail" placeholder="naam@voorbeeld.nl" autocomplete="off"></div>
+        <div class="field"><label for="cTelefoon">Telefoonnummer</label><input type="tel" id="cTelefoon" placeholder="06 12345678" autocomplete="off"></div>
+        <div class="field"><label for="cNationaliteit">Nationaliteit</label><input type="text" id="cNationaliteit" placeholder="Nederlandse" list="natlist" autocomplete="off"></div>
+        <div class="field"><label for="cBron">Binnengekomen via</label>
+          <select id="cBron">
+            <option value="">—</option><option>Telefonisch</option><option>E-mail</option><option>Eigen website</option>
+            <option>Social media</option><option>Aanbeveling</option><option>Op locatie</option><option>Anders</option>
+          </select>
+        </div>
+        <div class="field"><label for="cDatum">Aangemaakt op</label><input type="date" id="cDatum"></div>
+        <div class="field"><label for="cMember">Member worden</label>
+          <label class="check" for="cMember"><input type="checkbox" id="cMember"><span>Ja, wil member worden</span></label>
+        </div>
+        <div class="field" style="grid-column:span 2"><label for="cNotitie">Notitie</label><input type="text" id="cNotitie" placeholder="Interesse in retreat, teruggebeld op…"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" id="btnKlantOpslaan" type="button">Klant opslaan</button>
+      <button class="btn ghost" type="button" data-sluit="mdNieuweKlant">Annuleren</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MODAL: KLANT ======== -->
+<div class="overlay" id="mdKlant" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="klantTitel">
+    <div class="modal-head">
+      <h2 id="klantTitel">Klant</h2>
+      <button class="sluit" type="button" data-sluit="mdKlant" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-body" id="klantBody"></div>
+    <div class="modal-foot">
+      <button class="btn" id="klantNacht" type="button">Toon in nachtregister</button>
+      <button class="btn" id="klantCsv" type="button">Lijst van deze klant (CSV)</button>
+      <button class="btn" id="klantMail" type="button">Mail deze klant</button>
+      <button class="btn ghost" id="klantMember" type="button">Markeer als member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MODAL: INSTELLINGEN ======== -->
+<div class="overlay" id="mdSet" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitel">
+    <div class="modal-head">
+      <h2 id="setTitel">Instellingen</h2>
+      <button class="sluit" type="button" data-sluit="mdSet" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-body">
+      <fieldset>
+        <p class="legend">Tarieven toeristenbelasting</p>
+        <div class="grid">
+          <div class="field">
+            <label for="sLelystad">Lelystad — € per persoon per nacht</label>
+            <input type="number" id="sLelystad" min="0" step="0.01">
+            <span class="hint">Tarief 2026: € 3,10 (overige logies). Kinderen t/m 11 jaar vrijgesteld.</span>
+          </div>
+          <div class="field">
+            <label for="sAlmere">Almere — % over logiesomzet</label>
+            <input type="number" id="sAlmere" min="0" step="0.1">
+            <span class="hint">Tarief 2026: 7% over de omzet die aan logies is toe te rekenen.</span>
+          </div>
+          <div class="field">
+            <label for="sIncl">Grondslag Almere</label>
+            <select id="sIncl">
+              <option value="ja">Kale prijs is inclusief toeristenbelasting</option>
+              <option value="nee">Kale prijs is exclusief toeristenbelasting</option>
+            </select>
+            <span class="hint">Inclusief: belasting = prijs ÷ 1,07 × 7%</span>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <p class="legend">Locaties</p>
+        <div id="sLocList"></div>
+        <div class="btn-row" style="margin-top:12px"><button class="btn" id="sLocAdd" type="button">Locatie toevoegen</button></div>
+      </fieldset>
+      <fieldset>
+        <p class="legend">Bedrijfsgegevens</p>
+        <div class="grid">
+          <div class="field"><label for="sBedrijf">Bedrijfsnaam</label><input type="text" id="sBedrijf"></div>
+          <div class="field"><label for="sKvk">KVK-nummer</label><input type="text" id="sKvk"></div>
+          <div class="field"><label for="sMail">E-mailadres</label><input type="email" id="sMail"></div>
+          <div class="field"><label for="sMailNaar">Aangifte mailen naar</label><input type="email" id="sMailNaar" placeholder="boekhouder@…"></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <p class="legend">Back-up</p>
+        <div class="btn-row">
+          <button class="btn" id="sExport" type="button">Alles exporteren (CSV)</button>
+          <button class="btn" id="sJson" type="button">Back-upbestand (JSON)</button>
+        </div>
+        <div class="note" id="sInfo" style="margin-top:12px"></div>
+      </fieldset>
+    </div>
+    <div class="modal-foot"><button class="btn primary" type="button" data-sluit="mdSet">Klaar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+var DEFAULT_SETTINGS = {
+  tariefLelystad: 3.10, percentageAlmere: 7, prijsInclusief: "ja",
+  bedrijf: "Bed & Wellness Flevoland (Angies Enterprises)", kvk: "62752049",
+  mail: "info@bedenwellnessflevoland.nl", mailNaar: "",
+  locaties: [
+    {id:"angie",   naam:"Suite Angie",                 adres:"De Specerij 5", gemeente:"Almere"},
+    {id:"jacuzzi", naam:"Malina Jacuzzi Suite",        adres:"Birdielaan 4",  gemeente:"Lelystad"},
+    {id:"zwembad", naam:"Malina Deluxe Zwembad Suite", adres:"Birdielaan 4",  gemeente:"Lelystad"}
+  ]
+};
+var GEMEENTEN = ["Almere","Lelystad","Dronten","Zeewolde","Noordoostpolder","Urk","Anders"];
+var LS_REC = "bwf_gastenregister_v1", LS_SET = "bwf_gastenregister_settings_v1";
+
+/* Supabase — zelfde project als de BWF-dashboards.
+   Laat de sleutels leeg als je liever alleen in de browser opslaat. */
+var SUPABASE = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  tabel: "wz_klantbeheer",
+  instellingen: "wz_klantbeheer_instellingen"
+};
+
+var state = {
+  records: [], settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+  db: null, downloads: null, mode: "wacht", editId: null, type: "overnachting",
+  tab: "klanten", klantFocus: null, klantOpen: null
+};
+
+/* ---------- helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function eur(n){ var v = (Math.round(num(n)*100)/100).toFixed(2).split(".");
+  return "€ " + v[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + v[1]; }
+function komma(n,d){ if(d===undefined) d=2; return num(n).toFixed(d).replace(".", ","); }
+function dNL(iso){ if(!iso) return ""; var p = String(iso).split("-"); return p.length===3 ? p[2]+"-"+p[1]+"-"+p[0] : iso; }
+function stempel(){ return new Date().toISOString().slice(0,10); }
+function nachtenTussen(a,b){ if(!a||!b) return 0;
+  var d = (new Date(b+"T12:00:00") - new Date(a+"T12:00:00")) / 86400000; return d > 0 ? Math.round(d) : 0; }
+function toast(msg){ var t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 3400); }
+function locVan(id){ for(var i=0;i<state.settings.locaties.length;i++)
+  if(state.settings.locaties[i].id===id) return state.settings.locaties[i]; return null; }
+function locNaam(id){ var l = locVan(id); return l ? l.naam : "—"; }
+function gemeenteVan(id){ var l = locVan(id); return l ? l.gemeente : ""; }
+function klantKey(r){ return ((r.achternaam||"")+"|"+(r.voorletters||"")+"|"+(r.woonplaats||"")).toLowerCase(); }
+function volleNaam(r){ return (r.voorletters ? r.voorletters + " " : "") + (r.achternaam || ""); }
+
+/* ---------- toeristenbelasting ---------- */
+function belasting(rec){
+  if(rec.type !== "overnachting") return {bedrag:0, grondslag:0, uitleg:"Dagverblijf — geen overnachting, geen toeristenbelasting."};
+  var g = gemeenteVan(rec.locatieId), s = state.settings;
+  var nachten = num(rec.nachten), pers = num(rec.personen), kind = num(rec.kinderen);
+  if(g === "Lelystad"){
+    var belastbaar = Math.max(0, pers - kind);
+    return {bedrag: belastbaar * nachten * num(s.tariefLelystad), grondslag: belastbaar * nachten,
+      uitleg: belastbaar + " pers. × " + nachten + " nacht(en) × " + eur(s.tariefLelystad)};
+  }
+  if(g === "Almere"){
+    var pct = num(s.percentageAlmere);
+    var grond = s.prijsInclusief === "ja" ? num(rec.kalePrijs) / (1 + pct/100) : num(rec.kalePrijs);
+    return {bedrag: grond * pct/100, grondslag: grond,
+      uitleg: komma(pct,0) + "% over logiesomzet " + eur(grond) + (s.prijsInclusief==="ja" ? " (prijs ÷ " + komma(1+pct/100) + ")" : "")};
+  }
+  return {bedrag:0, grondslag:0, uitleg:"Geen tarief ingesteld voor gemeente " + (g||"—") + "."};
+}
+var BRON_FORMULIER = "Online formulier";
+function moetAangevuld(r){
+  return r.bron === BRON_FORMULIER && r.type !== "klant" && num(r.kalePrijs) === 0;
+}
+function aanvulRijen(){
+  return state.records.filter(moetAangevuld)
+    .sort(function(a,b){ return (a.aangemaakt||"").localeCompare(b.aangemaakt||""); });
+}
+function tekenAanvulBalk(){
+  var rijen = aanvulRijen();
+  $("aanvulBalk").hidden = rijen.length === 0;
+  if(!rijen.length) return;
+  var namen = rijen.slice(0,3).map(function(r){ return volleNaam(r) + " (" + dNL(r.datumIn) + ")"; }).join(", ");
+  $("aanvulTekst").textContent = rijen.length + " aanmelding" + (rijen.length === 1 ? "" : "en") +
+    " wacht" + (rijen.length === 1 ? "" : "en") + " nog op de prijs: " + namen +
+    (rijen.length > 3 ? " en " + (rijen.length - 3) + " meer" : "") +
+    ". Zonder kale logiesprijs klopt de toeristenbelasting voor Almere nog niet.";
+  $("aanvulKnop").textContent = rijen.length === 1 ? "Aanvullen" : "Eerste aanvullen";
+}
+function totalen(rijen){
+  var t = {boekingen:rijen.length, personen:0, nachten:0, persoonsnachten:0, belastbaar:0,
+           logies:0, omzet:0, belasting:0};
+  for(var i=0;i<rijen.length;i++){
+    var r = rijen[i], b = belasting(r);
+    t.personen += num(r.personen); t.nachten += num(r.nachten);
+    t.persoonsnachten += num(r.personen) * num(r.nachten);
+    t.belastbaar += Math.max(0, num(r.personen) - num(r.kinderen)) * num(r.nachten);
+    t.logies += gemeenteVan(r.locatieId) === "Almere" ? b.grondslag : num(r.kalePrijs);
+    t.omzet += num(r.totaalBetaald); t.belasting += b.bedrag;
+  }
+  return t;
+}
+
+/* ---------- opslag ---------- */
+/* --- Supabase --- */
+function sbAan(){ return !!(SUPABASE.url && SUPABASE.key); }
+function sbUrl(pad){ return SUPABASE.url.replace(/\/+$/,"") + "/rest/v1/" + pad; }
+function sbHeaders(extra){
+  var h = {"apikey": SUPABASE.key, "Authorization": "Bearer " + SUPABASE.key, "Content-Type": "application/json"};
+  if(extra) for(var k in extra) h[k] = extra[k];
+  return h;
+}
+function sbGet(pad){
+  return fetch(sbUrl(pad), {headers: sbHeaders()}).then(function(r){
+    if(!r.ok) throw new Error("Supabase " + r.status); return r.json();
+  });
+}
+function sbUpsert(tabel, body){
+  return fetch(sbUrl(tabel), {method:"POST", headers: sbHeaders({"Prefer":"resolution=merge-duplicates,return=minimal"}),
+    body: JSON.stringify(body)}).then(function(r){ if(!r.ok) throw new Error("Supabase " + r.status); });
+}
+function sbDelete(tabel, id){
+  return fetch(sbUrl(tabel + "?id=eq." + encodeURIComponent(id)), {method:"DELETE", headers: sbHeaders()})
+    .then(function(r){ if(!r.ok) throw new Error("Supabase " + r.status); });
+}
+function dOfNull(v){ return v ? v : null; }
+function naarRij(r){
+  return {id:r.id, type:r.type, locatie_id:r.locatieId || null,
+    datum_in:dOfNull(r.datumIn), datum_uit:dOfNull(r.datumUit), nachten:num(r.nachten),
+    contact_datum:dOfNull(r.contactDatum), voorletters:r.voorletters || "", achternaam:r.achternaam || "",
+    geboortedatum:dOfNull(r.geboortedatum), woonplaats:r.woonplaats || "", email:r.email || "",
+    telefoon:r.telefoon || "", nationaliteit:r.nationaliteit || "", personen:num(r.personen),
+    kinderen:num(r.kinderen), kale_prijs:num(r.kalePrijs), totaal_betaald:num(r.totaalBetaald),
+    member:!!r.member, bron:r.bron || "", notitie:r.notitie || "", aangemaakt:r.aangemaakt || new Date().toISOString()};
+}
+function uitRij(x){
+  return {id:x.id, type:x.type || "overnachting", locatieId:x.locatie_id || "",
+    datumIn:x.datum_in || "", datumUit:x.datum_uit || "", nachten:num(x.nachten),
+    contactDatum:x.contact_datum || "", voorletters:x.voorletters || "", achternaam:x.achternaam || "",
+    geboortedatum:x.geboortedatum || "", woonplaats:x.woonplaats || "", email:x.email || "",
+    telefoon:x.telefoon || "", nationaliteit:x.nationaliteit || "", personen:num(x.personen),
+    kinderen:num(x.kinderen), kalePrijs:num(x.kale_prijs), totaalBetaald:num(x.totaal_betaald),
+    member:!!x.member, bron:x.bron || "", notitie:x.notitie || "", aangemaakt:x.aangemaakt || ""};
+}
+function modalOpen(){ return !$("mdReg").hidden || !$("mdNieuweKlant").hidden || !$("mdSet").hidden; }
+function ververs(){
+  if(state.mode !== "supabase" || modalOpen()) return;
+  sbGet(SUPABASE.tabel + "?select=*").then(function(rows){
+    var nieuw = (rows || []).map(uitRij);
+    if(JSON.stringify(nieuw) === JSON.stringify(state.records)) return;
+    state.records = nieuw; lsSchrijf(LS_REC, nieuw); herteken();
+  })["catch"](function(){});
+}
+function startSupabase(){
+  Promise.all([
+    sbGet(SUPABASE.tabel + "?select=*"),
+    sbGet(SUPABASE.instellingen + "?id=eq.algemeen&select=data")
+  ]).then(function(res){
+    state.records = (res[0] || []).map(uitRij);
+    lsSchrijf(LS_REC, state.records);
+    if(res[1] && res[1][0] && res[1][0].data)
+      state.settings = Object.assign({}, DEFAULT_SETTINGS, res[1][0].data);
+    setStatus("supabase"); vulSelects(); vulSettingsForm(); herteken();
+    setInterval(ververs, 30000);
+    window.addEventListener("focus", ververs);
+  })["catch"](function(){
+    setStatus("lokaal"); vulSettingsForm(); herteken();
+    toast("Geen verbinding met Supabase — er wordt lokaal opgeslagen.");
+  });
+}
+
+function lsLees(key, fb){ try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
+function lsSchrijf(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+function bewaarRecord(rec){
+  lsSchrijf(LS_REC, state.records);
+  if(state.db) state.db.collection("registraties").doc(rec.id).set(rec)["catch"](function(e){
+    toast("Opslaan in de database mislukte (" + (e && e.code ? e.code : "onbekend") + "). Lokale kopie bewaard."); });
+  else if(state.mode === "supabase") sbUpsert(SUPABASE.tabel, [naarRij(rec)])["catch"](function(){
+    toast("Opslaan in Supabase mislukte. Lokale kopie bewaard."); });
+}
+function verwijderRecord(id){
+  lsSchrijf(LS_REC, state.records);
+  if(state.db) state.db.collection("registraties").doc(id)["delete"]()["catch"](function(){});
+  else if(state.mode === "supabase") sbDelete(SUPABASE.tabel, id)["catch"](function(){
+    toast("Verwijderen in Supabase mislukte."); });
+}
+function bewaarSettings(){
+  lsSchrijf(LS_SET, state.settings);
+  if(state.db) state.db.doc("instellingen/algemeen").set(state.settings)["catch"](function(){});
+  else if(state.mode === "supabase")
+    sbUpsert(SUPABASE.instellingen, [{id:"algemeen", data: state.settings}])["catch"](function(){});
+}
+function setStatus(mode){
+  state.mode = mode;
+  $("storeDot").className = "dot" + (mode==="db" || mode==="supabase" ? " ok" : mode==="lokaal" ? " local" : "");
+  $("storeTxt").textContent = mode==="db" ? "Opgeslagen in de cloud"
+    : mode==="supabase" ? "Opgeslagen in Supabase — gedeeld"
+    : mode==="lokaal" ? "Lokaal opgeslagen op dit apparaat" : "Opslag verbinden…";
+  $("btnOpslaan").disabled = (mode === "wacht");
+  $("saveHint").textContent = mode==="lokaal" ? "Gegevens staan alleen in deze browser — maak regelmatig een back-up." : "";
+  if(mode !== "wacht" && $("sInfo")) $("sInfo").textContent = mode === "supabase"
+    ? "De gegevens staan in Supabase (tabel " + SUPABASE.tabel + "), hetzelfde project als je dashboards. Iedereen met toegang tot de pagina ziet dezelfde klanten en registraties; de lijst ververst automatisch."
+    : mode === "db" ? "De gegevens staan in de beveiligde opslag van deze app en zijn zichtbaar op elk apparaat waarmee je bent ingelogd."
+    : "Let op: de gegevens staan nu alleen in deze browser. Maak regelmatig een back-up met de knoppen hierboven.";
+}
+function startOpslag(){
+  state.records = lsLees(LS_REC, []);
+  var s = lsLees(LS_SET, null);
+  if(s) state.settings = Object.assign({}, DEFAULT_SETTINGS, s);
+  if(!window.claude || !window.claude.use){
+    if(sbAan()){ startSupabase(); return; }
+    setStatus("lokaal"); vulSettingsForm(); herteken(); return;
+  }
+  window.claude.use("db").then(function(db){
+    if(!db){ setStatus("lokaal"); vulSettingsForm(); herteken(); return; }
+    state.db = db;
+    db.doc("instellingen/algemeen").get().then(function(snap){
+      if(snap.exists) state.settings = Object.assign({}, DEFAULT_SETTINGS, snap.data());
+      else db.doc("instellingen/algemeen").set(state.settings)["catch"](function(){});
+      vulSettingsForm(); vulSelects(); herteken();
+    })["catch"](function(){});
+    db.collection("registraties").onSnapshot(function(snap){
+      var lijst = [], i;
+      for(i=0;i<snap.docs.length;i++){ var d = snap.docs[i].data(); if(d) lijst.push(d); }
+      if(lijst.length === 0 && state.records.length > 0 && state.mode !== "db"){
+        for(i=0;i<state.records.length;i++) db.collection("registraties").doc(state.records[i].id).set(state.records[i])["catch"](function(){});
+      } else { state.records = lijst; lsSchrijf(LS_REC, lijst); }
+      setStatus("db"); herteken();
+    }, function(){ setStatus("lokaal"); herteken(); });
+  })["catch"](function(){ setStatus("lokaal"); herteken(); });
+  window.claude.use("downloads").then(function(d){ state.downloads = d; })["catch"](function(){});
+  setTimeout(function(){ if(state.mode === "wacht"){ setStatus("lokaal"); herteken(); } }, 11000);
+}
+
+/* ---------- bestanden & mail ---------- */
+function blobDownload(filename, data, soort){
+  try{
+    var blob = (data instanceof Blob) ? data : new Blob([data], {type:"application/octet-stream"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    toast(soort + " gedownload.");
+  }catch(e){ toast("Downloaden lukt niet in deze weergave."); }
+}
+function bewaarBestand(filename, data, soort){
+  if(!state.downloads){ blobDownload(filename, data, soort); return; }
+  state.downloads.save({filename:filename, data:data}).then(function(){ toast(soort + " opgeslagen."); })
+  ["catch"](function(e){
+    var c = e && e.code; if(c === "declined") return;
+    toast(c === "too_large" ? "Bestand te groot — kies een kortere periode." : "Opslaan mislukt (" + (c||"onbekend") + ").");
+  });
+}
+function csvVan(kolommen, rijen){
+  var uit = kolommen.join(";") + "\r\n";
+  for(var i=0;i<rijen.length;i++){
+    uit += rijen[i].map(function(v){
+      var s = v == null ? "" : String(v);
+      return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+    }).join(";") + "\r\n";
+  }
+  return "﻿" + uit;
+}
+function openMail(url, melding){
+  var a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); toast(melding);
+}
+function mailto(naar, onderwerp, tekst){
+  openMail("mailto:" + encodeURIComponent(naar || "") + "?subject=" + encodeURIComponent(onderwerp) +
+    "&body=" + encodeURIComponent(tekst), "E-mail geopend. Voeg het gedownloade bestand zelf toe als bijlage.");
+}
+function mailtoBcc(adressen, onderwerp, tekst){
+  openMail("mailto:" + encodeURIComponent(state.settings.mail || "") + "?bcc=" + encodeURIComponent(adressen.join(",")) +
+    "&subject=" + encodeURIComponent(onderwerp) + "&body=" + encodeURIComponent(tekst),
+    "E-mail geopend met " + adressen.length + " adres(sen) in BCC.");
+}
+function pdfTabel(titel, regels, kolommen, rijen, bestandsnaam){
+  if(!window.jspdf || !window.jspdf.jsPDF){ toast("PDF-onderdeel kon niet laden."); return; }
+  var doc = new window.jspdf.jsPDF({orientation:"landscape", unit:"mm", format:"a4"});
+  var W = 297, M = 12, y = 16, i, k;
+  doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text(titel, M, y); y += 6;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(90);
+  for(i=0;i<regels.length;i++){ doc.text(regels[i], M, y); y += 4.4; }
+  doc.setTextColor(20); y += 3;
+  var tot = 0; for(k=0;k<kolommen.length;k++) tot += kolommen[k].w;
+  var schaal = (W - 2*M) / tot;
+  function kop(){
+    doc.setFillColor(237,240,238); doc.rect(M, y-4.6, W-2*M, 7, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.6);
+    var x = M + 1.5;
+    for(var c=0;c<kolommen.length;c++){
+      var w = kolommen[c].w * schaal;
+      doc.text(String(kolommen[c].t), kolommen[c].num ? x + w - 3 : x, y, {align: kolommen[c].num ? "right" : "left"});
+      x += w;
+    }
+    y += 4.5; doc.setFont("helvetica","normal"); doc.setFontSize(7.6);
+  }
+  kop();
+  for(var r=0;r<rijen.length;r++){
+    if(y > 190){ doc.addPage(); y = 16; kop(); }
+    var x2 = M + 1.5;
+    for(var c2=0;c2<kolommen.length;c2++){
+      var w2 = kolommen[c2].w * schaal;
+      var tekst = String(rijen[r][c2] == null ? "" : rijen[r][c2]);
+      var pas = doc.splitTextToSize(tekst, w2 - 3)[0] || "";
+      doc.text(pas, kolommen[c2].num ? x2 + w2 - 3 : x2, y, {align: kolommen[c2].num ? "right" : "left"});
+      x2 += w2;
+    }
+    doc.setDrawColor(226,222,214); doc.line(M, y+1.6, W-M, y+1.6); y += 5.4;
+  }
+  doc.setFontSize(7.5); doc.setTextColor(120);
+  doc.text(state.settings.bedrijf + " · KVK " + state.settings.kvk + " · " + state.settings.mail, M, 202);
+  bewaarBestand(bestandsnaam, doc.output("arraybuffer"), "PDF");
+}
+
+/* ---------- modals ---------- */
+function openModal(id){ $(id).hidden = false; document.body.style.overflow = "hidden"; }
+function sluitModal(id){ $(id).hidden = true;
+  if($("mdReg").hidden && $("mdKlant").hidden && $("mdSet").hidden && $("mdNieuweKlant").hidden)
+    document.body.style.overflow = ""; }
+document.querySelectorAll("[data-sluit]").forEach(function(b){
+  b.addEventListener("click", function(){ sluitModal(b.dataset.sluit); });
+});
+document.querySelectorAll(".overlay").forEach(function(o){
+  o.addEventListener("click", function(e){ if(e.target === o) sluitModal(o.id); });
+});
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape") return;
+  ["mdKlant","mdSet","mdReg","mdNieuweKlant"].some(function(id){ if(!$(id).hidden){ sluitModal(id); return true; } return false; });
+});
+
+/* ---------- registratieformulier ---------- */
+function vulSelects(){
+  var opties = state.settings.locaties.map(function(l){
+    return '<option value="'+esc(l.id)+'">'+esc(l.naam)+' — '+esc(l.gemeente)+'</option>'; }).join("");
+  var cur = $("fLocatie").value; $("fLocatie").innerHTML = opties; if(cur) $("fLocatie").value = cur;
+  var curL = $("nLocatie").value;
+  $("nLocatie").innerHTML = '<option value="alles">Alle locaties</option>' + opties;
+  $("nLocatie").value = curL || "alles";
+  var gem = [], i;
+  for(i=0;i<state.settings.locaties.length;i++)
+    if(gem.indexOf(state.settings.locaties[i].gemeente) < 0) gem.push(state.settings.locaties[i].gemeente);
+  var curG = $("nGemeente").value;
+  $("nGemeente").innerHTML = '<option value="alles">Alle gemeenten</option>' +
+    gem.map(function(g){ return "<option>" + esc(g) + "</option>"; }).join("");
+  $("nGemeente").value = (curG && (curG === "alles" || gem.indexOf(curG) >= 0)) ? curG : "alles";
+}
+function vulJaarSelects(){
+  var jaren = {}, i;
+  for(i=0;i<state.records.length;i++){ var d = state.records[i].datumIn; if(d) jaren[d.slice(0,4)] = 1; }
+  jaren[String(new Date().getFullYear())] = 1;
+  var lijst = Object.keys(jaren).sort().reverse();
+  ["nJaar","kJaar"].forEach(function(id){
+    var el = $(id), cur = el.value;
+    el.innerHTML = '<option value="alles">Alle jaren</option>' + lijst.map(function(j){ return "<option>"+j+"</option>"; }).join("");
+    el.value = (cur && el.querySelector('option[value="'+cur+'"]')) ? cur : (id === "nJaar" ? lijst[0] : "alles");
+  });
+}
+function vulGastenlijst(){
+  var namen = {}, i;
+  for(i=0;i<state.records.length;i++){ var n = (state.records[i].achternaam||"").trim(); if(n) namen[n] = 1; }
+  $("gastenlijst").innerHTML = Object.keys(namen).sort().map(function(n){ return "<option>"+esc(n)+"</option>"; }).join("");
+}
+function zetType(t){
+  state.type = t;
+  var kn = $("fType").querySelectorAll("button");
+  for(var i=0;i<kn.length;i++) kn[i].setAttribute("aria-pressed", kn[i].dataset.val === t ? "true" : "false");
+  var nacht = t === "overnachting";
+  $("wrapUit").hidden = !nacht; $("wrapNachten").hidden = !nacht; $("wrapKind").hidden = !nacht; $("wrapNat").hidden = !nacht;
+  $("lblIn").textContent = nacht ? "Datum inchecken" : "Datum bezoek";
+  tekenPreview();
+}
+function leegForm(){
+  state.editId = null;
+  $("formTitel").textContent = "Nieuwe registratie";
+  $("btnOpslaan").textContent = "Registratie opslaan";
+  ["fVoorletters","fAchternaam","fGeboorte","fWoonplaats","fNationaliteit","fEmail","fTelefoon","fKale","fTotaal","fNotitie","fUit"]
+    .forEach(function(id){ $(id).value = ""; });
+  $("gastHint").hidden = true;
+  $("fIn").value = stempel(); $("fPersonen").value = 2; $("fKinderen").value = 0; $("fNachten").value = 1;
+  $("fMember").checked = false; $("fBron").value = "";
+  zetType("overnachting");
+}
+function leesForm(){
+  return {
+    id: state.editId || ("r" + Date.now() + "-" + Math.floor(Math.random()*100000)),
+    type: state.type, locatieId: $("fLocatie").value, datumIn: $("fIn").value,
+    datumUit: state.type === "overnachting" ? $("fUit").value : "",
+    nachten: state.type === "overnachting" ? num($("fNachten").value) : 0,
+    voorletters: $("fVoorletters").value.trim(), achternaam: $("fAchternaam").value.trim(),
+    geboortedatum: $("fGeboorte").value, woonplaats: $("fWoonplaats").value.trim(),
+    email: $("fEmail").value.trim(), telefoon: $("fTelefoon").value.trim(),
+    nationaliteit: state.type === "overnachting" ? $("fNationaliteit").value.trim() : "",
+    personen: num($("fPersonen").value), kinderen: state.type === "overnachting" ? num($("fKinderen").value) : 0,
+    kalePrijs: num($("fKale").value), totaalBetaald: num($("fTotaal").value),
+    member: $("fMember").checked, bron: $("fBron").value, notitie: $("fNotitie").value.trim(),
+    aangemaakt: new Date().toISOString()
+  };
+}
+function tekenPreview(){
+  var rec = leesForm(), b = belasting(rec);
+  $("preview").innerHTML =
+    '<div class="p-item"><span>Gemeente</span><b>' + esc(gemeenteVan(rec.locatieId) || "—") + '</b></div>' +
+    '<div class="p-item"><span>Toeristenbelasting</span><b>' + eur(b.bedrag) + '</b></div>' +
+    '<div class="p-item"><span>Totaal betaald</span><b>' + eur(rec.totaalBetaald) + '</b></div>' +
+    '<div class="p-note">' + esc(b.uitleg) + '</div>';
+}
+function herkenGast(){
+  if(state.editId) return;
+  var naam = $("fAchternaam").value.trim().toLowerCase();
+  if(naam.length < 2){ $("gastHint").hidden = true; return; }
+  var vl = $("fVoorletters").value.trim().toLowerCase();
+  var kand = state.records.filter(function(r){
+    if((r.achternaam||"").trim().toLowerCase() !== naam) return false;
+    if(vl && (r.voorletters||"").trim().toLowerCase() !== vl) return false;
+    return true;
+  }).sort(function(a,b){ return (b.datumIn || b.contactDatum || "").localeCompare(a.datumIn || a.contactDatum || ""); });
+  if(!kand.length){ $("gastHint").hidden = true; return; }
+  var g = kand[0], gevuld = [], bezoeken = 0;
+  for(var j=0;j<kand.length;j++) if(kand[j].type !== "klant") bezoeken++;
+  function vul(id, waarde, veld){ if(waarde && !$(id).value){ $(id).value = waarde; gevuld.push(veld); } }
+  vul("fVoorletters", g.voorletters, "voorletters");
+  vul("fWoonplaats", g.woonplaats, "woonplaats");
+  vul("fNationaliteit", g.nationaliteit, "nationaliteit");
+  vul("fGeboorte", g.geboortedatum, "geboortedatum");
+  vul("fEmail", g.email, "e-mail");
+  vul("fTelefoon", g.telefoon, "telefoon");
+  $("gastHint").hidden = false;
+  var start = bezoeken
+    ? "Bekende gast — " + bezoeken + " eerder bezoek" + (bezoeken === 1 ? "" : "en") +
+      (g.datumIn ? ", laatst " + dNL(g.datumIn) : "")
+    : "Bekend contact" + (g.contactDatum ? ", aangemeld " + dNL(g.contactDatum) : "") + " — nog geen verblijf";
+  $("gastHint").textContent = start + (gevuld.length ? ". Ingevuld: " + gevuld.join(", ") + "." : ".");
+  tekenPreview();
+}
+/* ---------- losse klant ---------- */
+function leegKlantForm(){
+  state.editId = null;
+  $("klantFormTitel").textContent = "Nieuwe klant";
+  $("btnKlantOpslaan").textContent = "Klant opslaan";
+  ["cVoorletters","cAchternaam","cWoonplaats","cGeboorte","cEmail","cTelefoon","cNationaliteit","cNotitie"]
+    .forEach(function(id){ $(id).value = ""; });
+  $("cBron").value = ""; $("cMember").checked = false; $("cDatum").value = stempel();
+}
+function nieuweKlant(){
+  leegKlantForm(); openModal("mdNieuweKlant");
+  setTimeout(function(){ $("cAchternaam").focus(); }, 60);
+}
+function bewerkKlant(rec){
+  state.editId = rec.id;
+  $("klantFormTitel").textContent = "Klant bewerken";
+  $("btnKlantOpslaan").textContent = "Wijziging opslaan";
+  $("cVoorletters").value = rec.voorletters || ""; $("cAchternaam").value = rec.achternaam || "";
+  $("cWoonplaats").value = rec.woonplaats || ""; $("cGeboorte").value = rec.geboortedatum || "";
+  $("cEmail").value = rec.email || ""; $("cTelefoon").value = rec.telefoon || "";
+  $("cNationaliteit").value = rec.nationaliteit || ""; $("cBron").value = rec.bron || "";
+  $("cDatum").value = rec.contactDatum || rec.aangemaakt.slice(0,10);
+  $("cMember").checked = !!rec.member; $("cNotitie").value = rec.notitie || "";
+  sluitModal("mdKlant"); openModal("mdNieuweKlant");
+}
+function opslaanKlant(){
+  var achternaam = $("cAchternaam").value.trim();
+  if(!achternaam){ toast("Vul de achternaam in."); $("cAchternaam").focus(); return; }
+  var rec = {
+    id: state.editId || ("k" + Date.now() + "-" + Math.floor(Math.random()*100000)),
+    type: "klant", locatieId: "", datumIn: "", datumUit: "", nachten: 0,
+    contactDatum: $("cDatum").value || stempel(),
+    voorletters: $("cVoorletters").value.trim(), achternaam: achternaam,
+    geboortedatum: $("cGeboorte").value, woonplaats: $("cWoonplaats").value.trim(),
+    email: $("cEmail").value.trim(), telefoon: $("cTelefoon").value.trim(),
+    nationaliteit: $("cNationaliteit").value.trim(), personen: 0, kinderen: 0,
+    kalePrijs: 0, totaalBetaald: 0, member: $("cMember").checked,
+    bron: $("cBron").value, notitie: $("cNotitie").value.trim(),
+    aangemaakt: new Date().toISOString()
+  };
+  var idx = -1, i;
+  for(i=0;i<state.records.length;i++) if(state.records[i].id === rec.id) idx = i;
+  if(idx >= 0) state.records[idx] = rec; else state.records.push(rec);
+  bewaarRecord(rec);
+  sluitModal("mdNieuweKlant"); state.editId = null;
+  toonTab("klanten");
+  toast(idx >= 0 ? "Klant bijgewerkt." : (rec.member ? "Klant opgeslagen en toegevoegd aan members." : "Klant opgeslagen."));
+}
+function nieuweRegistratie(){ leegForm(); tekenPreview(); openModal("mdReg"); setTimeout(function(){ $("fAchternaam").focus(); }, 60); }
+function bewerk(id){
+  var rec = null, i;
+  for(i=0;i<state.records.length;i++) if(state.records[i].id === id) rec = state.records[i];
+  if(!rec) return;
+  if(rec.type === "klant"){ bewerkKlant(rec); return; }
+  state.editId = id; zetType(rec.type);
+  $("fLocatie").value = rec.locatieId; $("fIn").value = rec.datumIn || ""; $("fUit").value = rec.datumUit || "";
+  $("fNachten").value = rec.nachten; $("fVoorletters").value = rec.voorletters || "";
+  $("fAchternaam").value = rec.achternaam || ""; $("fGeboorte").value = rec.geboortedatum || "";
+  $("fWoonplaats").value = rec.woonplaats || ""; $("fNationaliteit").value = rec.nationaliteit || "";
+  $("fEmail").value = rec.email || ""; $("fTelefoon").value = rec.telefoon || "";
+  $("fPersonen").value = rec.personen; $("fKinderen").value = rec.kinderen || 0;
+  $("fKale").value = rec.kalePrijs || ""; $("fTotaal").value = rec.totaalBetaald || "";
+  $("fMember").checked = !!rec.member; $("fBron").value = rec.bron || ""; $("fNotitie").value = rec.notitie || "";
+  $("gastHint").hidden = true;
+  $("formTitel").textContent = "Registratie bewerken";
+  $("btnOpslaan").textContent = "Wijziging opslaan";
+  tekenPreview(); sluitModal("mdKlant"); openModal("mdReg");
+}
+function opslaan(){
+  var rec = leesForm();
+  if(!rec.achternaam){ toast("Vul de achternaam van de gast in."); $("fAchternaam").focus(); return; }
+  if(!rec.datumIn){ toast("Vul de datum in."); $("fIn").focus(); return; }
+  if(rec.type === "overnachting" && rec.nachten < 1){ toast("Een overnachting heeft minstens 1 nacht."); return; }
+  var idx = -1, i;
+  for(i=0;i<state.records.length;i++) if(state.records[i].id === rec.id) idx = i;
+  if(idx >= 0) state.records[idx] = rec; else state.records.push(rec);
+  bewaarRecord(rec);
+  toast(idx >= 0 ? "Wijziging opgeslagen." : "Registratie opgeslagen — de gast staat in het klantenbestand.");
+  sluitModal("mdReg"); leegForm(); herteken();
+}
+
+/* ---------- klanten ---------- */
+function klantenMap(){
+  var map = {}, i;
+  for(i=0;i<state.records.length;i++){
+    var r = state.records[i], key = klantKey(r);
+    if(!map[key]) map[key] = {key:key, naam:volleNaam(r), woonplaats:r.woonplaats, nationaliteit:r.nationaliteit,
+      geboortedatum:r.geboortedatum, email:"", telefoon:"", overnachtingen:0, dagverblijven:0, nachten:0,
+      personen:0, besteed:0, belasting:0, member:false, eerste:"", laatste:"", records:[], jaren:{},
+      contacten:0, contactDatum:"", notitie:""};
+    var k = map[key];
+    k.records.push(r);
+    if(r.email) k.email = r.email;
+    if(r.telefoon) k.telefoon = r.telefoon;
+    if(r.nationaliteit && !k.nationaliteit) k.nationaliteit = r.nationaliteit;
+    if(r.geboortedatum && !k.geboortedatum) k.geboortedatum = r.geboortedatum;
+    if(r.type === "overnachting"){ k.overnachtingen++; k.nachten += num(r.nachten); }
+    else if(r.type === "klant"){
+      k.contacten++;
+      if(r.contactDatum){ k.jaren[r.contactDatum.slice(0,4)] = 1;
+        if(!k.contactDatum || r.contactDatum < k.contactDatum) k.contactDatum = r.contactDatum; }
+      if(r.notitie && !k.notitie) k.notitie = r.notitie;
+    }
+    else k.dagverblijven++;
+    k.personen += num(r.personen);
+    k.besteed += num(r.totaalBetaald);
+    k.belasting += belasting(r).bedrag;
+    if(r.member) k.member = true;
+    if(r.datumIn){ k.jaren[r.datumIn.slice(0,4)] = 1;
+      if(!k.laatste || r.datumIn > k.laatste) k.laatste = r.datumIn;
+      if(!k.eerste || r.datumIn < k.eerste) k.eerste = r.datumIn; }
+  }
+  return map;
+}
+function klantRijen(){
+  var map = klantenMap(), type = $("kType").value, mem = $("kMember").value,
+      jaar = $("kJaar").value, zoek = $("kZoek").value.trim().toLowerCase(), uit = [];
+  for(var key in map){
+    var k = map[key];
+    if(type === "overnachting" && !k.overnachtingen) continue;
+    if(type === "dagverblijf" && !k.dagverblijven) continue;
+    if(type === "contact" && (k.overnachtingen || k.dagverblijven)) continue;
+    if(mem === "ja" && !k.member) continue;
+    if(mem === "nee" && k.member) continue;
+    if(jaar !== "alles" && !k.jaren[jaar]) continue;
+    if(zoek && ((k.naam||"")+" "+(k.woonplaats||"")+" "+(k.email||"")).toLowerCase().indexOf(zoek) < 0) continue;
+    uit.push(k);
+  }
+  return uit.sort(function(a,b){ return (b.laatste||"").localeCompare(a.laatste||""); });
+}
+function tekenKlanten(){
+  var rijen = klantRijen(), html = "", i, members = 0, besteed = 0;
+  for(i=0;i<rijen.length;i++){
+    var k = rijen[i]; if(k.member) members++; besteed += k.besteed;
+    var contactOnly = !k.overnachtingen && !k.dagverblijven;
+    html += '<tr><td><button class="linkbtn" data-klant="' + esc(k.key) + '">' + esc(k.naam) + "</button>" +
+      (contactOnly ? ' <span class="pill dag">contact</span>' : "") +
+      (k.member ? ' <span class="pill member">member</span>' : "") + "</td>" +
+      "<td>" + esc(k.woonplaats) + "</td>" +
+      "<td>" + (k.email ? '<a href="mailto:' + esc(k.email) + '">' + esc(k.email) + "</a>" : "") + "</td>" +
+      "<td>" + esc(k.telefoon) + "</td>" +
+      "<td>" + esc(k.nationaliteit) + "</td>" +
+      "<td>" + (k.geboortedatum ? dNL(k.geboortedatum) : "") + "</td>" +
+      '<td class="num">' + k.overnachtingen + '</td><td class="num">' + k.nachten + '</td>' +
+      '<td class="num">' + k.dagverblijven + '</td><td class="num">' + eur(k.besteed) + "</td>" +
+      "<td>" + (k.laatste ? dNL(k.laatste) : (k.contactDatum ? "aangemeld " + dNL(k.contactDatum) : "—")) + "</td></tr>";
+  }
+  $("kTabel").innerHTML = rijen.length
+    ? '<thead><tr><th>Klant</th><th>Woonplaats</th><th>E-mail</th><th>Telefoon</th><th>Nationaliteit</th>' +
+      '<th>Geboortedatum</th><th class="num">Overnachtingen</th><th class="num">Nachten</th>' +
+      '<th class="num">Dagverblijven</th><th class="num">Totaal besteed</th><th>Laatste bezoek</th></tr></thead><tbody>' +
+      html + "</tbody>"
+    : '<tbody><tr><td><div class="empty"><b>Nog geen klanten</b>Voeg rechtsboven een registratie toe; de gast komt hier automatisch in te staan.</div></td></tr></tbody>';
+  var contacten = 0;
+  for(i=0;i<rijen.length;i++) if(!rijen[i].overnachtingen && !rijen[i].dagverblijven) contacten++;
+  $("kSub").textContent = rijen.length + " klant(en) · " + contacten + " nog zonder verblijf · " +
+    members + " member(s) · " + eur(besteed) + " totaal besteed";
+}
+
+/* ---------- nachtregister ---------- */
+function nachtRijen(){
+  var jaar = $("nJaar").value, gem = $("nGemeente").value, loc = $("nLocatie").value,
+      van = $("nVan").value, tot = $("nTot").value, zoek = $("nZoek").value.trim().toLowerCase();
+  return state.records.filter(function(r){
+    if(r.type !== "overnachting") return false;
+    if(state.klantFocus && klantKey(r) !== state.klantFocus) return false;
+    if(gem !== "alles" && gemeenteVan(r.locatieId) !== gem) return false;
+    if(loc !== "alles" && r.locatieId !== loc) return false;
+    var d = r.datumIn || "";
+    if(van && d < van) return false;
+    if(tot && d > tot) return false;
+    if(!van && !tot && jaar !== "alles" && d.slice(0,4) !== jaar) return false;
+    if(zoek && ((r.voorletters||"")+" "+(r.achternaam||"")+" "+(r.woonplaats||"")).toLowerCase().indexOf(zoek) < 0) return false;
+    return true;
+  }).sort(function(a,b){ return (b.datumIn||"").localeCompare(a.datumIn||""); });
+}
+function periodeTekst(){
+  if($("nVan").value || $("nTot").value)
+    return (dNL($("nVan").value) || "begin") + " t/m " + (dNL($("nTot").value) || dNL(stempel()));
+  return $("nJaar").value === "alles" ? "alle jaren" : "jaar " + $("nJaar").value;
+}
+function tekenNacht(){
+  var rijen = nachtRijen(), t = totalen(rijen), html = "", i;
+  for(i=0;i<rijen.length;i++){
+    var r = rijen[i], b = belasting(r);
+    html += "<tr><td>" + dNL(r.datumIn) + "</td><td>" + dNL(r.datumUit) + "</td>" +
+      '<td class="num">' + r.nachten + '</td>' +
+      '<td><button class="linkbtn" data-klant="' + esc(klantKey(r)) + '">' + esc(volleNaam(r)) + "</button>" +
+      (r.member ? ' <span class="pill member">member</span>' : "") +
+      (moetAangevuld(r) ? ' <span class="pill dag">prijs invullen</span>' : "") + "</td>" +
+      "<td>" + esc(locNaam(r.locatieId)) + "</td><td>" + esc(gemeenteVan(r.locatieId)) + "</td>" +
+      '<td class="num">' + r.personen + (num(r.kinderen) ? " (" + r.kinderen + " kind)" : "") + "</td>" +
+      "<td>" + esc(r.woonplaats) + "</td><td>" + esc(r.nationaliteit) + "</td>" +
+      "<td>" + (r.geboortedatum ? dNL(r.geboortedatum) : "") + "</td>" +
+      '<td class="num">' + eur(r.kalePrijs) + '</td><td class="num">' + eur(r.totaalBetaald) + "</td>" +
+      '<td class="num">' + eur(b.bedrag) + "</td>" +
+      '<td><button class="rowbtn" data-edit="' + esc(r.id) + '">Bewerken</button>' +
+      '<button class="rowbtn del" data-del="' + esc(r.id) + '">Verwijderen</button></td></tr>';
+  }
+  $("nTabel").innerHTML = rijen.length
+    ? '<thead><tr><th>In</th><th>Uit</th><th class="num">Nachten</th><th>Gast</th><th>Locatie</th><th>Gemeente</th>' +
+      '<th class="num">Pers.</th><th>Woonplaats</th><th>Nationaliteit</th><th>Geboortedatum</th>' +
+      '<th class="num">Kale prijs</th><th class="num">Betaald</th><th class="num">Belasting</th><th></th></tr></thead><tbody>' +
+      html + '</tbody><tfoot><tr><td colspan="2">Totaal ' + rijen.length + ' boeking(en)</td>' +
+      '<td class="num">' + t.nachten + '</td><td colspan="3"></td><td class="num">' + t.personen + '</td>' +
+      '<td colspan="3"></td><td class="num">' + eur(t.logies) + '</td><td class="num">' + eur(t.omzet) + '</td>' +
+      '<td class="num">' + eur(t.belasting) + "</td><td></td></tr></tfoot>"
+    : '<tbody><tr><td><div class="empty"><b>Geen overnachtingen in deze selectie</b>Pas de filters aan of voeg een registratie toe.</div></td></tr></tbody>';
+  $("nSub").textContent = periodeTekst() + " · " + rijen.length + " boeking(en) · " + t.persoonsnachten +
+    " overnachtingen · " + eur(t.belasting) + " toeristenbelasting";
+
+  if(state.klantFocus){
+    var naam = "";
+    for(i=0;i<rijen.length;i++){ naam = volleNaam(rijen[i]); break; }
+    if(!naam){ var map = klantenMap(); naam = map[state.klantFocus] ? map[state.klantFocus].naam : "klant"; }
+    $("nFocusBalk").hidden = false;
+    $("nFocusBalk").innerHTML = '<span class="chip">Alleen ' + esc(naam) +
+      ' <button type="button" id="focusUit" aria-label="Filter opheffen">✕</button></span>';
+    $("focusUit").addEventListener("click", function(){ state.klantFocus = null; tekenNacht(); tekenLocaties(); tekenBelasting(); });
+  } else $("nFocusBalk").hidden = true;
+}
+function tekenLocaties(){
+  var rijen = nachtRijen(), perLoc = {}, i;
+  for(i=0;i<rijen.length;i++){
+    var r = rijen[i];
+    if(!perLoc[r.locatieId]) perLoc[r.locatieId] = [];
+    perLoc[r.locatieId].push(r);
+  }
+  var ids = Object.keys(perLoc).sort(function(a,b){ return locNaam(a).localeCompare(locNaam(b)); });
+  var html = "", tAlles = totalen(rijen);
+  for(i=0;i<ids.length;i++){
+    var t = totalen(perLoc[ids[i]]);
+    html += "<tr><td><b>" + esc(locNaam(ids[i])) + "</b></td><td>" + esc(gemeenteVan(ids[i])) + "</td>" +
+      '<td class="num">' + t.boekingen + '</td><td class="num">' + t.nachten + '</td>' +
+      '<td class="num">' + t.persoonsnachten + '</td><td class="num">' + t.belastbaar + '</td>' +
+      '<td class="num">' + eur(t.logies) + '</td><td class="num">' + eur(t.omzet) + '</td>' +
+      '<td class="num">' + eur(t.belasting) + "</td>" +
+      '<td><button class="rowbtn" data-loclijst="' + esc(ids[i]) + '">Lijst (CSV)</button>' +
+      '<button class="rowbtn" data-locfilter="' + esc(ids[i]) + '">Alleen deze</button></td></tr>';
+  }
+  $("nLocTabel").innerHTML = ids.length
+    ? '<thead><tr><th>Locatie</th><th>Gemeente</th><th class="num">Boekingen</th><th class="num">Nachten</th>' +
+      '<th class="num">Overnachtingen</th><th class="num">Belastbaar</th><th class="num">Logiesomzet</th>' +
+      '<th class="num">Omzet</th><th class="num">Belasting</th><th></th></tr></thead><tbody>' + html +
+      '</tbody><tfoot><tr><td colspan="2">Alle locaties</td><td class="num">' + tAlles.boekingen +
+      '</td><td class="num">' + tAlles.nachten + '</td><td class="num">' + tAlles.persoonsnachten +
+      '</td><td class="num">' + tAlles.belastbaar + '</td><td class="num">' + eur(tAlles.logies) +
+      '</td><td class="num">' + eur(tAlles.omzet) + '</td><td class="num">' + eur(tAlles.belasting) + "</td><td></td></tr></tfoot>"
+    : '<tbody><tr><td><div class="empty"><b>Geen overnachtingen</b>Er valt in deze selectie niets per locatie te tonen.</div></td></tr></tbody>';
+}
+function tekenBelasting(){
+  var rijen = nachtRijen(), s = state.settings, gem = {}, i;
+  for(i=0;i<rijen.length;i++){
+    var g = gemeenteVan(rijen[i].locatieId) || "Onbekend";
+    if(!gem[g]) gem[g] = [];
+    gem[g].push(rijen[i]);
+  }
+  var namen = Object.keys(gem).sort(), html = "";
+  if(!namen.length){
+    $("nBelasting").innerHTML = '<div class="empty"><b>Nog niets te berekenen</b>Zodra er overnachtingen in de selectie staan, verschijnt hier de afdracht per gemeente.</div>';
+    return;
+  }
+  for(i=0;i<namen.length;i++){
+    var g2 = namen[i], t = totalen(gem[g2]);
+    var tiles = '<div class="tile hero"><span>Af te dragen — ' + esc(g2) + '</span><b>' + eur(t.belasting) +
+      "</b><small>" + esc(periodeTekst()) + "</small></div>";
+    if(g2 === "Lelystad"){
+      tiles += '<div class="tile"><span>Belastbare overnachtingen</span><b>' + t.belastbaar + "</b><small>excl. kinderen t/m 11</small></div>" +
+        '<div class="tile"><span>Totaal overnachtingen</span><b>' + t.persoonsnachten + "</b><small>personen × nachten</small></div>" +
+        '<div class="tile"><span>Tarief</span><b>' + eur(s.tariefLelystad) + "</b><small>per persoon per nacht</small></div>";
+    } else if(g2 === "Almere"){
+      tiles += '<div class="tile"><span>Logiesomzet (grondslag)</span><b>' + eur(t.logies) + "</b><small>" +
+        (s.prijsInclusief === "ja" ? "kale prijs ÷ " + komma(1 + num(s.percentageAlmere)/100) : "kale prijs, excl. belasting") + "</small></div>" +
+        '<div class="tile"><span>Overnachtingen</span><b>' + t.persoonsnachten + "</b><small>personen × nachten</small></div>" +
+        '<div class="tile"><span>Tarief</span><b>' + komma(s.percentageAlmere,0) + "%</b><small>over de logiesomzet</small></div>";
+    } else {
+      tiles += '<div class="tile"><span>Overnachtingen</span><b>' + t.persoonsnachten + "</b><small>personen × nachten</small></div>" +
+        '<div class="tile"><span>Tarief</span><b>—</b><small>stel in bij Instellingen</small></div>';
+    }
+    tiles += '<div class="tile"><span>Boekingen</span><b>' + t.boekingen + "</b><small>" + eur(t.omzet) + " omzet</small></div>";
+    html += '<div class="card"><div class="card-head"><h2>' + esc(g2) + "</h2><p>" + esc(periodeTekst()) +
+      '</p><div class="btn-row">' +
+      '<button class="btn primary small" data-aangiftepdf="' + esc(g2) + '" type="button">Aangifte als PDF</button>' +
+      '<button class="btn small" data-aangiftecsv="' + esc(g2) + '" type="button">CSV</button>' +
+      '<button class="btn small" data-aangiftemail="' + esc(g2) + '" type="button">Mailen</button>' +
+      '</div></div><div class="card-body stack"><div class="tiles">' + tiles + "</div></div></div>";
+  }
+  $("nBelasting").innerHTML = html;
+}
+
+/* ---------- members ---------- */
+function memberRijen(){
+  var map = klantenMap(), sorteer = $("mSort").value, mail = $("mMail").value,
+      zoek = $("mZoek").value.trim().toLowerCase(), uit = [];
+  for(var key in map){
+    var k = map[key];
+    if(!k.member) continue;
+    if(mail === "ja" && !k.email) continue;
+    if(mail === "nee" && k.email) continue;
+    if(zoek && ((k.naam||"")+" "+(k.woonplaats||"")).toLowerCase().indexOf(zoek) < 0) continue;
+    uit.push(k);
+  }
+  return uit.sort(function(a,b){
+    if(sorteer === "besteed") return b.besteed - a.besteed;
+    if(sorteer === "bezoeken") return (b.overnachtingen + b.dagverblijven) - (a.overnachtingen + a.dagverblijven);
+    if(sorteer === "naam") return (a.naam||"").localeCompare(b.naam||"");
+    return (b.laatste||"").localeCompare(a.laatste||"");
+  });
+}
+function tekenMembers(){
+  var rijen = memberRijen(), html = "", i, metMail = 0, besteed = 0, nachten = 0;
+  for(i=0;i<rijen.length;i++){
+    var k = rijen[i]; if(k.email) metMail++; besteed += k.besteed; nachten += k.nachten;
+    html += '<tr><td><button class="linkbtn" data-klant="' + esc(k.key) + '">' + esc(k.naam) + "</button></td>" +
+      "<td>" + esc(k.woonplaats) + "</td>" +
+      "<td>" + (k.email ? '<a href="mailto:' + esc(k.email) + '">' + esc(k.email) + "</a>" : '<span style="color:var(--copper)">ontbreekt</span>') + "</td>" +
+      "<td>" + esc(k.telefoon) + "</td>" +
+      '<td class="num">' + k.overnachtingen + '</td><td class="num">' + k.nachten + '</td>' +
+      '<td class="num">' + k.dagverblijven + '</td><td class="num">' + eur(k.besteed) + "</td>" +
+      "<td>" + (k.eerste ? dNL(k.eerste) : (k.contactDatum ? "aangemeld " + dNL(k.contactDatum) : "—")) + "</td>" +
+      "<td>" + (k.laatste ? dNL(k.laatste) : "nog geen verblijf") + "</td></tr>";
+  }
+  $("mTabel").innerHTML = rijen.length
+    ? '<thead><tr><th>Member</th><th>Woonplaats</th><th>E-mail</th><th>Telefoon</th>' +
+      '<th class="num">Overnachtingen</th><th class="num">Nachten</th><th class="num">Dagverblijven</th>' +
+      '<th class="num">Totaal besteed</th><th>Eerste bezoek</th><th>Laatste bezoek</th></tr></thead><tbody>' + html + "</tbody>"
+    : '<tbody><tr><td><div class="empty"><b>Nog geen members</b>Vink bij een registratie aan dat de gast member wil worden.</div></td></tr></tbody>';
+  $("mTiles").innerHTML =
+    '<div class="tile hero"><span>Members</span><b>' + rijen.length + "</b><small>" + metMail + " met e-mailadres</small></div>" +
+    '<div class="tile"><span>Samen besteed</span><b>' + eur(besteed) + "</b></div>" +
+    '<div class="tile"><span>Nachten</span><b>' + nachten + "</b></div>" +
+    '<div class="tile"><span>Gemiddeld per member</span><b>' + eur(rijen.length ? besteed/rijen.length : 0) + "</b></div>";
+  $("mSub").textContent = rijen.length + " member(s) · " + metMail + " met e-mailadres";
+}
+
+/* ---------- klantpaneel ---------- */
+function openKlant(key){
+  var map = klantenMap(), k = map[key];
+  if(!k) return;
+  state.klantOpen = key;
+  $("klantTitel").textContent = k.naam + (k.member ? " · member" : "");
+  var html = '<div class="kv">' +
+    "<div><span>Woonplaats</span><b>" + esc(k.woonplaats || "—") + "</b></div>" +
+    "<div><span>E-mail</span><b>" + (k.email ? '<a href="mailto:'+esc(k.email)+'">'+esc(k.email)+"</a>" : "—") + "</b></div>" +
+    "<div><span>Telefoon</span><b>" + esc(k.telefoon || "—") + "</b></div>" +
+    "<div><span>Nationaliteit</span><b>" + esc(k.nationaliteit || "—") + "</b></div>" +
+    "<div><span>Geboortedatum</span><b>" + (k.geboortedatum ? dNL(k.geboortedatum) : "—") + "</b></div>" +
+    "<div><span>Member</span><b>" + (k.member ? "ja" : "nee") + "</b></div>" +
+    "</div>" +
+    '<div class="tiles">' +
+    '<div class="tile"><span>Overnachtingen</span><b>' + k.overnachtingen + "</b><small>" + k.nachten + " nachten</small></div>" +
+    '<div class="tile"><span>Dagverblijven</span><b>' + k.dagverblijven + "</b></div>" +
+    '<div class="tile"><span>Totaal besteed</span><b>' + eur(k.besteed) + "</b></div>" +
+    '<div class="tile"><span>Toeristenbelasting</span><b>' + eur(k.belasting) + "</b><small>over alle verblijven</small></div>" +
+    "</div>";
+  var rijen = k.records.slice().sort(function(a,b){ return (b.datumIn||"").localeCompare(a.datumIn||""); }), rh = "", i;
+  for(i=0;i<rijen.length;i++){
+    var r = rijen[i];
+    var soort = r.type === "overnachting"
+      ? '<span class="pill nacht">' + r.nachten + " nacht" + (r.nachten===1?"":"en") + "</span>"
+      : r.type === "klant" ? '<span class="pill dag">contact</span>' : '<span class="pill dag">dagverblijf</span>';
+    rh += "<tr><td>" + dNL(r.type === "klant" ? (r.contactDatum || "") : r.datumIn) + "</td>" +
+      "<td>" + (r.type === "overnachting" ? dNL(r.datumUit) : "—") + "</td>" +
+      "<td>" + soort + "</td>" +
+      "<td>" + (r.type === "klant" ? esc(r.notitie || "—") : esc(locNaam(r.locatieId))) + "</td>" +
+      '<td class="num">' + r.personen + '</td><td class="num">' + eur(r.totaalBetaald) + "</td>" +
+      '<td class="num">' + eur(belasting(r).bedrag) + "</td>" +
+      '<td><button class="rowbtn" data-edit="' + esc(r.id) + '">Bewerken</button></td></tr>';
+  }
+  html += '<div class="card"><div class="table-wrap" style="border-top:0"><table>' +
+    '<thead><tr><th>Datum</th><th>Uit</th><th>Soort</th><th>Locatie / notitie</th><th class="num">Pers.</th>' +
+    '<th class="num">Betaald</th><th class="num">Belasting</th><th></th></tr></thead><tbody>' + rh + "</tbody></table></div></div>";
+  $("klantBody").innerHTML = html;
+  $("klantMember").textContent = k.member ? "Member-vinkje weghalen" : "Markeer als member";
+  openModal("mdKlant");
+}
+
+/* ---------- exports ---------- */
+var CSV_KOP = ["Locatie","Gemeente","Soort verblijf","Datum inchecken","Datum uitchecken","Aantal nachten",
+  "Voorletters","Achternaam","Geboortedatum","Aantal personen","Waarvan t/m 11 jaar","Woonplaats","Nationaliteit",
+  "E-mail","Telefoon","Kale logiesprijs","Totaal betaald","Toeristenbelasting","Member","Boeking via","Notitie"];
+function csvRij(r){
+  return [locNaam(r.locatieId), gemeenteVan(r.locatieId),
+    r.type === "overnachting" ? "Overnachting" : r.type === "klant" ? "Contact (geen verblijf)" : "Dagverblijf",
+    dNL(r.type === "klant" ? (r.contactDatum || "") : r.datumIn), dNL(r.datumUit), r.nachten,
+    r.voorletters, r.achternaam, dNL(r.geboortedatum),
+    r.personen, r.kinderen, r.woonplaats, r.nationaliteit, r.email || "", r.telefoon || "",
+    komma(r.kalePrijs), komma(r.totaalBetaald), komma(belasting(r).bedrag), r.member ? "Ja" : "Nee", r.bron, r.notitie];
+}
+function klantCsv(rijen){
+  return csvVan(["Klant","Woonplaats","E-mail","Telefoon","Nationaliteit","Geboortedatum","Overnachtingen",
+    "Nachten","Dagverblijven","Totaal besteed","Toeristenbelasting","Member","Nog geen verblijf",
+    "Aangemeld op","Eerste bezoek","Laatste bezoek","Notitie"],
+    rijen.map(function(k){ return [k.naam, k.woonplaats, k.email, k.telefoon, k.nationaliteit, dNL(k.geboortedatum),
+      k.overnachtingen, k.nachten, k.dagverblijven, komma(k.besteed), komma(k.belasting),
+      k.member ? "Ja" : "Nee", (!k.overnachtingen && !k.dagverblijven) ? "Ja" : "Nee",
+      dNL(k.contactDatum), dNL(k.eerste), dNL(k.laatste), k.notitie]; }));
+}
+function klantPdf(rijen, titel, bestand){
+  var kol = [{t:"Klant",w:22},{t:"Woonplaats",w:16},{t:"E-mail",w:24},{t:"Telefoon",w:13},
+    {t:"Overn.",w:7,num:true},{t:"Nachten",w:7,num:true},{t:"Dagverbl.",w:8,num:true},
+    {t:"Besteed",w:11,num:true},{t:"Member",w:8},{t:"Laatste",w:10}];
+  var data = rijen.map(function(k){ return [k.naam, k.woonplaats, k.email, k.telefoon, k.overnachtingen,
+    k.nachten, k.dagverblijven, eur(k.besteed), k.member ? "ja" : "", dNL(k.laatste)]; });
+  pdfTabel(titel, [state.settings.bedrijf, rijen.length + " klant(en) · afgedrukt op " + dNL(stempel())], kol, data, bestand);
+}
+function nachtPdf(rijen, titel, bestand, extraRegels){
+  var kol = [{t:"In",w:9},{t:"Uit",w:9},{t:"N",w:4,num:true},{t:"Gast",w:19},{t:"Locatie",w:20},{t:"Gemeente",w:11},
+    {t:"Pers",w:5,num:true},{t:"Kind",w:5,num:true},{t:"Woonplaats",w:14},{t:"Nationaliteit",w:12},
+    {t:"Geb.datum",w:9},{t:"Kale prijs",w:10,num:true},{t:"Belasting",w:10,num:true}];
+  var data = rijen.map(function(r){
+    return [dNL(r.datumIn), dNL(r.datumUit), r.nachten, volleNaam(r), locNaam(r.locatieId), gemeenteVan(r.locatieId),
+      r.personen, num(r.kinderen) || "", r.woonplaats, r.nationaliteit, dNL(r.geboortedatum),
+      eur(r.kalePrijs), eur(belasting(r).bedrag)];
+  });
+  var t = totalen(rijen);
+  data.push(["", "TOTAAL", t.nachten, "", "", "", t.personen, "", "", "", "", eur(t.logies), eur(t.belasting)]);
+  pdfTabel(titel, [state.settings.bedrijf + " · KVK " + state.settings.kvk].concat(extraRegels || []), kol, data, bestand);
+}
+function aangifteRijenVan(gemeente){
+  return nachtRijen().filter(function(r){ return gemeenteVan(r.locatieId) === gemeente; });
+}
+
+/* ---------- instellingen ---------- */
+function vulSettingsForm(){
+  var s = state.settings;
+  $("sLelystad").value = s.tariefLelystad; $("sAlmere").value = s.percentageAlmere; $("sIncl").value = s.prijsInclusief;
+  $("sBedrijf").value = s.bedrijf; $("sKvk").value = s.kvk; $("sMail").value = s.mail; $("sMailNaar").value = s.mailNaar || "";
+  tekenLocatieInstellingen();
+  $("sInfo").textContent = state.mode === "supabase"
+    ? "De gegevens staan in Supabase (tabel " + SUPABASE.tabel + "), hetzelfde project als je dashboards. Iedereen met toegang tot de pagina ziet dezelfde klanten en registraties; de lijst ververst automatisch."
+    : state.mode === "db"
+    ? "Alle gegevens staan in de beveiligde opslag van deze app en zijn zichtbaar op elk apparaat waarmee je bent ingelogd. Maak toch af en toe een back-up."
+    : "Let op: de gegevens staan nu alleen in deze browser. Maak regelmatig een back-up met de knoppen hierboven.";
+}
+function tekenLocatieInstellingen(){
+  var html = "";
+  for(var i=0;i<state.settings.locaties.length;i++){
+    var l = state.settings.locaties[i];
+    html += '<div class="loc-row">' +
+      '<input type="text" data-loc="naam" data-i="' + i + '" value="' + esc(l.naam) + '" aria-label="Naam locatie">' +
+      '<input type="text" data-loc="adres" data-i="' + i + '" value="' + esc(l.adres || "") + '" placeholder="Adres" aria-label="Adres">' +
+      '<select data-loc="gemeente" data-i="' + i + '" aria-label="Gemeente">' +
+      GEMEENTEN.map(function(g){ return "<option" + (g === l.gemeente ? " selected" : "") + ">" + esc(g) + "</option>"; }).join("") +
+      "</select><button class=\"btn ghost danger small\" data-locdel=\"" + i + "\" type=\"button\">Verwijderen</button></div>";
+  }
+  $("sLocList").innerHTML = html;
+}
+
+/* ---------- tabs ---------- */
+function toonTab(naam){
+  state.tab = naam;
+  ["klanten","nacht","members"].forEach(function(t){
+    $("pane-" + t).hidden = t !== naam;
+    $("tab-" + t).setAttribute("aria-selected", t === naam ? "true" : "false");
+  });
+  herteken();
+}
+function herteken(){
+  vulJaarSelects(); vulGastenlijst(); tekenAanvulBalk();
+  var map = klantenMap(), aantal = 0, mem = 0, nacht = 0, key;
+  for(key in map){ aantal++; if(map[key].member) mem++; }
+  for(var i=0;i<state.records.length;i++) if(state.records[i].type === "overnachting") nacht++;
+  $("telKlanten").textContent = aantal || "";
+  $("telNacht").textContent = nacht || "";
+  $("telMembers").textContent = mem || "";
+  if(state.tab === "klanten") tekenKlanten();
+  else if(state.tab === "members") tekenMembers();
+  else { tekenNacht(); tekenLocaties(); tekenBelasting(); }
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll("nav.tabs button").forEach(function(b){
+  b.addEventListener("click", function(){ toonTab(b.dataset.tab); });
+});
+$("btnNieuw").addEventListener("click", nieuweRegistratie);
+$("btnNieuweKlant").addEventListener("click", nieuweKlant);
+$("aanvulKnop").addEventListener("click", function(){
+  var rijen = aanvulRijen();
+  if(!rijen.length){ tekenAanvulBalk(); return; }
+  bewerk(rijen[0].id);
+});
+$("btnKlantOpslaan").addEventListener("click", opslaanKlant);
+$("btnInstellingen").addEventListener("click", function(){ vulSettingsForm(); openModal("mdSet"); });
+
+$("fType").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-val]"); if(b) zetType(b.dataset.val);
+});
+["fIn","fUit"].forEach(function(id){
+  $(id).addEventListener("change", function(){
+    if(state.type === "overnachting"){
+      var n = nachtenTussen($("fIn").value, $("fUit").value);
+      if(n > 0) $("fNachten").value = n;
+    }
+    tekenPreview();
+  });
+});
+["fLocatie","fNachten","fPersonen","fKinderen","fKale","fTotaal"].forEach(function(id){
+  $(id).addEventListener("input", tekenPreview); $(id).addEventListener("change", tekenPreview);
+});
+$("fAchternaam").addEventListener("change", herkenGast);
+$("fAchternaam").addEventListener("blur", herkenGast);
+$("fVoorletters").addEventListener("change", herkenGast);
+$("btnOpslaan").addEventListener("click", opslaan);
+
+document.addEventListener("click", function(e){
+  var kl = e.target.closest("[data-klant]");
+  if(kl){ openKlant(kl.dataset.klant); return; }
+  var ed = e.target.closest("[data-edit]");
+  if(ed){ bewerk(ed.dataset.edit); return; }
+  var dl = e.target.closest("[data-del]");
+  if(dl){
+    if(!confirm("Deze registratie definitief verwijderen?")) return;
+    var id = dl.dataset.del;
+    state.records = state.records.filter(function(r){ return r.id !== id; });
+    verwijderRecord(id); herteken(); toast("Registratie verwijderd.");
+    return;
+  }
+  var lf = e.target.closest("[data-locfilter]");
+  if(lf){ $("nLocatie").value = lf.dataset.locfilter; herteken(); toast("Gefilterd op " + locNaam(lf.dataset.locfilter) + "."); return; }
+  var ll = e.target.closest("[data-loclijst]");
+  if(ll){
+    var rijenL = nachtRijen().filter(function(r){ return r.locatieId === ll.dataset.loclijst; });
+    if(!rijenL.length){ toast("Geen overnachtingen voor deze locatie in de selectie."); return; }
+    bewaarBestand("nachtregister-" + locNaam(ll.dataset.loclijst).toLowerCase().replace(/[^a-z0-9]+/g,"-") + "-" + stempel() + ".csv",
+      csvVan(CSV_KOP, rijenL.map(csvRij)), "Lijst");
+    return;
+  }
+  var ap = e.target.closest("[data-aangiftepdf]");
+  if(ap){
+    var g = ap.dataset.aangiftepdf, rij = aangifteRijenVan(g), tt = totalen(rij), s = state.settings;
+    if(!rij.length){ toast("Geen overnachtingen in deze selectie."); return; }
+    nachtPdf(rij, "Aangifte toeristenbelasting " + g,
+      "aangifte-toeristenbelasting-" + g.toLowerCase() + "-" + stempel() + ".pdf",
+      ["Periode: " + periodeTekst() + " · " + rij.length + " boeking(en)",
+       g === "Lelystad" ? "Tarief: " + eur(s.tariefLelystad) + " p.p.p.n. · belastbare overnachtingen: " + tt.belastbaar + " (kinderen t/m 11 jaar vrijgesteld)"
+         : "Tarief: " + komma(s.percentageAlmere,0) + "% over de logiesomzet · grondslag: " + eur(tt.logies),
+       "Af te dragen toeristenbelasting: " + eur(tt.belasting)]);
+    return;
+  }
+  var ac = e.target.closest("[data-aangiftecsv]");
+  if(ac){
+    var g2 = ac.dataset.aangiftecsv, rij2 = aangifteRijenVan(g2);
+    if(!rij2.length){ toast("Geen overnachtingen in deze selectie."); return; }
+    bewaarBestand("aangifte-" + g2.toLowerCase() + "-" + stempel() + ".csv", csvVan(CSV_KOP, rij2.map(csvRij)), "Lijst");
+    return;
+  }
+  var am = e.target.closest("[data-aangiftemail]");
+  if(am){
+    var g3 = am.dataset.aangiftemail, rij3 = aangifteRijenVan(g3), t3 = totalen(rij3), s3 = state.settings;
+    if(!rij3.length){ toast("Geen overnachtingen in deze selectie."); return; }
+    mailto(s3.mailNaar, "Opgave toeristenbelasting " + g3 + " — " + periodeTekst(),
+      "Beste,\n\nHierbij de opgave toeristenbelasting " + g3 + " over " + periodeTekst() + ".\n\n" +
+      "Bedrijf: " + s3.bedrijf + " (KVK " + s3.kvk + ")\n" +
+      "Aantal boekingen: " + rij3.length + "\n" +
+      "Aantal overnachtingen (personen × nachten): " + t3.persoonsnachten + "\n" +
+      (g3 === "Lelystad"
+        ? "Belastbare overnachtingen (excl. kinderen t/m 11 jaar): " + t3.belastbaar + "\nTarief: " + eur(s3.tariefLelystad) + " p.p.p.n.\n"
+        : "Logiesomzet (grondslag): " + eur(t3.logies) + "\nTarief: " + komma(s3.percentageAlmere,0) + "%\n") +
+      "Af te dragen toeristenbelasting: " + eur(t3.belasting) + "\n\nDe specificatie zit als bijlage.\n\n" +
+      "Met vriendelijke groet,\n" + s3.bedrijf);
+    return;
+  }
+});
+
+["kType","kMember","kJaar"].forEach(function(id){ $(id).addEventListener("change", tekenKlanten); });
+$("kZoek").addEventListener("input", tekenKlanten);
+$("kCsv").addEventListener("click", function(){
+  var rijen = klantRijen();
+  if(!rijen.length){ toast("Geen klanten in deze selectie."); return; }
+  bewaarBestand("klantenbestand-" + stempel() + ".csv", klantCsv(rijen), "Klantenbestand");
+});
+$("kPdf").addEventListener("click", function(){
+  var rijen = klantRijen();
+  if(!rijen.length){ toast("Geen klanten in deze selectie."); return; }
+  klantPdf(rijen, "Klantenbestand", "klantenbestand-" + stempel() + ".pdf");
+});
+
+["nJaar","nGemeente","nLocatie","nVan","nTot"].forEach(function(id){ $(id).addEventListener("change", herteken); });
+$("nZoek").addEventListener("input", herteken);
+$("nCsv").addEventListener("click", function(){
+  var rijen = nachtRijen();
+  if(!rijen.length){ toast("Geen overnachtingen in deze selectie."); return; }
+  bewaarBestand("nachtregister-" + stempel() + ".csv", csvVan(CSV_KOP, rijen.map(csvRij)), "Nachtregister");
+});
+$("nPdf").addEventListener("click", function(){
+  var rijen = nachtRijen();
+  if(!rijen.length){ toast("Geen overnachtingen in deze selectie."); return; }
+  nachtPdf(rijen, "Nachtregister", "nachtregister-" + stempel() + ".pdf",
+    ["Selectie: " + periodeTekst() + " · " + rijen.length + " boeking(en)", "Afgedrukt op " + dNL(stempel())]);
+});
+$("nMail").addEventListener("click", function(){
+  var rijen = nachtRijen(), t = totalen(rijen);
+  mailto(state.settings.mailNaar, "Nachtregister " + state.settings.bedrijf,
+    "Hierbij het nachtregister over " + periodeTekst() + ".\n\nBoekingen: " + rijen.length +
+    "\nOvernachtingen: " + t.persoonsnachten + "\nOmzet: " + eur(t.omzet) +
+    "\nToeristenbelasting: " + eur(t.belasting) + "\n\nDe specificatie zit als bijlage.\n\nMet vriendelijke groet,\n" + state.settings.bedrijf);
+});
+
+["mSort","mMail"].forEach(function(id){ $(id).addEventListener("change", tekenMembers); });
+$("mZoek").addEventListener("input", tekenMembers);
+$("mCsv").addEventListener("click", function(){
+  var rijen = memberRijen();
+  if(!rijen.length){ toast("Nog geen members."); return; }
+  bewaarBestand("memberslijst-" + stempel() + ".csv", klantCsv(rijen), "Memberslijst");
+});
+$("mPdf").addEventListener("click", function(){
+  var rijen = memberRijen();
+  if(!rijen.length){ toast("Nog geen members."); return; }
+  klantPdf(rijen, "Memberslijst", "memberslijst-" + stempel() + ".pdf");
+});
+$("mMailKnop").addEventListener("click", function(){
+  var rijen = memberRijen(), adressen = [], zonder = 0, i;
+  for(i=0;i<rijen.length;i++){ if(rijen[i].email) adressen.push(rijen[i].email); else zonder++; }
+  if(!adressen.length){ toast("Van deze members is nog geen e-mailadres bekend."); return; }
+  mailtoBcc(adressen, "Word member bij " + state.settings.bedrijf,
+    "Beste gast,\n\nJe gaf aan interesse te hebben in een membership bij " + state.settings.bedrijf + ".\n\n" +
+    "[hier je tekst]\n\nMet vriendelijke groet,\n" + state.settings.bedrijf);
+  if(zonder) setTimeout(function(){ toast("Let op: van " + zonder + " member(s) is geen e-mailadres bekend."); }, 1200);
+});
+
+$("klantNacht").addEventListener("click", function(){
+  if(!state.klantOpen) return;
+  state.klantFocus = state.klantOpen;
+  $("nJaar").value = "alles"; $("nGemeente").value = "alles"; $("nLocatie").value = "alles";
+  $("nVan").value = ""; $("nTot").value = ""; $("nZoek").value = "";
+  sluitModal("mdKlant"); toonTab("nacht"); window.scrollTo({top:0, behavior:"smooth"});
+});
+$("klantCsv").addEventListener("click", function(){
+  var map = klantenMap(), k = map[state.klantOpen];
+  if(!k) return;
+  bewaarBestand("klant-" + (k.naam||"klant").toLowerCase().replace(/[^a-z0-9]+/g,"-") + "-" + stempel() + ".csv",
+    csvVan(CSV_KOP, k.records.slice().sort(function(a,b){ return (a.datumIn||"").localeCompare(b.datumIn||""); }).map(csvRij)), "Lijst");
+});
+$("klantMail").addEventListener("click", function(){
+  var map = klantenMap(), k = map[state.klantOpen];
+  if(!k) return;
+  if(!k.email){ toast("Van deze klant is geen e-mailadres bekend."); return; }
+  mailto(k.email, "Bericht van " + state.settings.bedrijf,
+    "Beste " + k.naam + ",\n\n\n\nMet vriendelijke groet,\n" + state.settings.bedrijf);
+});
+$("klantMember").addEventListener("click", function(){
+  var map = klantenMap(), k = map[state.klantOpen];
+  if(!k) return;
+  var nieuw = !k.member, i;
+  for(i=0;i<state.records.length;i++){
+    if(klantKey(state.records[i]) === k.key){ state.records[i].member = nieuw; bewaarRecord(state.records[i]); }
+  }
+  herteken(); openKlant(k.key);
+  toast(nieuw ? "Toegevoegd aan members." : "Member-vinkje weggehaald.");
+});
+
+["sLelystad","sAlmere","sIncl","sBedrijf","sKvk","sMail","sMailNaar"].forEach(function(id){
+  $(id).addEventListener("change", function(){
+    var s = state.settings;
+    s.tariefLelystad = num($("sLelystad").value); s.percentageAlmere = num($("sAlmere").value);
+    s.prijsInclusief = $("sIncl").value; s.bedrijf = $("sBedrijf").value; s.kvk = $("sKvk").value;
+    s.mail = $("sMail").value; s.mailNaar = $("sMailNaar").value;
+    bewaarSettings(); herteken(); toast("Instelling opgeslagen.");
+  });
+});
+$("sLocList").addEventListener("change", function(e){
+  var el = e.target.closest("[data-loc]"); if(!el) return;
+  state.settings.locaties[+el.dataset.i][el.dataset.loc] = el.value;
+  bewaarSettings(); vulSelects(); herteken(); toast("Locatie bijgewerkt.");
+});
+$("sLocList").addEventListener("click", function(e){
+  var d = e.target.closest("[data-locdel]"); if(!d) return;
+  if(state.settings.locaties.length < 2){ toast("Er moet minstens één locatie blijven."); return; }
+  if(!confirm("Locatie verwijderen? Bestaande registraties blijven staan.")) return;
+  state.settings.locaties.splice(+d.dataset.locdel, 1);
+  bewaarSettings(); tekenLocatieInstellingen(); vulSelects(); herteken();
+});
+$("sLocAdd").addEventListener("click", function(){
+  state.settings.locaties.push({id:"loc" + Date.now(), naam:"Nieuwe locatie", adres:"", gemeente:"Almere"});
+  bewaarSettings(); tekenLocatieInstellingen(); vulSelects();
+});
+$("sExport").addEventListener("click", function(){
+  if(!state.records.length){ toast("Er zijn nog geen registraties."); return; }
+  bewaarBestand("klantbeheer-volledig-" + stempel() + ".csv", csvVan(CSV_KOP,
+    state.records.slice().sort(function(a,b){ return (a.datumIn||"").localeCompare(b.datumIn||""); }).map(csvRij)), "Back-up");
+});
+$("sJson").addEventListener("click", function(){
+  bewaarBestand("klantbeheer-backup-" + stempel() + ".json",
+    JSON.stringify({registraties:state.records, instellingen:state.settings}, null, 2), "Back-up");
+});
+
+/* ---------- start ---------- */
+vulSelects(); vulSettingsForm(); leegForm(); tekenPreview(); setStatus("wacht"); startOpslag();
+})();
+</script>
+</body>
+</html>
