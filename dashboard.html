@@ -1,673 +1,1441 @@
-<!DOCTYPE html>
-<html lang="nl" data-thema="espresso">
+<!doctype html>
+<html lang="nl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bed &amp; Wellness Flevoland — portaal</title>
-<meta name="theme-color" id="themaKleur" content="#F4F1ED">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beden Wellness Personeelsdashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <style>
-/* ═══════════════════════════════════════════════════════════
-   KLEURENSCHEMA'S — zelfde opzet als het VR Dashboard.
-   Kies er een via de knopjes onderaan of pas de waarden aan.
-   ═══════════════════════════════════════════════════════════ */
-
-[data-thema="espresso"]{
-  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3;
-  --line:#E3DAD0; --line-soft:#EFE8E1;
+:root{
+  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
   --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
   --accent:#483C34; --accent-ink:#FFFFFF; --accent-soft:#E8DFD5;
-  --brass:#9A7B4F; --ok:#3F7A55; --warn:#8F6420; --warn-soft:#F6EBD9;
+  --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2; --warn:#8F6420; --warn-soft:#F6EBD9;
   --crit:#A34434; --crit-soft:#F7E2DC;
-}
-[data-thema="salie"]{
-  --bg:#F3F6F2; --surface:#FFFFFF; --surface-2:#F7FAF6;
-  --line:#DCE4DA; --line-soft:#E9EFE7;
-  --ink:#1B2620; --ink-2:#3D4A41; --muted:#66756B;
-  --accent:#40584B; --accent-ink:#FFFFFF; --accent-soft:#DDE8E0;
-  --brass:#8C6F42; --ok:#397052; --warn:#8A6420; --warn-soft:#F3ECDC;
-  --crit:#A75446; --crit-soft:#F7E3DE;
-}
-[data-thema="leisteen"]{
-  --bg:#F2F5F7; --surface:#FFFFFF; --surface-2:#F8FAFB;
-  --line:#DBE2E6; --line-soft:#E9EEF1;
-  --ink:#16212A; --ink-2:#3A4750; --muted:#5F6E76;
-  --accent:#293D4A; --accent-ink:#FFFFFF; --accent-soft:#DCE5EA;
-  --brass:#96793F; --ok:#3F756C; --warn:#8A6420; --warn-soft:#F2EDDF;
-  --crit:#98505A; --crit-soft:#F5E2E5;
-}
-
-:root{
+  --pers-1:#483C34; --pers-2:#9A7B4F; --pers-3:#6F7A5A; --pers-4:#A25E48;
   --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
   --r-s:6px; --r-m:10px; --r-l:16px;
   --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
   --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141110; --surface:#1D1917; --surface-2:#251F1C; --line:#38302A; --line-soft:#2B2421;
+    --ink:#F1EBE4; --ink-2:#D8CEC4; --muted:#A2958A;
+    --accent:#D7BFA6; --accent-ink:#241E19; --accent-soft:#33291F;
+    --brass:#E0BE86; --ok:#79C08F; --ok-soft:#16301F; --warn:#E0B26A; --warn-soft:#33260F;
+    --crit:#E89383; --crit-soft:#361B16;
+    --pers-1:#D7BFA6; --pers-2:#E0BE86; --pers-3:#AFBE92; --pers-4:#E09B84;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.85);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141110; --surface:#1D1917; --surface-2:#251F1C; --line:#38302A; --line-soft:#2B2421;
+  --ink:#F1EBE4; --ink-2:#D8CEC4; --muted:#A2958A;
+  --accent:#D7BFA6; --accent-ink:#241E19; --accent-soft:#33291F;
+  --brass:#E0BE86; --ok:#79C08F; --ok-soft:#16301F; --warn:#E0B26A; --warn-soft:#33260F;
+  --crit:#E89383; --crit-soft:#361B16;
+  --pers-1:#D7BFA6; --pers-2:#E0BE86; --pers-3:#AFBE92; --pers-4:#E09B84;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.85);
+}
 
 *,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;padding:0}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);
-  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-a{color:inherit}
-button,input{font:inherit;color:inherit;cursor:pointer}
-input{cursor:auto}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,figure,ul,ol{margin:0}
+ul,ol{padding-left:1.1rem}
+button,input,select,textarea{font:inherit;color:inherit}
+:where(a){color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
-.hidden{display:none!important}
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-/* ───────────── inloggen ───────────── */
-#login{min-height:100dvh;display:grid;place-items:center;padding:20px;position:relative;overflow:hidden}
-#login::before{content:'';position:absolute;inset:0;
-  background:url('https://bedenwellnessflevoland.nl/Hero_images/Main_Bed_en_wellness_malina_deluxe_zwembad.webp') center/cover no-repeat}
-#login::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(180deg,
-    color-mix(in srgb, var(--bg) 86%, transparent) 0%,
-    color-mix(in srgb, var(--surface-2) 94%, transparent) 100%)}
-.paneel{position:relative;z-index:1;width:100%;max-width:400px;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);
-  padding:26px 24px;text-align:center}
-.logo{width:120px;height:auto;margin:0 auto 16px;display:block}
-.welkom{font-family:var(--f-display);font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0}
-.sub{color:var(--muted);font-size:13px;margin:6px 0 18px}
-.veld{text-align:left;margin:0 0 12px}
-label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin:0 0 5px}
-input[type=email],input[type=password]{width:100%;background:var(--surface-2);border:1px solid var(--line);
-  border-radius:var(--r-s);padding:8px 10px;font-size:14px}
-input:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--surface)}
-input::placeholder{color:color-mix(in srgb, var(--muted) 65%, white)}
-.btn{width:100%;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
-  padding:9px 16px;border-radius:var(--r-s);font-size:13.5px;font-weight:600}
-.btn:hover:not(:disabled){filter:brightness(1.07)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-rand{width:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);
-  border-radius:var(--r-s);padding:6px 11px;font-size:12.5px;font-weight:600}
-.btn-rand:hover{border-color:var(--accent);color:var(--accent)}
-.reset{background:none;border:0;color:var(--muted);font-size:12.5px;text-decoration:underline;
-  text-underline-offset:3px;padding:12px 0 0}
-.reset:hover{color:var(--accent)}
-.msg{font-size:13px;margin:12px 0 0;padding:10px 13px;display:none;text-align:left;border-radius:var(--r-m)}
-.msg.err{display:block;background:var(--crit-soft);color:var(--crit)}
-.msg.ok{display:block;background:var(--warn-soft);color:var(--ok)}
+.app{max-width:1120px;margin:0 auto;padding:0 20px 72px}
 
-/* ───────────── zijbalk ───────────── */
-.zijbalk{display:none}
-@media (min-width:1024px){
-  .navbalk{display:none}
-  .zijbalk{display:flex;flex-direction:column;gap:22px;position:fixed;top:0;left:0;bottom:0;width:258px;
-    z-index:30;background:var(--surface);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto}
-  .zij-merk img{width:112px;height:auto;display:block}
-  .zij-wie{display:flex;align-items:center;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line-soft)}
-  .initialen{width:34px;height:34px;flex:none;border-radius:11px;background:var(--accent);color:var(--accent-ink);
-    display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:13px}
-  .zij-mail{font-size:12px;color:var(--muted);line-height:1.3;word-break:break-word}
-  .zij-nav{display:flex;flex-direction:column;gap:2px;flex:1}
-  .zij-kop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--muted);margin:16px 0 6px}
-  .zij-kop:first-child{margin-top:0}
-  .zij-link{display:flex;align-items:center;justify-content:space-between;gap:8px;text-decoration:none;
-    color:var(--ink);font-size:13.5px;font-weight:500;padding:8px 11px;border-radius:var(--r-s)}
-  .zij-link:hover,.zij-link:focus-visible{background:var(--surface-2);color:var(--accent)}
-  .zij-link .aantal{font-family:var(--f-mono);font-size:10.5px;padding:1px 6px;border-radius:999px;
-    background:var(--surface-2);border:1px solid var(--line-soft);color:var(--muted)}
-  .zij-kaart{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r-m);
-    padding:14px;margin-top:auto}
-  .zij-kaart b{display:block;font-family:var(--f-display);font-size:14px;font-weight:600;margin-bottom:4px}
-  .zij-kaart p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.5}
-  .zij-kaart .btn-rand{width:100%;text-align:center}
-  .inhoud{margin-left:258px;min-height:100dvh}
-  .wrap{max-width:none;padding:0 32px}
-}
+/* ---------- topbar ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0 14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:38px;height:38px;flex:none;border-radius:11px;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.brand-txt strong{font-family:var(--f-display);font-weight:700;font-size:17px;letter-spacing:-.01em}
+.brand-txt span{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--f-mono)}
+.topbar-right{display:flex;align-items:center;gap:10px}
 
-/* ───────────── navigatiebalk (telefoon en tablet) ───────────── */
-.navbalk{position:sticky;top:0;z-index:20;background:var(--surface);
-  border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
-.navinner{max-width:1120px;margin:0 auto;padding:0 20px;display:grid;
-  grid-template-columns:auto 1fr auto;align-items:center;gap:12px}
-.navlogo{height:28px;width:auto;display:block}
-.navlinks{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
-.navlinks::-webkit-scrollbar{display:none}
-.navlink{text-decoration:none;color:var(--muted);font-size:13.5px;font-weight:500;white-space:nowrap;
-  padding:11px 12px 13px;border-bottom:2px solid transparent}
-.navlink:hover,.navlink:focus-visible{color:var(--ink);background:var(--surface-2);border-bottom-color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);font-size:12.5px;color:var(--muted);white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.chip[data-state="saving"] .dot{background:var(--warn)}
+.chip[data-state="saved"] .dot{background:var(--ok)}
+.chip[data-state="readonly"] .dot{background:var(--crit)}
+.who{cursor:pointer;height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:7px}
+.who:hover{border-color:var(--accent)}
+.who .avatar{width:19px;height:19px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-size:10px;font-weight:600;font-family:var(--f-mono)}
 
-/* ───────────── kop ───────────── */
-header{padding:22px 0 4px}
-h1{font-family:var(--f-display);font-size:clamp(22px,3.4vw,30px);font-weight:700;
-  letter-spacing:-.02em;margin:0;line-height:1.15}
-.datum{color:var(--muted);font-size:14px;margin:6px 0 0}
-.regel{height:1px;background:var(--line);border:0;margin:18px 0 0}
-.scheiding{display:none}
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:26px;
+  scrollbar-width:none;position:sticky;top:0;background:var(--bg);z-index:20;padding-top:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative;flex:none;background:none;border:0;padding:11px 14px 13px;cursor:pointer;
+  font-size:13.5px;font-weight:500;color:var(--muted);white-space:nowrap;border-radius:var(--r-s) var(--r-s) 0 0}
+.tab:hover{color:var(--ink);background:var(--surface-2)}
+.tab[aria-selected="true"]{color:var(--ink);font-weight:600}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;
+  background:var(--accent);border-radius:2px}
+.tab .badge{margin-left:7px;font-family:var(--f-mono);font-size:10.5px;padding:1px 6px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--line-soft);color:var(--muted)}
+.tab[aria-selected="true"] .badge{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
 
-/* ───────────── secties ───────────── */
-section{padding:22px 0}
-h2{font-family:var(--f-display);font-size:18px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px}
-.subkop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--brass);margin:22px 0 8px}
-.subkop:first-of-type{margin-top:0}
+.panel[hidden]{display:none}
+.panel{animation:fade .18s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 
-/* tellers */
-.tellers{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:0 0 18px}
-.teller{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);
-  padding:14px 16px;position:relative;overflow:hidden}
-.teller::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.85}
-.teller:nth-child(2)::before{background:var(--brass)}
-.teller:nth-child(3)::before{background:var(--ok)}
-.teller b{display:block;font-family:var(--f-display);font-size:26px;font-weight:700;letter-spacing:-.02em;
+/* ---------- headings ---------- */
+.page-head{margin-bottom:20px}
+.page-head h1{font-family:var(--f-display);font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.02em;
+  text-wrap:balance;line-height:1.15}
+.page-head p{color:var(--muted);font-size:14px;max-width:62ch;margin-top:6px}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow)}
+.card + .card{margin-top:18px}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:16px 18px;border-bottom:1px solid var(--line-soft)}
+.card-head h2{font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.card-head .hint{font-size:12.5px;color:var(--muted)}
+.card-body{padding:18px}
+.card-foot{padding:13px 18px;border-top:1px solid var(--line-soft);background:var(--surface-2);
+  border-radius:0 0 var(--r-l) var(--r-l);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font-size:13px;color:var(--muted)}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px;
+  display:flex;flex-direction:column;gap:3px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.85}
+.stat.brass::before{background:var(--brass)}
+.stat.ok::before{background:var(--ok)}
+.stat .label{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat .value{font-family:var(--f-display);font-size:26px;font-weight:700;letter-spacing:-.02em;
   font-variant-numeric:tabular-nums;line-height:1.1}
-.teller span{display:block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted);margin-top:4px}
+.stat .sub{font-size:12px;color:var(--muted)}
 
-/* lijstregels */
-.rij{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:baseline;
-  padding:11px 12px;border-bottom:1px solid var(--line-soft);background:var(--surface);
-  border-left:1px solid var(--line);border-right:1px solid var(--line)}
-.rij:first-child{border-top:1px solid var(--line);border-radius:var(--r-m) var(--r-m) 0 0}
-.rij:last-child{border-bottom:1px solid var(--line);border-radius:0 0 var(--r-m) var(--r-m)}
-.rij:hover{background:var(--surface-2)}
-.tijd{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
-.tijd.laat{color:var(--crit);font-weight:600}
-.naam{font-weight:600;font-size:14px}
-.plek{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-.plek.laat{color:var(--crit)}
-.prio{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
-  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);text-decoration:none;white-space:nowrap}
-.prio.hoog{background:var(--crit-soft);border-color:transparent;color:var(--crit)}
-a.prio:hover{border-color:var(--accent);color:var(--accent)}
-.leeg{padding:26px 18px;text-align:center;color:var(--muted);font-size:13.5px;
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);margin:0}
-.fout{font-size:13px;line-height:1.5;background:var(--crit-soft);color:var(--crit);
-  padding:11px 14px;border-radius:var(--r-m);margin:0}
-.fout code{font-family:var(--f-mono);font-size:.9em}
+/* ---------- forms ---------- */
+.grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px 14px;align-items:end}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:12px;font-weight:600;color:var(--ink-2)}
+.field input[type="text"],.field input[type="date"],.field input[type="number"],.field select,.field textarea{
+  width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);
+  padding:8px 10px;font-size:14px}
+.field textarea{resize:vertical;min-height:64px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;
+  background:var(--surface)}
+.check{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:var(--r-s);background:var(--surface-2);cursor:pointer;user-select:none}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.check[data-on="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
 
-/* ───────────── tegels ───────────── */
-#groepen h2{margin-top:26px}
-#groepen h2:first-child{margin-top:0}
-.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-.tegel{display:block;text-decoration:none;background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r-m);box-shadow:var(--shadow);padding:15px 16px 17px;position:relative;overflow:hidden}
-.tegel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brass)}
-.tegel:hover,.tegel:focus-visible{border-color:var(--accent)}
-.tegel:hover .t{color:var(--accent)}
-.tegel .t{display:block;font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:-.01em}
-.tegel .d{display:block;color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.45}
-.tegel.binnenkort{background:var(--surface-2);box-shadow:none;cursor:default}
-.tegel.binnenkort::before{background:var(--line)}
-.tegel.binnenkort:hover{border-color:var(--line)}
-.tegel.binnenkort .t{color:var(--muted)}
-.tag{position:absolute;top:12px;right:12px;font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--muted);background:var(--surface);border:1px solid var(--line-soft);
-  padding:2px 7px;border-radius:999px}
+.btn{cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+  padding:9px 16px;border-radius:var(--r-s);font-size:13.5px;font-weight:600;white-space:nowrap}
+.btn:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);filter:none}
+.btn.small{padding:6px 11px;font-size:12.5px}
+.icon-btn{cursor:pointer;background:none;border:1px solid transparent;border-radius:var(--r-s);
+  color:var(--muted);padding:4px 7px;font-size:13px;line-height:1}
+.icon-btn:hover{color:var(--crit);border-color:var(--line);background:var(--surface-2)}
+.icon-btn.ok:hover{color:var(--ok)}
 
-.extern{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}
-.pil{display:inline-flex;align-items:center;text-decoration:none;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--shadow);
-  padding:8px 13px;font-size:13.5px;font-weight:600;color:var(--ink)}
-.pil:hover,.pil:focus-visible{border-color:var(--accent);color:var(--accent)}
+.preview{margin-top:14px;padding:12px 14px;border-radius:var(--r-m);border:1px dashed var(--line);
+  background:var(--surface-2);display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:13px}
+.preview strong{font-family:var(--f-display);font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.preview .sep{width:1px;height:22px;background:var(--line)}
+.preview .opbouw{color:var(--muted);font-size:12.5px}
 
-/* ───────────── voet en kleurkeuze ───────────── */
-footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color:var(--muted);
-  font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
-.themas{display:flex;align-items:center;gap:8px}
-.themas .kop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
-.staal{width:24px;height:24px;border-radius:8px;padding:0;border:1px solid var(--line)}
-.staal[aria-pressed="true"]{border-color:var(--accent);border-width:2px}
-.staal.espresso{background:linear-gradient(135deg,#483C34 50%,#9A7B4F 50%)}
-.staal.salie   {background:linear-gradient(135deg,#40584B 50%,#8C6F42 50%)}
-.staal.leisteen{background:linear-gradient(135deg,#293D4A 50%,#96793F 50%)}
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:left;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.name{font-weight:600}
+td .meta{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
+tr.done td:not(.act){opacity:.55}
 
-@media (max-width:520px){
-  .wrap,.navinner{padding:0 14px}
-  .tellers{grid-template-columns:1fr 1fr}
-  .tegels{grid-template-columns:1fr}
-  .rij{grid-template-columns:48px 1fr auto;gap:9px}
-}
-@media (hover:none){ .staal{width:28px;height:28px} }
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:11.5px;
+  font-weight:600;border:1px solid transparent;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.neutral{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+
+.empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:13.5px}
+.empty strong{display:block;font-family:var(--f-display);font-size:15px;color:var(--ink);margin-bottom:4px;font-weight:600}
+
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+.filters .field{min-width:150px}
+
+/* ---------- handboek ---------- */
+.acc{border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface);overflow:hidden}
+.acc + .acc{margin-top:10px}
+.acc summary{cursor:pointer;padding:13px 16px;font-weight:600;font-size:14px;display:flex;
+  justify-content:space-between;align-items:center;gap:10px;list-style:none}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary::after{content:"+";font-family:var(--f-mono);color:var(--muted);font-size:16px}
+.acc[open] summary::after{content:"–"}
+.acc[open] summary{border-bottom:1px solid var(--line-soft);background:var(--surface-2)}
+.acc .acc-body{padding:14px 16px;font-size:13.8px;color:var(--ink-2);display:flex;flex-direction:column;gap:9px}
+.acc .acc-body li{margin-bottom:4px}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-variant-numeric:tabular-nums}
+
+.note{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.5}
+.two-col{display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:860px){.two-col{grid-template-columns:1.35fr .95fr}}
+
+dialog{border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface);color:var(--ink);
+  padding:0;max-width:400px;width:calc(100% - 32px);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(9,16,15,.45)}
+dialog .card-body{padding:20px}
+dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bottom:6px}
+
+.banner{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:var(--r-m);
+  background:var(--warn-soft);color:var(--warn);font-size:13px;margin-bottom:18px;border:1px solid transparent}
+.banner strong{font-weight:600}
+
+/* ---------- kalender ---------- */
+.kal-wrap{overflow-x:auto;padding-bottom:4px}
+.kal{display:grid;grid-template-columns:repeat(7,minmax(94px,1fr));gap:4px;min-width:672px}
+.kal-kop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  text-align:center;padding:2px 0 5px}
+.kal-cel{min-height:82px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--surface-2);
+  padding:5px 6px 7px;display:flex;flex-direction:column;gap:3px;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.kal-cel:hover{border-color:var(--accent);background:var(--surface)}
+.kal-cel.leeg{background:transparent;border-color:transparent;cursor:default;min-height:0}
+.kal-cel.vandaag{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kal-num{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.kal-cel.vandaag .kal-num{color:var(--accent);font-weight:600}
+.kal-chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 7px;
+  border-radius:999px;background:var(--surface);border:1px solid var(--line-soft);white-space:nowrap;overflow:hidden}
+.kal-dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--accent));flex:none;display:inline-block}
+.kal-nacht{margin-left:auto;color:var(--muted);font-size:11px}
+.legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;color:var(--ink-2)}
+.leg{display:inline-flex;align-items:center;gap:6px}
+
+/* ---------- inline bewerkbare cellen ---------- */
+td input[type="text"],td input[type="number"]{width:100%;background:transparent;border:1px solid transparent;
+  border-radius:var(--r-s);padding:5px 7px;font-size:13.5px}
+td input[type="text"]{min-width:112px}
+td input:hover{border-color:var(--line)}
+td input:focus{background:var(--surface-2);border-color:var(--accent);outline:none}
+td.name input{font-weight:600}
+td input.mini{width:66px;text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;min-width:0}
+.stepper{display:inline-flex;align-items:center;gap:2px;justify-content:flex-end}
+td.act .btn.small{margin-left:4px}
+
+/* ---------- urenpagina-kaarten ---------- */
+.urenlinks{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-bottom:18px}
+.urenkaart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;
+  display:flex;flex-direction:column;gap:5px;align-items:flex-start;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.urenkaart::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+.urenkaart h3{font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.urenkaart p{font-size:12.5px;color:var(--muted)}
+a.btn{margin-top:8px;text-decoration:none;color:var(--accent-ink);display:inline-block}
+a.btn.small{padding:6px 12px}
+
+/* ---------- fotostrook ---------- */
+.fotos{display:flex;gap:8px;margin:0 0 20px}
+.foto{position:relative;flex:1 1 0;max-width:168px;aspect-ratio:4/3;border-radius:var(--r-s);overflow:hidden;
+  border:1px solid var(--line);background:var(--surface-2)}
+.foto img{width:100%;height:100%;object-fit:cover;display:block}
+.foto .leegtekst{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;color:var(--muted);font-size:11px;text-align:center;padding:6px;pointer-events:none;line-height:1.3}
+.foto .leegtekst .plus{font-size:16px;opacity:.6}
+.foto input[type="file"]{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.foto .wis{position:absolute;top:4px;right:4px;z-index:2;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-s);padding:1px 6px;font-size:11px;cursor:pointer;color:var(--muted);opacity:0;transition:opacity .15s}
+.foto:hover .wis,.foto:focus-within .wis{opacity:1}
+.foto .wis:hover{color:var(--crit);border-color:var(--crit)}
+
+/* ---------- incheckformulier ---------- */
+.incheck-blok{display:flex;gap:26px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.incheck-frame{width:100%;height:min(78vh,900px);border:1px solid var(--line);border-radius:var(--r-m);
+  background:#fff;display:block}
+.incheck-actie{flex:1 1 260px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.btn.groot{height:auto;padding:13px 22px;font-size:15px;border-radius:var(--r-m)}
+.qr-kaart{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px;
+  border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface-2)}
+.qr-kaart img,.qr-kaart canvas{display:block;border-radius:4px}
+.qr-kaart .note{margin-top:0;max-width:170px;text-align:center}
+
+/* ---------- groepskoppen voorraad ---------- */
+tr.groep td{background:var(--surface-2);border-bottom:1px solid var(--line);padding:8px 12px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--brass);font-weight:600}
+tr.groep td .aantal{float:right;color:var(--muted);letter-spacing:0;text-transform:none;font-weight:400}
+td.datum input[type="date"]{width:100%;min-width:132px;background:transparent;border:1px solid transparent;
+  border-radius:var(--r-s);padding:5px 7px;font-size:13px;font-family:var(--f-mono)}
+td.datum input[type="date"]:hover{border-color:var(--line)}
+td.datum input[type="date"]:focus{background:var(--surface-2);border-color:var(--accent);outline:none}
+.kop-acties{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- snelle links ---------- */
+.linkrij{display:flex;flex-wrap:wrap;gap:10px}
+.linkrij .btn{text-decoration:none}
+.linkbeheer{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.linkbeheer .rij{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);
+  border-radius:var(--r-m);background:var(--surface-2);font-size:13.5px}
+.linkbeheer .rij span.naam{font-weight:600}
+.linkbeheer .rij span.adres{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.linkbeheer .rij button{border:none;background:transparent;color:var(--crit);cursor:pointer;font-size:13px}
+
+/* ---------- incheck-knop ---------- */
+.topbar-right .btn{height:32px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;font-size:12.5px;
+  text-decoration:none;margin-top:0}
+
+/* ---------- toegangspoort ---------- */
+body.gate-open{overflow:hidden}
+#gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px}
+.gate-kaart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);
+  padding:30px 28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:6px}
+.gate-kaart .mark{margin-bottom:12px}
+.gate-kaart h1{font-family:var(--f-display);font-size:21px;font-weight:700;letter-spacing:-.01em}
+.gate-kaart p{color:var(--muted);font-size:13.5px;margin-bottom:8px}
+.gate-kaart form{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.gate-fout{color:var(--crit);font-size:13px}
 </style>
 </head>
 <body>
-
-<!-- ══════════ INLOGGEN ══════════ -->
-<div id="login">
-  <div class="paneel">
-    <img class="logo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
-    <p class="welkom">Welkom terug</p>
-    <p class="sub">Log in om verder te gaan.</p>
-
-    <div class="veld">
-      <label for="email">E-mailadres</label>
-      <input id="email" type="email" autocomplete="username" inputmode="email" placeholder="naam@bedenwellnessflevoland.nl">
-    </div>
-    <div class="veld">
-      <label for="ww">Wachtwoord</label>
-      <input id="ww" type="password" autocomplete="current-password" placeholder="••••••••">
-    </div>
-
-    <button class="btn" id="knopIn">Inloggen</button>
-    <button class="reset" id="knopReset">Wachtwoord vergeten</button>
-    <p class="msg" id="loginMsg"></p>
+<script>
+/* ============================================================
+   VUL HIER JE SUPABASE-GEGEVENS IN
+   Te vinden in Supabase: Project Settings -> API
+   - SUPABASE_URL : de Project URL (https://....supabase.co)
+   - SUPABASE_KEY : de sleutel bij "anon" / "public" (begint met eyJ)
+   ============================================================ */
+window.SUPABASE_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
+window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
+</script>
+<div id="gate" hidden>
+  <div class="gate-kaart">
+    <span class="mark">B&amp;W</span>
+    <h1>Beden Wellness Flevoland</h1>
+    <p>Personeelsdashboard &mdash; vul de toegangscode van het team in.</p>
+    <form id="gateForm">
+      <div class="field"><label for="gate-input">Toegangscode</label>
+        <input type="password" id="gate-input" autocomplete="current-password" required></div>
+      <p class="gate-fout" id="gateFout" hidden>Die code klopt niet.</p>
+      <button class="btn" type="submit">Openen</button>
+    </form>
   </div>
 </div>
-
-<!-- ══════════ PORTAAL ══════════ -->
-<main id="portaal" class="hidden">
-
-  <div class="navbalk">
-    <div class="navinner">
-      <img class="navlogo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">
-      <div class="navlinks" id="navlinks"></div>
-      <button class="btn-rand" id="knopUit">Uitloggen</button>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">B&amp;W</span>
+      <span class="brand-txt">
+        <strong>Beden Wellness Flevoland</strong>
+        <span>Personeelsdashboard &middot; Malina</span>
+      </span>
     </div>
-  </div>
-
-  <aside class="zijbalk">
-    <div class="zij-merk">
-      <img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
+    <div class="topbar-right">
+      <span class="chip" id="saveChip" data-state="idle"><span class="dot"></span><span id="saveTxt">Klaar</span></span>
+      <button class="who" id="whoBtn" type="button"><span class="avatar" id="whoAvatar">?</span><span id="whoName">Wie ben je?</span></button>
     </div>
+  </header>
 
-    <div class="zij-wie">
-      <span class="initialen" id="initialen">–</span>
-      <span class="zij-mail" id="zijMail"></span>
-    </div>
+  <div class="fotos" id="fotos"></div>
 
-    <nav class="zij-nav" id="zijNav"></nav>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
+    <button class="tab" role="tab" id="tab-incheck" data-tab="incheck" aria-selected="false" aria-controls="panel-incheck">Inchecken</button>
+    <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
+    <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
+    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>      <button class="tab" role="tab" id="tab-klantbeheer" data-tab="klantbeheer" aria-selected="false" aria-controls="panel-klantbeheer">Klantbeheer</button>
+  </nav>
 
-    <div class="zij-kaart">
-      <b>Meer toevoegen</b>
-      <p id="zijTeller"></p>
-      <button class="btn-rand" id="knopUit2">Uitloggen</button>
-    </div>
-  </aside>
-
-  <div class="inhoud">
-  <div class="wrap">
-
-    <header>
-      <h1 id="groet">Goedemorgen</h1>
-      <p class="datum" id="datum"></p>
-    </header>
-    <hr class="regel">
-
-    <div class="kolommen">
-    <section aria-labelledby="vandaag">
-      <h2 id="vandaag">Vandaag</h2>
-      <div class="tellers">
-        <div class="teller"><b id="cVandaag">–</b><span>taken vandaag</span></div>
-        <div class="teller"><b id="cOpen">–</b><span>open taken</span></div>
-        <div class="teller"><b id="cCalls">–</b><span>welkomstcalls</span></div>
-      </div>
-
-      <p class="subkop">Taken</p>
-      <div id="lijstTaken"><p class="leeg">Bezig met laden…</p></div>
-
-      <p class="subkop">Welkomstcalls</p>
-      <div id="lijstCalls"><p class="leeg">Bezig met laden…</p></div>
+  <div id="roBanner" class="banner" hidden><span>&#9888;</span><span><strong>Alleen-lezen.</strong> Je kunt alles inzien, maar wijzigingen worden op deze weergave niet bewaard.</span></div>
+    <!-- ============ KLANTBEHEER ============ -->
+    <section class="panel" id="panel-klantbeheer" role="tabpanel" aria-labelledby="tab-klantbeheer" hidden>
+      <iframe src="klantbeheer.html" title="Klantbeheer" loading="lazy"
+        style="width:100%;height:calc(100vh - 200px);min-height:640px;border:1px solid rgba(0,0,0,.12);border-radius:12px;background:#fff;display:block"></iframe>
     </section>
-    <hr class="regel scheiding">
+  <!-- ============ INCHECKEN ============ -->
+  <section class="panel" id="panel-incheck" role="tabpanel" aria-labelledby="tab-incheck" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Gastregistratie</span>
+      <h1>Inchecken</h1>
+      <p>Drie stappen: het formulier klaarzetten als concept, de gast zelf online laten inchecken, en het definitieve formulier afronden.</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Incheckformulier</h2>
+        <button class="btn ghost small" id="incheckSet" type="button">Link wijzigen</button></div>
+      <div class="card-body" id="incheckHouder"></div>
+    </div>
+  </section>
 
-    <section aria-label="Onderdelen">
-      <div id="groepen"></div>
-      <h2>Boekingskanalen</h2>
-      <div class="extern" id="extern"></div>
-    </section>
+  <!-- ============ PLANNING ============ -->
+  <section class="panel" id="panel-planning" role="tabpanel" aria-labelledby="tab-planning" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Locatiemanager</span>
+      <h1>Planning</h1>
+      <p>Wie staat wanneer op welke locatie. Klik een dag aan om die datum in het formulier te zetten.</p>
+    </div>
+    <div class="stats" id="planStats"></div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reserveringen &amp; links</h2>
+        <button class="btn ghost small" id="resSet" type="button">Links beheren</button></div>
+      <div class="card-body" id="resHouder"></div>
     </div>
 
-    <footer>
-      <span id="wieben"></span>
-      <div class="themas">
-        <span class="kop">Kleuren</span>
-        <button class="staal espresso" data-kies="espresso" aria-pressed="true"  title="Espresso &amp; goud"        aria-label="Espresso en goud"></button>
-        <button class="staal salie"    data-kies="salie"    aria-pressed="false" title="Salie &amp; champagnebrons" aria-label="Salie en champagnebrons"></button>
-        <button class="staal leisteen" data-kies="leisteen" aria-pressed="false" title="Leisteenblauw &amp; goud"   aria-label="Leisteenblauw en zacht goud"></button>
+    <div class="card">
+      <div class="card-head">
+        <h2 id="kalTitel">Maandoverzicht</h2>
+        <span style="display:flex;gap:6px;align-items:center">
+          <button class="btn ghost small" type="button" id="kalPrev" aria-label="Vorige maand">&larr;</button>
+          <button class="btn ghost small" type="button" id="kalNu">Deze maand</button>
+          <button class="btn ghost small" type="button" id="kalNext" aria-label="Volgende maand">&rarr;</button>
+        </span>
       </div>
-    </footer>
+      <div class="card-body">
+        <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
+        <div class="legend" id="kalLegend"></div>
+      </div>
+    </div>
 
+    <div class="card">
+      <div class="card-head"><h2>Dienst inplannen</h2><span class="hint">Datum, medewerker en locatie</span></div>
+      <div class="card-body">
+        <form class="grid-form" id="planForm">
+          <div class="field"><label for="p-datum">Datum</label><input type="date" id="p-datum" required></div>
+          <div class="field"><label for="p-mw">Medewerker</label><select id="p-mw" required></select></div>
+          <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option><option value="Almere">Almere</option></select></div>
+          <div class="field"><label for="p-dienst">Soort</label><select id="p-dienst"><option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option><option value="schoonmaak">Alleen schoonmaak</option></select></div>
+          <div class="field" style="grid-column:span 2"><label for="p-notitie">Notitie</label><input type="text" id="p-notitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
+          <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Inplannen</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Diensten in deze maand</h2><span class="hint" id="planCount"></span></div>
+      <div class="table-wrap" id="planTable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Wie kun je inplannen</h2><span class="hint">Alleen namen &mdash; uren en loon staan hier niet in</span></div>
+      <div class="table-wrap" id="teamTable"></div>
+      <div class="card-body">
+        <form class="grid-form" id="teamForm">
+          <div class="field"><label for="t-naam">Naam</label><input type="text" id="t-naam" required placeholder="Voornaam of volledige naam"></div>
+          <div class="field"><label for="t-rol">Functie</label><input type="text" id="t-rol" placeholder="Gastvrouw / gastheer"></div>
+          <div class="field"><label for="t-loc">Locatie</label><input type="text" id="t-loc" list="locaties" value="Lelystad Malina"></div>
+          <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Toevoegen</button></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VOORRAAD ============ -->
+  <section class="panel" id="panel-voorraad" role="tabpanel" aria-labelledby="tab-voorraad" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Inkoop</span>
+      <h1>Voorraad &amp; bestellingen</h1>
+      <p>Alles is aan te passen: klik in een veld om een naam, aantal, minimum of leverancier te wijzigen. Wat onder het minimum zakt, komt vanzelf op de bestellijst.</p>
+    </div>
+    <div class="stats" id="voorraadStats"></div>
+
+    <div class="card">
+      <div class="card-head"><h2>Bestellijst</h2>
+        <span class="kop-acties">
+          <button class="btn ghost small" type="button" id="bestelPrint">Uitdraaien / printen</button>
+          <button class="btn ghost small" type="button" id="bestelCsv">Opslaan als bestand</button>
+        </span></div>
+      <div class="table-wrap" id="bestelTable"></div>
+      <div class="card-foot"><span>Zodra een bestelling binnen is, telt <strong>Ontvangen</strong> het aantal bij de voorraad op.</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Voorraad</h2><span class="hint" id="voorraadCount"></span></div>
+      <div class="card-body" style="padding-bottom:0">
+        <div class="filters">
+          <div class="field"><label for="f-zoek">Zoeken</label><input type="text" id="f-zoek" placeholder="Artikel of leverancier"></div>
+          <div class="field"><label for="f-cat">Categorie</label><select id="f-cat"></select></div>
+          <div class="field"><label for="f-status">Status</label><select id="f-status">
+            <option value="">Alle statussen</option>
+            <option value="bestellen">Te bestellen</option>
+            <option value="op">Op</option>
+            <option value="peil">Op peil</option>
+            <option value="besteld">Besteld</option>
+          </select></div>
+          <div class="field"><label>&nbsp;</label><button class="btn ghost" type="button" id="f-wis">Filter wissen</button></div>
+        </div>
+      </div>
+      <div class="table-wrap" id="voorraadTable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Artikel toevoegen</h2></div>
+      <div class="card-body">
+        <form class="grid-form" id="voorraadForm">
+          <div class="field"><label for="v-naam">Artikel</label><input type="text" id="v-naam" required></div>
+          <div class="field"><label for="v-cat">Categorie</label><input type="text" id="v-cat" list="categorieen" placeholder="Linnen, bar, schoonmaak"></div>
+          <div class="field"><label for="v-aantal">Voorraad</label><input type="number" id="v-aantal" value="0" min="0" step="1"></div>
+          <div class="field"><label for="v-min">Minimum</label><input type="number" id="v-min" value="2" min="0" step="1"></div>
+          <div class="field"><label for="v-lev">Leverancier</label><input type="text" id="v-lev" list="leveranciers"></div>
+          <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Toevoegen</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Vaste leveranciers</h2></div>
+      <div class="card-body">
+        <details class="acc"><summary>Sushi &mdash; Sushi Nippon (eerste keuze)</summary><div class="acc-body"><ul>
+          <li>Menu van &euro;42, telefonisch bestellen &ldquo;volgens de samenwerking&rdquo;.</li>
+          <li>Tikkie laten sturen, leveren in ronde schaal, bon meeleveren.</li>
+        </ul></div></details>
+        <details class="acc"><summary>Sushi &mdash; Sushi Eiland (tweede keuze)</summary><div class="acc-body"><ul>
+          <li>VIP box, zelfde afspraken: Tikkie, ronde schaal, bon.</li>
+          <li>Kan een uur duren &mdash; op tijd bestellen.</li>
+          <li>Gratis kindermenu voor eigen gebruik bij deze samenwerking.</li>
+          <li>Geen rauwe vis bij de gast? Doorgeven bij de bestelling.</li>
+        </ul></div></details>
+        <details class="acc"><summary>Mocktail-karaf &mdash; buurvrouw aan de overkant</summary><div class="acc-body"><ul>
+          <li>Maximaal &eacute;&eacute;n dag van tevoren bestellen; op de dag zelf proberen kan.</li>
+          <li>Aanbellen of een briefje met de bestelling door de brievenbus.</li>
+        </ul></div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OVERDRACHT ============ -->
+  <section class="panel" id="panel-overdracht" role="tabpanel" aria-labelledby="tab-overdracht" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Locatiemanager</span>
+      <h1>Overdracht</h1>
+      <p>Wat de volgende dienst moet weten. Kies aan wie je het overdraagt en van welke locatie het is; vink af wat is afgehandeld, zo blijft alleen het openstaande over.</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Bericht achterlaten</h2></div>
+      <div class="card-body">
+        <form id="odForm">
+          <div class="grid-form">
+            <div class="field"><label for="o-van">Van</label><select id="o-van"></select></div>
+            <div class="field"><label for="o-aan">Overdragen aan</label><select id="o-aan"></select></div>
+            <div class="field"><label for="o-loc">Locatie</label><select id="o-loc"><option value="Malina Jacuzzi">Malina Jacuzzi</option><option value="Malina Zwembad">Malina Zwembad</option><option value="Almere">Almere</option></select></div>
+            <div class="field"><label for="o-cat">Soort</label><select id="o-cat"><option value="info">Informatie</option><option value="storing">Storing</option><option value="defect">Defect</option><option value="klacht">Klacht</option></select></div>
+            <div class="field"><label for="o-datum">Datum</label><input type="date" id="o-datum"></div>
+          </div>
+          <div class="field" style="margin-top:12px"><label for="o-tekst">Bericht</label><textarea id="o-tekst" required placeholder="Bijv. bubbelbad suite 2 loopt langzaam leeg, monteur belt maandag terug"></textarea></div>
+          <div style="margin-top:12px"><button class="btn" type="submit">Plaatsen</button></div>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Openstaand &amp; afgehandeld</h2><span class="hint" id="odCount"></span></div>
+      <div class="card-body" id="odList"></div>
+    </div>
+  </section>
+
+  <datalist id="locaties"><option value="Lelystad Malina"></option><option value="Almere"></option></datalist>
+  <datalist id="categorieen"><option value="Linnen"></option><option value="Bar"></option><option value="Schoonmaak"></option><option value="Suite"></option><option value="Keuken"></option></datalist>
+  <datalist id="leveranciers"><option value="Sushi Nippon"></option><option value="Sushi Eiland"></option><option value="Buurvrouw (mocktails)"></option></datalist>
+</div>
+
+<dialog id="whoDialog">
+  <div class="card-body">
+    <h2>Wie ben je?</h2>
+    <p class="note" style="margin-top:0">Je naam komt bij wat je invult, zodat de rest van het team ziet wie wat heeft geregistreerd. Blijft op dit apparaat bewaard.</p>
+    <form method="dialog" id="whoForm" style="margin-top:14px">
+      <div class="field"><label for="who-input">Naam</label><input type="text" id="who-input" required autocomplete="name"></div>
+      <div style="display:flex;gap:9px;margin-top:14px;justify-content:flex-end">
+        <button class="btn ghost" type="button" id="whoCancel">Annuleren</button>
+        <button class="btn" type="submit">Opslaan</button>
+      </div>
+    </form>
   </div>
+</dialog>
+
+<dialog id="resDialog">
+  <div class="card-body">
+    <h2>Links beheren</h2>
+    <p class="note" style="margin-top:0">Knoppen die in het tabblad Planning verschijnen &mdash; bijvoorbeeld je dashboard bij Priv&eacute; sauna, Planyo, Booking.com of Origineel Overnachten. Voor iedereen die dit dashboard gebruikt.</p>
+    <div class="linkbeheer" id="linkBeheer"></div>
+    <form method="dialog" id="resForm" style="margin-top:6px">
+      <div class="grid-form">
+        <div class="field"><label for="link-naam">Naam op de knop</label><input type="text" id="link-naam" placeholder="Bijv. Reserveringen"></div>
+        <div class="field"><label for="link-url">Webadres</label><input type="url" id="link-url" placeholder="https://..."></div>
+      </div>
+      <div style="display:flex;gap:9px;margin-top:14px;justify-content:space-between;align-items:center">
+        <button class="btn ghost" type="button" id="linkToevoegen">+ Link toevoegen</button>
+        <button class="btn" type="submit">Klaar</button>
+      </div>
+    </form>
   </div>
-</main>
+</dialog>
 
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+<dialog id="incheckDialog">
+  <div class="card-body">
+    <h2>Link naar het incheckformulier</h2>
+    <p class="note" style="margin-top:0">Plak hier het webadres van de incheck-app. De knop bovenin opent hem dan in een nieuw tabblad, voor iedereen die dit dashboard gebruikt.</p>
+    <form method="dialog" id="incheckForm" style="margin-top:14px">
+      <div class="field"><label for="incheck-input">Webadres</label><input type="url" id="incheck-input" placeholder="https://..."></div>
+      <div style="display:flex;gap:9px;margin-top:14px;justify-content:flex-end">
+        <button class="btn ghost" type="button" id="incheckCancel">Annuleren</button>
+        <button class="btn" type="submit">Opslaan</button>
+      </div>
+    </form>
+  </div>
+</dialog>
 
-/* ═══════════════════════════════════════════════════════════
-   CONFIGURATIE — pas alleen dit blok aan
-   ═══════════════════════════════════════════════════════════ */
-const CONFIG = {
-  supabaseUrl : 'https://iuyjvtlauktnjprbmbjj.supabase.co',
-  // De 'anon public' sleutel uit Supabase → Project Settings → API.
-  // Deze mág openbaar staan, mits Row Level Security aan staat (zie portaal-setup.sql).
-  // Zet hier NOOIT de service_role-sleutel neer.
-  supabaseAnonKey : 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U',
 
-  standaardThema : 'espresso',   // espresso | salie | leisteen
+<script>
+(function(){
+  "use strict";
 
-  rollen : {
-    tabel : 'bwf_rollen',      // id (uuid), naam, rol
-    rol   : 'rol'              // waarde 'eigenaar' of 'medewerker'
-  },
+  /* ---------------- Supabase ---------------- */
+  var SB_URL = String(window.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  var SB_KEY = String(window.SUPABASE_KEY || "").trim();
+  var SB_ACTIEF = SB_URL.indexOf("http") === 0 && SB_KEY.length > 20;
+  var LINKS_STANDAARD = [{ id: "res", naam: "Reserveringen", url: "https://privesauna.nl/" }];
 
-  taken : {
-    tabel      : 'wz_taken',
-    titel      : 'titel',
-    deadline   : 'deadline',
-    prioriteit : 'prioriteit',
-    medewerker : 'medewerker_id',
-    afgerond   : 'afgerond_op'  // leeg = nog open
-  },
+  var state = { medewerkers: [], planning: [], voorraad: [], overdracht: [], fotos: ["", "", ""], incheckUrl: "", links: kopie(LINKS_STANDAARD) };
+  var vorige = null, saveTimer = null, ophaalTimer = null, bezig = false;
+  var chip = document.getElementById("saveChip"), chipTxt = document.getElementById("saveTxt");
 
-  welkomstcalls : {
-    tabel    : 'wz_welkomstcalls',
-    naam     : 'naam',
-    datum    : 'datum',
-    locatie  : 'locatie',
-    telefoon : 'telefoon',
-    gebeld   : 'gebeld_op'      // leeg = nog te bellen
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function setChip(st, txt){ chip.setAttribute("data-state", st); chipTxt.textContent = txt; }
+  function readOnly(){ setChip("readonly", "Geen verbinding"); }
+  function kopie(o){ return JSON.parse(JSON.stringify(o)); }
+
+  var TABELLEN = {
+    medewerkers: ["naam", "rol", "locatie"],
+    planning: ["datum", "medewerker_id", "locatie", "dienst", "notitie"],
+    voorraad: ["naam", "categorie", "aantal", "min_aantal", "leverancier", "besteld", "bestel_aantal", "verwacht"],
+    overdracht: ["ts", "auteur", "aan", "locatie", "cat", "tekst", "klaar", "datum"]
+  };
+  var NAAR_DB = { medewerkerId: "medewerker_id", min: "min_aantal", bestelAantal: "bestel_aantal" };
+  var VAN_DB = { medewerker_id: "medewerkerId", min_aantal: "min", bestel_aantal: "bestelAantal" };
+
+  function naarDb(tabel, obj){
+    var uit = { id: obj.id }, velden = TABELLEN[tabel], i, dbNaam, jsNaam;
+    for (i = 0; i < velden.length; i++) {
+      dbNaam = velden[i];
+      jsNaam = VAN_DB[dbNaam] || dbNaam;
+      uit[dbNaam] = obj[jsNaam] === undefined ? null : obj[jsNaam];
+    }
+    return uit;
   }
-};
-
-const GROEPEN = [
-  {
-    kop:'Dagelijks',
-    tegels:[
-      { t:'Dagoverzicht',    d:'Reserveringen en aankomsten',        url:'dashboard-prototype.html' },
-      { t:'Incheckformulier',d:'Formulier voor gasten',              url:'incheckformulier.html' },
-      { t:'Incheck-app',     d:'Online inchecken door de gast',      url:'bwf-incheck-app-licht.html' },
-      { t:'Gastenlink',      d:'Aparte link voor de gast',           url:'gast.html' },
-      { t:'Gastenapp',       d:'App voor gasten per suite',          url:null }
-    ]
-  },
-  {
-    kop:'Taken',
-    tegels:[
-      { t:'Taken',        d:'Werkzaamheden, bellijsten en overdracht',
-        url:'vrdashboard.html', rollen:['eigenaar','medewerker'] },
-      { t:'VR Dashboard', d:'Registratie werkzaamheden op tarief',
-        url:'vr2.html', rollen:['eigenaar','medewerker'] }
-    ]
-  },
-  {
-    kop:'Personeel',
-    tegels:[
-      { t:'Personeelsdashboard', d:'Handboek, planning en overdracht', url:'dashboard.html' },
-      { t:'Urenregistratie',     d:'Uren per medewerker',
-        url:'uren-ruth.html', rollen:['eigenaar','medewerker'] },
-      { t:'Voorraad',            d:'Voorraad en bestellingen',
-        url:'dashboard.html', rollen:['eigenaar','medewerker'] },
-      { t:'Planning',            d:'Maandkalender per medewerker',    url:null },
-      { t:'Contracten',          d:'Overeenkomsten en tarieven',      url:null }
-    ]
-  },
-  {
-    kop:'Administratie',
-    tegels:[
-      { t:'Klantbeheer',        d:'Klantenbestand, nachtregister en members',
-        url:'klantbeheer.html', rollen:['eigenaar','medewerker'] },
-      { t:'Toeristenbelasting', d:'Aangifte per gemeente',  url:'klantbeheer.html?tab=aangifte' },
-      { t:'Financieel',         d:'Omzet, kosten en btw',   url:null },
-      { t:'Documenten',         d:'Huisregels en voorwaarden', url:null },
-      { t:'Leveranciers',       d:'Vaste afspraken en bestellingen', url:null }
-    ]
-  },
-  {
-    kop:'Marketing',
-    tegels:[
-      { t:'Contentplanning', d:'Social media en berichten', url:null },
-      { t:'Advertenties',    d:'Campagnes en budget',       url:null },
-      { t:'Events',          d:'Retreats en arrangementen', url:null }
-    ]
-  },
-  {
-    kop:'Assistent',
-    tegels:[
-      { t:'Claude Cowork',      d:'Werksessie voor bouwen en administratie',
-        url:'https://claude.ai/cowork/cse_01JzWXnAo3DjUGtDVmaLawdy', extern:true },
-      { t:'Virtuele assistent', d:'Vragen stellen over je eigen gegevens', url:null }
-    ]
+  function vanDb(tabel, rij){
+    var uit = { id: rij.id }, velden = TABELLEN[tabel], i, dbNaam, jsNaam;
+    for (i = 0; i < velden.length; i++) {
+      dbNaam = velden[i];
+      jsNaam = VAN_DB[dbNaam] || dbNaam;
+      uit[jsNaam] = rij[dbNaam];
+    }
+    return uit;
   }
-];
-// rollen: wie de tegel ziet. Zonder rollen ziet alleen de eigenaar hem.
-//   rollen:['eigenaar','medewerker']  → iedereen die inlogt
-// url:null maakt de tegel grijs met "nog te bouwen".
 
-const EXTERN = [
-  { t:'Planyo',                url:'https://www.planyo.com' },
-  { t:'Booking.com',           url:'https://admin.booking.com' },
-  { t:'Privésauna',            url:'https://www.privesauna.nl' },
-  { t:'Origineel Overnachten', url:'https://www.origineelovernachten.nl' },
-  { t:'Mollie',                url:'https://my.mollie.com' }
-];
-/* ═══════════ EINDE CONFIGURATIE ═══════════ */
-
-const $  = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
-
-/* ---------- kleurenschema ---------- */
-const ACHTERGROND = { espresso:'#F4F1ED', salie:'#F3F6F2', leisteen:'#F2F5F7' };
-
-function zetThema(naam){
-  if(!ACHTERGROND[naam]) naam = 'espresso';
-  document.documentElement.dataset.thema = naam;
-  $('#themaKleur').setAttribute('content', ACHTERGROND[naam]);
-  $$('.staal').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.kies === naam)));
-  try{ localStorage.setItem('bwf-thema', naam); }catch(e){}
-}
-
-let bewaard = null;
-try{ bewaard = localStorage.getItem('bwf-thema'); }catch(e){}
-zetThema(bewaard || CONFIG.standaardThema);
-
-$$('.staal').forEach(b => b.addEventListener('click', () => zetThema(b.dataset.kies)));
-
-/* ---------- inloggen ---------- */
-function toon(soort, tekst){
-  const m = $('#loginMsg');
-  m.className = 'msg ' + soort;
-  m.textContent = tekst;
-}
-
-$('#knopIn').addEventListener('click', async () => {
-  const email = $('#email').value.trim();
-  const ww    = $('#ww').value;
-  if(!email || !ww){ toon('err','Vul je e-mailadres en wachtwoord in.'); return; }
-
-  $('#knopIn').disabled = true;
-  $('#knopIn').textContent = 'Bezig…';
-  const { error } = await sb.auth.signInWithPassword({ email, password: ww });
-  $('#knopIn').disabled = false;
-  $('#knopIn').textContent = 'Inloggen';
-
-  if(error){
-    toon('err', error.message.includes('Invalid')
-      ? 'E-mailadres of wachtwoord klopt niet.'
-      : 'Inloggen lukte niet: ' + error.message);
+  function api(pad, opties){
+    opties = opties || {};
+    var kop = {
+      apikey: SB_KEY,
+      Authorization: "Bearer " + SB_KEY,
+      "Content-Type": "application/json",
+      Prefer: opties.prefer || "return=minimal"
+    };
+    return fetch(SB_URL + "/rest/v1/" + pad, {
+      method: opties.method || "GET",
+      headers: kop,
+      body: opties.body ? JSON.stringify(opties.body) : undefined
+    }).then(function(r){
+      if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + " " + t); });
+      if (opties.method && opties.method !== "GET" && (opties.prefer || "").indexOf("representation") < 0) return null;
+      return r.json();
+    });
   }
-});
 
-$('#ww').addEventListener('keydown', e => { if(e.key === 'Enter') $('#knopIn').click(); });
-
-$('#knopReset').addEventListener('click', async () => {
-  const email = $('#email').value.trim();
-  if(!email){ toon('err','Vul eerst je e-mailadres in.'); return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href });
-  toon(error ? 'err' : 'ok', error ? error.message : 'Er staat een herstelmail in je inbox.');
-});
-
-async function uitloggen(){
-  await sb.auth.signOut();
-  location.reload();
-}
-$('#knopUit').addEventListener('click', uitloggen);
-$('#knopUit2').addEventListener('click', uitloggen);
-
-sb.auth.onAuthStateChange((_e, sessie) => {
-  if(sessie){
-    $('#login').classList.add('hidden');
-    $('#portaal').classList.remove('hidden');
-    $('#wieben').textContent = sessie.user.email;
-    $('#zijMail').textContent = sessie.user.email;
-    $('#initialen').textContent =
-      (sessie.user.email || '?').replace(/@.*/,'').slice(0,2).toUpperCase();
-    HUIDIGE_ID = sessie.user.id;
-    haalRol(sessie.user.id).then(startPortaal);
-  }else{
-    $('#login').classList.remove('hidden');
-    $('#portaal').classList.add('hidden');
+  /* ---- laden ---- */
+  function laden(stil){
+    if (!SB_ACTIEF) { setChip("readonly", "Nog niet gekoppeld"); return Promise.resolve(); }
+    if (!stil) setChip("saving", "Laden…");
+    return Promise.all([
+      api("medewerkers?select=*&order=aangemaakt.asc"),
+      api("planning?select=*&order=datum.asc"),
+      api("voorraad?select=*&order=aangemaakt.asc"),
+      api("overdracht?select=*&order=ts.desc"),
+      api("instellingen?select=*")
+    ]).then(function(res){
+      state.medewerkers = res[0].map(function(r){ return vanDb("medewerkers", r); });
+      state.planning = res[1].map(function(r){ return vanDb("planning", r); });
+      state.voorraad = res[2].map(function(r){ return vanDb("voorraad", r); });
+      state.overdracht = res[3].map(function(r){ return vanDb("overdracht", r); });
+      var inst = {};
+      res[4].forEach(function(r){ inst[r.sleutel] = r.waarde; });
+      state.incheckUrl = inst.incheck_url || "";
+      state.links = leesLinks(inst.snel_links);
+      if (!state.links.length) {
+        state.links = inst.reserveringen_url
+          ? [{ id: "res", naam: "Reserveringen", url: inst.reserveringen_url }]
+          : kopie(LINKS_STANDAARD);
+      }
+      state.fotos = [inst.foto_1 || "", inst.foto_2 || "", inst.foto_3 || ""];
+      vorige = kopie(state);
+      renderAll();
+      setChip("saved", "Actueel");
+    }).catch(function(e){
+      setChip("readonly", "Verbinding mislukt");
+      if (window.console) console.warn("Supabase:", e.message);
+    });
   }
-});
 
-/* ---------- portaal ---------- */
-let gestart = false;
-let ROL = 'medewerker';
-let rolBekend = false;
-let HUIDIGE_ID = null;
-
-async function haalRol(userId){
-  try{
-    const R = CONFIG.rollen;
-    const { data } = await sb.from(R.tabel).select(R.rol).eq('id', userId).maybeSingle();
-    if(data && data[R.rol]){ ROL = data[R.rol]; rolBekend = true; }
-  }catch(e){}
-}
-
-function magZien(tegel){
-  if(ROL === 'eigenaar') return true;
-  return Array.isArray(tegel.rollen) && tegel.rollen.indexOf(ROL) >= 0;
-}
-
-function startPortaal(){
-  if(gestart) return;
-  gestart = true;
-
-  const nu  = new Date();
-  const uur = nu.getHours();
-  $('#groet').textContent = uur < 6 ? 'Goedenacht' : uur < 12 ? 'Goedemorgen'
-                          : uur < 18 ? 'Goedemiddag' : 'Goedenavond';
-  $('#datum').textContent = nu.toLocaleDateString('nl-NL',
-    { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-
-  const slug = t => t.toLowerCase().replace(/[^a-z]/g,'');
-
-  const ZICHTBAAR = GROEPEN
-    .map(g => ({ kop:g.kop, tegels:g.tegels.filter(magZien) }))
-    .filter(g => g.tegels.length > 0);
-
-  const nogTeBouwen = ZICHTBAAR.flatMap(g => g.tegels).filter(t => !t.url).length;
-
-  $('#zijNav').innerHTML =
-    `<span class="zij-kop">Overzicht</span>
-     <a class="zij-link" href="#vandaag">Vandaag</a>
-     <span class="zij-kop">Onderdelen</span>` +
-    ZICHTBAAR.map(g => {
-      const klaar = g.tegels.filter(t => t.url).length;
-      return `<a class="zij-link" href="#${slug(g.kop)}">${g.kop}
-              <span class="aantal">${klaar}/${g.tegels.length}</span></a>`;
-    }).join('');
-
-  $('#zijTeller').textContent =
-    `${nogTeBouwen} onderdelen staan klaar als tegel maar zijn nog niet gebouwd.`;
-
-  $('#navlinks').innerHTML =
-    `<a class="navlink" href="#vandaag">Vandaag</a>` +
-    ZICHTBAAR.map(g => `<a class="navlink" href="#${slug(g.kop)}">${g.kop}</a>`).join('');
-
-  $('#groepen').innerHTML = ZICHTBAAR.map(g => `
-    <h2 id="${slug(g.kop)}">${g.kop}</h2>
-    <div class="tegels">` + g.tegels.map(x => x.url
-      ? `<a class="tegel" href="${x.url}"${x.extern ? ' target="_blank" rel="noopener"' : ''}><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
-      : `<div class="tegel binnenkort"><span class="t">${x.t}</span><span class="d">${x.d}</span>
-         <span class="tag">nog te bouwen</span></div>`
-    ).join('') + `</div>`).join('');
-
-  $('#extern').innerHTML = EXTERN.map(x =>
-    `<a class="pil" href="${x.url}" target="_blank" rel="noopener">${x.t}</a>`
-  ).join('');
-
-  laadDag();
-
-  if(!rolBekend){
-    $('#zijTeller').textContent =
-      'Beperkte weergave: je staat nog niet als eigenaar in de tabel bwf_rollen.';
+  /* ---- opslaan: verschil bepalen en versturen ---- */
+  function verschilTabel(tabel){
+    var nu = state[tabel] || [], oud = (vorige && vorige[tabel]) || [], acties = [];
+    var oudMap = {}, nuMap = {}, i;
+    for (i = 0; i < oud.length; i++) oudMap[oud[i].id] = oud[i];
+    for (i = 0; i < nu.length; i++) nuMap[nu[i].id] = nu[i];
+    for (i = 0; i < nu.length; i++) {
+      var r = nu[i], o = oudMap[r.id];
+      if (!o) acties.push({ soort: "nieuw", rij: r });
+      else if (JSON.stringify(naarDb(tabel, r)) !== JSON.stringify(naarDb(tabel, o))) acties.push({ soort: "wijzig", rij: r });
+    }
+    for (i = 0; i < oud.length; i++) if (!nuMap[oud[i].id]) acties.push({ soort: "weg", rij: oud[i] });
+    return acties;
   }
-}
 
-const vandaag = () => new Date().toLocaleDateString('sv-SE'); // JJJJ-MM-DD, lokale tijd
+  function instellingRijen(){
+    var lijst = [];
+    if (!vorige || vorige.incheckUrl !== state.incheckUrl) lijst.push({ sleutel: "incheck_url", waarde: state.incheckUrl });
+    if (!vorige || JSON.stringify(vorige.links) !== JSON.stringify(state.links)) lijst.push({ sleutel: "snel_links", waarde: JSON.stringify(state.links) });
+    for (var i = 0; i < 3; i++) {
+      if (!vorige || (vorige.fotos || [])[i] !== state.fotos[i]) lijst.push({ sleutel: "foto_" + (i + 1), waarde: state.fotos[i] });
+    }
+    return lijst;
+  }
 
-function fout(waar, tabel, melding){
-  $(waar).innerHTML =
-    `<p class="fout">Kon niet laden uit <code>${tabel}</code>. ${melding}</p>`;
-}
+  function queueSave(){
+    if (!SB_ACTIEF) { setChip("readonly", "Nog niet gekoppeld"); return; }
+    setChip("saving", "Opslaan…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(bewaar, 700);
+  }
 
-async function laadDag(){
-  laadTaken();
-  laadCalls();
-}
+  function bewaar(){
+    if (bezig) { clearTimeout(saveTimer); saveTimer = setTimeout(bewaar, 500); return; }
+    var taken = [], tabel;
+    for (tabel in TABELLEN) {
+      if (!TABELLEN.hasOwnProperty(tabel)) continue;
+      (function(t){
+        verschilTabel(t).forEach(function(a){
+          if (a.soort === "nieuw") taken.push(api(t, { method: "POST", body: naarDb(t, a.rij) }));
+          else if (a.soort === "wijzig") taken.push(api(t + "?id=eq." + encodeURIComponent(a.rij.id), { method: "PATCH", body: naarDb(t, a.rij) }));
+          else taken.push(api(t + "?id=eq." + encodeURIComponent(a.rij.id), { method: "DELETE" }));
+        });
+      })(tabel);
+    }
+    instellingRijen().forEach(function(rij){
+      taken.push(api("instellingen", { method: "POST", body: rij, prefer: "resolution=merge-duplicates" }));
+    });
+    if (!taken.length) { setChip("saved", "Actueel"); return; }
+    bezig = true;
+    Promise.all(taken).then(function(){
+      vorige = kopie(state);
+      bezig = false;
+      setChip("saved", "Opgeslagen");
+    }).catch(function(e){
+      bezig = false;
+      setChip("readonly", "Opslaan mislukt");
+      if (window.console) console.warn("Supabase opslaan:", e.message);
+    });
+  }
 
-async function laadTaken(){
-  const T = CONFIG.taken, dag = vandaag();
+  /* ---- automatisch verversen ---- */
+  function startVerversen(){
+    clearInterval(ophaalTimer);
+    ophaalTimer = setInterval(function(){
+      var el = document.activeElement, tag = el ? el.tagName : "";
+      if (bezig || tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      if (document.hidden) return;
+      laden(true);
+    }, 30000);
+    document.addEventListener("visibilitychange", function(){ if (!document.hidden) laden(true); });
+  }
 
-  let vraag = sb.from(T.tabel)
-    .select([T.titel, T.deadline, T.prioriteit, T.medewerker].join(','))
-    .is(T.afgerond, null)
-    .order(T.deadline, { ascending:true, nullsFirst:false });
+  /* ---- toegangscode ---- */
+  var GATE_SLEUTEL = "bw-toegang";
+  function toonApp(){
+    document.getElementById("gate").hidden = true;
+    document.body.classList.remove("gate-open");
+    laden().then(startVerversen);
+  }
+  function gateStart(){
+    var opgeslagen = "";
+    try { opgeslagen = localStorage.getItem(GATE_SLEUTEL) || ""; } catch (e) {}
+    if (!SB_ACTIEF) {
+      document.getElementById("gate").hidden = true;
+      document.body.classList.remove("gate-open");
+      setChip("readonly", "Nog niet gekoppeld");
+      var b = document.getElementById("roBanner");
+      b.innerHTML = '<span>&#9888;</span><span><strong>Supabase-gegevens ontbreken.</strong> Open dit bestand op GitHub, klik op het potloodje en vul bovenin bij <code>SUPABASE_URL</code> en <code>SUPABASE_KEY</code> je projectgegevens in. Zolang dat niet is gebeurd, wordt er niets bewaard.</span>';
+      b.hidden = false;
+      return;
+    }
+    api("instellingen?select=waarde&sleutel=eq.toegangscode").then(function(r){
+      var code = r && r[0] ? r[0].waarde : "";
+      if (!code || opgeslagen === code) { toonApp(); return; }
+      var gate = document.getElementById("gate");
+      gate.hidden = false;
+      document.body.classList.add("gate-open");
+      document.getElementById("gateForm").addEventListener("submit", function(e){
+        e.preventDefault();
+        var inv = document.getElementById("gate-input").value.trim();
+        if (inv === code) {
+          try { localStorage.setItem(GATE_SLEUTEL, code); } catch (e2) {}
+          toonApp();
+        } else {
+          document.getElementById("gateFout").hidden = false;
+          document.getElementById("gate-input").select();
+        }
+      });
+      document.getElementById("gate-input").focus();
+    }).catch(function(){
+      document.getElementById("gate").hidden = true;
+      document.body.classList.remove("gate-open");
+      setChip("readonly", "Verbinding mislukt");
+    });
+  }
 
-  if(ROL !== 'eigenaar' && HUIDIGE_ID) vraag = vraag.eq(T.medewerker, HUIDIGE_ID);
+  /* ---------------- helpers ---------------- */
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function today(){ var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function datumKort(iso){ var p = iso.split("-"); var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }); }
+  function maandLabel(ym){ var p = ym.split("-"); return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString("nl-NL", { month: "long", year: "numeric" }); }
+  function mwById(id){ for (var i = 0; i < state.medewerkers.length; i++) if (state.medewerkers[i].id === id) return state.medewerkers[i]; return null; }
+  function kleurVan(id){ var i = 0; for (var k = 0; k < state.medewerkers.length; k++) if (state.medewerkers[k].id === id) i = k; return "var(--pers-" + (i % 4 + 1) + ")"; }
+  function voornaam(n){ return String(n || "").split(" ")[0]; }
+  function stat(label, value, sub, cls){
+    return '<div class="stat ' + cls + '"><span class="label">' + esc(label) + '</span><span class="value">' + value + '</span><span class="sub">' + esc(sub) + "</span></div>";
+  }
+  function soortLabel(d){ return d === "nacht" ? "Nachtverblijf" : d === "schoonmaak" ? "Schoonmaak" : "Dagverblijf"; }
+  function vindIdx(arr, id){ for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return i; return -1; }
 
-  const { data, error } = await vraag;
-  if(error){ fout('lijstTaken', T.tabel, error.message); return; }
+  /* ---------------- tabs ---------------- */
+  var active = "incheck";
+  try { var s0 = sessionStorage.getItem("bw-tab"); if (s0 && document.getElementById("panel-" + s0)) active = s0; } catch (e) {}
+  function showTab(name){
+    active = name;
+    try { sessionStorage.setItem("bw-tab", name); } catch (e) {}
+    var tabs = document.querySelectorAll(".tab");
+    for (var i = 0; i < tabs.length; i++) {
+      var on = tabs[i].getAttribute("data-tab") === name;
+      tabs[i].setAttribute("aria-selected", on ? "true" : "false");
+      tabs[i].setAttribute("tabindex", on ? "0" : "-1");
+      document.getElementById("panel-" + tabs[i].getAttribute("data-tab")).hidden = !on;
+    }
+  }
+  document.getElementById("tabs").addEventListener("click", function(e){
+    var b = e.target.closest(".tab"); if (b) showTab(b.getAttribute("data-tab"));
+  });
 
-  const rijen = data || [];
-  const vandaagOfEerder = rijen.filter(r => r[T.deadline] && r[T.deadline] <= dag);
+  /* ---------------- viewer ---------------- */
+  var wie = "";
+  try { wie = localStorage.getItem("bw-wie") || ""; } catch (e) {}
+  function paintWie(){
+    document.getElementById("whoName").textContent = wie || "Wie ben je?";
+    document.getElementById("whoAvatar").textContent = wie ? wie.trim().charAt(0).toUpperCase() : "?";
+  }
+  var whoDialog = document.getElementById("whoDialog");
+  document.getElementById("whoBtn").addEventListener("click", function(){
+    document.getElementById("who-input").value = wie;
+    if (whoDialog.showModal) whoDialog.showModal();
+  });
+  document.getElementById("whoCancel").addEventListener("click", function(){ whoDialog.close(); });
+  document.getElementById("whoForm").addEventListener("submit", function(){
+    wie = document.getElementById("who-input").value.trim();
+    try { localStorage.setItem("bw-wie", wie); } catch (e) {}
+    paintWie();
+  });
 
-  $('#cVandaag').textContent = vandaagOfEerder.length;
-  $('#cOpen').textContent    = rijen.length;
+  /* ---------------- foto's ---------------- */
+  var fotoBijschrift = ["Foto 1", "Foto 2", "Foto 3"];
+  function renderFotos(){
+    document.getElementById("fotos").innerHTML = state.fotos.slice(0, 3).map(function(src, i){
+      return '<div class="foto">' +
+        (src ? '<img src="' + esc(src) + '" alt="' + esc(fotoBijschrift[i]) + '">' +
+               '<button class="wis" type="button" data-wis-foto="' + i + '">&#10005;</button>'
+             : '<span class="leegtekst"><span class="plus">+</span><span>foto ' + (i + 1) + '</span></span>') +
+        '<input type="file" accept="image/*" data-foto="' + i + '" aria-label="' + esc(fotoBijschrift[i]) + ' kiezen">' +
+        "</div>";
+    }).join("");
+  }
+  function verkleinFoto(file, klaar){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var max = 1000, w = img.width, h = img.height;
+        if (w > max) { h = Math.round(h * max / w); w = max; }
+        var c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        try { klaar(c.toDataURL("image/jpeg", 0.82)); } catch (e) { klaar(ev.target.result); }
+      };
+      img.onerror = function(){ klaar(""); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ klaar(""); };
+    reader.readAsDataURL(file);
+  }
+  document.getElementById("fotos").addEventListener("change", function(e){
+    var inp = e.target;
+    if (!inp.dataset || inp.dataset.foto === undefined) return;
+    var i = +inp.dataset.foto, file = inp.files && inp.files[0];
+    if (!file) return;
+    verkleinFoto(file, function(dataUrl){
+      if (!dataUrl) return;
+      state.fotos[i] = dataUrl;
+      renderFotos(); queueSave();
+    });
+  });
 
-  $('#lijstTaken').innerHTML = rijen.length === 0
-    ? `<p class="leeg">Geen openstaande taken.</p>`
-    : rijen.slice(0, 12).map(r => {
-        const d = r[T.deadline];
-        const laat = d && d < dag;
-        const prio = (r[T.prioriteit] || '').toLowerCase();
-        return `
-        <div class="rij">
-          <span class="tijd ${laat ? 'laat' : ''}">${d ? d.slice(8,10) + '-' + d.slice(5,7) : '—'}</span>
-          <span><span class="naam">${r[T.titel] || 'Zonder titel'}</span>
-                ${laat ? '<span class="plek laat">te laat</span>' : ''}</span>
-          <span>${prio ? `<span class="prio ${prio === 'hoog' ? 'hoog' : ''}">${prio}</span>` : ''}</span>
-        </div>`;
-      }).join('');
-}
+  /* ---------------- reserveringen & snelle links ---------------- */
+  var resDialog = document.getElementById("resDialog");
+  function leesLinks(waarde){
+    if (!waarde) return [];
+    try { var l = JSON.parse(waarde); return Object.prototype.toString.call(l) === "[object Array]" ? l : []; }
+    catch (e) { return []; }
+  }
+  function renderReserveringen(){
+    var houder = document.getElementById("resHouder");
+    if (!houder) return;
+    if (!state.links.length) {
+      houder.innerHTML = '<div class="empty"><strong>Nog geen links</strong>' +
+        'Klik op <strong>Links beheren</strong> hierboven om er een toe te voegen.</div>';
+      return;
+    }
+    houder.innerHTML = '<div class="linkrij">' + state.links.map(function(l){
+      return '<a class="btn groot" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.naam) + '</a>';
+    }).join("") + '</div><p class="note">Opent in een nieuw tabblad.</p>';
+  }
+  function renderLinkBeheer(){
+    var houder = document.getElementById("linkBeheer");
+    if (!houder) return;
+    if (!state.links.length) { houder.innerHTML = '<p class="note" style="margin:0">Nog geen links toegevoegd.</p>'; return; }
+    houder.innerHTML = state.links.map(function(l){
+      return '<div class="rij"><span class="naam">' + esc(l.naam) + '</span>' +
+        '<span class="adres">' + esc(l.url) + '</span>' +
+        '<button type="button" data-weg="' + esc(l.id) + '" aria-label="Verwijderen">Verwijderen</button></div>';
+    }).join("");
+  }
+  document.getElementById("resSet").addEventListener("click", function(){
+    renderLinkBeheer();
+    document.getElementById("link-naam").value = "";
+    document.getElementById("link-url").value = "";
+    if (resDialog.showModal) resDialog.showModal();
+  });
+  document.getElementById("linkBeheer").addEventListener("click", function(e){
+    var id = e.target.getAttribute("data-weg");
+    if (!id) return;
+    state.links = state.links.filter(function(l){ return l.id !== id; });
+    renderLinkBeheer(); renderReserveringen(); queueSave();
+  });
+  document.getElementById("linkToevoegen").addEventListener("click", function(){
+    var naam = document.getElementById("link-naam").value.trim();
+    var url = document.getElementById("link-url").value.trim();
+    if (!naam || !url) return;
+    if (url.indexOf("http") !== 0) url = "https://" + url;
+    state.links.push({ id: uid(), naam: naam, url: url });
+    document.getElementById("link-naam").value = "";
+    document.getElementById("link-url").value = "";
+    renderLinkBeheer(); renderReserveringen(); queueSave();
+  });
 
-async function laadCalls(){
-  const W = CONFIG.welkomstcalls;
+  /* ---------------- incheckformulier ---------------- */
+  var incheckDialog = document.getElementById("incheckDialog");
+  function tekenQr(url){
+    var doel = document.getElementById("qrDoel"), kaart = document.getElementById("qrKaart");
+    if (!doel || typeof window.QRCode !== "function") return;
+    try {
+      doel.innerHTML = "";
+      new window.QRCode(doel, { text: url, width: 148, height: 148, colorDark: "#241E19", colorLight: "#FFFFFF" });
+      kaart.hidden = false;
+    } catch (e) {}
+  }
+  var GAST_FORM_URL = "https://bwfcheckin.github.io/bwf-incheck/gast.html";
+  var LM_FORM_URL   = "https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html";
+  function renderIncheck(){
+    var houder = document.getElementById("incheckHouder");
+    var lm = state.incheckUrl || LM_FORM_URL;
+    var def = lm.split("#")[0] + "#definitief";
+    houder.innerHTML = '<div class="incheck-actie">' +
+      '<a class="btn groot" href="' + esc(lm) + '" target="_blank" rel="noopener">1 &middot; Concept incheckformulier</a>' +
+      '<p class="note">Zet het formulier alvast klaar voor een reservering, sla het op als concept en koppel er de persoonlijke gastenlink aan.</p>' +
+      '<a class="btn groot" href="' + esc(GAST_FORM_URL) + '" target="_blank" rel="noopener">2 &middot; Online incheck door de klant</a>' +
+      '<p class="note">De versie voor de gast: die vult alleen de eigen gegevens in en ziet geen andere formulieren.</p>' +
+      '<a class="btn groot" href="' + esc(def) + '" target="_blank" rel="noopener">3 &middot; Definitieve incheckformulieren</a>' +
+      '<p class="note">Alle afgeronde formulieren. Daar zet je een gast ook door naar het klantenbestand.</p></div>';
+  }
+  document.getElementById("incheckSet").addEventListener("click", function(){
+    document.getElementById("incheck-input").value = state.incheckUrl;
+    if (incheckDialog.showModal) incheckDialog.showModal();
+  });
+  document.getElementById("incheckCancel").addEventListener("click", function(){ incheckDialog.close(); });
+  document.getElementById("incheckForm").addEventListener("submit", function(){
+    state.incheckUrl = document.getElementById("incheck-input").value.trim();
+    renderIncheck(); queueSave();
+  });
 
-  const { data, error } = await sb.from(W.tabel)
-    .select([W.naam, W.datum, W.locatie, W.telefoon].join(','))
-    .is(W.gebeld, null)
-    .order(W.datum, { ascending:true, nullsFirst:false });
+  /* ---------------- kalender ---------------- */
+  var kalYm = today().slice(0, 7);
+  try { var km = sessionStorage.getItem("bw-maand"); if (km) kalYm = km; } catch (e) {}
 
-  if(error){ fout('lijstCalls', W.tabel, error.message); $('#cCalls').textContent = '–'; return; }
+  function schuifMaand(delta){
+    var p = kalYm.split("-"), d = new Date(+p[0], +p[1] - 1 + delta, 1);
+    kalYm = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    try { sessionStorage.setItem("bw-maand", kalYm); } catch (e) {}
+    renderPlanning();
+  }
+  document.getElementById("kalPrev").addEventListener("click", function(){ schuifMaand(-1); });
+  document.getElementById("kalNext").addEventListener("click", function(){ schuifMaand(1); });
+  document.getElementById("kalNu").addEventListener("click", function(){ kalYm = today().slice(0, 7); renderPlanning(); });
 
-  const rijen = data || [];
-  $('#cCalls').textContent = rijen.length;
+  function renderKalender(){
+    var p = kalYm.split("-"), jaar = +p[0], maand = +p[1] - 1;
+    var start = (new Date(jaar, maand, 1).getDay() + 6) % 7;
+    var dagen = new Date(jaar, maand + 1, 0).getDate();
+    var vandaag = today(), perDag = {};
+    state.planning.forEach(function(r){ (perDag[r.datum] = perDag[r.datum] || []).push(r); });
 
-  $('#lijstCalls').innerHTML = rijen.length === 0
-    ? `<p class="leeg">Alles gebeld.</p>`
-    : rijen.slice(0, 12).map(r => {
-        const d = r[W.datum];
-        return `
-        <div class="rij">
-          <span class="tijd">${d ? d.slice(8,10) + '-' + d.slice(5,7) : '—'}</span>
-          <span><span class="naam">${r[W.naam] || 'Naam onbekend'}</span>
-                <span class="plek">${r[W.locatie] || ''}</span></span>
-          <span>${r[W.telefoon] ? `<a class="prio" href="tel:${r[W.telefoon]}">bellen</a>` : ''}</span>
-        </div>`;
-      }).join('');
-}
+    var html = ["ma", "di", "wo", "do", "vr", "za", "zo"].map(function(d){ return '<div class="kal-kop">' + d + "</div>"; }).join("");
+    var i;
+    for (i = 0; i < start; i++) html += '<div class="kal-cel leeg"></div>';
+    for (i = 1; i <= dagen; i++) {
+      var iso = jaar + "-" + String(maand + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
+      var lijst = perDag[iso] || [];
+      html += '<button type="button" class="kal-cel' + (iso === vandaag ? " vandaag" : "") + '" data-dag="' + iso + '">' +
+        '<span class="kal-num">' + i + "</span>" +
+        lijst.map(function(r){
+          var m = mwById(r.medewerkerId);
+          return '<span class="kal-chip" style="--c:' + kleurVan(r.medewerkerId) + '" title="' + esc((m ? m.naam : "") + " · " + soortLabel(r.dienst) + (r.notitie ? " · " + r.notitie : "")) + '">' +
+            '<span class="kal-dot"></span>' + esc(voornaam(m ? m.naam : "?")) +
+            (r.dienst === "nacht" ? '<span class="kal-nacht" aria-hidden="true">&#9789;</span>' : "") + "</span>";
+        }).join("") + "</button>";
+    }
+    var rest = (7 - ((start + dagen) % 7)) % 7;
+    for (i = 0; i < rest; i++) html += '<div class="kal-cel leeg"></div>';
+    document.getElementById("kalender").innerHTML = html;
+    var lbl = maandLabel(kalYm);
+    document.getElementById("kalTitel").textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+    document.getElementById("kalLegend").innerHTML = state.medewerkers.map(function(m){
+      return '<span class="leg"><span class="kal-dot" style="--c:' + kleurVan(m.id) + '"></span>' + esc(m.naam) + "</span>";
+    }).join("") + '<span class="leg" style="color:var(--muted)">&#9789; = nachtverblijf</span>';
+  }
+  document.getElementById("kalender").addEventListener("click", function(e){
+    var cel = e.target.closest(".kal-cel"); if (!cel || !cel.dataset.dag) return;
+    document.getElementById("p-datum").value = cel.dataset.dag;
+    document.getElementById("p-mw").focus();
+  });
+
+  /* ---------------- render: planning ---------------- */
+  function renderPlanning(){
+    renderKalender();
+    var vandaag = today();
+    var rijen = state.planning.filter(function(r){ return r.datum.slice(0, 7) === kalYm; })
+      .sort(function(a, b){ return a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0; });
+    var html = rijen.map(function(r){
+      var m = mwById(r.medewerkerId);
+      return '<tr class="' + (r.datum < vandaag ? "done" : "") + '">' +
+        '<td class="name">' + esc(datumKort(r.datum)) + '<span class="meta">' + esc(r.datum) + "</span></td>" +
+        '<td><span class="kal-dot" style="--c:' + kleurVan(r.medewerkerId) + ';margin-right:7px"></span>' + esc(m ? m.naam : "—") + "</td>" +
+        "<td>" + esc(r.locatie) + "</td>" +
+        '<td><span class="pill ' + (r.dienst === "nacht" ? "accent" : "neutral") + '">' + soortLabel(r.dienst) + "</span></td>" +
+        "<td>" + esc(r.notitie || "") + "</td>" +
+        '<td class="act num"><button class="icon-btn" type="button" data-del-plan="' + r.id + '" title="Verwijderen">✕</button></td></tr>';
+    }).join("");
+    document.getElementById("planTable").innerHTML = rijen.length
+      ? '<table><thead><tr><th>Datum</th><th>Medewerker</th><th>Locatie</th><th>Soort</th><th>Notitie</th><th class="num"></th></tr></thead><tbody>' + html + "</tbody></table>"
+      : '<div class="empty"><strong>Geen diensten in ' + esc(maandLabel(kalYm)) + "</strong>Klik een dag in de kalender aan en plan hem hieronder in.</div>";
+    document.getElementById("planCount").textContent = rijen.length + " dienst" + (rijen.length === 1 ? "" : "en");
+
+    var toekomst = state.planning.filter(function(r){ return r.datum >= vandaag; });
+    var d7 = new Date(); d7.setDate(d7.getDate() + 7);
+    var week = toekomst.filter(function(r){ return r.datum <= d7.toISOString().slice(0, 10); });
+    var open = state.overdracht.filter(function(o){ return !o.klaar; }).length;
+    var bestel = state.voorraad.filter(function(v){ return v.aantal <= v.min; }).length;
+    document.getElementById("planStats").innerHTML =
+      stat("Diensten komende 7 dagen", String(week.length), "vanaf vandaag", "") +
+      stat("Diensten deze maand", String(rijen.length), maandLabel(kalYm), "") +
+      stat("Openstaande overdracht", String(open), open === 0 ? "niets open" : "punten", open === 0 ? "ok" : "") +
+      stat("Artikelen te bestellen", String(bestel), "onder minimum", "brass");
+    document.getElementById("badge-planning").textContent = toekomst.length;
+  }
+
+  /* ---------------- render: team ---------------- */
+  function renderTeam(){
+    var html = state.medewerkers.map(function(m){
+      return "<tr>" +
+        '<td class="name"><span class="kal-dot" style="--c:' + kleurVan(m.id) + ';margin-right:7px"></span>' +
+          '<input type="text" value="' + esc(m.naam) + '" data-mw="' + m.id + '" data-veld="naam" aria-label="Naam"></td>' +
+        '<td><input type="text" value="' + esc(m.rol || "") + '" data-mw="' + m.id + '" data-veld="rol" aria-label="Functie"></td>' +
+        '<td><input type="text" list="locaties" value="' + esc(m.locatie || "") + '" data-mw="' + m.id + '" data-veld="locatie" aria-label="Locatie"></td>' +
+        '<td class="act num"><button class="icon-btn" type="button" data-del-mw="' + m.id + '" title="Verwijderen">✕</button></td></tr>';
+    }).join("");
+    document.getElementById("teamTable").innerHTML = state.medewerkers.length
+      ? '<table><thead><tr><th>Naam</th><th>Functie</th><th>Locatie</th><th class="num"></th></tr></thead><tbody>' + html + "</tbody></table>"
+      : '<div class="empty"><strong>Nog niemand toegevoegd</strong>Voeg hieronder de eerste naam toe.</div>';
+  }
+
+  /* ---------------- render: voorraad ---------------- */
+  function status(v){
+    if (v.aantal <= 0) return { cls: "crit", txt: "Op" };
+    if (v.aantal <= v.min) return { cls: "warn", txt: "Bestellen" };
+    return { cls: "ok", txt: "Op peil" };
+  }
+  function teBestellen(v){
+    if (typeof v.bestelAantal === "number" && v.bestelAantal > 0) return v.bestelAantal;
+    return Math.max(v.min * 2 - v.aantal, 1);
+  }
+  var vFilter = { zoek: "", cat: "", status: "" };
+  function statusSleutel(v){
+    if (v.besteld) return "besteld";
+    if (v.aantal <= 0) return "op";
+    if (v.aantal <= v.min) return "bestellen";
+    return "peil";
+  }
+  function catNaam(v){ return (v.categorie || "").trim() || "Zonder categorie"; }
+  function vulCatFilter(){
+    var el = document.getElementById("f-cat"), was = el.value, cats = [], i;
+    for (i = 0; i < state.voorraad.length; i++) {
+      var c = catNaam(state.voorraad[i]);
+      if (cats.indexOf(c) < 0) cats.push(c);
+    }
+    cats.sort(function(a, b){ return a.localeCompare(b); });
+    el.innerHTML = '<option value="">Alle categorie\u00ebn</option>' + cats.map(function(c){
+      return '<option value="' + esc(c) + '">' + esc(c) + "</option>";
+    }).join("");
+    if (was && cats.indexOf(was) >= 0) el.value = was; else if (was) vFilter.cat = "";
+  }
+  function filterItems(items){
+    var z = vFilter.zoek.toLowerCase();
+    return items.filter(function(v){
+      if (vFilter.cat && catNaam(v) !== vFilter.cat) return false;
+      if (vFilter.status && statusSleutel(v) !== vFilter.status) return false;
+      if (z && (v.naam + " " + (v.leverancier || "") + " " + (v.categorie || "")).toLowerCase().indexOf(z) < 0) return false;
+      return true;
+    });
+  }
+  function voorraadRij(v){
+    var st = status(v);
+    return "<tr>" +
+      '<td class="name"><input type="text" value="' + esc(v.naam) + '" data-vr="' + v.id + '" data-veld="naam" aria-label="Artikel"></td>' +
+      '<td><input type="text" list="categorieen" value="' + esc(v.categorie || "") + '" data-vr="' + v.id + '" data-veld="categorie" aria-label="Categorie"></td>' +
+      '<td class="num"><span class="stepper">' +
+        '<button class="icon-btn" type="button" data-min="' + v.id + '" title="Eentje eraf">\u2212</button>' +
+        '<input type="number" class="mini" min="0" step="1" value="' + v.aantal + '" data-vr="' + v.id + '" data-veld="aantal" aria-label="Voorraad">' +
+        '<button class="icon-btn ok" type="button" data-plus="' + v.id + '" title="Eentje erbij">+</button></span></td>' +
+      '<td class="num"><input type="number" class="mini" min="0" step="1" value="' + v.min + '" data-vr="' + v.id + '" data-veld="min" aria-label="Minimum"></td>' +
+      '<td><input type="text" list="leveranciers" value="' + esc(v.leverancier || "") + '" data-vr="' + v.id + '" data-veld="leverancier" aria-label="Leverancier"></td>' +
+      '<td><span class="pill ' + st.cls + '">' + st.txt + "</span></td>" +
+      '<td class="act num"><button class="icon-btn" type="button" data-del-vr="' + v.id + '" title="Verwijderen">\u2715</button></td></tr>';
+  }
+  function renderVoorraad(){
+    var items = state.voorraad.slice().sort(function(a, b){
+      return catNaam(a).localeCompare(catNaam(b)) || a.naam.localeCompare(b.naam); });
+    vulCatFilter();
+    var zicht = filterItems(items);
+
+    // groeperen per categorie
+    var groepen = [], index = {};
+    zicht.forEach(function(v){
+      var c = catNaam(v);
+      if (index[c] === undefined) { index[c] = groepen.length; groepen.push({ naam: c, rijen: [] }); }
+      groepen[index[c]].rijen.push(v);
+    });
+    var body = groepen.map(function(g){
+      return '<tr class="groep"><td colspan="7">' + esc(g.naam) +
+        '<span class="aantal">' + g.rijen.length + " artikel" + (g.rijen.length === 1 ? "" : "en") + "</span></td></tr>" +
+        g.rijen.map(voorraadRij).join("");
+    }).join("");
+
+    document.getElementById("voorraadTable").innerHTML = zicht.length
+      ? '<table><thead><tr><th>Artikel</th><th>Categorie</th><th class="num">Voorraad</th><th class="num">Min.</th><th>Leverancier</th><th>Status</th><th class="num"></th></tr></thead><tbody>' + body + "</tbody></table>"
+      : (items.length
+          ? '<div class="empty"><strong>Niets gevonden</strong>Geen artikelen die aan dit filter voldoen.</div>'
+          : '<div class="empty"><strong>Nog geen artikelen</strong>Voeg hieronder toe wat je bijhoudt.</div>');
+    document.getElementById("voorraadCount").textContent = zicht.length === items.length
+      ? items.length + " artikelen in " + groepen.length + " categorie\u00ebn"
+      : zicht.length + " van " + items.length + " artikelen";
+
+    var bestel = items.filter(function(v){ return v.aantal <= v.min || v.besteld; });
+    document.getElementById("bestelTable").innerHTML = bestel.length
+      ? '<table><thead><tr><th>Artikel</th><th>Leverancier</th><th class="num">Nu</th><th class="num">Min.</th><th class="num">Te bestellen</th><th>Verwacht</th><th>Status</th><th class="num"></th></tr></thead><tbody>' +
+        bestel.map(function(v){
+          return '<tr class="' + (v.besteld ? "done" : "") + '">' +
+            '<td class="name">' + esc(v.naam) + '<span class="meta">' + esc(catNaam(v)) + "</span></td>" +
+            '<td><input type="text" list="leveranciers" value="' + esc(v.leverancier || "") + '" data-vr="' + v.id + '" data-veld="leverancier" aria-label="Leverancier"></td>' +
+            '<td class="num">' + v.aantal + '</td><td class="num">' + v.min + "</td>" +
+            '<td class="num"><input type="number" class="mini" min="1" step="1" value="' + teBestellen(v) + '" data-vr="' + v.id + '" data-veld="bestelAantal" aria-label="Te bestellen"></td>' +
+            '<td class="datum"><input type="date" value="' + esc(v.verwacht || "") + '" data-vr="' + v.id + '" data-veld="verwacht" aria-label="Verwachte bezorgdatum"></td>' +
+            "<td>" + (v.besteld ? '<span class="pill accent">Besteld</span>' : '<span class="pill warn">Nog bestellen</span>') + "</td>" +
+            '<td class="act num"><button class="btn ghost small" type="button" data-besteld="' + v.id + '">' + (v.besteld ? "Toch niet" : "Besteld") + "</button> " +
+            '<button class="btn small" type="button" data-ontvangen="' + v.id + '">Ontvangen</button></td></tr>';
+        }).join("") + "</tbody></table>"
+      : '<div class="empty"><strong>Niets te bestellen</strong>Alles staat boven het minimum.</div>';
+
+    var vandaagIso = today();
+    var teLaat = items.filter(function(v){ return v.besteld && v.verwacht && v.verwacht < vandaagIso; }).length;
+    document.getElementById("voorraadStats").innerHTML =
+      stat("Artikelen", String(items.length), groepen.length + " categorie\u00ebn zichtbaar", "") +
+      stat("Te bestellen", String(items.filter(function(v){ return v.aantal <= v.min && !v.besteld; }).length), "onder minimum", "brass") +
+      stat("Besteld", String(items.filter(function(v){ return v.besteld; }).length), teLaat ? teLaat + " over de verwachte datum" : "onderweg", "ok") +
+      stat("Op", String(items.filter(function(v){ return v.aantal <= 0; }).length), "voorraad nul", "");
+    document.getElementById("badge-voorraad").textContent = items.filter(function(v){ return v.aantal <= v.min && !v.besteld; }).length;
+  }
+
+  /* ---- filters ---- */
+  document.getElementById("f-zoek").addEventListener("input", function(){ vFilter.zoek = this.value.trim(); renderVoorraad(); });
+  document.getElementById("f-cat").addEventListener("change", function(){ vFilter.cat = this.value; renderVoorraad(); });
+  document.getElementById("f-status").addEventListener("change", function(){ vFilter.status = this.value; renderVoorraad(); });
+  document.getElementById("f-wis").addEventListener("click", function(){
+    vFilter = { zoek: "", cat: "", status: "" };
+    document.getElementById("f-zoek").value = "";
+    document.getElementById("f-cat").value = "";
+    document.getElementById("f-status").value = "";
+    renderVoorraad();
+  });
+
+  /* ---- bestellijst uitdraaien en opslaan ---- */
+  function bestelRegels(){
+    return state.voorraad.filter(function(v){ return v.aantal <= v.min || v.besteld; })
+      .sort(function(a, b){
+        return (a.leverancier || "zzz").localeCompare(b.leverancier || "zzz") ||
+               catNaam(a).localeCompare(catNaam(b)) || a.naam.localeCompare(b.naam);
+      });
+  }
+  function datumNl(iso){ if (!iso) return ""; var p = iso.split("-"); return p[2] + "-" + p[1] + "-" + p[0]; }
+  document.getElementById("bestelPrint").addEventListener("click", function(){
+    var rijen = bestelRegels();
+    if (!rijen.length) { alert("Er staat op dit moment niets op de bestellijst."); return; }
+    var d = new Date();
+    var html = '<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Bestellijst Beden Wellness</title>' +
+      "<style>body{font-family:Helvetica,Arial,sans-serif;color:#241E19;margin:28px}" +
+      "h1{font-size:19px;margin:0 0 2px}p.sub{color:#7B6E62;font-size:12px;margin:0 0 18px}" +
+      "table{border-collapse:collapse;width:100%;font-size:12.5px}" +
+      "th{text-align:left;border-bottom:1.5px solid #241E19;padding:7px 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}" +
+      "td{border-bottom:1px solid #E3DAD0;padding:7px 8px}td.num{text-align:right}" +
+      "tr.lev td{background:#F4F1ED;font-weight:600}" +
+      ".vink{display:inline-block;width:13px;height:13px;border:1px solid #241E19;border-radius:2px}" +
+      "@media print{body{margin:12mm}}</style></head><body>" +
+      "<h1>Bestellijst &mdash; Beden Wellness Flevoland</h1>" +
+      '<p class="sub">Uitgedraaid op ' + d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) +
+        " om " + d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) +
+        (wie ? " door " + esc(wie) : "") + "</p>" +
+      "<table><thead><tr><th></th><th>Artikel</th><th>Categorie</th><th class=\"num\">Nu</th><th class=\"num\">Min.</th>" +
+      "<th class=\"num\">Bestellen</th><th>Verwacht</th><th>Status</th></tr></thead><tbody>";
+    var huidigeLev = null;
+    rijen.forEach(function(v){
+      var lev = v.leverancier || "Geen leverancier";
+      if (lev !== huidigeLev) { huidigeLev = lev; html += '<tr class="lev"><td colspan="8">' + esc(lev) + "</td></tr>"; }
+      html += '<tr><td><span class="vink"></span></td><td>' + esc(v.naam) + "</td><td>" + esc(catNaam(v)) + "</td>" +
+        '<td class="num">' + v.aantal + '</td><td class="num">' + v.min + '</td><td class="num">' + teBestellen(v) + "</td>" +
+        "<td>" + esc(datumNl(v.verwacht)) + "</td><td>" + (v.besteld ? "Besteld" : "Nog bestellen") + "</td></tr>";
+    });
+    html += "</tbody></table></body></html>";
+    var w = window.open("", "_blank");
+    if (!w) { alert("Je browser blokkeert het nieuwe venster. Sta pop-ups toe voor deze pagina."); return; }
+    w.document.write(html);
+    w.document.close();
+    setTimeout(function(){ try { w.focus(); w.print(); } catch (e) {} }, 350);
+  });
+  document.getElementById("bestelCsv").addEventListener("click", function(){
+    var rijen = bestelRegels();
+    if (!rijen.length) { alert("Er staat op dit moment niets op de bestellijst."); return; }
+    function veld(x){ return '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"'; }
+    var lijnen = [["Artikel", "Categorie", "Leverancier", "Voorraad", "Minimum", "Te bestellen", "Verwachte bezorgdatum", "Status"].map(veld).join(";")];
+    rijen.forEach(function(v){
+      lijnen.push([v.naam, catNaam(v), v.leverancier || "", v.aantal, v.min, teBestellen(v),
+        datumNl(v.verwacht), v.besteld ? "Besteld" : "Nog bestellen"].map(veld).join(";"));
+    });
+    var blob = new Blob(["\ufeff" + lijnen.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "bestellijst-" + today() + ".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  });
+
+  /* ---------------- render: overdracht ---------------- */
+  function renderOverdracht(){
+    var lijst = state.overdracht.slice().sort(function(a, b){
+      var da = a.datum || "", db = b.datum || "";
+      if (da !== db) return da < db ? 1 : -1;
+      return b.ts - a.ts;
+    });
+    var open = lijst.filter(function(o){ return !o.klaar; });
+    var html = lijst.map(function(o){
+      var d = new Date(o.ts);
+      var cls = o.cat === "storing" || o.cat === "klacht" ? "crit" : o.cat === "defect" ? "warn" : "neutral";
+      var lbl = o.cat === "storing" ? "Storing" : o.cat === "defect" ? "Defect" : o.cat === "klacht" ? "Klacht" : "Informatie";
+      return '<div class="acc" style="' + (o.klaar ? "opacity:.6" : "") + '"><div style="padding:13px 16px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between">' +
+        '<div style="min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px">' +
+        '<span class="pill ' + cls + '">' + lbl + "</span>" +
+        '<span class="pill neutral">' + esc(o.auteur || "onbekend") + " &rarr; " + esc(o.aan || "iedereen") + "</span>" +
+        '<span style="font-size:12px;color:var(--muted)">' + esc(o.locatie || "") + " · geplaatst " +
+        d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) + "</span>" +
+        '<span style="font-size:12px;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px">Datum ' +
+        '<input type="date" value="' + esc(o.datum || "") + '" data-od="' + o.id + '" data-veld="datum" ' +
+        'style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);padding:2px 6px;font-size:12px" ' +
+        'aria-label="Datum van dit punt"></span></div>' +
+        '<div style="font-size:13.8px;white-space:pre-wrap">' + esc(o.tekst) + "</div></div>" +
+        '<div style="white-space:nowrap"><button class="icon-btn ok" type="button" data-od-klaar="' + o.id + '" title="Afgehandeld">' + (o.klaar ? "↺" : "✓") + "</button>" +
+        '<button class="icon-btn" type="button" data-del-od="' + o.id + '" title="Verwijderen">✕</button></div>' +
+        "</div></div>";
+    }).join("");
+    document.getElementById("odList").innerHTML = lijst.length ? html
+      : '<div class="empty"><strong>Geen berichten</strong>Laat hierboven iets achter voor de volgende dienst.</div>';
+    document.getElementById("odCount").textContent = open.length + " open · " + lijst.length + " totaal";
+    document.getElementById("badge-overdracht").textContent = open.length;
+  }
+
+  function vulMedewerkerSelect(){
+    var opts = state.medewerkers.map(function(m){ return '<option value="' + m.id + '">' + esc(m.naam) + "</option>"; }).join("");
+    var el = document.getElementById("p-mw"), cur = el.value;
+    el.innerHTML = opts || '<option value="">Voeg eerst een naam toe</option>';
+    if (cur) el.value = cur;
+
+    var namen = state.medewerkers.map(function(m){ return m.naam; });
+    if (namen.indexOf("Angela") < 0) namen.push("Angela");
+    var nopts = namen.map(function(n){ return '<option value="' + esc(n) + '">' + esc(n) + "</option>"; }).join("");
+    ["o-van", "o-aan"].forEach(function(id){
+      var s = document.getElementById(id), was = s.value;
+      s.innerHTML = (id === "o-aan" ? '<option value="">Iedereen</option>' : "") + nopts;
+      if (was && namen.indexOf(was) >= 0) s.value = was;
+      else if (id === "o-van" && wie && namen.indexOf(wie) >= 0) s.value = wie;
+    });
+  }
+
+  function renderAll(){ vulMedewerkerSelect(); renderPlanning(); renderTeam(); renderVoorraad(); renderOverdracht(); renderFotos(); renderIncheck(); renderReserveringen(); }
+  function mutate(fn){ fn(); renderAll(); queueSave(); }
+
+  /* ---------------- formulieren ---------------- */
+  document.getElementById("planForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var r = { id: uid(), datum: document.getElementById("p-datum").value, medewerkerId: document.getElementById("p-mw").value,
+      locatie: document.getElementById("p-loc").value, dienst: document.getElementById("p-dienst").value,
+      notitie: document.getElementById("p-notitie").value };
+    if (!r.datum || !r.medewerkerId) return;
+    kalYm = r.datum.slice(0, 7);
+    mutate(function(){ state.planning.push(r); });
+    document.getElementById("p-notitie").value = "";
+  });
+
+  document.getElementById("teamForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var naam = document.getElementById("t-naam").value.trim(); if (!naam) return;
+    var m = { id: uid(), naam: naam, rol: document.getElementById("t-rol").value.trim(), locatie: document.getElementById("t-loc").value.trim() };
+    mutate(function(){ state.medewerkers.push(m); });
+    document.getElementById("teamForm").reset();
+    document.getElementById("t-loc").value = "Lelystad Malina";
+  });
+
+  document.getElementById("voorraadForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var naam = document.getElementById("v-naam").value.trim(); if (!naam) return;
+    var v = { id: uid(), naam: naam, categorie: document.getElementById("v-cat").value.trim(),
+      aantal: parseInt(document.getElementById("v-aantal").value, 10) || 0,
+      min: parseInt(document.getElementById("v-min").value, 10) || 0,
+      leverancier: document.getElementById("v-lev").value.trim(), besteld: false, bestelAantal: 0, verwacht: null };
+    mutate(function(){ state.voorraad.push(v); });
+    document.getElementById("voorraadForm").reset();
+    document.getElementById("v-aantal").value = "0"; document.getElementById("v-min").value = "2";
+  });
+
+  document.getElementById("odForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var tekst = document.getElementById("o-tekst").value.trim(); if (!tekst) return;
+    var o = { id: uid(), ts: Date.now(), auteur: document.getElementById("o-van").value || wie,
+      aan: document.getElementById("o-aan").value, locatie: document.getElementById("o-loc").value,
+      cat: document.getElementById("o-cat").value, tekst: tekst, klaar: false,
+      datum: document.getElementById("o-datum").value || today() };
+    mutate(function(){ state.overdracht.unshift(o); });
+    document.getElementById("o-tekst").value = "";
+    document.getElementById("o-datum").value = today();
+  });
+
+  /* ---------------- inline bewerken ---------------- */
+  document.addEventListener("change", function(e){
+    var el = e.target;
+    if (el.dataset && el.dataset.vr) {
+      var i = vindIdx(state.voorraad, el.dataset.vr); if (i < 0) return;
+      var veld = el.dataset.veld;
+      if (veld === "aantal" || veld === "min" || veld === "bestelAantal") state.voorraad[i][veld] = Math.max(parseInt(el.value, 10) || 0, 0);
+      else if (veld === "verwacht") state.voorraad[i][veld] = el.value || null;
+      else state.voorraad[i][veld] = el.value.trim();
+      renderVoorraad(); renderPlanning(); queueSave();
+    } else if (el.dataset && el.dataset.od) {
+      var k = vindIdx(state.overdracht, el.dataset.od); if (k < 0) return;
+      state.overdracht[k][el.dataset.veld] = el.value;
+      renderOverdracht(); queueSave();
+    } else if (el.dataset && el.dataset.mw) {
+      var j = vindIdx(state.medewerkers, el.dataset.mw); if (j < 0) return;
+      state.medewerkers[j][el.dataset.veld] = el.value.trim();
+      renderAll(); queueSave();
+    }
+  });
+
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("button"); if (!t) return;
+    var d = t.dataset, i;
+    if (d.wisFoto !== undefined) { state.fotos[+d.wisFoto] = ""; renderFotos(); queueSave(); }
+    else if (d.delPlan) { mutate(function(){ var k = vindIdx(state.planning, d.delPlan); if (k >= 0) state.planning.splice(k, 1); }); }
+    else if (d.delMw) { mutate(function(){ var k = vindIdx(state.medewerkers, d.delMw); if (k >= 0) state.medewerkers.splice(k, 1); }); }
+    else if (d.plus) { mutate(function(){ i = vindIdx(state.voorraad, d.plus); if (i >= 0) state.voorraad[i].aantal++; }); }
+    else if (d.min) { mutate(function(){ i = vindIdx(state.voorraad, d.min); if (i >= 0 && state.voorraad[i].aantal > 0) state.voorraad[i].aantal--; }); }
+    else if (d.delVr) { mutate(function(){ i = vindIdx(state.voorraad, d.delVr); if (i >= 0) state.voorraad.splice(i, 1); }); }
+    else if (d.besteld) {
+      mutate(function(){
+        i = vindIdx(state.voorraad, d.besteld); if (i < 0) return;
+        var v = state.voorraad[i];
+        if (!v.besteld) { v.bestelAantal = teBestellen(v); v.besteld = true; } else { v.besteld = false; }
+      });
+    }
+    else if (d.ontvangen) {
+      mutate(function(){
+        i = vindIdx(state.voorraad, d.ontvangen); if (i < 0) return;
+        var v = state.voorraad[i];
+        v.aantal += teBestellen(v);
+        v.besteld = false; v.bestelAantal = 0; v.verwacht = null;
+      });
+    }
+    else if (d.odKlaar) { mutate(function(){ var k = vindIdx(state.overdracht, d.odKlaar); if (k >= 0) state.overdracht[k].klaar = !state.overdracht[k].klaar; }); }
+    else if (d.delOd) { mutate(function(){ var k = vindIdx(state.overdracht, d.delOd); if (k >= 0) state.overdracht.splice(k, 1); }); }
+  });
+
+  /* ---------------- init ---------------- */
+  document.getElementById("p-datum").value = today();
+  document.getElementById("o-datum").value = today();
+  paintWie();
+  renderAll();
+  showTab(active);
+  gateStart();
+})();
 </script>
 </body>
 </html>
