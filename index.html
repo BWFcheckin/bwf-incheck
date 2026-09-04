@@ -213,6 +213,13 @@ h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
   font-size:1.05rem;letter-spacing:.02em}
 .naam{font-weight:500;font-size:1.02rem}
 .plek{color:var(--muted);font-size:.85rem;display:block;margin-top:.1rem}
+.subkop{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  font-weight:500;margin:1.8rem 0 .3rem}
+.subkop:first-of-type{margin-top:0}
+.prio{font-size:.72rem;letter-spacing:.05em;color:var(--muted);
+  border:1px solid var(--line);padding:.1rem .45rem;white-space:nowrap}
+.prio.hoog{color:var(--fout);border-color:var(--fout)}
+.laat{color:var(--fout)}
 .leeg{color:var(--muted);font-size:.9rem;padding:1.1rem 0;font-style:italic}
 .fout{color:var(--fout);line-height:1.55;font-size:.9rem;
   background:color-mix(in srgb, var(--fout) 7%, white);
@@ -393,11 +400,16 @@ footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--mute
     <section aria-labelledby="vandaag">
       <h2 id="vandaag">Vandaag</h2>
       <div class="tellers">
-        <div class="teller"><b id="cAankomst">–</b><span>aankomsten</span></div>
-        <div class="teller"><b id="cVertrek">–</b><span>vertrekken</span></div>
-        <div class="teller"><b id="cIncheck">–</b><span>online ingecheckt</span></div>
+        <div class="teller"><b id="cVandaag">–</b><span>taken vandaag</span></div>
+        <div class="teller"><b id="cOpen">–</b><span>open taken</span></div>
+        <div class="teller"><b id="cCalls">–</b><span>welkomstcalls</span></div>
       </div>
-      <div id="lijst"><p class="leeg">Bezig met laden…</p></div>
+
+      <p class="subkop">Taken</p>
+      <div id="lijstTaken"><p class="leeg">Bezig met laden…</p></div>
+
+      <p class="subkop">Welkomstcalls</p>
+      <div id="lijstCalls"><p class="leeg">Bezig met laden…</p></div>
     </section>
     <hr class="regel scheiding">
 
@@ -437,69 +449,52 @@ const CONFIG = {
 
   standaardThema : 'espresso',   // espresso | salie | leisteen
 
-  reserveringen : {
-    tabel      : 'reservations',
-    aankomst   : 'checkindatum',   // datumkolom aankomst
-    vertrek    : 'checkuitdatum',  // datumkolom vertrek
-    tijd       : 'checkintijd',    // tijdkolom (mag leeg blijven: '')
-    naam       : ['voornaam','achternaam'],  // één kolom mag ook: 'naam'
-    locatie    : 'locatie'
+  rollen : {
+    tabel : 'bwf_rollen',      // id (uuid), naam, rol
+    rol   : 'rol'              // waarde 'eigenaar' of 'medewerker'
   },
-  checkins : {
-    tabel      : 'gastenapp_checkins',
-    datum      : 'created_at'
+
+  taken : {
+    tabel      : 'wz_taken',
+    titel      : 'titel',
+    deadline   : 'deadline',
+    prioriteit : 'prioriteit',
+    medewerker : 'medewerker_id',
+    afgerond   : 'afgerond_op'  // leeg = nog open
+  },
+
+  welkomstcalls : {
+    tabel    : 'wz_welkomstcalls',
+    naam     : 'naam',
+    datum    : 'datum',
+    locatie  : 'locatie',
+    telefoon : 'telefoon',
+    gebeld   : 'gebeld_op'      // leeg = nog te bellen
   }
 };
 
 const GROEPEN = [
   {
-    kop:'Dagelijks',
+    kop:'Onderdelen',
     tegels:[
-      { t:'Reserveringen',  d:'Dagelijks overzicht en inchecken', url:'dashboard-prototype.html' },
-      { t:'Incheckformulier',d:'Formulier voor gasten',           url:'incheckformulier.html' },
-      { t:'Incheck-app',    d:'Online inchecken door de gast',    url:'bwf-incheck-app-licht.html' },
-      { t:'Gastenapp',      d:'App voor gasten per suite',        url:null }
-    ]
-  },
-  {
-    kop:'Personeel',
-    tegels:[
-      { t:'Personeelsdashboard', d:'Handboek, voorraad, overdracht', url:'dashboard.html' },
-      { t:'Planning',            d:'Maandkalender per medewerker',   url:null },
-      { t:'Urenregistratie',     d:'Uren per medewerker',            url:'uren-ruth.html' },
-      { t:'Contracten',          d:'Overeenkomsten en tarieven',     url:null },
-      { t:'Werkzaamheden',       d:'Taken en bellijsten',            url:null }
-    ]
-  },
-  {
-    kop:'Administratie',
-    tegels:[
-      { t:'Gastenregister',  d:'Nachtregister en toeristenbelasting', url:null },
-      { t:'Klantenbestand',  d:'Gasten, segmenten en historie',       url:null },
-      { t:'Financieel',      d:'Omzet, kosten en btw',                url:null },
-      { t:'Documenten',      d:'Huisregels en voorwaarden',           url:null },
-      { t:'Leveranciers',    d:'Vaste afspraken en bestellingen',     url:null }
-    ]
-  },
-  {
-    kop:'Marketing',
-    tegels:[
-      { t:'Contentplanning', d:'Social media en berichten', url:null },
-      { t:'Advertenties',    d:'Campagnes en budget',       url:null },
-      { t:'Events',          d:'Retreats en arrangementen', url:null }
-    ]
-  },
-  {
-    kop:'Assistent',
-    tegels:[
-      { t:'Virtuele assistent', d:'Vragen stellen over je eigen gegevens', url:null }
+      { t:'Dagoverzicht', d:'Reserveringen, aankomsten en inchecken',
+        url:'dashboard-prototype.html' },
+      { t:'Taken',        d:'Werkzaamheden, bellijsten en overdracht',
+        url:'vrdashboard.html', rollen:['eigenaar','medewerker'] },
+      { t:'Personeel',    d:'Handboek, planning, uren en voorraad',
+        url:'dashboard.html' },
+      { t:'Klantbeheer',  d:'Klantenbestand, nachtregister en members',
+        url:'klantbeheer.html', rollen:['eigenaar','medewerker'] },
+      { t:'VR Dashboard', d:'Registratie werkzaamheden op tarief',
+        url:'vr2.html', rollen:['eigenaar','medewerker'] },
+      { t:'Voorraad',     d:'Voorraad en bestellingen',
+        url:'dashboard.html', rollen:['eigenaar','medewerker'] }
     ]
   }
 ];
-// url:null = tegel wordt grijs met "nog te bouwen". Zodra de pagina bestaat,
-// vervang null door de bestandsnaam tussen aanhalingstekens, bijvoorbeeld:
-//   url:'bwf-gastenapp.html?suite=angie'
-// Een pagina in een andere repo? Zet de volledige https-link neer.
+// rollen: wie de tegel ziet. Zonder rollen ziet alleen de eigenaar hem.
+//   rollen:['eigenaar','medewerker']  → iedereen die inlogt
+// url:null maakt de tegel grijs met "nog te bouwen".
 
 const EXTERN = [
   { t:'Planyo',                url:'https://www.planyo.com' },
@@ -580,7 +575,8 @@ sb.auth.onAuthStateChange((_e, sessie) => {
     $('#zijMail').textContent = sessie.user.email;
     $('#initialen').textContent =
       (sessie.user.email || '?').replace(/@.*/,'').slice(0,2).toUpperCase();
-    startPortaal();
+    HUIDIGE_ID = sessie.user.id;
+    haalRol(sessie.user.id).then(startPortaal);
   }else{
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');
@@ -589,6 +585,23 @@ sb.auth.onAuthStateChange((_e, sessie) => {
 
 /* ---------- portaal ---------- */
 let gestart = false;
+let ROL = 'medewerker';
+let rolBekend = false;
+let HUIDIGE_ID = null;
+
+async function haalRol(userId){
+  try{
+    const R = CONFIG.rollen;
+    const { data } = await sb.from(R.tabel).select(R.rol).eq('id', userId).maybeSingle();
+    if(data && data[R.rol]){ ROL = data[R.rol]; rolBekend = true; }
+  }catch(e){}
+}
+
+function magZien(tegel){
+  if(ROL === 'eigenaar') return true;
+  return Array.isArray(tegel.rollen) && tegel.rollen.indexOf(ROL) >= 0;
+}
+
 function startPortaal(){
   if(gestart) return;
   gestart = true;
@@ -602,29 +615,34 @@ function startPortaal(){
 
   const slug = t => t.toLowerCase().replace(/[^a-z]/g,'');
 
-  const nogTeBouwen = GROEPEN.flatMap(g => g.tegels).filter(t => !t.url).length;
+  const ZICHTBAAR = GROEPEN
+    .map(g => ({ kop:g.kop, tegels:g.tegels.filter(magZien) }))
+    .filter(g => g.tegels.length > 0);
+
+  const nogTeBouwen = ZICHTBAAR.flatMap(g => g.tegels).filter(t => !t.url).length;
 
   $('#zijNav').innerHTML =
     `<span class="zij-kop">Overzicht</span>
      <a class="zij-link" href="#vandaag">Vandaag</a>
      <span class="zij-kop">Onderdelen</span>` +
-    GROEPEN.map(g => {
-      const klaar = g.tegels.filter(t => t.url).length;
-      return `<a class="zij-link" href="#${slug(g.kop)}">${g.kop}
-              <span class="aantal">${klaar}/${g.tegels.length}</span></a>`;
-    }).join('');
+    ZICHTBAAR.flatMap(g => g.tegels).map(t => t.url
+      ? `<a class="zij-link" href="${t.url}"${t.extern ? ' target="_blank" rel="noopener"' : ''}>${t.t}</a>`
+      : `<span class="zij-link" style="opacity:.5">${t.t}</span>`
+    ).join('');
 
   $('#zijTeller').textContent =
     `${nogTeBouwen} onderdelen staan klaar als tegel maar zijn nog niet gebouwd.`;
 
   $('#navlinks').innerHTML =
     `<a class="navlink" href="#vandaag">Vandaag</a>` +
-    GROEPEN.map(g => `<a class="navlink" href="#${slug(g.kop)}">${g.kop}</a>`).join('');
+    ZICHTBAAR.flatMap(g => g.tegels).map(t => t.url
+      ? `<a class="navlink" href="${t.url}">${t.t}</a>` : ''
+    ).join('');
 
-  $('#groepen').innerHTML = GROEPEN.map(g => `
+  $('#groepen').innerHTML = ZICHTBAAR.map(g => `
     <h2 id="${slug(g.kop)}">${g.kop}</h2>
     <div class="tegels">` + g.tegels.map(x => x.url
-      ? `<a class="tegel" href="${x.url}"><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
+      ? `<a class="tegel" href="${x.url}"${x.extern ? ' target="_blank" rel="noopener"' : ''}><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
       : `<div class="tegel binnenkort"><span class="t">${x.t}</span><span class="d">${x.d}</span>
          <span class="tag">nog te bouwen</span></div>`
     ).join('') + `</div>`).join('');
@@ -634,56 +652,85 @@ function startPortaal(){
   ).join('');
 
   laadDag();
+
+  if(!rolBekend){
+    $('#zijTeller').textContent =
+      'Beperkte weergave: je staat nog niet als eigenaar in de tabel bwf_rollen.';
+  }
 }
 
 const vandaag = () => new Date().toLocaleDateString('sv-SE'); // JJJJ-MM-DD, lokale tijd
 
+function fout(waar, tabel, melding){
+  $(waar).innerHTML =
+    `<p class="fout">Kon niet laden uit <code>${tabel}</code>. ${melding}</p>`;
+}
+
 async function laadDag(){
-  const R = CONFIG.reserveringen;
-  const dag = vandaag();
+  laadTaken();
+  laadCalls();
+}
 
-  const naamVelden = Array.isArray(R.naam) ? R.naam : [R.naam];
-  let velden = [R.aankomst, ...naamVelden, R.locatie];
-  if(R.tijd) velden.push(R.tijd);
+async function laadTaken(){
+  const T = CONFIG.taken, dag = vandaag();
 
-  const { data: aank, error: fout } = await sb
-    .from(R.tabel)
-    .select(velden.join(','))
-    .eq(R.aankomst, dag);
+  let vraag = sb.from(T.tabel)
+    .select([T.titel, T.deadline, T.prioriteit, T.medewerker].join(','))
+    .is(T.afgerond, null)
+    .order(T.deadline, { ascending:true, nullsFirst:false });
 
-  if(fout){
-    $('#lijst').innerHTML =
-      `<p class="fout">Het dagoverzicht kon niet laden. Controleer tabel- en kolomnamen in het
-       configuratieblok (nu: <code>${R.tabel}</code>). Melding: ${fout.message}</p>`;
-    return;
-  }
+  if(ROL !== 'eigenaar' && HUIDIGE_ID) vraag = vraag.eq(T.medewerker, HUIDIGE_ID);
 
-  const rijen = (aank || []).sort((a,b) =>
-    String(a[R.tijd] || '').localeCompare(String(b[R.tijd] || '')));
+  const { data, error } = await vraag;
+  if(error){ fout('lijstTaken', T.tabel, error.message); return; }
 
-  $('#cAankomst').textContent = rijen.length;
+  const rijen = data || [];
+  const vandaagOfEerder = rijen.filter(r => r[T.deadline] && r[T.deadline] <= dag);
 
-  $('#lijst').innerHTML = rijen.length === 0
-    ? `<p class="leeg">Geen aankomsten vandaag.</p>`
-    : rijen.map(r => `
+  $('#cVandaag').textContent = vandaagOfEerder.length;
+  $('#cOpen').textContent    = rijen.length;
+
+  $('#lijstTaken').innerHTML = rijen.length === 0
+    ? `<p class="leeg">Geen openstaande taken.</p>`
+    : rijen.slice(0, 12).map(r => {
+        const d = r[T.deadline];
+        const laat = d && d < dag;
+        const prio = (r[T.prioriteit] || '').toLowerCase();
+        return `
         <div class="rij">
-          <span class="tijd">${(r[R.tijd] || '').toString().slice(0,5) || '—'}</span>
-          <span><span class="naam">${naamVelden.map(v => r[v]).filter(Boolean).join(' ') || 'Naam onbekend'}</span>
-                <span class="plek">${r[R.locatie] || ''}</span></span>
-          <span></span>
-        </div>`).join('');
+          <span class="tijd ${laat ? 'laat' : ''}">${d ? d.slice(8,10) + '-' + d.slice(5,7) : '—'}</span>
+          <span><span class="naam">${r[T.titel] || 'Zonder titel'}</span>
+                ${laat ? '<span class="plek laat">te laat</span>' : ''}</span>
+          <span>${prio ? `<span class="prio ${prio === 'hoog' ? 'hoog' : ''}">${prio}</span>` : ''}</span>
+        </div>`;
+      }).join('');
+}
 
-  if(R.vertrek){
-    const { count } = await sb.from(R.tabel)
-      .select('*', { count:'exact', head:true }).eq(R.vertrek, dag);
-    $('#cVertrek').textContent = count ?? '–';
-  }
+async function laadCalls(){
+  const W = CONFIG.welkomstcalls;
 
-  const C = CONFIG.checkins;
-  const { count: ci } = await sb.from(C.tabel)
-    .select('*', { count:'exact', head:true })
-    .gte(C.datum, dag + 'T00:00:00');
-  $('#cIncheck').textContent = ci ?? '–';
+  const { data, error } = await sb.from(W.tabel)
+    .select([W.naam, W.datum, W.locatie, W.telefoon].join(','))
+    .is(W.gebeld, null)
+    .order(W.datum, { ascending:true, nullsFirst:false });
+
+  if(error){ fout('lijstCalls', W.tabel, error.message); $('#cCalls').textContent = '–'; return; }
+
+  const rijen = data || [];
+  $('#cCalls').textContent = rijen.length;
+
+  $('#lijstCalls').innerHTML = rijen.length === 0
+    ? `<p class="leeg">Alles gebeld.</p>`
+    : rijen.slice(0, 12).map(r => {
+        const d = r[W.datum];
+        return `
+        <div class="rij">
+          <span class="tijd">${d ? d.slice(8,10) + '-' + d.slice(5,7) : '—'}</span>
+          <span><span class="naam">${r[W.naam] || 'Naam onbekend'}</span>
+                <span class="plek">${r[W.locatie] || ''}</span></span>
+          <span>${r[W.telefoon] ? `<a class="prio" href="tel:${r[W.telefoon]}">bellen</a>` : ''}</span>
+        </div>`;
+      }).join('');
 }
 </script>
 </body>
