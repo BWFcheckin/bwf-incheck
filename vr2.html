@@ -507,105 +507,167 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
           <div class="card-head"><h2>Gesprek voorbereiden</h2>
             <span><button class="btn ghost small" id="wcNieuw" type="button">Leeg formulier</button></span></div>
           <div class="card-body">
+
+            <div class="wcbijlage" style="margin-bottom:16px">
+              <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
+                <h3 style="margin:0;font-size:13px">1 &middot; Reservering uit SMG</h3>
+                <span class="hint" id="wcSmgHint">plakken of een bestand inlezen</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+                <button class="btn ghost small" id="wcSmgUpload" type="button">Bestand inlezen</button>
+                <button class="btn small" id="wcSmgLees" type="button">Gegevens overnemen</button>
+                <button class="btn ghost small" id="wcSmgLeeg" type="button">Veld leegmaken</button>
+                <input type="file" id="wcSmgFile" accept=".xlsx,.xls,.csv,.txt,.pdf,.jpg,.jpeg,.png" style="display:none">
+              </div>
+              <textarea id="wcSmg" style="min-height:130px" placeholder="Plak hier de reservering uit het SMG-dashboard, of lees een Excel-, pdf-, txt- of fotobestand in."></textarea>
+              <div class="preview" id="wcSmgVat" style="margin-top:10px"><span class="opbouw">Nog niets ingelezen.</span></div>
+            </div>
+
+            <h3 style="margin:0 0 8px;font-size:13px">2 &middot; Gast</h3>
             <div class="grid-form">
               <div class="field" style="grid-column:span 2"><label for="wcKlant">Klant uit het bestand</label>
                 <select id="wcKlant"></select></div>
-              <div class="field"><label for="wcNaam">Naam</label><input type="text" id="wcNaam" placeholder="voor- en achternaam"></div>
+              <div class="field"><label for="wcVoor">Voornaam</label><input type="text" id="wcVoor"></div>
+              <div class="field"><label for="wcAchter">Achternaam</label><input type="text" id="wcAchter"></div>
               <div class="field"><label for="wcTel">Telefoon</label><input type="text" id="wcTel" inputmode="tel" placeholder="06…"></div>
               <div class="field"><label for="wcMail">E-mail</label><input type="text" id="wcMail" inputmode="email"></div>
-              <div class="field"><label for="wcRef">Reserveringsnummer</label><input type="text" id="wcRef"></div>
+              <div class="field"><label for="wcPlaats">Woonplaats</label><input type="text" id="wcPlaats" placeholder="indien bekend"></div>
+              <div class="field"><label for="wcMember">Member</label><select id="wcMember">
+                <option value="">nee</option><option value="ja">ja — member</option></select></div>
+              <div class="field wide"><div class="note" id="wcHerhaalInfo">Eerste bezoek — nog geen eerdere reservering gevonden.</div></div>
+            </div>
+
+            <h3 style="margin:18px 0 8px;font-size:13px">3 &middot; Verblijf</h3>
+            <div class="grid-form">
               <div class="field"><label for="wcLoc">Locatie</label><select id="wcLoc">
                 <option>Malina Jacuzzi</option><option>Malina Zwembad</option><option>Suite Angie Almere</option></select></div>
-              <div class="field"><label for="wcDatum">Datum verblijf</label><input type="date" id="wcDatum"></div>
-              <div class="field"><label for="wcTijd">Incheck</label><input type="text" id="wcTijd" placeholder="20:00"></div>
+              <div class="field"><label for="wcType">Soort verblijf</label><select id="wcType">
+                <option>Overnachting</option><option>Dagverblijf</option></select></div>
+              <div class="field"><label for="wcDatum">Incheckdatum</label><input type="date" id="wcDatum"></div>
+              <div class="field"><label for="wcTijd">Incheck tijd</label><input type="text" id="wcTijd" placeholder="20:00"></div>
+              <div class="field"><label for="wcDatumEind">Uitcheckdatum</label><input type="date" id="wcDatumEind"></div>
+              <div class="field"><label for="wcTijdEind">Uitcheck tijd</label><input type="text" id="wcTijdEind" placeholder="11:00"></div>
               <div class="field"><label for="wcPers">Personen</label><input type="number" id="wcPers" min="1" step="1" value="2"></div>
+              <div class="field wide"><label for="wcArr">Arrangementen op de reservering</label>
+                <input type="text" id="wcArr" placeholder="wat er volgens SMG al geboekt is"></div>
               <div class="field wide"><label for="wcGeleg">Gelegenheid</label>
                 <input type="text" id="wcGeleg" placeholder="verjaardag, jubileum, gewoon ontspannen…"></div>
             </div>
-          </div>
-        </div>
 
-        <div class="card">
-          <div class="card-head"><h2>Extra's bijboeken</h2><span class="hint" id="wcExtraHint"></span></div>
-          <div class="card-body" id="wcExtras"></div>
-          <div class="card-foot"><span id="wcTotaalTekst"></span>
-            <span><button class="btn ghost small" id="wcExtraNieuw" type="button" hidden>+ Extra beheren</button></span></div>
+            <h3 style="margin:18px 0 8px;font-size:13px">4 &middot; Boeking</h3>
+            <div class="grid-form">
+              <div class="field"><label for="wcRef">Reserveringsnummer</label><input type="text" id="wcRef"></div>
+              <div class="field"><label for="wcBron">Bron van de boeking</label><select id="wcBron">
+                <option value="">— kies —</option>
+                <option>Privésauna</option><option>Origineel Overnachten</option><option>Booking.com</option>
+                <option>Website</option><option>Telefonisch</option><option>Anders</option></select></div>
+              <div class="field wide"><label for="wcNotitie">Notitie</label>
+                <input type="text" id="wcNotitie" placeholder="wat is er afgesproken of opgevallen"></div>
+            </div>
+            <input type="hidden" id="wcNaam">
+          </div>
         </div>
       </div>
 
       <div>
         <div class="card">
-          <div class="card-head"><h2>Gespreksstappen</h2><span class="hint" id="wcScriptHint"></span></div>
-          <div class="card-body" id="wcScript"></div>
+          <div class="card-head"><h2>Belscript</h2><span class="hint" id="wcScriptHint"></span></div>
+          <div class="card-body">
+            <div id="wcScriptKnoppen" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            <div id="wcScript" hidden style="margin-top:14px"></div>
+          </div>
+          <div class="card-foot"><span class="hint">Klik op een script om het open te klappen.</span>
+            <button class="btn ghost small" id="wcScriptNieuw" type="button" hidden>+ Belscript toevoegen</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Extra's bijboeken</h2><span class="hint" id="wcExtraHint"></span></div>
+      <div class="card-body">
+        <div class="wcbijlage" style="margin-bottom:14px">
+          <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
+            <h3 style="margin:0;font-size:13px">Hoe betaalt de gast?</h3></div>
+          <div class="segment" id="wcBetaalwijze">
+            <button type="button" data-b="mollie" aria-pressed="true">Mollie-betaallink</button>
+            <button type="button" data-b="locatie" aria-pressed="false">Betalen op locatie</button>
+          </div>
+          <div class="note" id="wcBetaalNote" style="margin-top:8px"></div>
+        </div>
+        <div id="wcExtras"></div>
+      </div>
+      <div class="card-foot"><span id="wcTotaalTekst"></span>
+        <span><button class="btn ghost small" id="wcExtraNieuw" type="button" hidden>+ Extra beheren</button></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Welkomstcall afronden</h2>
+        <span class="hint">gegevens verwerken, bericht versturen en de formulieren openen</span></div>
+      <div class="card-body">
+        <div class="preview" style="margin-top:0">
+          <strong id="wcTotaal">€ 0,00</strong>
+          <span class="sep"></span>
+          <span class="opbouw" id="wcOpbouw">Nog niets bijgeboekt</span>
+        </div>
+        <div class="grid-form" style="margin-top:14px">
+          <div class="field wide" id="wcMollieVeld"><label for="wcBetaallink">Mollie-betaallink <span style="font-weight:400;color:var(--muted)">(plak hier de link die je in Mollie aanmaakt)</span></label>
+            <input type="text" id="wcBetaallink" inputmode="url" placeholder="https://pay.mollie.com/…"></div>
+          <div class="field"><label for="wcStatus">Status</label><select id="wcStatus">
+            <option value="te bellen">te bellen</option><option value="gebeld">gebeld</option>
+            <option value="geen gehoor">geen gehoor</option><option value="terugbellen">terugbellen</option>
+            <option value="afgerond">afgerond</option></select></div>
         </div>
 
-        <div class="card">
-          <div class="card-head"><h2>Afronden</h2></div>
-          <div class="card-body">
-            <div class="preview" style="margin-top:0">
-              <strong id="wcTotaal">€ 0,00</strong>
-              <span class="sep"></span>
-              <span class="opbouw" id="wcOpbouw">Nog niets bijgeboekt</span>
+        <div class="two-col" style="margin-top:14px">
+          <div class="wcbijlage">
+            <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
+              <h3 style="margin:0;font-size:13px">Incheckformulier</h3>
+              <span class="hint" id="wcFormHint"></span>
             </div>
-            <div class="grid-form" style="margin-top:14px">
-              <div class="field wide"><label for="wcBetaallink">Mollie-betaallink <span style="font-weight:400;color:var(--muted)">(plak hier de link die je in Mollie aanmaakt)</span></label>
-                <input type="text" id="wcBetaallink" inputmode="url" placeholder="https://pay.mollie.com/…"></div>
-              <div class="field wide"><label for="wcNotitie">Notitie</label><input type="text" id="wcNotitie" placeholder="wat is er afgesproken"></div>
-              <div class="field"><label for="wcStatus">Status</label><select id="wcStatus">
-                <option value="te bellen">te bellen</option><option value="gebeld">gebeld</option>
-                <option value="geen gehoor">geen gehoor</option><option value="terugbellen">terugbellen</option>
-                <option value="afgerond">afgerond</option></select></div>
+            <div class="field wide" style="margin-bottom:8px">
+              <label for="wcIncheckUrl">Link met de gegevens van deze gast al ingevuld</label>
+              <input type="text" id="wcIncheckUrl" readonly>
             </div>
-            <div class="wcbijlage">
-              <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
-                <h3 style="margin:0;font-size:13px">Incheckformulier</h3>
-                <span class="hint" id="wcFormHint"></span>
-              </div>
-              <div class="field wide" style="margin-bottom:8px">
-                <label for="wcIncheckUrl">Link met de gegevens van deze gast al ingevuld</label>
-                <input type="text" id="wcIncheckUrl" readonly>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn ghost small" id="wcGastlink" type="button">Gastlink kopiëren</button>
-                <button class="btn ghost small" id="wcFormInstel" type="button" hidden>Ander formulier instellen</button>
-              </div>
-              <div class="note" id="wcFormNote" style="margin-top:8px">Twee formulieren: <strong>Gastformulier openen</strong> is de versie voor de gast (gast.html) &mdash; die link stuur je mee in het bericht. <strong>Locatiemanager-formulier openen</strong> is het volledige incheckformulier dat de locatiemanager invult.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn ghost small" id="wcGastlink" type="button">Gastlink kopiëren</button>
+              <button class="btn ghost small" id="wcFormInstel" type="button" hidden>Ander formulier instellen</button>
             </div>
+            <div class="note" id="wcFormNote" style="margin-top:8px">Twee formulieren: <strong>Gastformulier openen</strong> is de versie voor de gast (gast.html) &mdash; die link stuur je mee in het bericht. <strong>Locatiemanager-formulier openen</strong> is het volledige incheckformulier dat de locatiemanager invult.</div>
+          </div>
 
-            <div class="wcbijlage">
-              <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
-                <h3 style="margin:0;font-size:13px">Bijlage meesturen</h3>
-                <span class="hint" id="wcBijlageHint">bv. de routebeschrijving of huisregels</span>
-              </div>
-              <input type="file" id="wcBijlageFile">
-              <div class="note" id="wcBijlageInfo">Nog geen bijlage gekozen.</div>
+          <div class="wcbijlage">
+            <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
+              <h3 style="margin:0;font-size:13px">Bijlage meesturen</h3>
+              <span class="hint" id="wcBijlageHint">bv. de routebeschrijving of huisregels</span>
             </div>
-
-            <div class="card-head" style="padding:14px 0 8px;border:0">
-              <h3 style="margin:0;font-size:13px">Bericht</h3>
-              <div class="segment" id="wcKanaal">
-                <button type="button" data-k="whatsapp" aria-pressed="true">WhatsApp</button>
-                <button type="button" data-k="email" aria-pressed="false">E-mail</button>
-              </div>
-            </div>
-            <div class="grid-form">
-              <div class="field wide" id="wcOnderwerpVeld" hidden><label for="wcOnderwerp">Onderwerp</label>
-                <input type="text" id="wcOnderwerp"></div>
-              <div class="field wide"><label for="wcTekst">Tekst <span style="font-weight:400;color:var(--muted)">(je mag hem aanpassen voor je verstuurt)</span></label>
-                <textarea id="wcTekst" style="min-height:190px"></textarea></div>
-            </div>
-
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-              <button class="btn" id="wcOpslaan" type="button">Opslaan</button>
-              <button class="btn ghost" id="wcVersturen" type="button">Versturen via WhatsApp</button>
-              <button class="btn ghost" id="wcKopieer" type="button">Bericht kopiëren</button>
-              <button class="btn ghost" id="wcHerstel" type="button">Tekst opnieuw opbouwen</button>
-              <button class="btn ghost" id="wcGastform" type="button">Gastformulier openen</button>
-              <button class="btn ghost" id="wcIncheck" type="button">Locatiemanager-formulier openen</button>
-            </div>
-            <div class="note" id="wcNote"></div>
+            <input type="file" id="wcBijlageFile">
+            <div class="note" id="wcBijlageInfo">Nog geen bijlage gekozen.</div>
           </div>
         </div>
+
+        <div class="card-head" style="padding:14px 0 8px;border:0">
+          <h3 style="margin:0;font-size:13px">Bericht</h3>
+          <div class="segment" id="wcKanaal">
+            <button type="button" data-k="whatsapp" aria-pressed="true">WhatsApp</button>
+            <button type="button" data-k="email" aria-pressed="false">E-mail</button>
+          </div>
+        </div>
+        <div class="grid-form">
+          <div class="field wide" id="wcOnderwerpVeld" hidden><label for="wcOnderwerp">Onderwerp</label>
+            <input type="text" id="wcOnderwerp"></div>
+          <div class="field wide"><label for="wcTekst">Tekst <span style="font-weight:400;color:var(--muted)">(je mag hem aanpassen voor je verstuurt)</span></label>
+            <textarea id="wcTekst" style="min-height:190px"></textarea></div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <button class="btn" id="wcOpslaan" type="button">Opslaan</button>
+          <button class="btn ghost" id="wcVersturen" type="button">Versturen via WhatsApp</button>
+          <button class="btn ghost" id="wcKopieer" type="button">Bericht kopiëren</button>
+          <button class="btn ghost" id="wcHerstel" type="button">Tekst opnieuw opbouwen</button>
+          <button class="btn ghost" id="wcGastform" type="button">Gastformulier openen</button>
+          <button class="btn ghost" id="wcIncheck" type="button">Locatiemanager-formulier openen</button>
+        </div>
+        <div class="note" id="wcNote"></div>
       </div>
     </div>
 
@@ -621,7 +683,8 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
         <tbody id="wcLijst"></tbody>
       </table></div>
       <div class="card-foot"><span id="wcFoot"></span>
-        <button class="btn ghost small" id="wcExport" type="button">Exporteer CSV</button></div>
+        <span><button class="btn ghost small" id="wcNaarTaken" type="button">Openstaande calls op de takenlijst</button>
+        <button class="btn ghost small" id="wcExport" type="button">Exporteer CSV</button></span></div>
     </div>
   </section>
 
@@ -691,7 +754,9 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
         <tbody id="klLijst"></tbody>
       </table></div>
       <div class="card-foot"><span id="klFoot"></span>
-        <button class="btn ghost small" id="klExport" type="button">Exporteer CSV</button></div>
+        <span><button class="btn ghost small" id="klUitIncheck" type="button">Klanten ophalen uit incheckformulieren</button>
+        <button class="btn ghost small" id="klOntdubbel" type="button">Dubbele klanten samenvoegen</button>
+        <button class="btn ghost small" id="klExport" type="button">Exporteer CSV</button></span></div>
     </div>
 
     <div id="gastenBlok">
@@ -1325,7 +1390,8 @@ async function start(){
   vulSelects(); renderAlles();
   await zorgVoorSysteemknoppen(); renderSys();
   await zorgVoorScripts(); renderScripts(); renderWcScript();
-  await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
+  await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetBetaal('mollie'); wcSmgVat(); wcHerhaalCheck();
+  wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   let t = null; try{ t = sessionStorage.getItem(LS.tab); }catch(e){}
   kiesTab(t && $('#tab-'+t) && !$('#tab-'+t).hidden ? t : 'start');
@@ -2688,6 +2754,168 @@ document.addEventListener('click', e=>{
   }
 });
 
+/* ============ klanten uit welkomstcalls en incheckformulieren ============ */
+const klTel   = v => String(v||'').replace(/\D/g,'');
+const klMail  = v => String(v||'').trim().toLowerCase();
+const klSleutelNaam = k =>
+  (String(k.voornaam||'').trim()+' '+String(k.achternaam||'').trim()).trim().toLowerCase().replace(/\s+/g,' ');
+
+/* zoekt een bestaande klant op e-mail, telefoon of naam */
+function klZoekBestaand(g){
+  const mail = klMail(g.email), tel = klTel(g.telefoon), naam = klSleutelNaam(g);
+  return (S.klanten||[]).find(k=>{
+    if(mail && klMail(k.email) === mail) return true;
+    const kt = klTel(k.telefoon);
+    if(tel.length >= 9 && kt.length >= 9 && kt.slice(-9) === tel.slice(-9)) return true;
+    if(naam.length > 6 && klSleutelNaam(k) === naam) return true;
+    return false;
+  });
+}
+
+/* maakt de klant aan, of vult bij een bestaande klant de lege velden aan */
+async function klBijwerken(g){
+  const schoon = {};
+  ['voornaam','achternaam','email','telefoon','woonplaats','nationaliteit','adres','postcode',
+   'referentie','bron','laatste_bezoek','notitie'].forEach(v=>{
+    if(g[v] != null && String(g[v]).trim() !== '') schoon[v] = String(g[v]).trim();
+  });
+  if(g.member === true) schoon.member = true;
+  if(!schoon.voornaam && !schoon.achternaam) return null;
+
+  const bestaand = klZoekBestaand(g);
+  if(bestaand){
+    const patch = {};
+    Object.keys(schoon).forEach(v=>{
+      if(v === 'laatste_bezoek'){
+        if(!bestaand.laatste_bezoek || String(schoon.laatste_bezoek) > String(bestaand.laatste_bezoek))
+          patch.laatste_bezoek = schoon.laatste_bezoek;
+      } else if(v === 'member'){
+        if(!bestaand.member) patch.member = true;
+      } else if(bestaand[v] == null || String(bestaand[v]).trim() === ''){
+        patch[v] = schoon[v];
+      }
+    });
+    if(Object.keys(patch).length) await wijzig('klanten', bestaand.id, patch);
+    return bestaand;
+  }
+  schoon.type = 'contact';
+  schoon.aangemaakt_door = IK ? IK.id : null;
+  const r = await maak('klanten', schoon);
+  return (r && r[0]) || null;
+}
+
+/* de gegevens van de welkomstcall als klant vastleggen */
+async function klUitCall(c){
+  if(!c) return null;
+  const naam = String(c.naam||'').trim().split(/\s+/);
+  const k = await klBijwerken({
+    voornaam:   c.voornaam   || naam[0] || '',
+    achternaam: c.achternaam || naam.slice(1).join(' '),
+    email: c.email, telefoon: c.telefoon, woonplaats: c.woonplaats,
+    referentie: c.referentie, bron: c.bron, member: c.member === true,
+    laatste_bezoek: c.datum || null
+  });
+  if(k && !c.klant_id){
+    await wijzig('calls', c.id, {klant_id:k.id});
+    if(wcHuidig === c.id) $('#wcKlant').value = k.id;
+  }
+  return k;
+}
+
+/* de incheckformulieren staan in aparte tabellen van de gastpagina */
+async function klUitIncheckformulieren(){
+  const uit = {nieuw:0, bijgewerkt:0, gelezen:0};
+  const voor = (S.klanten||[]).length;
+  const bronnen = [
+    {tabel:'gast_aanmeldingen?select=*&order=created_at.desc&limit=1000', label:'Gastformulier'},
+    {tabel:'checkins?select=*&order=created_at.desc&limit=1000',          label:'Incheckformulier'}
+  ];
+  for(const b of bronnen){
+    let rijen = [];
+    try{ rijen = await api(b.tabel, {method:'GET'}) || []; }
+    catch(e){ toast(b.label+' kon niet gelezen worden: '+e.message); continue; }
+    uit.gelezen += rijen.length;
+    for(const r of rijen){
+      await klBijwerken({
+        voornaam:r.voornaam, achternaam:r.achternaam, email:r.email, telefoon:r.telefoon,
+        woonplaats:r.woonplaats, nationaliteit:r.nationaliteit,
+        referentie:r.resnr || null, bron:r.boeking_via || b.label,
+        member:r.lid === true, laatste_bezoek:r.datum || null
+      });
+    }
+  }
+  uit.nieuw = (S.klanten||[]).length - voor;
+  return uit;
+}
+
+$('#klUitIncheck').addEventListener('click', async ()=>{
+  const knop = $('#klUitIncheck'); knop.disabled = true;
+  const oud = knop.textContent; knop.textContent = 'Bezig…';
+  try{
+    const r = await klUitIncheckformulieren();
+    renderKlanten(); vulKlantKeuze && vulKlantKeuze(); badges();
+    toast(r.gelezen+' formulieren gelezen · '+r.nieuw+' nieuwe klant'+(r.nieuw===1?'':'en')+' toegevoegd.');
+  }catch(e){ toast('Ophalen mislukt: '+e.message); }
+  finally{ knop.disabled = false; knop.textContent = oud; }
+});
+
+/* ============ dubbele klanten samenvoegen ============ */
+function klGroepen(){
+  const gezien = [], groepen = [];
+  (S.klanten||[]).slice().sort((a,b)=>String(a.aangemaakt||'').localeCompare(String(b.aangemaakt||'')))
+    .forEach(k=>{
+      const mail = klMail(k.email), tel = klTel(k.telefoon), naam = klSleutelNaam(k);
+      let groep = groepen.find(g=>g.some(x=>{
+        if(mail && klMail(x.email) === mail) return true;
+        const xt = klTel(x.telefoon);
+        if(tel.length >= 9 && xt.length >= 9 && xt.slice(-9) === tel.slice(-9)) return true;
+        if(naam.length > 6 && klSleutelNaam(x) === naam) return true;
+        return false;
+      }));
+      if(groep) groep.push(k); else groepen.push([k]);
+    });
+  return groepen.filter(g=>g.length > 1);
+}
+
+$('#klOntdubbel').addEventListener('click', async ()=>{
+  const groepen = klGroepen();
+  if(!groepen.length){ toast('Geen dubbele klanten gevonden.'); return; }
+  const aantal = groepen.reduce((a,g)=>a+g.length-1, 0);
+  const namen = groepen.slice(0,8).map(g=>'• '+klNaam(g[0])+' ('+g.length+'×)').join('\n');
+  if(!confirm('Er zijn '+groepen.length+' klanten die dubbel in het bestand staan:\n\n'+namen+
+      (groepen.length > 8 ? '\n• …' : '') +
+      '\n\nDe gegevens worden samengevoegd tot één klant en '+aantal+' dubbele regel'+(aantal===1?'':'s')+
+      ' worden verwijderd. Doorgaan?')) return;
+
+  const velden = ['voornaam','achternaam','email','telefoon','adres','postcode','woonplaats',
+    'geboortedatum','nationaliteit','referentie','bron','voorkeuren','allergieen','notitie'];
+  let weg = 0;
+  for(const groep of groepen){
+    /* de volste regel wordt de hoofdklant */
+    const hoofd = groep.slice().sort((a,b)=>
+      velden.filter(v=>b[v]).length - velden.filter(v=>a[v]).length)[0];
+    const rest = groep.filter(k=>k.id !== hoofd.id);
+    const patch = {};
+    rest.forEach(k=>{
+      velden.forEach(v=>{
+        if((hoofd[v] == null || String(hoofd[v]).trim() === '') && k[v] != null && String(k[v]).trim() !== ''
+           && patch[v] == null) patch[v] = k[v];
+      });
+      if(k.member === true && !hoofd.member) patch.member = true;
+      const bez = klBezoek(k), hb = patch.laatste_bezoek || klBezoek(hoofd);
+      if(bez && (!hb || String(bez) > String(hb))) patch.laatste_bezoek = bez;
+    });
+    if(Object.keys(patch).length) await wijzig('klanten', hoofd.id, patch);
+    for(const k of rest){
+      for(const c of (S.calls||[]).filter(x=>x.klant_id === k.id)) await wijzig('calls', c.id, {klant_id:hoofd.id});
+      await verwijder('klanten', k.id);
+      weg++;
+    }
+  }
+  renderKlanten(); vulKlantKeuze && vulKlantKeuze(); renderCalls(); badges();
+  toast(weg+' dubbele klant'+(weg===1?'':'en')+' samengevoegd.');
+});
+
 /* ---------------- KLANTENBESTAND ---------------- */
 const klNaam = k => [k.voornaam || k.voorletters, k.achternaam].filter(Boolean).join(' ') || '—';
 const klBezoek = k => k.laatste_bezoek || k.datum_in || null;
@@ -2832,11 +3060,13 @@ function vulKlantKeuze(){
 function vulUitKlant(){
   const k = S.klanten.find(x=>x.id===$('#wcKlant').value);
   if(!k) return;
-  $('#wcNaam').value = klNaam(k);
+  wcZetNaam(klNaam(k));
   $('#wcTel').value  = k.telefoon || '';
   $('#wcMail').value = k.email || '';
+  if(k.woonplaats) $('#wcPlaats').value = k.woonplaats;
   if(k.referentie) $('#wcRef').value = k.referentie;
   wcTekstAangepast = false;
+  wcHerhaalCheck();
   wcHerbereken();
 }
 $('#wcKlant').addEventListener('change', vulUitKlant);
@@ -2917,9 +3147,16 @@ document.addEventListener('click', async e=>{
 });
 ['#wcPers'].forEach(s=>$(s).addEventListener('input', wcHerbereken));
 /* verandert er iets aan de gegevens, dan loopt de berichttekst mee */
-['#wcNaam','#wcTel','#wcMail','#wcRef','#wcDatum','#wcTijd','#wcGeleg','#wcBetaallink']
+['#wcVoor','#wcAchter','#wcTel','#wcMail','#wcPlaats','#wcRef','#wcDatum','#wcTijd','#wcDatumEind',
+ '#wcTijdEind','#wcArr','#wcGeleg','#wcBetaallink']
   .forEach(sel=>{ const el = $(sel); if(el) el.addEventListener('input', ()=>wcVersTekst()); });
-['#wcLoc','#wcDatum'].forEach(sel=>{ const el = $(sel); if(el) el.addEventListener('change', ()=>wcVersTekst()); });
+['#wcLoc','#wcDatum','#wcDatumEind','#wcType','#wcBron','#wcMember'].forEach(sel=>{
+  const el = $(sel); if(el) el.addEventListener('change', ()=>wcVersTekst()); });
+['#wcVoor','#wcAchter'].forEach(sel=>{ const el=$(sel);
+  if(el) el.addEventListener('input', ()=>{ $('#wcNaam').value = wcVolledigeNaam(); wcHerhaalCheck(); }); });
+['#wcTel','#wcMail'].forEach(sel=>{ const el=$(sel); if(el) el.addEventListener('change', wcHerhaalCheck); });
+['#wcDatum','#wcDatumEind'].forEach(sel=>{ const el=$(sel); if(el) el.addEventListener('change', wcVerblijfAuto); });
+$('#wcMember').addEventListener('change', wcHerhaalCheck);
 $('#wcExtraNieuw').addEventListener('click', async ()=>{
   const naam = prompt('Naam van de extra (bv. Romantisch arrangement)?'); if(!naam) return;
   const cat = prompt('Categorie: Arrangement, Menu, Cadeau, Tijd of Overig', 'Arrangement') || 'Overig';
@@ -2930,12 +3167,23 @@ $('#wcExtraNieuw').addEventListener('click', async ()=>{
   renderExtras();
 });
 
-/* het welkomstcallscript naast het formulier */
+/* het belscript: pas open als je op de knop drukt */
+let wcScriptOpen = null;
 function renderWcScript(){
   const doel = $('#wcScript'); if(!doel) return;
-  const sc = S.scripts.find(s=>/welkomst/i.test(s.titel)) || S.scripts[0];
-  if(!sc){ doel.innerHTML = `<div class="empty">Nog geen belscript. Maak er één aan bij Bellen.</div>`;
-           $('#wcScriptHint').textContent=''; return; }
+  const knoppen = $('#wcScriptKnoppen');
+  const lijst = (S.scripts||[]).filter(x=>isEigenaar() || x.actief!==false)
+    .sort((a,b)=>(a.sortering||0)-(b.sortering||0));
+  const nieuw = $('#wcScriptNieuw'); if(nieuw) nieuw.hidden = !isEigenaar();
+  if(knoppen) knoppen.innerHTML = lijst.length
+    ? lijst.map(x=>`<button class="btn ${wcScriptOpen===x.id?'':'ghost'} small" type="button" data-wcscript="${x.id}">
+        ${wcScriptOpen===x.id?'▾':'▸'} ${esc(x.titel)}</button>`).join('')
+    : '<span class="hint">Nog geen belscript — maak er één aan bij Bellen.</span>';
+  if(!lijst.some(x=>x.id===wcScriptOpen)) wcScriptOpen = null;
+  const sc = lijst.find(x=>x.id===wcScriptOpen);
+  if(!sc){ doel.hidden = true; doel.innerHTML = '';
+           $('#wcScriptHint').textContent = lijst.length ? 'gesloten' : ''; return; }
+  doel.hidden = false;
   const stappen = scStappenVan(sc.id);
   const aan = new Set(scAangevinkt(sc.id));
   const teDoen = stappen.filter(s=>s.soort==='stap');
@@ -2952,23 +3200,53 @@ document.addEventListener('change', e=>{
   const v = e.target.closest('[data-wcvink]');
   if(v){ scZetAan(v.dataset.script, v.dataset.wcvink, v.checked); renderWcScript(); renderScripts(); }
 });
+document.addEventListener('click', e=>{
+  const k = e.target.closest('[data-wcscript]');
+  if(!k) return;
+  wcScriptOpen = (wcScriptOpen === k.dataset.wcscript) ? null : k.dataset.wcscript;
+  renderWcScript();
+});
+$('#wcScriptNieuw').addEventListener('click', async ()=>{
+  const titel = prompt('Naam van het nieuwe belscript?'); if(!titel) return;
+  const rijen = await maak('scripts', {titel:titel.trim(), omschrijving:null, actief:true,
+    sortering:((S.scripts||[]).length+1)*10});
+  if(!rijen || !rijen.length) return;
+  wcScriptOpen = rijen[0].id; scHuidig = rijen[0].id; scBewerken = true;
+  renderWcScript(); renderScripts(); badges();
+  toast('Script aangemaakt — de stappen vul je in bij Bellen.');
+});
 
 function wcFormulier(){
   const regels = wcRegels();
   const totaal = regels.reduce((a,x)=>a+x.bedrag,0);
   return {
     klant_id: $('#wcKlant').value || null,
-    naam: $('#wcNaam').value.trim() || null,
+    naam: wcVolledigeNaam() || null,
+    voornaam: $('#wcVoor').value.trim() || null,
+    achternaam: $('#wcAchter').value.trim() || null,
     telefoon: $('#wcTel').value.trim() || null,
     email: $('#wcMail').value.trim() || null,
+    woonplaats: $('#wcPlaats').value.trim() || null,
+    member: $('#wcMember').value === 'ja',
+    herhaalbezoek: !!wcHerhaal,
     locatie: $('#wcLoc').value,
+    verblijftype: $('#wcType').value,
     datum: $('#wcDatum').value || null,
     tijd: $('#wcTijd').value.trim() || null,
+    datum_eind: $('#wcDatumEind').value || null,
+    tijd_eind: $('#wcTijdEind').value.trim() || null,
     personen: Number($('#wcPers').value)||2,
+    arrangementen: $('#wcArr').value.trim() || null,
     referentie: $('#wcRef').value.trim() || null,
+    bron: $('#wcBron').value || null,
     gelegenheid: $('#wcGeleg').value.trim() || null,
+    smg_tekst: $('#wcSmg').value.trim() || null,
+    smg_extra: wcSmgInfo.extra || null,
+    smg_betaald: wcSmgInfo.betaald === true,
+    smg_bedrag: wcSmgInfo.bedrag != null ? wcSmgInfo.bedrag : null,
+    betaalwijze: wcBetaal,
     regels, totaal:+totaal.toFixed(2),
-    betaallink: $('#wcBetaallink').value.trim() || null,
+    betaallink: wcBetaal === 'locatie' ? null : ($('#wcBetaallink').value.trim() || null),
     incheck_link: $('#wcIncheckLink') ? $('#wcIncheckLink').value : null,
     status: $('#wcStatus').value,
     notitie: $('#wcNotitie').value.trim() || null,
@@ -2978,6 +3256,240 @@ function wcFormulier(){
     medewerker_id: IK.id
   };
 }
+/* ============ naam, verblijf, herhaalbezoek ============ */
+function wcVolledigeNaam(){
+  return ($('#wcVoor').value.trim()+' '+$('#wcAchter').value.trim()).trim();
+}
+function wcZetNaam(volledig){
+  const d = String(volledig||'').trim().split(/\s+/);
+  $('#wcVoor').value   = d.shift() || '';
+  $('#wcAchter').value = d.join(' ');
+  $('#wcNaam').value   = wcVolledigeNaam();
+}
+function wcVerblijfAuto(){
+  const a = $('#wcDatum').value, b = $('#wcDatumEind').value;
+  if(a && b) $('#wcType').value = (a === b) ? 'Dagverblijf' : 'Overnachting';
+}
+let wcHerhaal = false;
+function wcHerhaalCheck(){
+  const tel  = ($('#wcTel').value||'').replace(/\D/g,'');
+  const mail = ($('#wcMail').value||'').trim().toLowerCase();
+  const naam = wcVolledigeNaam().toLowerCase();
+  const zelfde = (a,b) => a && b && a.slice(-9) === b.slice(-9);
+  let n = 0;
+  (S.calls||[]).forEach(c=>{
+    if(wcHuidig && c.id === wcHuidig) return;
+    const ct = String(c.telefoon||'').replace(/\D/g,'');
+    const cm = String(c.email||'').toLowerCase();
+    const cn = String(c.naam||'').toLowerCase();
+    if(zelfde(tel,ct) || (mail && cm === mail) || (naam.length > 5 && cn === naam)) n++;
+  });
+  const klant = (S.klanten||[]).find(k=>
+    (mail && String(k.email||'').toLowerCase() === mail) ||
+    zelfde(tel, String(k.telefoon||'').replace(/\D/g,'')));
+  wcHerhaal = n > 0 || !!klant;
+  const info = $('#wcHerhaalInfo'); if(!info) return;
+  info.innerHTML = wcHerhaal
+    ? '<strong>Herhaalbezoek</strong> — ' + (n ? n+' eerdere welkomstcall'+(n===1?'':'s') : 'staat al in het klantenbestand') +
+      (($('#wcMember').value==='ja') ? ' · member' : '') + '.'
+    : 'Eerste bezoek — nog geen eerdere reservering gevonden.';
+}
+
+/* ============ betaalwijze: Mollie of op locatie ============ */
+let wcBetaal = 'mollie';
+function wcZetBetaal(b){
+  wcBetaal = (b === 'locatie') ? 'locatie' : 'mollie';
+  $$('#wcBetaalwijze button').forEach(k=>k.setAttribute('aria-pressed', String(k.dataset.b === wcBetaal)));
+  const veld = $('#wcMollieVeld'); if(veld) veld.hidden = (wcBetaal === 'locatie');
+  const note = $('#wcBetaalNote');
+  if(note) note.textContent = wcBetaal === 'locatie'
+    ? 'De gast rekent het bijgeboekte bedrag bij aankomst af op locatie (pin of contant). Er gaat geen betaallink mee in het bericht.'
+    : 'De gast krijgt een Mollie-betaallink. Maak de link aan in Mollie en plak hem hieronder bij Afronden.';
+  wcVersTekst(true);
+}
+$('#wcBetaalwijze').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  wcZetBetaal(b.dataset.b);
+});
+
+/* ============ reservering uit SMG inlezen ============ */
+let wcSmgInfo = {extra:null, betaald:null, bedrag:null};
+
+function laadCdn(src){
+  return new Promise((res, rej)=>{
+    if(document.querySelector('script[data-cdn="'+src+'"]')) return res();
+    const el = document.createElement('script');
+    el.src = src; el.dataset.cdn = src;
+    el.onload = ()=>res();
+    el.onerror = ()=>rej(new Error('kon de hulpsoftware niet laden'));
+    document.head.appendChild(el);
+  });
+}
+async function bestandNaarTekst(f){
+  const naam = (f.name||'').toLowerCase();
+  if(/\.(txt|csv|md|json)$/.test(naam) || /^text\//.test(f.type||'')) return await f.text();
+  if(/\.(xlsx|xls)$/.test(naam)){
+    await laadCdn('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), {type:'array'});
+    return wb.SheetNames.map(n=>XLSX.utils.sheet_to_csv(wb.Sheets[n], {FS:' · '})).join('\n');
+  }
+  if(/\.pdf$/.test(naam)){
+    await laadCdn('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    const lib = window.pdfjsLib;
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
+    const uit = [];
+    for(let p=1; p<=pdf.numPages; p++){
+      const t = await (await pdf.getPage(p)).getTextContent();
+      uit.push(t.items.map(i=>i.str).join(' '));
+    }
+    return uit.join('\n');
+  }
+  if(/\.(jpe?g|png|webp)$/.test(naam) || /^image\//.test(f.type||'')){
+    await laadCdn('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js');
+    const r = await Tesseract.recognize(f, 'nld');
+    return (r && r.data && r.data.text) || '';
+  }
+  throw new Error('dit bestandstype kan ik niet lezen — plak de tekst zelf in het veld');
+}
+$('#wcSmgUpload').addEventListener('click', ()=>$('#wcSmgFile').click());
+$('#wcSmgLeeg').addEventListener('click', ()=>{
+  $('#wcSmg').value = '';
+  wcSmgInfo = {extra:null, betaald:null, bedrag:null};
+  wcSmgVat();
+});
+$('#wcSmgFile').addEventListener('change', async e=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  $('#wcSmgHint').textContent = 'bezig met inlezen…';
+  try{
+    const tekst = await bestandNaarTekst(f);
+    $('#wcSmg').value = ($('#wcSmg').value ? $('#wcSmg').value+'\n' : '') + tekst.trim();
+    $('#wcSmgHint').textContent = f.name+' ingelezen';
+    wcSmgOvernemen();
+  }catch(err){
+    $('#wcSmgHint').textContent = 'inlezen mislukt';
+    toast('Inlezen mislukt: '+err.message);
+  }finally{ e.target.value = ''; }
+});
+$('#wcSmgLees').addEventListener('click', wcSmgOvernemen);
+
+/* leest de geplakte tekst en vult de velden hieronder */
+function wcSmgLezen(t){
+  const tekst = String(t||'');
+  const laag  = tekst.toLowerCase();
+  const uit   = {};
+  const na = (labels)=>{
+    for(const l of labels){
+      const m = tekst.match(new RegExp(l+'\\s*[:\\-]\\s*(.+)', 'i'));
+      if(m) return m[1].split(/\s{2,}|\s·\s|\|/)[0].trim();
+    }
+    return '';
+  };
+  /* contact */
+  const mail = tekst.match(/[\w.+-]+@[\w-]+\.[\w.]+/);
+  if(mail) uit.email = mail[0];
+  const tel = tekst.match(/(?:\+31|0031|0)[\s-]?6[\s-]?\d{2}[\s-]?\d{2}[\s-]?\d{2}[\s-]?\d{2}|(?:\+31|0)\s?\d{2,3}[\s-]?\d{6,7}/);
+  if(tel) uit.telefoon = tel[0].replace(/\s+/g,' ').trim();
+  /* naam */
+  let naam = na(['voor-?\\s*en\\s*achternaam','naam gast','naam','gast','klant','guest','tenaamstelling']);
+  const vn = na(['voornaam','first ?name']), an = na(['achternaam','last ?name','familienaam']);
+  if(vn || an) naam = (vn+' '+an).trim();
+  if(naam) uit.naam = naam.replace(/\s{2,}/g,' ').slice(0,80);
+  /* woonplaats */
+  const plaats = na(['woonplaats','plaats','city','stad']);
+  if(plaats) uit.woonplaats = plaats.slice(0,60);
+  else{
+    const pc = tekst.match(/\b\d{4}\s?[A-Za-z]{2}\b[\s,]+([A-Za-zÀ-ÿ'\- ]{3,40})/);
+    if(pc) uit.woonplaats = pc[1].trim();
+  }
+  /* reserveringsnummer */
+  const ref = tekst.match(/(?:reserverings?nummer|boekingsnummer|reservering|booking(?:\s*id)?|ordernummer|nr\.?)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-\/]{3,20})/i);
+  if(ref) uit.referentie = ref[1];
+  /* datums en tijden */
+  const datums = [];
+  const dre = /(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})|(\d{4})-(\d{2})-(\d{2})/g;
+  let m;
+  while((m = dre.exec(tekst))){
+    if(m[1]){
+      let j = m[3].length === 2 ? '20'+m[3] : m[3];
+      datums.push(j+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0'));
+    } else datums.push(m[4]+'-'+m[5]+'-'+m[6]);
+  }
+  const uniek = [...new Set(datums)].sort();
+  if(uniek[0]) uit.datum = uniek[0];
+  if(uniek[1]) uit.datum_eind = uniek[1];
+  const tijden = (tekst.match(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g)||[]).map(x=>x.replace('.',':'));
+  if(tijden[0]) uit.tijd = tijden[0];
+  if(tijden[1]) uit.tijd_eind = tijden[1];
+  /* personen */
+  const pers = tekst.match(/(\d{1,2})\s*(?:personen|pers\.?|gasten|volwassenen|guests)/i);
+  if(pers) uit.personen = Number(pers[1]);
+  /* locatie */
+  if(/jacuzzi/.test(laag)) uit.locatie = 'Malina Jacuzzi';
+  else if(/zwembad|deluxe/.test(laag)) uit.locatie = 'Malina Zwembad';
+  else if(/angie|almere/.test(laag)) uit.locatie = 'Suite Angie Almere';
+  /* soort verblijf */
+  if(/dagverblijf|dagarrangement|day ?use/.test(laag)) uit.verblijftype = 'Dagverblijf';
+  else if(/overnacht|nacht|night/.test(laag)) uit.verblijftype = 'Overnachting';
+  else if(uit.datum && uit.datum_eind) uit.verblijftype = uit.datum === uit.datum_eind ? 'Dagverblijf' : 'Overnachting';
+  /* bron */
+  if(/priv[ée]\s?sauna|privesauna/.test(laag)) uit.bron = 'Privésauna';
+  else if(/origineel\s?overnachten/.test(laag)) uit.bron = 'Origineel Overnachten';
+  else if(/booking\.com/.test(laag)) uit.bron = 'Booking.com';
+  else if(/website|eigen site|planyo/.test(laag)) uit.bron = 'Website';
+  /* member */
+  if(/\bmember\b|vip[- ]?member|lidmaatschap/.test(laag)) uit.member = true;
+  /* arrangementen en extra's */
+  const namen = (S.extras||[]).map(e=>e.naam).filter(Boolean);
+  const gevonden = namen.filter(n=>laag.includes(String(n).toLowerCase()));
+  const woorden = ['arrangement','ontbijt','sushi','borrelplank','bubbels','champagne','wijn','menu','taart','bloemen','massage','high tea','romantisch'];
+  const regels = tekst.split(/\r?\n/).map(r=>r.trim()).filter(r=>r && woorden.some(w=>r.toLowerCase().includes(w)));
+  const extra = [...new Set(gevonden.concat(regels.map(r=>r.replace(/\s{2,}/g,' ').slice(0,70))))];
+  if(extra.length) uit.extra = extra.join(' · ');
+  /* bedragen en betaalstatus */
+  const bedragen = [...tekst.matchAll(/€\s?(\d{1,5}(?:[.,]\d{2})?)/g)].map(x=>Number(x[1].replace('.','').replace(',','.')));
+  const totaalRegel = tekst.match(/totaal[^\d€]{0,20}€?\s?(\d{1,5}(?:[.,]\d{2})?)/i);
+  if(totaalRegel) uit.bedrag = Number(totaalRegel[1].replace('.','').replace(',','.'));
+  else if(bedragen.length) uit.bedrag = Math.max(...bedragen);
+  const open = /openstaand|nog te betalen|niet betaald|onbetaald|te voldoen|aanbetaling/i.test(tekst);
+  const dicht = /\bbetaald\b|voldaan|volledig betaald|paid/i.test(tekst);
+  uit.betaald = open ? false : (dicht ? true : null);
+  return uit;
+}
+function wcSmgVat(){
+  const v = $('#wcSmgVat'); if(!v) return;
+  const d = wcSmgInfo;
+  if(!d.extra && d.betaald == null && d.bedrag == null){
+    v.innerHTML = '<span class="opbouw">Nog niets ingelezen.</span>'; return;
+  }
+  const status = d.betaald === true ? 'betaald' : d.betaald === false ? 'nog niet betaald' : 'betaalstatus onbekend';
+  v.innerHTML = '<strong>'+(d.bedrag != null ? eur(d.bedrag) : '—')+'</strong><span class="sep"></span>' +
+    '<span class="opbouw">'+esc(status)+(d.extra ? ' · extra geboekt: '+esc(d.extra) : ' · geen extra\'s gevonden')+'</span>';
+}
+function wcSmgOvernemen(){
+  const tekst = $('#wcSmg').value.trim();
+  if(!tekst){ toast('Plak eerst de reservering of lees een bestand in.'); return; }
+  const d = wcSmgLezen(tekst);
+  const zet = (sel, waarde, altijd)=>{
+    if(waarde == null || waarde === '') return;
+    const el = $(sel); if(!el) return;
+    if(altijd || !el.value) el.value = waarde;
+  };
+  if(d.naam && !wcVolledigeNaam()) wcZetNaam(d.naam);
+  zet('#wcTel', d.telefoon); zet('#wcMail', d.email); zet('#wcPlaats', d.woonplaats);
+  zet('#wcRef', d.referentie); zet('#wcDatum', d.datum); zet('#wcDatumEind', d.datum_eind);
+  zet('#wcTijd', d.tijd); zet('#wcTijdEind', d.tijd_eind);
+  zet('#wcArr', d.extra);
+  if(d.personen) $('#wcPers').value = d.personen;
+  if(d.locatie) $('#wcLoc').value = d.locatie;
+  if(d.verblijftype) $('#wcType').value = d.verblijftype;
+  if(d.bron) $('#wcBron').value = d.bron;
+  if(d.member) $('#wcMember').value = 'ja';
+  wcSmgInfo = {extra:d.extra||null, betaald:d.betaald, bedrag:d.bedrag != null ? d.bedrag : null};
+  wcSmgVat(); wcVerblijfAuto(); wcHerhaalCheck(); wcVersTekst(true);
+  toast('Gegevens overgenomen — loop ze even na.');
+}
+
 /* link voor de GAST: gast.html — de gast vult alleen de eigen gegevens in */
 function gastLink(f){
   const q = new URLSearchParams();
@@ -3010,8 +3522,11 @@ function wcBericht(f, kanaal){
     : 'Wat leuk dat je bij Bed & Wellness Flevoland komt! Even kort wat we hebben afgesproken:');
   r.push('');
   if(f.locatie) r.push('• Locatie: '+f.locatie);
-  if(f.datum)   r.push('• Datum: '+dmy(f.datum)+(f.tijd?' vanaf '+f.tijd:''));
+  if(f.datum)   r.push('• Aankomst: '+dmy(f.datum)+(f.tijd?' vanaf '+f.tijd:''));
+  if(f.datum_eind) r.push('• Vertrek: '+dmy(f.datum_eind)+(f.tijd_eind?' om '+f.tijd_eind:''));
+  else if(f.verblijftype) r.push('• Soort verblijf: '+f.verblijftype);
   r.push('• Aantal personen: '+f.personen);
+  if(f.arrangementen) r.push('• Al geboekt: '+f.arrangementen);
   if(f.referentie) r.push('• Reservering: '+f.referentie);
   if(f.gelegenheid) r.push('• Gelegenheid: '+f.gelegenheid);
   if(f.regels.length){
@@ -3021,7 +3536,9 @@ function wcBericht(f, kanaal){
     r.push('');
     r.push('Totaal bij te betalen: '+eur(f.totaal));
   }
-  if(f.betaallink){ r.push(''); r.push('Betalen kan via deze link: '+f.betaallink); }
+  if(f.betaalwijze === 'locatie'){
+    if(f.regels.length){ r.push(''); r.push('Dit bedrag reken je bij aankomst op locatie af — pinnen of contant kan allebei.'); }
+  } else if(f.betaallink){ r.push(''); r.push('Betalen kan via deze link: '+f.betaallink); }
   r.push('');
   r.push('Alvast online inchecken en de huisregels doornemen kan hier: '+gastLink(f));
   r.push('Dat scheelt tijd bij aankomst, en je vindt er alle informatie over je verblijf.');
@@ -3163,10 +3680,72 @@ $('#wcGastform').addEventListener('click', ()=>{
 });
 $('#wcNieuw').addEventListener('click', ()=>{
   wcHuidig = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
-  ['#wcNaam','#wcTel','#wcMail','#wcRef','#wcTijd','#wcGeleg','#wcBetaallink','#wcNotitie'].forEach(s=>$(s).value='');
-  $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcStatus').value='te bellen';
+  ['#wcNaam','#wcVoor','#wcAchter','#wcTel','#wcMail','#wcPlaats','#wcRef','#wcTijd','#wcTijdEind',
+   '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg'].forEach(s=>{ const el=$(s); if(el) el.value=''; });
+  $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcDatumEind').value='';
+  $('#wcStatus').value='te bellen'; $('#wcMember').value=''; $('#wcBron').value='';
+  $('#wcType').value='Overnachting';
+  wcSmgInfo = {extra:null, betaald:null, bedrag:null}; wcSmgVat(); wcHerhaalCheck(); wcZetBetaal('mollie');
   $('#wcNote').textContent=''; wcToonBijlage(); renderExtras(); wcVersTekst(true);
 });
+/* ============ openstaande welkomstcalls als taak ============ */
+const wcTaakVan = id => (S.taken||[]).find(t => String(t.call_id||'') === String(id));
+
+function wcTaakTekst(c){
+  const d = [];
+  if(c.locatie) d.push(c.locatie);
+  if(c.datum)   d.push(dmy(c.datum) + (c.tijd ? ' vanaf '+c.tijd : ''));
+  if(c.telefoon) d.push('tel. '+c.telefoon);
+  if(c.referentie) d.push('reservering '+c.referentie);
+  if(c.bron) d.push('via '+c.bron);
+  d.push('status: '+(c.status||'te bellen'));
+  return d.join(' · ');
+}
+
+/* maakt of werkt de taak bij die bij deze welkomstcall hoort */
+async function wcTaakSync(c, stil){
+  if(!c || !c.id) return;
+  const bestaand = wcTaakVan(c.id);
+  const naam = c.naam || 'gast';
+
+  if(c.status === 'afgerond'){
+    if(bestaand && bestaand.status !== 'klaar'){
+      await wijzig('taken', bestaand.id, {status:'klaar', afgerond_op:new Date().toISOString()});
+      if(!stil) toast('De taak voor deze welkomstcall is afgevinkt.');
+    }
+    return;
+  }
+
+  const velden = {
+    titel: ('Welkomstcall: '+naam).slice(0,200),
+    omschrijving: wcTaakTekst(c).slice(0,4000),
+    medewerker_id: c.medewerker_id || (IK ? IK.id : null),
+    deadline: c.datum || vandaag(),
+    prioriteit: (c.status === 'terugbellen' || c.status === 'geen gehoor') ? 'hoog' : 'normaal',
+    call_id: c.id
+  };
+  if(bestaand){
+    velden.status = bestaand.status === 'klaar' ? 'open' : bestaand.status;
+    await wijzig('taken', bestaand.id, velden);
+  }else{
+    velden.status = 'open';
+    velden.link = null;
+    velden.aangemaakt_door = IK ? IK.id : null;
+    await maak('taken', velden);
+  }
+  renderTaken(); renderOverzicht();
+}
+
+$('#wcNaarTaken').addEventListener('click', async ()=>{
+  const open = (S.calls||[]).filter(c=>c.status !== 'afgerond');
+  if(!open.length){ toast('Er staan geen openstaande welkomstcalls.'); return; }
+  let nieuw = 0;
+  for(const c of open){ if(!wcTaakVan(c.id)) nieuw++; await wcTaakSync(c, true); }
+  renderTaken(); renderOverzicht(); badges();
+  toast(nieuw ? nieuw+' welkomstcall'+(nieuw===1?'':'s')+' op de takenlijst gezet.'
+              : 'Alle openstaande calls stonden al op de takenlijst.');
+});
+
 $('#wcOpslaan').addEventListener('click', async ()=>{
   const f = wcFormulier();
   if(!f.naam && !f.klant_id){ toast('Vul een naam in of kies een klant.'); return; }
@@ -3187,8 +3766,16 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
     $('#wcNote').innerHTML = '<strong style="color:var(--crit)">Opslaan mislukt.</strong> Melding van Supabase: ' + esc(LAATSTE_FOUT);
     return;
   }
-  $('#wcNote').textContent = 'Welkomstcall bewaard.';
-  renderCalls(); badges(); toast('Welkomstcall bewaard.');
+  const bewaard = (S.calls||[]).find(x=>x.id===wcHuidig);
+  if(bewaard){
+    await wcTaakSync(bewaard, true);
+    const k = await klUitCall(bewaard);
+    if(k){ renderKlanten(); if(typeof vulKlantKeuze === 'function') vulKlantKeuze(); }
+  }
+  $('#wcNote').textContent = f.status === 'afgerond'
+    ? 'Welkomstcall bewaard en afgerond — de taak is afgevinkt.'
+    : 'Welkomstcall bewaard — hij staat als taak op de takenlijst.';
+  renderCalls(); renderTaken(); badges(); toast('Welkomstcall bewaard.');
 });
 let wcFilterStand = 'open';
 $('#wcFilter').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
@@ -3224,7 +3811,9 @@ document.addEventListener('change', async e=>{
   const s = e.target.closest('[data-wcstatus]');
   if(s){ await wijzig('calls', s.dataset.wcstatus, {status:s.value,
     gebeld_op:(s.value==='gebeld'||s.value==='afgerond')?new Date().toISOString():null});
-    renderCalls(); badges(); }
+    const c = (S.calls||[]).find(x=>x.id===s.dataset.wcstatus);
+    if(c) await wcTaakSync(c, true);
+    renderCalls(); renderTaken(); badges(); }
 });
 document.addEventListener('click', async e=>{
   const w = e.target.closest('[data-wcwis]');
@@ -3235,11 +3824,22 @@ document.addEventListener('click', async e=>{
     const c = S.calls.find(x=>x.id===o.dataset.wcopen); if(!c) return;
     wcHuidig = c.id; wcKeuzes = {};
     (c.regels||[]).forEach(r=>{ if(r && r.id) wcKeuzes[r.id] = r.per_persoon ? 1 : (r.aantal||1); });
-    $('#wcKlant').value = c.klant_id||''; $('#wcNaam').value = c.naam||'';
+    $('#wcKlant').value = c.klant_id||'';
+    if(c.voornaam || c.achternaam){ $('#wcVoor').value = c.voornaam||''; $('#wcAchter').value = c.achternaam||'';
+      $('#wcNaam').value = wcVolledigeNaam(); }
+    else wcZetNaam(c.naam||'');
     $('#wcTel').value = c.telefoon||''; $('#wcMail').value = c.email||'';
-    $('#wcRef').value = c.referentie||''; $('#wcLoc').value = c.locatie||'Malina Jacuzzi';
+    $('#wcPlaats').value = c.woonplaats||''; $('#wcMember').value = c.member ? 'ja' : '';
+    $('#wcRef').value = c.referentie||''; $('#wcBron').value = c.bron||'';
+    $('#wcLoc').value = c.locatie||'Malina Jacuzzi'; $('#wcType').value = c.verblijftype||'Overnachting';
     $('#wcDatum').value = c.datum||''; $('#wcTijd').value = c.tijd||'';
-    $('#wcPers').value = c.personen||2; $('#wcGeleg').value = c.gelegenheid||'';
+    $('#wcDatumEind').value = c.datum_eind||''; $('#wcTijdEind').value = c.tijd_eind||'';
+    $('#wcPers').value = c.personen||2; $('#wcArr').value = c.arrangementen||'';
+    $('#wcGeleg').value = c.gelegenheid||'';
+    $('#wcSmg').value = c.smg_tekst||'';
+    wcSmgInfo = {extra:c.smg_extra||null, betaald:(c.smg_betaald===true?true:(c.smg_tekst?false:null)),
+                 bedrag:(c.smg_bedrag!=null?Number(c.smg_bedrag):null)};
+    wcSmgVat(); wcHerhaalCheck(); wcZetBetaal(c.betaalwijze==='locatie' ? 'locatie' : 'mollie');
     $('#wcBetaallink').value = c.betaallink||''; $('#wcNotitie').value = c.notitie||'';
     $('#wcStatus').value = c.status||'te bellen';
     wcBijlage = c.bijlage_url ? {url:c.bijlage_url, naam:c.bijlage_naam || 'bijlage'} : null;
@@ -3249,12 +3849,18 @@ document.addEventListener('click', async e=>{
   }
 });
 $('#wcExport').addEventListener('click', ()=>{
-  const rows = [['Naam','Telefoon','E-mail','Locatie','Datum','Tijd','Personen','Reservering','Gelegenheid',
-    'Extra geboekt','Totaal','Status','Notitie']];
-  wcSelectie().forEach(c=>rows.push([c.naam||'', c.telefoon||'', c.email||'', c.locatie||'', c.datum||'',
-    c.tijd||'', c.personen||'', c.referentie||'', c.gelegenheid||'',
+  const rows = [['Voornaam','Achternaam','Telefoon','E-mail','Woonplaats','Member','Herhaalbezoek',
+    'Locatie','Soort verblijf','Incheck','Incheck tijd','Uitcheck','Uitcheck tijd','Personen',
+    'Arrangementen','Reservering','Bron','Gelegenheid','Extra bijgeboekt','Totaal','Betaalwijze',
+    'Status','Notitie']];
+  wcSelectie().forEach(c=>rows.push([
+    c.voornaam || String(c.naam||'').split(' ')[0] || '',
+    c.achternaam || String(c.naam||'').split(' ').slice(1).join(' '),
+    c.telefoon||'', c.email||'', c.woonplaats||'', c.member?'ja':'', c.herhaalbezoek?'ja':'',
+    c.locatie||'', c.verblijftype||'', c.datum||'', c.tijd||'', c.datum_eind||'', c.tijd_eind||'',
+    c.personen||'', c.arrangementen||'', c.referentie||'', c.bron||'', c.gelegenheid||'',
     (c.regels||[]).map(r=>r.naam+(r.aantal>1?' x'+r.aantal:'')).join(' | '),
-    String(c.totaal??0).replace('.',','), c.status, c.notitie||'']));
+    String(c.totaal??0).replace('.',','), c.betaalwijze||'', c.status, c.notitie||'']));
   csv(rows, 'welkomstcalls-'+vandaag()+'.csv');
 });
 
