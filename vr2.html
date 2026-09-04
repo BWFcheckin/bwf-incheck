@@ -569,7 +569,7 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
                 <button class="btn ghost small" id="wcGastlink" type="button">Gastlink kopiëren</button>
                 <button class="btn ghost small" id="wcFormInstel" type="button" hidden>Ander formulier instellen</button>
               </div>
-              <div class="note" id="wcFormNote" style="margin-top:8px">De locatiemanager vult het formulier in met "Incheckformulier openen". De gastlink stuur je naar de gast; die staat ook automatisch in het bericht.</div>
+              <div class="note" id="wcFormNote" style="margin-top:8px">Twee formulieren: <strong>Gastformulier openen</strong> is de versie voor de gast (gast.html) &mdash; die link stuur je mee in het bericht. <strong>Locatiemanager-formulier openen</strong> is het volledige incheckformulier dat de locatiemanager invult.</div>
             </div>
 
             <div class="wcbijlage">
@@ -600,7 +600,8 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
               <button class="btn ghost" id="wcVersturen" type="button">Versturen via WhatsApp</button>
               <button class="btn ghost" id="wcKopieer" type="button">Bericht kopiëren</button>
               <button class="btn ghost" id="wcHerstel" type="button">Tekst opnieuw opbouwen</button>
-              <button class="btn ghost" id="wcIncheck" type="button">Incheckformulier openen</button>
+              <button class="btn ghost" id="wcGastform" type="button">Gastformulier openen</button>
+              <button class="btn ghost" id="wcIncheck" type="button">Locatiemanager-formulier openen</button>
             </div>
             <div class="note" id="wcNote"></div>
           </div>
@@ -2812,9 +2813,14 @@ $('#klImportOk').addEventListener('click', async ()=>{
 let wcKeuzes = {};      /* extraId -> aantal */
 let wcHuidig = null;    /* id van een opgeslagen call die je bewerkt */
 const INCHECK_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
+const GAST_URL    = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
 /* de eigenaar kan een ander formulier instellen; dat wordt bewaard als link met tab 'instelling' */
 const incheckRij = () => S.links.find(l => l.tab === 'instelling' && l.titel === 'Incheckformulier');
 function incheckBasis(){ const r = incheckRij(); return (r && r.url) || INCHECK_URL; }
+const gastRij = () => S.links.find(l => l.tab === 'instelling' && l.titel === 'Gastformulier');
+function gastBasis(){ const r = gastRij(); return (r && r.url) || GAST_URL; }
+/* de gastpagina werkt met korte codes voor de suite */
+const GAST_LOC = {'Malina Jacuzzi':'jacuzzi','Malina Zwembad':'deluxe','Suite Angie Almere':'angie'};
 
 function vulKlantKeuze(){
   const sel = $('#wcKlant'); if(!sel) return;
@@ -2972,6 +2978,16 @@ function wcFormulier(){
     medewerker_id: IK.id
   };
 }
+/* link voor de GAST: gast.html — de gast vult alleen de eigen gegevens in */
+function gastLink(f){
+  const q = new URLSearchParams();
+  if(f.referentie) q.set('r', f.referentie);
+  if(f.locatie && GAST_LOC[f.locatie]) q.set('loc', GAST_LOC[f.locatie]);
+  if(f.datum) q.set('d', f.datum);
+  const s = q.toString();
+  return gastBasis() + (s ? '?' + s : '');
+}
+/* link voor de LOCATIEMANAGER: het volledige incheckformulier */
 function incheckLink(f){
   const q = new URLSearchParams();
   if(f.naam) q.set('naam', f.naam);
@@ -3007,7 +3023,7 @@ function wcBericht(f, kanaal){
   }
   if(f.betaallink){ r.push(''); r.push('Betalen kan via deze link: '+f.betaallink); }
   r.push('');
-  r.push('Alvast online inchecken en de huisregels doornemen kan hier: '+incheckLink(f));
+  r.push('Alvast online inchecken en de huisregels doornemen kan hier: '+gastLink(f));
   r.push('Dat scheelt tijd bij aankomst, en je vindt er alle informatie over je verblijf.');
   if(wcBijlage){
     r.push('');
@@ -3107,13 +3123,13 @@ $('#wcKopieer').addEventListener('click', async ()=>{
 });
 function wcToonIncheck(){
   const vak = $('#wcIncheckUrl'); if(!vak) return;
-  vak.value = incheckLink(wcFormulier());
+  vak.value = gastLink(wcFormulier());
   const hint = $('#wcFormHint');
   if(hint) hint.textContent = incheckBasis().replace(/^https?:\/\//,'').replace(/\?.*$/,'');
   const knop = $('#wcFormInstel'); if(knop) knop.hidden = !isEigenaar();
 }
 $('#wcGastlink').addEventListener('click', async ()=>{
-  const link = incheckLink(wcFormulier());
+  const link = gastLink(wcFormulier());
   $('#wcIncheckUrl').value = link;
   try{ await navigator.clipboard.writeText(link); toast('Gastlink gekopieerd.');
        $('#wcFormNote').textContent = 'De gastlink staat op je klembord — plakken met Ctrl+V. Hij staat ook al in het bericht hieronder.'; }
@@ -3134,10 +3150,16 @@ $('#wcFormInstel').addEventListener('click', async ()=>{
 });
 $('#wcIncheck').addEventListener('click', ()=>{
   const f = wcFormulier();
-  const link = incheckLink(f);
+  window.open(incheckLink(f), '_blank', 'noopener');
+  $('#wcIncheckUrl').value = gastLink(f);
+  $('#wcFormNote').textContent = 'Het locatiemanager-formulier is geopend in een nieuw tabblad, met de gegevens van deze gast al ingevuld.';
+});
+$('#wcGastform').addEventListener('click', ()=>{
+  const f = wcFormulier();
+  const link = gastLink(f);
   window.open(link, '_blank', 'noopener');
   $('#wcIncheckUrl').value = link;
-  $('#wcFormNote').textContent = 'Het formulier is in een nieuw tabblad geopend, met de gegevens van deze gast al ingevuld — klaar voor de locatiemanager.';
+  $('#wcFormNote').textContent = 'Het gastformulier is geopend in een nieuw tabblad — dit is precies wat de gast te zien krijgt.';
 });
 $('#wcNieuw').addEventListener('click', ()=>{
   wcHuidig = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
@@ -3148,7 +3170,7 @@ $('#wcNieuw').addEventListener('click', ()=>{
 $('#wcOpslaan').addEventListener('click', async ()=>{
   const f = wcFormulier();
   if(!f.naam && !f.klant_id){ toast('Vul een naam in of kies een klant.'); return; }
-  f.incheck_link = incheckLink(f);
+  f.incheck_link = gastLink(f);
   if(f.status==='gebeld' || f.status==='afgerond') f.gebeld_op = new Date().toISOString();
   LAATSTE_FOUT = '';
   if(wcHuidig){ await wijzig('calls', wcHuidig, f); }

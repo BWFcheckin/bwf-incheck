@@ -978,16 +978,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       kaart.hidden = false;
     } catch (e) {}
   }
+  var GAST_FORM_URL = "https://bwfcheckin.github.io/bwf-incheck/gast.html";
+  var LM_FORM_URL   = "https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html";
   function renderIncheck(){
     var houder = document.getElementById("incheckHouder");
-    if (state.incheckUrl) {
-      houder.innerHTML = '<div class="incheck-actie">' +
-        '<a class="btn groot" href="' + esc(state.incheckUrl) + '" target="_blank" rel="noopener">Incheckformulier openen</a>' +
-        '<p class="note">Opent in een nieuw tabblad. Handig op de tablet in de hal of op je eigen telefoon.</p></div>';
-    } else {
-      houder.innerHTML = '<div class="empty"><strong>Nog geen incheckformulier gekoppeld</strong>' +
-        'Klik op <strong>Link wijzigen</strong> hierboven en plak het webadres van het formulier.</div>';
-    }
+    var lm = state.incheckUrl || LM_FORM_URL;
+    houder.innerHTML = '<div class="incheck-actie">' +
+      '<a class="btn groot" href="' + esc(GAST_FORM_URL) + '" target="_blank" rel="noopener">Gastformulier openen</a>' +
+      '<p class="note">De versie voor de gast: die vult alleen de eigen gegevens in en ziet geen andere formulieren.</p>' +
+      '<a class="btn groot" href="' + esc(lm) + '" target="_blank" rel="noopener">Locatiemanager-formulier openen</a>' +
+      '<p class="note">Het volledige incheckformulier met arrangementen, bestellingen en eindafrekening. Handig op de tablet in de hal.</p></div>';
   }
   document.getElementById("incheckSet").addEventListener("click", function(){
     document.getElementById("incheck-input").value = state.incheckUrl;
