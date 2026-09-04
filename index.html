@@ -4,333 +4,229 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bed &amp; Wellness Flevoland — portaal</title>
-<meta name="theme-color" id="themaKleur" content="#FAF9F7">
+<meta name="theme-color" id="themaKleur" content="#F4F1ED">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════
-   KLEURENSCHEMA'S — kies er een via de knopjes onderaan,
-   of pas hier de waarden aan.
+   KLEURENSCHEMA'S — zelfde opzet als het VR Dashboard.
+   Kies er een via de knopjes onderaan of pas de waarden aan.
    ═══════════════════════════════════════════════════════════ */
 
-/* 1 — Espresso & goud (standaard) */
 [data-thema="espresso"]{
-  --paper:#FAF9F7;   /* achtergrond, warm gebroken wit */
-  --wit:#FFFFFF;     /* kaarten en panelen            */
-  --brand:#483C34;   /* primair, donker espresso      */
-  --muted:#5C4F45;   /* secundaire tekst, warm taupe  */
-  --zacht:#E8E3DE;   /* zachte vlakken, licht beige   */
-  --gold:#D2AF37;    /* accent, luxe goud             */
-  --gold-tekst:#9A7E1F; /* accent op wit, leesbaar    */
-  --ok:#66735B;      /* positief, olijfgroen          */
-  --fout:#A6534F;    /* foutmelding, gedempt rood     */
+  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3;
+  --line:#E3DAD0; --line-soft:#EFE8E1;
+  --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
+  --accent:#483C34; --accent-ink:#FFFFFF; --accent-soft:#E8DFD5;
+  --brass:#9A7B4F; --ok:#3F7A55; --warn:#8F6420; --warn-soft:#F6EBD9;
+  --crit:#A34434; --crit-soft:#F7E2DC;
 }
-
-/* 2 — Salie & champagnebrons */
 [data-thema="salie"]{
-  --paper:#F5F7F3;
-  --wit:#FFFFFF;
-  --brand:#40584B;
-  --muted:#655A50;
-  --zacht:#E3EAE3;
-  --gold:#B08D57;
-  --gold-tekst:#8C6F42;
-  --ok:#397052;
-  --fout:#A75446;
+  --bg:#F3F6F2; --surface:#FFFFFF; --surface-2:#F7FAF6;
+  --line:#DCE4DA; --line-soft:#E9EFE7;
+  --ink:#1B2620; --ink-2:#3D4A41; --muted:#66756B;
+  --accent:#40584B; --accent-ink:#FFFFFF; --accent-soft:#DDE8E0;
+  --brass:#8C6F42; --ok:#397052; --warn:#8A6420; --warn-soft:#F3ECDC;
+  --crit:#A75446; --crit-soft:#F7E3DE;
 }
-
-/* 3 — Leisteenblauw & zacht goud */
 [data-thema="leisteen"]{
-  --paper:#F5F7F8;
-  --wit:#FFFFFF;
-  --brand:#293D4A;
-  --muted:#576369;
-  --zacht:#E5EBEE;
-  --gold:#C3A15B;
-  --gold-tekst:#96793F;
-  --ok:#3F756C;
-  --fout:#98505A;
+  --bg:#F2F5F7; --surface:#FFFFFF; --surface-2:#F8FAFB;
+  --line:#DBE2E6; --line-soft:#E9EEF1;
+  --ink:#16212A; --ink-2:#3A4750; --muted:#5F6E76;
+  --accent:#293D4A; --accent-ink:#FFFFFF; --accent-soft:#DCE5EA;
+  --brass:#96793F; --ok:#3F756C; --warn:#8A6420; --warn-soft:#F2EDDF;
+  --crit:#98505A; --crit-soft:#F5E2E5;
 }
 
 :root{
-  --line:color-mix(in srgb, var(--brand) 24%, transparent);
-  --goldline:color-mix(in srgb, var(--gold) 55%, transparent);
+  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
+  --r-s:6px; --r-m:10px; --r-l:16px;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 
-*{box-sizing:border-box}
+*,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{
-  background:var(--paper);
-  color:var(--brand);
-  font-family:'Jost',system-ui,-apple-system,sans-serif;
-  font-weight:400;font-size:16px;line-height:1.6;
-  -webkit-font-smoothing:antialiased;
-}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:inherit}
-button{font:inherit;cursor:pointer}
-:focus-visible{outline:1px solid var(--gold-tekst);outline-offset:4px}
-.wrap{max-width:760px;margin:0 auto;padding:0 1.4rem}
-.hidden{display:none !important}
+button,input{font:inherit;color:inherit;cursor:pointer}
+input{cursor:auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.hidden{display:none!important}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ───────────── inloggen ───────────── */
-#login{min-height:100dvh;display:flex;align-items:center;justify-content:center;
-  padding:1.5rem;position:relative;overflow:hidden}
-#login::before{
-  content:'';position:absolute;inset:0;
-  background:url('https://bedenwellnessflevoland.nl/Hero_images/Main_Bed_en_wellness_malina_deluxe_zwembad.webp') center/cover no-repeat;
-  transform:scale(1.04);
-}
-#login::after{
-  content:'';position:absolute;inset:0;
+#login{min-height:100dvh;display:grid;place-items:center;padding:20px;position:relative;overflow:hidden}
+#login::before{content:'';position:absolute;inset:0;
+  background:url('https://bedenwellnessflevoland.nl/Hero_images/Main_Bed_en_wellness_malina_deluxe_zwembad.webp') center/cover no-repeat}
+#login::after{content:'';position:absolute;inset:0;
   background:linear-gradient(180deg,
-    color-mix(in srgb, var(--paper) 84%, transparent) 0%,
-    color-mix(in srgb, var(--zacht) 94%, transparent) 100%);
-}
-.paneel{
-  position:relative;z-index:1;width:100%;max-width:400px;
-  background:var(--wit);border:1px solid var(--goldline);
-  box-shadow:0 18px 50px color-mix(in srgb, var(--brand) 16%, transparent);
-  padding:2.4rem 2rem 2rem;text-align:center;
-}
-.logo{width:132px;height:auto;margin:0 auto 1.4rem;display:block}
-.welkom{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
-  font-size:1.8rem;line-height:1.25;margin:0 0 .35rem;letter-spacing:.01em}
-.sub{color:var(--muted);font-size:.88rem;margin:0 0 1.9rem}
-.veld{text-align:left;margin:0 0 1.05rem}
-label{display:block;font-size:.79rem;font-weight:500;color:var(--muted);margin:0 0 .4rem;letter-spacing:.04em}
-input[type=email],input[type=password]{
-  width:100%;padding:.72rem .85rem;background:var(--paper);color:var(--brand);
-  border:1px solid var(--line);border-radius:0;font:inherit;font-size:.95rem;
-}
-input:focus{border-color:var(--gold-tekst);outline:none;background:var(--wit)}
-input::placeholder{color:color-mix(in srgb, var(--muted) 60%, white)}
-.btn{
-  width:100%;padding:.8rem 1rem;border:1px solid var(--brand);border-radius:0;
-  background:var(--brand);color:var(--paper);font-weight:500;letter-spacing:.06em;font-size:.9rem;
-  transition:background .2s ease,color .2s ease;
-}
-.btn:hover:not(:disabled){background:transparent;color:var(--brand)}
-.btn:disabled{opacity:.5;cursor:wait}
-.btn-rand{background:transparent;color:var(--muted);border:1px solid var(--line);
-  padding:.48rem .9rem;width:auto;font-size:.8rem;letter-spacing:.05em;
-  transition:border-color .2s ease,color .2s ease}
-.btn-rand:hover{border-color:var(--gold-tekst);color:var(--gold-tekst)}
-.reset{background:none;border:none;color:var(--muted);font-size:.8rem;
-  text-decoration:underline;text-underline-offset:3px;padding:.9rem 0 0}
-.reset:hover{color:var(--gold-tekst)}
-.msg{font-size:.85rem;margin:1rem 0 0;padding:.65rem .8rem;display:none;
-  text-align:left;border-left:2px solid}
-.msg.err{display:block;color:var(--fout);border-color:var(--fout);
-  background:color-mix(in srgb, var(--fout) 8%, white)}
-.msg.ok{display:block;color:var(--ok);border-color:var(--ok);
-  background:color-mix(in srgb, var(--ok) 8%, white)}
+    color-mix(in srgb, var(--bg) 86%, transparent) 0%,
+    color-mix(in srgb, var(--surface-2) 94%, transparent) 100%)}
+.paneel{position:relative;z-index:1;width:100%;max-width:400px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);
+  padding:26px 24px;text-align:center}
+.logo{width:120px;height:auto;margin:0 auto 16px;display:block}
+.welkom{font-family:var(--f-display);font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0}
+.sub{color:var(--muted);font-size:13px;margin:6px 0 18px}
+.veld{text-align:left;margin:0 0 12px}
+label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin:0 0 5px}
+input[type=email],input[type=password]{width:100%;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--r-s);padding:8px 10px;font-size:14px}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--surface)}
+input::placeholder{color:color-mix(in srgb, var(--muted) 65%, white)}
+.btn{width:100%;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+  padding:9px 16px;border-radius:var(--r-s);font-size:13.5px;font-weight:600}
+.btn:hover:not(:disabled){filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-rand{width:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r-s);padding:6px 11px;font-size:12.5px;font-weight:600}
+.btn-rand:hover{border-color:var(--accent);color:var(--accent)}
+.reset{background:none;border:0;color:var(--muted);font-size:12.5px;text-decoration:underline;
+  text-underline-offset:3px;padding:12px 0 0}
+.reset:hover{color:var(--accent)}
+.msg{font-size:13px;margin:12px 0 0;padding:10px 13px;display:none;text-align:left;border-radius:var(--r-m)}
+.msg.err{display:block;background:var(--crit-soft);color:var(--crit)}
+.msg.ok{display:block;background:var(--warn-soft);color:var(--ok)}
 
-/* ───────────── zijbalk (alleen desktop) ───────────── */
+/* ───────────── zijbalk ───────────── */
 .zijbalk{display:none}
-
 @media (min-width:1024px){
   .navbalk{display:none}
-
-  .zijbalk{
-    display:flex;flex-direction:column;gap:2rem;
-    position:fixed;top:0;left:0;bottom:0;width:264px;z-index:30;
-    background:var(--wit);border-right:1px solid var(--line);
-    padding:2rem 1.5rem;overflow-y:auto;
-  }
-  .zij-merk img{width:118px;height:auto;display:block}
-
-  .zij-wie{display:flex;align-items:center;gap:.75rem;
-    padding-bottom:1.4rem;border-bottom:1px solid var(--line)}
-  .initialen{
-    width:38px;height:38px;flex:0 0 38px;border-radius:50%;
-    background:var(--brand);color:var(--paper);
-    display:flex;align-items:center;justify-content:center;
-    font-size:.82rem;font-weight:500;letter-spacing:.04em;
-  }
-  .zij-mail{font-size:.78rem;color:var(--muted);line-height:1.3;word-break:break-word}
-
-  .zij-nav{display:flex;flex-direction:column;gap:.15rem;flex:1}
-  .zij-kop{font-size:.68rem;letter-spacing:.14em;color:var(--muted);
-    text-transform:uppercase;margin:1.4rem 0 .5rem;font-weight:500}
+  .zijbalk{display:flex;flex-direction:column;gap:22px;position:fixed;top:0;left:0;bottom:0;width:258px;
+    z-index:30;background:var(--surface);border-right:1px solid var(--line);padding:20px 16px;overflow-y:auto}
+  .zij-merk img{width:112px;height:auto;display:block}
+  .zij-wie{display:flex;align-items:center;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line-soft)}
+  .initialen{width:34px;height:34px;flex:none;border-radius:11px;background:var(--accent);color:var(--accent-ink);
+    display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:13px}
+  .zij-mail{font-size:12px;color:var(--muted);line-height:1.3;word-break:break-word}
+  .zij-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+  .zij-kop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:16px 0 6px}
   .zij-kop:first-child{margin-top:0}
-  .zij-link{
-    display:flex;align-items:center;justify-content:space-between;gap:.6rem;
-    text-decoration:none;color:var(--brand);font-size:.92rem;font-weight:500;
-    padding:.55rem .7rem;border-left:2px solid transparent;
-    transition:background .18s ease,border-color .18s ease,color .18s ease;
-  }
-  .zij-link:hover,.zij-link:focus-visible{background:var(--zacht);border-left-color:var(--gold)}
-  .zij-link .aantal{font-size:.72rem;color:var(--muted);font-weight:400}
-
-  .zij-kaart{background:var(--zacht);padding:1.1rem;margin-top:auto}
-  .zij-kaart b{display:block;font-family:'Cormorant Garamond',serif;
-    font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
-  .zij-kaart p{margin:0 0 .9rem;font-size:.78rem;color:var(--muted);line-height:1.45}
-  .zij-kaart .btn-rand{width:100%;text-align:center;background:var(--wit)}
-
-  .inhoud{margin-left:264px;min-height:100dvh}
+  .zij-link{display:flex;align-items:center;justify-content:space-between;gap:8px;text-decoration:none;
+    color:var(--ink);font-size:13.5px;font-weight:500;padding:8px 11px;border-radius:var(--r-s)}
+  .zij-link:hover,.zij-link:focus-visible{background:var(--surface-2);color:var(--accent)}
+  .zij-link .aantal{font-family:var(--f-mono);font-size:10.5px;padding:1px 6px;border-radius:999px;
+    background:var(--surface-2);border:1px solid var(--line-soft);color:var(--muted)}
+  .zij-kaart{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r-m);
+    padding:14px;margin-top:auto}
+  .zij-kaart b{display:block;font-family:var(--f-display);font-size:14px;font-weight:600;margin-bottom:4px}
+  .zij-kaart p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.5}
+  .zij-kaart .btn-rand{width:100%;text-align:center}
+  .inhoud{margin-left:258px;min-height:100dvh}
+  .wrap{max-width:none;padding:0 32px}
 }
 
 /* ───────────── navigatiebalk (telefoon en tablet) ───────────── */
-.navbalk{position:sticky;top:0;z-index:20;
-  background:color-mix(in srgb, var(--paper) 94%, transparent);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--line)}
-.navinner{max-width:760px;margin:0 auto;padding:0 1.4rem;
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1rem}
-.navlogo{height:30px;width:auto;display:block}
-.navlinks{display:flex;gap:1.4rem;overflow-x:auto;scrollbar-width:none;padding:.85rem 0}
+.navbalk{position:sticky;top:0;z-index:20;background:var(--surface);
+  border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.navinner{max-width:1120px;margin:0 auto;padding:0 20px;display:grid;
+  grid-template-columns:auto 1fr auto;align-items:center;gap:12px}
+.navlogo{height:28px;width:auto;display:block}
+.navlinks{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 .navlinks::-webkit-scrollbar{display:none}
-.navlink{text-decoration:none;color:var(--muted);font-size:.87rem;font-weight:500;
-  white-space:nowrap;padding-bottom:.2rem;border-bottom:2px solid transparent;
-  transition:color .2s ease,border-color .2s ease}
-.navlink:hover,.navlink:focus-visible{color:var(--brand);border-color:var(--gold)}
+.navlink{text-decoration:none;color:var(--muted);font-size:13.5px;font-weight:500;white-space:nowrap;
+  padding:11px 12px 13px;border-bottom:2px solid transparent}
+.navlink:hover,.navlink:focus-visible{color:var(--ink);background:var(--surface-2);border-bottom-color:var(--accent)}
 
 /* ───────────── kop ───────────── */
-header{padding:2rem 0 1.4rem}
-.top{display:flex;align-items:flex-start;justify-content:space-between;gap:1.2rem}
-.logo-klein{width:96px;height:auto;display:block;margin:0 0 1.5rem}
-h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
-  font-size:2.1rem;margin:0;line-height:1.15;letter-spacing:.01em}
-.datum{color:var(--muted);font-size:.85rem;margin:.35rem 0 0;letter-spacing:.03em}
-.regel{height:1px;background:var(--line);border:none;margin:0}
+header{padding:22px 0 4px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3.4vw,30px);font-weight:700;
+  letter-spacing:-.02em;margin:0;line-height:1.15}
+.datum{color:var(--muted);font-size:14px;margin:6px 0 0}
+.regel{height:1px;background:var(--line);border:0;margin:18px 0 0}
+.scheiding{display:none}
 
-/* ───────────── vandaag ───────────── */
-section{padding:2rem 0}
-h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
-  font-size:1.6rem;margin:0 0 1.2rem;letter-spacing:.01em;scroll-margin-top:5rem}
-.tellers{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
-  background:var(--line);border:1px solid var(--line);margin:0 0 1.8rem}
-.teller{background:var(--wit);padding:1.1rem .9rem}
-.teller b{display:block;font-family:'Cormorant Garamond',serif;font-weight:500;
-  font-size:2.5rem;line-height:1;color:var(--brand)}
-.teller span{display:block;color:var(--muted);font-size:.76rem;margin-top:.45rem;letter-spacing:.04em;font-weight:500}
-.rij{display:grid;grid-template-columns:3.8rem 1fr auto;gap:1rem;align-items:baseline;
-  padding:1rem 0;border-bottom:1px solid var(--line)}
-.rij:first-child{border-top:1px solid var(--line)}
-.tijd{color:var(--gold-tekst);font-variant-numeric:tabular-nums;font-weight:500;
-  font-size:1.05rem;letter-spacing:.02em}
-.naam{font-weight:500;font-size:1.02rem}
-.plek{color:var(--muted);font-size:.85rem;display:block;margin-top:.1rem}
-.subkop{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
-  font-weight:500;margin:1.8rem 0 .3rem}
+/* ───────────── secties ───────────── */
+section{padding:22px 0}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px}
+.subkop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--brass);margin:22px 0 8px}
 .subkop:first-of-type{margin-top:0}
-.prio{font-size:.72rem;letter-spacing:.05em;color:var(--muted);
-  border:1px solid var(--line);padding:.1rem .45rem;white-space:nowrap}
-.prio.hoog{color:var(--fout);border-color:var(--fout)}
-.laat{color:var(--fout)}
-.leeg{color:var(--muted);font-size:.9rem;padding:1.1rem 0;font-style:italic}
-.fout{color:var(--fout);line-height:1.55;font-size:.9rem;
-  background:color-mix(in srgb, var(--fout) 7%, white);
-  padding:.9rem 1rem;border-left:2px solid var(--fout);margin:1rem 0 0}
-.fout code{background:var(--zacht);padding:.1rem .35rem;font-size:.88em}
+
+/* tellers */
+.tellers{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:0 0 18px}
+.teller{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);
+  padding:14px 16px;position:relative;overflow:hidden}
+.teller::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.85}
+.teller:nth-child(2)::before{background:var(--brass)}
+.teller:nth-child(3)::before{background:var(--ok)}
+.teller b{display:block;font-family:var(--f-display);font-size:26px;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.teller span{display:block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-top:4px}
+
+/* lijstregels */
+.rij{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:baseline;
+  padding:11px 12px;border-bottom:1px solid var(--line-soft);background:var(--surface);
+  border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.rij:first-child{border-top:1px solid var(--line);border-radius:var(--r-m) var(--r-m) 0 0}
+.rij:last-child{border-bottom:1px solid var(--line);border-radius:0 0 var(--r-m) var(--r-m)}
+.rij:hover{background:var(--surface-2)}
+.tijd{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.tijd.laat{color:var(--crit);font-weight:600}
+.naam{font-weight:600;font-size:14px}
+.plek{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.plek.laat{color:var(--crit)}
+.prio{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);text-decoration:none;white-space:nowrap}
+.prio.hoog{background:var(--crit-soft);border-color:transparent;color:var(--crit)}
+a.prio:hover{border-color:var(--accent);color:var(--accent)}
+.leeg{padding:26px 18px;text-align:center;color:var(--muted);font-size:13.5px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);margin:0}
+.fout{font-size:13px;line-height:1.5;background:var(--crit-soft);color:var(--crit);
+  padding:11px 14px;border-radius:var(--r-m);margin:0}
+.fout code{font-family:var(--f-mono);font-size:.9em}
 
 /* ───────────── tegels ───────────── */
-.tegels{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
-  background:transparent;padding:1px}
-.tegel:hover .t{color:var(--gold-tekst)}
-.tegel{display:block;text-decoration:none;background:var(--wit);
-  outline:1px solid var(--line);
-  padding:1.5rem 1.15rem 1.6rem;min-height:7rem;transition:background .2s ease}
-.tegel:hover,.tegel:focus-visible{background:var(--zacht)}
-.tegel .t{display:block;font-family:'Cormorant Garamond',serif;font-size:1.42rem;
-  font-weight:600;line-height:1.2}
-.tegel .d{display:block;color:var(--muted);font-size:.83rem;margin-top:.45rem;line-height:1.45}
-#groepen h2{margin-top:2.2rem}
+#groepen h2{margin-top:26px}
 #groepen h2:first-child{margin-top:0}
-.tegel.binnenkort{position:relative;background:var(--paper);cursor:default;opacity:.72}
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.tegel{display:block;text-decoration:none;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-m);box-shadow:var(--shadow);padding:15px 16px 17px;position:relative;overflow:hidden}
+.tegel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brass)}
+.tegel:hover,.tegel:focus-visible{border-color:var(--accent)}
+.tegel:hover .t{color:var(--accent)}
+.tegel .t{display:block;font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.tegel .d{display:block;color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.45}
+.tegel.binnenkort{background:var(--surface-2);box-shadow:none;cursor:default}
+.tegel.binnenkort::before{background:var(--line)}
+.tegel.binnenkort:hover{border-color:var(--line)}
 .tegel.binnenkort .t{color:var(--muted)}
-.tegel.binnenkort:hover{background:var(--paper)}
-.tag{position:absolute;top:.8rem;right:.8rem;font-size:.63rem;letter-spacing:.08em;
-  color:var(--muted);border:1px solid var(--line);padding:.15rem .45rem}
-.extern{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1rem}
-.pil{text-decoration:none;font-size:.85rem;font-weight:500;color:var(--brand);letter-spacing:.03em;
-  background:var(--wit);border:1px solid var(--line);padding:.5rem 1rem;
-  transition:border-color .2s ease,color .2s ease}
-.pil:hover,.pil:focus-visible{border-color:var(--gold-tekst);color:var(--gold-tekst)}
+.tag{position:absolute;top:12px;right:12px;font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);background:var(--surface);border:1px solid var(--line-soft);
+  padding:2px 7px;border-radius:999px}
 
-/* ───────────── kleurkeuze ───────────── */
-footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--muted);
-  font-size:.78rem;display:flex;justify-content:space-between;align-items:center;
-  gap:1rem;letter-spacing:.04em;flex-wrap:wrap}
-.themas{display:flex;align-items:center;gap:.5rem}
-.themas .kop{font-size:.75rem;color:var(--muted)}
-.staal{width:22px;height:22px;border-radius:50%;padding:0;
-  border:1px solid var(--line);transition:transform .18s ease,border-color .18s ease}
-.staal:hover{transform:scale(1.15)}
-.staal[aria-pressed="true"]{border-color:var(--gold-tekst);border-width:2px;transform:scale(1.15)}
-.staal.espresso{background:linear-gradient(135deg,#483C34 50%,#D2AF37 50%)}
-.staal.salie   {background:linear-gradient(135deg,#40584B 50%,#B08D57 50%)}
-.staal.leisteen{background:linear-gradient(135deg,#293D4A 50%,#C3A15B 50%)}
+.extern{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}
+.pil{display:inline-flex;align-items:center;text-decoration:none;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--shadow);
+  padding:8px 13px;font-size:13.5px;font-weight:600;color:var(--ink)}
+.pil:hover,.pil:focus-visible{border-color:var(--accent);color:var(--accent)}
 
-/* ═══════════ SCHERMFORMATEN ═══════════ */
+/* ───────────── voet en kleurkeuze ───────────── */
+footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color:var(--muted);
+  font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.themas{display:flex;align-items:center;gap:8px}
+.themas .kop{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.staal{width:24px;height:24px;border-radius:8px;padding:0;border:1px solid var(--line)}
+.staal[aria-pressed="true"]{border-color:var(--accent);border-width:2px}
+.staal.espresso{background:linear-gradient(135deg,#483C34 50%,#9A7B4F 50%)}
+.staal.salie   {background:linear-gradient(135deg,#40584B 50%,#8C6F42 50%)}
+.staal.leisteen{background:linear-gradient(135deg,#293D4A 50%,#96793F 50%)}
 
-/* Kleine telefoon (tot 420px) — alles onder elkaar */
-@media (max-width:419px){
-  .wrap,.navinner{padding:0 1.1rem}
-  .navlinks{gap:1.1rem}
-  .navlink{font-size:.82rem}
-  h1{font-size:1.75rem}
-  h2{font-size:1.35rem}
-  .teller b{font-size:1.9rem}
-  .teller{padding:.85rem .6rem}
-  .teller span{font-size:.68rem}
+@media (max-width:520px){
+  .wrap,.navinner{padding:0 14px}
+  .tellers{grid-template-columns:1fr 1fr}
   .tegels{grid-template-columns:1fr}
-  .tegel{min-height:0;padding:1.1rem 1rem}
-  .logo-klein{width:78px;margin-bottom:1.1rem}
-  .rij{grid-template-columns:3.2rem 1fr;gap:.7rem}
-  .paneel{padding:2rem 1.4rem 1.6rem}
+  .rij{grid-template-columns:48px 1fr auto;gap:9px}
 }
-
-/* Telefoon liggend en kleine tablet (420–767px) */
-@media (min-width:420px) and (max-width:767px){
-  .tegels{grid-template-columns:repeat(2,1fr)}
-}
-
-/* Tablet (768–1023px) */
-@media (min-width:768px){
-  .wrap,.navinner{max-width:860px;padding:0 2rem}
-  .tegels{grid-template-columns:repeat(3,1fr)}
-  h1{font-size:2.3rem}
-  .logo-klein{width:110px}
-  header{padding:2.6rem 0 1.6rem}
-  section{padding:2.4rem 0}
-}
-
-/* Desktop (vanaf 1024px) — dagoverzicht en tegels naast elkaar */
-@media (min-width:1024px){
-  .wrap,.navinner{max-width:none;padding:0 3rem}
-  .kolommen{display:grid;grid-template-columns:minmax(300px,.85fr) 1.15fr;
-    gap:3.5rem;align-items:start}
-  .kolommen section{padding:2.6rem 0}
-  .scheiding{display:none}
-  .tellers{grid-template-columns:repeat(3,1fr)}
-  .tegels{grid-template-columns:repeat(2,1fr)}
-  .tegel{min-height:8rem;padding:1.7rem 1.3rem}
-  h1{font-size:2.5rem}
-  .logo-klein{width:120px}
-  footer{padding:1.8rem 0 3rem}
-}
-
-/* Groot scherm (vanaf 1440px) */
-@media (min-width:1440px){
-  .tegels{grid-template-columns:repeat(3,1fr)}
-  .kolommen{grid-template-columns:minmax(320px,.7fr) 1.3fr;gap:4rem}
-}
-@media (min-width:1800px){
-  .wrap{padding:0 5rem}
-}
-
-/* Aanraakschermen — grotere trefvlakken */
-@media (hover:none){
-  .staal{width:28px;height:28px}
-  .themas{gap:.7rem}
-  .pil{padding:.6rem 1.1rem}
-  .btn-rand{padding:.6rem 1rem}
-}
-
-@media (prefers-reduced-motion:reduce){*{transition:none !important}#login::before{transform:none}}
+@media (hover:none){ .staal{width:28px;height:28px} }
 </style>
 </head>
 <body>
@@ -475,20 +371,61 @@ const CONFIG = {
 
 const GROEPEN = [
   {
-    kop:'Onderdelen',
+    kop:'Dagelijks',
     tegels:[
-      { t:'Dagoverzicht', d:'Reserveringen, aankomsten en inchecken',
-        url:'dashboard-prototype.html' },
+      { t:'Dagoverzicht',    d:'Reserveringen en aankomsten',        url:'dashboard-prototype.html' },
+      { t:'Incheckformulier',d:'Formulier voor gasten',              url:'incheckformulier.html' },
+      { t:'Incheck-app',     d:'Online inchecken door de gast',      url:'bwf-incheck-app-licht.html' },
+      { t:'Gastenlink',      d:'Aparte link voor de gast',           url:'gast.html' },
+      { t:'Gastenapp',       d:'App voor gasten per suite',          url:null }
+    ]
+  },
+  {
+    kop:'Taken',
+    tegels:[
       { t:'Taken',        d:'Werkzaamheden, bellijsten en overdracht',
         url:'vrdashboard.html', rollen:['eigenaar','medewerker'] },
-      { t:'Personeel',    d:'Handboek, planning, uren en voorraad',
-        url:'dashboard.html' },
-      { t:'Klantbeheer',  d:'Klantenbestand, nachtregister en members',
-        url:'klantbeheer.html', rollen:['eigenaar','medewerker'] },
       { t:'VR Dashboard', d:'Registratie werkzaamheden op tarief',
-        url:'vr2.html', rollen:['eigenaar','medewerker'] },
-      { t:'Voorraad',     d:'Voorraad en bestellingen',
-        url:'dashboard.html', rollen:['eigenaar','medewerker'] }
+        url:'vr2.html', rollen:['eigenaar','medewerker'] }
+    ]
+  },
+  {
+    kop:'Personeel',
+    tegels:[
+      { t:'Personeelsdashboard', d:'Handboek, planning en overdracht', url:'dashboard.html' },
+      { t:'Urenregistratie',     d:'Uren per medewerker',
+        url:'uren-ruth.html', rollen:['eigenaar','medewerker'] },
+      { t:'Voorraad',            d:'Voorraad en bestellingen',
+        url:'dashboard.html', rollen:['eigenaar','medewerker'] },
+      { t:'Planning',            d:'Maandkalender per medewerker',    url:null },
+      { t:'Contracten',          d:'Overeenkomsten en tarieven',      url:null }
+    ]
+  },
+  {
+    kop:'Administratie',
+    tegels:[
+      { t:'Klantbeheer',        d:'Klantenbestand, nachtregister en members',
+        url:'klantbeheer.html', rollen:['eigenaar','medewerker'] },
+      { t:'Toeristenbelasting', d:'Aangifte per gemeente',  url:'klantbeheer.html?tab=aangifte' },
+      { t:'Financieel',         d:'Omzet, kosten en btw',   url:null },
+      { t:'Documenten',         d:'Huisregels en voorwaarden', url:null },
+      { t:'Leveranciers',       d:'Vaste afspraken en bestellingen', url:null }
+    ]
+  },
+  {
+    kop:'Marketing',
+    tegels:[
+      { t:'Contentplanning', d:'Social media en berichten', url:null },
+      { t:'Advertenties',    d:'Campagnes en budget',       url:null },
+      { t:'Events',          d:'Retreats en arrangementen', url:null }
+    ]
+  },
+  {
+    kop:'Assistent',
+    tegels:[
+      { t:'Claude Cowork',      d:'Werksessie voor bouwen en administratie',
+        url:'https://claude.ai/cowork/cse_01JzWXnAo3DjUGtDVmaLawdy', extern:true },
+      { t:'Virtuele assistent', d:'Vragen stellen over je eigen gegevens', url:null }
     ]
   }
 ];
@@ -510,7 +447,7 @@ const $$ = s => document.querySelectorAll(s);
 const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
 
 /* ---------- kleurenschema ---------- */
-const ACHTERGROND = { espresso:'#FAF9F7', salie:'#F5F7F3', leisteen:'#F5F7F8' };
+const ACHTERGROND = { espresso:'#F4F1ED', salie:'#F3F6F2', leisteen:'#F2F5F7' };
 
 function zetThema(naam){
   if(!ACHTERGROND[naam]) naam = 'espresso';
@@ -625,19 +562,18 @@ function startPortaal(){
     `<span class="zij-kop">Overzicht</span>
      <a class="zij-link" href="#vandaag">Vandaag</a>
      <span class="zij-kop">Onderdelen</span>` +
-    ZICHTBAAR.flatMap(g => g.tegels).map(t => t.url
-      ? `<a class="zij-link" href="${t.url}"${t.extern ? ' target="_blank" rel="noopener"' : ''}>${t.t}</a>`
-      : `<span class="zij-link" style="opacity:.5">${t.t}</span>`
-    ).join('');
+    ZICHTBAAR.map(g => {
+      const klaar = g.tegels.filter(t => t.url).length;
+      return `<a class="zij-link" href="#${slug(g.kop)}">${g.kop}
+              <span class="aantal">${klaar}/${g.tegels.length}</span></a>`;
+    }).join('');
 
   $('#zijTeller').textContent =
     `${nogTeBouwen} onderdelen staan klaar als tegel maar zijn nog niet gebouwd.`;
 
   $('#navlinks').innerHTML =
     `<a class="navlink" href="#vandaag">Vandaag</a>` +
-    ZICHTBAAR.flatMap(g => g.tegels).map(t => t.url
-      ? `<a class="navlink" href="${t.url}">${t.t}</a>` : ''
-    ).join('');
+    ZICHTBAAR.map(g => `<a class="navlink" href="#${slug(g.kop)}">${g.kop}</a>`).join('');
 
   $('#groepen').innerHTML = ZICHTBAAR.map(g => `
     <h2 id="${slug(g.kop)}">${g.kop}</h2>
