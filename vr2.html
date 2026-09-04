@@ -558,6 +558,22 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
             </div>
             <div class="wcbijlage">
               <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
+                <h3 style="margin:0;font-size:13px">Incheckformulier</h3>
+                <span class="hint" id="wcFormHint"></span>
+              </div>
+              <div class="field wide" style="margin-bottom:8px">
+                <label for="wcIncheckUrl">Link met de gegevens van deze gast al ingevuld</label>
+                <input type="text" id="wcIncheckUrl" readonly>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn ghost small" id="wcGastlink" type="button">Gastlink kopiëren</button>
+                <button class="btn ghost small" id="wcFormInstel" type="button" hidden>Ander formulier instellen</button>
+              </div>
+              <div class="note" id="wcFormNote" style="margin-top:8px">De locatiemanager vult het formulier in met "Incheckformulier openen". De gastlink stuur je naar de gast; die staat ook automatisch in het bericht.</div>
+            </div>
+
+            <div class="wcbijlage">
+              <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
                 <h3 style="margin:0;font-size:13px">Bijlage meesturen</h3>
                 <span class="hint" id="wcBijlageHint">bv. de routebeschrijving of huisregels</span>
               </div>
@@ -584,7 +600,7 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
               <button class="btn ghost" id="wcVersturen" type="button">Versturen via WhatsApp</button>
               <button class="btn ghost" id="wcKopieer" type="button">Bericht kopiëren</button>
               <button class="btn ghost" id="wcHerstel" type="button">Tekst opnieuw opbouwen</button>
-              <button class="btn ghost" id="wcIncheck" type="button">Incheckformulier klaarzetten</button>
+              <button class="btn ghost" id="wcIncheck" type="button">Incheckformulier openen</button>
             </div>
             <div class="note" id="wcNote"></div>
           </div>
@@ -1308,7 +1324,7 @@ async function start(){
   vulSelects(); renderAlles();
   await zorgVoorSysteemknoppen(); renderSys();
   await zorgVoorScripts(); renderScripts(); renderWcScript();
-  await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetKanaal('whatsapp'); badges();
+  await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   let t = null; try{ t = sessionStorage.getItem(LS.tab); }catch(e){}
   kiesTab(t && $('#tab-'+t) && !$('#tab-'+t).hidden ? t : 'start');
@@ -2796,6 +2812,9 @@ $('#klImportOk').addEventListener('click', async ()=>{
 let wcKeuzes = {};      /* extraId -> aantal */
 let wcHuidig = null;    /* id van een opgeslagen call die je bewerkt */
 const INCHECK_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
+/* de eigenaar kan een ander formulier instellen; dat wordt bewaard als link met tab 'instelling' */
+const incheckRij = () => S.links.find(l => l.tab === 'instelling' && l.titel === 'Incheckformulier');
+function incheckBasis(){ const r = incheckRij(); return (r && r.url) || INCHECK_URL; }
 
 function vulKlantKeuze(){
   const sel = $('#wcKlant'); if(!sel) return;
@@ -2961,7 +2980,7 @@ function incheckLink(f){
   if(f.datum) q.set('datum', f.datum);
   if(f.email) q.set('email', f.email);
   if(f.telefoon) q.set('telefoon', f.telefoon);
-  return INCHECK_URL + '?' + q.toString();
+  return incheckBasis() + '?' + q.toString();
 }
 /* ---- het bericht: zelfde inhoud, andere toon per kanaal ---- */
 function wcBericht(f, kanaal){
@@ -3014,6 +3033,7 @@ let wcTekstAangepast = false;
 
 function wcVersTekst(force){
   const vak = $('#wcTekst'); if(!vak) return;
+  wcToonIncheck();
   if(wcTekstAangepast && !force) return;
   const f = wcFormulier();
   vak.value = wcBericht(f, wcKanaalStand);
@@ -3085,11 +3105,39 @@ $('#wcKopieer').addEventListener('click', async ()=>{
   try{ await navigator.clipboard.writeText(tekst); toast('Bericht gekopieerd.'); }
   catch(e){ $('#wcNote').textContent = tekst; toast('Kopiëren lukte niet — het bericht staat hieronder.'); }
 });
+function wcToonIncheck(){
+  const vak = $('#wcIncheckUrl'); if(!vak) return;
+  vak.value = incheckLink(wcFormulier());
+  const hint = $('#wcFormHint');
+  if(hint) hint.textContent = incheckBasis().replace(/^https?:\/\//,'').replace(/\?.*$/,'');
+  const knop = $('#wcFormInstel'); if(knop) knop.hidden = !isEigenaar();
+}
+$('#wcGastlink').addEventListener('click', async ()=>{
+  const link = incheckLink(wcFormulier());
+  $('#wcIncheckUrl').value = link;
+  try{ await navigator.clipboard.writeText(link); toast('Gastlink gekopieerd.');
+       $('#wcFormNote').textContent = 'De gastlink staat op je klembord — plakken met Ctrl+V. Hij staat ook al in het bericht hieronder.'; }
+  catch(e){ $('#wcIncheckUrl').select();
+       $('#wcFormNote').textContent = 'Kopiëren lukte niet automatisch — de link staat geselecteerd, kopieer hem met Ctrl+C.'; }
+});
+$('#wcFormInstel').addEventListener('click', async ()=>{
+  const nu = incheckBasis();
+  let url = prompt('Adres van het incheckformulier:', nu);
+  if(url === null) return;
+  url = url.trim(); if(!url) return;
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const r = incheckRij();
+  if(r) await wijzig('links', r.id, {url});
+  else   await maak('links', {tab:'instelling', titel:'Incheckformulier', url, sortering:999});
+  wcToonIncheck(); wcVersTekst(true);
+  toast('Incheckformulier ingesteld.');
+});
 $('#wcIncheck').addEventListener('click', ()=>{
   const f = wcFormulier();
   const link = incheckLink(f);
   window.open(link, '_blank', 'noopener');
-  $('#wcNote').textContent = 'Incheckformulier geopend. De link met deze gegevens gaat automatisch mee in het WhatsApp-bericht.';
+  $('#wcIncheckUrl').value = link;
+  $('#wcFormNote').textContent = 'Het formulier is in een nieuw tabblad geopend, met de gegevens van deze gast al ingevuld — klaar voor de locatiemanager.';
 });
 $('#wcNieuw').addEventListener('click', ()=>{
   wcHuidig = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
