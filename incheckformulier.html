@@ -1753,5 +1753,138 @@ if(auth?.access_token){
   document.getElementById('li_email').focus();
 }
 </script>
+
+<!-- ================= BWF-menu ================= -->
+<style>
+#bwfMenuKnop{position:fixed;right:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
+  background:#483C34;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
+  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer;
+  box-shadow:0 4px 14px rgba(36,30,25,.32)}
+#bwfMenuKnop:hover{background:#5A4B41}
+#bwfMenuKnop .streep{display:inline-block;width:15px;height:11px;position:relative}
+#bwfMenuKnop .streep i,#bwfMenuKnop .streep i:before,#bwfMenuKnop .streep i:after{
+  position:absolute;left:0;width:15px;height:2px;background:#fff;border-radius:2px;content:""}
+#bwfMenuKnop .streep i{top:4px}
+#bwfMenuKnop .streep i:before{top:-4px}
+#bwfMenuKnop .streep i:after{top:4px}
+#bwfMenuLaag{position:fixed;inset:0;z-index:8990;background:rgba(36,30,25,.35);display:none}
+#bwfMenuLaag.open{display:block}
+#bwfMenu{position:fixed;right:16px;bottom:70px;z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
+  background:#fff;color:#241E19;border:1px solid #E3DAD0;border-radius:14px;display:none;
+  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:14px;
+  box-shadow:0 18px 50px -18px rgba(36,30,25,.5)}
+#bwfMenu.open{display:block}
+#bwfMenu .kop{padding:12px 16px 7px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:#7B6E62;font-weight:700}
+#bwfMenu a,#bwfMenu button.tabknop{display:flex;align-items:center;gap:10px;padding:9px 16px;color:#241E19;
+  text-decoration:none;border:0;background:none;width:100%;text-align:left;cursor:pointer;font:inherit}
+#bwfMenu a:hover,#bwfMenu button.tabknop:hover{background:#FAF7F3}
+#bwfMenu a.hier{background:#E8DFD5;font-weight:600}
+#bwfMenu a.hier:after{content:"nu";margin-left:auto;font-size:11px;color:#7B6E62;font-weight:400}
+#bwfMenu .scheiding{height:1px;background:#EFE8E1;margin:7px 0}
+#bwfMenu .thuis{margin:6px 10px 10px;padding:10px 14px;background:#483C34;color:#fff;border-radius:9px;
+  justify-content:center;font-weight:600}
+#bwfMenu .thuis:hover{background:#5A4B41}
+:root[data-theme="dark"] #bwfMenu{background:#221D19;color:#F0EAE3;border-color:#3A322B}
+:root[data-theme="dark"] #bwfMenu a,:root[data-theme="dark"] #bwfMenu button.tabknop{color:#F0EAE3}
+:root[data-theme="dark"] #bwfMenu a:hover,:root[data-theme="dark"] #bwfMenu button.tabknop:hover{background:#2A241F}
+:root[data-theme="dark"] #bwfMenu a.hier{background:#332A21}
+:root[data-theme="dark"] #bwfMenu .scheiding{background:#312A24}
+:root[data-theme="dark"] #bwfMenuKnop{background:#7A6248}
+@media print{#bwfMenuKnop,#bwfMenu,#bwfMenuLaag{display:none!important}}
+</style>
+<script>
+(function(){
+  /* niet tonen als de pagina in een andere pagina is ingebed */
+  if(window.self !== window.top) return;
+
+  var PAGINAS = [
+    { groep:"Dagelijks", items:[
+      { naam:"Dagoverzicht",       bestand:"dagoverzicht.html" },
+      { naam:"Reserveringen",      bestand:"reserveringen.html" },
+      { naam:"Incheckformulier",   bestand:"incheckformulier.html" },
+      { naam:"Gastenlink",         bestand:"gast.html" }
+    ]},
+    { groep:"Werken", items:[
+      { naam:"Personeelsdashboard", bestand:"dashboard.html" },
+      { naam:"VR Dashboard",        bestand:"vr2.html" },
+      { naam:"Klantbeheer",         bestand:"klantbeheer.html" }
+    ]}
+  ];
+
+  var hier = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+
+  var knop = document.createElement("button");
+  knop.id = "bwfMenuKnop"; knop.type = "button";
+  knop.setAttribute("aria-haspopup","true"); knop.setAttribute("aria-expanded","false");
+  knop.innerHTML = '<span class="streep"><i></i></span>Menu';
+
+  var laag = document.createElement("div");
+  laag.id = "bwfMenuLaag";
+
+  var menu = document.createElement("nav");
+  menu.id = "bwfMenu"; menu.setAttribute("aria-label","Hoofdmenu");
+
+  var html = '<a class="thuis" href="index.html">Naar de startpagina</a>';
+  for(var g=0; g<PAGINAS.length; g++){
+    html += '<div class="kop">' + PAGINAS[g].groep + '</div>';
+    for(var i=0; i<PAGINAS[g].items.length; i++){
+      var p = PAGINAS[g].items[i];
+      var actief = p.bestand.toLowerCase() === hier;
+      html += '<a href="' + p.bestand + '"' + (actief ? ' class="hier" aria-current="page"' : '') + '>' + p.naam + '</a>';
+    }
+    if(g < PAGINAS.length - 1) html += '<div class="scheiding"></div>';
+  }
+  menu.innerHTML = html;
+
+  /* heeft deze pagina zelf tabbladen? dan die er ook bij */
+  function vulTabs(){
+    var oud = menu.querySelector("[data-eigen-tabs]");
+    if(oud) oud.remove();
+    var knoppen = document.querySelectorAll("nav.tabs button[data-tab], .tabs button[data-tab], [role='tablist'] button[data-tab]");
+    if(knoppen.length < 2) return;
+    var blok = document.createElement("div");
+    blok.setAttribute("data-eigen-tabs","");
+    var h = '<div class="scheiding"></div><div class="kop">Op deze pagina</div>';
+    for(var i=0;i<knoppen.length;i++){
+      var t = knoppen[i].textContent.replace(/\s+/g," ").trim();
+      h += '<button class="tabknop" type="button" data-ga="' + i + '">' + t + '</button>';
+    }
+    blok.innerHTML = h;
+    menu.appendChild(blok);
+    blok.addEventListener("click", function(e){
+      var b = e.target.closest("[data-ga]");
+      if(!b) return;
+      knoppen[parseInt(b.getAttribute("data-ga"),10)].click();
+      sluit();
+      window.scrollTo({ top:0, behavior:"smooth" });
+    });
+  }
+
+  function open(){
+    vulTabs();
+    menu.classList.add("open"); laag.classList.add("open");
+    knop.setAttribute("aria-expanded","true");
+  }
+  function sluit(){
+    menu.classList.remove("open"); laag.classList.remove("open");
+    knop.setAttribute("aria-expanded","false");
+  }
+  knop.addEventListener("click", function(){
+    menu.classList.contains("open") ? sluit() : open();
+  });
+  laag.addEventListener("click", sluit);
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape") sluit(); });
+
+  function plaats(){
+    document.body.appendChild(laag);
+    document.body.appendChild(menu);
+    document.body.appendChild(knop);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", plaats);
+  else plaats();
+})();
+</script>
+<!-- ================= einde BWF-menu ================= -->
 </body>
 </html>
