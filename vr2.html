@@ -1182,6 +1182,7 @@ const START_TARIEVEN = [
 ];
 
 /* schrijfacties: werken online (Supabase) én lokaal */
+let LAATSTE_FOUT = '';
 async function maak(key, obj){
   if(online()){
     chip('saving','Opslaan…');
@@ -1189,7 +1190,7 @@ async function maak(key, obj){
       const r = await api(TBL[key], {method:'POST', headers:heads({'Prefer':'return=representation'}), body:JSON.stringify(obj)});
       const rows = Array.isArray(r)?r:[r];
       S[key].unshift(...rows); chip('saved','Bewaard'); return rows;
-    }catch(e){ console.error(e); chip('fout','Niet bewaard'); toast('Opslaan mislukt: '+e.message); return null; }
+    }catch(e){ console.error(e); LAATSTE_FOUT = e.message; chip('fout','Niet bewaard'); toast('Opslaan mislukt: '+e.message); return null; }
   }
   const rows = (Array.isArray(obj)?obj:[obj]).map(o=>Object.assign({id:uuid(),aangemaakt:new Date().toISOString()},o));
   S[key].unshift(...rows); bewaarLokaal(); chip('lokaal','Lokaal bewaard'); return rows;
@@ -1200,7 +1201,7 @@ async function wijzig(key, id, patch){
     chip('saving','Opslaan…');
     try{ await api(TBL[key]+'?id=eq.'+id, {method:'PATCH', headers:heads({'Prefer':'return=minimal'}), body:JSON.stringify(patch)});
          chip('saved','Bewaard'); }
-    catch(e){ console.error(e); chip('fout','Niet bewaard'); toast('Wijziging niet bewaard: '+e.message); }
+    catch(e){ console.error(e); LAATSTE_FOUT = e.message; chip('fout','Niet bewaard'); toast('Wijziging niet bewaard: '+e.message); }
   } else { bewaarLokaal(); chip('lokaal','Lokaal bewaard'); }
 }
 async function verwijder(key, id){
@@ -3101,8 +3102,22 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
   if(!f.naam && !f.klant_id){ toast('Vul een naam in of kies een klant.'); return; }
   f.incheck_link = incheckLink(f);
   if(f.status==='gebeld' || f.status==='afgerond') f.gebeld_op = new Date().toISOString();
-  if(wcHuidig) await wijzig('calls', wcHuidig, f);
-  else { const r = await maak('calls', f); if(r) wcHuidig = r[0].id; }
+  LAATSTE_FOUT = '';
+  if(wcHuidig){ await wijzig('calls', wcHuidig, f); }
+  else {
+    const r = await maak('calls', f);
+    if(!r){
+      $('#wcNote').innerHTML = '<strong style="color:var(--crit)">Opslaan mislukt.</strong> Melding van Supabase: '
+        + esc(LAATSTE_FOUT || 'onbekend');
+      return;
+    }
+    wcHuidig = r[0].id;
+  }
+  if(LAATSTE_FOUT){
+    $('#wcNote').innerHTML = '<strong style="color:var(--crit)">Opslaan mislukt.</strong> Melding van Supabase: ' + esc(LAATSTE_FOUT);
+    return;
+  }
+  $('#wcNote').textContent = 'Welkomstcall bewaard.';
   renderCalls(); badges(); toast('Welkomstcall bewaard.');
 });
 let wcFilterStand = 'open';
