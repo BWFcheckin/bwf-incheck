@@ -522,15 +522,16 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   </form>
 
   <!-- ================= KLAARGEZETTE CONCEPTEN ================= -->
-  <div class="card">
+  <div class="card" id="concepten">
     <h2>Klaargezette formulieren</h2>
     <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
     <div class="aanmeld-lijst" id="conceptLijst"></div>
   </div>
 
   <!-- ================= RECENT OPGESLAGEN ================= -->
-  <div class="card table-wrap">
-    <h2>Recent opgeslagen incheckformulieren</h2>
+  <div class="card table-wrap" id="definitief">
+    <h2>Definitieve incheckformulieren</h2>
+    <p class="desc">Afgeronde formulieren. Klik op een regel om het formulier te openen, te bewerken of de gast toe te voegen aan het klantenbestand.</p>
     <table>
       <thead><tr><th>Datum</th><th>Locatie</th><th>Gast</th><th>Aantal pers.</th><th>Totaal</th><th>Nog te betalen</th><th></th></tr></thead>
       <tbody id="checkinTableBody"></tbody>
@@ -599,10 +600,12 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <p class="sub" id="cdLocatie"></p>
     <div id="cdGrid"></div>
     <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn" type="button" id="cdKlantBtn" onclick="klantAanmakenVanCheckin()">Klant aanmaken in klantenbestand</button>
       <button class="btn secondary" type="button" onclick="editCheckinFromDetail()">Bewerken</button>
       <button class="btn danger" type="button" onclick="deleteCheckinFromDetail()">Verwijderen</button>
       <button class="btn secondary" type="button" onclick="closeModal('checkinDetailModal')">Sluiten</button>
     </div>
+    <div class="status" id="cdKlantStatus" style="margin-top:10px;"></div>
   </div>
 </div>
 
@@ -734,6 +737,15 @@ function startApp(){
   document.getElementById('appBody').style.display = 'block';
   document.getElementById('huidigeGebruiker').textContent = auth?.email || '';
   loadAll();
+  springNaarAnker();
+}
+function springNaarAnker(){
+  const h = (location.hash || '').replace('#','');
+  if(h !== 'concepten' && h !== 'definitief') return;
+  setTimeout(function(){
+    const el = document.getElementById(h);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 700);
 }
 
 async function sb(path, options={}, opnieuw=true){
@@ -1561,7 +1573,75 @@ function openCheckinDetail(id){
     ['Opmerkingen', c.opmerkingen||'—'],
   ];
   document.getElementById('cdGrid').innerHTML = rows.map(([l,v])=>`<div class="hint"><b style="color:var(--ink);">${escapeHtml(l)}:</b> ${escapeHtml(String(v))}</div>`).join('');
+  const kb = document.getElementById('cdKlantBtn');
+  kb.disabled = false; kb.textContent = 'Klant aanmaken in klantenbestand';
+  document.getElementById('cdKlantStatus').textContent = '';
+  document.getElementById('cdKlantStatus').className = 'status';
   openModal('checkinDetailModal');
+}
+
+/* ===== Gast doorzetten naar het klantenbestand (Klantbeheer) ===== */
+const KLANTBEHEER_TABEL = 'wz_klantbeheer';
+async function klantAanmakenVanCheckin(){
+  const c = checkins.find(x=>x.id===openDetailId);
+  const st = document.getElementById('cdKlantStatus');
+  if(!c) return;
+  if(!c.achternaam){
+    st.textContent = '\u2715 Er staat nog geen achternaam bij deze incheck. Vul eerst de klantgegevens in.';
+    st.className = 'status err';
+    return;
+  }
+  const btn = document.getElementById('cdKlantBtn');
+  btn.disabled = true; btn.textContent = 'Bezig\u2026';
+  st.textContent = 'Bezig met opslaan in het klantenbestand\u2026'; st.className = 'status';
+  try{
+    const overnacht = c.verblijftype === 'overnachting';
+    let nachten = 0;
+    if(overnacht && c.datum && c.checkuitdatum){
+      const d = (new Date(c.checkuitdatum+'T12:00:00') - new Date(c.datum+'T12:00:00')) / 86400000;
+      nachten = d > 0 ? Math.round(d) : 0;
+    }
+    const vn = (c.voornaam||'').trim();
+    const rij = {
+      id: 'ci-' + c.id,
+      type: overnacht ? 'overnachting' : 'dagverblijf',
+      locatie_id: c.locatie || null,
+      datum_in: c.datum || null,
+      datum_uit: overnacht ? (c.checkuitdatum || null) : null,
+      nachten: nachten,
+      contact_datum: c.datum || null,
+      voorletters: vn ? vn.charAt(0).toUpperCase() + '.' : '',
+      achternaam: c.achternaam || '',
+      geboortedatum: null,
+      woonplaats: c.woonplaats || '',
+      email: c.email || '',
+      telefoon: c.telefoon || '',
+      nationaliteit: c.nationaliteit || '',
+      personen: Number(c.personen) || 0,
+      kinderen: Number(c.aantal_kinderen) || 0,
+      kale_prijs: Number(c.reservering_bedrag) || 0,
+      totaal_betaald: Number(c.totaal) || 0,
+      member: !!c.lid,
+      bron: 'Incheckformulier',
+      notitie: ('Vanuit incheckformulier' + (vn ? ' \u2014 voornaam: ' + vn : '') +
+                (c.resnr ? ' \u2014 res. ' + c.resnr : '') + '. Kale kamerprijs controleren.'),
+      aangemaakt: new Date().toISOString()
+    };
+    await sb(KLANTBEHEER_TABEL, {
+      method: 'POST',
+      body: JSON.stringify([rij]),
+      prefer: 'resolution=merge-duplicates,return=minimal'
+    });
+    btn.textContent = '\u2713 Staat in het klantenbestand';
+    st.textContent = '\u2713 ' + (vn ? vn + ' ' : '') + (c.achternaam||'') +
+      ' staat nu in Klantbeheer' + (overnacht ? ' \u2014 ook in het nachtregister voor de toeristenbelasting.' : '.') +
+      ' Controleer daar nog even de kale kamerprijs en de geboortedatum.';
+    st.className = 'status ok';
+  }catch(err){
+    btn.disabled = false; btn.textContent = 'Opnieuw proberen';
+    st.textContent = '\u2715 Niet gelukt: ' + (err && err.message ? err.message : 'onbekende fout');
+    st.className = 'status err';
+  }
 }
 function editCheckinFromDetail(){
   const c = checkins.find(x=>x.id===openDetailId);
