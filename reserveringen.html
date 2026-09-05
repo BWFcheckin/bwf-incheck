@@ -164,6 +164,7 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
       <input type="search" id="fZoek" placeholder="Zoek op naam, nummer of e-mail">
       <div class="rechts">
         <button class="themaknop" id="themaKnop" type="button">Donkere modus</button>
+        <button class="knop" type="button" id="btnBlacklist">Zwarte lijst</button>
         <button class="knop" type="button" id="btnReview">Reviewtaken</button>
         <button class="knop" type="button" id="btnCsv">CSV</button>
         <button class="knop vol" type="button" id="btnNieuw">Reservering toevoegen</button>
@@ -313,6 +314,11 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
     <div class="veld"><span>E-mail</span><input id="wz_email" type="email"></div>
     <div class="veld"><span>Aantal personen</span><input id="wz_personen" type="text"></div>
     <div class="veld"><span>Arrangement</span><input id="wz_arrangement" type="text"></div>
+    <div class="veld"><span>Platform</span><select id="wz_kanaal"></select></div>
+    <div class="veld"><span>Soort verblijf</span><select id="wz_verblijf">
+      <option value="">Automatisch</option><option>Overnachting</option><option>Dagverblijf</option>
+    </select></div>
+    <div class="veld breed"><span>Extra services</span><input id="wz_extra" type="text" placeholder="Massagetafel, shisha, borrelplank…"></div>
     <div class="veld breed"><span>Notitie</span><textarea id="wz_notitie"></textarea></div>
   </div>
   <p class="sub" style="margin-top:14px">De agenda van SMG blijft ongewijzigd. Wat je hier invult wordt hier bewaard en gaat voor op de tekst uit de agenda.</p>
@@ -320,6 +326,48 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
     <button class="knop links" type="button" id="wzLeeg">Aanpassingen wissen</button>
     <button class="knop" type="button" data-sluit="wijzigDialog">Annuleren</button>
     <button class="knop vol" type="button" id="wzBewaar">Opslaan</button>
+  </div>
+</div></dialog>
+
+<!-- blacklist -->
+<dialog id="blDialog"><div class="binnen">
+  <h3 id="blTitel">Gast op de zwarte lijst</h3>
+  <div class="sub" id="blSub"></div>
+  <div class="velden">
+    <div class="veld breed"><span>Naam</span><input id="bl_naam" type="text"></div>
+    <div class="veld"><span>Telefoon</span><input id="bl_telefoon" type="tel"></div>
+    <div class="veld"><span>E-mail</span><input id="bl_email" type="email"></div>
+    <div class="veld breed"><span>Reden</span><textarea id="bl_reden" placeholder="Wat is er gebeurd, en op welke datum"></textarea></div>
+  </div>
+  <div class="voet">
+    <button class="knop" type="button" data-sluit="blDialog">Annuleren</button>
+    <button class="knop vol gevaar" type="button" id="blBewaar">Op de lijst zetten</button>
+  </div>
+</div></dialog>
+
+<dialog id="blLijstDialog"><div class="binnen">
+  <h3>Zwarte lijst</h3>
+  <div class="sub">Gasten die niet meer welkom zijn. Bij een nieuwe reservering krijg je een waarschuwing.</div>
+  <div id="blLijst"></div>
+  <div class="voet"><button class="knop vol" type="button" data-sluit="blLijstDialog">Sluiten</button></div>
+</div></dialog>
+
+<!-- gastenlink versturen -->
+<dialog id="gastlinkDialog"><div class="binnen">
+  <h3>Incheckformulier naar de gast sturen</h3>
+  <div class="sub" id="glSub"></div>
+  <div class="velden">
+    <div class="veld"><span>Telefoon</span><input id="gl_telefoon" type="tel"></div>
+    <div class="veld"><span>E-mail</span><input id="gl_email" type="email"></div>
+    <div class="veld breed"><span>Link voor de gast</span><input id="gl_link" type="url"></div>
+    <div class="veld breed"><span>Bericht</span><textarea id="gl_tekst" style="min-height:150px"></textarea></div>
+  </div>
+  <p class="sub" style="margin-top:12px">De gast vult alleen zijn eigen gegevens in. De tekst wordt onthouden voor de volgende keer.</p>
+  <div class="voet">
+    <button class="knop links" type="button" id="glOpen">Link zelf openen</button>
+    <button class="knop" type="button" id="glKopieer">Tekst kopiëren</button>
+    <button class="knop" type="button" id="glMail">Via e-mail</button>
+    <button class="knop vol" type="button" id="glApp">Via WhatsApp</button>
   </div>
 </div></dialog>
 
@@ -363,6 +411,9 @@ var SOORTEN = {
   schoonmaak: { naam:'Schoonmaak',          kleur:'var(--smg-schoonmaak)', vlak:'var(--smg-schoonmaak-vlak)' },
   gesloten:   { naam:'Gesloten',            kleur:'var(--smg-gesloten)',   vlak:'var(--smg-gesloten-vlak)' }
 };
+var KANALEN = ['Website Malina','Website Angie','Booking.com','Origineel Overnachten',
+  'Privésauna (SMG)','Secret Rooms','Planyo','WhatsApp','Telefonisch','Herhaalgast','Anders'];
+
 /* PSA/PSM/PSMD → de locatie-id's die klantbeheer gebruikt */
 var LOCATIE_ID = { PSA:'angie', PSM:'jacuzzi', PSMD:'zwembad' };
 
@@ -425,7 +476,7 @@ sluitDialogen();
 /* =========================================================
    Gegevens
    ========================================================= */
-var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [];
+var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [];
 var periode = 'maand';
 
 function resSleutel(r){
@@ -499,6 +550,9 @@ async function laden(){
 
   try{ CHECKINS = await sb('checkins?select=*&order=created_at.desc&limit=1500') || []; }
   catch(e){ CHECKINS = []; }
+
+  try{ BLACKLIST = await sb('gast_blacklist?select=*&limit=500') || []; }
+  catch(e){ BLACKLIST = []; }
 
   ALLES = agenda.concat(eigen).sort(function(a,b){
     return String(b.aankomst).localeCompare(String(a.aankomst)); });
@@ -658,6 +712,10 @@ function teken(){
     if(k.member) merkjes += '<span class="gekoppeld">member</span>';
     if(k.checkin_id) merkjes += '<span class="gekoppeld">incheck</span>';
     if(k.gastenregister_id) merkjes += '<span class="gekoppeld">register</span>';
+    if(k.welkomstcall_gedaan) merkjes += '<span class="gekoppeld">call gedaan</span>';
+    else if(k.welkomstcall_id) merkjes += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">call open</span>';
+    if(opBlacklist(r)) merkjes += '<span class="gekoppeld" style="background:var(--crit-soft);color:var(--crit)">zwarte lijst</span>';
+    if(k.gastlink_verstuurd) merkjes += '<span class="gekoppeld">link verstuurd</span>';
     if(k.review_verstuurd) merkjes += '<span class="gekoppeld">review</span>';
     if(k.gast || k.telefoon || k.email) merkjes += '<span class="gekoppeld">bijgewerkt</span>';
 
@@ -668,7 +726,7 @@ function teken(){
       '<td>'+esc(nachten(r.aankomst,r.vertrek))+'</td>'+
       '<td class="naam" data-detail="'+i+'">'+esc(naam)+merkjes+
         (r.nummer?'<div style="font-family:var(--f-mono);font-size:11px;color:var(--muted)">'+esc(r.nummer)+'</div>':'')+'</td>'+
-      '<td>'+esc(r.locatie)+'</td>'+
+      '<td>'+esc(r.locatie)+'<div style="font-size:11px;color:var(--muted)">'+esc(kanaalVan(r))+'</div>'+'<div style="font-size:11px;color:var(--muted)">'+esc(verblijfVan(r))+'</div></td>'+
       '<td><span class="soort" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+s.naam+'</span></td>'+
       '<td><select class="kies" data-mw="'+i+'" style="font-size:12.5px;padding:3px 6px">'+
         '<option value="">—</option>'+
@@ -685,11 +743,13 @@ function teken(){
           '<button type="button" data-actie="wijzig" data-i="'+i+'">Gegevens aanpassen</button>'+
           '<a href="incheckformulier.html?reservering='+encodeURIComponent(r.nummer||resSleutel(r))+'" target="_blank" rel="noopener">Incheckformulier openen</a>'+
           '<button type="button" data-actie="checkin" data-i="'+i+'">Incheckformulier koppelen</button>'+
+          '<button type="button" data-actie="gastlink" data-i="'+i+'">Gastenlink versturen'+(k.gastlink_verstuurd?' (verstuurd)':'')+'</button>'+
           '<hr>'+
           '<div class="kop">Klant</div>'+
           '<button type="button" data-actie="klant" data-i="'+i+'">Klant koppelen of aanmaken</button>'+
           '<button type="button" data-actie="member" data-i="'+i+'">'+(k.member?'Member-vinkje weghalen':'Member maken')+'</button>'+
-          '<button type="button" data-actie="welkom" data-i="'+i+'">Welkomstcall toevoegen</button>'+
+          '<button type="button" data-actie="welkom" data-i="'+i+'">'+(k.welkomstcall_id?'Welkomstcall opnieuw aanmaken':'Welkomstcall aanmaken')+'</button>'+
+          '<button type="button" data-actie="welkomklaar" data-i="'+i+'">'+(k.welkomstcall_gedaan?'Welkomstcall ongedaan maken':'Welkomstcall afgerond')+'</button>'+
           '<hr>'+
           '<div class="kop">Verwerken</div>'+
           '<button type="button" data-actie="betaal" data-i="'+i+'">Betaalgegevens</button>'+
@@ -697,6 +757,7 @@ function teken(){
           '<button type="button" data-actie="review" data-i="'+i+'">Reviewverzoek'+(k.review_verstuurd?' (verstuurd)':'')+'</button>'+
           (nachten(r.aankomst,r.vertrek) && nachten(r.aankomst,r.vertrek)!=='dag'
             ? '<button type="button" data-actie="register" data-i="'+i+'">Toevoegen aan gastenregister</button>' : '')+
+          '<hr><button type="button" data-actie="blacklist" data-i="'+i+'" style="color:var(--crit)">'+(opBlacklist(r)?'Van de zwarte lijst halen':'Op de zwarte lijst zetten')+'</button>'+
           (r.bewerkbaar ? '<hr><button type="button" data-actie="bewerk" data-i="'+i+'">Reservering bewerken</button>' : '')+
         '</div></div></td>'+
     '</tr>';
@@ -705,15 +766,26 @@ function teken(){
       var d = '';
       function rr(l,w){ if(w) d += '<dt>'+l+'</dt><dd>'+w+'</dd>'; }
       rr('Wat is geboekt', esc(r.titel || r.omschrijving || '—'));
-      rr('Kanaal', esc(r.kanaal));
-      rr('Personen', esc(r.personen));
+      rr('Soort verblijf', esc(verblijfVan(r)));
+      rr('Geboekt via', esc(kanaalVan(r)));
+      rr('Inchecken', esc(r.aankomst + (r.tijdIn ? ' om '+r.tijdIn : '')));
+      rr('Uitchecken', esc(r.vertrek ? r.vertrek + (r.tijdUit ? ' om '+r.tijdUit : '') : '—'));
+      rr('Personen', esc(k.personen || r.personen));
       if(r.arrangementen && r.arrangementen.length)
         rr('Arrangementen','<ul>'+r.arrangementen.map(function(a){ return '<li>'+esc(a)+'</li>'; }).join('')+'</ul>');
       rr('Opties', esc(r.opties));
       rr('Al betaald', esc(r.reedsBetaald));
       rr('Bij aankomst', esc(r.bijAankomst));
+      rr('Extra services', esc(k.extra));
       rr('Betaalwijze', esc(k.betaalwijze));
+      rr('Welkomstcall', k.welkomstcall_gedaan ? 'afgerond op '+esc(k.welkomstcall_gedaan)
+          : (k.welkomstcall_id ? 'ingepland, nog te doen' : 'nog niet ingepland'));
+      rr('Gastenlink', k.gastlink_verstuurd ? 'verstuurd op '+esc(k.gastlink_verstuurd) : 'nog niet verstuurd');
+      rr('Review', k.review_verstuurd ? 'verstuurd op '+esc(k.review_verstuurd)
+          : (k.review_taak_id ? 'als taak ingepland' : '—'));
       rr('Notitie', esc(k.notitie));
+      if(opBlacklist(r)) rr('Let op', '<b style="color:var(--crit)">Deze gast staat op de zwarte lijst — '+
+        esc(opBlacklist(r).reden || 'geen reden genoteerd')+'</b>');
       if(r.omschrijving && r.omschrijving !== r.titel)
         rr('Volledige tekst','<div style="white-space:pre-wrap">'+esc(r.omschrijving)+'</div>');
       rij += '<tr class="detail"><td colspan="11"><dl class="detailblok">'+d+'</dl></td></tr>';
@@ -803,6 +875,9 @@ function doeActie(actie, r){
   if(actie === 'checkin'){ koppelCheckin(r); return; }
   if(actie === 'wijzig'){ openWijzig(r); return; }
   if(actie === 'review'){ openReview(r); return; }
+  if(actie === 'gastlink'){ openGastlink(r); return; }
+  if(actie === 'welkomklaar'){ welkomstcallKlaar(r); return; }
+  if(actie === 'blacklist'){ openBlacklist(r); return; }
 }
 
 /* --- klant koppelen of aanmaken --- */
@@ -1115,6 +1190,13 @@ function openWijzig(r){
   document.getElementById('wz_email').value = mailVan(r);
   document.getElementById('wz_personen').value = k.personen || r.personen || '';
   document.getElementById('wz_arrangement').value = k.arrangement || r.arrangement || '';
+  var ks = document.getElementById('wz_kanaal');
+  var huidig = k.kanaal || kanaalVan(r);
+  ks.innerHTML = '<option value="">Automatisch</option>'+
+    KANALEN.map(function(x){ return '<option'+(x===huidig?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
+  if(huidig && KANALEN.indexOf(huidig) === -1) ks.insertAdjacentHTML('beforeend','<option selected>'+esc(huidig)+'</option>');
+  document.getElementById('wz_verblijf').value = k.verblijf || '';
+  document.getElementById('wz_extra').value = k.extra || '';
   document.getElementById('wz_notitie').value = k.notitie || '';
   document.getElementById('wijzigDialog').showModal();
 }
@@ -1126,6 +1208,9 @@ document.getElementById('wzBewaar').onclick = async function(){
       email: document.getElementById('wz_email').value.trim(),
       personen: document.getElementById('wz_personen').value.trim(),
       arrangement: document.getElementById('wz_arrangement').value.trim(),
+      kanaal: document.getElementById('wz_kanaal').value,
+      verblijf: document.getElementById('wz_verblijf').value,
+      extra: document.getElementById('wz_extra').value.trim(),
       notitie: document.getElementById('wz_notitie').value.trim()
     });
     document.getElementById('wijzigDialog').close();
@@ -1140,6 +1225,208 @@ document.getElementById('wzLeeg').onclick = async function(){
     meld('Aanpassingen gewist.', true);
   }catch(e){ meld('Wissen lukte niet: '+e.message); }
 };
+
+/* =========================================================
+   Platform, verblijfsoort en zwarte lijst
+   ========================================================= */
+function kanaalVan(r){
+  var k = KOPPEL[resSleutel(r)] || {};
+  if(k.kanaal) return k.kanaal;
+  if(r.kanaal) return r.kanaal;
+  var tekst = ((r.titel||'')+' '+(r.omschrijving||'')).toLowerCase();
+  if(/booking\.?com/.test(tekst)) return 'Booking.com';
+  if(/origin?eel\s*overnachten|^\s*or\s/.test(tekst)) return 'Origineel Overnachten';
+  if(/secret\s*rooms?/.test(tekst)) return 'Secret Rooms';
+  if(/priv[ée]\s*sauna|smg/.test(tekst)) return 'Privésauna (SMG)';
+  if(/planyo/.test(tekst)) return 'Planyo';
+  if(/whats?app|\bwa\b/.test(tekst)) return 'WhatsApp';
+  if(/telefonisch/.test(tekst)) return 'Telefonisch';
+  if(r.nummer && /^\d{5,}$/.test(String(r.nummer)))
+    return r.locatie === 'PSA' ? 'Website Angie' : 'Website Malina';
+  return '';
+}
+function verblijfVan(r){
+  var k = KOPPEL[resSleutel(r)] || {};
+  if(k.verblijf) return k.verblijf;
+  var n = nachten(r.aankomst, r.vertrek);
+  if(n === 'dag' || n === '' || n === 0) return 'Dagverblijf';
+  return n === 1 ? 'Overnachting' : n + ' nachten';
+}
+function opBlacklist(r){
+  var naam = gastVan(r).toLowerCase().trim();
+  var tel = String(telVan(r)).replace(/\D/g,'').slice(-9);
+  var mail = String(mailVan(r)).toLowerCase().trim();
+  for(var i=0;i<BLACKLIST.length;i++){
+    var b = BLACKLIST[i];
+    if(mail && String(b.email||'').toLowerCase() === mail) return b;
+    if(tel && String(b.telefoon||'').replace(/\D/g,'').slice(-9) === tel) return b;
+    var bn = String(b.naam||'').toLowerCase().trim();
+    if(bn && bn.length > 3 && naam && naam.indexOf(bn) > -1) return b;
+  }
+  return null;
+}
+function openBlacklist(r){
+  actieRes = r;
+  var bestaand = opBlacklist(r);
+  if(bestaand){
+    if(!confirm(gastVan(r)+' van de zwarte lijst halen?')) return;
+    sb('gast_blacklist?id=eq.'+encodeURIComponent(bestaand.id), { method:'DELETE' })
+      .then(function(){
+        BLACKLIST = BLACKLIST.filter(function(x){ return x.id !== bestaand.id; });
+        teken(); meld('Van de zwarte lijst gehaald.', true);
+      })
+      .catch(function(e){ meld('Lukte niet: '+e.message); });
+    return;
+  }
+  document.getElementById('blSub').textContent = r.locatie+' · '+r.aankomst;
+  document.getElementById('bl_naam').value = gastVan(r);
+  document.getElementById('bl_telefoon').value = telVan(r);
+  document.getElementById('bl_email').value = mailVan(r);
+  document.getElementById('bl_reden').value = '';
+  document.getElementById('blDialog').showModal();
+}
+document.getElementById('blBewaar').onclick = async function(){
+  var naam = document.getElementById('bl_naam').value.trim();
+  if(!naam){ alert('Vul een naam in.'); return; }
+  var rec = {
+    id: 'bl'+Date.now(), naam: naam,
+    telefoon: document.getElementById('bl_telefoon').value.trim(),
+    email: document.getElementById('bl_email').value.trim(),
+    reden: document.getElementById('bl_reden').value.trim(),
+    locatie: actieRes ? actieRes.locatie : '',
+    datum: dstr(new Date())
+  };
+  try{
+    await sb('gast_blacklist', { method:'POST', body:JSON.stringify(rec) });
+    BLACKLIST.push(rec);
+    document.getElementById('blDialog').close();
+    teken(); meld('Op de zwarte lijst gezet.', true);
+  }catch(e){ meld('Lukte niet: '+e.message); }
+};
+document.getElementById('btnBlacklist').onclick = function(){
+  var el = document.getElementById('blLijst');
+  el.innerHTML = BLACKLIST.length
+    ? BLACKLIST.slice().sort(function(a,b){ return String(b.datum).localeCompare(String(a.datum)); })
+        .map(function(b){
+          return '<div class="treffer"><b>'+esc(b.naam)+'</b>'+
+            esc([b.telefoon,b.email,b.locatie].filter(Boolean).join(' · '))+
+            (b.reden?'<div style="margin-top:5px">'+esc(b.reden)+'</div>':'')+
+            '<div style="margin-top:7px;color:var(--muted);font-size:12px">sinds '+esc(b.datum||'')+
+            ' <button class="knop klein gevaar" type="button" data-blweg="'+esc(b.id)+'" style="margin-left:8px">Verwijderen</button></div></div>';
+        }).join('')
+    : '<div class="sub">De lijst is leeg.</div>';
+  Array.prototype.forEach.call(el.querySelectorAll('[data-blweg]'), function(k){
+    k.onclick = async function(){
+      var id = k.getAttribute('data-blweg');
+      if(!confirm('Van de lijst halen?')) return;
+      try{
+        await sb('gast_blacklist?id=eq.'+encodeURIComponent(id), { method:'DELETE' });
+        BLACKLIST = BLACKLIST.filter(function(x){ return x.id !== id; });
+        document.getElementById('btnBlacklist').click(); teken();
+      }catch(e){ meld('Lukte niet: '+e.message); }
+    };
+  });
+  document.getElementById('blLijstDialog').showModal();
+};
+
+/* --- welkomstcall afronden --- */
+async function welkomstcallKlaar(r){
+  var k = KOPPEL[resSleutel(r)] || {};
+  try{
+    await bewaarKoppeling(r, { welkomstcall_gedaan: k.welkomstcall_gedaan ? null : dstr(new Date()) });
+    meld(k.welkomstcall_gedaan ? 'Welkomstcall weer op open gezet.' : 'Welkomstcall afgerond.', true);
+  }catch(e){ meld('Lukte niet: '+e.message); }
+}
+
+/* =========================================================
+   Gastenlink — het incheckformulier naar de gast sturen
+   ========================================================= */
+var STANDAARD_GASTLINK =
+  "Hoi {voornaam},\n\n" +
+  "Wat leuk dat je bij ons komt! Je verblijf staat gepland op {datum} in {locatie}.\n\n" +
+  "Wil je alvast online inchecken? Dat scheelt tijd bij aankomst:\n{link}\n\n" +
+  "Heb je nog vragen, stuur gerust een berichtje.\n\n" +
+  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
+
+function gastlinkSjabloon(){
+  try{ return localStorage.getItem('bwf_gastlink_tekst') || STANDAARD_GASTLINK; }catch(e){ return STANDAARD_GASTLINK; }
+}
+function gastlinkUrl(r){
+  var basis;
+  try{ basis = new URL('gast.html', window.location.href).href; }
+  catch(e){ basis = 'gast.html'; }
+  var p = [];
+  if(r.locatie) p.push('locatie='+encodeURIComponent(r.locatie));
+  if(r.nummer)  p.push('reservering='+encodeURIComponent(r.nummer));
+  if(r.aankomst) p.push('aankomst='+encodeURIComponent(r.aankomst));
+  return basis + (p.length ? '?'+p.join('&') : '');
+}
+function gastlinkTekst(r, link){
+  var naam = gastVan(r);
+  return gastlinkSjabloon()
+    .replace(/\{voornaam\}/g, naam.split(' ')[0] || '')
+    .replace(/\{naam\}/g, naam)
+    .replace(/\{locatie\}/g, r.locatie || 'onze suite')
+    .replace(/\{datum\}/g, r.aankomst || '')
+    .replace(/\{tijd\}/g, r.tijdIn || '')
+    .replace(/\{link\}/g, link);
+}
+function openGastlink(r){
+  actieRes = r;
+  var link = gastlinkUrl(r);
+  document.getElementById('glSub').textContent =
+    gastVan(r)+' · '+r.locatie+' · aankomst '+(r.aankomst||'onbekend')+(r.tijdIn?' om '+r.tijdIn:'');
+  document.getElementById('gl_telefoon').value = telVan(r);
+  document.getElementById('gl_email').value = mailVan(r);
+  document.getElementById('gl_link').value = link;
+  document.getElementById('gl_tekst').value = gastlinkTekst(r, link);
+  document.getElementById('gastlinkDialog').showModal();
+}
+function bewaarGastlinkSjabloon(){
+  try{
+    var x = document.getElementById('gl_tekst').value;
+    if(x.indexOf('{') > -1) localStorage.setItem('bwf_gastlink_tekst', x);
+  }catch(e){}
+}
+document.getElementById('glOpen').onclick = function(){
+  window.open(document.getElementById('gl_link').value, '_blank');
+};
+document.getElementById('glKopieer').onclick = function(){
+  bewaarGastlinkSjabloon();
+  var v = document.getElementById('gl_tekst');
+  v.select();
+  try{ navigator.clipboard.writeText(v.value); }catch(e){ document.execCommand('copy'); }
+  meld('Tekst gekopieerd.', true);
+};
+document.getElementById('glApp').onclick = async function(){
+  bewaarGastlinkSjabloon();
+  var tel = document.getElementById('gl_telefoon').value.replace(/\D/g,'');
+  if(!tel){ alert('Vul eerst een telefoonnummer in.'); return; }
+  if(tel.indexOf('0') === 0) tel = '31' + tel.substring(1);
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(document.getElementById('gl_tekst').value), '_blank');
+  await gastlinkVerstuurd(actieRes);
+};
+document.getElementById('glMail').onclick = async function(){
+  bewaarGastlinkSjabloon();
+  var mail = document.getElementById('gl_email').value.trim();
+  if(!mail){ alert('Vul eerst een e-mailadres in.'); return; }
+  window.location.href = 'mailto:'+encodeURIComponent(mail)+
+    '?subject='+encodeURIComponent('Online inchecken bij Bed & Wellness Flevoland')+
+    '&body='+encodeURIComponent(document.getElementById('gl_tekst').value);
+  await gastlinkVerstuurd(actieRes);
+};
+async function gastlinkVerstuurd(r){
+  try{
+    var wijz = { gastlink_verstuurd: dstr(new Date()) };
+    var tel = document.getElementById('gl_telefoon').value.trim();
+    var mail = document.getElementById('gl_email').value.trim();
+    if(tel && tel !== r.telefoon) wijz.telefoon = tel;
+    if(mail && mail !== r.email) wijz.email = mail;
+    await bewaarKoppeling(r, wijz);
+    document.getElementById('gastlinkDialog').close();
+    meld('Genoteerd als verstuurd.', true);
+  }catch(e){ meld('Noteren lukte niet: '+e.message); }
+}
 
 /* =========================================================
    Reviewverzoek
