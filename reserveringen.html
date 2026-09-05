@@ -55,6 +55,18 @@ body.ingebed .wrap{padding:0}
 .paginakop .mark{width:38px;height:38px;border-radius:9px;background:var(--brass);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:14px}
 .paginakop b{display:block;font-family:var(--f-display);font-size:16px}
 .paginakop span{display:block;font-size:12.5px;opacity:.72}
+.kopmenu{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-bottom:0!important}
+.kopmenu a{color:rgba(255,255,255,.82);text-decoration:none;font-size:13px;padding:6px 12px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.18);white-space:nowrap;line-height:1.2}
+.kopmenu a:hover{background:rgba(255,255,255,.13);color:#fff}
+.kopmenu a.hier{background:#fff;color:var(--accent);border-color:#fff;font-weight:600}
+.kopmenu a.thuis{background:var(--brass);border-color:var(--brass);color:#fff;font-weight:600}
+.kopmenu .scheiding{width:1px;align-self:stretch;background:rgba(255,255,255,.2);margin:2px 4px}
+@media(max-width:700px){
+  .kopmenu{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px!important}
+  .kopmenu a{font-size:12.5px;padding:5px 10px}
+}
+@media print{.kopmenu{display:none}}
 
 /* ---------- tegels ---------- */
 .tegels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
@@ -88,8 +100,9 @@ input[type=search]{min-width:180px}
 /* ---------- tabel (compact) ---------- */
 .tabelwrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}
-th{text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
-td{padding:5px 9px;border-bottom:1px solid var(--line-soft);vertical-align:middle;line-height:1.35}
+th{text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+td{padding:4px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle;line-height:1.35}
+.datum{display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 tbody tr:hover{background:var(--surface-2)}
 tr.detail td{background:var(--surface-2);border-bottom:2px solid var(--line);vertical-align:top;padding:10px 12px}
 th.acties,td.acties{width:1%;white-space:nowrap;padding-left:8px;padding-right:4px}
@@ -161,6 +174,37 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 .kkbezoek span{color:var(--muted);white-space:nowrap}
 .kkmerkjes{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
 .kkacties{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}
+
+/* ---------- kalender ---------- */
+.wissel{display:flex;border:1px solid var(--line);border-radius:var(--r-s);overflow:hidden}
+.wissel button{border:0;background:var(--surface);color:var(--ink-2);padding:6px 12px;font-size:13.5px}
+.wissel button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.kalkop{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.kalkop b{font-family:var(--f-display);font-size:15px;min-width:170px}
+.kalkop .telling{margin-left:auto;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.kalgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line-soft);padding:1px}
+.kaldagkop{background:var(--surface);padding:5px 8px;font-size:11px;color:var(--muted);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.kalcel{background:var(--surface);min-height:98px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.kalcel.buiten{background:var(--surface-2)}
+.kalcel.buiten .dagnr{opacity:.45}
+.kalcel.vandaag{box-shadow:inset 0 0 0 2px var(--brass)}
+.kalcel .dagnr{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.kalcel.weekend .dagnr{color:var(--brass)}
+.kalitem{border:0;border-left:3px solid var(--kleur);background:var(--vlak);color:var(--ink);border-radius:4px;
+  padding:2px 5px;font-size:10.5px;text-align:left;line-height:1.3;width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kalitem:hover{filter:brightness(.95)}
+.kalitem .kt{font-family:var(--f-mono);color:var(--muted);margin-right:3px}
+.kalleeg{color:var(--muted);font-size:13.5px;padding:24px;text-align:center}
+@media(max-width:760px){
+  .kalcel{min-height:74px;padding:3px}
+  .kalitem{font-size:9.5px;padding:1px 3px}
+  .kalkop b{min-width:130px;font-size:14px}
+}
+#berichtDialog[data-soort="wijziging"] .annuleerveld{display:none}
+#berichtDialog[data-soort="annulering"] .wijzigveld{display:none}
+.vinkje{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--ink-2)}
+.vinkje input{width:17px;height:17px}
 </style>
 </head>
 <body>
@@ -384,6 +428,7 @@ window.BWF = window.BWF || {};
     <div class="mark">B&amp;W</div>
     <div><b>Reserveringen</b><span>Bed &amp; Wellness Flevoland</span></div>
   </div>
+  <nav class="kopmenu wrap" id="bwfBalk" aria-label="Navigatie"></nav>
 </header>
 
 <div class="wrap">
@@ -399,6 +444,10 @@ window.BWF = window.BWF || {};
       <select id="fMedewerker"><option value="">Alle medewerkers</option><option value="__geen">Nog niemand</option></select>
       <input type="search" id="fZoek" placeholder="Zoek op naam, nummer of e-mail">
       <div class="rechts">
+        <div class="wissel">
+          <button type="button" id="btnLijst" aria-pressed="true">Lijst</button>
+          <button type="button" id="btnKalender" aria-pressed="false">Kalender</button>
+        </div>
         <span id="bwfMenuPlek"></span>
         <button class="themaknop" id="themaKnop" type="button">Donkere modus</button>
         <button class="knop" type="button" id="btnBlacklist">Zwarte lijst</button>
@@ -426,6 +475,16 @@ window.BWF = window.BWF || {};
         </tr></thead>
         <tbody id="rijen"><tr><td colspan="11" class="leeg">Bezig met laden…</td></tr></tbody>
       </table>
+    </div>
+    <div id="kalender" hidden>
+      <div class="kalkop">
+        <button class="knop" type="button" id="kalVorige">‹</button>
+        <b id="kalTitel"></b>
+        <button class="knop" type="button" id="kalVolgende">›</button>
+        <button class="knop" type="button" id="kalVandaag">Deze maand</button>
+        <span class="telling" id="kalTelling"></span>
+      </div>
+      <div id="kalInhoud"></div>
     </div>
     <div class="voetregel" id="voetregel"></div>
   </div>
@@ -560,6 +619,10 @@ window.BWF = window.BWF || {};
   <div class="sub" id="wzSub"></div>
   <div class="velden">
     <div class="veld breed"><span>Naam van de gast</span><input id="wz_gast" type="text"></div>
+    <div class="veld"><span>Aankomst</span><input id="wz_aankomst" type="date"></div>
+    <div class="veld"><span>Tijd aankomst</span><input id="wz_tijdin" type="time"></div>
+    <div class="veld"><span>Vertrek</span><input id="wz_vertrek" type="date"></div>
+    <div class="veld"><span>Tijd vertrek</span><input id="wz_tijduit" type="time"></div>
     <div class="veld"><span>Telefoon</span><input id="wz_telefoon" type="tel"></div>
     <div class="veld"><span>E-mail</span><input id="wz_email" type="email"></div>
     <div class="veld"><span>Aantal personen</span><input id="wz_personen" type="text"></div>
@@ -618,6 +681,35 @@ window.BWF = window.BWF || {};
     <button class="knop" type="button" id="glKopieer">Tekst kopiëren</button>
     <button class="knop" type="button" id="glMail">Via e-mail</button>
     <button class="knop vol" type="button" id="glApp">Via WhatsApp</button>
+  </div>
+</div></dialog>
+
+<!-- wijziging of annulering doorgeven -->
+<dialog id="berichtDialog" data-soort="wijziging"><div class="binnen">
+  <h3 id="brTitel">Wijziging doorgeven</h3>
+  <div class="sub" id="brSub"></div>
+  <div class="velden">
+    <div class="veld"><span>Reserveringsnummer</span><input id="br_nummer" type="text"></div>
+    <div class="veld"><span>Locatie</span><input id="br_locatie" type="text"></div>
+    <div class="veld wijzigveld"><span>Nieuwe aankomst</span><input id="br_aankomst" type="date"></div>
+    <div class="veld wijzigveld"><span>Tijd aankomst</span><input id="br_tijdin" type="time"></div>
+    <div class="veld wijzigveld"><span>Nieuw vertrek</span><input id="br_vertrek" type="date"></div>
+    <div class="veld wijzigveld"><span>Tijd vertrek</span><input id="br_tijduit" type="time"></div>
+    <div class="veld breed annuleerveld"><span>Reden van de annulering</span><input id="br_reden" type="text" placeholder="Op verzoek van de gast"></div>
+    <div class="veld breed annuleerveld"><span>Annuleringsvoorwaarden — pas aan naar je eigen voorwaarden, ze worden onthouden</span><textarea id="br_voorwaarden" style="min-height:96px"></textarea></div>
+    <div class="veld"><span>Telefoon</span><input id="br_telefoon" type="tel"></div>
+    <div class="veld"><span>E-mail</span><input id="br_email" type="email"></div>
+    <div class="veld breed"><span>Bericht</span><textarea id="br_tekst" style="min-height:190px"></textarea></div>
+    <div class="veld breed wijzigveld"><label class="vinkje"><input id="br_overnemen" type="checkbox" checked> Nieuwe datum en tijd meteen in de reservering bijwerken</label></div>
+    <div class="veld breed annuleerveld"><label class="vinkje"><input id="br_blacklist" type="checkbox"> Deze gast op de zwarte lijst zetten</label></div>
+    <div class="veld breed annuleerveld"><span>Korte notitie voor de zwarte lijst</span><input id="br_blnotitie" type="text" placeholder="Bijvoorbeeld: derde keer op het laatste moment afgezegd"></div>
+  </div>
+  <div class="voet">
+    <button class="knop links" type="button" id="brOpnieuw">Tekst opnieuw opbouwen</button>
+    <button class="knop" type="button" data-sluit="berichtDialog">Annuleren</button>
+    <button class="knop" type="button" id="brKopieer">Tekst kopiëren</button>
+    <button class="knop" type="button" id="brMail">Via e-mail</button>
+    <button class="knop vol" type="button" id="brApp">Via WhatsApp</button>
   </div>
 </div></dialog>
 
@@ -680,6 +772,14 @@ function nachten(a,b){
   if(!a||!b) return '';
   var d=(new Date(b)-new Date(a))/86400000;
   return d>0 ? Math.round(d) : (d===0 ? 'dag' : '');
+}
+function tijd(w){
+  w = String(w==null?'':w).trim();
+  if(!w) return '';
+  if(/^\d{1,2}:\d{2}/.test(w)) return w.slice(0,5);
+  var m = w.match(/T(\d{2}:\d{2})/);          /* 2026-09-08T19:00:00+02:00 */
+  if(m) return m[1] === '00:00' ? '' : m[1];
+  return '';                                    /* formules en andere rommel: weglaten */
 }
 function verlopen(jwt){
   try{
@@ -759,8 +859,8 @@ function uitAgenda(ev){
     locatie: ev.suite||'',
     aankomst: String(ev.start||'').slice(0,10),
     vertrek: String(ev.eind||'').slice(0,10),
-    tijdIn: String(ev.start||'').slice(11,16),
-    tijdUit: String(ev.eind||'').slice(11,16),
+    tijdIn: tijd(ev.start),
+    tijdUit: tijd(ev.eind),
     arrangementen: ev.arrangementen||[],
     arrangement: (ev.arrangementen&&ev.arrangementen.length) ? ev.arrangementen.join(', ') : '',
     opties: ev.opties||'',
@@ -781,7 +881,7 @@ function uitSupabase(r){
     locatie: veld(r,['locatie'],''),
     aankomst: String(veld(r,['checkindatum'],'')).slice(0,10),
     vertrek: String(veld(r,['checkuitdatum'],'')).slice(0,10),
-    tijdIn: veld(r,['checkintijd'],''), tijdUit: veld(r,['checkuittijd'],''),
+    tijdIn: tijd(veld(r,['checkintijd'],'')), tijdUit: tijd(veld(r,['checkuittijd'],'')),
     arrangementen: [], arrangement: veld(r,['arrangement'],''), opties:'',
     telefoon: veld(r,['telefoon'],''), email: veld(r,['email'],''),
     totaal: parseFloat(veld(r,['totaal'],0))||0,
@@ -836,6 +936,7 @@ async function laden(){
     meld(fouten.length ? 'Niet alles kon worden opgehaald — '+fouten.join(' · ') : '');
   }
   vulKeuzes(); tekenTegels(); teken();
+  if(weergave === 'kalender') tekenKalender();
 }
 
 function medewerkerNaam(m){ return veld(m,['naam','voornaam','medewerker','email'],''); }
@@ -925,6 +1026,7 @@ function tekenTegels(){
       document.getElementById('fVan').value = g.van;
       document.getElementById('fTot').value = g.tot;
       tekenTegels(); teken();
+      if(weergave === 'kalender') tekenKalender();
     };
   });
 }
@@ -932,28 +1034,33 @@ function tekenTegels(){
 /* =========================================================
    Tabel
    ========================================================= */
-function gefilterd(){
-  var van = document.getElementById('fVan').value;
-  var tot = document.getElementById('fTot').value;
+/* alles behalve het datumbereik — de kalender gebruikt dit ook */
+function pastBijFilters(r){
   var loc = document.getElementById('fLocatie').value;
   var srt = document.getElementById('fSoort').value;
   var mw  = document.getElementById('fMedewerker').value;
   var zoek = document.getElementById('fZoek').value.trim().toLowerCase();
+  var k = KOPPEL[resSleutel(r)] || {};
+  if(loc && r.locatie !== loc) return false;
+  if(srt && r.soort !== srt) return false;
+  if(mw === '__geen' && k.medewerker) return false;
+  if(mw && mw !== '__geen' && k.medewerker !== mw) return false;
+  if(zoek){
+    var hooi = (gastVan(r)+' '+r.voornaam+' '+r.achternaam+' '+r.nummer+' '+
+                r.email+' '+r.locatie+' '+r.omschrijving).toLowerCase();
+    if(hooi.indexOf(zoek) === -1) return false;
+  }
+  return true;
+}
+function gefilterd(){
+  var van = document.getElementById('fVan').value;
+  var tot = document.getElementById('fTot').value;
   return ALLES.filter(function(r){
-    var k = KOPPEL[resSleutel(r)] || {};
-    if(van && r.vertrek && r.vertrek < van) return false;
-    if(van && !r.vertrek && r.aankomst < van) return false;
-    if(tot && r.aankomst > tot) return false;
-    if(loc && r.locatie !== loc) return false;
-    if(srt && r.soort !== srt) return false;
-    if(mw === '__geen' && k.notitie !== undefined && k.medewerker) return false;
-    if(mw === '__geen' && k.medewerker) return false;
-    if(mw && mw !== '__geen' && k.medewerker !== mw) return false;
-    if(zoek){
-      var hooi = (r.voornaam+' '+r.achternaam+' '+r.nummer+' '+r.email+' '+r.locatie+' '+r.omschrijving).toLowerCase();
-      if(hooi.indexOf(zoek) === -1) return false;
-    }
-    return true;
+    var fa = aankomstVan(r), fv = vertrekVan(r);
+    if(van && fv && fv < van) return false;
+    if(van && !fv && fa < van) return false;
+    if(tot && fa > tot) return false;
+    return pastBijFilters(r);
   });
 }
 
@@ -971,6 +1078,7 @@ function teken(){
     var s = SOORTEN[r.soort] || SOORTEN.handmatig;
     var k = KOPPEL[resSleutel(r)] || {};
     var naam = k.gast || (r.voornaam+' '+r.achternaam).trim() || r.titel || 'Zonder naam';
+    var A = aankomstVan(r), V = vertrekVan(r), TI = tijdInVan(r), TU = tijdUitVan(r), N = nachten(A, V);
     var tel  = k.telefoon || r.telefoon || '';
     var mail = k.email || r.email || '';
     var totaal = (k.totaal!=null && k.totaal!=='') ? parseFloat(k.totaal) : r.totaal;
@@ -985,6 +1093,8 @@ function teken(){
     if(k.member) merkjes += '<span class="gekoppeld">member</span>';
     if(k.checkin_id) merkjes += '<span class="gekoppeld">incheck</span>';
     if(k.gastenregister_id) merkjes += '<span class="gekoppeld">register</span>';
+    if(datumGewijzigd(r)) merkjes += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">datum gewijzigd</span>';
+    if(k.geannuleerd) merkjes += '<span class="gekoppeld" style="background:var(--crit-soft);color:var(--crit)">geannuleerd</span>';
     if(k.welkomstcall_gedaan) merkjes += '<span class="gekoppeld">call gedaan</span>';
     else if(k.welkomstcall_id) merkjes += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">call open</span>';
     if(opBlacklist(r)) merkjes += '<span class="gekoppeld" style="background:var(--crit-soft);color:var(--crit)">zwarte lijst</span>';
@@ -1017,15 +1127,18 @@ function teken(){
           (!window.BWF||!window.BWF.rol||window.BWF.mag('eigenaar')?'<button type="button" data-actie="betaal" data-i="'+i+'">Betaalgegevens</button>':'')+
           '<button type="button" data-actie="taak" data-i="'+i+'">Taak toevoegen</button>'+
           '<button type="button" data-actie="review" data-i="'+i+'">Reviewverzoek'+(k.review_verstuurd?' (verstuurd)':'')+'</button>'+
-          (nachten(r.aankomst,r.vertrek) && nachten(r.aankomst,r.vertrek)!=='dag'
+          '<button type="button" data-actie="wijzigbericht" data-i="'+i+'">Wijziging doorgeven</button>'+
+          '<button type="button" data-actie="annulering" data-i="'+i+'">Annulering doorgeven</button>'+
+          (N && N!=='dag'
             ? '<button type="button" data-actie="register" data-i="'+i+'">Toevoegen aan gastenregister</button>' : '')+
           '<hr><button type="button" data-actie="blacklist" data-i="'+i+'" style="color:var(--crit)">'+(opBlacklist(r)?'Van de zwarte lijst halen':'Op de zwarte lijst zetten')+'</button>'+
           (r.bewerkbaar ? '<hr><button type="button" data-actie="bewerk" data-i="'+i+'">Reservering bewerken</button>' : '')+
         '</div></div></td>'+
-      '<td class="nowrap">'+esc(r.aankomst)+
-        (r.tijdIn?' <span style="color:var(--muted)">'+esc(r.tijdIn)+'</span>':'')+'</td>'+
-      '<td class="nowrap">'+esc(r.vertrek)+(r.tijdUit?' <span style="color:var(--muted)">'+esc(r.tijdUit)+'</span>':'')+'</td>'+
-      '<td>'+esc(nachten(r.aankomst,r.vertrek))+'</td>'+
+      '<td class="nowrap"><span class="datum">'+esc(A)+
+        (TI?' <span style="color:var(--muted)">'+esc(TI)+'</span>':'')+'</span></td>'+
+      '<td class="nowrap"><span class="datum">'+esc(V)+
+        (TU?' <span style="color:var(--muted)">'+esc(TU)+'</span>':'')+'</span></td>'+
+      '<td>'+esc(N)+'</td>'+
       '<td class="naam" data-kaart="'+i+'" title="Klantkaart openen">'+
         '<span class="gastnaam" title="'+esc(naam)+'">'+esc(naam)+'</span>'+merkjes+
         (r.nummer?'<div class="subregel" style="font-family:var(--f-mono)">'+esc(r.nummer)+'</div>':'')+'</td>'+
@@ -1046,8 +1159,10 @@ function teken(){
       rr('Wat is geboekt', esc(r.titel || r.omschrijving || '—'));
       rr('Soort verblijf', esc(verblijfVan(r)));
       rr('Geboekt via', esc(kanaalVan(r)));
-      rr('Inchecken', esc(r.aankomst + (r.tijdIn ? ' om '+r.tijdIn : '')));
-      rr('Uitchecken', esc(r.vertrek ? r.vertrek + (r.tijdUit ? ' om '+r.tijdUit : '') : '—'));
+      rr('Inchecken', esc(A + (TI ? ' om '+TI : '')));
+      rr('Uitchecken', esc(V ? V + (TU ? ' om '+TU : '') : '—'));
+      if(datumGewijzigd(r)) rr('Oorspronkelijk', esc(r.aankomst+(r.tijdIn?' '+r.tijdIn:'')+(r.vertrek?' t/m '+r.vertrek:'')+(r.tijdUit?' '+r.tijdUit:'')));
+      if(k.geannuleerd) rr('Geannuleerd', esc(k.geannuleerd));
       rr('Personen', esc(k.personen || r.personen));
       if(r.arrangementen && r.arrangementen.length)
         rr('Arrangementen','<ul>'+r.arrangementen.map(function(a){ return '<li>'+esc(a)+'</li>'; }).join('')+'</ul>');
@@ -1116,6 +1231,116 @@ function voet(lijst){
 }
 
 /* =========================================================
+   Kalender
+   ========================================================= */
+var weergave = 'lijst';
+var kalMaand = (function(){ var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+var MAANDEN = ['januari','februari','maart','april','mei','juni',
+               'juli','augustus','september','oktober','november','december'];
+var DAGEN = ['ma','di','wo','do','vr','za','zo'];
+
+function zetWeergave(welke){
+  weergave = welke;
+  document.getElementById('btnLijst').setAttribute('aria-pressed', welke==='lijst');
+  document.getElementById('btnKalender').setAttribute('aria-pressed', welke==='kalender');
+  document.querySelector('.tabelwrap').hidden = (welke !== 'lijst');
+  document.getElementById('voetregel').hidden = (welke !== 'lijst');
+  document.getElementById('kalender').hidden = (welke !== 'kalender');
+  if(welke === 'kalender') tekenKalender(); else teken();
+}
+
+/* welke dagen beslaat een reservering: van aankomst tot en met de laatste nacht */
+function dagenVan(r){
+  var a = aankomstVan(r), v = vertrekVan(r);
+  if(!a) return [];
+  var uit = [], d = new Date(a+'T12:00:00');
+  var eind = v ? new Date(v+'T12:00:00') : new Date(a+'T12:00:00');
+  if(v && v > a) eind.setDate(eind.getDate()-1);      /* vertrekdag telt niet mee */
+  var stop = 0;
+  while(d <= eind && stop < 60){ uit.push(dstr(d)); d.setDate(d.getDate()+1); stop++; }
+  return uit;
+}
+
+function tekenKalender(){
+  var jaar = kalMaand.getFullYear(), maand = kalMaand.getMonth();
+  document.getElementById('kalTitel').textContent = MAANDEN[maand]+' '+jaar;
+
+  var eerste = new Date(jaar, maand, 1);
+  var laatste = new Date(jaar, maand+1, 0);
+  var vanaf = new Date(eerste); vanaf.setDate(1 - ((eerste.getDay()+6)%7));
+  var totMet = new Date(laatste); totMet.setDate(laatste.getDate() + (6 - ((laatste.getDay()+6)%7)));
+  var vanStr = dstr(vanaf), totStr = dstr(totMet);
+
+  /* alles wat in dit raster valt */
+  var lijst = ALLES.filter(function(r){
+    if(!pastBijFilters(r)) return false;
+    var a = aankomstVan(r), v = vertrekVan(r) || a;
+    return a && a <= totStr && v >= vanStr;
+  });
+
+  var perDag = {};
+  lijst.forEach(function(r, i){
+    dagenVan(r).forEach(function(d){
+      if(d < vanStr || d > totStr) return;
+      (perDag[d] = perDag[d] || []).push(i);
+    });
+  });
+
+  var inMaand = lijst.filter(function(r){
+    var a = aankomstVan(r);
+    return a >= dstr(eerste) && a <= dstr(laatste);
+  }).length;
+  document.getElementById('kalTelling').textContent =
+    inMaand+' aankomst'+(inMaand===1?'':'en')+' in deze maand';
+
+  var html = '<div class="kalgrid">' +
+    DAGEN.map(function(d){ return '<div class="kaldagkop">'+d+'</div>'; }).join('');
+
+  var vandaag = dstr(new Date());
+  var loop = new Date(vanaf);
+  while(dstr(loop) <= totStr){
+    var ds = dstr(loop);
+    var buiten = (loop.getMonth() !== maand);
+    var wknd = ((loop.getDay()+6)%7) > 4;
+    html += '<div class="kalcel'+(buiten?' buiten':'')+(wknd?' weekend':'')+
+            (ds===vandaag?' vandaag':'')+'">'+
+            '<span class="dagnr">'+loop.getDate()+'</span>';
+    (perDag[ds]||[]).forEach(function(i){
+      var r = lijst[i];
+      var s = SOORTEN[r.soort] || SOORTEN.handmatig;
+      var naam = gastVan(r) || 'Zonder naam';
+      var start = (aankomstVan(r) === ds);
+      var tijdje = start && tijdInVan(r) ? '<span class="kt">'+esc(tijdInVan(r))+'</span>' : '';
+      var titel = naam+' — '+r.locatie+' · '+aankomstVan(r)+
+                  (vertrekVan(r)?' t/m '+vertrekVan(r):'')+' · '+s.naam;
+      html += '<button class="kalitem" type="button" data-kal="'+i+'" title="'+esc(titel)+'" '+
+              'style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+
+              tijdje+(r.locatie?esc(r.locatie)+' · ':'')+esc(naam)+'</button>';
+    });
+    html += '</div>';
+    loop.setDate(loop.getDate()+1);
+  }
+  html += '</div>';
+  if(!lijst.length) html += '<div class="kalleeg">Geen reserveringen in deze maand met de huidige filters.</div>';
+
+  var vak = document.getElementById('kalInhoud');
+  vak.innerHTML = html;
+  Array.prototype.forEach.call(vak.querySelectorAll('[data-kal]'), function(b){
+    b.onclick = function(){ openKlantkaart(lijst[parseInt(b.getAttribute('data-kal'),10)]); };
+  });
+  meldHoogte();
+}
+
+document.getElementById('btnLijst').onclick = function(){ zetWeergave('lijst'); };
+document.getElementById('btnKalender').onclick = function(){ zetWeergave('kalender'); };
+document.getElementById('kalVorige').onclick = function(){
+  kalMaand.setMonth(kalMaand.getMonth()-1); tekenKalender(); };
+document.getElementById('kalVolgende').onclick = function(){
+  kalMaand.setMonth(kalMaand.getMonth()+1); tekenKalender(); };
+document.getElementById('kalVandaag').onclick = function(){
+  var d = new Date(); kalMaand = new Date(d.getFullYear(), d.getMonth(), 1); tekenKalender(); };
+
+/* =========================================================
    Koppeling opslaan
    ========================================================= */
 async function bewaarKoppeling(r, wijziging){
@@ -1130,6 +1355,7 @@ async function bewaarKoppeling(r, wijziging){
     KOPPEL[sleutel] = obj;
   }
   tekenTegels(); teken();
+  if(weergave === 'kalender') tekenKalender();
   return KOPPEL[sleutel];
 }
 
@@ -1199,11 +1425,14 @@ function openKlantkaart(r){
 
   var blokken = '';
 
+  var A = aankomstVan(r), V = vertrekVan(r), TI = tijdInVan(r), TU = tijdUitVan(r);
   blokken += vak('Verblijf', [
     ['Locatie', esc(r.locatie)],
-    ['Aankomst', esc(r.aankomst + (r.tijdIn ? ' om '+r.tijdIn : ''))],
-    ['Vertrek', esc(r.vertrek ? r.vertrek + (r.tijdUit ? ' om '+r.tijdUit : '') : '')],
-    ['Nachten', esc(nachten(r.aankomst, r.vertrek))],
+    ['Aankomst', esc(A + (TI ? ' om '+TI : ''))],
+    ['Vertrek', esc(V ? V + (TU ? ' om '+TU : '') : '')],
+    ['Nachten', esc(nachten(A, V))],
+    ['Gewijzigd', datumGewijzigd(r) ? 'ja — oorspronkelijk '+esc(r.aankomst+(r.tijdIn?' '+r.tijdIn:'')) : ''],
+    ['Geannuleerd', esc(k.geannuleerd)],
     ['Personen', esc(k.personen || r.personen)],
     ['Arrangement', esc(k.arrangement || r.arrangement || (r.arrangementen||[]).join(', '))],
     ['Extra', esc(k.extra)],
@@ -1262,11 +1491,12 @@ function openKlantkaart(r){
 
   document.getElementById('kkRaster').innerHTML = blokken;
 
-  var acties = [['wijzig','Gegevens aanpassen'],['klant','Klant koppelen'],
+  var acties = [['wijzig','Alle gegevens aanpassen'],['wijzigbericht','Wijziging doorgeven'],
+    ['annulering','Annulering doorgeven'],['klant','Klant koppelen'],
     ['gastlink','Gastenlink versturen'],['welkom','Welkomstcall aanmaken'],
     ['taak','Taak toevoegen'],['review','Reviewverzoek'],['detail','Details in de tabel']];
-  if(eigenaar) acties.splice(2, 0, ['betaal','Betaalgegevens']);
-  if(nachten(r.aankomst,r.vertrek) && nachten(r.aankomst,r.vertrek)!=='dag')
+  if(eigenaar) acties.splice(4, 0, ['betaal','Betaalgegevens']);
+  if(nachten(A,V) && nachten(A,V)!=='dag')
     acties.push(['register','Naar gastenregister']);
   if(r.bewerkbaar) acties.push(['bewerk','Reservering bewerken']);
 
@@ -1309,6 +1539,8 @@ function doeActie(actie, r){
   if(actie === 'gastlink'){ openGastlink(r); return; }
   if(actie === 'welkomklaar'){ welkomstcallKlaar(r); return; }
   if(actie === 'blacklist'){ openBlacklist(r); return; }
+  if(actie === 'wijzigbericht'){ openBericht(r, 'wijziging'); return; }
+  if(actie === 'annulering'){ openBericht(r, 'annulering'); return; }
 }
 
 /* --- klant koppelen of aanmaken --- */
@@ -1609,6 +1841,11 @@ document.getElementById('btnVerwijder').onclick = async function(){
    Gegevens van de reservering aanpassen
    ========================================================= */
 function gastVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.gast || (r.voornaam+' '+r.achternaam).trim() || r.titel || ''; }
+function aankomstVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.aankomst || r.aankomst || ''; }
+function vertrekVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.vertrek || r.vertrek || ''; }
+function tijdInVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return tijd(k.tijd_in) || r.tijdIn || ''; }
+function tijdUitVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return tijd(k.tijd_uit) || r.tijdUit || ''; }
+function datumGewijzigd(r){ var k = KOPPEL[resSleutel(r)]||{}; return !!(k.aankomst || k.vertrek || k.tijd_in || k.tijd_uit); }
 function telVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.telefoon || r.telefoon || ''; }
 function mailVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.email || r.email || ''; }
 
@@ -1617,6 +1854,10 @@ function openWijzig(r){
   document.getElementById('wzSub').textContent = r.locatie+' · '+r.aankomst+
     (r.vertrek?' t/m '+r.vertrek:'')+(r.nummer?' · '+r.nummer:'');
   document.getElementById('wz_gast').value = gastVan(r);
+  document.getElementById('wz_aankomst').value = aankomstVan(r);
+  document.getElementById('wz_vertrek').value = vertrekVan(r);
+  document.getElementById('wz_tijdin').value = tijdInVan(r);
+  document.getElementById('wz_tijduit').value = tijdUitVan(r);
   document.getElementById('wz_telefoon').value = telVan(r);
   document.getElementById('wz_email').value = mailVan(r);
   document.getElementById('wz_personen').value = k.personen || r.personen || '';
@@ -1635,6 +1876,10 @@ document.getElementById('wzBewaar').onclick = async function(){
   try{
     await bewaarKoppeling(actieRes, {
       gast: document.getElementById('wz_gast').value.trim(),
+      aankomst: document.getElementById('wz_aankomst').value || null,
+      vertrek: document.getElementById('wz_vertrek').value || null,
+      tijd_in: document.getElementById('wz_tijdin').value || null,
+      tijd_uit: document.getElementById('wz_tijduit').value || null,
       telefoon: document.getElementById('wz_telefoon').value.trim(),
       email: document.getElementById('wz_email').value.trim(),
       personen: document.getElementById('wz_personen').value.trim(),
@@ -1651,7 +1896,8 @@ document.getElementById('wzBewaar').onclick = async function(){
 document.getElementById('wzLeeg').onclick = async function(){
   if(!confirm('De aangepaste gegevens wissen? Daarna staat de tekst uit de agenda er weer.')) return;
   try{
-    await bewaarKoppeling(actieRes, { gast:null, telefoon:null, email:null, personen:null, arrangement:null });
+    await bewaarKoppeling(actieRes, { gast:null, telefoon:null, email:null, personen:null, arrangement:null,
+      aankomst:null, vertrek:null, tijd_in:null, tijd_uit:null });
     document.getElementById('wijzigDialog').close();
     meld('Aanpassingen gewist.', true);
   }catch(e){ meld('Wissen lukte niet: '+e.message); }
@@ -1679,7 +1925,7 @@ function kanaalVan(r){
 function verblijfVan(r){
   var k = KOPPEL[resSleutel(r)] || {};
   if(k.verblijf) return k.verblijf;
-  var n = nachten(r.aankomst, r.vertrek);
+  var n = nachten(aankomstVan(r), vertrekVan(r));
   if(n === 'dag' || n === '' || n === 0) return 'Dagverblijf';
   return n === 1 ? 'Overnachting' : n + ' nachten';
 }
@@ -1856,6 +2102,156 @@ async function gastlinkVerstuurd(r){
 }
 
 /* =========================================================
+   Wijziging of annulering doorgeven
+   ========================================================= */
+var STANDAARD_WIJZIGING =
+  "Hoi {voornaam},\n\n" +
+  "Je reservering bij Bed & Wellness Flevoland is aangepast.\n\n" +
+  "Reserveringsnummer: {nummer}\n" +
+  "Locatie: {locatie}\n" +
+  "Nieuwe aankomst: {aankomst} om {tijdin}\n" +
+  "Vertrek: {vertrek} om {tijduit}\n\n" +
+  "Klopt dit zo? Laat het even weten, dan zetten we het definitief.\n\n" +
+  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
+
+var STANDAARD_ANNULERING =
+  "Hoi {voornaam},\n\n" +
+  "Je reservering bij Bed & Wellness Flevoland is geannuleerd.\n\n" +
+  "Reserveringsnummer: {nummer}\n" +
+  "Locatie: {locatie}\n" +
+  "Datum: {aankomst}\n" +
+  "Reden: {reden}\n\n" +
+  "Onze annuleringsvoorwaarden:\n{voorwaarden}\n\n" +
+  "Heb je hier vragen over, stuur gerust een berichtje.\n\n" +
+  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
+
+/* Let op: dit zijn voorbeeldvoorwaarden. Pas ze in het scherm aan naar je
+   eigen voorwaarden, daarna worden ze onthouden voor alle volgende berichten. */
+var STANDAARD_VOORWAARDEN =
+  "- Kosteloos annuleren tot 14 dagen voor aankomst.\n" +
+  "- Van 14 tot 7 dagen voor aankomst brengen wij 50% van het totaalbedrag in rekening.\n" +
+  "- Binnen 7 dagen voor aankomst is het volledige bedrag verschuldigd.\n" +
+  "- In overleg kan een betaald bedrag worden omgezet in een tegoed voor een nieuwe datum.";
+
+var brSoort = 'wijziging';
+function brVeld(id){ return document.getElementById(id).value.trim(); }
+function berichtTekst(r){
+  var naam = gastVan(r);
+  var sjabloon = brSoort === 'annulering'
+    ? inst('annulering_tekst', STANDAARD_ANNULERING)
+    : inst('wijziging_tekst', STANDAARD_WIJZIGING);
+  return sjabloon
+    .replace(/\{voornaam\}/g, naam.split(' ')[0] || '')
+    .replace(/\{naam\}/g, naam)
+    .replace(/\{nummer\}/g, brVeld('br_nummer') || 'niet bekend')
+    .replace(/\{locatie\}/g, brVeld('br_locatie') || 'onze suite')
+    .replace(/\{aankomst\}/g, brVeld('br_aankomst') || aankomstVan(r))
+    .replace(/\{vertrek\}/g, brVeld('br_vertrek') || vertrekVan(r))
+    .replace(/\{tijdin\}/g, brVeld('br_tijdin') || tijdInVan(r) || '—')
+    .replace(/\{tijduit\}/g, brVeld('br_tijduit') || tijdUitVan(r) || '—')
+    .replace(/\{reden\}/g, brVeld('br_reden') || 'op verzoek van de gast')
+    .replace(/\{voorwaarden\}/g, document.getElementById('br_voorwaarden').value.trim());
+}
+function openBericht(r, soort){
+  actieRes = r; brSoort = soort;
+  var dlgB = document.getElementById('berichtDialog');
+  dlgB.setAttribute('data-soort', soort);
+  document.getElementById('brTitel').textContent =
+    soort === 'annulering' ? 'Annulering doorgeven' : 'Wijziging doorgeven';
+  document.getElementById('brSub').textContent =
+    gastVan(r)+' · '+r.locatie+' · '+aankomstVan(r)+(vertrekVan(r)?' t/m '+vertrekVan(r):'');
+  document.getElementById('br_nummer').value = r.nummer || resSleutel(r);
+  document.getElementById('br_locatie').value = r.locatie || '';
+  document.getElementById('br_aankomst').value = aankomstVan(r);
+  document.getElementById('br_vertrek').value = vertrekVan(r);
+  document.getElementById('br_tijdin').value = tijdInVan(r);
+  document.getElementById('br_tijduit').value = tijdUitVan(r);
+  document.getElementById('br_reden').value = '';
+  document.getElementById('br_voorwaarden').value = inst('annulering_voorwaarden', STANDAARD_VOORWAARDEN);
+  document.getElementById('br_telefoon').value = telVan(r);
+  document.getElementById('br_email').value = mailVan(r);
+  document.getElementById('br_overnemen').checked = true;
+  document.getElementById('br_blacklist').checked = false;
+  document.getElementById('br_blnotitie').value = '';
+  document.getElementById('br_tekst').value = berichtTekst(r);
+  dlgB.showModal();
+}
+['br_nummer','br_locatie','br_aankomst','br_vertrek','br_tijdin','br_tijduit','br_reden','br_voorwaarden']
+  .forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      if(actieRes) document.getElementById('br_tekst').value = berichtTekst(actieRes);
+    });
+  });
+document.getElementById('brOpnieuw').onclick = function(){
+  if(actieRes) document.getElementById('br_tekst').value = berichtTekst(actieRes);
+};
+async function bewaarBerichtSjabloon(){
+  var x = document.getElementById('br_tekst').value;
+  if(x.indexOf('{') > -1)
+    await bewaarInst(brSoort === 'annulering' ? 'annulering_tekst' : 'wijziging_tekst', x);
+  var v = document.getElementById('br_voorwaarden').value.trim();
+  if(v && v !== inst('annulering_voorwaarden','')) await bewaarInst('annulering_voorwaarden', v);
+}
+async function berichtVerwerkt(r){
+  var gedaan = [];
+  try{
+    if(brSoort === 'wijziging' && document.getElementById('br_overnemen').checked){
+      await bewaarKoppeling(r, {
+        aankomst: brVeld('br_aankomst') || null,
+        vertrek:  brVeld('br_vertrek')  || null,
+        tijd_in:  brVeld('br_tijdin')   || null,
+        tijd_uit: brVeld('br_tijduit')  || null
+      });
+      gedaan.push('reservering bijgewerkt');
+    }
+    if(brSoort === 'annulering'){
+      await bewaarKoppeling(r, { geannuleerd: dstr(new Date()) });
+      gedaan.push('genoteerd als geannuleerd');
+      if(document.getElementById('br_blacklist').checked && !opBlacklist(r)){
+        var rec = {
+          id:'bl'+Date.now(), naam: gastVan(r), telefoon: telVan(r), email: mailVan(r),
+          reden: brVeld('br_blnotitie') || ('Annulering '+dstr(new Date())+' — '+(brVeld('br_reden')||'geen toelichting')),
+          locatie: r.locatie || '', datum: dstr(new Date())
+        };
+        await sb('gast_blacklist', { method:'POST', body:JSON.stringify(rec) });
+        BLACKLIST.push(rec);
+        gedaan.push('op de zwarte lijst gezet');
+      }
+    }
+    document.getElementById('berichtDialog').close();
+    teken();
+    meld('Bericht klaargezet'+(gedaan.length?' — '+gedaan.join(' en '):'')+'.', true);
+  }catch(e){ meld('Opslaan lukte niet: '+e.message); }
+}
+document.getElementById('brKopieer').onclick = function(){
+  bewaarBerichtSjabloon();
+  var v = document.getElementById('br_tekst');
+  v.select();
+  try{ navigator.clipboard.writeText(v.value); }catch(e){ document.execCommand('copy'); }
+  meld('Tekst gekopieerd.', true);
+};
+document.getElementById('brApp').onclick = async function(){
+  bewaarBerichtSjabloon();
+  var tel = document.getElementById('br_telefoon').value.replace(/\D/g,'');
+  if(!tel){ alert('Vul eerst een telefoonnummer in.'); return; }
+  if(tel.indexOf('0') === 0) tel = '31' + tel.substring(1);
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(document.getElementById('br_tekst').value), '_blank');
+  await berichtVerwerkt(actieRes);
+};
+document.getElementById('brMail').onclick = async function(){
+  bewaarBerichtSjabloon();
+  var mail = brVeld('br_email');
+  if(!mail){ alert('Vul eerst een e-mailadres in.'); return; }
+  var onderwerp = brSoort === 'annulering'
+    ? 'Annulering van je reservering — Bed & Wellness Flevoland'
+    : 'Wijziging van je reservering — Bed & Wellness Flevoland';
+  window.location.href = 'mailto:'+encodeURIComponent(mail)+
+    '?subject='+encodeURIComponent(onderwerp)+
+    '&body='+encodeURIComponent(document.getElementById('br_tekst').value);
+  await berichtVerwerkt(actieRes);
+};
+
+/* =========================================================
    Reviewverzoek
    ========================================================= */
 var STANDAARD_REVIEW =
@@ -1997,7 +2393,7 @@ document.getElementById('btnCsv').onclick = function(){
              'Telefoon','E-mail','Totaal','Betaald','Nummer','Bron'];
   var regels = lijst.map(function(r){
     var k = KOPPEL[resSleutel(r)] || {};
-    return [r.aankomst,r.vertrek,nachten(r.aankomst,r.vertrek),(r.voornaam+' '+r.achternaam).trim(),
+    return [aankomstVan(r),vertrekVan(r),nachten(aankomstVan(r),vertrekVan(r)),gastVan(r),
             r.locatie,(SOORTEN[r.soort]||{naam:r.soort}).naam,k.medewerker||'',r.arrangement,
             r.telefoon,r.email,k.totaal!=null?k.totaal:(r.totaal!=null?r.totaal:''),
             k.betaald!=null?k.betaald:(r.betaald!=null?r.betaald:''),r.nummer,r.bron];
@@ -2029,10 +2425,11 @@ window.addEventListener('resize', meldHoogte);
   var g = grenzen('maand');
   document.getElementById('fVan').value = g.van;
   document.getElementById('fTot').value = g.tot;
+  var verversen = function(){ if(weergave === 'kalender') tekenKalender(); else teken(); };
   ['fVan','fTot','fLocatie','fSoort','fMedewerker'].forEach(function(id){
-    document.getElementById(id).onchange = teken;
+    document.getElementById(id).onchange = verversen;
   });
-  document.getElementById('fZoek').oninput = teken;
+  document.getElementById('fZoek').oninput = verversen;
   window.addEventListener('bwf-ingelogd', pasRolToe);
   pasRolToe();
   laden();
@@ -2219,7 +2616,25 @@ window.addEventListener('resize', meldHoogte);
   window.addEventListener("resize", function(){ if(menu.classList.contains("open")) plaatsMenu(); });
   window.addEventListener("scroll", function(){ if(menu.classList.contains("open")) plaatsMenu(); });
 
+  /* de vaste navigatiebalk bovenaan de pagina */
+  function vulBalk(){
+    var balk = document.getElementById("bwfBalk");
+    if(!balk) return;
+    var h = '<a class="thuis" href="index.html">Startpagina</a><span class="scheiding"></span>';
+    for(var g=0; g<PAGINAS.length; g++){
+      for(var i=0; i<PAGINAS[g].items.length; i++){
+        var p = PAGINAS[g].items[i];
+        var nu = p.bestand.toLowerCase() === hier;
+        h += '<a href="' + p.bestand + '"' + (nu ? ' class="hier" aria-current="page"' : '') + '>' +
+             p.naam + '</a>';
+      }
+      if(g < PAGINAS.length - 1) h += '<span class="scheiding"></span>';
+    }
+    balk.innerHTML = h;
+  }
+
   function plaats(){
+    vulBalk();
     document.body.appendChild(laag);
     document.body.appendChild(menu);
     /* staat er een plek in de bovenbalk klaar? dan daar, anders rechtsonder */
