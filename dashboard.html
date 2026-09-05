@@ -116,6 +116,29 @@ button,input,select,textarea{font:inherit;color:inherit}
   border-radius:0 0 var(--r-l) var(--r-l);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
   font-size:13px;color:var(--muted)}
 
+/* ---------- starttegels ---------- */
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px}
+.tegel-wrap{position:relative;display:flex}
+.tegel{flex:1;display:flex;flex-direction:column;gap:5px;min-height:136px;padding:16px 16px 14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);
+  color:var(--ink);text-decoration:none;text-align:left;cursor:pointer;position:relative;overflow:hidden;
+  transition:transform .15s ease,border-color .15s ease}
+.tegel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.85}
+.tegel.brass::before{background:var(--brass)}
+.tegel.ok::before{background:var(--ok)}
+.tegel:hover{transform:translateY(-2px);border-color:var(--brass)}
+.tegel .t-eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tegel .t-titel{font-family:var(--f-display);font-size:18.5px;font-weight:700;letter-spacing:-.01em;line-height:1.2;text-wrap:balance}
+.tegel .t-sub{font-size:12.5px;color:var(--muted);margin-top:auto}
+.tegel .t-tel{position:absolute;right:12px;bottom:12px;font-family:var(--f-mono);font-size:11px;
+  padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);border:1px solid transparent}
+.tegel .t-tel[data-nul="1"]{background:var(--surface-2);border-color:var(--line-soft);color:var(--muted)}
+.t-edit{position:absolute;top:9px;right:9px;background:var(--surface-2);border:1px solid var(--line-soft);
+  color:var(--muted);cursor:pointer;padding:2px 7px;border-radius:999px;font-size:11px;line-height:1.6;opacity:0;
+  transition:opacity .15s ease}
+.tegel-wrap:hover .t-edit,.t-edit:focus-visible{opacity:1}
+@media (hover:none){.t-edit{opacity:1}}
+
 /* ---------- stats ---------- */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:18px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px;
@@ -361,6 +384,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   <div class="fotos" id="fotos"></div>
 
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
+    <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Start</button>
     <button class="tab" role="tab" id="tab-incheck" data-tab="incheck" aria-selected="false" aria-controls="panel-incheck">Inchecken</button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
@@ -368,6 +392,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   </nav>
 
   <div id="roBanner" class="banner" hidden><span>&#9888;</span><span><strong>Alleen-lezen.</strong> Je kunt alles inzien, maar wijzigingen worden op deze weergave niet bewaard.</span></div>
+  <!-- ============ START ============ -->
+  <section class="panel" id="panel-start" role="tabpanel" aria-labelledby="tab-start" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Overzicht</span>
+      <h1>Start</h1>
+      <p>Alles wat je dagelijks nodig hebt op &eacute;&eacute;n scherm. Klik een tegel om te openen. Met het potloodje pas je het webadres van een tegel aan.</p>
+    </div>
+    <div class="tegels" id="tegels"></div>
+  </section>
+
     <!-- ============ KLANTBEHEER ============ -->
     <section class="panel" id="panel-klantbeheer" role="tabpanel" aria-labelledby="tab-klantbeheer" hidden>
       <iframe src="klantbeheer.html" title="Klantbeheer" loading="lazy"
@@ -837,7 +871,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function vindIdx(arr, id){ for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return i; return -1; }
 
   /* ---------------- tabs ---------------- */
-  var active = "incheck";
+  var active = "start";
   try { var s0 = sessionStorage.getItem("bw-tab"); if (s0 && document.getElementById("panel-" + s0)) active = s0; } catch (e) {}
   function showTab(name){
     active = name;
@@ -1569,6 +1603,105 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   else plaats();
 })();
 </script>
+<!-- ================= starttegels ================= -->
+<script>
+(function(){
+  var TEGELS = [
+    { id:"smg",          titel:"Dashboard SMG",             eyebrow:"Boekingen",  sub:"Reserveringen via SMG",           soort:"link", standaard:"",                  kleur:"brass" },
+    { id:"dagoverzicht", titel:"Dagoverzicht reserveringen", eyebrow:"Vandaag",    sub:"Wie komt er vandaag",             soort:"link", standaard:"dagoverzicht.html", kleur:"" },
+    { id:"reserveringen",titel:"Reserveringen",              eyebrow:"Boekingen",  sub:"Alle reserveringen",              soort:"link", standaard:"reserveringen.html",kleur:"" },
+    { id:"taken",        titel:"Taken &amp; overdracht",         eyebrow:"Team",       sub:"Openstaande punten",              soort:"tab",  tab:"overdracht", badge:"badge-overdracht", kleur:"ok" },
+    { id:"gasten",       titel:"Gastaanmeldingen",           eyebrow:"Inchecken",  sub:"Gasten die online inchecken",     soort:"link", standaard:"gast.html",         kleur:"brass" },
+    { id:"planning",     titel:"Planning",                   eyebrow:"Rooster",    sub:"Wie werkt wanneer",               soort:"tab",  tab:"planning",   badge:"badge-planning",   kleur:"" }
+  ];
+
+  var houder = document.getElementById("tegels");
+  if(!houder) return;
+
+  function bewaard(id, standaard){
+    try { var v = localStorage.getItem("bw-tegel-" + id); if(v !== null) return v; } catch(e){}
+    return standaard;
+  }
+  function bewaar(id, waarde){
+    try { localStorage.setItem("bw-tegel-" + id, waarde); } catch(e){}
+  }
+  function extern(u){ return /^https?:/i.test(u || ""); }
+
+  function teken(){
+    var h = "";
+    for(var i=0;i<TEGELS.length;i++){
+      var t = TEGELS[i];
+      var kleur = t.kleur ? " " + t.kleur : "";
+      h += '<div class="tegel-wrap">';
+      if(t.soort === "tab"){
+        h += '<button class="tegel' + kleur + '" type="button" data-tab-doel="' + t.tab + '">' +
+             '<span class="t-eyebrow">' + t.eyebrow + '</span>' +
+             '<span class="t-titel">' + t.titel + '</span>' +
+             '<span class="t-sub">' + t.sub + '</span>' +
+             '<span class="t-tel" data-van="' + t.badge + '" data-nul="1">0</span></button>';
+      } else {
+        var url = bewaard(t.id, t.standaard);
+        var sub = url ? t.sub : "Nog geen link &mdash; klik om in te stellen";
+        h += '<a class="tegel' + kleur + '" href="' + (url || "#") + '"' +
+             (url ? (extern(url) ? ' target="_blank" rel="noopener"' : '') : ' data-leeg="1"') +
+             ' data-id="' + t.id + '">' +
+             '<span class="t-eyebrow">' + t.eyebrow + '</span>' +
+             '<span class="t-titel">' + t.titel + '</span>' +
+             '<span class="t-sub">' + sub + '</span></a>' +
+             '<button class="t-edit" type="button" data-wijzig="' + t.id + '" title="Webadres wijzigen" aria-label="Webadres van ' +
+             t.titel.replace(/&amp;/g,"en") + ' wijzigen">&#9998;</button>';
+      }
+      h += "</div>";
+    }
+    houder.innerHTML = h;
+  }
+
+  function vraagLink(id){
+    var t = null;
+    for(var i=0;i<TEGELS.length;i++) if(TEGELS[i].id === id) t = TEGELS[i];
+    if(!t) return;
+    var nu = bewaard(id, t.standaard);
+    var nieuw = window.prompt("Webadres voor \"" + t.titel.replace(/&amp;/g,"en") + "\"\n\n" +
+      "Plak hier de link (bijvoorbeeld https://... of dagoverzicht.html).\nLeeg laten = terug naar de standaard.", nu || "");
+    if(nieuw === null) return;
+    nieuw = nieuw.trim();
+    bewaar(id, nieuw || t.standaard);
+    teken();
+  }
+
+  houder.addEventListener("click", function(e){
+    var w = e.target.closest("[data-wijzig]");
+    if(w){ e.preventDefault(); vraagLink(w.getAttribute("data-wijzig")); return; }
+
+    var leeg = e.target.closest('.tegel[data-leeg="1"]');
+    if(leeg){ e.preventDefault(); vraagLink(leeg.getAttribute("data-id")); return; }
+
+    var tab = e.target.closest("[data-tab-doel]");
+    if(tab){
+      var knop = document.getElementById("tab-" + tab.getAttribute("data-tab-doel"));
+      if(knop){ knop.click(); window.scrollTo({ top:0, behavior:"smooth" }); }
+    }
+  });
+
+  /* aantallen uit de tabbladen overnemen */
+  function tellingen(){
+    var tel = houder.querySelectorAll(".t-tel[data-van]");
+    for(var i=0;i<tel.length;i++){
+      var bron = document.getElementById(tel[i].getAttribute("data-van"));
+      if(!bron) continue;
+      var v = (bron.textContent || "0").trim();
+      tel[i].textContent = v + " open";
+      tel[i].setAttribute("data-nul", v === "0" ? "1" : "0");
+    }
+  }
+
+  teken();
+  tellingen();
+  setInterval(tellingen, 1500);
+})();
+</script>
+<!-- ================= einde starttegels ================= -->
+
 <!-- ================= einde BWF-menu ================= -->
 </body>
 </html>
