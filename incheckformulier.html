@@ -1809,6 +1809,7 @@ var betalingen = [];             // [{bedrag, wijze, omschrijving, moment}]
 var resArrangementen = [];       // arrangementen van de gekoppelde reservering
 var gekoppeld = null;            // {bron, id, label}
 var RESERVERINGEN = [], KLANTEN = [];
+var voorinvulling = null;   // naam/contact die alvast klaarstaat voor de gastpopup
 var NIEUWE_KOLOMMEN = true;
 
 /* =================== 1. KOPPELEN =================== */
@@ -1925,15 +1926,22 @@ function neemKoppelOver(){
   });
   renderArrList();
 
-  if(bron === 'aanmelding' || bron === 'klant'){
+  if(bron === 'aanmelding' && d.handtekening){
     guestData = {
       voornaam: d.voornaam || '', achternaam: d.achternaam || '',
       woonplaats: d.woonplaats || '', nationaliteit: d.nationaliteit || '',
       telefoon: d.telefoon || '', email: d.email || '',
       akkoord: !!d.akkoord, akkoord_voorwaarden: !!d.akkoord_voorwaarden,
-      lid: !!d.lid, handtekening: d.handtekening || null
+      lid: !!d.lid, handtekening: d.handtekening
     };
+    actieveAanmelding = d;
     renderGuestStatus();
+  } else if(bron === 'aanmelding' || bron === 'klant'){
+    zetVoorinvulling({
+      voornaam: d.voornaam || '', achternaam: d.achternaam || '',
+      woonplaats: d.woonplaats || '', nationaliteit: d.nationaliteit || '',
+      telefoon: d.telefoon || '', email: d.email || ''
+    });
   }
   updateCheckinManagerOptions();
   buildPersoonSelects();
@@ -2100,16 +2108,10 @@ function vulUitTekst(tekst){
     gevuld.push('vooraf geboekte extra’s');
   }
   if(g.voornaam || g.email || g.telefoon){
-    guestData = Object.assign({
-      voornaam:'', achternaam:'', woonplaats:'', nationaliteit:'', telefoon:'', email:'',
-      akkoord:false, akkoord_voorwaarden:false, lid:false, handtekening:null
-    }, guestData || {}, {
-      voornaam: g.voornaam || (guestData && guestData.voornaam) || '',
-      achternaam: g.achternaam || (guestData && guestData.achternaam) || '',
-      email: g.email || (guestData && guestData.email) || '',
-      telefoon: g.telefoon || (guestData && guestData.telefoon) || ''
+    zetVoorinvulling({
+      voornaam: g.voornaam || '', achternaam: g.achternaam || '',
+      email: g.email || '', telefoon: g.telefoon || ''
     });
-    renderGuestStatus();
     gevuld.push('naam en contactgegevens');
   }
   updateCheckinManagerOptions();
@@ -2133,9 +2135,136 @@ function vulUitTekst(tekst){
     st.textContent = '✕ Er viel niets herkenbaars uit deze tekst te halen. Vul de gegevens handmatig in.';
   }
 }
+/* Gegevens die vanuit Reserveringen in de link zijn meegestuurd */
+/* Naam en contact die al bekend zijn, maar waar de gast nog voor moet tekenen */
+function zetVoorinvulling(g){
+  voorinvulling = Object.assign({
+    voornaam:'', achternaam:'', woonplaats:'', nationaliteit:'', telefoon:'', email:''
+  }, voorinvulling || {}, g);
+  renderGuestStatus();
+}
+function renderGuestStatus(){
+  var el = document.getElementById('guestStatus');
+  if(!el) return;
+  if(guestData){
+    el.className = 'guest-status filled';
+    el.textContent = '✓ Ingevuld en getekend door ' + guestData.voornaam + ' ' + guestData.achternaam +
+      ' — ' + (guestData.lid ? 'wil lid worden' : 'wil geen lid worden') + ', akkoord met huisregels en voorwaarden.';
+  } else if(voorinvulling && (voorinvulling.voornaam || voorinvulling.email)){
+    el.className = 'guest-status empty';
+    el.textContent = 'Gegevens van ' + ((voorinvulling.voornaam + ' ' + voorinvulling.achternaam).trim() || 'de gast') +
+      ' staan klaar. De gast moet het formulier nog nalopen en tekenen.';
+  } else {
+    el.className = 'guest-status empty';
+    el.textContent = 'Nog niet ingevuld door de gast.';
+  }
+}
+function openGuestModal(){
+  if(!sigCtx) setupSignaturePad();
+  document.getElementById('guestFormStatus').textContent = '';
+  var g = guestData || voorinvulling;
+  if(g){
+    document.getElementById('g_voornaam').value = g.voornaam || '';
+    document.getElementById('g_achternaam').value = g.achternaam || '';
+    document.getElementById('g_woonplaats').value = g.woonplaats || '';
+    document.getElementById('g_nationaliteit').value = g.nationaliteit || '';
+    document.getElementById('g_telefoon').value = g.telefoon || '';
+    document.getElementById('g_email').value = g.email || '';
+    document.getElementById('g_akkoord').checked = !!g.akkoord;
+    document.getElementById('g_akkoordvw').checked = !!g.akkoord_voorwaarden;
+    var lid = !!g.lid;
+    document.querySelectorAll('input[name="g_lid"]').forEach(function(r){ r.checked = (r.value === (lid ? 'ja' : 'nee')); });
+  }
+  openModal('guestModal');
+}
+
+function vulUitLink(q){
+  var st = document.getElementById('k_status');
+  var gevuld = [];
+  var nr = q.get('reservering');
+  if(nr){ document.getElementById('c_resnr').value = nr; gevuld.push('reserveringsnummer'); }
+
+  var loc = herkenLocatie(q.get('locatie') || '');
+  if(loc){ zetVeld('c_locatie', loc); updateCheckinManagerOptions(); gevuld.push('locatie'); }
+  if(q.get('van')){ zetVeld('c_datum', String(q.get('van')).slice(0,10)); gevuld.push('datum'); }
+  if(q.get('tot')){
+    var rb = document.querySelector('input[name="verblijftype"][value="overnachting"]');
+    if(rb){ rb.checked = true; toggleVerblijftype(); }
+    zetVeld('c_checkuitdatum', String(q.get('tot')).slice(0,10));
+    gevuld.push('check-uit datum');
+  }
+  if(q.get('tijdin')){ zetVeld('c_checkin', String(q.get('tijdin')).slice(0,5)); gevuld.push('tijden'); }
+  if(q.get('tijduit')) zetVeld('c_checkuit', String(q.get('tijduit')).slice(0,5));
+  if(q.get('personen')) { zetVeld('c_personen', String(q.get('personen')).replace(/\D/g,'') || ''); gevuld.push('aantal personen'); }
+  if(q.get('totaal')){ zetVeld('c_resbedrag', (parseFloat(q.get('totaal')) || 0).toFixed(2)); gevuld.push('bedrag'); }
+  if(q.get('betaald')){ zetVeld('c_aanbetaald', (parseFloat(q.get('betaald')) || 0).toFixed(2)); gevuld.push('betaald'); }
+  if(q.get('opmerking')) zetVeld('c_opmerking', q.get('opmerking'));
+  if(q.get('kanaal')){
+    var sel = document.getElementById('c_boekingvia');
+    var kanaal = String(q.get('kanaal')).toLowerCase();
+    for(var i = 0; i < sel.options.length; i++){
+      if(kanaal.indexOf(sel.options[i].text.toLowerCase().split(' ')[0]) !== -1){ sel.selectedIndex = i; break; }
+    }
+  }
+
+  var arrTekst = q.get('arrangement') || '';
+  if(arrTekst){
+    resArrangementen = herkenArrangementen(arrTekst);
+    buildArrangementSelect();
+    resArrangementen.forEach(function(naam){
+      if(!gekozenArrangementen.some(function(a){ return a.naam === naam; })) gekozenArrangementen.push({ naam: naam });
+    });
+    renderArrList();
+    if(resArrangementen.length) gevuld.push('arrangement');
+    ALLE_VOORAF_ITEMS.forEach(function(it){
+      if(arrTekst.toLowerCase().indexOf(it.naam.toLowerCase()) !== -1 &&
+         !voorafGekozen.some(function(v){ return v.naam === it.naam; })){
+        voorafGekozen.push({ naam: it.naam, aantal:1, prijs: it.prijs });
+      }
+    });
+    renderVoorafList();
+  }
+
+  if(q.get('voornaam') || q.get('email') || q.get('telefoon')){
+    zetVoorinvulling({
+      voornaam: q.get('voornaam') || '', achternaam: q.get('achternaam') || '',
+      email: q.get('email') || '', telefoon: q.get('telefoon') || ''
+    });
+    gevuld.push('naam en contactgegevens');
+  }
+
+  var naam = ((q.get('voornaam') || '') + ' ' + (q.get('achternaam') || '')).trim();
+  gekoppeld = { bron:'reserveringen', id: nr || '', label: (naam || 'reservering') + (nr ? ' — ' + nr : '') };
+
+  buildPersoonSelects();
+  herberekenAlles();
+
+  var wrap = document.getElementById('k_gevonden');
+  var rij = function(l,v){ return v ? '<div class="rl"><span>' + escapeHtml(l) + '</span><span>' + escapeHtml(String(v)) + '</span></div>' : ''; };
+  wrap.innerHTML = '<div class="rl kop"><span>Uit Reserveringen meegekomen</span><span></span></div>' +
+    rij('Naam', naam) + rij('E-mail', q.get('email')) + rij('Telefoon', q.get('telefoon')) +
+    rij('Reserveringsnr.', nr) + rij('Aankomst', q.get('van')) + rij('Vertrek', q.get('tot')) +
+    rij('Tijd', [q.get('tijdin'), q.get('tijduit')].filter(Boolean).join(' — ')) +
+    rij('Personen', q.get('personen')) +
+    rij('Totaal', q.get('totaal') ? euro(parseFloat(q.get('totaal'))) : '') +
+    rij('Betaald', q.get('betaald') ? euro(parseFloat(q.get('betaald'))) : '') +
+    rij('Arrangement', arrTekst);
+  wrap.style.display = 'block';
+
+  st.className = 'status ok';
+  st.textContent = '✓ Geopend vanuit Reserveringen. Ingevuld: ' + (gevuld.join(', ') || 'niets') + '. Loop de boekingsgegevens na.';
+}
+
 function koppelUitAdres(){
-  var param = new URLSearchParams(location.search).get('reservering');
-  if(!param) return;
+  var q = new URLSearchParams(location.search);
+  var param = q.get('reservering');
+  if(!param && !q.get('van') && !q.get('voornaam')) return;
+
+  /* Komt de link uit Reserveringen, dan staan de gegevens er al bij. */
+  if(q.get('van') || q.get('voornaam') || q.get('totaal')){
+    vulUitLink(q);
+    return;
+  }
   document.getElementById('c_resnr').value = param;
   var treffer = RESERVERINGEN.filter(function(r){
     return [r.id, r.reserveringsnummer, r.resnr, r.nummer].some(function(v){ return v != null && String(v) === String(param); });
@@ -2651,7 +2780,7 @@ function clearCheckinForm(){
   document.getElementById('c_id').value = '';
   gekozenArrangementen = []; voorafGekozen = []; serviceGekozen = [];
   orderedItems = []; betalingen = []; resArrangementen = []; gekoppeld = null;
-  guestData = null; actieveAanmelding = null;
+  guestData = null; voorinvulling = null; actieveAanmelding = null;
   document.getElementById('c_datum').value = todayStr();
   buildArrangementSelect(); renderArrList();
   buildVoorafSelect(); renderVoorafList();
