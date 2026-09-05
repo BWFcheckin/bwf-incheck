@@ -380,13 +380,20 @@ function nachten(a,b){
   var d=(new Date(b)-new Date(a))/86400000;
   return d>0 ? Math.round(d) : (d===0 ? 'dag' : '');
 }
+function verlopen(jwt){
+  try{
+    var deel = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return deel.exp && (deel.exp * 1000) < Date.now();
+  }catch(e){ return false; }
+}
 function token(){
   try{
     for(var i=0;i<localStorage.length;i++){
       var k=localStorage.key(i);
       if(k&&k.indexOf('sb-')===0&&k.indexOf('-auth-token')>-1){
         var v=JSON.parse(localStorage.getItem(k));
-        if(v&&v.access_token) return v.access_token;
+        /* een verlopen bewijs geeft alleen maar foutmeldingen; dan liever de publieke sleutel */
+        if(v&&v.access_token&&!verlopen(v.access_token)) return v.access_token;
       }
     }
   }catch(e){}
@@ -496,7 +503,11 @@ async function laden(){
   ALLES = agenda.concat(eigen).sort(function(a,b){
     return String(b.aankomst).localeCompare(String(a.aankomst)); });
 
-  meld(fouten.length ? 'Niet alles kon worden opgehaald — '+fouten.join(' · ') : '');
+  if(fouten.length && fouten.join(' ').indexOf('401') > -1){
+    meld('Je bent niet (meer) ingelogd bij Supabase. Open klantbeheer of het VR Dashboard, log daar in, en ververs deze pagina. De reserveringen uit de agenda zie je wel.');
+  }else{
+    meld(fouten.length ? 'Niet alles kon worden opgehaald — '+fouten.join(' · ') : '');
+  }
   vulKeuzes(); tekenTegels(); teken();
 }
 
