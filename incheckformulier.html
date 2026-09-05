@@ -86,6 +86,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 .status.ok{ color:var(--ok); }
 .status.err{ color:var(--crit); }
 
+.mini-check{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin:4px 0 8px; }
+.mini-check input{ width:15px; height:15px; accent-color:var(--accent); }
+#k_gevonden{ margin-top:12px; }
 .checklist{ display:flex; flex-direction:column; gap:5px; margin:6px 0 4px; }
 .checklist label{ display:flex; align-items:center; justify-content:space-between; gap:9px; font-size:13.5px; color:var(--ink);
   margin:0; padding:8px 11px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); cursor:pointer; }
@@ -239,29 +242,76 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   <form id="checkinForm" onsubmit="return false;">
   <input type="hidden" id="c_id">
 
-  <!-- ================= OVERZICHT RESERVERING (bovenaan) ================= -->
-  <div class="topsom">
-    <h2>Reservering &amp; betaling</h2>
-    <p class="desc" style="margin:2px 0 0;">Vul in wat de gast vooraf heeft gereserveerd en online heeft betaald. Alles wat op locatie wordt bijgeboekt komt hier bovenop.</p>
-    <div class="formgrid3" style="margin-top:6px;">
-      <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
-        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-      <div><label>Totaal online betaald (&euro;)</label>
-        <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-      <div><label>Nog te betalen (&euro;)</label>
-        <input type="text" id="c_nog" readonly style="background:var(--cream);font-weight:600;"></div>
+  <!-- ================= 1 · RESERVERING KOPPELEN ================= -->
+  <div class="card">
+    <h2>1 &middot; Reservering koppelen</h2>
+    <p class="desc">Begin hier. Kies waar de gegevens vandaan komen, dan wordt de rest van het formulier automatisch ingevuld. Je kunt ook alles handmatig invullen.</p>
+    <div class="formgrid3">
+      <div><label>Waar komt de gast vandaan</label>
+        <select id="k_bron" onchange="vulKoppelKeuze()">
+          <option value="reservering">Reservering uit het systeem</option>
+          <option value="aanmelding">Aanmelding van de gast</option>
+          <option value="klant">Klantenbestand</option>
+          <option value="handmatig">Handmatig invoeren</option>
+        </select>
+      </div>
+      <div><label>Zoeken</label><input type="text" id="k_zoek" placeholder="naam, nummer of datum" oninput="vulKoppelKeuze()"></div>
+      <div><label>Kies</label><select id="k_keuze" onchange="toonKoppelVoorbeeld()"></select></div>
     </div>
-    <div class="somgrid">
-      <div class="somvak"><span>Gereserveerd</span><b id="somReservering">&euro; 0,00</b></div>
-      <div class="somvak"><span>Online betaald</span><b id="somBetaald">&euro; 0,00</b></div>
-      <div class="somvak"><span>Extra&#39;s op locatie</span><b id="somExtras">&euro; 0,00</b></div>
-      <div class="somvak nog"><span>Nog te voldoen</span><b id="somNog">&euro; 0,00</b></div>
+    <div class="linkbox">
+      <button class="btn sm" type="button" onclick="neemKoppelOver()">Gegevens overnemen</button>
+      <button class="btn secondary sm" type="button" onclick="wisKoppeling()">Koppeling loslaten</button>
     </div>
+    <div class="status" id="k_status"></div>
+
+    <h3>Of lees de reservering in</h3>
+    <p class="desc">Plak de bevestiging uit SMG, Booking.com of de mail, of upload een pdf of tekstbestand. De gegevens worden er dan uitgehaald.</p>
+    <textarea id="k_plak" placeholder="Plak hier de tekst van de reservering"></textarea>
+    <div class="order-add" style="margin-top:9px;">
+      <div><label>Bestand (pdf of txt)</label><input type="file" id="k_bestand" accept=".pdf,.txt,text/plain,application/pdf" onchange="leesBestand(event)"></div>
+      <div style="flex:0;"><button class="btn sm" type="button" onclick="leesPlaktekst()">Gegevens uit tekst halen</button></div>
+    </div>
+    <div class="rekenlijst" id="k_gevonden" style="display:none;"></div>
   </div>
 
-  <!-- ================= BOEKING ================= -->
+  <!-- ================= 2 · AANMELDINGEN VAN GASTEN ================= -->
   <div class="card">
-    <h2>Boekingsgegevens</h2>
+    <h2>2 &middot; Aanmeldingen van gasten</h2>
+    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken &mdash; de klantgegevens en handtekening staan er dan al in.</p>
+    <div class="aanmeld-lijst" id="aanmeldLijst"></div>
+  </div>
+
+  <!-- ================= 3 · KLAARGEZETTE FORMULIEREN ================= -->
+  <div class="card" id="concepten">
+    <h2>3 &middot; Klaargezette formulieren</h2>
+    <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
+    <div class="aanmeld-lijst" id="conceptLijst"></div>
+  </div>
+
+  <!-- ================= 4 · FORMULIER VOOR DE GAST ================= -->
+  <div class="card">
+    <h2>4 &middot; Formulier voor de gast &mdash; klantgegevens &amp; akkoord</h2>
+    <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn &mdash; niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
+    <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
+    <button type="button" class="btn" onclick="openGuestModal()">&#9998; Formulier voor de gast openen</button>
+
+    <h3>Of laat de gast het vooraf invullen</h3>
+    <p class="desc" style="margin-bottom:0;">Stuur de gast een link. Hij ziet alleen zijn eigen gegevens en kan geen andere incheckformulieren openen. Wat hij instuurt verschijnt hierboven bij &quot;Aanmeldingen van gasten&quot;.</p>
+    <div class="linkbox">
+      <button class="btn secondary sm" type="button" onclick="maakGastLink(true)">Persoonlijke link maken</button>
+      <button class="btn secondary sm" type="button" onclick="maakGastLink(false)">Algemene link</button>
+    </div>
+    <div class="linkbox" id="gastLinkWrap" style="display:none;">
+      <input type="text" id="gastLinkVeld" readonly onclick="this.select()">
+      <button class="btn sm" type="button" onclick="kopieerGastLink()">Kopi&euml;ren</button>
+      <a class="btn secondary sm" id="gastLinkWa" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <div class="status" id="gastLinkStatus"></div>
+  </div>
+
+  <!-- ================= 5 · BOEKINGSGEGEVENS ================= -->
+  <div class="card">
+    <h2>5 &middot; Boekingsgegevens</h2>
     <div class="formgrid3">
       <div><label>Boeking via</label>
         <select id="c_boekingvia">
@@ -272,7 +322,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
           <option>Anders</option>
         </select>
       </div>
-      <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks(); synchroniseerPersoonSelects();"></select></div>
+      <div><label>Locatie</label><select id="c_locatie" onchange="updateCheckinManagerOptions(); updateDocumentLinks(); buildPersoonSelects();"></select></div>
       <div><label>Reserveringsnr.</label><input type="text" id="c_resnr" placeholder="optioneel"></div>
     </div>
     <label>Type verblijf</label>
@@ -297,75 +347,10 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     </div>
   </div>
 
-  <!-- ================= ARRANGEMENTEN ================= -->
+  <!-- ================= 6 · EERDER IN- OF LATER UITCHECKEN ================= -->
   <div class="card">
-    <h2>Arrangementen</h2>
-    <p class="desc">Selecteer het gekozen arrangement (of arrangementen). Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
-    <div id="arrangementSections"></div>
-  </div>
-
-  <!-- ================= VOORAF GERESERVEERD ================= -->
-  <div class="card">
-    <h2>Vooraf gereserveerd</h2>
-    <p class="desc">Vink aan wat de gast al vooraf heeft geboekt (meerdere mogelijk). Dit zit al in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat pas ter plekke wordt besteld, zet je onder &quot;Bestellingen op locatie&quot;.</p>
-    <div class="checklist" id="voorafChecklist"></div>
-  </div>
-
-  <!-- ================= BESTELLINGEN OP LOCATIE ================= -->
-  <div class="card">
-    <h2>Bestellingen op locatie</h2>
-    <h3>Eten &amp; drinken</h3>
-    <div class="order-add">
-      <div><label>Item</label><select id="ordItem"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordQty" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem('main')">+ Toevoegen</button></div>
-    </div>
-
-    <h3>Eten &amp; drinken — alleen Almere (Suite Angie)</h3>
-    <div class="order-add">
-      <div><label>Item</label><select id="ordItemAlmere"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordQtyAlmere" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem('almere')">+ Toevoegen</button></div>
-    </div>
-
-    <h3>Extra personen bijboeken &mdash; dagverblijf</h3>
-    <div class="order-add">
-      <div><label>Wie</label><select id="ordPersDag"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordPersDagQty" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addPersoon('dagverblijf')">+ Toevoegen</button></div>
-    </div>
-
-    <h3>Extra personen bijboeken &mdash; overnachting</h3>
-    <div class="order-add">
-      <div><label>Wie</label><select id="ordPersNacht"></select></div>
-      <div class="qty"><label>Aantal</label><input type="number" id="ordPersNachtQty" min="1" value="1"></div>
-      <div style="flex:0;"><button type="button" class="btn sm" onclick="addPersoon('overnachting')">+ Toevoegen</button></div>
-    </div>
-
-    <div class="order-list" id="orderList"></div>
-
-    <h3>Cadeau</h3>
-    <div class="formgrid">
-      <div><label>Cadeau</label>
-        <select id="c_cadeau" onchange="toggleCadeauAnders()">
-          <option value="">— Geen —</option>
-          <option value="Zeeprozen boeket">Zeeprozen boeket</option>
-          <option value="Rozen hart">Rozen hart</option>
-          <option value="Rozen beer">Rozen beer</option>
-          <option value="Anders">Anders (zie opmerking)</option>
-        </select>
-      </div>
-      <div><label>Prijs (€)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-    </div>
-
-    <h3>Service</h3>
-    <div class="checklist" id="serviceChecklist"></div>
-  </div>
-
-  <!-- ================= EERDER/LATER UITCHECKEN ================= -->
-  <div class="card">
-    <h2>Eerder in- of later uitchecken</h2>
-    <p class="desc">Extra service naast wat vooraf gereserveerd is.</p>
+    <h2>6 &middot; Eerder in- of later uitchecken</h2>
+    <p class="desc">Extra uren naast wat vooraf gereserveerd is. Maximaal 8 uur, &euro; 50 per uur. Een half uur kost &euro; 30.</p>
     <div class="formgrid3">
       <div><label>Type</label>
         <select id="c_checkoutType" onchange="updateCheckoutPrijs()">
@@ -374,18 +359,10 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
           <option value="later">Later uitchecken</option>
         </select>
       </div>
-      <div><label>Duur</label>
-        <select id="c_checkoutDuur" onchange="updateCheckoutPrijs()">
-          <option value="0.5">30 minuten (€30)</option>
-          <option value="1">1 uur (€50)</option>
-          <option value="2">2 uur (€100)</option>
-          <option value="3">3 uur (€150)</option>
-          <option value="4">4 uur (€200)</option>
-        </select>
-      </div>
+      <div><label>Duur</label><select id="c_checkoutDuur" onchange="updateCheckoutPrijs()"></select></div>
       <div><label>Hoe betaald</label>
         <select id="c_checkoutBetaalwijze">
-          <option value="">—</option>
+          <option value="">&mdash;</option>
           <option>Contant</option>
           <option>Flatpay</option>
           <option>Mollie betaallink</option>
@@ -397,25 +374,110 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="hint" id="checkoutPrijsHint"></div>
   </div>
 
-  <!-- ================= EINDAFREKENING ================= -->
+  <!-- ================= 7 · ARRANGEMENTEN ================= -->
   <div class="card">
-    <h2>Eindafrekening</h2>
-    <p class="desc">Volledige opsomming: het gereserveerde bedrag plus alles wat op locatie is bijgeboekt. Je kunt het totaal ook handmatig aanpassen.</p>
+    <h2>7 &middot; Arrangementen</h2>
+    <p class="desc">Is er een reservering gekoppeld, dan staan alleen de arrangementen van die reservering in de lijst. Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
+    <div class="order-add">
+      <div><label>Arrangement</label><select id="arrSelect"></select></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="voegArrangementToe()">+ Toevoegen</button></div>
+    </div>
+    <label class="mini-check"><input type="checkbox" id="arrAlles" onchange="buildArrangementSelect()"> Toon alle arrangementen</label>
+    <div class="order-list" id="arrList"></div>
+  </div>
+
+  <!-- ================= 8 · VOORAF GERESERVEERD ================= -->
+  <div class="card">
+    <h2>8 &middot; Vooraf gereserveerd</h2>
+    <p class="desc">Wat de gast al vooraf heeft geboekt. Dit zit in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat ter plekke wordt besteld zet je bij &quot;Bestellingen op locatie&quot;.</p>
+    <div class="order-add">
+      <div><label>Onderdeel</label><select id="voorSelect"></select></div>
+      <div class="qty"><label>Aantal</label><input type="number" id="voorQty" min="1" value="1"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="voegVoorafToe()">+ Toevoegen</button></div>
+    </div>
+    <div class="order-list" id="voorList"></div>
+  </div>
+
+  <!-- ================= 9 · BESTELLINGEN OP LOCATIE ================= -->
+  <div class="card">
+    <h2>9 &middot; Bestellingen op locatie</h2>
+
+    <h3>Eten &amp; drinken</h3>
+    <div class="order-add">
+      <div><label>Item</label><select id="ordItem"></select></div>
+      <div class="qty"><label>Aantal</label><input type="number" id="ordQty" min="1" value="1"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem()">+ Toevoegen</button></div>
+    </div>
+
+    <h3>Service &amp; toeslagen</h3>
+    <div class="order-add">
+      <div><label>Onderdeel</label><select id="servSelect"></select></div>
+      <div class="qty"><label>Aantal</label><input type="number" id="servQty" min="1" value="1"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="voegServiceToe()">+ Toevoegen</button></div>
+    </div>
+
+    <h3>Extra personen bijboeken</h3>
+    <div class="order-add">
+      <div><label>Soort verblijf</label>
+        <select id="persType" onchange="buildPersoonSelects()">
+          <option value="dagverblijf">Dagverblijf</option>
+          <option value="overnachting">Overnachting</option>
+        </select>
+      </div>
+      <div><label>Wie</label><select id="persWie"></select></div>
+      <div class="qty"><label>Aantal</label><input type="number" id="persQty" min="1" value="1"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="voegPersoonToe()">+ Toevoegen</button></div>
+    </div>
+    <div class="formgrid3" id="persTijdWrap" style="display:none;">
+      <div><label>Extra personen komen om</label><input type="time" id="persVan"></div>
+      <div><label>Extra personen gaan om</label><input type="time" id="persTot"></div>
+      <div></div>
+    </div>
+
+    <h3>Cadeau</h3>
+    <div class="formgrid3">
+      <div><label>Cadeau</label><select id="c_cadeau" onchange="toggleCadeau()"></select></div>
+      <div><label>Prijs (&euro;)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+      <div id="cadeauCodeWrap" style="display:none;"><label>Code van de cadeaubon</label><input type="text" id="c_cadeaucode" placeholder="vul de code in"></div>
+    </div>
+
+    <div class="order-list" id="orderList"></div>
+  </div>
+
+  <!-- ================= 10 · EINDAFREKENING ================= -->
+  <div class="card">
+    <h2>10 &middot; Eindafrekening</h2>
+    <p class="desc">De hele reservering op een rij, met alles wat op locatie is bijgeboekt.</p>
+
+    <div class="formgrid3">
+      <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
+        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+      <div><label>Totaal online betaald (&euro;)</label>
+        <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+      <div><label>Nog te betalen (&euro;)</label>
+        <input type="text" id="c_nog" readonly style="background:var(--cream);font-weight:600;"></div>
+    </div>
+    <div class="somgrid">
+      <div class="somvak"><span>Gereserveerd</span><b id="somReservering">&euro; 0,00</b></div>
+      <div class="somvak"><span>Betaald</span><b id="somBetaald">&euro; 0,00</b></div>
+      <div class="somvak"><span>Extra&#39;s op locatie</span><b id="somExtras">&euro; 0,00</b></div>
+      <div class="somvak nog"><span>Nog te voldoen</span><b id="somNog">&euro; 0,00</b></div>
+    </div>
 
     <div class="rekenlijst" id="rekenLijst"></div>
 
     <div class="subtotal-box">
       <span>Berekend totaal (reservering + extra&#39;s op locatie):</span>
-      <b id="berekendSubtotaal">€ 0,00</b>
+      <b id="berekendSubtotaal">&euro; 0,00</b>
       <button type="button" class="btn secondary sm" onclick="gebruikBerekendBedrag()">Neem dit over</button>
     </div>
 
     <div class="formgrid3" style="margin-top:6px;">
-      <div><label>Totaalbedrag &mdash; handmatig aan te passen (€)</label><input type="number" id="c_totaal" step="0.01" oninput="handmatigTotaal()"></div>
-      <div><label>Totaal extra&#39;s op locatie (€)</label><input type="text" id="c_extrasTotaal" readonly style="background:var(--cream);"></div>
+      <div><label>Totaalbedrag &mdash; handmatig aan te passen (&euro;)</label><input type="number" id="c_totaal" step="0.01" oninput="handmatigTotaal()"></div>
+      <div><label>Totaal extra&#39;s op locatie (&euro;)</label><input type="text" id="c_extrasTotaal" readonly style="background:var(--cream);"></div>
       <div><label>Hoe worden de extra&#39;s betaald</label>
         <select id="c_extrasBetaalwijze" onchange="herberekenAlles()">
-          <option value="">— Nog niet betaald —</option>
+          <option value="">&mdash; Nog niet betaald &mdash;</option>
           <option>Contant</option>
           <option>Flatpay (pin)</option>
           <option>Mollie betaallink</option>
@@ -425,6 +487,25 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
         </select>
       </div>
     </div>
+
+    <h3>Betalingen</h3>
+    <p class="desc">Voeg elke betaling apart toe, ook als de gast later nog iets betaalt.</p>
+    <div class="order-add">
+      <div class="qty" style="max-width:120px;"><label>Bedrag (&euro;)</label><input type="number" id="betBedrag" step="0.01" min="0"></div>
+      <div><label>Betaalwijze</label>
+        <select id="betWijze">
+          <option>Contant</option>
+          <option>Flatpay (pin)</option>
+          <option>Mollie betaallink</option>
+          <option>Bankoverschrijving</option>
+          <option>Cadeaubon</option>
+          <option>Anders</option>
+        </select>
+      </div>
+      <div><label>Waarvoor</label><input type="text" id="betOms" placeholder="bijv. restbedrag of extra&#39;s"></div>
+      <div style="flex:0;"><button type="button" class="btn sm" onclick="voegBetalingToe()">+ Toevoegen</button></div>
+    </div>
+    <div class="order-list" id="betList"></div>
 
     <div class="split-toggle">
       <input type="checkbox" id="c_splitToggle" onchange="toggleSplitBetaling()">
@@ -444,66 +525,35 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
     <div id="betaalwijzeSplit" style="display:none;">
       <div class="split-row">
-        <div><label>Deel 1 — bedrag (€)</label><input type="number" id="c_split1bedrag" step="0.01" min="0"></div>
-        <div><label>Deel 1 — wijze</label>
+        <div><label>Deel 1 &mdash; bedrag (&euro;)</label><input type="number" id="c_split1bedrag" step="0.01" min="0"></div>
+        <div><label>Deel 1 &mdash; wijze</label>
           <select id="c_split1wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Anders</option></select>
         </div>
       </div>
       <div class="split-row">
-        <div><label>Deel 2 — bedrag (€)</label><input type="number" id="c_split2bedrag" step="0.01" min="0"></div>
-        <div><label>Deel 2 — wijze</label>
+        <div><label>Deel 2 &mdash; bedrag (&euro;)</label><input type="number" id="c_split2bedrag" step="0.01" min="0"></div>
+        <div><label>Deel 2 &mdash; wijze</label>
           <select id="c_split2wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Anders</option></select>
         </div>
       </div>
     </div>
 
-    <label>Extra omzet (€) — overig, niet aan specifiek item gekoppeld</label>
+    <label>Extra omzet (&euro;) &mdash; overig, niet aan specifiek item gekoppeld</label>
     <input type="number" id="c_extraomzet" step="0.01" min="0" value="0" oninput="herberekenAlles()">
+
+    <label style="margin-top:12px;">Opmerkingen</label>
+    <textarea id="c_opmerking" placeholder="Overige opmerkingen, afspraken met de gast, etc." oninput="herberekenAlles()"></textarea>
   </div>
 
-  <!-- ================= OPMERKINGEN ================= -->
+  <!-- ================= 11 · OPSLAAN & VERSTUREN ================= -->
   <div class="card">
-    <h2>Opmerkingen</h2>
-    <textarea id="c_opmerking" placeholder="Overige opmerkingen, afspraken met de gast, etc."></textarea>
-  </div>
-
-  <!-- ================= KLANT LATEN TEKENEN ================= -->
-  <div class="card">
-    <h2>Klantgegevens &amp; akkoord</h2>
-    <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn — niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
-    <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
-    <button type="button" class="btn" onclick="openGuestModal()">✎ Formulier voor de gast openen</button>
-
-    <h3>Of laat de gast het vooraf invullen</h3>
-    <p class="desc" style="margin-bottom:0;">Stuur de gast een link. Hij ziet alleen zijn eigen gegevens en kan geen andere incheckformulieren openen. Wat hij instuurt verschijnt hieronder bij "Aanmeldingen van gasten".</p>
-    <div class="linkbox">
-      <button class="btn secondary sm" type="button" onclick="maakGastLink(true)">Persoonlijke link maken</button>
-      <button class="btn secondary sm" type="button" onclick="maakGastLink(false)">Algemene link</button>
-    </div>
-    <div class="linkbox" id="gastLinkWrap" style="display:none;">
-      <input type="text" id="gastLinkVeld" readonly onclick="this.select()">
-      <button class="btn sm" type="button" onclick="kopieerGastLink()">Kopiëren</button>
-      <a class="btn secondary sm" id="gastLinkWa" target="_blank" rel="noopener">WhatsApp</a>
-    </div>
-    <div class="status" id="gastLinkStatus"></div>
-  </div>
-
-  <!-- ================= AANMELDINGEN VAN GASTEN ================= -->
-  <div class="card">
-    <h2>Aanmeldingen van gasten</h2>
-    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken — de klantgegevens en handtekening staan er dan al in.</p>
-    <div class="aanmeld-lijst" id="aanmeldLijst"></div>
-  </div>
-
-  <!-- ================= OPSLAAN & VERSTUREN ================= -->
-  <div class="card">
-    <h2>Opslaan &amp; versturen</h2>
+    <h2>11 &middot; Opslaan &amp; versturen</h2>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
       <button class="btn" type="button" onclick="saveCheckin(false)">Opslaan</button>
       <button class="btn secondary" type="button" onclick="saveCheckin(true)">Opslaan als concept</button>
       <button class="btn secondary" type="button" onclick="clearCheckinForm()">Formulier leegmaken</button>
     </div>
-    <p class="desc" style="margin:-6px 0 14px;">Een concept is een formulier dat je alvast klaarzet — bijvoorbeeld voor een locatiemanager, of om de gastenlink aan te koppelen. Het telt nog niet mee als afgeronde incheck. Sla het op als "Opslaan" zodra het verblijf is afgerond.</p>
+    <p class="desc" style="margin:-6px 0 14px;">Een concept is een formulier dat je alvast klaarzet &mdash; bijvoorbeeld voor een locatiemanager, of om de gastenlink aan te koppelen. Het telt nog niet mee als afgeronde incheck. Sla het op als &quot;Opslaan&quot; zodra het verblijf is afgerond.</p>
 
     <div class="formgrid">
       <div>
@@ -521,14 +571,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   </div>
   </form>
 
-  <!-- ================= KLAARGEZETTE CONCEPTEN ================= -->
-  <div class="card" id="concepten">
-    <h2>Klaargezette formulieren</h2>
-    <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
-    <div class="aanmeld-lijst" id="conceptLijst"></div>
-  </div>
-
-  <!-- ================= RECENT OPGESLAGEN ================= -->
+  <!-- ================= DEFINITIEVE FORMULIEREN ================= -->
   <div class="card table-wrap" id="definitief">
     <h2>Definitieve incheckformulieren</h2>
     <p class="desc">Afgeronde formulieren. Klik op een regel om het formulier te openen, te bewerken of de gast toe te voegen aan het klantenbestand.</p>
@@ -1733,17 +1776,933 @@ function renderAll(){
   herberekenAlles();
 }
 
+
+/* =========================================================================
+   HERBOUW SEPTEMBER 2026 — koppelen, dropdowns, extra uren, betalingen.
+   Deze definities staan na de oude en overschrijven ze.
+   ========================================================================= */
+
+/* ---- extra items en tarieven ---- */
+SERVICE_ITEMS.push(
+  { naam:'Eigen consumptie toeslag', prijs:15 },
+  { naam:'Blinddoek', prijs:2.50 }
+);
+var ALLE_MENU_ITEMS = ORDER_ITEMS.concat(ALMERE_ORDER_ITEMS)
+  .slice().sort(function(a,b){ return a.naam.localeCompare(b.naam,'nl'); });
+var ALLE_VOORAF_ITEMS = ALLE_MENU_ITEMS.concat(SERVICE_ITEMS);
+var CADEAU_ITEMS = [
+  { naam:'Rozen beer', prijs:25 },
+  { naam:'Zeeprozen boeket', prijs:35 },
+  { naam:'Rozen hart', prijs:null },
+  { naam:'Cadeaubon', prijs:null, code:true },
+  { naam:'Anders', prijs:null }
+];
+var EXTRA_UUR_TARIEF = 50;
+var EXTRA_UUR_MAX = 8;
+var HALFUUR_TARIEF = 30;
+
+/* ---- nieuwe status ---- */
+var gekozenArrangementen = [];   // [{naam, prijs}]
+var voorafGekozen = [];          // [{naam, aantal, prijs}]
+var serviceGekozen = [];         // [{naam, aantal, prijs}]
+var betalingen = [];             // [{bedrag, wijze, omschrijving, moment}]
+var resArrangementen = [];       // arrangementen van de gekoppelde reservering
+var gekoppeld = null;            // {bron, id, label}
+var RESERVERINGEN = [], KLANTEN = [];
+var NIEUWE_KOLOMMEN = true;
+
+/* =================== 1. KOPPELEN =================== */
+async function laadKoppelBronnen(){
+  try{ RESERVERINGEN = await sb('reservations?select=*&order=checkindatum.desc&limit=800') || []; }
+  catch(e){ RESERVERINGEN = []; }
+  try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=3000') || []; }
+  catch(e){ KLANTEN = []; }
+  try{ await sb('checkins?select=betalingen&limit=1'); }
+  catch(e){ NIEUWE_KOLOMMEN = false; }
+  vulKoppelKeuze();
+  koppelUitAdres();
+}
+function resLabel(r){
+  var naam = ((r.voornaam||'') + ' ' + (r.achternaam||'')).trim() || 'zonder naam';
+  var dat = String(r.checkindatum||'').slice(0,10);
+  var nr = r.reserveringsnummer || r.resnr || r.nummer || r.id || '';
+  return naam + ' — ' + (dat || 'geen datum') + (nr ? ' — ' + nr : '');
+}
+function aanmeldLabel(a){
+  return ((a.voornaam||'') + ' ' + (a.achternaam||'')).trim() + ' — ' + String(a.datum||a.created_at||'').slice(0,10);
+}
+function klantLabel(k){
+  return ((k.voornaam||'') + ' ' + (k.achternaam||'')).trim() + (k.email ? ' — ' + k.email : '');
+}
+function koppelBronLijst(){
+  var bron = document.getElementById('k_bron').value;
+  if(bron === 'reservering') return RESERVERINGEN.map(function(r){ return { id:r.id, label:resLabel(r), data:r }; });
+  if(bron === 'aanmelding')  return aanmeldingen.map(function(a){ return { id:a.id, label:aanmeldLabel(a), data:a }; });
+  if(bron === 'klant')       return KLANTEN.map(function(k){ return { id:k.id, label:klantLabel(k), data:k }; });
+  return [];
+}
+function vulKoppelKeuze(){
+  var sel = document.getElementById('k_keuze');
+  if(!sel) return;
+  var zoek = (document.getElementById('k_zoek').value || '').toLowerCase().trim();
+  var lijst = koppelBronLijst().filter(function(x){
+    if(!zoek) return true;
+    return (x.label + ' ' + JSON.stringify(x.data)).toLowerCase().indexOf(zoek) !== -1;
+  }).slice(0, 300);
+  if(document.getElementById('k_bron').value === 'handmatig'){
+    sel.innerHTML = '<option value="">— je vult alles zelf in —</option>';
+    return;
+  }
+  sel.innerHTML = lijst.length
+    ? '<option value="">— kies —</option>' + lijst.map(function(x){ return '<option value="' + escapeHtml(String(x.id)) + '">' + escapeHtml(x.label) + '</option>'; }).join('')
+    : '<option value="">— niets gevonden —</option>';
+}
+function koppelHuidige(){
+  var id = document.getElementById('k_keuze').value;
+  if(!id) return null;
+  var gevonden = koppelBronLijst().filter(function(x){ return String(x.id) === String(id); })[0];
+  return gevonden || null;
+}
+function toonKoppelVoorbeeld(){
+  var x = koppelHuidige();
+  var wrap = document.getElementById('k_gevonden');
+  if(!x){ wrap.style.display = 'none'; return; }
+  var d = x.data;
+  var rij = function(l,v){ return v ? '<div class="rl"><span>' + escapeHtml(l) + '</span><span>' + escapeHtml(String(v)) + '</span></div>' : ''; };
+  wrap.innerHTML =
+    '<div class="rl kop"><span>Gevonden gegevens</span><span></span></div>' +
+    rij('Naam', ((d.voornaam||'') + ' ' + (d.achternaam||'')).trim()) +
+    rij('E-mail', d.email) + rij('Telefoon', d.telefoon) +
+    rij('Aankomst', String(d.checkindatum||d.datum||'').slice(0,10)) +
+    rij('Vertrek', String(d.checkuitdatum||'').slice(0,10)) +
+    rij('Locatie', d.locatie) + rij('Arrangement', d.arrangement) +
+    rij('Totaal', d.totaal != null ? euro(d.totaal) : '') +
+    rij('Betaald', d.betaald != null ? euro(d.betaald) : '');
+  wrap.style.display = 'block';
+}
+function zetVeld(id, waarde){
+  var el = document.getElementById(id);
+  if(el && waarde != null && waarde !== '') el.value = waarde;
+}
+function neemKoppelOver(){
+  var st = document.getElementById('k_status');
+  var bron = document.getElementById('k_bron').value;
+  if(bron === 'handmatig'){
+    gekoppeld = null; resArrangementen = [];
+    buildArrangementSelect();
+    st.className = 'status ok'; st.textContent = '✓ Handmatig invullen. De lijsten tonen alle mogelijkheden.';
+    return;
+  }
+  var x = koppelHuidige();
+  if(!x){ st.className = 'status err'; st.textContent = '✕ Kies eerst iets in de lijst.'; return; }
+  var d = x.data;
+  gekoppeld = { bron: bron, id: x.id, label: x.label };
+
+  if(d.locatie){
+    var loc = herkenLocatie(d.locatie);
+    if(loc) zetVeld('c_locatie', loc);
+  }
+  zetVeld('c_datum', String(d.checkindatum || d.datum || '').slice(0,10));
+  if(d.checkuitdatum){
+    var rb = document.querySelector('input[name="verblijftype"][value="overnachting"]');
+    if(rb){ rb.checked = true; toggleVerblijftype(); }
+    zetVeld('c_checkuitdatum', String(d.checkuitdatum).slice(0,10));
+  }
+  zetVeld('c_checkin', (d.checkintijd || d.incheck_tijd || '').slice(0,5));
+  zetVeld('c_checkuit', (d.checkuittijd || '').slice(0,5));
+  zetVeld('c_resnr', d.reserveringsnummer || d.resnr || d.nummer || '');
+  zetVeld('c_personen', d.personen || d.aantal_personen || '');
+  if(d.totaal != null && Number(d.totaal)) zetVeld('c_resbedrag', Number(d.totaal).toFixed(2));
+  if(d.betaald != null && Number(d.betaald)) zetVeld('c_aanbetaald', Number(d.betaald).toFixed(2));
+  if(d.opmerkingen) zetVeld('c_opmerking', d.opmerkingen);
+  if(d.bron || d.boekingsbron) zetVeld('c_boekingvia', d.boekingsbron || d.bron);
+
+  var arrTekst = [d.arrangement, d.arrangementen, d.omschrijving, d.opmerkingen].filter(Boolean).join(' ');
+  resArrangementen = herkenArrangementen(arrTekst);
+  buildArrangementSelect();
+  resArrangementen.forEach(function(naam){
+    if(!gekozenArrangementen.some(function(a){ return a.naam === naam; })) gekozenArrangementen.push({ naam: naam });
+  });
+  renderArrList();
+
+  if(bron === 'aanmelding' || bron === 'klant'){
+    guestData = {
+      voornaam: d.voornaam || '', achternaam: d.achternaam || '',
+      woonplaats: d.woonplaats || '', nationaliteit: d.nationaliteit || '',
+      telefoon: d.telefoon || '', email: d.email || '',
+      akkoord: !!d.akkoord, akkoord_voorwaarden: !!d.akkoord_voorwaarden,
+      lid: !!d.lid, handtekening: d.handtekening || null
+    };
+    renderGuestStatus();
+  }
+  updateCheckinManagerOptions();
+  buildPersoonSelects();
+  herberekenAlles();
+  toonKoppelVoorbeeld();
+  st.className = 'status ok';
+  st.textContent = '✓ Overgenomen: ' + x.label + '. Controleer de boekingsgegevens hieronder.';
+}
+function wisKoppeling(){
+  gekoppeld = null; resArrangementen = [];
+  buildArrangementSelect();
+  document.getElementById('k_gevonden').style.display = 'none';
+  var st = document.getElementById('k_status');
+  st.className = 'status'; st.textContent = 'Koppeling losgelaten. Alle arrangementen zijn weer zichtbaar.';
+}
+function herkenLocatie(tekst){
+  var t = String(tekst || '').toLowerCase();
+  if(t.indexOf('angie') !== -1 || t.indexOf('almere') !== -1) return 'angie';
+  if(t.indexOf('deluxe') !== -1 || t.indexOf('zwembad') !== -1) return 'deluxe';
+  if(t.indexOf('jacuzzi') !== -1 || t.indexOf('malina') !== -1) return 'jacuzzi';
+  if(t === 'angie' || t === 'jacuzzi' || t === 'deluxe') return t;
+  return '';
+}
+function alleArrangementNamen(){
+  var uit = [];
+  ARRANGEMENT_SECTIONS.forEach(function(sec){ sec.items.forEach(function(it){ uit.push(it.naam); }); });
+  return uit;
+}
+function herkenArrangementen(tekst){
+  var t = String(tekst || '').toLowerCase();
+  if(!t.trim()) return [];
+  return alleArrangementNamen().filter(function(naam){
+    var kern = naam.toLowerCase().replace(' arrangement','').replace('arrangement','').trim();
+    return kern.length > 3 && t.indexOf(kern) !== -1;
+  });
+}
+
+/* ---- reservering uit tekst of pdf ---- */
+function leesPlaktekst(){
+  var tekst = document.getElementById('k_plak').value || '';
+  if(!tekst.trim()){
+    var st = document.getElementById('k_status');
+    st.className = 'status err'; st.textContent = '✕ Plak eerst de tekst van de reservering, of kies een bestand.';
+    return;
+  }
+  vulUitTekst(tekst);
+}
+async function leesBestand(ev){
+  var bestand = ev.target.files && ev.target.files[0];
+  if(!bestand) return;
+  var st = document.getElementById('k_status');
+  st.className = 'status'; st.textContent = 'Bestand wordt gelezen...';
+  try{
+    var tekst = '';
+    if(/\.pdf$/i.test(bestand.name) || bestand.type === 'application/pdf'){
+      tekst = await pdfNaarTekst(bestand);
+    } else {
+      tekst = await bestand.text();
+    }
+    document.getElementById('k_plak').value = tekst;
+    vulUitTekst(tekst);
+  }catch(err){
+    st.className = 'status err';
+    st.textContent = '✕ Kon het bestand niet lezen: ' + err.message + '. Plak de tekst anders zelf in het veld.';
+  }
+}
+async function laadPdfJs(){
+  if(window.pdfjsLib) return;
+  await new Promise(function(res, rej){
+    var sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    sc.onload = res; sc.onerror = function(){ rej(new Error('pdf-lezer kon niet worden geladen')); };
+    document.head.appendChild(sc);
+  });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+async function pdfNaarTekst(bestand){
+  await laadPdfJs();
+  var buffer = await bestand.arrayBuffer();
+  var pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+  var uit = [];
+  for(var i = 1; i <= pdf.numPages; i++){
+    var pagina = await pdf.getPage(i);
+    var inhoud = await pagina.getTextContent();
+    uit.push(inhoud.items.map(function(it){ return it.str; }).join(' '));
+  }
+  return uit.join('\n');
+}
+function naarIso(d){
+  var m = String(d).match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+  if(m){
+    var jaar = m[3].length === 2 ? '20' + m[3] : m[3];
+    return jaar + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[1]).slice(-2);
+  }
+  var m2 = String(d).match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m2 ? m2[0] : '';
+}
+function parseReservering(tekst){
+  var t = String(tekst).replace(/\u00a0/g, ' ');
+  var uit = {};
+  var m;
+  m = t.match(/(?:reserverings?\s*(?:nummer|nr)|boekings?\s*(?:nummer|nr)|res\.?\s*nr\.?|referentie)\D{0,12}([A-Z0-9\-]{4,})/i);
+  if(m) uit.resnr = m[1];
+  m = t.match(/[\w.+-]+@[\w-]+\.[\w.]{2,}/);
+  if(m) uit.email = m[0];
+  m = t.match(/(?:\+31|0031|0)\s?6[\s\-]?\d{2}[\s\-]?\d{2}[\s\-]?\d{2}[\s\-]?\d{2}|(?:\+31|0)\s?\d{2,3}[\s\-]?\d{6,7}/);
+  if(m) uit.telefoon = m[0].replace(/\s+/g,' ').trim();
+  m = t.match(/(?:naam|gast|klant|t\.a\.v\.?|op naam van)\s*[:\-]\s*([A-Za-zÀ-ÿ'’\.\- ]{3,60})/i);
+  if(m){
+    var delen = m[1].trim().split(/\s+/);
+    uit.voornaam = delen.shift();
+    uit.achternaam = delen.join(' ');
+  }
+  var datums = (t.match(/\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4}|\d{4}-\d{2}-\d{2}/g) || []).map(naarIso).filter(Boolean);
+  if(datums.length) uit.aankomst = datums[0];
+  if(datums.length > 1 && datums[1] !== datums[0]) uit.vertrek = datums[1];
+  var tijden = t.match(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g) || [];
+  if(tijden.length) uit.tijdIn = tijden[0].replace('.',':');
+  if(tijden.length > 1) uit.tijdUit = tijden[1].replace('.',':');
+  m = t.match(/(\d{1,2})\s*(?:x\s*)?(?:personen|pers\.?|volwassenen|gasten)/i);
+  if(m) uit.personen = m[1];
+  m = t.match(/(?:totaal(?:bedrag|prijs)?|te betalen|totale prijs)\D{0,15}€?\s*(\d+(?:[.,]\d{2})?)/i);
+  if(m) uit.totaal = parseFloat(m[1].replace('.','').replace(',','.'));
+  m = t.match(/(?:betaald|voldaan|aanbetaling|online betaald|reeds betaald)\D{0,15}€?\s*(\d+(?:[.,]\d{2})?)/i);
+  if(m) uit.betaald = parseFloat(m[1].replace('.','').replace(',','.'));
+  uit.locatie = herkenLocatie(t);
+  uit.arrangementen = herkenArrangementen(t);
+  uit.items = ALLE_MENU_ITEMS.filter(function(it){ return t.toLowerCase().indexOf(it.naam.toLowerCase()) !== -1; }).map(function(it){ return it.naam; });
+  return uit;
+}
+function vulUitTekst(tekst){
+  var g = parseReservering(tekst);
+  var st = document.getElementById('k_status');
+  var gevuld = [];
+
+  if(g.locatie){ zetVeld('c_locatie', g.locatie); gevuld.push('locatie'); }
+  if(g.aankomst){ zetVeld('c_datum', g.aankomst); gevuld.push('datum'); }
+  if(g.vertrek){
+    var rb = document.querySelector('input[name="verblijftype"][value="overnachting"]');
+    if(rb){ rb.checked = true; toggleVerblijftype(); }
+    zetVeld('c_checkuitdatum', g.vertrek); gevuld.push('check-uit datum');
+  }
+  if(g.tijdIn){ zetVeld('c_checkin', g.tijdIn); gevuld.push('tijden'); }
+  if(g.tijdUit) zetVeld('c_checkuit', g.tijdUit);
+  if(g.resnr){ zetVeld('c_resnr', g.resnr); gevuld.push('reserveringsnummer'); }
+  if(g.personen){ zetVeld('c_personen', g.personen); gevuld.push('aantal personen'); }
+  if(g.totaal){ zetVeld('c_resbedrag', g.totaal.toFixed(2)); gevuld.push('bedrag'); }
+  if(g.betaald){ zetVeld('c_aanbetaald', g.betaald.toFixed(2)); gevuld.push('betaald'); }
+  if(g.arrangementen && g.arrangementen.length){
+    resArrangementen = g.arrangementen;
+    buildArrangementSelect();
+    g.arrangementen.forEach(function(naam){
+      if(!gekozenArrangementen.some(function(a){ return a.naam === naam; })) gekozenArrangementen.push({ naam: naam });
+    });
+    renderArrList();
+    gevuld.push('arrangement');
+  }
+  if(g.items && g.items.length){
+    g.items.forEach(function(naam){
+      var it = ALLE_VOORAF_ITEMS.filter(function(x){ return x.naam === naam; })[0];
+      if(it && !voorafGekozen.some(function(v){ return v.naam === naam; })) voorafGekozen.push({ naam: it.naam, aantal:1, prijs: it.prijs });
+    });
+    renderVoorafList();
+    gevuld.push('vooraf geboekte extra’s');
+  }
+  if(g.voornaam || g.email || g.telefoon){
+    guestData = Object.assign({
+      voornaam:'', achternaam:'', woonplaats:'', nationaliteit:'', telefoon:'', email:'',
+      akkoord:false, akkoord_voorwaarden:false, lid:false, handtekening:null
+    }, guestData || {}, {
+      voornaam: g.voornaam || (guestData && guestData.voornaam) || '',
+      achternaam: g.achternaam || (guestData && guestData.achternaam) || '',
+      email: g.email || (guestData && guestData.email) || '',
+      telefoon: g.telefoon || (guestData && guestData.telefoon) || ''
+    });
+    renderGuestStatus();
+    gevuld.push('naam en contactgegevens');
+  }
+  updateCheckinManagerOptions();
+  herberekenAlles();
+
+  var wrap = document.getElementById('k_gevonden');
+  var rij = function(l,v){ return v ? '<div class="rl"><span>' + escapeHtml(l) + '</span><span>' + escapeHtml(String(v)) + '</span></div>' : ''; };
+  wrap.innerHTML = '<div class="rl kop"><span>Uit de tekst gehaald</span><span></span></div>' +
+    rij('Naam', ((g.voornaam||'') + ' ' + (g.achternaam||'')).trim()) + rij('E-mail', g.email) + rij('Telefoon', g.telefoon) +
+    rij('Reserveringsnr.', g.resnr) + rij('Aankomst', g.aankomst) + rij('Vertrek', g.vertrek) +
+    rij('Tijd', [g.tijdIn, g.tijdUit].filter(Boolean).join(' — ')) + rij('Personen', g.personen) +
+    rij('Totaal', g.totaal ? euro(g.totaal) : '') + rij('Betaald', g.betaald ? euro(g.betaald) : '') +
+    rij('Arrangement', (g.arrangementen||[]).join(', ')) + rij('Extra’s', (g.items||[]).join(', '));
+  wrap.style.display = 'block';
+
+  if(gevuld.length){
+    st.className = 'status ok';
+    st.textContent = '✓ Ingevuld: ' + gevuld.join(', ') + '. Loop het formulier na — wat er niet in stond vul je zelf in.';
+  } else {
+    st.className = 'status err';
+    st.textContent = '✕ Er viel niets herkenbaars uit deze tekst te halen. Vul de gegevens handmatig in.';
+  }
+}
+function koppelUitAdres(){
+  var param = new URLSearchParams(location.search).get('reservering');
+  if(!param) return;
+  document.getElementById('c_resnr').value = param;
+  var treffer = RESERVERINGEN.filter(function(r){
+    return [r.id, r.reserveringsnummer, r.resnr, r.nummer].some(function(v){ return v != null && String(v) === String(param); });
+  })[0];
+  var st = document.getElementById('k_status');
+  if(treffer){
+    document.getElementById('k_bron').value = 'reservering';
+    vulKoppelKeuze();
+    document.getElementById('k_keuze').value = treffer.id;
+    toonKoppelVoorbeeld();
+    neemKoppelOver();
+  } else {
+    st.className = 'status';
+    st.textContent = 'Reservering ' + param + ' staat nog niet in het systeem. Het nummer is alvast ingevuld; plak de reservering hieronder of vul hem handmatig in.';
+  }
+}
+
+/* =================== 7. ARRANGEMENTEN =================== */
+function buildArrangementSections(){ /* vervangen door de dropdown */ }
+function arrangementLijst(){
+  var alles = [];
+  ARRANGEMENT_SECTIONS.forEach(function(sec){ sec.items.forEach(function(it){ alles.push(it); }); });
+  var toonAlles = document.getElementById('arrAlles') && document.getElementById('arrAlles').checked;
+  if(!toonAlles && resArrangementen.length){
+    var beperkt = alles.filter(function(it){ return resArrangementen.indexOf(it.naam) !== -1; });
+    if(beperkt.length) return beperkt;
+  }
+  return alles;
+}
+function buildArrangementSelect(){
+  var sel = document.getElementById('arrSelect');
+  if(!sel) return;
+  var lijst = arrangementLijst();
+  sel.innerHTML = '<option value="">— kies een arrangement —</option>' + lijst.map(function(it){
+    return '<option value="' + escapeHtml(it.naam) + '">' + escapeHtml(it.naam) + (it.prijs ? ' — ' + euro(it.prijs) : '') + '</option>';
+  }).join('');
+  var vink = document.getElementById('arrAlles');
+  if(vink) vink.parentElement.style.display = resArrangementen.length ? 'flex' : 'none';
+}
+function voegArrangementToe(){
+  var sel = document.getElementById('arrSelect');
+  var naam = sel.value;
+  if(!naam) return;
+  if(gekozenArrangementen.some(function(a){ return a.naam === naam; })) return;
+  gekozenArrangementen.push({ naam: naam });
+  sel.value = '';
+  renderArrList();
+  herberekenAlles();
+}
+function verwijderArrangement(i){ gekozenArrangementen.splice(i,1); renderArrList(); herberekenAlles(); }
+function renderArrList(){
+  var wrap = document.getElementById('arrList');
+  if(!wrap) return;
+  if(!gekozenArrangementen.length){ wrap.innerHTML = '<p class="hint">Nog geen arrangement gekozen.</p>'; return; }
+  wrap.innerHTML = gekozenArrangementen.map(function(a,i){
+    var note = '';
+    ARRANGEMENT_SECTIONS.forEach(function(sec){ sec.items.forEach(function(it){ if(it.naam === a.naam && it.note) note = it.note; }); });
+    return '<div class="order-row"><span>' + escapeHtml(a.naam) + (note ? ' — ' + escapeHtml(note) : '') +
+      '</span><span class="or-price">inbegrepen</span><button type="button" onclick="verwijderArrangement(' + i + ')">✕</button></div>';
+  }).join('');
+}
+function collectArrangementen(){ return gekozenArrangementen.map(function(a){ return a.naam; }); }
+
+/* =================== 8. VOORAF GERESERVEERD =================== */
+function buildVoorafChecklist(){ /* vervangen door de dropdown */ }
+function buildVoorafSelect(){
+  var sel = document.getElementById('voorSelect');
+  if(!sel) return;
+  sel.innerHTML = ALLE_VOORAF_ITEMS.map(function(it,i){
+    return '<option value="' + i + '">' + escapeHtml(it.naam) + ' — ' + euro(it.prijs) + '</option>';
+  }).join('');
+}
+function voegVoorafToe(){
+  var i = parseInt(document.getElementById('voorSelect').value, 10);
+  var it = ALLE_VOORAF_ITEMS[i];
+  if(!it) return;
+  var qtyEl = document.getElementById('voorQty');
+  var aantal = Math.max(1, parseInt(qtyEl.value || 1, 10));
+  var bestaand = voorafGekozen.filter(function(v){ return v.naam === it.naam; })[0];
+  if(bestaand) bestaand.aantal += aantal;
+  else voorafGekozen.push({ naam: it.naam, aantal: aantal, prijs: it.prijs });
+  qtyEl.value = 1;
+  renderVoorafList();
+  herberekenAlles();
+}
+function verwijderVooraf(i){ voorafGekozen.splice(i,1); renderVoorafList(); herberekenAlles(); }
+function renderVoorafList(){
+  var wrap = document.getElementById('voorList');
+  if(!wrap) return;
+  if(!voorafGekozen.length){ wrap.innerHTML = '<p class="hint">Nog niets vooraf geboekt.</p>'; return; }
+  wrap.innerHTML = voorafGekozen.map(function(v,i){
+    return '<div class="order-row"><span>' + v.aantal + 'x ' + escapeHtml(v.naam) + '</span>' +
+      '<span class="or-price">inbegrepen</span><button type="button" onclick="verwijderVooraf(' + i + ')">✕</button></div>';
+  }).join('');
+}
+function collectVoorafGereserveerd(){
+  return voorafGekozen.map(function(v){ return (v.aantal > 1 ? v.aantal + 'x ' : '') + v.naam; });
+}
+
+/* =================== 9. BESTELLINGEN OP LOCATIE =================== */
+function buildOrderSelect(){
+  var sel = document.getElementById('ordItem');
+  if(sel) sel.innerHTML = ALLE_MENU_ITEMS.map(function(it,i){
+    return '<option value="' + i + '">' + escapeHtml(it.naam) + ' — ' + euro(it.prijs) + '</option>';
+  }).join('');
+  buildVoorafSelect();
+  buildServiceSelect();
+  buildCadeauSelect();
+  buildCheckoutDuur();
+}
+function addOrderItem(){
+  var idx = parseInt(document.getElementById('ordItem').value, 10);
+  var it = ALLE_MENU_ITEMS[idx];
+  if(!it) return;
+  var qtyEl = document.getElementById('ordQty');
+  var qty = Math.max(1, parseInt(qtyEl.value || 1, 10));
+  orderedItems.push({ naam: it.naam, aantal: qty, prijs: it.prijs });
+  qtyEl.value = 1;
+  renderOrderList();
+  herberekenAlles();
+}
+function buildServiceChecklist(){ /* vervangen door de dropdown */ }
+function buildServiceSelect(){
+  var sel = document.getElementById('servSelect');
+  if(!sel) return;
+  sel.innerHTML = SERVICE_ITEMS.map(function(it,i){
+    return '<option value="' + i + '">' + escapeHtml(it.naam) + ' — ' + euro(it.prijs) + '</option>';
+  }).join('');
+}
+function voegServiceToe(){
+  var i = parseInt(document.getElementById('servSelect').value, 10);
+  var it = SERVICE_ITEMS[i];
+  if(!it) return;
+  var qtyEl = document.getElementById('servQty');
+  var aantal = Math.max(1, parseInt(qtyEl.value || 1, 10));
+  var bestaand = serviceGekozen.filter(function(x){ return x.naam === it.naam; })[0];
+  if(bestaand) bestaand.aantal += aantal;
+  else serviceGekozen.push({ naam: it.naam, aantal: aantal, prijs: it.prijs });
+  qtyEl.value = 1;
+  renderOrderList();
+  herberekenAlles();
+}
+function verwijderService(i){ serviceGekozen.splice(i,1); renderOrderList(); herberekenAlles(); }
+function collectServiceItems(){ return serviceGekozen.map(function(s){ return (s.aantal > 1 ? s.aantal + 'x ' : '') + s.naam; }); }
+
+function buildPersoonSelects(){
+  var type = (document.getElementById('persType') || {}).value || 'dagverblijf';
+  var loc = document.getElementById('c_locatie').value;
+  var tarief = (EXTRA_PERSONEN[type] || {})[loc] || { volwassene:0, kind:0 };
+  var sel = document.getElementById('persWie');
+  if(sel) sel.innerHTML =
+    '<option value="volwassene">Volwassene — ' + euro(tarief.volwassene) + '</option>' +
+    '<option value="kind">Kind — ' + euro(tarief.kind) + '</option>';
+  var wrap = document.getElementById('persTijdWrap');
+  if(wrap) wrap.style.display = type === 'overnachting' ? 'grid' : 'none';
+}
+function voegPersoonToe(){
+  var type = document.getElementById('persType').value;
+  var soort = document.getElementById('persWie').value;
+  var loc = document.getElementById('c_locatie').value;
+  var prijs = ((EXTRA_PERSONEN[type] || {})[loc] || {})[soort];
+  if(prijs == null) return;
+  var qtyEl = document.getElementById('persQty');
+  var aantal = Math.max(1, parseInt(qtyEl.value || 1, 10));
+  var van = document.getElementById('persVan').value;
+  var tot = document.getElementById('persTot').value;
+  var label = 'Extra ' + (soort === 'kind' ? 'kind' : 'volwassene') + ' — ' + type + ' (' + locName(loc) + ')';
+  if(type === 'overnachting' && (van || tot)) label += ' — ' + (van || '?') + ' tot ' + (tot || '?');
+  orderedItems.push({ naam: label, aantal: aantal, prijs: prijs, van: van || null, tot: tot || null });
+  qtyEl.value = 1;
+  renderOrderList();
+  herberekenAlles();
+}
+function addPersoon(){ voegPersoonToe(); }
+function synchroniseerPersoonSelects(){ buildPersoonSelects(); }
+
+function buildCadeauSelect(){
+  var sel = document.getElementById('c_cadeau');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Geen —</option>' + CADEAU_ITEMS.map(function(it){
+    return '<option value="' + escapeHtml(it.naam) + '">' + escapeHtml(it.naam) + (it.prijs ? ' — ' + euro(it.prijs) : ' — prijs zelf invullen') + '</option>';
+  }).join('');
+}
+function toggleCadeau(){
+  var naam = document.getElementById('c_cadeau').value;
+  var it = CADEAU_ITEMS.filter(function(x){ return x.naam === naam; })[0];
+  var prijsEl = document.getElementById('c_cadeauprijs');
+  if(!naam){ prijsEl.value = 0; }
+  else if(it && it.prijs != null){ prijsEl.value = it.prijs.toFixed(2); }
+  document.getElementById('cadeauCodeWrap').style.display = (it && it.code) ? 'block' : 'none';
+  herberekenAlles();
+}
+function toggleCadeauAnders(){ toggleCadeau(); }
+
+function renderOrderList(){
+  var wrap = document.getElementById('orderList');
+  if(!wrap) return;
+  var html = '';
+  orderedItems.forEach(function(o,i){
+    html += '<div class="order-row"><span>' + o.aantal + 'x ' + escapeHtml(o.naam) + '</span>' +
+      '<span class="or-price">' + euro(o.aantal * o.prijs) + '</span>' +
+      '<button type="button" onclick="removeOrderItem(' + i + ')">✕</button></div>';
+  });
+  serviceGekozen.forEach(function(s,i){
+    html += '<div class="order-row"><span>' + s.aantal + 'x ' + escapeHtml(s.naam) + '</span>' +
+      '<span class="or-price">' + euro(s.aantal * s.prijs) + '</span>' +
+      '<button type="button" onclick="verwijderService(' + i + ')">✕</button></div>';
+  });
+  wrap.innerHTML = html || '<p class="hint">Nog niets besteld.</p>';
+}
+
+/* =================== 6. EXTRA UREN =================== */
+function buildCheckoutDuur(){
+  var sel = document.getElementById('c_checkoutDuur');
+  if(!sel) return;
+  var opties = ['<option value="0.5">30 minuten (' + euro(HALFUUR_TARIEF) + ')</option>'];
+  for(var u = 1; u <= EXTRA_UUR_MAX; u++){
+    opties.push('<option value="' + u + '">' + u + ' uur (' + euro(u * EXTRA_UUR_TARIEF) + ')</option>');
+  }
+  sel.innerHTML = opties.join('');
+}
+function checkoutPrijs(){
+  var type = document.getElementById('c_checkoutType').value;
+  if(!type) return 0;
+  var duur = parseFloat(document.getElementById('c_checkoutDuur').value) || 0;
+  if(duur === 0.5) return HALFUUR_TARIEF;
+  return Math.min(duur, EXTRA_UUR_MAX) * EXTRA_UUR_TARIEF;
+}
+function updateCheckoutPrijs(){
+  var type = document.getElementById('c_checkoutType').value;
+  var duur = document.getElementById('c_checkoutDuur').value;
+  var hint = document.getElementById('checkoutPrijsHint');
+  hint.textContent = type
+    ? (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ': ' +
+      (duur === '0.5' ? 'een half uur' : duur + ' uur') + ' — ' + euro(checkoutPrijs())
+    : '';
+  herberekenAlles();
+}
+
+/* =================== 10. BETALINGEN & EINDAFREKENING =================== */
+function voegBetalingToe(){
+  var bedrag = parseFloat(document.getElementById('betBedrag').value || 0) || 0;
+  if(!bedrag){ return; }
+  betalingen.push({
+    bedrag: bedrag,
+    wijze: document.getElementById('betWijze').value,
+    omschrijving: document.getElementById('betOms').value.trim(),
+    moment: new Date().toISOString()
+  });
+  document.getElementById('betBedrag').value = '';
+  document.getElementById('betOms').value = '';
+  renderBetalingen();
+  herberekenAlles();
+}
+function verwijderBetaling(i){ betalingen.splice(i,1); renderBetalingen(); herberekenAlles(); }
+function renderBetalingen(){
+  var wrap = document.getElementById('betList');
+  if(!wrap) return;
+  if(!betalingen.length){ wrap.innerHTML = '<p class="hint">Nog geen losse betalingen genoteerd.</p>'; return; }
+  wrap.innerHTML = betalingen.map(function(b,i){
+    var moment = b.moment ? new Date(b.moment).toLocaleString('nl-NL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+    return '<div class="order-row"><span>' + escapeHtml(b.wijze) + (b.omschrijving ? ' — ' + escapeHtml(b.omschrijving) : '') +
+      (moment ? ' <span class="hint">(' + escapeHtml(moment) + ')</span>' : '') + '</span>' +
+      '<span class="or-price">' + euro(b.bedrag) + '</span>' +
+      '<button type="button" onclick="verwijderBetaling(' + i + ')">✕</button></div>';
+  }).join('');
+}
+function betalingenTotaal(){ return betalingen.reduce(function(t,b){ return t + (Number(b.bedrag) || 0); }, 0); }
+
+function extrasRegels(){
+  var regels = [];
+  orderedItems.forEach(function(o){ regels.push({ naam: o.aantal + 'x ' + o.naam, bedrag: o.aantal * o.prijs }); });
+  serviceGekozen.forEach(function(s){ regels.push({ naam: s.aantal + 'x ' + s.naam, bedrag: s.aantal * s.prijs }); });
+  var cadeau = parseFloat(document.getElementById('c_cadeauprijs') ? document.getElementById('c_cadeauprijs').value : 0) || 0;
+  if(cadeau){
+    var soort = document.getElementById('c_cadeau').value;
+    var code = (document.getElementById('c_cadeaucode') || {}).value || '';
+    regels.push({ naam: 'Cadeau' + (soort ? ' — ' + soort : '') + (code ? ' (code ' + code + ')' : ''), bedrag: cadeau });
+  }
+  var co = checkoutPrijs();
+  if(co){
+    var type = document.getElementById('c_checkoutType').value;
+    var duur = document.getElementById('c_checkoutDuur').value;
+    regels.push({ naam: (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ' — ' + (duur === '0.5' ? 'half uur' : duur + ' uur'), bedrag: co });
+  }
+  var extra = parseFloat(document.getElementById('c_extraomzet') ? document.getElementById('c_extraomzet').value : 0) || 0;
+  if(extra) regels.push({ naam: 'Overige extra omzet', bedrag: extra });
+  return regels;
+}
+function herberekenAlles(){
+  var res = reserveringsBedrag();
+  var online = onlineBetaald();
+  var los = betalingenTotaal();
+  var betaald = online + los;
+  var extras = extrasTotaal();
+  var totaal = actueelTotaal();
+  var nog = Math.max(0, totaal - betaald);
+
+  var zet = function(id,val){ var el = document.getElementById(id); if(el) el.textContent = val; };
+  zet('somReservering', euro(res));
+  zet('somBetaald', euro(betaald));
+  zet('somExtras', euro(extras));
+  zet('somNog', euro(nog));
+  zet('berekendSubtotaal', euro(berekenSubtotaal()));
+
+  var nogVeld = document.getElementById('c_nog');
+  if(nogVeld) nogVeld.value = euro(nog);
+  var exVeld = document.getElementById('c_extrasTotaal');
+  if(exVeld) exVeld.value = euro(extras);
+
+  renderRekenLijst(res, betaald, extras, totaal, nog);
+}
+function renderRekenLijst(res, betaald, extras, totaal, nog){
+  var wrap = document.getElementById('rekenLijst');
+  if(!wrap) return;
+  var rij = function(l,b,cls){ return '<div class="rl ' + (cls||'') + '"><span>' + escapeHtml(l) + '</span><span>' + b + '</span></div>'; };
+  var v = function(id){ var el = document.getElementById(id); return el ? el.value : ''; };
+  var type = document.querySelector('input[name="verblijftype"]:checked');
+  var verblijf = type ? type.value : 'dagverblijf';
+
+  var html = rij('De reservering', '', 'kop');
+  html += rij('Locatie', escapeHtml(locName(v('c_locatie'))), 'info');
+  html += rij(verblijf === 'overnachting' ? 'Overnachting' : 'Dagverblijf',
+    escapeHtml([v('c_datum'), v('c_checkuitdatum')].filter(Boolean).join(' t/m ')), 'info');
+  html += rij('Tijden', escapeHtml([v('c_checkin') || '—', v('c_checkuit') || '—'].join(' tot ')), 'info');
+  html += rij('Personen', escapeHtml((v('c_personen') || '0') + ' volwassenen, ' + (v('c_kinderen') || '0') + ' kinderen'), 'info');
+  if(v('c_resnr')) html += rij('Reserveringsnr.', escapeHtml(v('c_resnr')), 'info');
+  if(gekoppeld) html += rij('Gekoppeld aan', escapeHtml(gekoppeld.label), 'info');
+
+  var arrangementen = collectArrangementen();
+  var vooraf = collectVoorafGereserveerd();
+  if(arrangementen.length) html += rij('Arrangement: ' + arrangementen.join(', '), 'inbegrepen', 'info');
+  if(vooraf.length) html += rij('Vooraf geboekt: ' + vooraf.join(', '), 'inbegrepen', 'info');
+  html += rij('Reserveringsbedrag', euro(res), 'tot');
+
+  html += rij('Bijgeboekt op locatie', '', 'kop');
+  var regels = extrasRegels();
+  if(!regels.length) html += rij('Nog niets bijgeboekt', '—', 'info');
+  regels.forEach(function(r){ html += rij(r.naam, euro(r.bedrag)); });
+  var extrasWijze = v('c_extrasBetaalwijze');
+  html += rij('Totaal extra’s' + (extrasWijze ? ' — ' + extrasWijze : ' — betaalwijze nog niet gekozen'), euro(extras), 'tot');
+
+  html += rij('Betalingen', '', 'kop');
+  html += rij('Online betaald', euro(onlineBetaald()));
+  if(betalingen.length){
+    betalingen.forEach(function(b){
+      html += rij(b.wijze + (b.omschrijving ? ' — ' + b.omschrijving : ''), euro(b.bedrag));
+    });
+  } else {
+    html += rij('Nog niets op locatie betaald', '—', 'info');
+  }
+  html += rij('Totaal betaald', euro(betaald), 'tot');
+
+  var opm = v('c_opmerking');
+  if(opm){
+    html += rij('Opmerkingen', '', 'kop');
+    html += rij(opm, '', 'info');
+  }
+
+  html += rij('Totaalbedrag reservering + extra’s', euro(totaal), 'tot');
+  html += rij('Nog te voldoen', euro(nog), 'eind');
+  wrap.innerHTML = html;
+}
+
+/* =================== OPSLAAN =================== */
+function collectCheckinData(){
+  var totaal = actueelTotaal();
+  var aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
+  var existingId = document.getElementById('c_id').value;
+  var verblijftypeEl = document.querySelector('input[name="verblijftype"]:checked');
+  var split = document.getElementById('c_splitToggle').checked;
+  var betaaldTotaal = aanbetaald + betalingenTotaal();
+  var data = {
+    id: existingId || ('c' + Date.now()),
+    locatie: document.getElementById('c_locatie').value,
+    boeking_via: document.getElementById('c_boekingvia').value,
+    verblijftype: verblijftypeEl ? verblijftypeEl.value : 'dagverblijf',
+    datum: document.getElementById('c_datum').value,
+    checkuitdatum: verblijftypeEl && verblijftypeEl.value === 'overnachting' ? (document.getElementById('c_checkuitdatum').value || null) : null,
+    resnr: document.getElementById('c_resnr').value.trim(),
+    manager: document.getElementById('c_manager').value || null,
+    personen: document.getElementById('c_personen').value,
+    aantal_kinderen: document.getElementById('c_kinderen').value || 0,
+    incheck: document.getElementById('c_checkin').value,
+    uitcheck: document.getElementById('c_checkuit').value,
+    arrangementen: collectArrangementen(),
+    vooraf_gereserveerd: collectVoorafGereserveerd(),
+    bestellingen: orderedItems,
+    cadeau: document.getElementById('c_cadeau').value,
+    cadeau_prijs: parseFloat(document.getElementById('c_cadeauprijs').value || 0),
+    service_items: collectServiceItems(),
+    checkout_extra_type: document.getElementById('c_checkoutType').value,
+    checkout_extra_duur: document.getElementById('c_checkoutType').value ? document.getElementById('c_checkoutDuur').value : '',
+    checkout_extra_prijs: checkoutPrijs(),
+    checkout_extra_betaalwijze: document.getElementById('c_checkoutBetaalwijze').value,
+    reservering_bedrag: reserveringsBedrag(),
+    extras_totaal: extrasTotaal(),
+    extras_betaalwijze: document.getElementById('c_extrasBetaalwijze').value,
+    totaal: totaal,
+    aanbetaald: aanbetaald,
+    restant: Math.max(0, totaal - betaaldTotaal),
+    betaalwijze: split ? 'Gesplitst' : document.getElementById('c_betaalwijze').value,
+    split_betaling: split,
+    split_bedrag1: split ? parseFloat(document.getElementById('c_split1bedrag').value || 0) : null,
+    split_wijze1: split ? document.getElementById('c_split1wijze').value : null,
+    split_bedrag2: split ? parseFloat(document.getElementById('c_split2bedrag').value || 0) : null,
+    split_wijze2: split ? document.getElementById('c_split2wijze').value : null,
+    extra_omzet: parseFloat(document.getElementById('c_extraomzet').value || 0),
+    opmerkingen: document.getElementById('c_opmerking').value.trim(),
+    voornaam: guestData ? guestData.voornaam : '',
+    achternaam: guestData ? guestData.achternaam : '',
+    woonplaats: guestData ? guestData.woonplaats : '',
+    nationaliteit: guestData ? guestData.nationaliteit : '',
+    telefoon: guestData ? guestData.telefoon : '',
+    email: guestData ? guestData.email : '',
+    lid: guestData ? guestData.lid : false,
+    akkoord: guestData ? guestData.akkoord : false,
+    akkoord_voorwaarden: guestData ? guestData.akkoord_voorwaarden : false,
+    handtekening: guestData ? guestData.handtekening : null
+  };
+  if(NIEUWE_KOLOMMEN){
+    data.betalingen = betalingen;
+    data.cadeau_code = (document.getElementById('c_cadeaucode') || {}).value || '';
+    data.gekoppelde_reservering = gekoppeld ? (gekoppeld.bron + ':' + gekoppeld.id) : '';
+  }
+  return data;
+}
+
+/* =================== CONCEPT TERUGLADEN =================== */
+function laadInConcept(c){
+  document.getElementById('c_id').value = c.id;
+  document.getElementById('c_locatie').value = c.locatie || 'angie';
+  document.getElementById('c_boekingvia').value = c.boeking_via || 'Prive sauna';
+  var rb = document.querySelector('input[name="verblijftype"][value="' + (c.verblijftype || 'dagverblijf') + '"]');
+  if(rb){ rb.checked = true; toggleVerblijftype(); }
+  document.getElementById('c_datum').value = c.datum || '';
+  document.getElementById('c_checkuitdatum').value = c.checkuitdatum || '';
+  document.getElementById('c_resnr').value = c.resnr || '';
+  updateCheckinManagerOptions();
+  document.getElementById('c_manager').value = c.manager || '';
+  document.getElementById('c_personen').value = c.personen || '';
+  document.getElementById('c_kinderen').value = c.aantal_kinderen || 0;
+  document.getElementById('c_checkin').value = c.incheck || '';
+  document.getElementById('c_checkuit').value = c.uitcheck || '';
+
+  gekozenArrangementen = (c.arrangementen || []).map(function(n){ return { naam: n }; });
+  buildArrangementSelect();
+  renderArrList();
+
+  voorafGekozen = (c.vooraf_gereserveerd || []).map(function(n){
+    var m = String(n).match(/^(\d+)x\s+(.*)$/);
+    var naam = m ? m[2] : n, aantal = m ? parseInt(m[1],10) : 1;
+    var it = ALLE_VOORAF_ITEMS.filter(function(x){ return x.naam === naam; })[0];
+    return { naam: naam, aantal: aantal, prijs: it ? it.prijs : 0 };
+  });
+  renderVoorafList();
+
+  serviceGekozen = (c.service_items || []).map(function(n){
+    var m = String(n).match(/^(\d+)x\s+(.*)$/);
+    var naam = m ? m[2] : n, aantal = m ? parseInt(m[1],10) : 1;
+    var it = SERVICE_ITEMS.filter(function(x){ return x.naam === naam; })[0];
+    return { naam: naam, aantal: aantal, prijs: it ? it.prijs : 0 };
+  });
+  orderedItems = (c.bestellingen || []).slice();
+  renderOrderList();
+
+  betalingen = Array.isArray(c.betalingen) ? c.betalingen.slice() : [];
+  renderBetalingen();
+
+  buildCadeauSelect();
+  document.getElementById('c_cadeau').value = c.cadeau || '';
+  document.getElementById('c_cadeauprijs').value = c.cadeau_prijs || 0;
+  if(document.getElementById('c_cadeaucode')) document.getElementById('c_cadeaucode').value = c.cadeau_code || '';
+  toggleCadeau();
+
+  document.getElementById('c_checkoutType').value = c.checkout_extra_type || '';
+  document.getElementById('c_checkoutDuur').value = c.checkout_extra_duur || '0.5';
+  document.getElementById('c_checkoutBetaalwijze').value = c.checkout_extra_betaalwijze || '';
+  updateCheckoutPrijs();
+
+  document.getElementById('c_resbedrag').value = c.reservering_bedrag || 0;
+  document.getElementById('c_extrasBetaalwijze').value = c.extras_betaalwijze || '';
+  document.getElementById('c_totaal').value = c.totaal || '';
+  document.getElementById('c_aanbetaald').value = c.aanbetaald || 0;
+  document.getElementById('c_splitToggle').checked = !!c.split_betaling;
+  toggleSplitBetaling();
+  if(c.split_betaling){
+    document.getElementById('c_split1bedrag').value = c.split_bedrag1 || '';
+    document.getElementById('c_split1wijze').value = c.split_wijze1 || 'Contant';
+    document.getElementById('c_split2bedrag').value = c.split_bedrag2 || '';
+    document.getElementById('c_split2wijze').value = c.split_wijze2 || 'Flatpay';
+  } else {
+    document.getElementById('c_betaalwijze').value = c.betaalwijze || 'Contant';
+  }
+  document.getElementById('c_extraomzet').value = c.extra_omzet || 0;
+  document.getElementById('c_opmerking').value = c.opmerkingen || '';
+
+  guestData = c.voornaam ? {
+    voornaam:c.voornaam, achternaam:c.achternaam, woonplaats:c.woonplaats, nationaliteit:c.nationaliteit,
+    telefoon:c.telefoon, email:c.email, akkoord:c.akkoord, akkoord_voorwaarden:c.akkoord_voorwaarden,
+    lid:c.lid, handtekening:c.handtekening
+  } : null;
+  renderGuestStatus();
+  buildPersoonSelects();
+  herberekenAlles();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* =================== FORMULIER LEEGMAKEN =================== */
+function clearCheckinForm(){
+  if(!confirm('Formulier leegmaken? Alles wat je hebt ingevuld gaat weg.')) return;
+  document.getElementById('checkinForm').reset();
+  document.getElementById('c_id').value = '';
+  gekozenArrangementen = []; voorafGekozen = []; serviceGekozen = [];
+  orderedItems = []; betalingen = []; resArrangementen = []; gekoppeld = null;
+  guestData = null; actieveAanmelding = null;
+  document.getElementById('c_datum').value = todayStr();
+  buildArrangementSelect(); renderArrList();
+  buildVoorafSelect(); renderVoorafList();
+  buildServiceSelect(); buildOrderSelect(); buildCadeauSelect(); buildCheckoutDuur();
+  buildPersoonSelects();
+  renderOrderList(); renderBetalingen(); renderGuestStatus();
+  document.getElementById('k_gevonden').style.display = 'none';
+  document.getElementById('k_status').textContent = '';
+  document.getElementById('checkinStatus').textContent = '';
+  toggleVerblijftype();
+  updateCheckoutPrijs();
+  herberekenAlles();
+}
+
+/* =================== RENDER ALL =================== */
+function renderAll(){
+  updateCheckinManagerOptions();
+  renderCheckinTable();
+  renderConcepten();
+  renderAanmeldingen();
+  renderOrderList();
+  renderArrList();
+  renderVoorafList();
+  renderBetalingen();
+  renderGuestStatus();
+  buildPersoonSelects();
+  herberekenAlles();
+  laadKoppelBronnen();
+}
+
+function editCheckinFromDetail(){
+  var c = checkins.filter(function(x){ return x.id === openDetailId; })[0];
+  if(!c) return;
+  closeModal('checkinDetailModal');
+  laadInConcept(c);
+}
+
 /* ================= INIT ================= */
 fillLocationSelect(document.getElementById('c_locatie'));
 document.getElementById('c_datum').value = todayStr();
-buildArrangementSections();
-buildServiceChecklist();
-buildVoorafChecklist();
 buildOrderSelect();
+buildArrangementSelect();
 buildPersoonSelects();
+renderArrList();
+renderVoorafList();
+renderOrderList();
+renderBetalingen();
 document.getElementById('c_checkoutDuur').value = '0.5';
 toggleVerblijftype();
 herberekenAlles();
+koppelUitAdres();
 
 /* Al eerder ingelogd op dit apparaat? Dan meteen door. */
 laadAuth();
