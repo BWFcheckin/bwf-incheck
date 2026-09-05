@@ -167,6 +167,220 @@ dialog .voet{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 </style>
 </head>
 <body>
+<!-- ================= BWF-toegang ================= -->
+<style>
+#bwfSlot{position:fixed;inset:0;z-index:10000;background:#F4F1ED;display:none;
+  align-items:center;justify-content:center;padding:20px;
+  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif}
+#bwfSlot.open{display:flex}
+:root[data-theme="dark"] #bwfSlot{background:#1A1613}
+#bwfSlot .kaart{background:#fff;border:1px solid #E3DAD0;border-radius:16px;padding:28px;
+  width:100%;max-width:380px;box-shadow:0 18px 50px -18px rgba(36,30,25,.4)}
+:root[data-theme="dark"] #bwfSlot .kaart{background:#221D19;border-color:#3A322B;color:#F0EAE3}
+#bwfSlot .merk{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+#bwfSlot .mark{width:40px;height:40px;border-radius:10px;background:#9A7B4F;color:#fff;
+  display:grid;place-items:center;font-weight:700;font-size:14px}
+#bwfSlot h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:19px;margin:0}
+#bwfSlot .onder{font-size:12.5px;color:#7B6E62;margin:2px 0 0}
+#bwfSlot label{display:block;font-size:12.5px;color:#4B4239;margin:12px 0 4px}
+:root[data-theme="dark"] #bwfSlot label{color:#D5CABF}
+#bwfSlot input{width:100%;border:1px solid #E3DAD0;border-radius:6px;padding:10px 12px;
+  font:inherit;font-size:15px;background:#FAF7F3;color:#241E19}
+:root[data-theme="dark"] #bwfSlot input{background:#2A241F;border-color:#3A322B;color:#F0EAE3}
+#bwfSlot button{width:100%;margin-top:18px;background:#483C34;color:#fff;border:0;
+  border-radius:8px;padding:11px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+#bwfSlot button:disabled{opacity:.6;cursor:wait}
+#bwfSlot .fout{margin-top:14px;background:#F7E2DC;color:#A34434;border-radius:6px;
+  padding:10px 12px;font-size:13.5px;display:none}
+#bwfSlot .fout.open{display:block}
+#bwfSlot .voetnoot{margin-top:16px;font-size:12px;color:#7B6E62;line-height:1.45}
+#bwfUit{position:fixed;right:16px;bottom:64px;z-index:8980;border:1px solid #E3DAD0;
+  background:#fff;color:#4B4239;border-radius:999px;padding:7px 14px;font-size:12.5px;
+  font-family:"Public Sans",Arial,sans-serif;cursor:pointer;display:none;
+  box-shadow:0 4px 14px rgba(36,30,25,.2)}
+#bwfUit.open{display:block}
+:root[data-theme="dark"] #bwfUit{background:#221D19;border-color:#3A322B;color:#D5CABF}
+body.bwf-vergrendeld > *:not(#bwfSlot){filter:blur(6px);pointer-events:none;user-select:none}
+</style>
+
+<div id="bwfSlot">
+  <div class="kaart">
+    <div class="merk">
+      <div class="mark">B&amp;W</div>
+      <div>
+        <h2>Inloggen</h2>
+        <p class="onder">Bed &amp; Wellness Flevoland</p>
+      </div>
+    </div>
+    <label for="bwfMail">E-mailadres</label>
+    <input id="bwfMail" type="email" autocomplete="username" inputmode="email">
+    <label for="bwfWw">Wachtwoord</label>
+    <input id="bwfWw" type="password" autocomplete="current-password">
+    <button type="button" id="bwfInlog">Inloggen</button>
+    <div class="fout" id="bwfFout"></div>
+    <p class="voetnoot">Deze pagina bevat gegevens van gasten. Log in met het account dat je van Angela hebt gekregen.</p>
+  </div>
+</div>
+<button id="bwfUit" type="button">Uitloggen</button>
+
+<script>
+/* =========================================================
+   Toegang — één login voor alle BWF-pagina's
+   ========================================================= */
+window.BWF = window.BWF || {};
+(function(){
+  var PROJECT = 'iuyjvtlauktnjprbmbjj';
+  var BASIS   = 'https://' + PROJECT + '.supabase.co';
+  var ANON    = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+  var SLEUTEL = 'sb-' + PROJECT + '-auth-token';
+
+  var slot = document.getElementById('bwfSlot');
+  var uitKnop = document.getElementById('bwfUit');
+  var foutVak = document.getElementById('bwfFout');
+
+  function lees(){
+    try{ return JSON.parse(localStorage.getItem(SLEUTEL) || 'null'); }catch(e){ return null; }
+  }
+  function schrijf(s){
+    try{ localStorage.setItem(SLEUTEL, JSON.stringify(s)); }catch(e){}
+  }
+  function wis(){ try{ localStorage.removeItem(SLEUTEL); }catch(e){} }
+
+  function verlopen(jwt){
+    try{
+      var d = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      return !d.exp || (d.exp * 1000) < (Date.now() + 30000);
+    }catch(e){ return true; }
+  }
+  function mailUit(jwt){
+    try{
+      var d = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      return d.email || '';
+    }catch(e){ return ''; }
+  }
+
+  async function verversen(s){
+    if(!s || !s.refresh_token) return null;
+    try{
+      var r = await fetch(BASIS + '/auth/v1/token?grant_type=refresh_token', {
+        method:'POST',
+        headers:{ 'apikey':ANON, 'Content-Type':'application/json' },
+        body: JSON.stringify({ refresh_token: s.refresh_token })
+      });
+      if(!r.ok) return null;
+      var n = await r.json();
+      if(!n.access_token) return null;
+      schrijf(n);
+      return n;
+    }catch(e){ return null; }
+  }
+
+  async function geldigeSessie(){
+    var s = lees();
+    if(s && s.access_token && !verlopen(s.access_token)) return s;
+    return await verversen(s);
+  }
+
+  async function haalRol(mail){
+    if(!mail) return '';
+    try{
+      var s = lees();
+      var r = await fetch(BASIS + '/rest/v1/wz_medewerkers?select=email,rol,naam&email=eq.' +
+        encodeURIComponent(mail), {
+        headers:{ 'apikey':ANON, 'Authorization':'Bearer ' + (s && s.access_token ? s.access_token : ANON) }
+      });
+      if(!r.ok) return '';
+      var rijen = await r.json();
+      if(rijen && rijen[0]){
+        window.BWF.medewerker = rijen[0].naam || '';
+        return (rijen[0].rol || '').toLowerCase();
+      }
+    }catch(e){}
+    return '';
+  }
+
+  function vergrendel(){
+    document.body.classList.add('bwf-vergrendeld');
+    slot.classList.add('open');
+    uitKnop.classList.remove('open');
+    setTimeout(function(){ document.getElementById('bwfMail').focus(); }, 60);
+  }
+  function ontgrendel(){
+    document.body.classList.remove('bwf-vergrendeld');
+    slot.classList.remove('open');
+    uitKnop.classList.add('open');
+  }
+
+  function fout(tekst){
+    foutVak.textContent = tekst;
+    foutVak.classList.add('open');
+  }
+
+  document.getElementById('bwfInlog').onclick = async function(){
+    var knop = this;
+    var mail = document.getElementById('bwfMail').value.trim();
+    var ww = document.getElementById('bwfWw').value;
+    if(!mail || !ww){ fout('Vul je e-mailadres en wachtwoord in.'); return; }
+    knop.disabled = true; knop.textContent = 'Bezig…';
+    foutVak.classList.remove('open');
+    try{
+      var r = await fetch(BASIS + '/auth/v1/token?grant_type=password', {
+        method:'POST',
+        headers:{ 'apikey':ANON, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email: mail, password: ww })
+      });
+      var d = await r.json();
+      if(!r.ok || !d.access_token){
+        fout(d.error_description || d.msg || 'Inloggen lukte niet. Controleer je e-mailadres en wachtwoord.');
+      }else{
+        schrijf(d);
+        window.BWF.email = mail;
+        window.BWF.rol = await haalRol(mail);
+        ontgrendel();
+        window.dispatchEvent(new Event('bwf-ingelogd'));
+        location.reload();
+      }
+    }catch(e){
+      fout('Geen verbinding. Controleer je internet en probeer opnieuw.');
+    }
+    knop.disabled = false; knop.textContent = 'Inloggen';
+  };
+  document.getElementById('bwfWw').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') document.getElementById('bwfInlog').click();
+  });
+
+  uitKnop.onclick = function(){
+    if(!confirm('Uitloggen?')) return;
+    wis();
+    location.reload();
+  };
+
+  /* meteen bij het laden controleren */
+  (async function(){
+    var s = await geldigeSessie();
+    if(!s){ vergrendel(); window.BWF.rol = ''; return; }
+    ontgrendel();
+    window.BWF.email = mailUit(s.access_token);
+    window.BWF.rol = await haalRol(window.BWF.email);
+    window.dispatchEvent(new Event('bwf-ingelogd'));
+    /* ruim voor het verlopen alvast verversen */
+    setInterval(function(){ geldigeSessie(); }, 4 * 60 * 1000);
+  })();
+
+  window.BWF.token = function(){
+    var s = lees();
+    return (s && s.access_token && !verlopen(s.access_token)) ? s.access_token : null;
+  };
+  window.BWF.mag = function(){
+    var r = window.BWF.rol || '';
+    for(var i=0;i<arguments.length;i++) if(arguments[i] === r) return true;
+    return false;
+  };
+})();
+</script>
+<!-- ================= einde BWF-toegang ================= -->
+
+
 
 <header class="top">
   <div class="wrap">
@@ -566,6 +780,7 @@ function verlopen(jwt){
   }catch(e){ return false; }
 }
 function token(){
+  if(window.BWF && window.BWF.token && window.BWF.token()) return window.BWF.token();
   try{
     for(var i=0;i<localStorage.length;i++){
       var k=localStorage.key(i);
@@ -721,6 +936,7 @@ async function haalSupabase(){
                                         document.getElementById("onderweg").innerHTML = ""; }
   if(res[2].ok) tekenAanmeldingen(); else foutBlok(document.getElementById("aanmLijst"), res[2]);
   if(res[3].ok) tekenMembers(); else foutBlok(document.getElementById("memberLijst"), res[3]);
+  haalLinks();
 }
 
 /* =========================================================
@@ -762,9 +978,35 @@ var STANDAARD_LINKS = [
   { naam:"Booking.com", url:"https://admin.booking.com" },
   { naam:"Origineel Overnachten", url:"https://www.origineelovernachten.nl" }
 ];
+var GEDEELDE_LINKS = null;
 function leesLinks(){
+  if(Array.isArray(GEDEELDE_LINKS)) return GEDEELDE_LINKS;
   try{ var v = JSON.parse(localStorage.getItem("bwf_dagoverzicht_links")); if(Array.isArray(v)) return v; }catch(e){}
   return STANDAARD_LINKS.slice();
+}
+async function haalLinks(){
+  try{
+    var r = await sbZacht("bwf_instellingen?select=waarde&sleutel=eq.snel_links","bwf_instellingen");
+    if(r.ok && r.data && r.data[0] && r.data[0].waarde){
+      var v = JSON.parse(r.data[0].waarde);
+      if(Array.isArray(v)) GEDEELDE_LINKS = v;
+    }
+  }catch(e){}
+  tekenLinks();
+}
+async function bewaarLinks(lijst){
+  GEDEELDE_LINKS = lijst;
+  try{ localStorage.setItem("bwf_dagoverzicht_links", JSON.stringify(lijst)); }catch(e){}
+  try{
+    await fetch(SUPABASE_URL+"/rest/v1/bwf_instellingen", {
+      method:"POST",
+      headers:{ "apikey":SUPABASE_KEY, "Authorization":"Bearer "+token(),
+                "Content-Type":"application/json",
+                "Prefer":"resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify([{ sleutel:"snel_links", waarde:JSON.stringify(lijst),
+                              bijgewerkt:new Date().toISOString() }])
+    });
+  }catch(e){}
 }
 function tekenLinks(){
   document.getElementById("linkLijst").innerHTML = leesLinks().map(function(l){
@@ -778,8 +1020,8 @@ document.getElementById("lkBewaar").onclick = function(){
   var n = document.getElementById("lkNaam").value.trim();
   var u = document.getElementById("lkUrl").value.trim();
   if(!n||!u){ alert("Vul een naam en een webadres in."); return; }
-  var l = leesLinks(); l.push({naam:n,url:u});
-  localStorage.setItem("bwf_dagoverzicht_links", JSON.stringify(l));
+  var l = leesLinks().slice(); l.push({naam:n,url:u});
+  bewaarLinks(l);
   document.getElementById("lkNaam").value=""; document.getElementById("lkUrl").value="";
   linkDialog.close(); tekenLinks();
 };
