@@ -1392,6 +1392,8 @@ async function start(){
   await zorgVoorScripts(); renderScripts(); renderWcScript();
   await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetBetaal('mollie'); wcSmgVat(); wcHerhaalCheck();
   wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
+  laadOverzicht();
+  if(!window.__ovTimer) window.__ovTimer = setInterval(()=>{ if(!$('#app').hidden) laadOverzicht(); }, 300000);
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   let t = null; try{ t = sessionStorage.getItem(LS.tab); }catch(e){}
   kiesTab(t && $('#tab-'+t) && !$('#tab-'+t).hidden ? t : 'start');
@@ -2717,33 +2719,97 @@ async function zorgVoorExtras(){
 }
 
 /* ---------------- STARTTEGELS ---------------- */
+/* tellingen die niet uit S komen: reserveringen, gastaanmeldingen en planning */
+const AGENDA_PROXY = 'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec';
+const AGENDA_KEY   = 'bwf7k2mxq9tvr20264nphs8wjc3';
+const OV = {res:'\u00b7', resSub:'vanaf vandaag', gast:'\u00b7', gastSub:'laatste 7 dagen',
+            planning:'\u00b7', planningSub:'deze week'};
+const ovDag = n => { const d = new Date(); d.setDate(d.getDate()+(n||0)); return d.toISOString().slice(0,10); };
+const ovDatum = r => String(r.datum || r.dag || r.start || r.van || r.begindatum ||
+  r.created_at || r.aangemaakt || '').slice(0,10);
+async function ovProbeer(paden){
+  for(const pad of paden){ try{ return await api(pad); }catch(e){} }
+  return null;
+}
+async function laadOverzicht(){
+  if(!online()){ renderTegels(); return; }
+  const vd = vandaag();
+
+  /* reserveringen — agenda plus de handmatige reserveringen, alles vanaf vandaag */
+  let n = 0, vandaagIn = 0;
+  try{
+    const j = await (await fetch(AGENDA_PROXY+'?k='+encodeURIComponent(AGENDA_KEY))).json();
+    (j.events||[]).forEach(ev=>{
+      if(ev.soort !== 'reservering' && ev.soort !== 'extern') return;
+      const s = String(ev.start||'').slice(0,10), e = String(ev.eind||'').slice(0,10) || s;
+      if(e >= vd){ n++; if(s === vd) vandaagIn++; }
+    });
+  }catch(e){}
+  try{
+    const eigen = await api('reservations?select=checkindatum,checkuitdatum&limit=3000') || [];
+    eigen.forEach(r=>{
+      const s = String(r.checkindatum||'').slice(0,10), e = String(r.checkuitdatum||'').slice(0,10) || s;
+      if(s && e >= vd){ n++; if(s === vd) vandaagIn++; }
+    });
+  }catch(e){}
+  OV.res = n;
+  OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
+
+  /* gastaanmeldingen — ingevulde incheckformulieren */
+  const g = await ovProbeer(['gast_aanmeldingen?select=*&limit=1000', 'checkins?select=*&limit=1000']);
+  if(g){
+    const metDatum = g.filter(r=>ovDatum(r).length === 10);
+    OV.gast = metDatum.length ? metDatum.filter(r=>ovDatum(r) >= ovDag(-7)).length : g.length;
+    OV.gastSub = metDatum.length ? 'laatste 7 dagen \u00b7 ' + g.length + ' totaal' : g.length + ' in totaal';
+  } else { OV.gast = '\u2014'; OV.gastSub = 'geen formulieren gevonden'; }
+
+  /* planning — de eerste tabel die bestaat */
+  const pl = await ovProbeer(['wz_planning?select=*&limit=1000', 'planning?select=*&limit=1000']);
+  if(pl){
+    const komend = pl.filter(r=>{ const d = ovDatum(r); return d && d >= vd; });
+    OV.planning = komend.filter(r=>ovDatum(r) <= ovDag(7)).length;
+    OV.planningSub = komend.length + ' komende diensten';
+  } else { OV.planning = '\u2014'; OV.planningSub = 'nog geen planningstabel'; }
+
+  renderTegels();
+}
+
 const TEGELS = [
-  {tab:'taken',        titel:'Taken',              ico:'✓', kleur:'#483C34', sub:'aanmaken voor jezelf of toewijzen aan een ander',
+  {url:'reserveringen.html', titel:'Reserveringen', ico:'\ud83d\udcc5', kleur:'#E8321C',
+   sub:'agenda en handmatige boekingen', getal:()=>OV.res, label:'vanaf vandaag', bij:()=>OV.resSub},
+  {tab:'klanten',      titel:'Gastaanmeldingen',   ico:'\u270d', kleur:'#3F7A55', sub:'incheckformulieren die gasten hebben ingevuld',
+   getal:()=>OV.gast, label:'nieuw', bij:()=>OV.gastSub, recht:()=>magGasten()},
+  {url:'dashboard.html', titel:'Planning', ico:'\ud83d\uddd3', kleur:'#9AA9CC',
+   sub:'wie er wanneer staat ingepland', getal:()=>OV.planning, label:'deze week', bij:()=>OV.planningSub},
+  {tab:'taken',        titel:'Taken',              ico:'\u2713', kleur:'#483C34', sub:'aanmaken voor jezelf of toewijzen aan een ander',
    getal:()=>mijnTaken().filter(t=>t.status!=='klaar').length, label:'open'},
-  {tab:'welkomstcall', titel:'Welkomstcalls',      ico:'☎', kleur:'#9A7B4F', sub:'bellen, extra’s bijboeken en bevestigen',
+  {tab:'welkomstcall', titel:'Openstaande welkomstcalls', ico:'\u260e', kleur:'#9A7B4F', sub:'bellen, extra\u2019s bijboeken en bevestigen',
    getal:()=>S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length, label:'te doen'},
-  {tab:'klanten',      titel:'Klanten & gasten',   ico:'👤', kleur:'#6F7A5A', sub:'klantenbestand, nachtregister en toeristenbelasting',
+  {tab:'klanten',      titel:'Klanten & gasten',   ico:'\ud83d\udc64', kleur:'#6F7A5A', sub:'klantenbestand, nachtregister en toeristenbelasting',
    getal:()=>S.klanten.length, label:'klanten', recht:()=>magGasten()},
-  {tab:'bellen',       titel:'Bellen',             ico:'📋', kleur:'#A25E48', sub:'bellijsten met de scripts ernaast',
+  {tab:'bellen',       titel:'Bellen',             ico:'\ud83d\udccb', kleur:'#A25E48', sub:'bellijsten met de scripts ernaast',
    getal:()=>S.belitems.filter(i=>i.status==='te bellen').length, label:'te bellen'},
-  {tab:'bellen',       titel:'Belscripts',         ico:'🗒', kleur:'#3F7A55', sub:'stap voor stap afvinken tijdens het bellen',
+  {tab:'bellen',       titel:'Belscripts',         ico:'\ud83d\uddd2', kleur:'#3F7A55', sub:'stap voor stap afvinken tijdens het bellen',
    getal:()=>S.scripts.filter(x=>x.actief!==false).length, label:'scripts', naar:'belscriptsKop'},
-  {tab:'werk',         titel:'Werk & tarieven',    ico:'⏱', kleur:'#7E6BA8', sub:'uren en stukwerk registreren',
+  {tab:'werk',         titel:'Werk & tarieven',    ico:'\u23f1', kleur:'#7E6BA8', sub:'uren en stukwerk registreren',
    getal:()=>mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length, label:'deze maand'},
-  {tab:'overdracht',   titel:'Overdracht',         ico:'↔', kleur:'#8F6420', sub:'wat de volgende dienst moet weten',
+  {tab:'overdracht',   titel:'Overdracht',         ico:'\u2194', kleur:'#8F6420', sub:'wat de volgende dienst moet weten',
    getal:()=>S.overdracht.filter(o=>!o.afgehandeld).length, label:'openstaand'},
-  {tab:'uploads',      titel:'Uploads',            ico:'📎', kleur:'#7B6E62', sub:'documenten, handleidingen en formulieren',
+  {tab:'uploads',      titel:'Uploads',            ico:'\ud83d\udcce', kleur:'#7B6E62', sub:'documenten, handleidingen en formulieren',
    getal:()=>S.docs.length, label:'bestanden'}
 ];
 function renderTegels(){
   const doel = $('#tegels'); if(!doel) return;
-  doel.innerHTML = TEGELS.filter(t=>!t.recht || t.recht()).map(t=>`
-    <button class="tegel" type="button" data-tegel="${t.tab}"${t.naar?` data-naar="${t.naar}"`:''} style="--c:${t.kleur}">
+  doel.innerHTML = TEGELS.filter(t=>!t.recht || t.recht()).map(t=>{
+    const binnen = `
       <span class="tgetal">${t.getal()}<small>${esc(t.label)}</small></span>
       <span class="tico">${t.ico}</span>
       <span class="ttitel">${esc(t.titel)}</span>
-      <span class="tsub">${esc(t.sub)}</span>
-    </button>`).join('');
+      <span class="tsub">${esc(t.bij ? t.bij() : t.sub)}</span>`;
+    return t.url
+      ? `<a class="tegel" href="${esc(t.url)}" style="--c:${t.kleur};text-decoration:none">${binnen}</a>`
+      : `<button class="tegel" type="button" data-tegel="${t.tab}"${t.naar?` data-naar="${t.naar}"`:''} style="--c:${t.kleur}">${binnen}</button>`;
+  }).join('');
 }
 document.addEventListener('click', e=>{
   const t = e.target.closest('[data-tegel]'); if(!t) return;
