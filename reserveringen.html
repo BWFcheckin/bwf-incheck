@@ -72,7 +72,7 @@ body.ingebed .wrap{padding:0}
 .balk label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
 input,select{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:6px 10px;font:inherit;font-size:13.5px;color:var(--ink)}
 input[type=search]{min-width:180px}
-.rechts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.rechts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .knop{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:6px 12px;font-size:13.5px;color:var(--ink-2);text-decoration:none;display:inline-block}
 .knop:hover{background:var(--surface-2)}
 .knop.vol{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -81,32 +81,37 @@ input[type=search]{min-width:180px}
 .themaknop{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:6px;padding:6px 12px;font-size:13.5px;line-height:1.2}
 
 /* ---------- legenda ---------- */
-.legenda{display:flex;gap:14px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line-soft);font-size:12px;color:var(--muted)}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--line-soft);font-size:11.5px;color:var(--muted)}
 .legenda span{display:flex;align-items:center;gap:6px}
-.legenda i{width:20px;height:10px;border-radius:3px;display:block}
+.legenda i{width:18px;height:9px;border-radius:3px;display:block}
 
+/* ---------- tabel (compact) ---------- */
 .tabelwrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:13.5px}
-th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
-td{padding:8px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+td{padding:5px 9px;border-bottom:1px solid var(--line-soft);vertical-align:middle;line-height:1.35}
 tbody tr:hover{background:var(--surface-2)}
-tr.detail td{background:var(--surface-2);border-bottom:2px solid var(--line)}
-td.naam{font-weight:600;min-width:150px;cursor:pointer}
+tr.detail td{background:var(--surface-2);border-bottom:2px solid var(--line);vertical-align:top;padding:10px 12px}
+th.acties,td.acties{width:1%;white-space:nowrap;padding-left:8px;padding-right:4px}
+td.naam{font-weight:600;cursor:pointer;max-width:250px}
+td.naam:hover .gastnaam{text-decoration:underline}
+.gastnaam{display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subregel{font-size:10.5px;color:var(--muted);font-weight:400;line-height:1.3;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.merkjes{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}
 td.nowrap,th.nowrap{white-space:nowrap}
 .geld{font-family:var(--f-mono);text-align:right;white-space:nowrap}
 .open{color:var(--crit);font-weight:600}
-body.geen-bedragen td.geld,body.geen-bedragen th:nth-child(9),body.geen-bedragen th:nth-child(10){visibility:hidden}
+body.geen-bedragen td.geld,body.geen-bedragen th:nth-child(10),body.geen-bedragen th:nth-child(11){visibility:hidden}
 .leeg{color:var(--muted);font-size:14px;padding:26px 18px;text-align:center}
 .fout{color:var(--crit);background:var(--crit-soft);border-radius:var(--r-s);padding:10px 12px;font-size:13.5px;margin:12px 16px}
 .gelukt{color:var(--ok);background:var(--ok-soft);border-radius:var(--r-s);padding:10px 12px;font-size:13.5px;margin:12px 16px}
-.voetregel{display:flex;gap:16px;flex-wrap:wrap;padding:11px 16px;border-top:1px solid var(--line-soft);font-family:var(--f-mono);font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:0 0 var(--r-l) var(--r-l)}
+.voetregel{display:flex;gap:16px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line-soft);font-family:var(--f-mono);font-size:11.5px;color:var(--muted);background:var(--surface-2);border-radius:0 0 var(--r-l) var(--r-l)}
 
-.soort{font-family:var(--f-mono);font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--vlak);color:var(--kleur);border:1px solid var(--kleur);white-space:nowrap}
-tr.rij{border-left:4px solid var(--kleur)}
+.soort{font-family:var(--f-mono);font-size:10px;padding:1px 7px;border-radius:20px;background:var(--vlak);color:var(--kleur);border:1px solid var(--kleur);white-space:nowrap}
 tr.rij td:first-child{border-left:4px solid var(--kleur)}
-.gekoppeld{font-family:var(--f-mono);font-size:10.5px;padding:1px 7px;border-radius:20px;background:var(--ok-soft);color:var(--ok);white-space:nowrap;margin-left:5px}
+.gekoppeld{font-family:var(--f-mono);font-size:9.5px;padding:0 6px;border-radius:20px;background:var(--ok-soft);color:var(--ok);white-space:nowrap;line-height:1.6}
 
-.detailblok{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:13px;max-width:820px}
+.detailblok{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:12.5px;max-width:820px}
 .detailblok dt{color:var(--muted)}
 .detailblok dd{margin:0}
 .detailblok ul{margin:0;padding-left:16px}
@@ -114,8 +119,8 @@ tr.rij td:first-child{border-left:4px solid var(--kleur)}
 
 /* ---------- actiemenu ---------- */
 .menuhouder{position:relative}
-.menuknop{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:3px 10px;font-size:15px;line-height:1.1;color:var(--ink-2)}
-.actiemenu{position:absolute;right:0;top:100%;margin-top:4px;z-index:50;width:250px;background:var(--surface);
+.menuknop{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:1px 9px;font-size:15px;line-height:1.3;color:var(--ink-2)}
+.actiemenu{position:absolute;left:0;top:100%;margin-top:4px;z-index:50;width:250px;background:var(--surface);
   border:1px solid var(--line);border-radius:var(--r-m);box-shadow:0 18px 50px -18px rgba(36,30,25,.5);display:none;overflow:hidden}
 .actiemenu.open{display:block}
 .actiemenu button,.actiemenu a{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 14px;font-size:13.5px;color:var(--ink);text-decoration:none}
@@ -124,6 +129,7 @@ tr.rij td:first-child{border-left:4px solid var(--kleur)}
 .actiemenu hr{border:0;border-top:1px solid var(--line-soft);margin:5px 0}
 
 dialog{border:1px solid var(--line);border-radius:var(--r-l);padding:0;max-width:580px;width:calc(100% - 32px);box-shadow:var(--shadow);background:var(--surface);color:var(--ink)}
+dialog.breed{max-width:780px}
 dialog::backdrop{background:rgba(36,30,25,.4)}
 dialog .binnen{padding:20px}
 dialog h3{font-size:17px;margin-bottom:4px}
@@ -140,6 +146,21 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 .treffer{border:1px solid var(--line);border-radius:var(--r-s);padding:10px 12px;margin-bottom:8px;background:var(--surface-2);font-size:13.5px}
 .treffer b{display:block}
 :focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ---------- klantkaart ---------- */
+.kkraster{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.kkraster{grid-template-columns:1fr}}
+.kkvak{border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px;background:var(--surface-2)}
+.kkvak.breed{grid-column:1/-1}
+.kkvak h4{margin:0 0 8px;font-family:var(--f-display);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.kkvak dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+.kkvak dt{color:var(--muted)}
+.kkvak dd{margin:0;word-break:break-word}
+.kkbezoek{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line-soft)}
+.kkbezoek:last-child{border-bottom:0}
+.kkbezoek span{color:var(--muted);white-space:nowrap}
+.kkmerkjes{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.kkacties{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}
 </style>
 </head>
 <body>
@@ -170,7 +191,7 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
   padding:10px 12px;font-size:13.5px;display:none}
 #bwfSlot .fout.open{display:block}
 #bwfSlot .voetnoot{margin-top:16px;font-size:12px;color:#7B6E62;line-height:1.45}
-#bwfUit{position:fixed;right:16px;bottom:64px;z-index:8980;border:1px solid #E3DAD0;
+#bwfUit{position:fixed;right:16px;bottom:16px;z-index:8980;border:1px solid #E3DAD0;
   background:#fff;color:#4B4239;border-radius:999px;padding:7px 14px;font-size:12.5px;
   font-family:"Public Sans",Arial,sans-serif;cursor:pointer;display:none;
   box-shadow:0 4px 14px rgba(36,30,25,.2)}
@@ -378,6 +399,7 @@ window.BWF = window.BWF || {};
       <select id="fMedewerker"><option value="">Alle medewerkers</option><option value="__geen">Nog niemand</option></select>
       <input type="search" id="fZoek" placeholder="Zoek op naam, nummer of e-mail">
       <div class="rechts">
+        <span id="bwfMenuPlek"></span>
         <button class="themaknop" id="themaKnop" type="button">Donkere modus</button>
         <button class="knop" type="button" id="btnBlacklist">Zwarte lijst</button>
         <button class="knop" type="button" id="btnReview">Reviewtaken</button>
@@ -390,6 +412,7 @@ window.BWF = window.BWF || {};
     <div class="tabelwrap">
       <table>
         <thead><tr>
+          <th class="acties"></th>
           <th class="nowrap">Aankomst</th>
           <th class="nowrap">Vertrek</th>
           <th>N</th>
@@ -400,7 +423,6 @@ window.BWF = window.BWF || {};
           <th class="nowrap">Contact</th>
           <th style="text-align:right">Totaal</th>
           <th style="text-align:right">Open</th>
-          <th></th>
         </tr></thead>
         <tbody id="rijen"><tr><td colspan="11" class="leeg">Bezig met laden…</td></tr></tbody>
       </table>
@@ -408,6 +430,19 @@ window.BWF = window.BWF || {};
     <div class="voetregel" id="voetregel"></div>
   </div>
 </div>
+
+<!-- klantkaart -->
+<dialog id="kaartDialog" class="breed"><div class="binnen">
+  <h3 id="kkNaam">Klantkaart</h3>
+  <div class="sub" id="kkSub"></div>
+  <div id="kkWaarschuwing"></div>
+  <div class="kkmerkjes" id="kkMerkjes"></div>
+  <div class="kkraster" id="kkRaster"></div>
+  <div class="kkacties" id="kkActies"></div>
+  <div class="voet">
+    <button class="knop vol" type="button" data-sluit="kaartDialog">Sluiten</button>
+  </div>
+</div></dialog>
 
 <!-- handmatige reservering -->
 <dialog id="resDialog"><div class="binnen">
@@ -956,27 +991,16 @@ function teken(){
     if(k.gastlink_verstuurd) merkjes += '<span class="gekoppeld">link verstuurd</span>';
     if(k.review_verstuurd) merkjes += '<span class="gekoppeld">review</span>';
     if(k.gast || k.telefoon || k.email) merkjes += '<span class="gekoppeld">bijgewerkt</span>';
+    if(merkjes) merkjes = '<div class="merkjes">'+merkjes+'</div>';
+
+    var onder = [kanaalVan(r), verblijfVan(r)].filter(Boolean).join(' · ');
 
     var rij = '<tr class="rij" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+
-      '<td class="nowrap" style="border-left:4px solid '+s.kleur+'">'+esc(r.aankomst)+
-        (r.tijdIn?' <span style="color:var(--muted)">'+esc(r.tijdIn)+'</span>':'')+'</td>'+
-      '<td class="nowrap">'+esc(r.vertrek)+(r.tijdUit?' <span style="color:var(--muted)">'+esc(r.tijdUit)+'</span>':'')+'</td>'+
-      '<td>'+esc(nachten(r.aankomst,r.vertrek))+'</td>'+
-      '<td class="naam" data-detail="'+i+'">'+esc(naam)+merkjes+
-        (r.nummer?'<div style="font-family:var(--f-mono);font-size:11px;color:var(--muted)">'+esc(r.nummer)+'</div>':'')+'</td>'+
-      '<td>'+esc(r.locatie)+'<div style="font-size:11px;color:var(--muted)">'+esc(kanaalVan(r))+'</div>'+'<div style="font-size:11px;color:var(--muted)">'+esc(verblijfVan(r))+'</div></td>'+
-      '<td><span class="soort" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+s.naam+'</span></td>'+
-      '<td><select class="kies" data-mw="'+i+'" style="font-size:12.5px;padding:3px 6px">'+
-        '<option value="">—</option>'+
-        namen.map(function(n){ return '<option'+(k.medewerker===n?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
-        '</select></td>'+
-      '<td style="font-size:12.5px">'+(contact.join('<br>')||'<span style="color:var(--muted)">—</span>')+'</td>'+
-      '<td class="geld">'+(totaal==null?'<span style="color:var(--muted)">—</span>':esc(euro(totaal)))+'</td>'+
-      '<td class="geld'+(open?' open':'')+'">'+(open==null?'<span style="color:var(--muted)">—</span>':esc(euro(open)))+'</td>'+
-      '<td class="nowrap"><div class="menuhouder">'+
+      '<td class="acties" style="border-left:4px solid '+s.kleur+'"><div class="menuhouder">'+
         '<button class="menuknop" type="button" data-menu="'+i+'" aria-label="Acties">⋯</button>'+
         '<div class="actiemenu" id="menu'+i+'">'+
           '<div class="kop">Reservering</div>'+
+          '<button type="button" data-actie="kaart" data-i="'+i+'">Klantkaart openen</button>'+
           '<button type="button" data-actie="detail" data-i="'+i+'">Details tonen</button>'+
           '<button type="button" data-actie="wijzig" data-i="'+i+'">Gegevens aanpassen</button>'+
           '<a href="incheckformulier.html?reservering='+encodeURIComponent(r.nummer||resSleutel(r))+'" target="_blank" rel="noopener">Incheckformulier openen</a>'+
@@ -998,6 +1022,22 @@ function teken(){
           '<hr><button type="button" data-actie="blacklist" data-i="'+i+'" style="color:var(--crit)">'+(opBlacklist(r)?'Van de zwarte lijst halen':'Op de zwarte lijst zetten')+'</button>'+
           (r.bewerkbaar ? '<hr><button type="button" data-actie="bewerk" data-i="'+i+'">Reservering bewerken</button>' : '')+
         '</div></div></td>'+
+      '<td class="nowrap">'+esc(r.aankomst)+
+        (r.tijdIn?' <span style="color:var(--muted)">'+esc(r.tijdIn)+'</span>':'')+'</td>'+
+      '<td class="nowrap">'+esc(r.vertrek)+(r.tijdUit?' <span style="color:var(--muted)">'+esc(r.tijdUit)+'</span>':'')+'</td>'+
+      '<td>'+esc(nachten(r.aankomst,r.vertrek))+'</td>'+
+      '<td class="naam" data-kaart="'+i+'" title="Klantkaart openen">'+
+        '<span class="gastnaam" title="'+esc(naam)+'">'+esc(naam)+'</span>'+merkjes+
+        (r.nummer?'<div class="subregel" style="font-family:var(--f-mono)">'+esc(r.nummer)+'</div>':'')+'</td>'+
+      '<td>'+esc(r.locatie)+(onder?'<div class="subregel">'+esc(onder)+'</div>':'')+'</td>'+
+      '<td><span class="soort" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+s.naam+'</span></td>'+
+      '<td><select class="kies" data-mw="'+i+'" style="font-size:12px;padding:2px 5px">'+
+        '<option value="">—</option>'+
+        namen.map(function(n){ return '<option'+(k.medewerker===n?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
+        '</select></td>'+
+      '<td style="font-size:11.5px;line-height:1.3">'+(contact.join('<br>')||'<span style="color:var(--muted)">—</span>')+'</td>'+
+      '<td class="geld">'+(totaal==null?'<span style="color:var(--muted)">—</span>':esc(euro(totaal)))+'</td>'+
+      '<td class="geld'+(open?' open':'')+'">'+(open==null?'<span style="color:var(--muted)">—</span>':esc(euro(open)))+'</td>'+
     '</tr>';
 
     if(openDetail[resSleutel(r)]){
@@ -1047,12 +1087,9 @@ function teken(){
       doeActie(b.getAttribute('data-actie'), lijst[parseInt(b.getAttribute('data-i'),10)]);
     };
   });
-  Array.prototype.forEach.call(tb.querySelectorAll('[data-detail]'), function(b){
+  Array.prototype.forEach.call(tb.querySelectorAll('[data-kaart]'), function(b){
     b.onclick = function(){
-      var r = lijst[parseInt(b.getAttribute('data-detail'),10)];
-      var s = resSleutel(r);
-      openDetail[s] = !openDetail[s];
-      teken();
+      openKlantkaart(lijst[parseInt(b.getAttribute('data-kaart'),10)]);
     };
   });
   Array.prototype.forEach.call(tb.querySelectorAll('[data-mw]'), function(sel){
@@ -1097,11 +1134,167 @@ async function bewaarKoppeling(r, wijziging){
 }
 
 /* =========================================================
+   Klantkaart
+   ========================================================= */
+function klantVan(r){
+  var k = KOPPEL[resSleutel(r)] || {};
+  if(!k.klant_id) return null;
+  for(var i=0;i<KLANTEN.length;i++){
+    if(String(KLANTEN[i].id) === String(k.klant_id)) return KLANTEN[i];
+  }
+  return null;
+}
+function eerdereBezoeken(r){
+  var mij = resSleutel(r);
+  var naam = gastVan(r).toLowerCase().trim();
+  var tel = String(telVan(r)).replace(/\D/g,'').slice(-9);
+  var mail = String(mailVan(r)).toLowerCase().trim();
+  return ALLES.filter(function(x){
+    if(resSleutel(x) === mij) return false;
+    if(x.soort!=='reservering' && x.soort!=='extern' && x.soort!=='handmatig') return false;
+    var xt = String(telVan(x)).replace(/\D/g,'').slice(-9);
+    var xm = String(mailVan(x)).toLowerCase().trim();
+    var xn = gastVan(x).toLowerCase().trim();
+    if(mail && xm && xm === mail) return true;
+    if(tel && xt && xt === tel) return true;
+    if(naam && xn && naam.length > 4 && xn === naam) return true;
+    return false;
+  }).sort(function(a,b){ return String(b.aankomst).localeCompare(String(a.aankomst)); }).slice(0,12);
+}
+function openKlantkaart(r){
+  actieRes = r;
+  var k = KOPPEL[resSleutel(r)] || {};
+  var kl = klantVan(r);
+  var eigenaar = (!window.BWF || !window.BWF.rol || window.BWF.mag('eigenaar'));
+  var totaal = (k.totaal!=null && k.totaal!=='') ? parseFloat(k.totaal) : r.totaal;
+  var betaald = (k.betaald!=null && k.betaald!=='') ? parseFloat(k.betaald) : r.betaald;
+  var open = (totaal==null) ? null : Math.max(0, (totaal||0)-(betaald||0));
+
+  document.getElementById('kkNaam').textContent = gastVan(r) || 'Zonder naam';
+  document.getElementById('kkSub').textContent =
+    [r.locatie, verblijfVan(r), kanaalVan(r), r.nummer].filter(Boolean).join(' · ');
+
+  var bl = opBlacklist(r);
+  document.getElementById('kkWaarschuwing').innerHTML = bl
+    ? '<div class="fout" style="margin:0 0 14px">Deze gast staat op de zwarte lijst — '+
+      esc(bl.reden || 'geen reden genoteerd')+'</div>' : '';
+
+  var m = '';
+  if(k.klant_id) m += '<span class="gekoppeld">klant gekoppeld</span>';
+  if(k.member) m += '<span class="gekoppeld">member</span>';
+  if(k.checkin_id) m += '<span class="gekoppeld">ingecheckt formulier</span>';
+  if(k.gastenregister_id) m += '<span class="gekoppeld">in gastenregister</span>';
+  if(k.welkomstcall_gedaan) m += '<span class="gekoppeld">welkomstcall gedaan</span>';
+  else if(k.welkomstcall_id) m += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">welkomstcall open</span>';
+  if(k.gastlink_verstuurd) m += '<span class="gekoppeld">gastenlink verstuurd</span>';
+  if(k.review_verstuurd) m += '<span class="gekoppeld">review verstuurd</span>';
+  document.getElementById('kkMerkjes').innerHTML = m;
+
+  function vak(titel, regels, breed){
+    var d = regels.filter(function(x){ return x[1]; })
+      .map(function(x){ return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>'; }).join('');
+    if(!d) d = '<dt>—</dt><dd>niets bekend</dd>';
+    return '<div class="kkvak'+(breed?' breed':'')+'"><h4>'+titel+'</h4><dl>'+d+'</dl></div>';
+  }
+
+  var blokken = '';
+
+  blokken += vak('Verblijf', [
+    ['Locatie', esc(r.locatie)],
+    ['Aankomst', esc(r.aankomst + (r.tijdIn ? ' om '+r.tijdIn : ''))],
+    ['Vertrek', esc(r.vertrek ? r.vertrek + (r.tijdUit ? ' om '+r.tijdUit : '') : '')],
+    ['Nachten', esc(nachten(r.aankomst, r.vertrek))],
+    ['Personen', esc(k.personen || r.personen)],
+    ['Arrangement', esc(k.arrangement || r.arrangement || (r.arrangementen||[]).join(', '))],
+    ['Extra', esc(k.extra)],
+    ['Geboekt via', esc(kanaalVan(r))],
+    ['Nummer', esc(r.nummer)]
+  ]);
+
+  blokken += vak('Contact', [
+    ['Telefoon', telVan(r) ? '<a href="tel:'+esc(telVan(r))+'">'+esc(telVan(r))+'</a>' : ''],
+    ['E-mail', mailVan(r) ? '<a href="mailto:'+esc(mailVan(r))+'">'+esc(mailVan(r))+'</a>' : ''],
+    ['WhatsApp', telVan(r) ? '<a href="https://wa.me/'+esc(String(telVan(r)).replace(/\D/g,'').replace(/^0/,'31'))+'" target="_blank" rel="noopener">bericht sturen</a>' : ''],
+    ['Woonplaats', kl ? esc(kl.woonplaats) : ''],
+    ['Toegewezen aan', esc(k.medewerker)]
+  ]);
+
+  if(kl){
+    blokken += vak('Klantgegevens', [
+      ['Naam', esc(((kl.voorletters||'')+' '+(kl.achternaam||'')).trim())],
+      ['Member', kl.member ? 'ja' : 'nee'],
+      ['Bron', esc(kl.bron)],
+      ['Eerste contact', esc(kl.contact_datum)],
+      ['Notitie', esc(kl.notitie)]
+    ]);
+  }else{
+    blokken += '<div class="kkvak"><h4>Klantgegevens</h4>'+
+      '<p style="margin:0;font-size:13px;color:var(--muted)">Nog geen klant gekoppeld. '+
+      'Gebruik hieronder "Klant koppelen" om deze gast in het klantenbestand te zetten.</p></div>';
+  }
+
+  if(eigenaar){
+    blokken += vak('Betaling', [
+      ['Totaal', totaal==null ? '' : esc(euro(totaal))],
+      ['Betaald', betaald==null ? '' : esc(euro(betaald))],
+      ['Nog open', open==null ? '' : '<b'+(open?' style="color:var(--crit)"':'')+'>'+esc(euro(open))+'</b>'],
+      ['Betaalwijze', esc(k.betaalwijze)],
+      ['Uit de agenda', esc(r.reedsBetaald)],
+      ['Bij aankomst', esc(r.bijAankomst)]
+    ]);
+  }
+
+  var bez = eerdereBezoeken(r);
+  var bezHtml = bez.length
+    ? bez.map(function(x){
+        return '<div class="kkbezoek"><b>'+esc(x.aankomst)+'</b><span>'+
+          esc([x.locatie, verblijfVan(x), kanaalVan(x)].filter(Boolean).join(' · '))+'</span></div>';
+      }).join('')
+    : '<p style="margin:0;font-size:13px;color:var(--muted)">Geen eerdere reserveringen gevonden op deze naam, telefoon of e-mail.</p>';
+  blokken += '<div class="kkvak breed"><h4>Eerdere bezoeken ('+bez.length+')</h4>'+bezHtml+'</div>';
+
+  if(k.notitie || r.titel || r.omschrijving){
+    blokken += '<div class="kkvak breed"><h4>Notitie en boekingstekst</h4>'+
+      (k.notitie ? '<p style="margin:0 0 8px;font-size:13px"><b>Notitie:</b> '+esc(k.notitie)+'</p>' : '')+
+      '<div style="font-size:12.5px;white-space:pre-wrap;color:var(--ink-2);max-height:180px;overflow:auto">'+
+      esc(r.omschrijving || r.titel || '')+'</div></div>';
+  }
+
+  document.getElementById('kkRaster').innerHTML = blokken;
+
+  var acties = [['wijzig','Gegevens aanpassen'],['klant','Klant koppelen'],
+    ['gastlink','Gastenlink versturen'],['welkom','Welkomstcall aanmaken'],
+    ['taak','Taak toevoegen'],['review','Reviewverzoek'],['detail','Details in de tabel']];
+  if(eigenaar) acties.splice(2, 0, ['betaal','Betaalgegevens']);
+  if(nachten(r.aankomst,r.vertrek) && nachten(r.aankomst,r.vertrek)!=='dag')
+    acties.push(['register','Naar gastenregister']);
+  if(r.bewerkbaar) acties.push(['bewerk','Reservering bewerken']);
+
+  document.getElementById('kkActies').innerHTML =
+    '<a class="knop" href="incheckformulier.html?reservering='+
+      encodeURIComponent(r.nummer||resSleutel(r))+'" target="_blank" rel="noopener">Incheckformulier</a>'+
+    acties.map(function(a){
+      return '<button class="knop" type="button" data-kk="'+a[0]+'">'+a[1]+'</button>'; }).join('')+
+    '<button class="knop gevaar" type="button" data-kk="blacklist">'+
+      (bl?'Van de zwarte lijst halen':'Op de zwarte lijst')+'</button>';
+
+  Array.prototype.forEach.call(document.getElementById('kkActies').querySelectorAll('[data-kk]'), function(b){
+    b.onclick = function(){
+      document.getElementById('kaartDialog').close();
+      doeActie(b.getAttribute('data-kk'), r);
+    };
+  });
+
+  document.getElementById('kaartDialog').showModal();
+}
+
+/* =========================================================
    Acties
    ========================================================= */
 var actieRes = null;
 function doeActie(actie, r){
   actieRes = r;
+  if(actie === 'kaart'){ openKlantkaart(r); return; }
   if(actie === 'detail'){ openDetail[resSleutel(r)] = !openDetail[resSleutel(r)]; teken(); return; }
   if(actie === 'bewerk'){ openDialoog(r); return; }
   if(actie === 'klant'){ openKlant(r); return; }
@@ -1894,6 +2087,11 @@ window.addEventListener('resize', meldHoogte);
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer;
   box-shadow:0 4px 14px rgba(36,30,25,.32)}
 #bwfMenuKnop:hover{background:#5A4B41}
+/* in de bovenbalk van de pagina */
+#bwfMenuKnop.inbalk{position:static;border-radius:6px;padding:6px 12px;font-size:13.5px;font-weight:500;
+  box-shadow:none;background:#483C34}
+#bwfMenuKnop.inbalk:hover{background:#5A4B41}
+:root[data-theme="dark"] #bwfMenuKnop.inbalk{background:#7A6248}
 #bwfMenuKnop .streep{display:inline-block;width:15px;height:11px;position:relative}
 #bwfMenuKnop .streep i,#bwfMenuKnop .streep i:before,#bwfMenuKnop .streep i:after{
   position:absolute;left:0;width:15px;height:2px;background:#fff;border-radius:2px;content:""}
@@ -1994,8 +2192,18 @@ window.addEventListener('resize', meldHoogte);
     });
   }
 
+  /* het menu onder de knop hangen als die in de bovenbalk staat */
+  function plaatsMenu(){
+    if(!knop.classList.contains("inbalk")) return;
+    var r = knop.getBoundingClientRect();
+    menu.style.top = (r.bottom + 6) + "px";
+    menu.style.bottom = "auto";
+    menu.style.right = Math.max(12, window.innerWidth - r.right) + "px";
+  }
+
   function open(){
     vulTabs();
+    plaatsMenu();
     menu.classList.add("open"); laag.classList.add("open");
     knop.setAttribute("aria-expanded","true");
   }
@@ -2008,11 +2216,16 @@ window.addEventListener('resize', meldHoogte);
   });
   laag.addEventListener("click", sluit);
   document.addEventListener("keydown", function(e){ if(e.key === "Escape") sluit(); });
+  window.addEventListener("resize", function(){ if(menu.classList.contains("open")) plaatsMenu(); });
+  window.addEventListener("scroll", function(){ if(menu.classList.contains("open")) plaatsMenu(); });
 
   function plaats(){
     document.body.appendChild(laag);
     document.body.appendChild(menu);
-    document.body.appendChild(knop);
+    /* staat er een plek in de bovenbalk klaar? dan daar, anders rechtsonder */
+    var plek = document.getElementById("bwfMenuPlek");
+    if(plek){ knop.classList.add("inbalk"); plek.appendChild(knop); }
+    else { document.body.appendChild(knop); }
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", plaats);
   else plaats();
