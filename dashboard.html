@@ -886,6 +886,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
     <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad" hidden style="display:none">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
+    <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Vragen &amp; taken</button>
   </nav>
 
@@ -1452,6 +1453,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           </div>
           <div class="field" style="margin-top:12px"><label for="o-tekst">Bericht</label><textarea id="o-tekst" required placeholder="Bijv. bubbelbad suite 2 loopt langzaam leeg, monteur belt maandag terug"></textarea></div>
           <div style="margin-top:12px"><button class="btn" type="submit">Plaatsen</button></div>
+          <div id="odMelding" style="margin-top:12px"></div>
         </form>
       </div>
     </div>
@@ -1609,11 +1611,35 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     return uit;
   }
 
+  /* De ingelogde sessie opzoeken. Deze pagina bestaat uit losse scriptblokken
+     die elkaars functies niet kunnen zien, dus dit blok heeft zijn eigen versie. */
+  function sessieToken(){
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > -1) {
+          var v = JSON.parse(localStorage.getItem(k));
+          if (v && v.access_token) {
+            var deel = JSON.parse(atob(v.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+            if (!deel.exp || deel.exp * 1000 > Date.now()) return v.access_token;
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function api(pad, opties){
     opties = opties || {};
+    /* Ging eerder met de publieke sleutel. Die mag sinds de beveiligingsronde
+       niets meer lezen, dus dit loopt nu via de ingelogde sessie. */
+    var t0 = sessieToken();
+    if (!t0) {
+      return Promise.reject(new Error("Niet ingelogd \u2014 open eerst het portaal en log in."));
+    }
     var kop = {
       apikey: SB_KEY,
-      Authorization: "Bearer " + SB_KEY,
+      Authorization: "Bearer " + t0,
       "Content-Type": "application/json",
       Prefer: opties.prefer || "return=minimal"
     };
@@ -2348,6 +2374,33 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   });
 
   /* ---------------- render: overdracht ---------------- */
+  /* Bericht en links opbouwen voor één overdracht. Wordt gebruikt bij het
+     plaatsen én bij elk bericht in de lijst. */
+  function overdrachtLinks(o){
+    var soort = { info:"Informatie", storing:"Storing", defect:"Defect", klacht:"Klacht" }[o.cat] || "Overdracht";
+    var mw = null, i;
+    for (i = 0; i < state.medewerkers.length; i++) {
+      if (state.medewerkers[i].naam === o.aan || state.medewerkers[i].id === o.aan) mw = state.medewerkers[i];
+    }
+    var naam = mw ? mw.naam : (o.aan || "");
+    var bericht = [
+      "Overdracht " + (o.locatie || "") + " \u2014 " + soort,
+      "Datum: " + (o.datum || ""),
+      "",
+      o.tekst || "",
+      "",
+      "Geplaatst door " + (o.auteur || "") + ". Staat ook in het dashboard."
+    ].join("\n");
+    return {
+      naam: naam,
+      email: mw && mw.email ? mw.email : "",
+      wa: "https://wa.me/?text=" + encodeURIComponent((naam ? naam + ", " : "") + bericht),
+      mail: "mailto:" + (mw && mw.email ? encodeURIComponent(mw.email) : "") +
+        "?subject=" + encodeURIComponent("Overdracht " + (o.locatie || "") + " \u2014 " + soort) +
+        "&body=" + encodeURIComponent(bericht)
+    };
+  }
+
   function renderOverdracht(){
     var lijst = state.overdracht.slice().sort(function(a, b){
       var da = a.datum || "", db = b.datum || "";
@@ -2370,7 +2423,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         'style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);padding:2px 6px;font-size:12px" ' +
         'aria-label="Datum van dit punt"></span></div>' +
         '<div style="font-size:13.8px;white-space:pre-wrap">' + esc(o.tekst) + "</div></div>" +
-        '<div style="white-space:nowrap"><button class="icon-btn ok" type="button" data-od-klaar="' + o.id + '" title="Afgehandeld">' + (o.klaar ? "↺" : "✓") + "</button>" +
+        '<div style="white-space:nowrap">' +
+        '<a class="icon-btn" href="' + overdrachtLinks(o).wa + '" target="_blank" rel="noopener" title="Sturen via WhatsApp">✉</a>' +
+        '<a class="icon-btn" href="' + overdrachtLinks(o).mail + '" title="E-mail opstellen' + (overdrachtLinks(o).email ? " naar " + overdrachtLinks(o).email : " (adres invullen)") + '">@</a>' +
+        '<button class="icon-btn ok" type="button" data-od-klaar="' + o.id + '" title="Afgehandeld">' + (o.klaar ? "↺" : "✓") + "</button>" +
         '<button class="icon-btn" type="button" data-del-od="' + o.id + '" title="Verwijderen">✕</button></div>' +
         "</div></div>";
     }).join("");
@@ -2504,7 +2560,25 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     mutate(function(){ state.overdracht.unshift(o); });
     document.getElementById("o-tekst").value = "";
     document.getElementById("o-datum").value = today();
+    meldOverdracht(o);
   });
+
+  /* De overdracht staat opgeslagen; hiermee stuur je de ontvanger een berichtje.
+     Versturen gebeurt in je eigen WhatsApp of mailprogramma, zodat je het
+     bericht nog kunt aanpassen voordat het weggaat. */
+  function meldOverdracht(o){
+    var doel = document.getElementById("odMelding");
+    if (!doel) return;
+    var L = overdrachtLinks(o);
+    doel.innerHTML =
+      '<div class="card" style="margin:0"><div class="card-body" style="display:flex;gap:9px;' +
+      'align-items:center;flex-wrap:wrap"><span class="hint" style="margin-right:auto">' +
+      'Geplaatst' + (L.naam ? ". " + esc(L.naam) + " even laten weten?" : ". Iemand laten weten?") + '</span>' +
+      '<a class="btn" href="' + L.wa + '" target="_blank" rel="noopener">Via WhatsApp</a>' +
+      '<a class="btn" href="' + L.mail + '">E-mail opstellen' + (L.email ? "" : " (adres invullen)") + '</a>' +
+      '<button class="btn" type="button" onclick="document.getElementById(\'odMelding\').innerHTML=\'\'">Sluiten</button>' +
+      '</div></div>';
+  }
 
   /* ---------------- inline bewerken ---------------- */
   document.addEventListener("change", function(e){
