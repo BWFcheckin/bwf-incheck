@@ -1321,11 +1321,11 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           <span class="opbouw" id="wcOpbouw">Nog niets bijgeboekt</span>
         </div>
         <div class="grid-form" style="margin-top:14px">
-          <div class="field wide" id="wcMollieVeld"><label for="wcBetaallink">Mollie-betaallink <span style="font-weight:400;color:var(--muted)">(plak hier de link die je in Mollie aanmaakt)</span></label>
+          <div class="field wide" id="wcMollieVeld"><label for="wcBetaallink">Mollie-betaallink <span style="font-weight:400;color:var(--muted)">(wordt automatisch aangemaakt)</span></label>
             <input type="text" id="wcBetaallink" inputmode="url" placeholder="https://pay.mollie.com/…">
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-              <button class="btn ghost small" id="wcMollieOpen" type="button">Betaallink maken in Mollie</button>
-              <button class="btn ghost small" id="wcMolliePlak" type="button">Link van klembord plakken</button>
+              <button class="btn ghost small" id="wcMollieOpen" type="button">Betaallink automatisch maken</button>
+              <button class="btn ghost small" id="wcMolliePlak" type="button">Link kopiëren</button>
             </div>
             <span class="note" id="wcMollieNote"></span></div>
           <div class="field"><label for="wcDoor">Afgerond door</label><select id="wcDoor"></select></div>
@@ -1436,6 +1436,23 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       <p>Alle klantgegevens op één plek, en daaronder de overnachtingen waarop je de toeristenbelasting aangeeft.</p>
     </div>
     <div class="linkstrook" data-linktab="klanten"></div>
+
+    <div class="card">
+      <div class="card-head"><h2>Alle reserveringen &amp; formulieren</h2>
+        <span class="hint" id="arHint"></span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field wide"><label for="arZoek">Zoeken op naam, datum, reserveringsnummer of boekingsplatform</label>
+            <input type="text" id="arZoek" placeholder="bv. Jansen, 14-06-2026, 776886 of Booking.com"></div>
+          <div class="field wide"><label for="arRes">Reservering</label><select id="arRes"></select></div>
+        </div>
+        <div id="arDetail" style="margin-top:14px"></div>
+        <div class="grid-form" style="margin-top:18px">
+          <div class="field wide"><label for="arForm">Reserveringsformulier</label><select id="arForm"></select></div>
+        </div>
+        <div id="arFormDetail" style="margin-top:14px"></div>
+      </div>
+    </div>
 
     <div class="card">
       <div class="card-head"><h2>Nieuwe klant</h2><span class="hint">alleen naam is verplicht</span></div>
@@ -4066,6 +4083,8 @@ function resDetailHtml(r, i){
   const g = r.ruw || {};
   const k = r.kop || koppelingVoor(r) || {};                  /* gedeeld met het locatiedashboard */
   const form = FORMS.find(f=>String(f.id) === String(k.checkin_id||''));
+  const extern = !r.eigen;
+  const ont = r.ontleed || (extern ? resOntleed(r) : {});
   const vast = `<div class="resdl">
     ${resVeld('Suite', r.locatie || g.locatie)}
     ${resVeld('Aankomst', (String(r.start||'').slice(0,10) ? dmy(String(r.start).slice(0,10)) : '') +
@@ -4111,8 +4130,6 @@ function resDetailHtml(r, i){
     <span class="pill ${k.res_sleutel ? 'ok' : 'neutral'}">SMG-gegevens: ${
       k.res_sleutel ? 'gevonden (' + esc(k.res_sleutel) + ')' : 'niet gevonden'}</span>
   </div>`;
-  const extern = !r.eigen;
-  const ont = r.ontleed || (extern ? resOntleed(r) : {});
   const bewerkenExtern = `
     <p class="note" style="margin-top:0">${volledig ? '<strong>Uit de agenda:</strong> ' + esc(volledig) + '<br>' : ''}Deze regel komt uit de agenda${
       r.bron ? ' via ' + esc(r.bron) : ''} en is daar niet te wijzigen. Wat je hieronder invult wordt apart bewaard
@@ -4184,7 +4201,16 @@ document.addEventListener('click', async e=>{
     const open = rij.classList.toggle('open');
     if(detail){
       detail.hidden = !open;
-      if(open) detail.firstElementChild.innerHTML = resDetailHtml(KAL_LIJST[Number(i)], i);
+      if(open){
+        try{ detail.firstElementChild.innerHTML = resDetailHtml(KAL_LIJST[Number(i)], i); }
+        catch(err){
+          detail.firstElementChild.innerHTML =
+            '<div class="empty"><strong>Deze kaart kon niet worden opgebouwd</strong>' +
+            esc(err && err.message ? err.message : String(err)) +
+            '<br><span style="opacity:.7">Stuur deze melding door, dan kan ik het gericht herstellen.</span></div>';
+          if(window.console) console.error('resDetailHtml:', err);
+        }
+      }
     }
     return;
   }
@@ -4378,6 +4404,105 @@ document.addEventListener('click', async e=>{
     kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
     $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
   }
+});
+
+/* ---------------- ALLE RESERVERINGEN EN FORMULIEREN ----------------
+   Twee keuzelijsten met één zoekveld erboven: zoek op naam, datum,
+   reserveringsnummer of boekingsplatform en de volledige kaart klapt eronder
+   open, met dezelfde knoppen als in de lijst op de overzichtspagina. */
+const AR = {res:[], forms:[]};
+function arTekst(r){
+  const k = r.kop || {};
+  const d = String(r.start||'').slice(0,10);
+  return [r.naam, (r.ontleed||{}).naam, k.gast, r.ref, k.res_sleutel, r.locatie, r.bron,
+    d, dmy(d), k.telefoon, k.email, (r.ruw||{}).titel].filter(Boolean).join(' ').toLowerCase();
+}
+function arFormTekst(f){
+  return [formNaam(f), formRef(f), formLoc(f), formDatum(f), dmy(formDatum(f)),
+    fveld(f,['email']), fveld(f,['telefoon']), fveld(f,['boeking_via','bron']), f._soort]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function arVul(){
+  const sel = $('#arRes'); if(!sel) return;
+  const q = (($('#arZoek')||{}).value || '').toLowerCase().trim();
+  const nr = v => /^\d{4,9}$/.test(String(v||''));
+
+  AR.res = RES.filter(r=>!q || arTekst(r).includes(q))
+    .sort((a,b)=> String(b.start||'').localeCompare(String(a.start||'')));
+  const vorige = sel.value;
+  sel.innerHTML = AR.res.length
+    ? AR.res.map((r,i)=>`<option value="${i}">${esc(dmy(String(r.start||'').slice(0,10)))} · ${
+        esc(r.locatie||'onbekend')} · ${esc((r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || 'gast')}${
+        nr(r.ref) ? ' · #'+esc(r.ref) : ''}${r.bron ? ' · '+esc(r.bron) : ''}</option>`).join('')
+    : '<option value="">geen reservering gevonden</option>';
+  if(vorige && AR.res[vorige]) sel.value = vorige;
+
+  const fsel = $('#arForm');
+  AR.forms = FORMS.filter(f=>!q || arFormTekst(f).includes(q))
+    .sort((a,b)=> String(formDatum(b)).localeCompare(String(formDatum(a))));
+  if(fsel) fsel.innerHTML = AR.forms.length
+    ? AR.forms.map((f,i)=>`<option value="${i}">${esc(formNaam(f)||'zonder naam')} · ${
+        esc(formDatum(f) ? dmy(formDatum(f)) : 'geen datum')}${formLoc(f)?' · '+esc(formLoc(f)):''} · ${
+        esc(f._soort)}</option>`).join('')
+    : '<option value="">geen formulier gevonden</option>';
+
+  const h = $('#arHint');
+  if(h) h.textContent = AR.res.length + ' reservering' + (AR.res.length===1?'':'en') +
+    ' · ' + AR.forms.length + ' formulier' + (AR.forms.length===1?'':'en');
+  arDetail(); arFormDetail();
+}
+function arDetail(){
+  const doel = $('#arDetail'); if(!doel) return;
+  const r = AR.res[Number(($('#arRes')||{}).value)];
+  if(!r){ doel.innerHTML = '<div class="empty" style="padding:12px 0">Kies een reservering om alle gegevens te zien.</div>'; return; }
+  let i = KAL_LIJST.indexOf(r);
+  if(i < 0){ KAL_LIJST.push(r); i = KAL_LIJST.length - 1; }
+  try{
+    doel.innerHTML = '<div class="od" style="--c:' + (KAL_KLEUR[r.locatie] || 'var(--muted)') + '">' +
+      resDetailHtml(r, i) + '</div>';
+  }catch(err){
+    doel.innerHTML = '<div class="empty"><strong>Deze kaart kon niet worden opgebouwd</strong>' +
+      esc(err && err.message ? err.message : String(err)) + '</div>';
+    if(window.console) console.error('resDetailHtml:', err);
+  }
+}
+function arFormDetail(){
+  const doel = $('#arFormDetail'); if(!doel) return;
+  const f = AR.forms[Number(($('#arForm')||{}).value)];
+  if(!f){ doel.innerHTML = ''; return; }
+  const rij = (l,w)=> w ? `<div><span class="lab">${esc(l)}</span>${esc(w)}</div>` : '';
+  doel.innerHTML = `<div class="od" style="--c:var(--ok)">
+    <div class="odkop">
+      <span class="pill accent">${esc(f._soort)}</span>
+      <span><strong>${esc(formNaam(f) || 'zonder naam')}</strong></span>
+      ${formDatum(f)?`<span>· ${esc(dmy(formDatum(f)))}</span>`:''}
+      ${formLoc(f)?`<span class="pill neutral">${esc(formLoc(f))}</span>`:''}
+      ${formRef(f)?`<span class="pill neutral">#${esc(formRef(f))}</span>`:''}
+      <span class="pill ${formGekoppeld(f)?'ok':'warn'}">${formGekoppeld(f)?'gekoppeld':'nog niet gekoppeld'}</span>
+    </div>
+    <div class="resdl" style="margin-top:10px">
+      ${rij('E-mail', fveld(f,['email','mail']))}
+      ${rij('Telefoon', fveld(f,['telefoon','tel','mobiel']))}
+      ${rij('Adres', fveld(f,['adres','straat']))}
+      ${rij('Woonplaats', fveld(f,['woonplaats','plaats']))}
+      ${rij('Personen', fveld(f,['personen','aantal_personen']))}
+      ${rij('Nationaliteit', fveld(f,['nationaliteit']))}
+      ${rij('Geboortedatum', fveld(f,['geboortedatum']))}
+      ${rij('Aankomst', formDatum(f) ? dmy(formDatum(f)) : '')}
+      ${rij('Vertrek', String(fveld(f,['checkuitdatum','vertrek'])||'').slice(0,10))}
+      ${rij('Boeking via', fveld(f,['boeking_via','bron']))}
+      ${rij('Opmerkingen', fveld(f,['opmerkingen','notitie']))}
+    </div>
+    <div style="margin-top:10px">
+      <a class="btn ghost small" href="${esc(FORM_LM)}?id=${encodeURIComponent(f.id)}"
+         target="_blank" rel="noopener" style="text-decoration:none">Formulier openen</a>
+    </div>
+  </div>`;
+}
+['#arZoek','#arRes','#arForm'].forEach(x=>{
+  const el = $(x); if(!el) return;
+  el.addEventListener(x === '#arZoek' ? 'input' : 'change',
+    x === '#arZoek' ? arVul : (x === '#arRes' ? arDetail : arFormDetail));
 });
 
 /* Elk genummerd kopje in het welkomstcallformulier wordt een uitklapbare sectie.
@@ -5976,7 +6101,7 @@ async function laadOverzicht(){
   await laadDiensten(); await laadGesprekken(); await laadFormulieren();
   resPasKoppelingToe();
   renderLocaties(); renderKalender(); renderDiensten(); rzVul(); renderGesprekken();
-  kpVulFormulieren(); wcHaalVul();
+  kpVulFormulieren(); wcHaalVul(); arVul();
   wcAutoAanmaken();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
@@ -6992,39 +7117,53 @@ $('#wcVersturen').addEventListener('click', ()=>{
   $('#wcNote').textContent = tel ? 'WhatsApp is geopend met het bericht klaar.' :
     'Geen telefoonnummer ingevuld — WhatsApp is geopend zonder ontvanger, kies daar zelf de contactpersoon.';
 });
-/* Mollie-snelknop: bedrag en omschrijving op het klembord, daarna Mollie openen.
-   De sleutel van Mollie staat bewust niet in deze pagina — die is openbaar. */
-const MOLLIE_LINKS = 'https://my.mollie.com/dashboard/payment-links';
+/* Mollie-betaallink via de beveiligde Supabase Edge Function. */
+async function functieApi(naam, body, tweedePoging){
+  if(ingelogd() && SESSIE.verloopt && Date.now() > SESSIE.verloopt) await vernieuwSessie();
+  const r = await fetch(CFG.url.replace(/\/$/,'')+'/functions/v1/'+naam, {
+    method:'POST', headers:heads(), body:JSON.stringify(body||{})
+  });
+  if((r.status===401 || r.status===403) && !tweedePoging && ingelogd() && await vernieuwSessie())
+    return functieApi(naam, body, true);
+  const txt = await r.text(); let d={}; try{ d=txt?JSON.parse(txt):{}; }catch(e){}
+  if(!r.ok) throw new Error(d.error || d.message || ('fout '+r.status));
+  return d;
+}
 $('#wcMollieOpen').addEventListener('click', async ()=>{
   const f = wcFormulier();
-  const bedrag = (Number(f.totaal)||0).toFixed(2);
   const oms = [f.naam || 'gast', f.locatie, f.datum ? dmy(f.datum) : '',
     f.referentie ? 'res. '+f.referentie : ''].filter(Boolean).join(' · ');
-  const note = $('#wcMollieNote');
+  const note = $('#wcMollieNote'), knop=$('#wcMollieOpen');
   if(!Number(f.totaal)){
     if(note) note.textContent = 'Er staat nog niets bijgeboekt — vink eerst de extra\'s aan.';
     return;
   }
-  try{ await navigator.clipboard.writeText(bedrag); }catch(e){}
-  window.open(MOLLIE_LINKS, '_blank', 'noopener');
-  if(note) note.innerHTML = 'Mollie is geopend. Maak daar een betaallink voor <strong>'+eur(f.totaal)+
-    '</strong> (het bedrag staat op je klembord) met als omschrijving <strong>'+esc(oms)+
-    '</strong>. Kopieer daarna de link en klik hier op "Link van klembord plakken".';
+  knop.disabled=true; knop.textContent='Betaallink maken…';
+  if(note) note.textContent='Veilige Mollie-betaallink wordt aangemaakt…';
+  try{
+    const d=await functieApi('mollie-create-payment', {
+      bedrag:Number(f.totaal), omschrijving:oms || 'Bed & Wellness Flevoland',
+      reservering:f.referentie || '', gast:f.naam || ''
+    });
+    if(!d.checkoutUrl) throw new Error('Er is geen betaallink ontvangen.');
+    $('#wcBetaallink').value=d.checkoutUrl; wcVersTekst(true);
+    if(note) note.innerHTML='Testbetaallink voor <strong>'+eur(f.totaal)+'</strong> aangemaakt. De link staat nu automatisch in het bericht.';
+    toast('Mollie-betaallink aangemaakt.');
+  }catch(e){
+    if(note) note.textContent='Betaallink maken mislukt: '+e.message;
+    toast('Mollie-betaallink maken is niet gelukt.');
+  }finally{
+    knop.disabled=false; knop.textContent='Betaallink automatisch maken';
+  }
 });
 $('#wcMolliePlak').addEventListener('click', async ()=>{
-  const note = $('#wcMollieNote');
+  const note = $('#wcMollieNote'), link=$('#wcBetaallink').value.trim();
+  if(!/^https?:\/\//i.test(link)){ if(note) note.textContent='Maak eerst een betaallink aan.'; return; }
   try{
-    const t = (await navigator.clipboard.readText()).trim();
-    if(!/^https?:\/\//i.test(t)){
-      if(note) note.textContent = 'Op je klembord staat geen webadres. Kopieer eerst de betaallink in Mollie.';
-      return;
-    }
-    $('#wcBetaallink').value = t;
-    wcVersTekst(true);
-    if(note) note.textContent = 'Betaallink overgenomen — hij staat nu ook in het bericht hieronder.';
-    toast('Betaallink toegevoegd.');
+    await navigator.clipboard.writeText(link);
+    if(note) note.textContent='Betaallink gekopieerd.'; toast('Betaallink gekopieerd.');
   }catch(e){
-    if(note) note.textContent = 'Je browser geeft geen toegang tot het klembord. Plak de link zelf in het veld hierboven.';
+    if(note) note.textContent='Kopiëren lukt niet automatisch. Selecteer de link in het veld hierboven.';
   }
 });
 
@@ -7794,3 +7933,6 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
+  
+
+  
