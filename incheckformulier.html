@@ -1586,6 +1586,7 @@ function clearCheckinForm(){
 
 /* ================= RECENT OPGESLAGEN (personeel) ================= */
 let openDetailId = null;
+try{ Object.defineProperty(window, 'openDetailId', { get: function(){ return openDetailId; } }); }catch(e){}
 function renderCheckinTable(){
   const body = document.getElementById('checkinTableBody');
   const afgerond = checkins.filter(c=>c.status !== 'concept');
@@ -1609,6 +1610,7 @@ function openCheckinDetail(id){
   const c = checkins.find(x=>x.id===id);
   if(!c) return;
   openDetailId = id;
+  window.__bwfDetailId = id;
   document.getElementById('cdNaam').textContent = `${c.voornaam||''} ${c.achternaam||''}`.trim() || 'Onbekende gast';
   document.getElementById('cdLocatie').textContent = locName(c.locatie);
   const rows = [
@@ -1819,7 +1821,7 @@ var serviceGekozen = [];         // [{naam, aantal, prijs}]
 var betalingen = [];             // [{bedrag, wijze, omschrijving, moment}]
 var resArrangementen = [];       // arrangementen van de gekoppelde reservering
 var gekoppeld = null;            // {bron, id, label}
-var RESERVERINGEN = [], KLANTEN = [], AGENDA_RES = [];
+var RESERVERINGEN = [], KLANTEN = [], AGENDA_RES = [], KOPPELING = {};
 
 /* ---------- reserveringen uit de agenda (dezelfde koppeling als het dashboard) ---------- */
 var AGENDA_CFG = {
@@ -1859,14 +1861,32 @@ function agNaam(t){
   if(!beste.length || (beste.length === 1 && !tel)) return '';
   return beste.slice(0,3).join(' ');
 }
+/* leest de losse regels die het terminalscript in de omschrijving zet */
+function agLabels(t){
+  var s = String(t||''), uit = {};
+  function pak(label){
+    var m = s.match(new RegExp('(?:^|\\n)\\s*'+label+'\\s*:\\s*([^\\n]+)', 'i'));
+    return m ? m[1].trim() : '';
+  }
+  uit.nummer   = pak('Reserveringsnummer');
+  uit.naam     = pak('Naam');
+  uit.email    = pak('E-?mail');
+  uit.telefoon = pak('Tel');
+  uit.personen = pak('Aantal personen');
+  uit.arr      = pak('Arrangementen');
+  uit.totaal   = pak('Totaal');
+  uit.betaald  = pak('Betaald');
+  uit.bij      = pak('Betalen bij Aankomst');
+  return uit;
+}
 function agGetal(s){
-  s = String(s||'').replace(/\s/g,'');
+  s = String(s||'').replace(/\u20ac/g,'').replace(/\s/g,'');
   if(/,\d{1,2}$/.test(s)) s = s.replace(/\./g,'').replace(',', '.');
   else s = s.replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
   var n = parseFloat(s); return isNaN(n) ? 0 : n;
 }
 function agBedragen(t){
-  var uit = { totaal:0, betaald:0 }, s = String(t||'');
+  var uit = { totaal:0, betaald:0, open:0, onzeker:false }, s = String(t||'');
   var re = /(\u20ac\s*)?(\d[\d.]*(?:,\d{1,2})?)(\s*,-|\s*euro\b)?/gi, m, punten = [];
   while((m = re.exec(s)) !== null){
     var w = agGetal(m[2]); if(!w) continue;
@@ -1886,7 +1906,10 @@ function agBedragen(t){
     else if(/betaald|betaalt|voldaan/i.test(na + ' ' + voor)) uit.betaald += p.w;
     else genoemd = Math.max(genoemd, p.w);
   });
+  uit.open = open;
   uit.totaal = Math.max(genoemd, uit.betaald + open);
+  /* alleen een "bij aankomst"-bedrag gevonden? dan kennen we het totaal niet */
+  uit.onzeker = (uit.betaald === 0 && genoemd === 0 && open > 0);
   return uit;
 }
 function agLocatie(kort){
@@ -1917,8 +1940,21 @@ async function laadAgenda(){
       .filter(function(ev){ return ev.soort === 'reservering' || ev.soort === 'extern'; })
       .map(function(ev){
         var tekst = (ev.titel||'') + ' ' + (ev.omschrijving||'');
-        var naam = agNaam(ev.titel||''), delen = naam.split(' ');
+        var L = agLabels(ev.omschrijving||'');
+        var naam = L.naam || agNaam(ev.titel||''), delen = String(naam).split(' ');
         var geld = agBedragen(tekst);
+        var lTot = agGetal(L.totaal), lBet = agGetal(L.betaald), lBij = agGetal(L.bij);
+        if(lTot) geld = { totaal:lTot, betaald:lBet||0,
+                          open: lBij || Math.max(0, lTot-(lBet||0)), onzeker:false };
+        /* uit Supabase (gevuld door het terminalscript) \u2014 dat weegt het zwaarst */
+        var K = KOPPELING[String(ev.nummer||'')] || {};
+        var kTot = parseFloat(K.totaal), kBet = parseFloat(K.betaald);
+        if(!isNaN(kTot) && kTot > 0){
+          geld = { totaal:kTot, betaald:isNaN(kBet)?0:kBet,
+                   open: Math.max(0, kTot - (isNaN(kBet)?0:kBet)), onzeker:false };
+          if(K.gast) naam = K.gast;
+          delen = String(naam).split(' ');
+        }
         return {
           id: 'ag-' + (ev.nummer || (ev.suite + '-' + ev.start)),
           uitAgenda: true,
@@ -1929,12 +1965,13 @@ async function laadAgenda(){
                          ? String(ev.eind||'').slice(0,10) : '',
           checkintijd:  String(ev.start||'').slice(11,16),
           checkuittijd: String(ev.eind||'').slice(11,16),
-          reserveringsnummer: ev.nummer || '',
-          personen: ev.personen || '',
-          telefoon: ev.telefoon || agTel(tekst),
-          email: ev.email || agMail(tekst),
+          reserveringsnummer: L.nummer || ev.nummer || '',
+          personen: K.personen || L.personen || ev.personen || '',
+          telefoon: K.telefoon || L.telefoon || ev.telefoon || agTel(tekst),
+          email: K.email || L.email || ev.email || agMail(tekst),
           totaal: geld.totaal, betaald: geld.betaald,
-          arrangementen: (ev.arrangementen||[]).join(', '),
+          openstaand: geld.open, bedragOnzeker: geld.onzeker,
+          arrangementen: K.arrangement || L.arr || (ev.arrangementen||[]).join(', '),
           omschrijving: ev.omschrijving || '',
           opmerkingen: ev.titel || '',
           boekingsbron: agBron(tekst)
@@ -1949,6 +1986,11 @@ var NIEUWE_KOLOMMEN = true;
 async function laadKoppelBronnen(){
   try{ RESERVERINGEN = await sb('reservations?select=*&order=checkindatum.desc&limit=800') || []; }
   catch(e){ RESERVERINGEN = []; }
+  try{
+    KOPPELING = {};
+    (await sb('res_koppeling?select=*&limit=5000') || [])
+      .forEach(function(k){ KOPPELING[String(k.res_sleutel)] = k; });
+  }catch(e){ KOPPELING = {}; }
   await laadAgenda();
   try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=3000') || []; }
   catch(e){ KLANTEN = []; }
@@ -3602,6 +3644,421 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 400); });
   else setTimeout(start, 400);
+})();
+</script>
+
+<script id="bwf-incheck-bedragen">
+/* Als de agenda alleen "Betalen bij Aankomst" geeft, kennen we het totaal niet.
+   Dan vragen we dat één keer en rekenen we het betaalde bedrag zelf uit. */
+(function(){
+  function eur(n){ return "\u20ac " + (Math.round(n*100)/100).toFixed(2).replace(".", ","); }
+  function getal(id){ var el = document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; }
+  function zet(id, w){
+    var el = document.getElementById(id); if(!el) return;
+    el.value = (Math.round(w*100)/100).toFixed(2);
+    el.dispatchEvent(new Event("input", { bubbles:true }));
+  }
+
+  function toonHulp(open){
+    var doel = document.getElementById("bwfResOverzicht");
+    if(!doel) return;
+    var oud = document.getElementById("bwfOpenHulp");
+    if(oud) oud.remove();
+    if(!open) return;
+
+    var d = document.createElement("div");
+    d.id = "bwfOpenHulp";
+    d.style.cssText = "grid-column:1/-1;border-top:1px solid var(--line);margin-top:6px;padding-top:12px;" +
+      "display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end";
+    d.innerHTML =
+      '<div style="flex:1;min-width:230px;font-size:13px;line-height:1.5;opacity:.8">' +
+      'Uit de agenda komt alleen <b>' + eur(open) + ' te betalen bij aankomst</b>. ' +
+      'Het totaal en wat er al is betaald staan in SMG. Vul het totaal hieronder in, ' +
+      'dan wordt het betaalde bedrag automatisch uitgerekend.</div>' +
+      '<div><label style="display:block;font-size:12px;margin-bottom:4px">Totaalbedrag volgens SMG</label>' +
+      '<input type="number" id="bwfTotaalSmg" step="0.01" min="0" placeholder="0,00" style="max-width:170px"></div>' +
+      '<button type="button" class="btn sm" id="bwfTotaalOk">Verwerken</button>';
+    doel.appendChild(d);
+
+    document.getElementById("bwfTotaalOk").onclick = function(){
+      var totaal = parseFloat(document.getElementById("bwfTotaalSmg").value) || 0;
+      if(totaal < open){
+        alert("Het totaal is lager dan wat er nog betaald moet worden (" + eur(open) + ").");
+        return;
+      }
+      zet("c_resbedrag", totaal);
+      zet("c_aanbetaald", totaal - open);
+      if(typeof herberekenAlles === "function") herberekenAlles();
+      d.remove();
+    };
+  }
+
+  /* na het overnemen van een reservering kijken wat we echt weten */
+  function naOvernemen(){
+    var x = (typeof koppelHuidige === "function") ? koppelHuidige() : null;
+    var d = x ? x.data : null;
+    if(!d) return;
+    if(d.bedragOnzeker && d.openstaand){
+      zet("c_resbedrag", d.openstaand);
+      zet("c_aanbetaald", 0);
+      toonHulp(d.openstaand);
+      var st = document.getElementById("k_status");
+      if(st){
+        st.className = "status";
+        st.innerHTML = "\u2713 Gegevens overgenomen. <b>Let op:</b> uit de agenda komt alleen " +
+          eur(d.openstaand) + " te betalen bij aankomst \u2014 vul het totaal uit SMG in bij Boekingsgegevens.";
+      }
+    } else {
+      var oud = document.getElementById("bwfOpenHulp");
+      if(oud) oud.remove();
+    }
+    if(typeof herberekenAlles === "function") herberekenAlles();
+  }
+
+  function haak(){
+    if(typeof window.neemKoppelOver !== "function"){ setTimeout(haak, 400); return; }
+    if(window.neemKoppelOver.__bwf) return;
+    var origineel = window.neemKoppelOver;
+    window.neemKoppelOver = function(){
+      var r = origineel.apply(this, arguments);
+      setTimeout(naOvernemen, 60);
+      return r;
+    };
+    window.neemKoppelOver.__bwf = true;
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", haak);
+  else haak();
+})();
+</script>
+
+<style id="bwf-definitief-css">
+#defFilters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:4px 0 14px}
+#defFilters label{display:block;font-size:12px;margin-bottom:4px;color:var(--ink-2)}
+#defBalk{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+#defTel{font-size:13px;color:var(--muted)}
+.def-vlag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.def-vlag.klant{background:var(--ok-soft);color:var(--ok)}
+.def-vlag.nieuw{background:var(--warn-soft);color:var(--warn)}
+.def-vlag.member{background:var(--accent);color:#fff;margin-left:5px}
+#defTabel td.acties{white-space:nowrap;text-align:right}
+#defTabel td.acties button{margin-left:5px}
+#defTabel tbody tr{cursor:pointer}
+@media(max-width:620px){
+  #defTabel thead{display:none}
+  #defTabel td{display:block;border:0;padding:3px 10px}
+  #defTabel tr{display:block;border-bottom:1px solid var(--line);padding:10px 0}
+  #defTabel td.acties{text-align:left;padding-top:8px}
+}
+</style>
+
+<script id="bwf-definitief-js">
+/* =========================================================
+   Definitieve incheckformulieren: filteren, afdrukken,
+   klant aanmaken en de memberlijst bijwerken.
+   ========================================================= */
+(function(){
+
+  function eur(n){ return "\u20ac " + (Math.round((Number(n)||0)*100)/100).toFixed(2).replace(".", ","); }
+  function veilig(s){ return String(s == null ? "" : s)
+    .replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function naamVan(c){ return ((c.voornaam||"") + " " + (c.achternaam||"")).trim() || "Onbekende gast"; }
+
+  /* ---------- filters boven de tabel ---------- */
+  function bouwFilters(){
+    var tabel = document.getElementById("checkinTableBody");
+    if(!tabel || document.getElementById("defFilters")) return;
+    var kaart = tabel.closest(".card"); if(!kaart) return;
+    tabel.parentElement.id = "defTabel";
+
+    var f = document.createElement("div");
+    f.id = "defFilters";
+    f.innerHTML =
+      '<div><label for="defZoek">Zoeken</label>' +
+      '<input type="text" id="defZoek" placeholder="naam, reserveringsnummer of woonplaats"></div>' +
+      '<div><label for="defLoc">Locatie</label><select id="defLoc">' +
+      '<option value="">Alle locaties</option>' +
+      '<option value="jacuzzi">Malina Jacuzzi</option>' +
+      '<option value="deluxe">Malina Deluxe</option>' +
+      '<option value="angie">Suite Angie</option></select></div>' +
+      '<div><label for="defVan">Van</label><input type="date" id="defVan"></div>' +
+      '<div><label for="defTot">Tot en met</label><input type="date" id="defTot"></div>' +
+      '<div><label for="defKlant">Klantenbestand</label><select id="defKlant">' +
+      '<option value="">Alles</option>' +
+      '<option value="nee">Nog niet aangemaakt</option>' +
+      '<option value="ja">Al aangemaakt</option>' +
+      '<option value="member">Wil member worden</option></select></div>';
+
+    var balk = document.createElement("div");
+    balk.id = "defBalk";
+    balk.innerHTML =
+      '<button class="btn secondary sm" type="button" id="defWis">Filter wissen</button>' +
+      '<button class="btn sm" type="button" id="defBulk">Alle afgeronde verblijven doorzetten</button>' +
+      '<span id="defTel"></span>';
+
+    tabel.parentElement.parentElement.insertBefore(f, tabel.parentElement);
+    tabel.parentElement.parentElement.insertBefore(balk, tabel.parentElement);
+
+    ["defZoek","defLoc","defVan","defTot","defKlant"].forEach(function(id){
+      var el = document.getElementById(id);
+      el[id === "defZoek" ? "oninput" : "onchange"] = teken;
+    });
+    document.getElementById("defWis").onclick = function(){
+      ["defZoek","defLoc","defVan","defTot","defKlant"].forEach(function(id){
+        document.getElementById(id).value = ""; });
+      teken();
+    };
+    document.getElementById("defBulk").onclick = bulk;
+  }
+
+  /* ---------- staat de gast al in het klantenbestand? ---------- */
+  var KLANTEN_CACHE = [];
+  async function laadKlanten(){
+    try{ KLANTEN_CACHE = await sb("wz_klantbeheer?select=id,achternaam,email,datum_in,member&limit=5000") || []; }
+    catch(e){ KLANTEN_CACHE = []; }
+  }
+  function isKlant(c){
+    if(KLANTEN_CACHE.some(function(k){ return String(k.id) === "ci-" + c.id; })) return true;
+    var mail = String(c.email||"").toLowerCase().trim();
+    var ach  = String(c.achternaam||"").toLowerCase().trim();
+    return KLANTEN_CACHE.some(function(k){
+      if(mail && String(k.email||"").toLowerCase().trim() === mail) return true;
+      return ach && String(k.achternaam||"").toLowerCase().trim() === ach &&
+             String(k.datum_in||"").slice(0,10) === String(c.datum||"").slice(0,10);
+    });
+  }
+
+  /* ---------- de lijst tekenen ---------- */
+  function gefilterd(){
+    var zk  = (document.getElementById("defZoek")||{}).value || "";
+    var loc = (document.getElementById("defLoc")||{}).value || "";
+    var van = (document.getElementById("defVan")||{}).value || "";
+    var tot = (document.getElementById("defTot")||{}).value || "";
+    var kl  = (document.getElementById("defKlant")||{}).value || "";
+    zk = zk.toLowerCase().trim();
+
+    return (window.checkins || []).filter(function(c){
+      if(c.status === "concept") return false;
+      if(loc && c.locatie !== loc) return false;
+      var d = String(c.datum||"").slice(0,10);
+      if(van && d && d < van) return false;
+      if(tot && d && d > tot) return false;
+      if(kl === "member" && !c.lid) return false;
+      if(kl === "ja"  && !isKlant(c)) return false;
+      if(kl === "nee" &&  isKlant(c)) return false;
+      if(zk){
+        var h = (naamVan(c) + " " + (c.resnr||"") + " " + (c.woonplaats||"") + " " +
+                 (c.email||"") + " " + (c.telefoon||"")).toLowerCase();
+        if(h.indexOf(zk) < 0) return false;
+      }
+      return true;
+    }).sort(function(a,b){ return String(b.datum||"").localeCompare(String(a.datum||"")); });
+  }
+
+  function teken(){
+    var body = document.getElementById("checkinTableBody");
+    if(!body) return;
+    bouwFilters();
+    var lijst = gefilterd();
+    var tel = document.getElementById("defTel");
+    if(tel){
+      var open = lijst.filter(function(c){ return !isKlant(c); }).length;
+      tel.textContent = lijst.length + " formulier" + (lijst.length === 1 ? "" : "en") +
+        (open ? " \u00b7 " + open + " nog niet in het klantenbestand" : "");
+    }
+    if(!lijst.length){
+      body.innerHTML = '<tr><td colspan="7" class="hint" style="padding:14px 4px;">Geen formulieren die aan dit filter voldoen.</td></tr>';
+      return;
+    }
+    body.innerHTML = lijst.map(function(c){
+      var kleur = c.locatie === "angie" ? "var(--loc-angie)"
+                : c.locatie === "jacuzzi" ? "var(--loc-jacuzzi)" : "var(--loc-deluxe)";
+      var klant = isKlant(c)
+        ? '<span class="def-vlag klant">In klantenbestand</span>'
+        : '<span class="def-vlag nieuw">Nog niet</span>';
+      if(c.lid) klant += '<span class="def-vlag member">Member</span>';
+      return '<tr>' +
+        '<td data-open="' + veilig(c.id) + '">' + veilig(c.datum||"") + '</td>' +
+        '<td data-open="' + veilig(c.id) + '"><span class="locbadge" style="background:' + kleur + ';">' +
+          veilig(locName(c.locatie)) + '</span></td>' +
+        '<td data-open="' + veilig(c.id) + '">' + veilig(naamVan(c)) + '</td>' +
+        '<td data-open="' + veilig(c.id) + '">' + veilig(String(c.personen == null ? "" : c.personen)) + '</td>' +
+        '<td data-open="' + veilig(c.id) + '">' + eur(c.totaal) + '</td>' +
+        '<td data-open="' + veilig(c.id) + '">' + klant + '</td>' +
+        '<td class="acties">' +
+          '<button class="btn secondary sm" type="button" data-print="' + veilig(c.id) + '">Pdf</button>' +
+          (isKlant(c) ? '' :
+            '<button class="btn sm" type="button" data-klant="' + veilig(c.id) + '">Klant</button>') +
+        '</td></tr>';
+    }).join("");
+  }
+
+  /* ---------- afdrukken of opslaan als pdf ---------- */
+  function afdrukken(id){
+    var c = (window.checkins || []).find(function(x){ return x.id === id; });
+    if(!c) return;
+    var overnacht = c.verblijftype === "overnachting";
+    function rij(l, w){
+      return '<tr><th>' + veilig(l) + '</th><td>' + veilig(w == null || w === "" ? "\u2014" : w) + '</td></tr>';
+    }
+    var lijst = function(a){ return (a && a.length) ? a.join(", ") : "Geen"; };
+    var h = '<!doctype html><html lang="nl"><head><meta charset="utf-8">' +
+      '<title>Incheckformulier ' + veilig(naamVan(c)) + '</title><style>' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#142033;margin:26px;font-size:13px}' +
+      'h1{font-size:20px;margin:0 0 2px}p.sub{color:#738097;margin:0 0 18px;font-size:12.5px}' +
+      'h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#738097;margin:20px 0 6px}' +
+      'table{border-collapse:collapse;width:100%}' +
+      'th{text-align:left;width:210px;font-weight:600;padding:5px 8px 5px 0;vertical-align:top;color:#35435a}' +
+      'td{padding:5px 0;border-bottom:1px solid #edf1f6}' +
+      '.geld td{font-weight:700}@media print{body{margin:12mm}}</style></head><body>' +
+      '<h1>' + veilig(naamVan(c)) + '</h1>' +
+      '<p class="sub">' + veilig(locName(c.locatie)) + ' \u00b7 ' + veilig(c.datum||"") +
+      (c.resnr ? ' \u00b7 reservering ' + veilig(c.resnr) : "") + '</p>' +
+      '<h2>Verblijf</h2><table>' +
+      rij("Boeking via", c.boeking_via) +
+      rij("Type verblijf", overnacht ? "Overnachting" : "Dagverblijf") +
+      rij("Check-in", (c.datum||"") + " " + (c.incheck||"")) +
+      rij("Check-out", (overnacht ? (c.checkuitdatum||"") : (c.datum||"")) + " " + (c.uitcheck||"")) +
+      rij("Locatiemanager", staffNameById(c.manager)) +
+      rij("Aantal personen", c.personen) +
+      rij("Waarvan kinderen", c.aantal_kinderen || 0) +
+      '</table><h2>Gast</h2><table>' +
+      rij("Naam", naamVan(c)) + rij("Woonplaats", c.woonplaats) +
+      rij("Nationaliteit", c.nationaliteit) + rij("E-mail", c.email) +
+      rij("Telefoon", c.telefoon) + rij("Wil member worden", c.lid ? "Ja" : "Nee") +
+      '</table><h2>Geboekt en besteld</h2><table>' +
+      rij("Arrangementen", lijst(c.arrangementen)) +
+      rij("Vooraf gereserveerd", lijst(c.vooraf_gereserveerd)) +
+      rij("Op locatie besteld", lijst((c.bestellingen||[]).map(function(b){
+        return (b.aantal ? b.aantal + "\u00d7 " : "") + (b.naam || b.item || ""); }))) +
+      rij("Cadeau", c.cadeau) +
+      '</table><h2>Afrekening</h2><table class="geld">' +
+      rij("Vooraf gereserveerd bedrag", eur(c.reservering_bedrag)) +
+      rij("Extra\u2019s op locatie", eur(c.extras_totaal)) +
+      rij("Totaal", eur(c.totaal)) +
+      rij("Online betaald", eur(c.aanbetaald)) +
+      rij("Nog te betalen", eur(c.restant)) +
+      rij("Betaalwijze", c.betaalwijze) +
+      '</table>' +
+      (c.opmerkingen ? '<h2>Opmerkingen</h2><p>' + veilig(c.opmerkingen) + '</p>' : "") +
+      (c.handtekening ? '<h2>Handtekening</h2><img src="' + c.handtekening +
+        '" alt="handtekening" style="max-width:260px;border:1px solid #edf1f6">' : "") +
+      '<p class="sub" style="margin-top:24px">Bed &amp; Wellness Flevoland \u00b7 uitgedraaid op ' +
+      new Date().toLocaleDateString("nl-NL", { day:"numeric", month:"long", year:"numeric" }) + '</p>' +
+      '</body></html>';
+
+    var w = window.open("", "_blank");
+    if(!w){ alert("Je browser blokkeert het nieuwe venster. Sta pop-ups toe voor deze pagina."); return; }
+    w.document.write(h); w.document.close();
+    setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 400);
+  }
+
+  /* ---------- klant aanmaken, ook in bulk ---------- */
+  async function maakKlant(c){
+    var overnacht = c.verblijftype === "overnachting";
+    var nachten = 0;
+    if(overnacht && c.datum && c.checkuitdatum){
+      var d = (new Date(c.checkuitdatum + "T12:00:00") - new Date(c.datum + "T12:00:00")) / 86400000;
+      nachten = d > 0 ? Math.round(d) : 0;
+    }
+    var vn = (c.voornaam||"").trim();
+    var rij = {
+      id: "ci-" + c.id,
+      type: overnacht ? "overnachting" : "dagverblijf",
+      locatie_id: c.locatie || null,
+      datum_in: c.datum || null,
+      datum_uit: overnacht ? (c.checkuitdatum || null) : null,
+      nachten: nachten,
+      contact_datum: c.datum || null,
+      voorletters: vn ? vn.charAt(0).toUpperCase() + "." : "",
+      achternaam: c.achternaam || "",
+      woonplaats: c.woonplaats || "",
+      email: c.email || "",
+      telefoon: c.telefoon || "",
+      nationaliteit: c.nationaliteit || "",
+      personen: Number(c.personen) || 0,
+      kinderen: Number(c.aantal_kinderen) || 0,
+      kale_prijs: Number(c.reservering_bedrag) || 0,
+      totaal_betaald: Number(c.totaal) || 0,
+      member: !!c.lid,
+      bron: "Incheckformulier",
+      notitie: "Vanuit incheckformulier" + (vn ? " \u2014 voornaam: " + vn : "") +
+               (c.resnr ? " \u2014 res. " + c.resnr : "") + ". Kale kamerprijs controleren.",
+      aangemaakt: new Date().toISOString()
+    };
+    await sb("wz_klantbeheer", { method:"POST", body: JSON.stringify([rij]),
+      prefer: "resolution=merge-duplicates,return=minimal" });
+    KLANTEN_CACHE.push({ id: rij.id, achternaam: rij.achternaam, email: rij.email,
+      datum_in: rij.datum_in, member: rij.member });
+  }
+
+  async function bulk(){
+    var vandaag = new Date().toISOString().slice(0,10);
+    var open = (window.checkins || []).filter(function(c){
+      return c.status !== "concept" && c.achternaam &&
+             String(c.datum||"") <= vandaag && !isKlant(c);
+    });
+    if(!open.length){ alert("Alle afgeronde verblijven staan al in het klantenbestand."); return; }
+    var members = open.filter(function(c){ return c.lid; }).length;
+    if(!confirm(open.length + " gast(en) doorzetten naar het klantenbestand?\n\n" +
+      "Overnachtingen komen ook in het nachtregister voor de toeristenbelasting" +
+      (members ? ".\n" + members + " daarvan wil member worden en komt op de memberlijst." : "."))) return;
+
+    var knop = document.getElementById("defBulk");
+    knop.disabled = true;
+    var goed = 0, mis = 0;
+    for(var i = 0; i < open.length; i++){
+      knop.textContent = "Bezig \u2014 " + (i+1) + " van " + open.length;
+      try{ await maakKlant(open[i]); goed++; }catch(e){ mis++; }
+    }
+    knop.disabled = false;
+    knop.textContent = "Alle afgeronde verblijven doorzetten";
+    teken();
+    alert(goed + " toegevoegd aan het klantenbestand" + (mis ? ", " + mis + " mislukt" : "") + ".");
+  }
+
+  /* ---------- klikken in de tabel ---------- */
+  document.addEventListener("click", async function(e){
+    var p = e.target.closest("[data-print]");
+    if(p){ e.stopPropagation(); afdrukken(p.getAttribute("data-print")); return; }
+
+    var k = e.target.closest("[data-klant]");
+    if(k){
+      e.stopPropagation();
+      var c = (window.checkins || []).find(function(x){ return x.id === k.getAttribute("data-klant"); });
+      if(!c) return;
+      if(!c.achternaam){ alert("Er staat nog geen achternaam bij dit formulier."); return; }
+      k.disabled = true; k.textContent = "\u2026";
+      try{ await maakKlant(c); teken(); }
+      catch(err){ k.disabled = false; k.textContent = "Klant"; alert("Niet gelukt: " + err.message); }
+      return;
+    }
+
+    var o = e.target.closest("[data-open]");
+    if(o && typeof openCheckinDetail === "function") openCheckinDetail(o.getAttribute("data-open"));
+  });
+
+  /* ---------- de bestaande tekenfunctie overnemen ---------- */
+  function haak(){
+    if(typeof window.renderCheckinTable !== "function"){ setTimeout(haak, 400); return; }
+    if(window.renderCheckinTable.__bwf) return;
+    window.renderCheckinTable = teken;
+    window.renderCheckinTable.__bwf = true;
+    laadKlanten().then(teken);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", haak);
+  else haak();
+
+  /* een pdf-knop ook in het detailvenster */
+  var wacht = setInterval(function(){
+    var btn = document.getElementById("cdKlantBtn");
+    if(!btn || document.getElementById("cdPdf")) return;
+    clearInterval(wacht);
+    var p = document.createElement("button");
+    p.id = "cdPdf"; p.type = "button"; p.className = "btn secondary";
+    p.textContent = "Afdrukken of opslaan als pdf";
+    p.onclick = function(){ var id = window.__bwfDetailId || window.openDetailId; if(id) afdrukken(id); };
+    btn.parentElement.insertBefore(p, btn.nextSibling);
+  }, 500);
 })();
 </script>
 
