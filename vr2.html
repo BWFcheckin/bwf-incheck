@@ -743,6 +743,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
     <button class="tab" role="tab" data-groep="bellen">Belscripts &amp; lijsten<span class="badge" id="badge-groep-bellen">0</span></button>
     <button class="tab" role="tab" data-groep="entry">Data entry<span class="badge" id="badge-groep-entry">0</span></button>
+    <button class="tab" role="tab" data-groep="betalingen">Betalingen<span class="badge" id="badge-groep-betalingen" hidden>0</span></button>
     <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
   </nav>
 
@@ -758,6 +759,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     <button class="tab" role="tab" id="tab-werk" data-tab="werk" aria-selected="false" aria-controls="panel-werk">Werk &amp; tarieven<span class="badge" id="badge-werk">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-uploads" data-tab="uploads" aria-selected="false" aria-controls="panel-uploads">Uploads<span class="badge" id="badge-uploads">0</span></button>
+    <button class="tab" role="tab" id="tab-betalingen" data-tab="betalingen" aria-selected="false" aria-controls="panel-betalingen">Betalingen</button>
     <button class="tab" role="tab" id="tab-gmail" data-tab="gmail" aria-selected="false" aria-controls="panel-gmail">Gmail</button>
   </nav>
 
@@ -1848,6 +1850,31 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     </div>
   </section>
 
+  <section class="panel" id="panel-betalingen" role="tabpanel" aria-labelledby="tab-betalingen" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Mollie</span>
+      <h1>Betalingen</h1>
+      <p>Bekijk de betaalstatus van verstuurde Mollie-links. De status wordt veilig via de webhook bijgewerkt.</p>
+    </div>
+    <div class="stats" id="mbStats">
+      <div class="stat"><span class="label">Totaal</span><span class="value">€ 0,00</span><span class="sub">0 betalingen</span></div>
+      <div class="stat ok"><span class="label">Betaald</span><span class="value">€ 0,00</span><span class="sub">0 betalingen</span></div>
+      <div class="stat warn"><span class="label">Openstaand</span><span class="value">€ 0,00</span><span class="sub">0 betalingen</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Betaaloverzicht</h2><button class="btn ghost small" id="mbVervers" type="button">Vernieuwen</button></div>
+      <div class="card-body">
+        <div class="filters">
+          <div class="field"><label for="mbStatus">Status</label><select id="mbStatus"><option value="">Alle statussen</option><option value="open">Open</option><option value="pending">In behandeling</option><option value="paid">Betaald</option><option value="failed">Mislukt</option><option value="expired">Verlopen</option><option value="canceled">Geannuleerd</option></select></div>
+          <div class="field"><label for="mbModus">Modus</label><select id="mbModus"><option value="">Test en live</option><option value="test">Test</option><option value="live">Live</option></select></div>
+          <div class="field" style="flex:1;min-width:220px"><label for="mbZoek">Zoeken</label><input type="text" id="mbZoek" placeholder="Gast, reservering of omschrijving"></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Datum</th><th>Gast / reservering</th><th>Omschrijving</th><th>Status</th><th>Modus</th><th class="num">Bedrag</th><th></th></tr></thead><tbody id="mbLijst"><tr><td colspan="7"><div class="empty"><strong>Nog niet geladen</strong>Klik op Vernieuwen om betalingen op te halen.</div></td></tr></tbody></table></div>
+        <p class="note" id="mbNote"></p>
+      </div>
+    </div>
+  </section>
+
   <section class="panel" id="panel-gmail" role="tabpanel" aria-labelledby="tab-gmail" hidden>
     <div class="page-head">
       <span class="eyebrow">E-mail</span>
@@ -2299,6 +2326,7 @@ const GROEPEN = {
   klantbeheer:   ['klantbeheer'],
   bellen:        ['bellen'],
   entry:         ['entry'],
+  betalingen:    ['betalingen'],
   gmail:         ['gmail']
 };
 /* Klantbeheer krijgt een eigen paneel: de kaarten Nieuwe klant en Klantenbestand
@@ -2352,6 +2380,7 @@ function kiesGroep(groep){
   $$('#groeptabs .tab').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.groep===groep)));
   try{ sessionStorage.setItem(LS.tab, groep); }catch(e){}
   window.scrollTo({top:0, behavior:'instant'});
+  if(groep==='betalingen' && typeof laadBetalingen==='function') laadBetalingen();
 }
 /* een oud tabblad aanroepen brengt je naar de groep waar het in zit */
 function kiesTab(naam){
@@ -7167,6 +7196,50 @@ $('#wcMolliePlak').addEventListener('click', async ()=>{
   }
 });
 
+/* ============ Mollie-betaaloverzicht ============ */
+let MOLLIE_BETALINGEN=[];
+const mbStatusNaam=s=>({open:'Open',pending:'In behandeling',paid:'Betaald',failed:'Mislukt',expired:'Verlopen',canceled:'Geannuleerd'}[s]||s||'Onbekend');
+const mbStatusKlasse=s=>s==='paid'?'ok':(['open','pending'].includes(s)?'warn':(['failed','expired','canceled'].includes(s)?'crit':'neutral'));
+const mbVeiligeLink=u=>/^https:\/\/(?:www\.)?(?:pay\.)?mollie\.com\//i.test(String(u||''))?String(u):'';
+function mbGefilterd(){
+  const status=$('#mbStatus').value, modus=$('#mbModus').value, zoek=$('#mbZoek').value.trim().toLowerCase();
+  return MOLLIE_BETALINGEN.filter(b=>(!status||b.status===status)&&(!modus||b.mode===modus)&&(!zoek||[b.gast,b.reservering,b.omschrijving,b.mollie_id].join(' ').toLowerCase().includes(zoek)));
+}
+function renderBetalingen(){
+  const lijst=mbGefilterd(), betaald=MOLLIE_BETALINGEN.filter(b=>b.status==='paid'), open=MOLLIE_BETALINGEN.filter(b=>['open','pending'].includes(b.status));
+  const som=a=>a.reduce((t,b)=>t+Number(b.bedrag||0),0);
+  $('#mbStats').innerHTML=`<div class="stat"><span class="label">Totaal</span><span class="value">${eur(som(MOLLIE_BETALINGEN))}</span><span class="sub">${MOLLIE_BETALINGEN.length} betalingen</span></div>
+    <div class="stat ok"><span class="label">Betaald</span><span class="value">${eur(som(betaald))}</span><span class="sub">${betaald.length} betalingen</span></div>
+    <div class="stat warn"><span class="label">Openstaand</span><span class="value">${eur(som(open))}</span><span class="sub">${open.length} betalingen</span></div>`;
+  const badge=$('#badge-groep-betalingen'); badge.hidden=!open.length; badge.textContent=open.length;
+  $('#mbLijst').innerHTML=lijst.length?lijst.map(b=>{
+    const link=mbVeiligeLink(b.checkout_url), datum=b.bijgewerkt_op||b.mollie_aangemaakt_op||b.aangemaakt_op;
+    return `<tr><td>${esc(datum?new Date(datum).toLocaleString('nl-NL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—')}</td>
+      <td class="name">${esc(b.gast||'Onbekende gast')}<span class="meta">${b.reservering?'Res. '+esc(b.reservering):esc(b.mollie_id||'')}</span></td>
+      <td>${esc(b.omschrijving||'—')}</td><td><span class="pill ${mbStatusKlasse(b.status)}">${esc(mbStatusNaam(b.status))}</span></td>
+      <td><span class="pill neutral">${b.mode==='live'?'Live':'Test'}</span></td><td class="num">${eur(b.bedrag)}</td>
+      <td class="act">${link?`<button class="btn ghost small" type="button" data-mbkopieer="${esc(link)}">Kopieer</button> <a class="btn ghost small" href="${esc(link)}" target="_blank" rel="noopener" style="text-decoration:none">Open</a>`:''}</td></tr>`;
+  }).join(''):`<tr><td colspan="7"><div class="empty"><strong>Geen betalingen gevonden</strong>Pas de filters aan of maak eerst een testbetaallink.</div></td></tr>`;
+  $('#mbNote').textContent=lijst.length+' van '+MOLLIE_BETALINGEN.length+' betalingen getoond.';
+}
+async function laadBetalingen(){
+  if(!online()||!ingelogd()) return;
+  $('#mbNote').textContent='Betalingen laden…'; $('#mbVervers').disabled=true;
+  try{
+    MOLLIE_BETALINGEN=await api('mollie_betalingen?select=*&order=bijgewerkt_op.desc')||[];
+    renderBetalingen();
+  }catch(e){ $('#mbNote').textContent='Betalingen konden niet worden geladen: '+e.message; }
+  finally{ $('#mbVervers').disabled=false; }
+}
+$('#mbVervers').addEventListener('click',laadBetalingen);
+['#mbStatus','#mbModus'].forEach(s=>$(s).addEventListener('change',renderBetalingen));
+$('#mbZoek').addEventListener('input',renderBetalingen);
+$('#mbLijst').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-mbkopieer]'); if(!b) return;
+  try{ await navigator.clipboard.writeText(b.dataset.mbkopieer); toast('Betaallink gekopieerd.'); }
+  catch(err){ toast('Kopiëren is niet gelukt.'); }
+});
+
 $('#wcKopieer').addEventListener('click', async ()=>{
   const tekst = ($('#wcTekst').value || '').trim();
   try{ await navigator.clipboard.writeText(tekst); toast('Bericht gekopieerd.'); }
@@ -7933,6 +8006,4 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
-  
-
   
