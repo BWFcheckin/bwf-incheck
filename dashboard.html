@@ -514,14 +514,15 @@ body.gate-open{overflow:hidden}
 #panel-overzicht table.res tr.tussenkop td{background:var(--surface-2,#faf7f3);font-size:11.5px;
   letter-spacing:.08em;text-transform:uppercase;opacity:.65;font-weight:700;padding:9px 12px;cursor:default}
 
-dialog.bwfkaart{border:0;border-radius:16px;padding:0;width:min(680px,94vw);background:var(--surface,#fff);color:var(--ink,#241e19);box-shadow:0 24px 70px -30px rgba(0,0,0,.6)}
+dialog.bwfkaart{border:0;border-radius:16px;padding:0;width:min(980px,96vw);max-width:96vw;background:var(--surface,#fff);color:var(--ink,#241e19);box-shadow:0 24px 70px -30px rgba(0,0,0,.6)}
 dialog.bwfkaart::backdrop{background:rgba(20,16,13,.5)}
 dialog.bwfkaart .kkop{padding:18px 22px;border-bottom:1px solid var(--line,#e3dad0)}
 dialog.bwfkaart .kkop h2{font-size:20px;margin:0 0 4px}
 dialog.bwfkaart .kkop p{margin:0;font-size:13.5px;opacity:.7}
-dialog.bwfkaart .kbody{padding:18px 22px;max-height:64vh;overflow:auto}
+dialog.bwfkaart .kbody{padding:20px 26px;max-height:70vh;overflow:auto}
 dialog.bwfkaart .kvoet{padding:14px 22px;border-top:1px solid var(--line,#e3dad0);display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-dialog.bwfkaart dl{display:grid;grid-template-columns:150px 1fr;gap:7px 14px;margin:0 0 16px;font-size:14px}
+dialog.bwfkaart dl{display:grid;grid-template-columns:170px 1fr;gap:8px 18px;margin:0 0 16px;font-size:14.5px}
+@media(min-width:900px){dialog.bwfkaart dl{grid-template-columns:170px 1fr 170px 1fr}}
 dialog.bwfkaart dt{opacity:.62}
 dialog.bwfkaart dd{margin:0;font-weight:500}
 dialog.bwfkaart .geld{background:var(--surface-2,#faf7f3);border:1px solid var(--line,#e3dad0);border-radius:12px;padding:14px 16px;margin-bottom:16px}
@@ -769,6 +770,15 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 @media(max-width:620px){dialog.bwfkaart .contact-acties{align-items:flex-start}.contact-acties .rechts{width:100%;margin-left:0!important;display:grid!important;grid-template-columns:1fr 1fr}.contact-acties .rechts .knop{width:100%}.contact-acties .rechts .menu-link{grid-column:1/-1}}
 </style>
 
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="bwf-icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="BWF Lelystad">
 </head>
 <body>
 <script>
@@ -897,6 +907,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <option value="nieuw">Incheckformulier &mdash; nieuw en leeg</option>
           <option value="concept">Incheckformulieren &mdash; concepten</option>
           <option value="definitief" selected>Incheckformulieren &mdash; definitief</option>
+          <option value="schade">Schademeldingen</option>
         </select>
         <input type="search" id="cfZoek" placeholder="Zoek op naam of reserveringsnummer" style="min-width:200px">
         <select id="cfLoc">
@@ -1011,6 +1022,36 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="kvoet">
       <button class="knop" type="button" id="blokHerstel">Terug naar standaard</button>
       <button class="knop vol" type="button" id="blokSluit">Klaar</button>
+    </div>
+  </dialog>
+
+  <dialog class="bwfkaart" id="schadeKaart">
+    <div class="kkop"><h2>Schadeformulier</h2><p id="skSub"></p></div>
+    <div class="kbody">
+      <div class="tk-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+        <div class="field"><label for="sk-gast">Gast</label><input type="text" id="sk-gast"></div>
+        <div class="field"><label for="sk-email">E-mail</label><input type="text" id="sk-email"></div>
+        <div class="field"><label for="sk-tel">Telefoon</label><input type="text" id="sk-tel"></div>
+        <div class="field"><label for="sk-locatie">Suite</label><input type="text" id="sk-locatie"></div>
+        <div class="field"><label for="sk-datum">Datum schade</label><input type="date" id="sk-datum"></div>
+        <div class="field"><label for="sk-verz">Verzekeringsnummer</label><input type="text" id="sk-verz" placeholder="Indien van toepassing"></div>
+        <div class="field"><label for="sk-oorzaak">Oorzaak</label><input type="text" id="sk-oorzaak" placeholder="Bijv. gevallen glas, brandplek"></div>
+        <div class="field"><label for="sk-bedrag">Schadebedrag</label><input type="number" id="sk-bedrag" min="0" step="0.01" value="0"></div>
+        <div class="field"><label for="sk-voldaan">Voldaan</label>
+          <select id="sk-voldaan">
+            <option value="openstaand">Nog openstaand</option>
+            <option value="pin">Op locatie met pin</option>
+            <option value="contant">Op locatie contant</option>
+            <option value="borg">Ingehouden van de borg</option>
+          </select></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="sk-oms">Omschrijving van de schade</label>
+        <textarea id="sk-oms" rows="4"></textarea></div>
+      <p class="note" id="skBorgNote"></p>
+    </div>
+    <div class="kvoet">
+      <button class="knop" type="button" id="skSluit">Annuleren</button>
+      <button class="knop vol" type="button" id="skBewaar">Schade vastleggen</button>
     </div>
   </dialog>
 
@@ -2695,6 +2736,19 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     blok:'Niet beschikbaar', vrij:'Nog te boeken', schoonmaak:'Schoonmaak', gesloten:'Gesloten' };
   function alleenTijden(soort){ return soort==='blok' || soort==='vrij'; }
 
+  /* kanalen die standaard een overnachting zijn */
+  var NACHT_WOORDEN = /booking\.com|special\s*moments|specialmoments|\bsmg\b|origineel\s*overnacht|orgineel\s*overnacht|overnacht|late\s*check-?in|honeymoon|bruidsnacht|relax\s*&\s*stay|wellness\s*experience/i;
+  function verblijfType(r){
+    if(!r || r.soort==='blok' || r.soort==='vrij' || r.soort==='schoonmaak' || r.soort==='gesloten') return '';
+    if(r.vertrek && r.aankomst && r.vertrek > r.aankomst) return 'Overnachting';
+    var i = naarMin(r.tijdIn), u = naarMin(r.tijdUit);
+    if(i !== null && u !== null && u <= i) return 'Overnachting';
+    var tekst = (r.titel||'')+' '+(r.omschrijving||'')+' '+(r.kanaal||'')+' '+
+      ((r.voornaam||'')+' '+(r.achternaam||''));
+    if(NACHT_WOORDEN.test(tekst)) return 'Overnachting';
+    return 'Dagverblijf';
+  }
+
   /* vaste tijdsblokken per suite \u2014 aan te passen in het dashboard */
   var BLOK_STANDAARD = [
     { suite:'beide', van:'12:30', tot:'15:30', naam:'Middag 3 uur' },
@@ -2771,7 +2825,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* ---------- gegevens ---------- */
   var ALLES=[], KOPPEL={}, KLANTEN=[], MEDEWERKERS=[], CHECKINS=[], CALLS=[], TAKEN=[];
-  var DIENSTEN=[], TEAM=[], DIENSTKLEUR={}, VOORRAAD=[], AANMELDINGEN=[];
+  var DIENSTEN=[], TEAM=[], DIENSTKLEUR={}, VOORRAAD=[], AANMELDINGEN=[], SCHADE=[];
   var kalWeergave='maand', anker=new Date(), geladen=false;
 
   function uitAgenda(ev){
@@ -2818,15 +2872,81 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var k = kop(r);
     return k.gast || (r.voornaam+' '+r.achternaam).trim() || r.titel || 'Zonder naam';
   }
+  /* bedragen die in de titel of omschrijving genoemd worden */
+  var BRONNEN = ['Website','Priv\u00e9 sauna','Secret Rooms','Origineel Overnachten','Booking.com',
+    'Planyo','WhatsApp','Telefonisch','Herhaalgast','Anders'];
+  function kanaalUitTekst(t){
+    var s = String(t||'').toLowerCase();
+    if(/booking\.com/.test(s))                       return 'Booking.com';
+    if(/secret\s*rooms/.test(s))                     return 'Secret Rooms';
+    if(/priv[e\u00e9]\s*sauna|privesauna/.test(s))  return 'Priv\u00e9 sauna';
+    if(/orig?ineel\s*overnacht/.test(s))             return 'Origineel Overnachten';
+    if(/planyo/.test(s))                             return 'Planyo';
+    if(/whats\s*app|\bwa\b/.test(s))                return 'WhatsApp';
+    if(/telefonisch/.test(s))                        return 'Telefonisch';
+    if(/website/.test(s))                            return 'Website';
+    return '';
+  }
+  function naarGetal(s){
+    s = String(s||'').replace(/\s/g,'').replace(/[.\u2013-]$/,'');
+    if(/,\d{1,2}$/.test(s)) s = s.replace(/\./g,'').replace(',', '.');
+    else s = s.replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
+    var n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+  function bedragenUitTekst(txt){
+    var uit = { totaal:0, betaald:0, open:0, gevonden:false };
+    var t = String(txt||''); if(!t) return uit;
+
+    /* alle bedragen zoeken, met hun plek in de tekst */
+    var kandidaten = [], re = /(\u20ac\s*)?(\d[\d.]*(?:,\d{1,2})?)(\s*,-|\s*euro\b)?/gi, m;
+    while((m = re.exec(t)) !== null){
+      var ruw = m[2], waarde = naarGetal(ruw);
+      var metEuro = !!(m[1] || m[3]);
+      if(!waarde) continue;
+      if(!metEuro){
+        /* zonder euroteken alleen meetellen als er meteen "betaald" achter staat */
+        if(/^0/.test(ruw) || ruw.replace(/\D/g,'').length > 6) continue;
+        if(waarde < 5 || waarde > 5000) continue;
+        if(!/^[^a-z0-9]{0,3}(betaald|betaalt|voldaan)/i.test(t.slice(m.index + m[0].length))) continue;
+      }
+      kandidaten.push({ waarde:waarde, van:m.index, tot:m.index + m[0].length });
+    }
+    if(!kandidaten.length) return uit;
+    uit.gevonden = true;
+
+    var OPEN  = /nog\s*(te\s*)?betalen|nog\s*contant|te\s*betalen|betalen\s*bij\s*aankomst|openstaand|restant/i;
+    var BET   = /betaald|betaalt|voldaan/i;
+    var TOT   = /totaal/i;
+
+    kandidaten.forEach(function(k, i){
+      var volgende = kandidaten[i+1] ? kandidaten[i+1].van : t.length;
+      var vooruit  = t.slice(k.tot, Math.min(volgende, k.tot + 45));
+      var vorige   = kandidaten[i-1] ? kandidaten[i-1].tot : 0;
+      var achteruit = t.slice(Math.max(vorige, k.van - 32), k.van);
+
+      if(OPEN.test(vooruit) || OPEN.test(achteruit))      uit.open += k.waarde;
+      else if(BET.test(vooruit) || BET.test(achteruit))   uit.betaald += k.waarde;
+      else if(TOT.test(vooruit) || TOT.test(achteruit))   uit.totaal = Math.max(uit.totaal, k.waarde);
+      else                                                uit.totaal = Math.max(uit.totaal, k.waarde);
+    });
+
+    if(uit.totaal < uit.betaald + uit.open) uit.totaal = uit.betaald + uit.open;
+    return uit;
+  }
   function bedragen(r){
     var k = kop(r);
-    var totaal = parseFloat(k.totaal!=null && k.totaal!=='' ? k.totaal : r.totaal)||0;
+    var uit = bedragenUitTekst((r.titel||'')+' '+(r.omschrijving||''));
+    var totaal  = parseFloat(k.totaal!=null && k.totaal!=='' ? k.totaal : r.totaal)||0;
     var betaald = parseFloat(k.betaald!=null && k.betaald!=='' ? k.betaald : r.reedsBetaald)||0;
-    if(!totaal && r.bijAankomst){
-      var b = parseFloat(String(r.bijAankomst).replace(',','.'))||0;
-      totaal = betaald + b;
-    }
-    return { totaal:totaal, betaald:betaald, open: Math.max(0, totaal-betaald) };
+    if(!totaal)  totaal  = uit.totaal;
+    if(!betaald) betaald = uit.betaald;
+    if(!totaal && r.bijAankomst) totaal = betaald + (naarGetal(r.bijAankomst)||0);
+    var wc = parseFloat(k.wc_extra_bedrag)||0;
+    totaal += wc;
+    if(k.wc_betaalwijze && k.wc_betaalwijze !== 'Op locatie') betaald += wc;
+    return { totaal:totaal, betaald:betaald, open: Math.max(0, totaal-betaald),
+      wc:wc, uitTekst:uit };
   }
   function klantStatus(r){
     var k = kop(r);
@@ -2898,8 +3018,31 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     ALLES = agenda.concat(eigen).filter(function(r){ return isLelystad(r.locatie); })
       .sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
 
+    /* precies dezelfde regel twee keer in de agenda? \u00e9\u00e9n keer tonen */
+    var gezien = {}, uniek = [];
+    ALLES.forEach(function(r){
+      var sl = sleutel(r);
+      if(KOPPEL[sl] && KOPPEL[sl].geannuleerd) return;
+      var vinger = [hoofdnaam(r.locatie), r.aankomst, r.tijdIn, r.vertrek, r.tijdUit,
+        String(r.titel||gastnaam(r)).trim().toLowerCase()].join('|');
+      if(gezien[vinger]) return;
+      gezien[vinger] = 1; uniek.push(r);
+    });
+    var dubbel = ALLES.length - uniek.length;
+    ALLES = uniek;
+
+    /* handmatig aangepaste tijden gaan voor op de agenda */
+    ALLES.forEach(function(r){
+      var k = KOPPEL[sleutel(r)]; if(!k) return;
+      if(k.tijd_in){  r.tijdIn  = tijd(k.tijd_in);  r.start = (r.aankomst||'')+'T'+r.tijdIn+':00'; }
+      if(k.tijd_uit){ r.tijdUit = tijd(k.tijd_uit); r.eind  = (r.vertrek||r.aankomst||'')+'T'+r.tijdUit+':00'; }
+    });
+
+    try{ SCHADE = await sb('schade?select=*&order=datum.desc&limit=500') || []; }catch(e){ SCHADE=[]; }
+
     geladen = true;
-    melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').' : '', false);
+    melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
+      : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     vulSoorten(); vulMedewerkers(); tekenLM(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
@@ -3291,9 +3434,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function evHtml(r){
     var s = r.soort||'handmatig', k = evSoortSleutel(r);
     var t = r.tijdIn || '';
+    var soortTekst = verblijfType(r);
     var tekst = alleenTijden(s)
       ? '<span class="t">'+esc(t + (r.tijdUit ? '\u2013'+r.tijdUit : ''))+'</span>'
-      : '<span class="t">'+esc(t)+'</span>'+esc(gastnaam(r));
+      : '<span class="t">'+esc(t)+'</span>'+esc((soortTekst ? soortTekst+' \u00b7 ' : '')+gastnaam(r));
     if(r.virtueel){
       var prijs = r.tarief ? ' <b>'+esc(euro(r.tarief))+'</b>' : '';
       var tip = esc((r.blokNaam?r.blokNaam+' \u2014 ':'')+'nog te boeken \u2014 '+hoofdnaam(r.locatie));
@@ -3448,7 +3592,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<td>'+esc(r.tijdIn||'\u2014')+'</td>'+
       '<td>'+esc((r.vertrek||'')+(r.tijdUit?' '+r.tijdUit:''))+'</td>'+
       '<td>'+esc(gastnaam(r))+'</td>'+
-      '<td>'+esc(r.kanaal||SOORTNAAM[r.soort]||'')+'</td>'+
+      '<td>'+esc(verblijfType(r) || r.kanaal || SOORTNAAM[r.soort] || '')+'</td>'+
       '<td>'+(b.open>0?'<strong>'+euro(b.open)+'</strong>':'<span style="opacity:.5">voldaan</span>')+'</td>'+
       '<td>'+vlag+'</td></tr>';
   }
@@ -3642,6 +3786,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     document.getElementById('aanmLijst').hidden = (keuze !== 'aanm');
     document.getElementById('cfLijst').hidden   = (keuze === 'aanm');
     if(keuze === 'aanm'){ tekenAanmeldingen(); return; }
+    if(keuze === 'schade'){ tekenSchade(); return; }
     tekenFormulieren(keuze);
   }
   function tekenFormulieren(soort){
@@ -3668,7 +3813,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         (soort==='concept' ? 'Er staan geen concepten klaar.' : 'Geen formulieren die aan dit filter voldoen.')+'</p>';
   }
 
-  document.getElementById('ovSectie').onchange = tekenSectie;
+  try{
+    var vorige = localStorage.getItem('bwf-sectie');
+    if(vorige && vorige !== 'nieuw') document.getElementById('ovSectie').value = vorige;
+  }catch(e){}
+  document.getElementById('ovSectie').onchange = function(){
+    try{ localStorage.setItem('bwf-sectie', this.value); }catch(e){}
+    tekenSectie();
+  };
   ['cfZoek','cfLoc','cfVan','cfTot'].forEach(function(id){
     var e = document.getElementById(id);
     e[id==='cfZoek' ? 'oninput' : 'onchange'] = tekenSectie;
@@ -3734,7 +3886,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     document.getElementById('rkTitel').textContent = hoofdnaam(r.locatie)+' \u2014 '+gastnaam(r);
     document.getElementById('rkSub').textContent =
-      (SOORTNAAM[r.soort]||r.soort)+(r.nummer?' \u00b7 #'+r.nummer:'')+
+      (verblijfType(r) || SOORTNAAM[r.soort] || r.soort)+
+      ' \u00b7 incheck '+(r.tijdIn||'\u2014')+
+      (r.nummer?' \u00b7 #'+r.nummer:'')+
       ' \u00b7 '+(r.aankomst||'')+(r.vertrek&&r.vertrek!==r.aankomst?' t/m '+r.vertrek:'');
 
     var vl = [];
@@ -3753,7 +3907,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       rij('Verblijf', n ? n+' nacht'+(n===1?'':'en') : 'Dagverblijf') +
       rij('Personen', k.personen || r.personen || '\u2014') +
       rij('Arrangement', k.arrangement || r.arrangement || '\u2014') +
-      rij('Kanaal', k.kanaal || r.kanaal || '\u2014') +
+      rij('Geboekt via', k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || r.kanaal || '\u2014') +
       rij('Telefoon', k.telefoon || r.telefoon || '\u2014') +
       rij('E-mail', k.email || r.email || '\u2014') +
       (r.omschrijving ? rij('Omschrijving', r.omschrijving) : '') +
@@ -3763,16 +3917,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     h += '<div class="geld">'+
       '<div class="rij"><span>Totaalbedrag</span><span>'+euro(b.totaal)+'</span></div>'+
       '<div class="rij"><span>Reeds betaald</span><span>'+euro(b.betaald)+'</span></div>'+
+      (b.wc ? '<div class="rij"><span>Betaald vanuit welkomstcall</span><span>'+euro(b.wc)+
+        (k.wc_betaalwijze ? ' <small style="opacity:.6">'+esc(k.wc_betaalwijze)+'</small>' : '')+'</span></div>' : '')+
       '<div class="rij open"><span>Nog te betalen</span><span>'+euro(b.open)+'</span></div>'+
       (k.betaalwijze ? '<div class="rij" style="opacity:.7"><span>Betaalwijze</span><span>'+esc(k.betaalwijze)+'</span></div>' : '')+
       '</div>';
 
-    h += '<div class="actie"><b>Welkomstcall</b>'+
-      '<span class="vlag '+(call?'ja':'nee')+'">'+(call?'Ja':'Nee')+'</span>'+
-      '<span class="rechts">'+
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><b>Welkomstcall</b>'+
+      '<span class="vlag '+(call?'ja':'nee')+'">'+(call?'Gedaan':'Nog te doen')+'</span>'+
+      '<span class="rechts" style="margin-left:auto;display:flex;gap:8px">'+
         (call ? '<button class="knop klein" type="button" id="rkCallInfo">Wat is besproken</button>' : '')+
         '<button class="knop klein vol" type="button" id="rkCall">'+(call?'Opnieuw openen':'Welkomstcall doen')+'</button>'+
-      '</span></div>';
+      '</span></div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+        '<div class="field"><label for="rkWcBedrag">Extra betaald na de call</label>'+
+        '<input type="number" id="rkWcBedrag" min="0" step="0.01" value="'+(parseFloat(k.wc_extra_bedrag)||0)+'" style="max-width:140px"></div>'+
+        '<div class="field"><label for="rkWcWijze">Wijze van betaling</label>'+
+        '<select id="rkWcWijze">'+
+          ['','Mollie betaallink','Op locatie pin','Op locatie contant','Overboeking'].map(function(w){
+            return '<option'+(String(k.wc_betaalwijze||'')===w?' selected':'')+'>'+esc(w)+'</option>'; }).join('')+
+        '</select></div>'+
+        '<div class="field" style="flex:1;min-width:220px"><label for="rkWcBijz">Bijzonderheden</label>'+
+        '<input type="text" id="rkWcBijz" value="'+esc(k.wc_bijzonderheden||'')+'" placeholder="Wat is er afgesproken of bijgeboekt?"></div>'+
+        '<button class="knop klein" type="button" id="rkWcOk">Opslaan</button>'+
+        '<span id="rkWcMeld" style="font-size:13px;opacity:.7"></span>'+
+      '</div></div>';
 
     h += '<div class="actie"><b>Reserveringsformulier</b>'+
       '<span class="vlag '+(ci?'ja':'nee')+'">'+(ci?'Ingevuld':'Niet ingevuld')+'</span>'+
@@ -3780,6 +3950,53 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<button class="knop klein" type="button" id="rkGast">Gastversie</button>'+
         '<button class="knop klein vol" type="button" id="rkForm">'+(ci?'Bekijken en wijzigen':'Aanmaken')+'</button>'+
       '</span></div>';
+
+    var bBedrag = parseFloat(k.borg_bedrag)||0;
+    var bTerug   = parseFloat(k.borg_terug)||0;
+    var bIn      = parseFloat(k.borg_ingehouden)||0;
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><b>Borg</b>'+
+      '<span class="vlag '+(k.borg_afgehandeld ? 'ja' : (k.borg_ontvangen ? 'klant' : 'nee'))+'">'+
+        (k.borg_afgehandeld ? 'Afgehandeld' : (k.borg_ontvangen ? 'Ontvangen' : 'Niet ontvangen'))+'</span></div>';
+    if(k.borg_afgehandeld){
+      h += '<p class="note" style="margin:8px 0 0">'+esc(euro(bBedrag))+' ontvangen via '+esc(k.borg_wijze||'onbekend')+
+        ' \u00b7 '+esc(euro(bTerug))+' terugbetaald via '+esc(k.borg_wijze||'onbekend')+
+        (bIn ? ' \u00b7 '+esc(euro(bIn))+' ingehouden' : '')+
+        ' \u00b7 op '+esc(k.borg_afgehandeld)+'</p>';
+    } else if(k.borg_ontvangen){
+      h += '<p class="note" style="margin:8px 0 6px">'+esc(euro(bBedrag))+' ontvangen via <b>'+esc(k.borg_wijze||'onbekend')+
+        '</b> op '+esc(k.borg_ontvangen)+'. Terugbetaling gaat op dezelfde manier.</p>'+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+
+        '<div class="field"><label for="rkBorgIn">Inhouden</label>'+
+        '<input type="number" id="rkBorgIn" min="0" max="'+bBedrag+'" step="0.01" value="0" style="max-width:130px"></div>'+
+        '<div class="field"><label for="rkBorgNot">Reden inhouding</label>'+
+        '<input type="text" id="rkBorgNot" placeholder="Laat leeg bij volledige teruggave"></div>'+
+        '<button class="knop klein vol" type="button" id="rkBorgAf">Borg afhandelen</button></div>';
+    } else {
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">'+
+        '<div class="field"><label for="rkBorgBedrag">Bedrag</label>'+
+        '<input type="number" id="rkBorgBedrag" min="0" step="0.01" value="100" style="max-width:130px"></div>'+
+        '<div class="field"><label for="rkBorgWijze">Ontvangen via</label>'+
+        '<select id="rkBorgWijze"><option>Pin</option><option>Contant</option><option>Overboeking</option>'+
+        '<option>Betaallink</option><option>Creditcard</option></select></div>'+
+        '<button class="knop klein vol" type="button" id="rkBorgOk">Borg registreren</button></div>';
+    }
+    h += '</div>';
+
+    var mijnSchade = SCHADE.filter(function(s){ return String(s.res_sleutel)===sleutel(r); });
+    h += '<div class="actie"><b>Schade</b>'+
+      '<span class="vlag '+(mijnSchade.length ? 'nee' : 'ja')+'">'+
+        (mijnSchade.length ? mijnSchade.length+' melding'+(mijnSchade.length===1?'':'en') : 'Geen')+'</span>'+
+      '<span class="rechts"><button class="knop klein" type="button" id="rkSchade">Schade melden</button></span></div>';
+
+    h += '<div class="actie" style="display:block"><b>Tijden aanpassen</b>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">'+
+      '<div class="field"><label for="rkTijdIn">Check-in</label>'+
+      '<input type="time" id="rkTijdIn" value="'+esc(r.tijdIn||'')+'" style="max-width:130px"></div>'+
+      '<div class="field"><label for="rkTijdUit">Check-out</label>'+
+      '<input type="time" id="rkTijdUit" value="'+esc(r.tijdUit||'')+'" style="max-width:130px"></div>'+
+      '<button class="knop klein vol" type="button" id="rkTijdOk">Tijden opslaan</button>'+
+      '<span id="rkTijdMeld" style="font-size:13px;opacity:.7"></span></div></div>';
 
     h += '<div class="actie contact-acties"><b>Review &amp; menukaart</b>'+
       '<span class="rechts">'+
@@ -3789,8 +4006,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<button class="icon-btn ok" type="button" id="rkCommunicatieInst" aria-label="Review- en menukaartlinks instellen" title="Links en tekst instellen">&#9881;</button>'+
       '</span></div>';
 
+    var huidigKanaal = k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || '';
+    h += '<div class="actie"><b>Geboekt via</b>'+
+      '<span class="rechts">'+
+      '<select id="rkBron"><option value="">Onbekend</option>'+
+      BRONNEN.map(function(x){ return '<option'+(huidigKanaal===x?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+
+      '</select>'+
+      '<button class="knop klein" type="button" id="rkBronOk">Opslaan</button></span></div>';
+
     h += '<div class="actie"><b>Taak bij deze reservering</b>'+
       '<span class="rechts"><button class="knop klein" type="button" id="rkTaak">Taak aanmaken</button></span></div>';
+
+    h += '<div class="actie"><b>Uit het overzicht halen</b>'+
+      '<span class="rechts"><button class="knop klein" type="button" id="rkWeg" '+
+      'style="border-color:#C13E50;color:#C13E50">Verwijderen</button></span></div>';
 
     document.getElementById('rkBody').innerHTML = h;
     bindKaart(r);
@@ -3804,13 +4033,42 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function bindKaart(r){
     var call = document.getElementById('rkCall');
     if(call) call.onclick = function(){
-      var u = VR_URL+'?res='+encodeURIComponent(sleutel(r))+
+      var d = String(gastnaam(r)).split(' ');
+      var u = VR_URL+'?open=welkomstcall'+
+        '&res='+encodeURIComponent(sleutel(r))+
         '&gast='+encodeURIComponent(gastnaam(r))+
+        '&voornaam='+encodeURIComponent(d[0]||'')+
+        '&achternaam='+encodeURIComponent(d.slice(1).join(' '))+
+        '&telefoon='+encodeURIComponent(k.telefoon||r.telefoon||'')+
+        '&email='+encodeURIComponent(k.email||r.email||'')+
+        '&nummer='+encodeURIComponent(r.nummer||'')+
         '&locatie='+encodeURIComponent(hoofdnaam(r.locatie))+
         '&aankomst='+encodeURIComponent(r.aankomst||'')+
+        '&vertrek='+encodeURIComponent(r.vertrek||'')+
+        '&tijdin='+encodeURIComponent(r.tijdIn||'')+
+        '&tijduit='+encodeURIComponent(r.tijdUit||'')+
+        '&type='+encodeURIComponent(verblijfType(r)||'')+
+        '&bron='+encodeURIComponent(huidigKanaal)+
         '&terug='+encodeURIComponent(terugLink(r));
       window.open(u,'_blank','noopener');
     };
+    var wcOk = document.getElementById('rkWcOk');
+    if(wcOk) wcOk.onclick = async function(){
+      var m = document.getElementById('rkWcMeld'); m.textContent = 'Bezig\u2026';
+      await bewaarKoppeling(r, {
+        wc_extra_bedrag: parseFloat(document.getElementById('rkWcBedrag').value)||0,
+        wc_betaalwijze:  document.getElementById('rkWcWijze').value || null,
+        wc_bijzonderheden: document.getElementById('rkWcBijz').value.trim() || null });
+      m.textContent = 'Opgeslagen.';
+      openKaart(sleutel(r)); tekenVandaag();
+    };
+    var bronOk = document.getElementById('rkBronOk');
+    if(bronOk) bronOk.onclick = async function(){
+      bronOk.disabled = true; bronOk.textContent = 'Bezig\u2026';
+      await bewaarKoppeling(r, { kanaal: document.getElementById('rkBron').value || null });
+      openKaart(sleutel(r)); tekenVandaag();
+    };
+
     var info = document.getElementById('rkCallInfo');
     if(info) info.onclick = function(){ openCall(r); };
 
@@ -3857,6 +4115,64 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       if(!c.menuLink){ openCommunicatieInstellingen(); return; }
       window.open(c.menuLink,'_blank','noopener');
     };
+
+    var tijdOk = document.getElementById('rkTijdOk');
+    if(tijdOk) tijdOk.onclick = async function(){
+      var i = document.getElementById('rkTijdIn').value, u = document.getElementById('rkTijdUit').value;
+      var m = document.getElementById('rkTijdMeld');
+      m.textContent = 'Bezig\u2026';
+      await bewaarKoppeling(r, { tijd_in:i||null, tijd_uit:u||null });
+      if(i){ r.tijdIn = i; r.start = (r.aankomst||'')+'T'+i+':00'; }
+      if(u){ r.tijdUit = u; r.eind = (r.vertrek||r.aankomst||'')+'T'+u+':00'; }
+      m.textContent = 'Opgeslagen.';
+      herteken();
+    };
+
+    var borgOk = document.getElementById('rkBorgOk');
+    if(borgOk) borgOk.onclick = async function(){
+      borgOk.disabled = true;
+      await bewaarKoppeling(r, {
+        borg_bedrag: parseFloat(document.getElementById('rkBorgBedrag').value)||0,
+        borg_wijze:  document.getElementById('rkBorgWijze').value,
+        borg_ontvangen: dstr(new Date()) });
+      openKaart(sleutel(r));
+    };
+    var borgAf = document.getElementById('rkBorgAf');
+    if(borgAf) borgAf.onclick = async function(){
+      var kk = kop(r), bedrag = parseFloat(kk.borg_bedrag)||0;
+      var inh = Math.min(Math.max(parseFloat(document.getElementById('rkBorgIn').value)||0, 0), bedrag);
+      var terug = bedrag - inh;
+      if(!confirm('Borg afhandelen?\n\n'+euro(terug)+' terugbetalen via '+(kk.borg_wijze||'dezelfde wijze')+
+        (inh ? '\n'+euro(inh)+' inhouden.' : ''))) return;
+      borgAf.disabled = true;
+      await bewaarKoppeling(r, { borg_terug:terug, borg_ingehouden:inh,
+        borg_afgehandeld: dstr(new Date()),
+        borg_notitie: document.getElementById('rkBorgNot').value.trim() || null });
+      openKaart(sleutel(r));
+    };
+
+    var weg = document.getElementById('rkWeg');
+    if(weg) weg.onclick = async function(){
+      var eigen = r.bron === 'handmatig';
+      if(!confirm(eigen
+        ? 'Deze reservering definitief verwijderen uit de database?'
+        : 'Deze regel uit het overzicht halen?\n\nIn Google Agenda blijft hij staan \u2014 verwijder hem daar ook als hij echt weg moet.')) return;
+      weg.disabled = true; weg.textContent = 'Bezig\u2026';
+      try{
+        if(eigen) await sb('reservations?id=eq.'+encodeURIComponent(r.id), { method:'DELETE' });
+        else await bewaarKoppeling(r, { geannuleerd: dstr(new Date()) });
+        ALLES = ALLES.filter(function(x){ return sleutel(x) !== sleutel(r); });
+        document.getElementById('resKaart').close();
+        herteken();
+        melding('Reservering uit het overzicht gehaald.', true);
+      }catch(e){
+        weg.disabled = false; weg.textContent = 'Verwijderen';
+        melding('Verwijderen lukte niet: '+e.message);
+      }
+    };
+
+    var sch = document.getElementById('rkSchade');
+    if(sch) sch.onclick = function(){ openSchade(r); };
 
     var nieuw = document.getElementById('rkNieuw');
     if(nieuw) nieuw.onclick = async function(){
@@ -3915,6 +4231,113 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '</dl>';
     document.getElementById('ckBody').innerHTML = h;
     document.getElementById('callKaart').showModal();
+  }
+
+  /* ---------- schade ---------- */
+  var schadeRes = null;
+  function openSchade(r){
+    schadeRes = r;
+    var k = kop(r);
+    document.getElementById('skSub').textContent =
+      hoofdnaam(r.locatie)+' \u00b7 '+(r.aankomst||'')+' \u00b7 '+gastnaam(r);
+    document.getElementById('sk-gast').value    = gastnaam(r);
+    document.getElementById('sk-email').value   = k.email || r.email || '';
+    document.getElementById('sk-tel').value     = k.telefoon || r.telefoon || '';
+    document.getElementById('sk-locatie').value = hoofdnaam(r.locatie);
+    document.getElementById('sk-datum').value   = r.vertrek || r.aankomst || dstr(new Date());
+    document.getElementById('sk-verz').value    = '';
+    document.getElementById('sk-oorzaak').value = '';
+    document.getElementById('sk-oms').value     = '';
+    document.getElementById('sk-bedrag').value  = 0;
+    document.getElementById('sk-voldaan').value = 'openstaand';
+    schadeBorgTekst();
+    document.getElementById('schadeKaart').showModal();
+  }
+  function schadeBorgTekst(){
+    var el = document.getElementById('skBorgNote');
+    if(!schadeRes){ el.textContent = ''; return; }
+    var k = kop(schadeRes), bedrag = parseFloat(k.borg_bedrag)||0;
+    var keuze = document.getElementById('sk-voldaan').value;
+    if(keuze !== 'borg'){ el.textContent = ''; return; }
+    if(!k.borg_ontvangen){
+      el.textContent = 'Let op: bij deze reservering staat geen ontvangen borg. Registreer die eerst in de reserveringskaart.';
+      return;
+    }
+    if(k.borg_afgehandeld){
+      el.textContent = 'Let op: de borg van deze reservering is al afgehandeld op '+k.borg_afgehandeld+'.';
+      return;
+    }
+    el.textContent = 'Er staat '+euro(bedrag)+' borg open, ontvangen via '+(k.borg_wijze||'onbekend')+
+      '. Na opslaan wordt dit bedrag automatisch als inhouding op de borg gezet; de rest gaat op dezelfde manier terug.';
+  }
+  document.getElementById('sk-voldaan').onchange = schadeBorgTekst;
+  document.getElementById('skSluit').onclick = function(){ document.getElementById('schadeKaart').close(); };
+  document.getElementById('skBewaar').onclick = async function(){
+    if(!schadeRes) return;
+    var knop = this, r = schadeRes, k = kop(r);
+    var bedrag  = parseFloat(document.getElementById('sk-bedrag').value)||0;
+    var voldaan = document.getElementById('sk-voldaan').value;
+    var oms     = document.getElementById('sk-oms').value.trim();
+    if(!oms){ melding('Vul een omschrijving van de schade in.'); return; }
+    if(voldaan === 'borg'){
+      if(!k.borg_ontvangen){ alert('Registreer eerst de ontvangen borg in de reserveringskaart.'); return; }
+      if(k.borg_afgehandeld){ alert('De borg van deze reservering is al afgehandeld.'); return; }
+      if(bedrag > (parseFloat(k.borg_bedrag)||0)){
+        alert('Het schadebedrag is hoger dan de borg. Houd het verschil apart af.'); return; }
+    }
+    knop.disabled = true; knop.textContent = 'Bezig\u2026';
+    try{
+      var rec = {
+        id: 's'+Date.now()+Math.random().toString(36).slice(2,6),
+        res_sleutel: sleutel(r), klant_id: k.klant_id || null,
+        gast: document.getElementById('sk-gast').value.trim(),
+        email: document.getElementById('sk-email').value.trim(),
+        telefoon: document.getElementById('sk-tel').value.trim(),
+        locatie: document.getElementById('sk-locatie').value.trim(),
+        datum: document.getElementById('sk-datum').value || null,
+        verzekeringsnummer: document.getElementById('sk-verz').value.trim(),
+        oorzaak: document.getElementById('sk-oorzaak').value.trim(),
+        omschrijving: oms, bedrag: bedrag, voldaan: voldaan,
+        status: voldaan === 'openstaand' ? 'open' : 'voldaan'
+      };
+      var res = await sb('schade', { method:'POST', body:JSON.stringify(rec) });
+      SCHADE.unshift((res && res[0]) ? res[0] : rec);
+
+      if(voldaan === 'borg'){
+        var totaal = parseFloat(k.borg_bedrag)||0;
+        await bewaarKoppeling(r, { borg_ingehouden: bedrag, borg_terug: totaal - bedrag,
+          borg_afgehandeld: dstr(new Date()),
+          borg_notitie: 'Schade: '+oms.slice(0,120) });
+      }
+      document.getElementById('schadeKaart').close();
+      knop.disabled = false; knop.textContent = 'Schade vastleggen';
+      openKaart(sleutel(r)); tekenSectie();
+      melding('Schade vastgelegd.', true);
+    }catch(e){
+      knop.disabled = false; knop.textContent = 'Schade vastleggen';
+      melding('Opslaan lukte niet: '+e.message);
+    }
+  };
+
+  function tekenSchade(){
+    var el = document.getElementById('cfLijst');
+    document.getElementById('sectieTel').textContent =
+      SCHADE.length + ' melding' + (SCHADE.length===1?'':'en');
+    if(!SCHADE.length){
+      el.innerHTML = '<p style="opacity:.55;font-size:14px;margin:0">Geen schademeldingen.</p>';
+      return;
+    }
+    var wijze = { pin:'pin op locatie', contant:'contant op locatie',
+      borg:'ingehouden van de borg', openstaand:'nog openstaand' };
+    el.innerHTML = SCHADE.map(function(s){
+      return '<div class="aanm">'+
+        '<div style="min-width:0"><b>'+esc(s.gast||'Onbekend')+' \u00b7 '+esc(euro(s.bedrag))+'</b>'+
+        '<div class="meta">'+esc([s.locatie, String(s.datum||'').slice(0,10), s.oorzaak,
+          s.verzekeringsnummer ? 'verz. '+s.verzekeringsnummer : ''].filter(Boolean).join(' \u00b7 '))+'</div>'+
+        '<div style="font-size:13.5px;opacity:.85;margin-top:4px">'+esc(s.omschrijving||'')+'</div></div>'+
+        '<span class="rechts"><span class="vlag '+(s.voldaan==='openstaand'?'nee':'ja')+'">'+
+          esc(wijze[s.voldaan]||s.voldaan||'')+'</span></span></div>';
+    }).join('');
   }
 
   /* ---------- taken ---------- */
