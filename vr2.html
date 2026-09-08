@@ -443,6 +443,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 .card.inklap.dicht > .card-head{border-bottom:0}
 .card.inklap.dicht > *:not(.card-head){display:none}
 .inklapbalk{display:flex;justify-content:flex-end;gap:8px;margin:-4px 0 14px}
+tr.resrij{cursor:pointer}
+tr.resrij:hover{background:var(--accent-soft)}
+tr.resrij .pijl{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;
+  border-radius:5px;background:var(--accent-soft);color:var(--accent);font-size:13px;line-height:1;
+  transform:rotate(0deg);transition:transform .16s ease;vertical-align:middle}
+tr.resrij.open .pijl{transform:rotate(90deg)}
+tr.resdetail > td{background:var(--surface-2);padding:16px 18px}
+.resdl{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 18px;margin-bottom:14px}
+.resdl div{font-size:13.5px}
+.resdl span.lab{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.resacties{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .dienstrij{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
 .dienst{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;
   background:var(--c);color:#fff;letter-spacing:.01em;white-space:nowrap}
@@ -727,6 +738,10 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
             <option value="naam">Naam</option>
             <option value="datum">Aankomstdatum</option>
             <option value="locatie">Locatie</option></select></div>
+          <div class="field"><label class="check" for="kpAlleenLos"
+            style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer;margin-top:22px">
+            <input type="checkbox" id="kpAlleenLos" checked style="width:16px;height:16px;accent-color:var(--accent)">
+            <span>Alleen nog niet gekoppelde</span></label></div>
           <div class="field wide"><label for="kpRes">Bijbehorende reservering</label><select id="kpRes"></select></div>
         </div>
         <span class="note" id="kpNote"></span>
@@ -3484,23 +3499,217 @@ $('#rzNaarWijziging').addEventListener('click', ()=>{
   $('#wjRef').focus();
 });
 
+/* ---------------- RESERVERING UITKLAPPEN EN AANPASSEN ----------------
+   Klik op een rij en je ziet alle gegevens. Eigen reserveringen kun je meteen
+   aanpassen; wat uit de agenda komt is alleen te lezen — dat pas je in de
+   agenda of bij de partner zelf aan. */
+const KAL_LIJST = [];
+const resVeld = (label, waarde) =>
+  `<div><span class="lab">${esc(label)}</span>${esc(waarde || '—')}</div>`;
+function resDetailHtml(r, i){
+  const g = r.ruw || {};
+  const k = r.kop || koppelingVoor(r) || {};                  /* gedeeld met het locatiedashboard */
+  const form = FORMS.find(f=>String(f.id) === String(k.checkin_id||''));
+  const vast = `<div class="resdl">
+    ${resVeld('Suite', r.locatie || g.locatie)}
+    ${resVeld('Aankomst', (String(r.start||'').slice(0,10) ? dmy(String(r.start).slice(0,10)) : '') +
+      (kalTijd(r.start) ? ' om ' + kalTijd(r.start) : (g.checkintijd ? ' om ' + g.checkintijd : '')))}
+    ${resVeld('Vertrek', (r.eind ? dmy(String(r.eind).slice(0,10)) : '') +
+      (kalTijd(r.eind) ? ' om ' + kalTijd(r.eind) : (g.checkuittijd ? ' om ' + g.checkuittijd : '')))}
+    ${resVeld('Verblijf', kalNacht(r) ? 'Overnachting' : 'Dagverblijf')}
+    ${resVeld('Reserveringsnummer', r.ref)}
+    ${resVeld('Geboekt via', r.bron)}
+    ${resVeld('Telefoon', g.telefoon)}
+    ${resVeld('E-mail', g.email)}
+    ${resVeld('Personen', g.personen)}
+    ${resVeld('Arrangement', g.arrangement)}
+    ${g.totaal != null ? resVeld('Totaalbedrag', eur(g.totaal)) : (k.totaal != null ? resVeld('Totaalbedrag', eur(k.totaal)) : '')}
+    ${g.betaald != null ? resVeld('Reeds betaald', eur(g.betaald)) : (k.betaald != null ? resVeld('Reeds betaald', eur(k.betaald)) : '')}
+    ${k.gast ? resVeld('Gast (locatiedashboard)', k.gast) : ''}
+    ${k.kanaal ? resVeld('Kanaal', k.kanaal) : ''}
+    ${k.notitie ? resVeld('Notitie', k.notitie) : ''}
+  </div>` + (form ? `<div class="resdl" style="border-top:1px solid var(--line);padding-top:12px">
+    ${resVeld('Formulier', form._soort)}
+    ${resVeld('Ingevuld door', formNaam(form))}
+    ${resVeld('E-mail', fveld(form,['email','mail']))}
+    ${resVeld('Telefoon', fveld(form,['telefoon','tel','mobiel']))}
+    ${resVeld('Adres', fveld(form,['adres','straat']))}
+    ${resVeld('Woonplaats', fveld(form,['woonplaats','plaats']))}
+    ${resVeld('Personen', fveld(form,['personen','aantal_personen']))}
+    ${resVeld('Nationaliteit', fveld(form,['nationaliteit']))}
+  </div>` : '');
+  const tekst = g.omschrijving || g.opmerkingen || g.titel || '';
+  const call = (S.calls||[]).find(c=>
+    wcSleutel(c.referentie, c.naam, c.datum) === wcSleutel(r.ref, r.naam, r.start));
+  const vlaggen = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <span class="pill ${call ? (call.status==='afgerond'?'ok':'warn') : 'neutral'}">Welkomstcall: ${
+      call ? esc(call.status||'te bellen') : 'nog niet aangemaakt'}</span>
+    <span class="pill neutral">${r.eigen ? 'eigen reservering' : 'uit de agenda'}</span>
+    <span class="pill ${form ? 'ok' : 'neutral'}">Formulier: ${form ? 'ingevuld' : 'nog niet gekoppeld'}</span>
+  </div>`;
+  const extern = !r.eigen;
+  const bewerkenExtern = `
+    <p class="note" style="margin-top:0">${tekst ? esc(tekst) + '<br>' : ''}Deze regel komt uit de agenda${
+      r.bron ? ' via ' + esc(r.bron) : ''} en is daar niet te wijzigen. Wat je hieronder invult wordt apart bewaard
+      en is voor iedereen zichtbaar, ook in het locatiedashboard — de agenda zelf blijft ongemoeid.</p>
+    <div class="grid-form" style="margin-top:6px">
+      <div class="field"><label>Naam van de gast</label><input type="text" data-rk="gast" value="${esc(k.gast||r.naam||'')}"></div>
+      <div class="field"><label>Telefoon</label><input type="text" data-rk="telefoon" value="${esc(k.telefoon||'')}"></div>
+      <div class="field"><label>E-mail</label><input type="text" data-rk="email" value="${esc(k.email||'')}"></div>
+      <div class="field"><label>Incheck</label><input type="text" data-rk="tijd_in" placeholder="19:00" value="${esc(k.tijd_in||'')}"></div>
+      <div class="field"><label>Uitcheck</label><input type="text" data-rk="tijd_uit" placeholder="10:00" value="${esc(k.tijd_uit||'')}"></div>
+      <div class="field"><label>Personen</label><input type="text" data-rk="personen" value="${esc(k.personen||'')}"></div>
+      <div class="field"><label>Arrangement</label><input type="text" data-rk="arrangement" value="${esc(k.arrangement||'')}"></div>
+      <div class="field"><label>Geboekt via</label><input type="text" data-rk="kanaal" value="${esc(k.kanaal||r.bron||'')}"></div>
+      <div class="field"><label>Totaalbedrag</label><input type="number" step="0.01" data-rk="totaal" value="${esc(k.totaal!=null?k.totaal:'')}"></div>
+      <div class="field"><label>Reeds betaald</label><input type="number" step="0.01" data-rk="betaald" value="${esc(k.betaald!=null?k.betaald:'')}"></div>
+      <div class="field wide"><label>Notitie</label><input type="text" data-rk="notitie" value="${esc(k.notitie||'')}"></div>
+      <div class="field"><label class="check" style="display:flex;align-items:center;gap:9px;margin-top:22px;cursor:pointer">
+        <input type="checkbox" data-rk="geannuleerd" ${k.geannuleerd?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)">
+        <span>Geannuleerd</span></label></div>
+    </div>
+    <span class="note" data-rnote=""></span>`;
+  const bewerken = r.eigen ? `
+    <div class="grid-form" style="margin-top:6px">
+      <div class="field"><label>Voornaam</label><input type="text" data-rv="voornaam" value="${esc(g.voornaam||'')}"></div>
+      <div class="field"><label>Achternaam</label><input type="text" data-rv="achternaam" value="${esc(g.achternaam||'')}"></div>
+      <div class="field"><label>Telefoon</label><input type="text" data-rv="telefoon" value="${esc(g.telefoon||'')}"></div>
+      <div class="field"><label>E-mail</label><input type="text" data-rv="email" value="${esc(g.email||'')}"></div>
+      <div class="field"><label>Aankomst</label><input type="date" data-rv="checkindatum" value="${esc(String(g.checkindatum||'').slice(0,10))}"></div>
+      <div class="field"><label>Vertrek</label><input type="date" data-rv="checkuitdatum" value="${esc(String(g.checkuitdatum||'').slice(0,10))}"></div>
+      <div class="field"><label>Locatie</label><input type="text" data-rv="locatie" value="${esc(g.locatie||'')}"></div>
+      <div class="field wide"><label>Opmerkingen</label><input type="text" data-rv="opmerkingen" value="${esc(g.opmerkingen||'')}"></div>
+    </div>
+    <span class="note" data-rnote=""></span>` : bewerkenExtern;
+  const acties = `<div class="resacties">
+    <button class="btn small" type="button" data-r${r.eigen?'bewaar':'kbewaar'}="${i}">Wijzigingen opslaan</button>
+    ${call ? `<button class="btn ghost small" type="button" data-wcopen="${call.id}">Welkomstcall openen</button>`
+           : `<button class="btn ghost small" type="button" data-rcall="${i}">Welkomstcall aanmaken</button>`}
+    <button class="btn ghost small" type="button" data-rwijzig="${i}">Wijziging doorgeven</button>
+    <button class="btn ghost small" type="button" data-rdag="${i}">Toon dag in kalender</button>
+    ${form ? '' : `<button class="btn ghost small" type="button" data-rkoppel="${i}">Formulier koppelen</button>`}
+  </div>`;
+  return vlaggen + vast + bewerken + acties;
+}
+document.addEventListener('click', async e=>{
+  /* rij open- of dichtklappen */
+  const rij = e.target.closest('tr.resrij');
+  if(rij && !e.target.closest('button, a, input')){
+    const i = rij.dataset.res;
+    const detail = document.querySelector(`tr.resdetail[data-detail="${i}"]`);
+    const open = rij.classList.toggle('open');
+    if(detail){
+      detail.hidden = !open;
+      if(open) detail.firstElementChild.innerHTML = resDetailHtml(KAL_LIJST[Number(i)], i);
+    }
+    return;
+  }
+  /* opslaan van een eigen reservering */
+  const bew = e.target.closest('[data-rbewaar]');
+  if(bew){
+    const r = KAL_LIJST[Number(bew.dataset.rbewaar)];
+    const vak = bew.closest('td');
+    const note = vak.querySelector('[data-rnote]');
+    const wijzigingen = {};
+    vak.querySelectorAll('[data-rv]').forEach(el=>{ wijzigingen[el.dataset.rv] = el.value.trim() || null; });
+    try{
+      await api('reservations?id=eq.'+encodeURIComponent(r.id),
+        {method:'PATCH', headers:{'Content-Type':'application/json', Prefer:'return=minimal'},
+         body: JSON.stringify(wijzigingen)});
+      Object.assign(r.ruw, wijzigingen);
+      r.naam = [wijzigingen.voornaam, wijzigingen.achternaam].filter(Boolean).join(' ') || r.naam;
+      if(note) note.textContent = 'Opgeslagen.';
+      toast('Reservering bijgewerkt.');
+      laadOverzicht();
+    }catch(err){ if(note) note.textContent = 'Opslaan lukte niet: ' + err.message; }
+    return;
+  }
+  /* opslaan van een agendaregel: alles gaat naar res_koppeling */
+  const kb = e.target.closest('[data-rkbewaar]');
+  if(kb){
+    const r = KAL_LIJST[Number(kb.dataset.rkbewaar)];
+    const vak = kb.closest('td'), note = vak.querySelector('[data-rnote]');
+    const wijziging = {};
+    vak.querySelectorAll('[data-rk]').forEach(el=>{
+      if(el.type === 'checkbox'){ wijziging[el.dataset.rk] = el.checked; return; }
+      const w = el.value.trim();
+      wijziging[el.dataset.rk] = w === '' ? null
+        : (el.type === 'number' ? Number(w) : w);
+    });
+    try{
+      await bewaarKoppeling(r, wijziging);
+      resPasKoppelingToe(); renderKalender(); rzVul();
+      if(note) note.textContent = 'Opgeslagen — ook zichtbaar in het locatiedashboard.';
+      toast('Reservering bijgewerkt.');
+    }catch(err){ if(note) note.textContent = 'Opslaan lukte niet: ' + err.message; }
+    return;
+  }
+  /* losse acties vanuit het detailblok */
+  const c = e.target.closest('[data-rcall]');
+  if(c){
+    const r = KAL_LIJST[Number(c.dataset.rcall)];
+    const datum = String(r.start||'').slice(0,10);
+    await maak('calls', {naam: r.naam || 'gast', locatie: r.locatie || null, datum,
+      datum_eind: r.eind ? String(r.eind).slice(0,10) : null, referentie: r.ref || null,
+      bron: r.bron || null, status:'te bellen', deadline: wcDeadline(datum), automatisch:false});
+    renderCalls(); renderWcTeDoen(); badges(); toast('Welkomstcall aangemaakt.');
+    return;
+  }
+  const w = e.target.closest('[data-rwijzig]');
+  if(w){
+    const r = KAL_LIJST[Number(w.dataset.rwijzig)];
+    $('#wjRef').value   = r.ref || '';
+    $('#wjNaam').value  = r.naam || '';
+    $('#wjLoc').value   = r.locatie || '';
+    $('#wjDatum').value = String(r.start||'').slice(0,10);
+    wjTekstMaken();
+    const kaart = $('#wjRef').closest('.card');
+    if(kaart) kaart.classList.remove('dicht');
+    $('#wjRef').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  const kp = e.target.closest('[data-rkoppel]');
+  if(kp){
+    const r = KAL_LIJST[Number(kp.dataset.rkoppel)];
+    const kaart = $('#kpForm').closest('.card');
+    if(kaart) kaart.classList.remove('dicht');
+    /* de reservering alvast voorselecteren in de koppelkaart */
+    kpVulFormulieren();
+    const i = KP.res.findIndex(x=>resSleutel(x) === resSleutel(r));
+    if(i > -1) $('#kpRes').value = i;
+    $('#kpForm').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  const dg = e.target.closest('[data-rdag]');
+  if(dg){
+    const r = KAL_LIJST[Number(dg.dataset.rdag)];
+    const dag = String(r.start||'').slice(0,10);
+    kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
+    $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+});
+
 /* ---------------- GASTFORMULIER AAN EEN RESERVERING KOPPELEN ----------------
    Het formulier dat de gast invult bevat lang niet altijd een reserveringsnummer.
    Daarom stelt hij zelf een reservering voor op basis van nummer, naam, datum of
    locatie; met de keuzelijst ernaast bepaal je waarop hij zoekt. */
 function kpFormulieren(){
-  return (S.gasten||[]).filter(g=>!g.reservering_ref)
-    .sort((a,b)=> String(b.aankomst||'').localeCompare(String(a.aankomst||'')));
+  const alleen = ($('#kpAlleenLos') && $('#kpAlleenLos').checked) !== false;
+  return FORMS.filter(f=>alleen ? !formGekoppeld(f) : true)
+    .sort((a,b)=> String(formDatum(b)).localeCompare(String(formDatum(a))));
 }
 function kpVulFormulieren(){
   const sel = $('#kpForm'); if(!sel) return;
   const lijst = kpFormulieren();
   sel.innerHTML = lijst.length
-    ? lijst.map((g,i)=>`<option value="${i}">${esc([g.voornaam,g.achternaam].filter(Boolean).join(' ')||g.naam||'gast')} · ${
-        esc(g.aankomst ? dmy(String(g.aankomst).slice(0,10)) : 'geen datum')}${g.locatie?' · '+esc(g.locatie):''}</option>`).join('')
-    : '<option value="">geen losse formulieren</option>';
+    ? lijst.map((g,i)=>`<option value="${i}">${esc(formNaam(g) || 'zonder naam')} · ${
+        esc(formDatum(g) ? dmy(formDatum(g)) : 'geen datum')}${formLoc(g)?' · '+esc(formLoc(g)):''} · ${
+        esc(g._soort)}</option>`).join('')
+    : '<option value="">geen formulieren gevonden</option>';
   KP.lijst = lijst;
-  $('#kpFoot').textContent = lijst.length + ' formulier' + (lijst.length===1?'':'en') + ' zonder reservering';
+  const los = FORMS.filter(f=>!formGekoppeld(f)).length;
+  $('#kpFoot').textContent = lijst.length + ' formulier' + (lijst.length===1?'':'en') +
+    ' in de lijst · ' + los + ' nog niet gekoppeld van ' + FORMS.length + ' in totaal';
   kpVulReserveringen();
 }
 const KP = {lijst:[], res:[]};
@@ -3508,10 +3717,10 @@ function kpHuidig(){ return KP.lijst[Number(($('#kpForm')||{}).value)] || null; 
 function kpVulReserveringen(){
   const sel = $('#kpRes'); if(!sel) return;
   const g = kpHuidig(), hoe = ($('#kpHoe')||{}).value || 'auto';
-  const naam = g ? String([g.voornaam,g.achternaam].filter(Boolean).join(' ') || g.naam || '').toLowerCase() : '';
-  const datum = g ? String(g.aankomst||'').slice(0,10) : '';
-  const ref = g ? String(g.referentie || g.reserveringsnummer || '').toLowerCase() : '';
-  const loc = g ? ovLocNaam(g.locatie) : '';
+  const naam  = g ? formNaam(g).toLowerCase() : '';
+  const datum = g ? formDatum(g) : '';
+  const ref   = g ? formRef(g).toLowerCase() : '';
+  const loc   = g ? formLoc(g) : '';
   const past = r=>{
     const rn = String(r.naam||'').toLowerCase(), rr = String(r.ref||'').toLowerCase();
     const rd = String(r.start||'').slice(0,10);
@@ -3529,25 +3738,22 @@ function kpVulReserveringen(){
   sel.innerHTML = KP.res.map((r,i)=>`<option value="${i}">${
     esc(dmy(String(r.start||'').slice(0,10)))} · ${esc(r.locatie||'onbekend')} · ${esc(r.naam||'gast')}${
     r.ref?' · '+esc(r.ref):''}</option>`).join('') || '<option value="">geen reservering gevonden</option>';
-  $('#kpNote').textContent = !g ? 'Er staan geen losse formulieren open.'
+  $('#kpNote').textContent = !g ? 'Er zijn geen formulieren gevonden.'
     : treffers.length ? treffers.length + ' mogelijke reservering' + (treffers.length===1?'':'en') + ' gevonden.'
     : 'Geen match gevonden — de hele lijst staat er nu in, kies zelf de juiste.';
 }
 $('#kpForm').addEventListener('change', kpVulReserveringen);
+$('#kpAlleenLos').addEventListener('change', kpVulFormulieren);
 $('#kpHoe').addEventListener('change', kpVulReserveringen);
 $('#kpKoppel').addEventListener('click', async ()=>{
   const g = kpHuidig(), r = KP.res[Number($('#kpRes').value)];
   if(!g || !r){ $('#kpNote').textContent = 'Kies eerst een formulier en een reservering.'; return; }
   try{
-    await wijzig('gasten', g.id, {
-      reservering_ref: r.ref || wcSleutel(r.ref, r.naam, r.start),
-      locatie: r.locatie || g.locatie || null,
-      aankomst: String(r.start||'').slice(0,10) || g.aankomst || null
-    });
-    kpVulFormulieren(); renderGasten();
-    toast('Formulier gekoppeld aan de reservering.');
+    await bewaarKoppeling(r, {checkin_id: g.id, gast: formNaam(g) || r.naam || null});
+    kpVulFormulieren(); renderKalender();
+    toast('Formulier gekoppeld — ook zichtbaar in het locatiedashboard.');
   }catch(e){
-    $('#kpNote').innerHTML = 'Koppelen lukte niet. Waarschijnlijk ontbreekt de kolom <code>reservering_ref</code> in de tabel met gastformulieren.';
+    $('#kpNote').textContent = 'Koppelen lukte niet: ' + e.message;
   }
 });
 
@@ -3805,6 +4011,81 @@ async function planHaal(pad){
   return [];
 }
 const teamNaam = id => (TEAM.find(m=>m.id===id)||{}).naam || mwNaam(id);
+/* Dezelfde tabellen als het locatiedashboard:
+   checkins en gast_aanmeldingen = de formulieren die gasten invullen,
+   res_koppeling = de extra gegevens die aan een reservering hangen. */
+const FORMS = [], KOPPEL = {};
+const fveld = (o, namen) => { for(const k of namen){ const w = o ? o[k] : null;
+  if(w !== undefined && w !== null && w !== '') return w; } return ''; };
+const formNaam  = f => String(fveld(f,['naam','gast']) ||
+  [fveld(f,['voornaam']), fveld(f,['achternaam'])].filter(Boolean).join(' ')).trim();
+const formDatum = f => String(fveld(f,['checkindatum','aankomst','datum','verblijf_van'])).slice(0,10);
+const formLoc   = f => ovLocNaam(fveld(f,['locatie','suite','kamer']));
+const formRef   = f => String(fveld(f,['reserveringsnummer','referentie','reservering','res_nummer']));
+/* dezelfde sleutel als in het locatiedashboard, zodat beide hetzelfde zien */
+const resSleutel = r => r.eigen ? 'hm-' + r.id
+  : (r.ref || (r.locatie + '-' + String(r.start||'').slice(0,10) + '-' + (kalTijd(r.start)||'')));
+
+async function laadFormulieren(){
+  const [aanm, chk, kop] = await Promise.all([
+    planHaal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500'),
+    planHaal('checkins?select=*&order=created_at.desc&limit=1000'),
+    planHaal('res_koppeling?select=*&limit=5000')
+  ]);
+  FORMS.length = 0;
+  (aanm||[]).forEach(f=>FORMS.push(Object.assign({_soort:'aanmelding'}, f)));
+  (chk ||[]).forEach(f=>FORMS.push(Object.assign({_soort:'incheckformulier'}, f)));
+  Object.keys(KOPPEL).forEach(k=>delete KOPPEL[k]);
+  (kop||[]).forEach(k=>{ KOPPEL[k.res_sleutel] = k; });
+}
+/* een formulier is gekoppeld zodra het bij een reservering in res_koppeling staat */
+function formGekoppeld(f){
+  return Object.values(KOPPEL).some(k=>String(k.checkin_id||'') === String(f.id));
+}
+async function bewaarKoppeling(r, wijziging){
+  const obj = Object.assign({res_sleutel: resSleutel(r), bron: r.eigen ? 'handmatig' : (r.bron||'agenda')},
+    wijziging, {bijgewerkt: new Date().toISOString()});
+  await api('res_koppeling?on_conflict=res_sleutel', {method:'POST',
+    headers:{'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=representation'},
+    body: JSON.stringify(obj)});
+  KOPPEL[obj.res_sleutel] = Object.assign({}, KOPPEL[obj.res_sleutel]||{}, obj);
+}
+
+/* Reserveringen van Booking.com, Origineel Overnachten en Privésauna komen via de
+   agenda binnen en zijn daar niet te wijzigen. Aanpassingen bewaren we daarom in
+   res_koppeling; die tabel delen we met het locatiedashboard, dus iedereen ziet ze. */
+/* Het terminalscript bewaart per reservering een regel met het reserveringsnummer
+   als sleutel (#763686). Staat dat nummer niet los in de agenda, dan zoeken we het
+   in de tekst van de afspraak, en anders op naam plus aankomstdatum. */
+function koppelingVoor(r){
+  const recht = KOPPEL[resSleutel(r)];
+  if(recht) return recht;
+  const g = r.ruw || {};
+  const tekst = [g.titel, g.omschrijving, g.beschrijving, g.description, r.naam].filter(Boolean).join(' ');
+  const nummers = String(tekst).match(/\b\d{5,8}\b/g) || [];
+  for(const nr of nummers){ if(KOPPEL[nr]) return KOPPEL[nr]; }
+  const datum = String(r.start||'').slice(0,10);
+  const naam = String(r.naam||'').toLowerCase().trim();
+  if(!datum) return null;
+  return Object.values(KOPPEL).find(k=>{
+    const kd = String(k.aankomst || k.datum || '').slice(0,10);
+    if(kd !== datum) return false;
+    const kn = String(k.gast||'').toLowerCase().trim();
+    return !kn || !naam || kn === naam || kn.includes(naam) || naam.includes(kn);
+  }) || null;
+}
+function resPasKoppelingToe(){
+  RES.forEach(r=>{
+    const k = koppelingVoor(r); if(!k) return;
+    if(k.gast) r.naam = k.gast;
+    if(k.locatie) r.locatie = ovLocNaam(k.locatie) || r.locatie;
+    if(k.tijd_in)  r.start = String(r.start||'').slice(0,10) + 'T' + String(k.tijd_in).slice(0,5) + ':00';
+    if(k.tijd_uit && r.eind) r.eind = String(r.eind).slice(0,10) + 'T' + String(k.tijd_uit).slice(0,5) + ':00';
+    r.geannuleerd = !!k.geannuleerd;
+    r.kop = k;
+  });
+}
+
 async function laadDiensten(){
   const [team, diensten] = await Promise.all([
     planHaal('medewerkers?select=*'),
@@ -3842,7 +4123,7 @@ function renderKalender(){
   const vd = vandaag();
 
   const resDag = {}, dienstDag = {};
-  if(kalWat !== 'dienst') RES.forEach(r=>{
+  if(kalWat !== 'dienst') RES.filter(r=>!r.geannuleerd).forEach(r=>{
     const d = String(r.start||'').slice(0,10); if(d) (resDag[d] = resDag[d] || []).push(r);
   });
   if(kalWat !== 'res') DIENSTEN.forEach(r=>{
@@ -3887,15 +4168,19 @@ function renderKalender(){
     return kalDag ? d === kalDag : d.slice(0,7) === maand;
   }).sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
 
-  $('#kalLijst').innerHTML = lijst.length ? lijst.map(r=>`
-    <tr>
-      <td class="name">${esc(dmy(String(r.start||'').slice(0,10)))}</td>
+  KAL_LIJST.length = 0; lijst.forEach(r=>KAL_LIJST.push(r));
+  $('#kalLijst').innerHTML = lijst.length ? lijst.map((r,i)=>`
+    <tr class="resrij" data-res="${i}">
+      <td class="name"><span class="pijl">›</span>${esc(dmy(String(r.start||'').slice(0,10)))}</td>
       <td><span class="kal-dot" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'};margin-right:7px"></span>${
         esc(r.locatie||'onbekend')}</td>
       <td>${esc(r.naam || '—')}</td>
       <td>${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</td>
-      <td>${esc(r.bron||'')}</td>
-    </tr>`).join('')
+      <td>${esc(r.bron||'')}${r.geannuleerd?' <span class="pill crit">geannuleerd</span>':''}${
+        r.kop && r.kop.totaal != null ? `<span class="meta">${esc(eur(r.kop.totaal))}${
+          r.kop.betaald != null ? ' · betaald ' + esc(eur(r.kop.betaald)) : ''}</span>` : ''}</td>
+    </tr>
+    <tr class="resdetail" data-detail="${i}" hidden><td colspan="5"></td></tr>`).join('')
     : `<tr><td colspan="5"><div class="empty"><strong>Geen reserveringen</strong>${
         kalDag ? 'Op deze dag komt er niemand aan.' : 'In deze maand staat nog niets vanaf vandaag.'}</div></td></tr>`;
 
@@ -3962,24 +4247,25 @@ async function laadOverzicht(){
       if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind);
         RES.push({locatie: ovLocNaam(ev.suite || ev.locatie), naam: ev.gast || ev.naam || ev.titel || '',
           start: ev.start, eind: ev.eind, ref: ev.referentie || ev.reservering || null,
-          bron: ev.bron || (ev.soort === 'extern' ? 'extern' : 'agenda')}); }
+          bron: ev.bron || (ev.soort === 'extern' ? 'extern' : 'agenda'),
+          eigen:false, ruw: ev}); }
     });
   }catch(e){}
   try{
-    const eigen = await api('reservations?select=checkindatum,checkuitdatum,locatie,voornaam,achternaam,naam,bron&limit=3000')
-      || await api('reservations?select=checkindatum,checkuitdatum,locatie&limit=3000') || [];
+    const eigen = await api('reservations?select=*&order=checkindatum.desc&limit=3000') || [];
     eigen.forEach(r=>{
       const s = String(r.checkindatum||'').slice(0,10), e = String(r.checkuitdatum||'').slice(0,10) || s;
       if(s && e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(r.locatie, r.checkindatum, r.checkuitdatum);
         RES.push({locatie: ovLocNaam(r.locatie), naam: [r.voornaam, r.achternaam].filter(Boolean).join(' ') || r.naam || '',
           start: r.checkindatum, eind: r.checkuitdatum, ref: r.referentie || r.reserveringsnummer || null,
-          bron: r.bron || 'eigen'}); }
+          bron: r.bron || 'eigen', eigen:true, id: r.id, ruw: r}); }
     });
   }catch(e){}
   OV.res = n;
   OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
-  await laadDiensten(); await laadGesprekken();
-  renderLocaties(); renderKalender(); rzVul(); renderGesprekken();
+  await laadDiensten(); await laadGesprekken(); await laadFormulieren();
+  resPasKoppelingToe();
+  renderLocaties(); renderKalender(); rzVul(); renderGesprekken(); kpVulFormulieren();
   wcAutoAanmaken();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
