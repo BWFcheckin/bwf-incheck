@@ -415,7 +415,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 .who .avatar{width:26px;height:26px}
 
 /* ---------- systeembalk ---------- */
-.sysbalk{margin-bottom:24px}
+.sysbalk{margin:34px 0 0;padding-top:22px;border-top:1px solid var(--line)}
 .sysknop{border-radius:14px;padding:9px 14px;background:rgba(255,255,255,.92);border-color:#e1e7f0;
   box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
 .sysknop:hover{transform:translateY(-1px);box-shadow:var(--shadow-hover)}
@@ -604,8 +604,6 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     </div>
   </header>
 
-  <div class="sysbalk" id="sysbalk" aria-label="Systemen en agenda's"></div>
-
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
     <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Start</button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Taken<span class="badge" id="badge-taken">0</span></button>
@@ -629,6 +627,11 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       <p id="startUitleg">Klik op een tegel om erheen te gaan. De aantallen lopen mee met wat er openstaat.</p>
     </div>
     <div class="linkstrook" data-linktab="start"></div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-head"><h2>De drie locaties</h2>
+        <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
+      <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
+    </div>
     <div class="tegels" id="tegels"></div>
     <div class="two-col" style="margin-top:20px">
       <div class="card">
@@ -782,6 +785,11 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
                 <option value="">— kies —</option>
                 <option>Privésauna</option><option>Origineel Overnachten</option><option>Booking.com</option>
                 <option>Website</option><option>Telefonisch</option><option>Anders</option></select></div>
+              <div class="field wide"><label class="check" for="wcVooraf"
+                style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer">
+                <input type="checkbox" id="wcVooraf" style="width:16px;height:16px;accent-color:var(--accent)">
+                <span>Reservering is vooraf volledig betaald</span></label>
+                <span class="note" id="wcVoorafNote" style="margin-top:4px"></span></div>
               <div class="field wide"><label for="wcNotitie">Notitie</label>
                 <input type="text" id="wcNotitie" placeholder="wat is er afgesproken of opgevallen"></div>
             </div>
@@ -1265,6 +1273,8 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       <div class="card-body"><div class="docs" id="docLijst"></div></div>
     </div>
   </section>
+
+  <div class="sysbalk" id="sysbalk" aria-label="Systemen en agenda's"></div>
 </div>
 
 <!-- ============ DIALOGEN ============ -->
@@ -2949,6 +2959,53 @@ const AGENDA_PROXY = 'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGv
 const AGENDA_KEY   = 'bwf7k2mxq9tvr20264nphs8wjc3';
 const OV = {res:'\u00b7', resSub:'vanaf vandaag', gast:'\u00b7', gastSub:'laatste 7 dagen',
             planning:'\u00b7', planningSub:'deze week'};
+
+/* ---- de drie locaties op het startscherm ---- */
+const LOCATIES = [
+  {naam:'Malina Jacuzzi',     kleur:'',      plaats:'Lelystad'},
+  {naam:'Malina Zwembad',     kleur:'brass', plaats:'Lelystad'},
+  {naam:'Suite Angie Almere', kleur:'ok',    plaats:'Almere'}
+];
+/* alle schrijfwijzen uit de agenda en de reserveringen naar één naam */
+function ovLocNaam(v){
+  const t = String(v||'').toLowerCase().replace(/[^a-z]/g,'');
+  if(/psmd|psd|deluxe|zwembad/.test(t)) return 'Malina Zwembad';
+  if(/psm|jacuzzi|malina/.test(t))      return 'Malina Jacuzzi';
+  if(/psa|angie|almere/.test(t))        return 'Suite Angie Almere';
+  return '';
+}
+const OVLOC = {};
+function ovLocLeeg(){
+  LOCATIES.forEach(l=>{ OVLOC[l.naam] = {komend:0, vandaag:0, week:0}; });
+  OVLOC['_onbekend'] = {komend:0, vandaag:0, week:0};
+}
+function ovLocTel(locatie, start, eind){
+  const vd = vandaag();
+  const naam = ovLocNaam(locatie) || '_onbekend';
+  const rij = OVLOC[naam]; if(!rij) return;
+  const s = String(start||'').slice(0,10), e = String(eind||'').slice(0,10) || s;
+  if(!s || e < vd) return;
+  rij.komend++;
+  if(s === vd) rij.vandaag++;
+  if(s >= vd && s <= ovDag(7)) rij.week++;
+}
+function renderLocaties(){
+  const doel = $('#ovLocaties'); if(!doel) return;
+  doel.innerHTML = LOCATIES.map(l=>{
+    const r = OVLOC[l.naam] || {komend:0, vandaag:0, week:0};
+    return `<div class="stat ${l.kleur}">
+      <span class="label">${esc(l.naam)}</span>
+      <span class="value">${r.komend}</span>
+      <span class="sub">${r.vandaag ? r.vandaag+' aankomst'+(r.vandaag===1?'':'en')+' vandaag'
+        : 'niemand vandaag'} · ${r.week} deze week</span></div>`;
+  }).join('') + (OVLOC._onbekend && OVLOC._onbekend.komend
+    ? `<div class="stat warn"><span class="label">Zonder locatie</span>
+       <span class="value">${OVLOC._onbekend.komend}</span>
+       <span class="sub">suite niet herkend in de boeking</span></div>` : '');
+  const totaal = LOCATIES.reduce((a,l)=>a+((OVLOC[l.naam]||{}).komend||0),0);
+  const hint = $('#ovLocHint');
+  if(hint) hint.textContent = totaal + ' reservering'+(totaal===1?'':'en')+' vanaf vandaag';
+}
 const ovDag = n => { const d = new Date(); d.setDate(d.getDate()+(n||0)); return d.toISOString().slice(0,10); };
 const ovDatum = r => String(r.datum || r.dag || r.start || r.van || r.begindatum ||
   r.created_at || r.aangemaakt || '').slice(0,10);
@@ -2957,28 +3014,31 @@ async function ovProbeer(paden){
   return null;
 }
 async function laadOverzicht(){
-  if(!online()){ renderTegels(); return; }
+  if(!online()){ ovLocLeeg(); renderLocaties(); renderTegels(); return; }
   const vd = vandaag();
 
-  /* reserveringen — agenda plus de handmatige reserveringen, alles vanaf vandaag */
+  /* reserveringen — agenda plus de handmatige reserveringen, alles vanaf vandaag,
+     tegelijk geteld per locatie voor het overzicht bovenaan */
   let n = 0, vandaagIn = 0;
+  ovLocLeeg();
   try{
     const j = await (await fetch(AGENDA_PROXY+'?k='+encodeURIComponent(AGENDA_KEY))).json();
     (j.events||[]).forEach(ev=>{
       if(ev.soort !== 'reservering' && ev.soort !== 'extern') return;
       const s = String(ev.start||'').slice(0,10), e = String(ev.eind||'').slice(0,10) || s;
-      if(e >= vd){ n++; if(s === vd) vandaagIn++; }
+      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind); }
     });
   }catch(e){}
   try{
-    const eigen = await api('reservations?select=checkindatum,checkuitdatum&limit=3000') || [];
+    const eigen = await api('reservations?select=checkindatum,checkuitdatum,locatie&limit=3000') || [];
     eigen.forEach(r=>{
       const s = String(r.checkindatum||'').slice(0,10), e = String(r.checkuitdatum||'').slice(0,10) || s;
-      if(s && e >= vd){ n++; if(s === vd) vandaagIn++; }
+      if(s && e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(r.locatie, r.checkindatum, r.checkuitdatum); }
     });
   }catch(e){}
   OV.res = n;
   OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
+  renderLocaties();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
   const g = await ovProbeer(['gast_aanmeldingen?select=*&limit=1000', 'checkins?select=*&limit=1000']);
@@ -3533,7 +3593,8 @@ function wcFormulier(){
     gelegenheid: $('#wcGeleg').value.trim() || null,
     smg_tekst: $('#wcSmg').value.trim() || null,
     smg_extra: wcSmgInfo.extra || null,
-    smg_betaald: wcSmgInfo.betaald === true,
+    smg_betaald: ($('#wcVooraf') ? $('#wcVooraf').checked : wcSmgInfo.betaald === true),
+    vooraf_betaald: ($('#wcVooraf') ? $('#wcVooraf').checked : false),
     smg_bedrag: wcSmgInfo.bedrag != null ? wcSmgInfo.bedrag : null,
     betaalwijze: wcBetaal,
     regels, totaal:+totaal.toFixed(2),
@@ -3602,6 +3663,37 @@ $('#wcBetaalwijze').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   wcZetBetaal(b.dataset.b);
 });
+
+/* ============ vooraf betaalde partners ============ */
+/* Bij Booking.com en Origineel Overnachten is het bedrag van de reservering
+   altijd volledig vooraf afgerekend. Het vinkje zet zichzelf aan bij die twee
+   bronnen; is het een keer anders geregeld, dan haal je het handmatig weg. */
+const VOORAF_BRONNEN = ['Booking.com','Origineel Overnachten'];
+const voorafBron = () => VOORAF_BRONNEN.indexOf($('#wcBron').value) > -1;
+
+function wcZetVooraf(aan, doorBron){
+  const vak = $('#wcVooraf'); if(!vak) return;
+  vak.checked = !!aan;
+  wcSmgInfo.betaald = aan ? true : (wcSmgInfo.betaald === true ? false : wcSmgInfo.betaald);
+  wcToonVoorafNote(doorBron);
+  wcSmgVat(); wcVersTekst(true);
+}
+function wcToonVoorafNote(doorBron){
+  const note = $('#wcVoorafNote'); if(!note) return;
+  const aan = $('#wcVooraf') && $('#wcVooraf').checked;
+  note.textContent = aan
+    ? (doorBron
+        ? 'Via ' + $('#wcBron').value + ' is de reservering altijd 100% vooraf betaald — alleen wat je nu bijboekt moet nog worden voldaan. Klopt dat niet, haal het vinkje dan weg.'
+        : 'Het bedrag van de reservering is voldaan; alleen wat je nu bijboekt moet nog worden betaald.')
+    : (voorafBron()
+        ? 'Let op: bij ' + $('#wcBron').value + ' is normaal alles vooraf betaald.'
+        : 'Aanvinken als de gast het bedrag van de reservering al volledig heeft voldaan.');
+}
+/* bron wijzigen: bij de twee partners het vinkje automatisch aanzetten */
+$('#wcBron').addEventListener('change', ()=>{
+  if(voorafBron()) wcZetVooraf(true, true); else wcToonVoorafNote(false);
+});
+$('#wcVooraf').addEventListener('change', e=>{ wcZetVooraf(e.target.checked, false); });
 
 /* ============ reservering uit SMG inlezen ============ */
 let wcSmgInfo = {extra:null, betaald:null, bedrag:null};
@@ -3745,6 +3837,8 @@ function wcSmgLezen(t){
   const open = /openstaand|nog te betalen|niet betaald|onbetaald|te voldoen|aanbetaling/i.test(tekst);
   const dicht = /\bbetaald\b|voldaan|volledig betaald|paid/i.test(tekst);
   uit.betaald = open ? false : (dicht ? true : null);
+  /* Booking.com en Origineel Overnachten rekenen altijd vooraf 100% af */
+  if(VOORAF_BRONNEN.indexOf(uit.bron) > -1) uit.betaald = true;
   return uit;
 }
 function wcSmgVat(){
@@ -3753,7 +3847,8 @@ function wcSmgVat(){
   if(!d.extra && d.betaald == null && d.bedrag == null){
     v.innerHTML = '<span class="opbouw">Nog niets ingelezen.</span>'; return;
   }
-  const status = d.betaald === true ? 'betaald' : d.betaald === false ? 'nog niet betaald' : 'betaalstatus onbekend';
+  const status = d.betaald === true ? 'reservering vooraf volledig betaald'
+    : d.betaald === false ? 'nog niet betaald' : 'betaalstatus onbekend';
   v.innerHTML = '<strong>'+(d.bedrag != null ? eur(d.bedrag) : '—')+'</strong><span class="sep"></span>' +
     '<span class="opbouw">'+esc(status)+(d.extra ? ' · extra geboekt: '+esc(d.extra) : ' · geen extra\'s gevonden')+'</span>';
 }
@@ -3777,8 +3872,12 @@ function wcSmgOvernemen(){
   if(d.bron) $('#wcBron').value = d.bron;
   if(d.member) $('#wcMember').value = 'ja';
   wcSmgInfo = {extra:d.extra||null, betaald:d.betaald, bedrag:d.bedrag != null ? d.bedrag : null};
+  if($('#wcVooraf')) $('#wcVooraf').checked = (d.betaald === true);
+  wcToonVoorafNote(voorafBron());
   wcSmgVat(); wcVerblijfAuto(); wcHerhaalCheck(); wcVersTekst(true);
-  toast('Gegevens overgenomen — loop ze even na.');
+  toast(voorafBron()
+    ? 'Gegevens overgenomen — via ' + $('#wcBron').value + ' staat de reservering op vooraf betaald.'
+    : 'Gegevens overgenomen — loop ze even na.');
 }
 
 /* link voor de GAST: gast.html — de gast vult alleen de eigen gegevens in */
@@ -3826,6 +3925,11 @@ function wcBericht(f, kanaal){
     f.regels.forEach(x=>r.push('• '+x.naam+(x.aantal>1?' ('+x.aantal+'×)':'')+' — '+eur(x.bedrag)));
     r.push('');
     r.push('Totaal bij te betalen: '+eur(f.totaal));
+  }
+  if(f.vooraf_betaald){
+    r.push('');
+    r.push('Je reservering' + (f.bron ? ' via '+f.bron : '') + ' is al volledig vooraf betaald'
+      + (f.regels.length ? ' — alleen wat je nu hebt bijgeboekt moet nog worden voldaan.' : '.'));
   }
   if(f.betaalwijze === 'locatie'){
     if(f.regels.length){ r.push(''); r.push('Dit bedrag reken je bij aankomst op locatie af — pinnen of contant kan allebei.'); }
@@ -3976,7 +4080,10 @@ $('#wcNieuw').addEventListener('click', ()=>{
   $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcDatumEind').value='';
   $('#wcStatus').value='te bellen'; $('#wcMember').value=''; $('#wcBron').value='';
   $('#wcType').value='Overnachting';
-  wcSmgInfo = {extra:null, betaald:null, bedrag:null}; wcSmgVat(); wcHerhaalCheck(); wcZetBetaal('mollie');
+  wcSmgInfo = {extra:null, betaald:null, bedrag:null};
+  if($('#wcVooraf')) $('#wcVooraf').checked = false;
+  wcToonVoorafNote(false);
+  wcSmgVat(); wcHerhaalCheck(); wcZetBetaal('mollie');
   $('#wcNote').textContent=''; wcToonBijlage(); renderExtras(); wcVersTekst(true);
 });
 /* ============ openstaande welkomstcalls als taak ============ */
@@ -4130,6 +4237,8 @@ document.addEventListener('click', async e=>{
     $('#wcSmg').value = c.smg_tekst||'';
     wcSmgInfo = {extra:c.smg_extra||null, betaald:(c.smg_betaald===true?true:(c.smg_tekst?false:null)),
                  bedrag:(c.smg_bedrag!=null?Number(c.smg_bedrag):null)};
+    if($('#wcVooraf')) $('#wcVooraf').checked = (c.smg_betaald === true);
+    wcToonVoorafNote(voorafBron());
     wcSmgVat(); wcHerhaalCheck(); wcZetBetaal(c.betaalwijze==='locatie' ? 'locatie' : 'mollie');
     $('#wcBetaallink').value = c.betaallink||''; $('#wcNotitie').value = c.notitie||'';
     $('#wcStatus').value = c.status||'te bellen';
