@@ -317,6 +317,12 @@ footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color
     </section>
     <hr class="regel scheiding">
 
+    <section aria-label="Kalender" style="grid-column:1/-1">
+      <h2>Kalender</h2>
+      <div id="bwfKalender"></div>
+    </section>
+    <hr class="regel scheiding">
+
     <section aria-label="Onderdelen">
       <div id="groepen"></div>
       <h2>Boekingskanalen</h2>
@@ -677,6 +683,7 @@ async function laadCalls(){
       }).join('');
 }
 </script>
+<script src="bwf-kalender.js"></script>
 <script src="bwf-shell.js"></script>
 </body>
 </html>
