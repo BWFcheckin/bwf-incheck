@@ -431,6 +431,27 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 .kal-num{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .kal-cel.vandaag .kal-num{color:var(--accent);font-weight:600}
 .kal-cel{min-height:120px}
+.reskop{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;
+  padding:12px 22px;border-top:1px solid var(--line);background:var(--surface-2)}
+.reskopknop{display:inline-flex;align-items:center;gap:10px;background:none;border:0;cursor:pointer;
+  font:inherit;font-weight:600;font-size:15px;color:var(--ink);padding:4px 0}
+.reskopknop .pijl{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;
+  background:var(--accent-soft);color:var(--accent);font-size:16px;line-height:1;
+  transform:rotate(0deg);transition:transform .16s ease}
+.reskopknop[aria-expanded="true"] .pijl{transform:rotate(90deg)}
+.visueel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.kalToon{display:none}
+.kal.dag{grid-template-columns:1fr;min-width:0}
+.kal.dag .kal-cel{min-height:220px}
+.kal.week .kal-cel{min-height:190px}
+.kal.jaar{grid-template-columns:repeat(4,minmax(150px,1fr));min-width:0}
+.kal.jaar .maandvak{border:1px solid var(--line);border-radius:var(--r-m);padding:14px;background:var(--surface-2);
+  cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.kal.jaar .maandvak:hover{border-color:var(--accent);background:var(--surface)}
+.kal.jaar .maandvak strong{font-size:14px}
+.kal.jaar .maandvak span{font-size:12.5px;color:var(--muted)}
+.kal.jaar .maandbalk{display:flex;gap:3px;margin-top:2px}
+.kal.jaar .maandbalk i{height:6px;border-radius:3px;display:block}
 
 /* ---- inklapbare blokken op de overzichtspagina ---- */
 /* ---- secties van het welkomstcallformulier ---- */
@@ -591,6 +612,15 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 
 /* ---------- telefoon ---------- */
 @media (max-width:620px){
+  /* op de telefoon kies je zelf tussen de kalender en de lijst */
+  .kalToon{display:inline-flex}
+  .reskop{padding:12px 14px}
+  .reskopknop{font-size:14.5px}
+  .kal.week{grid-template-columns:repeat(7,minmax(120px,1fr));min-width:840px}
+  .kal.jaar{grid-template-columns:repeat(2,minmax(140px,1fr))}
+  .kal .ev{font-size:11.5px;padding:4px 6px}
+  .kal-cel{min-height:96px}
+  #resTabel table{min-width:560px}
   body{background:linear-gradient(180deg,#f8faff 0,#f4f7fb 28rem)}
   .app{padding:0 14px 96px}
   .topbar{padding:18px 2px 14px}
@@ -720,6 +750,16 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">←</button>
           <button class="btn ghost small" id="kalNu" type="button">Deze maand</button>
           <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">→</button>
+          <span class="segment kalToon" id="kalToon" style="margin-left:6px">
+            <button type="button" data-t="kalender" aria-pressed="true">Kalender</button>
+            <button type="button" data-t="lijst" aria-pressed="false">Lijst</button>
+          </span>
+          <span class="segment" id="kalWeergave" style="margin-left:6px">
+            <button type="button" data-v="dag" aria-pressed="false">Dag</button>
+            <button type="button" data-v="week" aria-pressed="false">Week</button>
+            <button type="button" data-v="maand" aria-pressed="true">Maand</button>
+            <button type="button" data-v="jaar" aria-pressed="false">Jaar</button>
+          </span>
           <span class="segment" id="kalWat" style="margin-left:6px">
             <button type="button" data-w="alles" aria-pressed="true">Alles</button>
             <button type="button" data-w="res" aria-pressed="false">Reserveringen</button>
@@ -728,10 +768,40 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         </span>
       </div>
       <div class="card-body">
-        <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
-        <div class="legend" id="kalLegend"></div>
+        <div class="filters" style="margin-bottom:14px">
+          <div class="field"><label for="kalNaar">Naar datum</label><input type="date" id="kalNaar"></div>
+          <div class="field"><label for="kalSuite">Suite</label><select id="kalSuite">
+            <option value="">Alle suites</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
+          <div class="field"><label for="kalZoek">Zoeken op naam</label>
+            <input type="text" id="kalZoek" placeholder="gast, nummer of arrangement"></div>
+        </div>
+        <div id="kalBlok">
+          <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
+          <div class="legend" id="kalLegend"></div>
+        </div>
       </div>
-      <div class="table-wrap"><table>
+
+      <div class="reskop" id="resKop">
+        <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
+          <span class="pijl">›</span><span>Reserveringen inzien</span>
+          <span class="pill neutral" id="resAantal">0</span>
+        </button>
+        <div class="field" style="margin:0;min-width:200px">
+          <label for="resSort" class="visueel">Sorteren</label>
+          <select id="resSort">
+            <option value="datum">Aankomst — vroegste eerst</option>
+            <option value="datum-om">Aankomst — laatste eerst</option>
+            <option value="suite">Suite</option>
+            <option value="gast">Gast (A–Z)</option>
+            <option value="bron">Geboekt via</option>
+            <option value="bedrag">Bedrag — hoogste eerst</option>
+            <option value="open">Openstaand bedrag</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap" id="resTabel" hidden><table>
         <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
         <tbody id="kalLijst"></tbody>
       </table></div>
@@ -3588,10 +3658,11 @@ function resDetailHtml(r, i){
     ${resVeld('Verblijf', kalNacht(r) ? 'Overnachting' : 'Dagverblijf')}
     ${resVeld('Reserveringsnummer', r.ref)}
     ${resVeld('Geboekt via', r.bron)}
-    ${resVeld('Telefoon', g.telefoon)}
-    ${resVeld('E-mail', g.email)}
-    ${resVeld('Personen', g.personen)}
-    ${resVeld('Arrangement', g.arrangement)}
+    ${resVeld('Gast', k.gast || ont.naam || (r.eigen ? r.naam : ''))}
+    ${resVeld('Telefoon', k.telefoon || resTelefoonUit(g.telefoon) || ont.telefoon)}
+    ${resVeld('E-mail', k.email || resMailUit(g.email || '') || ont.email)}
+    ${resVeld('Personen', g.personen || k.personen)}
+    ${resVeld('Arrangement', g.arrangement || k.arrangement || ont.rest)}
     ${g.totaal != null ? resVeld('Totaalbedrag', eur(g.totaal)) : (k.totaal != null ? resVeld('Totaalbedrag', eur(k.totaal)) : '')}
     ${g.betaald != null ? resVeld('Reeds betaald', eur(g.betaald)) : (k.betaald != null ? resVeld('Reeds betaald', eur(k.betaald)) : '')}
     ${k.gast ? resVeld('Gast (locatiedashboard)', k.gast) : ''}
@@ -3608,6 +3679,7 @@ function resDetailHtml(r, i){
     ${resVeld('Nationaliteit', fveld(form,['nationaliteit']))}
   </div>` : '');
   const tekst = g.omschrijving || g.opmerkingen || g.titel || '';
+  const volledig = (r.ontleed && r.ontleed.tekst) || tekst;
   const call = callVoor(r);
   const vlaggen = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     <span class="pill ${call ? (call.status==='afgerond'?'ok':'warn') : 'neutral'}">Welkomstcall: ${
@@ -3621,18 +3693,19 @@ function resDetailHtml(r, i){
       k.res_sleutel ? 'gevonden (' + esc(k.res_sleutel) + ')' : 'niet gevonden'}</span>
   </div>`;
   const extern = !r.eigen;
+  const ont = r.ontleed || (extern ? resOntleed(r) : {});
   const bewerkenExtern = `
-    <p class="note" style="margin-top:0">${tekst ? esc(tekst) + '<br>' : ''}Deze regel komt uit de agenda${
+    <p class="note" style="margin-top:0">${volledig ? '<strong>Uit de agenda:</strong> ' + esc(volledig) + '<br>' : ''}Deze regel komt uit de agenda${
       r.bron ? ' via ' + esc(r.bron) : ''} en is daar niet te wijzigen. Wat je hieronder invult wordt apart bewaard
       en is voor iedereen zichtbaar, ook in het locatiedashboard — de agenda zelf blijft ongemoeid.</p>
     <div class="grid-form" style="margin-top:6px">
-      <div class="field"><label>Naam van de gast</label><input type="text" data-rk="gast" value="${esc(k.gast||r.naam||'')}"></div>
-      <div class="field"><label>Telefoon</label><input type="text" data-rk="telefoon" value="${esc(k.telefoon||'')}"></div>
-      <div class="field"><label>E-mail</label><input type="text" data-rk="email" value="${esc(k.email||'')}"></div>
+      <div class="field"><label>Naam van de gast</label><input type="text" data-rk="gast" value="${esc(k.gast||ont.naam||'')}"></div>
+      <div class="field"><label>Telefoon</label><input type="text" data-rk="telefoon" value="${esc(k.telefoon||ont.telefoon||'')}"></div>
+      <div class="field"><label>E-mail</label><input type="text" data-rk="email" value="${esc(k.email||ont.email||'')}"></div>
       <div class="field"><label>Incheck</label><input type="text" data-rk="tijd_in" placeholder="19:00" value="${esc(k.tijd_in||'')}"></div>
       <div class="field"><label>Uitcheck</label><input type="text" data-rk="tijd_uit" placeholder="10:00" value="${esc(k.tijd_uit||'')}"></div>
       <div class="field"><label>Personen</label><input type="text" data-rk="personen" value="${esc(k.personen||'')}"></div>
-      <div class="field"><label>Arrangement</label><input type="text" data-rk="arrangement" value="${esc(k.arrangement||'')}"></div>
+      <div class="field"><label>Arrangement</label><input type="text" data-rk="arrangement" value="${esc(k.arrangement||ont.rest||'')}"></div>
       <div class="field"><label>Geboekt via</label><input type="text" data-rk="kanaal" value="${esc(k.kanaal||r.bron||'')}"></div>
       <div class="field"><label>Totaalbedrag</label><input type="number" step="0.01" data-rk="totaal" value="${esc(k.totaal!=null?k.totaal:'')}"></div>
       <div class="field"><label>Reeds betaald</label><input type="number" step="0.01" data-rk="betaald" value="${esc(k.betaald!=null?k.betaald:'')}"></div>
@@ -4173,10 +4246,11 @@ function vraagLink(soort, wat){
 }
 function resGegevens(r){
   const k = r.kop || koppelingVoor(r) || {};
+  const o = r.ontleed || (r.eigen ? {} : resOntleed(r));
   return {
-    naam: k.gast || r.naam || 'gast',
-    telefoon: k.telefoon || (r.ruw||{}).telefoon || '',
-    email: k.email || (r.ruw||{}).email || '',
+    naam: k.gast || o.naam || r.naam || 'gast',
+    telefoon: k.telefoon || (r.ruw||{}).telefoon || o.telefoon || '',
+    email: k.email || (r.ruw||{}).email || o.email || '',
     datum: String(r.start||'').slice(0,10),
     locatie: r.locatie || '',
     ref: r.ref || k.res_sleutel || ''
@@ -4578,7 +4652,7 @@ wjTekstMaken();
 const RES = [];
 const KAL_KLEUR = {'Malina Jacuzzi':'#1C6FD0', 'Malina Zwembad':'#D63A2A',
                    'Suite Angie Almere':'#0F7B5A'};
-let kalMaand = null, kalDag = '', kalWat = 'alles';
+let kalMaand = null, kalDag = '', kalWat = 'alles', kalWeergave = 'maand';
 /* De diensten van het personeelsdashboard staan in de tabel 'planning', het team in
    'medewerkers' — dat zijn andere tabellen dan die van dit dashboard. Lezen lukt met
    de publieke sleutel; die is ook openbaar in het personeelsdashboard te vinden. */
@@ -4681,7 +4755,111 @@ function koppelingVoor(r){
   if(opLocatie.length > 1) return null;
   return kandidaten.length === 1 ? kandidaten[0] : null;
 }
+/* De titel van een agenda-afspraak is vaak één lange regel met arrangement,
+   naam, telefoonnummer en opmerkingen door elkaar. Hier halen we die uit elkaar
+   zodat elk gegeven op zijn eigen plek komt te staan. */
+const RES_STOP = new RegExp('^(all|inclusive|incl|inclusief|excl|late|early|checkout|checkin|check|out|in|'
+  + 'overnachting|overnachtingen|overnachten|orgineel|origineel|booking|bookingcom|com|relax|stay|arrangement|'
+  + 'suite|malina|angie|almere|lelystad|jacuzzi|zwembad|deluxe|bed|wellness|prive|privesauna|sauna|wellnessuite|'
+  + 'handoekken|handdoeken|pakket|pakketten|drankjes|chipssnack|chips|snack|snackpakket|minibar|bad|bedlinnen|'
+  + 'betaald|voldaan|openstaand|euro|personen|persoon|volwassenen|kinderen|nacht|nachten|dag|dagen|uur|'
+  + 'ontbijt|diner|lunch|extra|extras|bezet|blok|beschikbaar|gesloten|agenda|reservering|boeking|omboeking|'
+  + 'omboekibg|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december|'
+  + 'en|de|het|een|met|voor|van|op|via|tot|of|the|and)$', 'i');
+/* zinnen die nooit een naam zijn, eerst weghalen */
+const RES_RUIS = [
+  /booking\.com/ig, /origine+l\s+overnacht\w*/ig, /orgineel\s+overnacht\w*/ig, /relax\s*&\s*stay/ig,
+  /all[\s-]*inclusive/ig, /b&w[^,.;]*/ig, /priv[ée]\s*sauna/ig
+];
+function resTelefoonUit(t){
+  const x = String(t||'');
+  /* eerst met scheidingstekens zoeken, zodat een datum erachter niet meekomt */
+  const m = x.match(/(?:\+|00)\s?\d{1,3}[\s.]?\d{6,11}/) || x.match(/\b0\s?6[\s.-]?\d{4}[\s.-]?\d{4}\b/)
+         || x.match(/\b0\d{1,3}[\s.-]?\d{6,8}\b/);
+  if(m) return m[0].replace(/[\s.-]/g,'');
+  /* nummers die aan een woord vastgeplakt zitten */
+  const g = x.replace(/[\s().-]/g,'').match(/(?:\+|00|0)\d{9,13}/);
+  return g ? g[0].slice(0, g[0].startsWith('0') && !g[0].startsWith('00') ? 10 : 14) : '';
+}
+function resMailUit(t){
+  const m = String(t||'').match(/[\w.+-]+@[\w-]+\.[\w.]+/);
+  return m ? m[0] : '';
+}
+function resSchoon(t){
+  let x = String(t||'');
+  RES_RUIS.forEach(re=>{ x = x.replace(re, ' '); });
+  return x.replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,' ')       /* e-mail */
+    .replace(/(?:\+|00)\d[\d\s().-]{7,}/g,' ')            /* buitenlands nummer */
+    .replace(/\b0\d[\d\s().-]{7,}/g,' ')                  /* Nederlands nummer */
+    .replace(/\u20ac\s*[\d.,]+/g,' ')                     /* bedragen */
+    .replace(/\b\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?\b/g,' ')  /* datums */
+    .replace(/[#,;:!()]/g,' ');
+}
+function resNaamUit(t){
+  const woorden = resSchoon(t).split(/[\s.]+/).filter(Boolean);
+  const reeksen = [];
+  let rij = [];
+  const sluit = ()=>{ if(rij.length) reeksen.push(rij.slice()); rij = []; };
+  woorden.forEach(w=>{
+    const kaal = w.replace(/[^A-Za-z\u00C0-\u017F'-]/g,'');
+    if(!kaal || /-/.test(kaal) && kaal.split('-').some(d=>RES_STOP.test(d))){ sluit(); return; }
+    const tussen  = /^(van|de|der|den|het|te|ter|di|du|el|op)$/i.test(kaal);
+    const hoofd   = /^[A-Z\u00C0-\u017F]/.test(kaal) && kaal.length > 1 && !RES_STOP.test(kaal);
+    /* een klein woord direct na een tussenvoegsel hoort er nog bij: "De groot" */
+    const naTussen = rij.length && /^(van|de|der|den|te|ter|di|du)$/i.test(rij[rij.length-1])
+      && kaal.length > 1 && !RES_STOP.test(kaal);
+    if(hoofd || naTussen || (tussen && rij.length)) rij.push(kaal);
+    else sluit();
+  });
+  sluit();
+  const goed = reeksen
+    .map(x=>{ while(x.length && /^(van|de|der|den|te|ter|op)$/i.test(x[x.length-1])) x.pop(); return x; })
+    .filter(x=>x.length && !x.every(w=>RES_STOP.test(w)));
+  if(goed.length){
+    goed.sort((a,b)=> b.length - a.length);
+    return goed[0].slice(0,3).join(' ');
+  }
+  /* soms zit de naam vastgeplakt aan een term: "late checkoutwilma" */
+  const PLAK = ['checkout','checkin','check','incl','inclusief','inclusive','betaald','late','pakket'];
+  const losmaken = w=>{
+    for(const term of PLAK){
+      const t = w.toLowerCase();
+      if(t.startsWith(term) && w.length > term.length + 2) return w.slice(term.length);
+      if(t.endsWith(term)   && w.length > term.length + 2) return w.slice(0, w.length - term.length);
+    }
+    return w;
+  };
+
+  /* geen hoofdletters gevonden: pak het laatste bruikbare losse woord ("wilma") */
+  const los = woorden.map(w=>w.replace(/[^A-Za-z\u00C0-\u017F'-]/g,''))
+    .filter(w=>w.length > 2 && !RES_STOP.test(w) && !/-/.test(w))   /* bekende woorden eerst weg */
+    .map(losmaken)
+    .filter(w=>w.length > 2 && !RES_STOP.test(w));
+  return los.length ? los[los.length-1].replace(/^./, c=>c.toUpperCase()) : '';
+}
+function resRestUit(t, naam){
+  return String(t||'')
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,' ')
+    .replace(/(?:\+|00|0)\d[\d\s().-]{7,}/g,' ')
+    .replace(new RegExp(String(naam||'zzz').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig'),' ')
+    .replace(/\s{2,}/g,' ').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g,'').slice(0,160);
+}
+function resOntleed(r){
+  const g = r.ruw || {};
+  const tekst = [g.titel, r.naam, g.omschrijving, g.beschrijving, g.description]
+    .filter(Boolean).join(' · ');
+  const naam = resNaamUit(tekst);
+  return {tekst, naam, telefoon: resTelefoonUit(tekst), email: resMailUit(tekst),
+    rest: resRestUit(tekst, naam)};
+}
+
 function resPasKoppelingToe(){
+  /* eerst de losse gegevens uit de tekst halen */
+  RES.forEach(r=>{
+    if(r.eigen) return;
+    r.ontleed = resOntleed(r);
+    if(r.ontleed.naam) r.naam = r.ontleed.naam;
+  });
   RES.forEach(r=>{
     const k = koppelingVoor(r); if(!k) return;
     if(k.gast) r.naam = k.gast;
@@ -4705,9 +4883,18 @@ async function laadDiensten(){
 const kalSleutel = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 function kalStart(){ if(!kalMaand){ const d = new Date(); kalMaand = kalSleutel(d); } return kalMaand; }
 function kalSchuif(stap){
-  const [j,m] = kalStart().split('-').map(Number);
-  const d = new Date(j, m-1+stap, 1);
-  kalMaand = kalSleutel(d); kalDag = ''; renderKalender();
+  if(kalWeergave === 'dag' || kalWeergave === 'week'){
+    const d = new Date(kalDag || vandaag());
+    d.setDate(d.getDate() + stap * (kalWeergave === 'dag' ? 1 : 7));
+    kalDag = d.toISOString().slice(0,10); kalMaand = kalDag.slice(0,7);
+  } else if(kalWeergave === 'jaar'){
+    const [j,m] = kalStart().split('-').map(Number);
+    kalMaand = (j + stap) + '-' + String(m).padStart(2,'0'); kalDag = '';
+  } else {
+    const [j,m] = kalStart().split('-').map(Number);
+    kalMaand = kalSleutel(new Date(j, m-1+stap, 1)); kalDag = '';
+  }
+  renderKalender();
 }
 function kalSoortLabel(d){
   return d === 'nacht' ? 'Nachtverblijf' : d === 'schoonmaak' ? 'Schoonmaak'
@@ -4726,88 +4913,232 @@ const kalNacht = r => {
   const a = String(r.start||'').slice(0,10), b = String(r.eind||'').slice(0,10);
   return b && b !== a;
 };
+function kalRes(){
+  const suite = ($('#kalSuite')||{}).value || '';
+  const zoek  = (($('#kalZoek')||{}).value || '').toLowerCase().trim();
+  return RES.filter(r=>{
+    if(r.geannuleerd) return false;
+    if(suite && r.locatie !== suite) return false;
+    if(zoek){
+      const k = r.kop || {};
+      const tekst = [r.naam, r.ref, r.locatie, r.bron, k.gast, k.arrangement,
+        (r.ontleed||{}).rest].filter(Boolean).join(' ').toLowerCase();
+      if(!tekst.includes(zoek)) return false;
+    }
+    return true;
+  });
+}
+/* het label in de kalender: tijd · suite · naam van de gast */
+function kalLabel(r){
+  const k = r.kop || {};
+  const naam = k.gast || (r.ontleed||{}).naam || r.naam || 'gast';
+  const tijd = kalTijd(r.start) || kalTijd(k.tijd_in);
+  return {tijd, tekst: (r.locatie || 'onbekend') + ' · ' + naam};
+}
+function kalCel(iso, resDag, dienstDag, groot){
+  const vd = vandaag();
+  const res = resDag[iso] || [], dnst = dienstDag[iso] || [];
+  return `<button type="button" class="kal-cel${iso===vd?' vandaag':''}${iso===kalDag?' gekozen':''}" data-kaldag="${iso}">
+    <span class="kal-num">${groot ? esc(dmy(iso)) : Number(iso.slice(8,10))}</span>
+    ${dnst.length ? `<span class="dienstrij">` + dnst.map(x=>{
+      const afw = x.dienst === 'afwezig';
+      return `<span class="dienst${afw?' afw':''}" style="--c:${afw?'#B9AFA4':kalMwKleur(x.medewerker_id)}"
+        title="${esc(teamNaam(x.medewerker_id)+' · '+kalSoortLabel(x.dienst)+(x.notitie?' · '+x.notitie:''))}"
+        >${esc(kalVoornaam(teamNaam(x.medewerker_id)))}${x.dienst==='nacht'?' ☽':x.dienst==='schoonmaak'?' ✦':''}</span>`;
+    }).join('') + `</span>` : ''}
+    ${res.map(r=>{ const l = kalLabel(r);
+      return `<span class="ev" style="background:${KAL_KLEUR[r.locatie]||'#9A7B4F'}"
+        title="${esc(l.tekst + (r.bron?' · '+r.bron:''))}"
+        >${l.tijd?`<span class="t">${esc(l.tijd)}</span>`:''}${esc(l.tekst)}</span>`;
+    }).join('')}
+  </button>`;
+}
 function renderKalender(){
   const rooster = $('#kalender'); if(!rooster) return;
   const maand = kalStart();
   const [j,m] = maand.split('-').map(Number);
-  const start = (new Date(j, m-1, 1).getDay() + 6) % 7;   /* week begint op maandag */
-  const dagen = new Date(j, m, 0).getDate();
   const vd = vandaag();
+  const lijstRes = kalRes();
 
   const resDag = {}, dienstDag = {};
-  if(kalWat !== 'dienst') RES.filter(r=>!r.geannuleerd).forEach(r=>{
+  if(kalWat !== 'dienst') lijstRes.forEach(r=>{
     const d = String(r.start||'').slice(0,10); if(d) (resDag[d] = resDag[d] || []).push(r);
   });
   if(kalWat !== 'res') DIENSTEN.forEach(r=>{
     const d = String(r.datum||'').slice(0,10); if(d) (dienstDag[d] = dienstDag[d] || []).push(r);
   });
 
-  let html = ['ma','di','wo','do','vr','za','zo']
-    .map(d=>`<div class="kal-kop">${d}</div>`).join('');
-  for(let i=0;i<start;i++) html += '<div class="kal-cel leeg"></div>';
-  for(let dag=1; dag<=dagen; dag++){
-    const iso = maand+'-'+String(dag).padStart(2,'0');
-    const res = resDag[iso] || [], dnst = dienstDag[iso] || [];
-    html += `<button type="button" class="kal-cel${iso===vd?' vandaag':''}${iso===kalDag?' gekozen':''}" data-kaldag="${iso}">` +
-      `<span class="kal-num">${dag}</span>` +
-      (dnst.length ? `<span class="dienstrij">` + dnst.map(r=>{
-        const afw = r.dienst === 'afwezig';
-        return `<span class="dienst${afw?' afw':''}" style="--c:${afw?'#B9AFA4':kalMwKleur(r.medewerker_id)}"
-          title="${esc(teamNaam(r.medewerker_id)+' · '+kalSoortLabel(r.dienst)+(r.notitie?' · '+r.notitie:''))}"
-          >${esc(kalVoornaam(teamNaam(r.medewerker_id)))}${
-            r.dienst==='nacht' ? ' ☽' : r.dienst==='schoonmaak' ? ' ✦' : ''}</span>`;
-      }).join('') + `</span>` : '') +
-      res.map(r=>`<span class="ev" style="background:${KAL_KLEUR[r.locatie]||'#9A7B4F'}"
-          title="${esc((r.locatie||'onbekend')+' · '+(r.naam||'gast')+(r.bron?' · '+r.bron:''))}"
-          ><span class="t">${esc(kalTijd(r.start))}</span>${
-            esc((kalNacht(r) ? 'Overnachting' : 'Dagverblijf') + ' · ' + (r.naam || 'gast'))}</span>`).join('') +
-      '</button>';
-  }
-  const rest = (7 - ((start + dagen) % 7)) % 7;
-  for(let i=0;i<rest;i++) html += '<div class="kal-cel leeg"></div>';
-  rooster.innerHTML = html;
+  const kopjes = ['ma','di','wo','do','vr','za','zo'].map(d=>`<div class="kal-kop">${d}</div>`).join('');
+  rooster.className = 'kal ' + kalWeergave;
+  let html = '', titel = '';
 
-  const lbl = new Date(j, m-1, 1).toLocaleDateString('nl-NL', {month:'long', year:'numeric'});
-  $('#kalKop').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+  if(kalWeergave === 'dag'){
+    const dag = kalDag || vd;
+    html = kalCel(dag, resDag, dienstDag, true);
+    titel = dmy(dag);
+
+  } else if(kalWeergave === 'week'){
+    const basis = new Date(kalDag || vd);
+    basis.setDate(basis.getDate() - ((basis.getDay() + 6) % 7));      /* naar maandag */
+    html = kopjes;
+    for(let i=0;i<7;i++){
+      const d = new Date(basis); d.setDate(basis.getDate() + i);
+      html += kalCel(d.toISOString().slice(0,10), resDag, dienstDag, false);
+    }
+    const eind = new Date(basis); eind.setDate(basis.getDate() + 6);
+    titel = 'Week van ' + dmy(basis.toISOString().slice(0,10)) + ' t/m ' + dmy(eind.toISOString().slice(0,10));
+
+  } else if(kalWeergave === 'jaar'){
+    const perMaand = {};
+    lijstRes.forEach(r=>{ const mm = String(r.start||'').slice(0,7); if(mm) (perMaand[mm] = perMaand[mm]||[]).push(r); });
+    for(let i=1;i<=12;i++){
+      const mm = j + '-' + String(i).padStart(2,'0');
+      const rijen = perMaand[mm] || [];
+      const perLoc = LOCATIES.map(l=>rijen.filter(x=>x.locatie === l.naam).length);
+      const tot = rijen.length || 1;
+      html += `<div class="maandvak" data-kalmaand="${mm}">
+        <strong>${esc(new Date(j, i-1, 1).toLocaleDateString('nl-NL',{month:'long'}))}</strong>
+        <span>${rijen.length} reservering${rijen.length===1?'':'en'}</span>
+        <span class="maandbalk">${LOCATIES.map((l,ix)=>perLoc[ix]
+          ? `<i style="background:${KAL_KLEUR[l.naam]};flex:${perLoc[ix]/tot}"></i>` : '').join('')}</span>
+      </div>`;
+    }
+    titel = String(j);
+
+  } else {
+    const start = (new Date(j, m-1, 1).getDay() + 6) % 7;
+    const dagen = new Date(j, m, 0).getDate();
+    html = kopjes;
+    for(let i=0;i<start;i++) html += '<div class="kal-cel leeg"></div>';
+    for(let dag=1; dag<=dagen; dag++) html += kalCel(maand+'-'+String(dag).padStart(2,'0'), resDag, dienstDag, false);
+    const rest = (7 - ((start + dagen) % 7)) % 7;
+    for(let i=0;i<rest;i++) html += '<div class="kal-cel leeg"></div>';
+    const lbl = new Date(j, m-1, 1).toLocaleDateString('nl-NL', {month:'long', year:'numeric'});
+    titel = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+  }
+  rooster.innerHTML = html;
+  $('#kalKop').textContent = 'Planning · ' + titel;
+
   $('#kalLegend').innerHTML =
     LOCATIES.map(l=>`<span class="leg"><span class="kal-dot" style="--c:${KAL_KLEUR[l.naam]}"></span>${esc(l.naam)}</span>`).join('') +
-    TEAM.map(m=>`<span class="leg"><span class="kal-dot" style="--c:${kalMwKleur(m.id)}"></span>${esc(m.naam)}</span>`).join('') +
+    TEAM.map(m2=>`<span class="leg"><span class="kal-dot" style="--c:${kalMwKleur(m2.id)}"></span>${esc(m2.naam)}</span>`).join('') +
     '<span class="leg" style="color:var(--muted)">☽ = nacht · ✦ = schoonmaak</span>';
 
-  /* de lijst eronder: gekozen dag, anders de hele maand */
-  const lijst = RES.filter(r=>{
+  /* de lijst eronder volgt de weergave */
+  const lijst = lijstRes.filter(r=>{
     const d = String(r.start||'').slice(0,10);
-    return kalDag ? d === kalDag : d.slice(0,7) === maand;
-  }).sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
+    if(kalWeergave === 'dag')  return d === (kalDag || vd);
+    if(kalWeergave === 'jaar') return d.slice(0,4) === String(j);
+    if(kalDag) return d === kalDag;
+    if(kalWeergave === 'week'){
+      const b = new Date(kalDag || vd); b.setDate(b.getDate() - ((b.getDay()+6)%7));
+      const e = new Date(b); e.setDate(b.getDate()+6);
+      return d >= b.toISOString().slice(0,10) && d <= e.toISOString().slice(0,10);
+    }
+    return d.slice(0,7) === maand;
+  });
+
+  /* sorteren volgens de keuze boven de lijst */
+  const sortKeuze = ($('#resSort')||{}).value || 'datum';
+  const bedrag = r => (r.kop && r.kop.totaal != null) ? Number(r.kop.totaal) : -1;
+  const openst = r => (r.kop && r.kop.totaal != null)
+    ? Number(r.kop.totaal) - Number(r.kop.betaald || 0) : -1;
+  const gastVan = r => String((r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '').toLowerCase();
+  lijst.sort((a,b)=>{
+    switch(sortKeuze){
+      case 'datum-om': return String(b.start||'').localeCompare(String(a.start||''));
+      case 'suite':    return String(a.locatie||'').localeCompare(String(b.locatie||''))
+                           || String(a.start||'').localeCompare(String(b.start||''));
+      case 'gast':     return gastVan(a).localeCompare(gastVan(b));
+      case 'bron':     return String(a.bron||'').localeCompare(String(b.bron||''))
+                           || String(a.start||'').localeCompare(String(b.start||''));
+      case 'bedrag':   return bedrag(b) - bedrag(a);
+      case 'open':     return openst(b) - openst(a);
+      default:         return String(a.start||'').localeCompare(String(b.start||''));
+    }
+  });
 
   KAL_LIJST.length = 0; lijst.forEach(r=>KAL_LIJST.push(r));
-  $('#kalLijst').innerHTML = lijst.length ? lijst.map((r,i)=>`
+  $('#kalLijst').innerHTML = lijst.length ? lijst.map((r,i)=>{
+    const l = kalLabel(r);
+    return `
     <tr class="resrij" data-res="${i}">
-      <td class="name"><span class="pijl">›</span>${esc(dmy(String(r.start||'').slice(0,10)))}</td>
+      <td class="name"><span class="pijl">›</span>${esc(dmy(String(r.start||'').slice(0,10)))}${
+        l.tijd?`<span class="meta">${esc(l.tijd)}</span>`:''}</td>
       <td><span class="kal-dot" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'};margin-right:7px"></span>${
         esc(r.locatie||'onbekend')}</td>
-      <td>${esc(r.naam || '—')}</td>
+      <td>${esc((r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '—')}</td>
       <td>${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</td>
       <td>${esc(r.bron||'')}${r.geannuleerd?' <span class="pill crit">geannuleerd</span>':''}${
         r.kop && r.kop.totaal != null ? `<span class="meta">${esc(eur(r.kop.totaal))}${
           r.kop.betaald != null ? ' · betaald ' + esc(eur(r.kop.betaald)) : ''}</span>` : ''}</td>
     </tr>
-    <tr class="resdetail" data-detail="${i}" hidden><td colspan="5"></td></tr>`).join('')
-    : `<tr><td colspan="5"><div class="empty"><strong>Geen reserveringen</strong>${
-        kalDag ? 'Op deze dag komt er niemand aan.' : 'In deze maand staat nog niets vanaf vandaag.'}</div></td></tr>`;
+    <tr class="resdetail" data-detail="${i}" hidden><td colspan="5"></td></tr>`;}).join('')
+    : `<tr><td colspan="5"><div class="empty"><strong>Geen reserveringen</strong>Er staat niets binnen deze weergave of dit filter.</div></td></tr>`;
 
-  const dnstMaand = DIENSTEN.filter(r=>String(r.datum||'').slice(0,7) === maand).length;
-  $('#kalFoot').textContent = (kalDag
-      ? lijst.length+' aankomst'+(lijst.length===1?'':'en')+' op '+dmy(kalDag)
-      : lijst.length+' aankomst'+(lijst.length===1?'':'en')+' deze maand')
-    + ' · ' + dnstMaand + ' dienst'+(dnstMaand===1?'':'en')+' ingepland';
-  $('#kalAlles').hidden = !kalDag;
+  if($('#resAantal')) $('#resAantal').textContent = lijst.length;
+  const dnstAantal = DIENSTEN.filter(r=>String(r.datum||'').slice(0,7) === maand).length;
+  $('#kalFoot').textContent = lijst.length + ' reservering' + (lijst.length===1?'':'en') +
+    ' · ' + dnstAantal + ' dienst' + (dnstAantal===1?'':'en') + ' deze maand';
+  $('#kalAlles').hidden = !(kalDag && kalWeergave === 'maand');
 }
 document.addEventListener('click', e=>{
   const d = e.target.closest('[data-kaldag]'); if(!d) return;
   kalDag = (kalDag === d.dataset.kaldag) ? '' : d.dataset.kaldag;
   renderKalender();
 });
+/* de lijst met reserveringen open- en dichtklappen */
+$('#resToggle').addEventListener('click', ()=>{
+  const knop = $('#resToggle'), tabel = $('#resTabel');
+  const open = knop.getAttribute('aria-expanded') !== 'true';
+  knop.setAttribute('aria-expanded', String(open));
+  tabel.hidden = !open;
+  try{ localStorage.setItem('bwf_reslijst_open', open ? '1' : '0'); }catch(e){}
+});
+try{
+  if(localStorage.getItem('bwf_reslijst_open') === '1'){
+    $('#resToggle').setAttribute('aria-expanded','true'); $('#resTabel').hidden = false;
+  }
+}catch(e){}
+$('#resSort').addEventListener('change', renderKalender);
+
+/* op de telefoon: kalender of lijst */
+$('#kalToon').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const lijstAan = b.dataset.t === 'lijst';
+  $$('#kalToon button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  $('#kalBlok').hidden = lijstAan;
+  if(lijstAan){
+    $('#resToggle').setAttribute('aria-expanded','true');
+    $('#resTabel').hidden = false;
+    $('#resKop').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+});
+
+$('#kalWeergave').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  kalWeergave = b.dataset.v;
+  $$('#kalWeergave button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  if(kalWeergave !== 'maand' && !kalDag) kalDag = vandaag();
+  renderKalender();
+});
+['#kalSuite','#kalZoek'].forEach(x=>{
+  const el = $(x); if(el) el.addEventListener(x==='#kalZoek'?'input':'change', renderKalender);
+});
+$('#kalNaar').addEventListener('change', e=>{
+  const d = e.target.value; if(!d) return;
+  kalMaand = d.slice(0,7); kalDag = d;
+  if(kalWeergave === 'jaar') kalWeergave = 'maand';
+  $$('#kalWeergave button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.v===kalWeergave)));
+  renderKalender();
+});
+document.addEventListener('click', e=>{
+  const mv = e.target.closest('[data-kalmaand]'); if(!mv) return;
+  kalMaand = mv.dataset.kalmaand; kalDag = ''; kalWeergave = 'maand';
+  $$('#kalWeergave button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.v==='maand')));
+  renderKalender();
+});
+
 $('#kalWat').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   kalWat = b.dataset.w;
