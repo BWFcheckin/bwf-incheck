@@ -258,7 +258,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="formgrid3">
       <div><label>Waar komt de gast vandaan</label>
         <select id="k_bron" onchange="vulKoppelKeuze()">
-          <option value="reservering">Reservering uit het systeem</option>
+          <option value="reservering">Reservering uit de planning (agenda + systeem)</option>
           <option value="aanmelding">Aanmelding van de gast</option>
           <option value="klant">Klantenbestand</option>
           <option value="handmatig">Handmatig invoeren</option>
@@ -1817,7 +1817,127 @@ var serviceGekozen = [];         // [{naam, aantal, prijs}]
 var betalingen = [];             // [{bedrag, wijze, omschrijving, moment}]
 var resArrangementen = [];       // arrangementen van de gekoppelde reservering
 var gekoppeld = null;            // {bron, id, label}
-var RESERVERINGEN = [], KLANTEN = [];
+var RESERVERINGEN = [], KLANTEN = [], AGENDA_RES = [];
+
+/* ---------- reserveringen uit de agenda (dezelfde koppeling als het dashboard) ---------- */
+var AGENDA_CFG = {
+  PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
+  SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
+};
+var AG_STOP = new RegExp('^(booking|bookingcom|com|relax|stay|all|inclusive|incl|late|check|checkin|checkout|'+
+  'overnachting|overnachten|origineel|orgineel|middag|deals|deal|geniet|uur|van|exclusieve|wellness|suite|'+
+  'jacuzzi|zwembad|luxe|deluxe|malina|angie|prive|priv\u00e9|sauna|whatsapp|wa|boeking|reservering|'+
+  'telefonisch|planyo|secret|rooms|arrangement|romantisch|verjaardag|verjaardags|ontbijt|diner|honeymoon|'+
+  'bruidsnacht|niet|beschikbaar|bezet|agenda|dicht|schoonmaken|event|prachtige|deze|met|een|heerlijk|chips|'+
+  'snackpakket|handdoeken|badjassen|slippers|frisdranken|inbegrepen|pakket|drankjes|betaald|betalen|totaal|'+
+  'nog|contant|volledig|personen|pers|volwassenen|kind|kinderen|nachten|nacht|tot|in|out)$', 'i');
+
+function agTel(t){
+  var s = String(t||''), m = s.match(/\+\d{1,3}[\s-]?(?:\d[\s-]?){7,11}\d/);
+  if(m) return m[0].replace(/[\s-]/g,'');
+  m = s.match(/\b0[1-9](?:[\s-]?\d){8}\b/);
+  return m ? m[0].replace(/[\s-]/g,'') : '';
+}
+function agMail(t){ var m = String(t||'').match(/[\w.+-]+@[\w-]+\.[\w.-]+/); return m ? m[0] : ''; }
+function agNaam(t){
+  var ruw = String(t||''), tel = agTel(ruw);
+  var s = ruw.replace(/\S+@\S+/g,' ').replace(/\u20ac\s*[\d.,]+/g,' ')
+    .replace(/[+\d][\d\s.\/-]{5,}/g,' | ').replace(/[#!,;:()]/g,' ');
+  var beste = [], rij = [];
+  s.split('|')[0].split(/\s+/).filter(Boolean).forEach(function(w){
+    var schoon = w.replace(/[^A-Za-z\u00C0-\u017F'-]/g,'');
+    var tussen = /^(van|de|der|den|te|ter|el|al|bin)$/i.test(schoon);
+    var hoofd  = /^[A-Z\u00C0-\u017F]/.test(schoon) && schoon.length > 1 &&
+                 !schoon.split('-').some(function(d){ return AG_STOP.test(d); });
+    var na = rij.length && /^(van|de|der|den|te|ter)$/i.test(rij[rij.length-1]) && schoon.length > 1;
+    if(hoofd || (tussen && rij.length) || na) rij.push(schoon);
+    else { if(rij.length > beste.length) beste = rij; rij = []; }
+  });
+  if(rij.length > beste.length) beste = rij;
+  if(!beste.length || (beste.length === 1 && !tel)) return '';
+  return beste.slice(0,3).join(' ');
+}
+function agGetal(s){
+  s = String(s||'').replace(/\s/g,'');
+  if(/,\d{1,2}$/.test(s)) s = s.replace(/\./g,'').replace(',', '.');
+  else s = s.replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
+  var n = parseFloat(s); return isNaN(n) ? 0 : n;
+}
+function agBedragen(t){
+  var uit = { totaal:0, betaald:0 }, s = String(t||'');
+  var re = /(\u20ac\s*)?(\d[\d.]*(?:,\d{1,2})?)(\s*,-|\s*euro\b)?/gi, m, punten = [];
+  while((m = re.exec(s)) !== null){
+    var w = agGetal(m[2]); if(!w) continue;
+    if(!(m[1] || m[3])){
+      if(/^0/.test(m[2]) || m[2].replace(/\D/g,'').length > 6) continue;
+      if(w < 5 || w > 5000) continue;
+      if(!/^[^a-z0-9]{0,3}(betaald|betaalt|voldaan)/i.test(s.slice(m.index + m[0].length))) continue;
+    }
+    punten.push({ w:w, van:m.index, tot:m.index + m[0].length });
+  }
+  var open = 0, genoemd = 0;
+  punten.forEach(function(p, i){
+    var eind = punten[i+1] ? punten[i+1].van : s.length;
+    var na = s.slice(p.tot, Math.min(eind, p.tot + 45));
+    var voor = s.slice(Math.max(punten[i-1] ? punten[i-1].tot : 0, p.van - 32), p.van);
+    if(/nog\s*(te\s*)?betalen|nog\s*contant|te\s*betalen|betalen\s*bij\s*aankomst/i.test(na + ' ' + voor)) open += p.w;
+    else if(/betaald|betaalt|voldaan/i.test(na + ' ' + voor)) uit.betaald += p.w;
+    else genoemd = Math.max(genoemd, p.w);
+  });
+  uit.totaal = Math.max(genoemd, uit.betaald + open);
+  return uit;
+}
+function agLocatie(kort){
+  var s = String(kort||'').toLowerCase();
+  if(/psmd|psd|deluxe|zwembad/.test(s)) return 'Malina Deluxe Zwembad Suite \u2014 Lelystad';
+  if(/psm|jacuzzi/.test(s))             return 'Malina Jacuzzi Suite \u2014 Lelystad';
+  if(/psa|angie|almere/.test(s))        return 'Suite Angie \u2014 Almere';
+  return kort || '';
+}
+function agBron(t){
+  var s = String(t||'').toLowerCase();
+  if(/booking\.com/.test(s))                      return 'Booking.com';
+  if(/secret\s*rooms/.test(s))                    return 'Secret Rooms';
+  if(/priv[e\u00e9]\s*sauna|privesauna/.test(s)) return 'Priv\u00e9 sauna';
+  if(/orig?ineel\s*overnacht/.test(s))            return 'Origineel Overnachten';
+  if(/planyo/.test(s))                            return 'Planyo';
+  if(/whats\s*app/.test(s))                       return 'WhatsApp';
+  if(/telefonisch/.test(s))                       return 'Telefonisch';
+  return '';
+}
+async function laadAgenda(){
+  try{
+    var json = await (await fetch(AGENDA_CFG.PROXY + '?k=' + encodeURIComponent(AGENDA_CFG.SLEUTEL))).json();
+    if(json.fout) throw new Error(json.fout);
+    AGENDA_RES = (json.events||[])
+      .filter(function(ev){ return ev.soort === 'reservering' || ev.soort === 'extern'; })
+      .map(function(ev){
+        var tekst = (ev.titel||'') + ' ' + (ev.omschrijving||'');
+        var naam = agNaam(ev.titel||''), delen = naam.split(' ');
+        var geld = agBedragen(tekst);
+        return {
+          id: 'ag-' + (ev.nummer || (ev.suite + '-' + ev.start)),
+          uitAgenda: true,
+          voornaam: delen.shift() || '', achternaam: delen.join(' '),
+          locatie: agLocatie(ev.suite),
+          checkindatum:  String(ev.start||'').slice(0,10),
+          checkuitdatum: String(ev.eind||'').slice(0,10) !== String(ev.start||'').slice(0,10)
+                         ? String(ev.eind||'').slice(0,10) : '',
+          checkintijd:  String(ev.start||'').slice(11,16),
+          checkuittijd: String(ev.eind||'').slice(11,16),
+          reserveringsnummer: ev.nummer || '',
+          personen: ev.personen || '',
+          telefoon: ev.telefoon || agTel(tekst),
+          email: ev.email || agMail(tekst),
+          totaal: geld.totaal, betaald: geld.betaald,
+          arrangementen: (ev.arrangementen||[]).join(', '),
+          omschrijving: ev.omschrijving || '',
+          opmerkingen: ev.titel || '',
+          boekingsbron: agBron(tekst)
+        };
+      });
+  }catch(e){ AGENDA_RES = []; }
+}
 var voorinvulling = null;   // naam/contact die alvast klaarstaat voor de gastpopup
 var NIEUWE_KOLOMMEN = true;
 
@@ -1825,6 +1945,7 @@ var NIEUWE_KOLOMMEN = true;
 async function laadKoppelBronnen(){
   try{ RESERVERINGEN = await sb('reservations?select=*&order=checkindatum.desc&limit=800') || []; }
   catch(e){ RESERVERINGEN = []; }
+  await laadAgenda();
   try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=3000') || []; }
   catch(e){ KLANTEN = []; }
   try{ await sb('checkins?select=betalingen&limit=1'); }
@@ -1846,7 +1967,12 @@ function klantLabel(k){
 }
 function koppelBronLijst(){
   var bron = document.getElementById('k_bron').value;
-  if(bron === 'reservering') return RESERVERINGEN.map(function(r){ return { id:r.id, label:resLabel(r), data:r }; });
+  if(bron === 'reservering'){
+    var uitAgenda = AGENDA_RES.map(function(r){ return { id:r.id, label:resLabel(r) + ' \u00b7 agenda', data:r }; });
+    var eigen     = RESERVERINGEN.map(function(r){ return { id:r.id, label:resLabel(r), data:r }; });
+    return uitAgenda.concat(eigen).sort(function(a,b){
+      return String(b.data.checkindatum||'').localeCompare(String(a.data.checkindatum||'')); });
+  }
   if(bron === 'aanmelding')  return aanmeldingen.map(function(a){ return { id:a.id, label:aanmeldLabel(a), data:a }; });
   if(bron === 'klant')       return KLANTEN.map(function(k){ return { id:k.id, label:klantLabel(k), data:k }; });
   return [];
