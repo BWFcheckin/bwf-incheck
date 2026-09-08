@@ -876,6 +876,13 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
             style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer;margin-top:22px">
             <input type="checkbox" id="kpAlleenLos" checked style="width:16px;height:16px;accent-color:var(--accent)">
             <span>Alleen nog niet gekoppelde</span></label></div>
+          <div class="field"><label for="kpZoek">Zoeken op naam of nummer</label>
+            <input type="text" id="kpZoek" placeholder="gast, reserveringsnummer"></div>
+          <div class="field"><label for="kpDatum">Aankomstdatum</label><input type="date" id="kpDatum"></div>
+          <div class="field"><label for="kpSuite">Suite</label><select id="kpSuite">
+            <option value="">Alle suites</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
           <div class="field wide"><label for="kpRes">Bijbehorende reservering</label><select id="kpRes"></select></div>
         </div>
         <span class="note" id="kpNote"></span>
@@ -4685,7 +4692,21 @@ function smgKeuzes(r){
    locatie; met de keuzelijst ernaast bepaal je waarop hij zoekt. */
 function kpFormulieren(){
   const alleen = ($('#kpAlleenLos') && $('#kpAlleenLos').checked) !== false;
-  return FORMS.filter(f=>alleen ? !formGekoppeld(f) : true)
+  const zoek  = (($('#kpZoek') ||{}).value || '').toLowerCase().trim();
+  const datum = ($('#kpDatum')||{}).value || '';
+  const suite = ($('#kpSuite')||{}).value || '';
+  return FORMS
+    .filter(f=>alleen ? !formGekoppeld(f) : true)
+    .filter(f=>{
+      if(suite && formLoc(f) !== suite) return false;
+      if(datum && formDatum(f) !== datum) return false;
+      if(zoek){
+        const t = [formNaam(f), formRef(f), formLoc(f), fveld(f,['email','telefoon'])]
+          .filter(Boolean).join(' ').toLowerCase();
+        if(!t.includes(zoek)) return false;
+      }
+      return true;
+    })
     .sort((a,b)=> String(formDatum(b)).localeCompare(String(formDatum(a))));
 }
 function kpVulFormulieren(){
@@ -4723,28 +4744,53 @@ function kpVulReserveringen(){
     if(naam && rn && (rn.includes(naam) || naam.includes(rn))) return true;
     return !!(datum && rd === datum);
   };
+  /* eigen zoekopdracht gaat voor: naam of nummer, datum en suite */
+  const fZoek  = (($('#kpZoek') ||{}).value || '').toLowerCase().trim();
+  const fDatum = ($('#kpDatum')||{}).value || '';
+  const fSuite = ($('#kpSuite')||{}).value || '';
+  const magMee = r=>{
+    if(fSuite && r.locatie !== fSuite) return false;
+    if(fDatum && String(r.start||'').slice(0,10) !== fDatum) return false;
+    if(fZoek){
+      const k = r.kop || {};
+      const t = [r.naam, r.ref, r.locatie, r.bron, k.gast, k.telefoon, (r.ontleed||{}).naam]
+        .filter(Boolean).join(' ').toLowerCase();
+      if(!t.includes(fZoek)) return false;
+    }
+    return true;
+  };
+  const pool = RES.filter(magMee);
+  const eigenFilter = !!(fZoek || fDatum || fSuite);
+
   /* alle reserveringen blijven kiesbaar; de voorstellen staan bovenaan */
-  const treffers = g ? RES.filter(past) : [];
-  const rest = RES.filter(r=>treffers.indexOf(r) < 0)
+  const treffers = (g && !eigenFilter) ? pool.filter(past) : [];
+  const rest = pool.filter(r=>treffers.indexOf(r) < 0)
     .sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
   KP.res = treffers.concat(rest);
+  const echtNr = v => /^\d{4,9}$/.test(String(v||''));    /* geen interne agendasleutels tonen */
   const regel = r=>`${dmy(String(r.start||'').slice(0,10))} · ${r.locatie||'onbekend'} · ${
-    (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || 'gast'}${r.ref?' · '+r.ref:''}`;
+    (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || 'gast'}${echtNr(r.ref)?' · #'+r.ref:''}`;
   sel.innerHTML = KP.res.length
-    ? (treffers.length
+    ? (treffers.length && !eigenFilter
         ? `<optgroup label="Voorstellen">${treffers.map((r,i)=>
              `<option value="${i}">${esc(regel(r))}</option>`).join('')}</optgroup>` +
           `<optgroup label="Alle reserveringen">${rest.map((r,i)=>
              `<option value="${treffers.length + i}">${esc(regel(r))}</option>`).join('')}</optgroup>`
         : KP.res.map((r,i)=>`<option value="${i}">${esc(regel(r))}</option>`).join(''))
     : '<option value="">geen reserveringen geladen</option>';
-  $('#kpNote').textContent = !g ? 'Er zijn geen formulieren gevonden.'
+  $('#kpNote').textContent = eigenFilter
+    ? pool.length + ' van ' + RES.length + ' reserveringen voldoen aan je zoekopdracht.'
+    : !g ? 'Er zijn geen formulieren gevonden.'
     : treffers.length ? treffers.length + ' voorstel' + (treffers.length===1?'':'len') +
         ' bovenaan · alle ' + RES.length + ' reserveringen staan eronder.'
-    : 'Geen match gevonden — kies zelf de juiste uit de lijst van ' + RES.length + ' reserveringen.';
+    : 'Geen match gevonden — kies zelf de juiste, of zoek hierboven op naam, datum of suite.';
 }
 $('#kpForm').addEventListener('change', kpVulReserveringen);
 $('#kpAlleenLos').addEventListener('change', kpVulFormulieren);
+['#kpZoek','#kpDatum','#kpSuite'].forEach(x=>{
+  const el = $(x);
+  if(el) el.addEventListener(x === '#kpZoek' ? 'input' : 'change', kpVulFormulieren);
+});
 $('#kpHoe').addEventListener('change', kpVulReserveringen);
 $('#kpKoppel').addEventListener('click', async ()=>{
   const g = kpHuidig(), r = KP.res[Number($('#kpRes').value)];
