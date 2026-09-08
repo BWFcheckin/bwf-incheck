@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F4F1ED">
 <title>Dagoverzicht — Bed &amp; Wellness Flevoland</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -165,6 +164,15 @@ dialog .voet{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 :focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="bwf-icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="BWF Lelystad">
 </head>
 <body>
 <!-- ================= BWF-toegang ================= -->
@@ -1226,5 +1234,6 @@ setInterval(function(){ haalAgenda(false); }, 5*60*1000);
 })();
 </script>
 <!-- ================= einde BWF-menu ================= -->
+<script src="bwf-shell.js"></script>
 </body>
 </html>
