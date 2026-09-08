@@ -1876,6 +1876,43 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 </div>
 
 <!-- ============ DIALOGEN ============ -->
+<style>
+  #aanbodKaart{border:0;border-radius:18px;padding:0;width:min(980px,96vw);max-width:96vw;
+    background:var(--surface,#fff);color:var(--ink,#142033);box-shadow:0 24px 70px -30px rgba(0,0,0,.6)}
+  #aanbodKaart::backdrop{background:rgba(20,16,13,.5)}
+  #aanbodKaart .abkop{padding:18px 22px;border-bottom:1px solid var(--line,#dfe6ef)}
+  #aanbodKaart .abkop h2{font-size:20px;margin:0 0 4px}
+  #aanbodKaart .abkop p{margin:0;font-size:13.5px;opacity:.7}
+  #aanbodKaart .abbody{padding:20px 22px;max-height:70vh;overflow:auto}
+  #aanbodKaart .abvoet{padding:14px 22px;border-top:1px solid var(--line,#dfe6ef);display:flex;justify-content:flex-end}
+  #abTabs,#abLoc{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  #abLoc{margin-top:8px}
+  #abTabs button,#abLoc button{border:1px solid var(--line,#dfe6ef);background:var(--surface,#fff);color:inherit;
+    border-radius:999px;padding:8px 15px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  #abLoc button{font-size:13px;padding:6px 13px;font-weight:500}
+  #abTabs button[aria-pressed="true"],#abLoc button[aria-pressed="true"]{
+    background:var(--accent,#165dff);border-color:var(--accent,#165dff);color:#fff}
+  #abSluit{border:1px solid var(--line,#dfe6ef);background:var(--surface,#fff);color:inherit;
+    border-radius:10px;padding:9px 15px;font:inherit;font-weight:600;cursor:pointer}
+</style>
+<dialog id="aanbodKaart">
+  <div class="abkop">
+    <h2>Kaarten &amp; tarieven</h2>
+    <p id="abSub"></p>
+    <div id="abTabs" role="group" aria-label="Onderdeel kiezen">
+      <button type="button" data-ab="menu" aria-pressed="true">Menukaart</button>
+      <button type="button" data-ab="arrangementen" aria-pressed="false">Arrangementen</button>
+      <button type="button" data-ab="tarieven" aria-pressed="false">Tarieven</button>
+    </div>
+    <div id="abLoc" role="group" aria-label="Locatie kiezen">
+      <button type="button" data-abloc="Malina Jacuzzi" aria-pressed="true">Malina Jacuzzi</button>
+      <button type="button" data-abloc="Malina Deluxe" aria-pressed="false">Malina Deluxe</button>
+      <button type="button" data-abloc="Suite Angie" aria-pressed="false">Suite Angie (Almere)</button>
+    </div>
+  </div>
+  <div class="abbody" id="abBody"></div>
+  <div class="abvoet"><button type="button" id="abSluit">Sluiten</button></div>
+</dialog>
 <dialog id="dlgLink"><form method="dialog"><div class="card-body">
   <h2 id="dlgLinkKop">Link toevoegen</h2>
   <p class="note" style="margin-top:0" id="dlgLinkTab"></p>
@@ -2387,6 +2424,70 @@ function letters(titel){
   const w = String(titel||'?').replace(/[^\p{L}\p{N} ]/gu,' ').trim().split(/\s+/);
   return (w.length>1 ? w[0][0]+w[1][0] : (w[0]||'?').slice(0,2)).toUpperCase();
 }
+/* ---------- menukaart, arrangementen en tarieven ---------- */
+const TARIEVEN_URL = 'https://bedenwellnessflevoland.nl/tarieven/';
+const AANBOD = {
+  'Malina Jacuzzi': {
+    menu: [{ src:'menukaart-lelystad.jpg',             titel:'Menukaart Lelystad' }],
+    arr:  [{ src:'arrangementen-jacuzzi-lelystad.jpg', titel:'Arrangementen Jacuzzi Suite Lelystad' }]
+  },
+  'Malina Deluxe': {
+    menu: [{ src:'menukaart-lelystad.jpg',    titel:'Menukaart Lelystad' }],
+    arr:  [{ src:'arrangementen-lelystad.jpg', titel:'Arrangementen Lelystad' }]
+  },
+  'Suite Angie': {
+    menu: [{ src:'menukaart-almere.jpg',       titel:'Menukaart Almere' }],
+    arr:  [{ src:'arrangementen-almere.jpg',   titel:'Arrangementen Almere' },
+           { src:'wellness-arrangementen.jpg', titel:'Wellness arrangementen' }]
+  }
+};
+let abTab = 'menu', abLocatie = 'Malina Jacuzzi';
+function abTeken(){
+  const set = AANBOD[abLocatie] || AANBOD['Malina Jacuzzi'];
+  document.getElementById('abSub').textContent = abTab === 'tarieven'
+    ? 'De tarievenpagina van de website' : abLocatie;
+  document.querySelectorAll('#abTabs [data-ab]').forEach(b =>
+    b.setAttribute('aria-pressed', b.getAttribute('data-ab') === abTab ? 'true' : 'false'));
+  document.querySelectorAll('#abLoc [data-abloc]').forEach(b =>
+    b.setAttribute('aria-pressed', b.getAttribute('data-abloc') === abLocatie ? 'true' : 'false'));
+  document.getElementById('abLoc').style.display = (abTab === 'tarieven') ? 'none' : '';
+
+  const body = document.getElementById('abBody');
+  if(abTab === 'tarieven'){
+    body.innerHTML = `<p class="note" style="margin:0 0 10px">Laadt de pagina niet?
+      <a href="${TARIEVEN_URL}" target="_blank" rel="noopener">Open hem in een nieuw tabblad</a>.</p>
+      <iframe src="${TARIEVEN_URL}" title="Tarieven" loading="lazy"
+        style="width:100%;height:62vh;min-height:420px;border:1px solid var(--line,#dfe6ef);
+        border-radius:12px;background:#fff;display:block"></iframe>`;
+  } else {
+    const lijst = (abTab === 'menu') ? set.menu : set.arr;
+    body.innerHTML = lijst.map(x => `<figure style="margin:0 0 18px">
+        <img src="${esc(x.src)}" alt="${esc(x.titel)}" loading="lazy"
+          style="width:100%;height:auto;display:block;border:1px solid var(--line,#dfe6ef);
+          border-radius:12px;background:#fff">
+        <figcaption style="display:flex;gap:12px;justify-content:space-between;align-items:center;
+          font-size:13px;opacity:.75;margin-top:7px"><span>${esc(x.titel)}</span>
+          <a href="${esc(x.src)}" target="_blank" rel="noopener">Groot bekijken</a></figcaption>
+      </figure>`).join('');
+  }
+  body.scrollTop = 0;
+}
+function openAanbod(tab, locatie){
+  abTab = tab || 'menu';
+  if(locatie && AANBOD[locatie]) abLocatie = locatie;
+  abTeken();
+  document.getElementById('aanbodKaart').showModal();
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-ab]');
+  if(t && t.closest('#abTabs')){ abTab = t.getAttribute('data-ab'); abTeken(); return; }
+  const l = e.target.closest('[data-abloc]');
+  if(l){ abLocatie = l.getAttribute('data-abloc'); abTeken(); return; }
+  const o = e.target.closest('[data-aanbod]');
+  if(o){ e.preventDefault(); openAanbod(o.getAttribute('data-aanbod')); }
+});
+document.getElementById('abSluit').onclick = () => document.getElementById('aanbodKaart').close();
+
 function renderBalk(tab, doel, kop){
   const el = $(doel); if(!el) return;
   const rijen = S.links.filter(l=>l.tab===tab).sort((a,b)=>(a.sortering||0)-(b.sortering||0));
@@ -2397,6 +2498,9 @@ function renderBalk(tab, doel, kop){
           <span class="ico">${esc(letters(l.titel))}</span>${esc(l.titel)}</a>
         ${isEigenaar()?`<button class="sysbew" type="button" title="Aanpassen" data-syswijzig="${l.id}">✎</button>`:''}
       </span>`).join('') +
+    (tab === 'website' ? `<button class="sysknop" type="button" data-aanbod="menu"
+        style="--c:#B5842C;cursor:pointer;font:inherit">
+        <span class="ico">KT</span>Kaarten &amp; tarieven</button>` : '') +
     (isEigenaar() ? `<button class="sysnieuw" type="button" data-sysnieuw="${tab}">+ Knop toevoegen</button>` : '');
 }
 /* de drie partners waar je een reservering kunt opzoeken */
@@ -7690,4 +7794,3 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
-  
