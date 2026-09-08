@@ -3817,10 +3817,19 @@ function csv(rows, naam){
 }
 
 /* ---------------- badges & render ---------------- */
+/* de tellers volgen precies wat je in de lijst Welkomstcalls onder "Open" ziet:
+   nog niet gebeld of afgesloten, en het verblijf ligt vandaag of later */
+function wcOpenAantal(){
+  return (S.calls||[]).filter(c=>{
+    const st = String(c.status||'');
+    if(/^afgesloten|^afgerond/i.test(st) || st === 'gebeld') return false;
+    return wcActueel(c);
+  }).length;
+}
 function badges(){
   const zet = (id,v)=>{ const el=$('#badge-'+id); if(el) el.textContent = v; };
   zet('taken', mijnTaken().filter(t=>t.status!=='klaar').length);
-  zet('welkomstcall', S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length);
+  zet('welkomstcall', wcOpenAantal());
   zet('klanten', S.klanten.length);
   zet('bellen', S.belitems.filter(i=>{
         const l = S.bellijsten.find(b=>b.id===i.lijst_id);
@@ -3831,7 +3840,7 @@ function badges(){
   /* de tellers op de nieuwe groepsknoppen */
   const groepTeller = {
     werk: S.taken.filter(t=>t.status!=='klaar').length,
-    calls: (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
+    calls: wcOpenAantal(),
     reserveringen: RES.length,
     klantbeheer: (S.klanten||[]).length,
     bellen: (S.belitems||[]).filter(b=>!b.gebeld).length,
@@ -6189,7 +6198,7 @@ const TEGELS = [
   {tab:'taken',        titel:'Taken',              ico:'\u2713', kleur:'#483C34', sub:'aanmaken voor jezelf of toewijzen aan een ander',
    getal:()=>mijnTaken().filter(t=>t.status!=='klaar').length, label:'open'},
   {tab:'welkomstcall', titel:'Openstaande welkomstcalls', ico:'\u260e', kleur:'#9A7B4F', sub:'bellen, extra\u2019s bijboeken en bevestigen',
-   getal:()=>S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length, label:'te doen'},
+   getal:()=>wcOpenAantal(), label:'te doen'},
   {tab:'klanten',      titel:'Klanten & gasten',   ico:'\ud83d\udc64', kleur:'#6F7A5A', sub:'klantenbestand, nachtregister en toeristenbelasting',
    getal:()=>S.klanten.length, label:'klanten', recht:()=>magGasten()},
   {tab:'bellen',       titel:'Bellen',             ico:'\ud83d\udccb', kleur:'#A25E48', sub:'bellijsten met de scripts ernaast',
