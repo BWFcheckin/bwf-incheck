@@ -1030,7 +1030,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <div class="voetlinks" id="ovVoet"></div>
       <div class="voetqr">
         <div id="ovQr"></div>
-        <span>Scan voor een Google-review</span>
+        <span>Scan om een review achter te laten</span>
       </div>
     </div>
   </section>
@@ -1470,7 +1470,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <h2 id="communicatieTitle">Review en menukaart instellen</h2>
     <p class="note" style="margin-top:0">Deze gegevens worden voortaan automatisch gebruikt vanuit iedere reserveringskaart.</p>
     <form method="dialog" id="communicatieForm" class="communicatie-grid">
-      <div class="field"><label for="reviewLinkInput">Google-reviewlink</label><input type="url" id="reviewLinkInput" placeholder="https://g.page/r/.../review" required></div>
+      <div class="field"><label for="reviewLinkInput">Reviewlink (leeg = automatisch per locatie)</label><input type="url" id="reviewLinkInput" placeholder="https://app.reviewplus.io/review/..."></div>
       <div class="field"><label for="menuLinkInput">Link naar de menukaart</label><input type="url" id="menuLinkInput" placeholder="https://..." required></div>
       <div class="field"><label for="reviewTekstInput">Vooraf ingestelde reviewtekst</label><textarea id="reviewTekstInput" required></textarea></div>
       <div style="display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap">
@@ -2784,7 +2784,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   var FORM_LM_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
   var FORM_GAST   = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
   var COMMUNICATIE_SLEUTEL = 'bwf-review-menu-instellingen';
-  var REVIEW_TEKST_STANDAARD = 'Beste {voornaam}, bedankt voor je verblijf bij Beden Wellness Flevoland. We hopen dat je hebt genoten! Zou je jouw ervaring met ons willen delen via deze link? {reviewlink} Alvast heel erg bedankt!';
+  var REVIEW_TEKST_STANDAARD = 'Beste {voornaam}, bedankt voor je verblijf bij Bed & Wellness Flevoland. We hopen dat je hebt genoten! Zou je jouw ervaring met ons willen delen via deze link? {reviewlink} Alvast heel erg bedankt!';
+
+  /* ---------- Review Plus: vaste link per locatie ---------- */
+  var REVIEW_LINK_ALMERE     = 'https://app.reviewplus.io/review/angies-enterprises';
+  var REVIEW_LINK_LELYSTAD   = 'https://app.reviewplus.io/review/angies-enterprises-2';
+  /* Dit dashboard is locatie Lelystad, dus dat is de terugval bij een onbekende suite. */
+  var REVIEW_LINK_STANDAARD  = REVIEW_LINK_LELYSTAD;
 
   /* ---------- hulpjes ---------- */
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
@@ -2849,12 +2855,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     document.getElementById('reviewTekstInput').value = c.tekst||REVIEW_TEKST_STANDAARD;
     document.getElementById('communicatieDialog').showModal();
   }
+  function reviewLinkVoor(r){
+    var eigen = communicatieInstellingen().reviewLink;
+    if(eigen) return eigen;                       /* eigen instelling wint altijd */
+    var h = hoofdnaam(r && (r.locatie || r.suite || r.titel));
+    if(h === 'Suite Angie') return REVIEW_LINK_ALMERE;
+    if(h === 'Malina Jacuzzi' || h === 'Malina Deluxe') return REVIEW_LINK_LELYSTAD;
+    return REVIEW_LINK_STANDAARD;
+  }
   function reviewBericht(r,c){
     var voornaam = String(r.voornaam||gastnaam(r)||'gast').trim().split(/\s+/)[0];
     return String(c.tekst||REVIEW_TEKST_STANDAARD)
       .replace(/\{voornaam\}/gi,voornaam)
       .replace(/\{naam\}/gi,gastnaam(r))
-      .replace(/\{reviewlink\}/gi,c.reviewLink||'');
+      .replace(/\{reviewlink\}/gi,reviewLinkVoor(r));
   }
   function whatsappNummer(waarde){
     var n = String(waarde||'').replace(/\D/g,'');
@@ -3529,12 +3543,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function tekenQr(){
     var doel = document.getElementById('ovQr'); if(!doel) return;
     var c = communicatieInstellingen();
+    var qrLink = c.reviewLink || REVIEW_LINK_STANDAARD;
     doel.innerHTML = '';
-    if(!c.reviewLink || typeof window.QRCode !== 'function'){
-      doel.innerHTML = '<p style="font-size:12.5px;opacity:.6;margin:0 0 8px">Stel eerst de reviewlink in via het tandwiel in een reserveringskaart.</p>';
+    if(typeof window.QRCode !== 'function'){
+      doel.innerHTML = '<p style="font-size:12.5px;opacity:.6;margin:0 0 8px">QR-code kan nu niet worden getekend.</p>';
       return;
     }
-    try{ new window.QRCode(doel, { text:c.reviewLink, width:150, height:150,
+    try{ new window.QRCode(doel, { text:qrLink, width:150, height:150,
       colorDark:'#241E19', colorLight:'#FFFFFF' }); }catch(e){}
   }
 
@@ -4731,7 +4746,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var reviewWa = document.getElementById('rkReviewWhatsApp');
     if(reviewWa) reviewWa.onclick = function(){
       var c = communicatieInstellingen(), k = kop(r);
-      if(!c.reviewLink){ openCommunicatieInstellingen(); return; }
       var nummer = whatsappNummer(k.telefoon||r.telefoon);
       if(!nummer){ alert('Bij deze reservering staat geen telefoonnummer.'); return; }
       window.open('https://wa.me/'+nummer+'?text='+encodeURIComponent(reviewBericht(r,c)),'_blank','noopener');
@@ -4739,7 +4753,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var reviewMail = document.getElementById('rkReviewEmail');
     if(reviewMail) reviewMail.onclick = function(){
       var c = communicatieInstellingen(), k = kop(r);
-      if(!c.reviewLink){ openCommunicatieInstellingen(); return; }
       var email = String(k.email||r.email||'').trim();
       if(!email){ alert('Bij deze reservering staat geen e-mailadres.'); return; }
       var gmail = 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(email)+
