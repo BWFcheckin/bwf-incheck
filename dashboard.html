@@ -1180,6 +1180,29 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="kvoet"><button class="knop" type="button" id="ckSluit">Sluiten</button></div>
   </dialog>
 
+  <style>
+    #abTabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+    #abTabs button{border:1px solid var(--line,#dfe6ef);background:var(--surface,#fff);color:inherit;
+      border-radius:999px;padding:8px 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    #abTabs button[aria-pressed="true"]{background:var(--accent,#165dff);border-color:var(--accent,#165dff);color:#fff}
+    #abBody figure img{box-shadow:0 6px 20px -14px rgba(20,32,51,.6)}
+  </style>
+  <dialog class="bwfkaart" id="aanbodKaart">
+    <div class="kkop">
+      <h2 id="abTitel">Menukaart &amp; arrangementen</h2>
+      <p id="abSub"></p>
+      <div id="abTabs" role="group" aria-label="Onderdeel kiezen">
+        <button type="button" data-ab="menu" aria-pressed="true">Menukaart</button>
+        <button type="button" data-ab="arrangementen" aria-pressed="false">Arrangementen</button>
+        <button type="button" data-ab="tarieven" aria-pressed="false">Tarieven</button>
+      </div>
+    </div>
+    <div class="kbody" id="abBody"></div>
+    <div class="kvoet">
+      <button class="knop" type="button" id="abSluit">Sluiten</button>
+    </div>
+  </dialog>
+
   <!-- ============ START ============ -->
   <section class="panel" id="panel-start" role="tabpanel" aria-labelledby="tab-start" hidden>
     <div class="page-head">
@@ -2265,7 +2288,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var rijen = bestelRegels();
     if (!rijen.length) { alert("Er staat op dit moment niets op de bestellijst."); return; }
     var d = new Date();
-    var html = '<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Bestellijst Beden Wellness</title>' +
+    var html = '<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Bestellijst Bed &amp; Wellness Flevoland</title>' +
       "<style>body{font-family:Helvetica,Arial,sans-serif;color:#241E19;margin:28px}" +
       "h1{font-size:19px;margin:0 0 2px}p.sub{color:#7B6E62;font-size:12px;margin:0 0 18px}" +
       "table{border-collapse:collapse;width:100%;font-size:12.5px}" +
@@ -2274,7 +2297,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       "tr.lev td{background:#F4F1ED;font-weight:600}" +
       ".vink{display:inline-block;width:13px;height:13px;border:1px solid #241E19;border-radius:2px}" +
       "@media print{body{margin:12mm}}</style></head><body>" +
-      "<h1>Bestellijst &mdash; Beden Wellness Flevoland</h1>" +
+      "<h1>Bestellijst &mdash; Bed &amp; Wellness Flevoland</h1>" +
       '<p class="sub">Uitgedraaid op ' + d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) +
         " om " + d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) +
         (wie ? " door " + esc(wie) : "") + "</p>" +
@@ -2863,6 +2886,71 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(h === 'Malina Jacuzzi' || h === 'Malina Deluxe') return REVIEW_LINK_LELYSTAD;
     return REVIEW_LINK_STANDAARD;
   }
+  /* ---------- menukaart, arrangementen en tarieven ---------- */
+  var TARIEVEN_URL = 'https://bedenwellnessflevoland.nl/tarieven/';
+  var AANBOD = {
+    'Malina Jacuzzi': {
+      menu: [{ src:'menukaart-lelystad.jpg',            titel:'Menukaart Lelystad' }],
+      arr:  [{ src:'arrangementen-jacuzzi-lelystad.jpg', titel:'Arrangementen Jacuzzi Suite Lelystad' }]
+    },
+    'Malina Deluxe': {
+      menu: [{ src:'menukaart-lelystad.jpg',   titel:'Menukaart Lelystad' }],
+      arr:  [{ src:'arrangementen-lelystad.jpg', titel:'Arrangementen Lelystad' }]
+    },
+    'Suite Angie': {
+      menu: [{ src:'menukaart-almere.jpg',      titel:'Menukaart Almere' }],
+      arr:  [{ src:'arrangementen-almere.jpg',  titel:'Arrangementen Almere' },
+             { src:'wellness-arrangementen.jpg', titel:'Wellness arrangementen' }]
+    }
+  };
+  var abRes = null, abTab = 'menu';
+  function abSuite(r){
+    var h = hoofdnaam(r && (r.locatie || r.suite || r.titel));
+    return AANBOD[h] ? h : 'Malina Jacuzzi';
+  }
+  function abTeken(){
+    var suite = abSuite(abRes), set = AANBOD[suite];
+    document.getElementById('abSub').textContent = suite +
+      (abTab === 'tarieven' ? ' \u00b7 tarieven van de website' : '');
+    var tabs = document.getElementById('abTabs').querySelectorAll('[data-ab]');
+    for(var i=0;i<tabs.length;i++)
+      tabs[i].setAttribute('aria-pressed', tabs[i].getAttribute('data-ab')===abTab ? 'true' : 'false');
+
+    var body = document.getElementById('abBody'), h = '';
+    if(abTab === 'tarieven'){
+      h = '<p class="note" style="margin:0 0 10px">Dit is de tarievenpagina van de website. '+
+        'Laadt hij niet? <a href="'+TARIEVEN_URL+'" target="_blank" rel="noopener">Open hem in een nieuw tabblad</a>.</p>'+
+        '<iframe src="'+TARIEVEN_URL+'" title="Tarieven" loading="lazy" '+
+        'style="width:100%;height:64vh;min-height:420px;border:1px solid var(--line,#dfe6ef);'+
+        'border-radius:12px;background:#fff;display:block"></iframe>';
+    } else {
+      var lijst = (abTab === 'menu') ? set.menu : set.arr;
+      h = lijst.map(function(x){
+        return '<figure style="margin:0 0 18px">'+
+          '<img src="'+esc(x.src)+'" alt="'+esc(x.titel)+'" loading="lazy" '+
+          'style="width:100%;height:auto;display:block;border:1px solid var(--line,#dfe6ef);'+
+          'border-radius:12px;background:#fff">'+
+          '<figcaption style="display:flex;gap:12px;justify-content:space-between;align-items:center;'+
+          'font-size:13px;opacity:.75;margin-top:7px"><span>'+esc(x.titel)+'</span>'+
+          '<a href="'+esc(x.src)+'" target="_blank" rel="noopener">Groot bekijken</a></figcaption></figure>';
+      }).join('');
+    }
+    body.innerHTML = h;
+    body.scrollTop = 0;
+  }
+  function openAanbod(r, tab){
+    abRes = r; abTab = tab || 'menu';
+    abTeken();
+    document.getElementById('aanbodKaart').showModal();
+  }
+  document.getElementById('abTabs').addEventListener('click', function(e){
+    var b = e.target.closest('[data-ab]'); if(!b) return;
+    abTab = b.getAttribute('data-ab'); abTeken();
+  });
+  document.getElementById('abSluit').onclick = function(){
+    document.getElementById('aanbodKaart').close();
+  };
+
   function reviewBericht(r,c){
     var voornaam = String(r.voornaam||gastnaam(r)||'gast').trim().split(/\s+/)[0];
     return String(c.tekst||REVIEW_TEKST_STANDAARD)
@@ -4629,11 +4717,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<button class="knop klein vol" type="button" id="rkTijdOk">Tijden opslaan</button>'+
       '<span id="rkTijdMeld" style="font-size:13px;opacity:.7"></span></div></div>';
 
-    h += '<div class="actie contact-acties"><b>Review &amp; menukaart</b>'+
+    h += '<div class="actie contact-acties"><b>Review, kaart &amp; tarieven</b>'+
       '<span class="rechts">'+
         '<button class="knop klein whatsapp" type="button" id="rkReviewWhatsApp">WhatsApp review</button>'+
         '<button class="knop klein gmail" type="button" id="rkReviewEmail">Gmail review</button>'+
         '<button class="knop klein menu-link" type="button" id="rkMenuKaart">Menukaart</button>'+
+        '<button class="knop klein menu-link" type="button" id="rkArrangementen">Arrangementen</button>'+
+        '<button class="knop klein menu-link" type="button" id="rkTarieven">Tarieven</button>'+
         '<button class="icon-btn ok" type="button" id="rkCommunicatieInst" aria-label="Review- en menukaartlinks instellen" title="Links en tekst instellen">&#9881;</button>'+
       '</span></div>';
 
@@ -4761,11 +4851,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       window.open(gmail,'_blank','noopener');
     };
     var menuKaart = document.getElementById('rkMenuKaart');
-    if(menuKaart) menuKaart.onclick = function(){
-      var c = communicatieInstellingen();
-      if(!c.menuLink){ openCommunicatieInstellingen(); return; }
-      window.open(c.menuLink,'_blank','noopener');
-    };
+    if(menuKaart) menuKaart.onclick = function(){ openAanbod(r, 'menu'); };
+    var arrKnop = document.getElementById('rkArrangementen');
+    if(arrKnop) arrKnop.onclick = function(){ openAanbod(r, 'arrangementen'); };
+    var tarKnop = document.getElementById('rkTarieven');
+    if(tarKnop) tarKnop.onclick = function(){ openAanbod(r, 'tarieven'); };
 
     var tijdOk = document.getElementById('rkTijdOk');
     if(tijdOk) tijdOk.onclick = async function(){
