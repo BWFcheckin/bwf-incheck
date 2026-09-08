@@ -817,7 +817,24 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           </select>
         </div>
       </div>
-      <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
+      <div class="card-body" id="dienstBlok" hidden>
+        <div class="grid-form" style="margin-bottom:14px">
+          <div class="field"><label for="dpDatum">Datum</label><input type="date" id="dpDatum"></div>
+          <div class="field"><label for="dpWie">Medewerker</label><select id="dpWie"></select></div>
+          <div class="field"><label for="dpLoc">Locatie</label><select id="dpLoc">
+            <option>Lelystad Malina</option><option>Almere</option></select></div>
+          <div class="field"><label for="dpSoort">Soort dienst</label><select id="dpSoort">
+            <option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option>
+            <option value="schoonmaak">Alleen schoonmaak</option>
+            <option value="afwezig">Niet beschikbaar</option></select></div>
+          <div class="field wide"><label for="dpNotitie">Notitie</label>
+            <input type="text" id="dpNotitie" placeholder="bijv. incheck 20:00, sushi besteld"></div>
+          <div class="field"><label>&nbsp;</label>
+            <button class="btn" id="dpOpslaan" type="button">Dienst inplannen</button></div>
+        </div>
+        <span class="note" id="dpNote" style="display:block;margin-bottom:12px"></span>
+        <div id="dienstLijst"></div>
+      </div>
 
       <div class="reskop" id="resKop">
         <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
@@ -3785,6 +3802,8 @@ $('#cfDef').addEventListener('click', ()=> cfLijstToon('definitief'));
    De volledige planning van het team, uitklapbaar onder de kalender. */
 function renderDiensten(){
   const lijst = $('#dienstLijst'); if(!lijst) return;
+  dpVulWie();
+  if($('#dpDatum') && !$('#dpDatum').value) $('#dpDatum').value = vandaag();
   const sel = $('#dienstWie');
   if(sel && sel.options.length <= 1 && TEAM.length){
     sel.innerHTML = '<option value="">Alle medewerkers</option>' +
@@ -3810,9 +3829,60 @@ function renderDiensten(){
       <span class="pill neutral">${esc(kalSoortLabel(d.dienst))}</span>
       ${d.locatie?`<span>${esc(d.locatie)}</span>`:''}
       ${d.notitie?`<em>${esc(d.notitie)}</em>`:''}
+      <button class="icon-btn" type="button" title="Verwijderen" data-dpwis="${d.id}"
+        style="margin-left:auto">✕</button>
     </div>`).join('')
     : '<p class="note" style="margin:0">Geen diensten binnen deze keuze.</p>';
 }
+/* een dienst inplannen — schrijft rechtstreeks naar dezelfde tabel 'planning'
+   die het personeelsdashboard gebruikt, dus het is daar meteen zichtbaar */
+async function planSchrijf(pad, opties){
+  try{ return await api(pad, opties); }
+  catch(e){
+    const r = await fetch(CFG.url.replace(/\/$/,'')+'/rest/v1/'+pad, Object.assign({}, opties, {
+      headers: Object.assign({'Content-Type':'application/json', apikey:PLAN_KEY,
+        Authorization:'Bearer '+PLAN_KEY}, (opties && opties.headers) || {})
+    }));
+    if(!r.ok) throw new Error(await r.text());
+    return r.status === 204 ? null : await r.json().catch(()=>null);
+  }
+}
+function dpVulWie(){
+  const sel = $('#dpWie'); if(!sel || sel.options.length) return;
+  sel.innerHTML = TEAM.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('')
+    || (S.medewerkers||[]).map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
+}
+$('#dpOpslaan').addEventListener('click', async ()=>{
+  const note = $('#dpNote');
+  const datum = $('#dpDatum').value, wie = $('#dpWie').value;
+  if(!datum || !wie){ note.textContent = 'Kies eerst een datum en een medewerker.'; return; }
+  const dubbel = DIENSTEN.some(d=>String(d.datum||'').slice(0,10) === datum &&
+    String(d.medewerker_id) === String(wie));
+  if(dubbel && !confirm('Deze medewerker staat die dag al ingepland. Toch nog een dienst toevoegen?')) return;
+  try{
+    await planSchrijf('planning', {method:'POST', headers:{Prefer:'return=minimal'},
+      body: JSON.stringify({
+        datum, medewerker_id: wie, locatie: $('#dpLoc').value,
+        dienst: $('#dpSoort').value, notitie: $('#dpNotitie').value.trim() || null
+      })});
+    $('#dpNotitie').value = '';
+    note.textContent = 'Ingepland — ook zichtbaar in het personeelsdashboard.';
+    await laadDiensten(); renderDiensten(); renderKalender();
+    toast('Dienst ingepland.');
+  }catch(e){
+    note.textContent = 'Inplannen lukte niet: ' + String(e.message||e).slice(0,140);
+  }
+});
+document.addEventListener('click', async e=>{
+  const w = e.target.closest('[data-dpwis]'); if(!w) return;
+  if(!confirm('Deze dienst verwijderen?')) return;
+  try{
+    await planSchrijf('planning?id=eq.'+encodeURIComponent(w.dataset.dpwis), {method:'DELETE'});
+    await laadDiensten(); renderDiensten(); renderKalender();
+    toast('Dienst verwijderd.');
+  }catch(err){ toast('Verwijderen lukte niet: ' + String(err.message||err).slice(0,80)); }
+});
+
 $('#dienstToggle').addEventListener('click', ()=>{
   const knop = $('#dienstToggle'), blok = $('#dienstBlok');
   const open = knop.getAttribute('aria-expanded') !== 'true';
@@ -7484,4 +7554,3 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
-  
