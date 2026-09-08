@@ -2270,6 +2270,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
   }
 
+  window.BWFTeam = function(){ return state.medewerkers || []; };
   function renderAll(){ vulMedewerkerSelect(); renderPlanning(); renderTeam(); renderVoorraad(); renderOverdracht(); renderLogo(); renderFotos(); renderIncheck(); renderReserveringen(); renderLeveranciers(); }
   function mutate(fn){ fn(); renderAll(); queueSave(); }
 
@@ -3185,7 +3186,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     try{ VOORRAAD = await sb('voorraad?select=*&limit=2000') || []; }catch(e){ VOORRAAD=[]; }
     try{ AANMELDINGEN = await sb('gast_aanmeldingen?select=*&order=created_at.desc&limit=300') || []; }
     catch(e){ AANMELDINGEN=[]; }
-    TEAM.forEach(function(m,i){ DIENSTKLEUR[m.id] = ['#9A7B4F','#2da2bb','#7a4706','#41236d','#076239','#83334c','#1c4587'][i%7]; });
+    teamLijst().forEach(function(m,i){ DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
     await bepaalRol();
     await laadBlokken();
     await laadLinks();
@@ -3218,6 +3219,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     geladen = true;
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
+    teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
     vulSoorten(); vulMedewerkers(); tekenLM(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
@@ -3581,8 +3583,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       return !l || l.indexOf('lelystad')>-1 || l.indexOf('malina')>-1;
     });
   }
+  function teamLijst(){
+    var eigen = (window.BWFTeam && window.BWFTeam()) || [];
+    return (eigen.length ? eigen : TEAM);
+  }
   function teamNaam(id){
-    for(var i=0;i<TEAM.length;i++) if(String(TEAM[i].id)===String(id)) return TEAM[i].naam || '';
+    var l = teamLijst();
+    for(var i=0;i<l.length;i++) if(String(l[i].id)===String(id)) return l[i].naam || '';
     return '';
   }
   function dienstLabel(d){
@@ -3730,9 +3737,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
     if(!rijen.length) return '';
     return '<div class="dienstrij">' + rijen.map(function(p){
-      var m = null;
-      for(var i=0;i<TEAM.length;i++) if(String(TEAM[i].id)===String(p.medewerker_id)) m = TEAM[i];
-      var naam = (m && m.naam ? String(m.naam).split(' ')[0] : '?');
+      var vol = teamNaam(p.medewerker_id);
+      var naam = vol ? String(vol).split(' ')[0] : 'Onbekend';
       var afw  = p.dienst === 'afwezig';
       var srt  = p.dienst === 'nacht' ? ' \u263d' : p.dienst === 'schoonmaak' ? ' \u2726' : '';
       return '<span class="dienst'+(afw?' afw':'')+'" style="--c:'+(afw?'#B9AFA4':(DIENSTKLEUR[p.medewerker_id]||'#9A7B4F'))+'" '+
