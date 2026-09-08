@@ -1611,9 +1611,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   function api(pad, opties){
     opties = opties || {};
+    /* Ging eerder met de publieke sleutel. Die mag sinds de beveiligingsronde
+       niets meer lezen, dus dit loopt nu via de ingelogde sessie \u2014 net als
+       de rest van de pagina. */
+    var t0 = token();
+    if (!t0 || t0 === SB_KEY) {
+      return Promise.reject(new Error("Niet ingelogd \u2014 open eerst het portaal en log in."));
+    }
     var kop = {
       apikey: SB_KEY,
-      Authorization: "Bearer " + SB_KEY,
+      Authorization: "Bearer " + t0,
       "Content-Type": "application/json",
       Prefer: opties.prefer || "return=minimal"
     };
