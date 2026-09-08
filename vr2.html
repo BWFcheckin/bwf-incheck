@@ -4769,7 +4769,8 @@ function kpVulReserveringen(){
   KP.res = treffers.concat(rest);
   const echtNr = v => /^\d{4,9}$/.test(String(v||''));    /* geen interne agendasleutels tonen */
   const regel = r=>`${dmy(String(r.start||'').slice(0,10))} · ${r.locatie||'onbekend'} · ${
-    (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || 'gast'}${echtNr(r.ref)?' · #'+r.ref:''}`;
+    (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || 'gast'}${echtNr(r.ref)?' · #'+r.ref:''}${
+    r.verleden ? ' (geweest)' : ''}`;
   sel.innerHTML = KP.res.length
     ? (treffers.length && !eigenFilter
         ? `<optgroup label="Voorstellen">${treffers.map((r,i)=>
@@ -4833,7 +4834,7 @@ async function wcAutoAanmaken(){
     const vd = vandaag();
     const nieuw = RES.filter(r=>{
       const d = String(r.start||'').slice(0,10);
-      if(!d || d < vd) return false;
+      if(!d || d < vd || r.verleden) return false;
       if(!r.naam || !String(r.naam).trim()) return false;      /* zonder naam niet aanmaken */
       return !bestaat.has(wcSleutel(r.ref, r.naam, d));
     });
@@ -5779,23 +5780,26 @@ async function laadOverzicht(){
     (j.events||[]).forEach(ev=>{
       if(ev.soort !== 'reservering' && ev.soort !== 'extern') return;
       const s = String(ev.start||'').slice(0,10), e = String(ev.eind||'').slice(0,10) || s;
-      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind);
-        RES.push({locatie: ovLocNaam(ev.suite || ev.locatie), naam: ev.gast || ev.naam || ev.titel || '',
-          start: ev.start, eind: ev.eind,
-          ref: ev.nummer || ev.referentie || ev.reservering || null,
-          suiteRuw: ev.suite || '',            /* de suitenaam zoals de agenda hem geeft */
-          bron: ev.bron || (ev.soort === 'extern' ? 'extern' : 'agenda'),
-          eigen:false, ruw: ev}); }
+      /* de tellingen bovenaan gaan over vandaag en later; de lijst zelf houdt ook
+         eerdere boekingen vast, zodat je een gast van gisteren nog kunt opzoeken */
+      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind); }
+      RES.push({locatie: ovLocNaam(ev.suite || ev.locatie), naam: ev.gast || ev.naam || ev.titel || '',
+        start: ev.start, eind: ev.eind,
+        ref: ev.nummer || ev.referentie || ev.reservering || null,
+        suiteRuw: ev.suite || '',              /* de suitenaam zoals de agenda hem geeft */
+        bron: ev.bron || (ev.soort === 'extern' ? 'extern' : 'agenda'),
+        verleden: e < vd, eigen:false, ruw: ev});
     });
   }catch(e){}
   try{
     const eigen = await api('reservations?select=*&order=checkindatum.desc&limit=3000') || [];
     eigen.forEach(r=>{
       const s = String(r.checkindatum||'').slice(0,10), e = String(r.checkuitdatum||'').slice(0,10) || s;
-      if(s && e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(r.locatie, r.checkindatum, r.checkuitdatum);
-        RES.push({locatie: ovLocNaam(r.locatie), naam: [r.voornaam, r.achternaam].filter(Boolean).join(' ') || r.naam || '',
-          start: r.checkindatum, eind: r.checkuitdatum, ref: r.referentie || r.reserveringsnummer || null,
-          bron: r.bron || 'eigen', eigen:true, id: r.id, ruw: r}); }
+      if(!s) return;
+      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(r.locatie, r.checkindatum, r.checkuitdatum); }
+      RES.push({locatie: ovLocNaam(r.locatie), naam: [r.voornaam, r.achternaam].filter(Boolean).join(' ') || r.naam || '',
+        start: r.checkindatum, eind: r.checkuitdatum, ref: r.referentie || r.reserveringsnummer || null,
+        bron: r.bron || 'eigen', verleden: e < vd, eigen:true, id: r.id, ruw: r});
     });
   }catch(e){}
   OV.res = n;
@@ -7480,3 +7484,4 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
+  
