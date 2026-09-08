@@ -278,10 +278,10 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="status" id="k_status"></div>
 
     <h3>Of lees de reservering in</h3>
-    <p class="desc">Plak de bevestiging uit SMG, Booking.com of de mail, of upload een pdf of tekstbestand. De gegevens worden er dan uitgehaald.</p>
+    <p class="desc">Plak de bevestiging uit SMG, Booking.com, Airbnb of de mail, of upload een bestand &mdash; pdf, tekst, csv of een opgeslagen mail. De gegevens worden er dan uitgehaald.</p>
     <textarea id="k_plak" placeholder="Plak hier de tekst van de reservering"></textarea>
     <div class="order-add" style="margin-top:9px;">
-      <div><label>Bestand (pdf of txt)</label><input type="file" id="k_bestand" accept=".pdf,.txt,text/plain,application/pdf" onchange="leesBestand(event)"></div>
+      <div><label>Bestand (pdf, txt, csv of mail)</label><input type="file" id="k_bestand" accept=".pdf,.txt,.csv,.eml,.html,.htm,text/plain,text/csv,message/rfc822,text/html,application/pdf" onchange="leesBestand(event)"></div>
       <div style="flex:0;"><button class="btn sm" type="button" onclick="leesPlaktekst()">Gegevens uit tekst halen</button></div>
     </div>
     <div class="rekenlijst" id="k_gevonden" style="display:none;"></div>
@@ -4786,6 +4786,96 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1000); });
   else setTimeout(start, 1000);
+})();
+</script>
+
+<script id="bwf-portals-js">
+/* Snel naar het beheerscherm van Booking.com of Airbnb om de gegevens op te halen. */
+(function(){
+  var SLEUTEL = "portal_ids";
+  /* hotel_id per suite, uit het accommodatieoverzicht van Booking.com */
+  var IDS = { deluxe: "14967346", jacuzzi: "16218254", angie: "12955821" };
+
+  async function laad(){
+    try{
+      var r = await sb("instellingen?select=waarde&sleutel=eq." + SLEUTEL);
+      if(r && r[0] && r[0].waarde) IDS = Object.assign(IDS, JSON.parse(r[0].waarde));
+    }catch(e){}
+  }
+  async function bewaar(){
+    try{
+      await sb("instellingen", { method:"POST",
+        body: JSON.stringify({ sleutel: SLEUTEL, waarde: JSON.stringify(IDS) }),
+        prefer: "resolution=merge-duplicates,return=minimal" });
+    }catch(e){}
+  }
+
+  function veld(id){ var e = document.getElementById(id); return e ? String(e.value||"").trim() : ""; }
+
+  function bookingUrl(){
+    var nr = veld("c_resnr").replace(/\D/g, "");
+    var suite = veld("c_locatie");
+    var hotel = IDS[suite] || "";
+    if(nr.length >= 8 && hotel){
+      return "https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html" +
+             "?res_id=" + nr + "&hotel_id=" + hotel + "&lang=nl";
+    }
+    return "https://admin.booking.com/";
+  }
+  function airbnbUrl(){
+    var code = veld("c_resnr");
+    if(/^[A-Z0-9]{8,12}$/i.test(code) && /[A-Z]/i.test(code)){
+      return "https://www.airbnb.nl/hosting/reservations/all?searchText=" + encodeURIComponent(code);
+    }
+    return "https://www.airbnb.nl/hosting/reservations/upcoming";
+  }
+
+  function instellen(){
+    var suite = veld("c_locatie") || "deluxe";
+    var naam = (typeof locName === "function") ? locName(suite) : suite;
+    var nu = IDS[suite] || "";
+    var w = prompt("Booking.com hotel-id voor " + naam + ".\n\n" +
+      "Dat nummer staat in het webadres van je extranet, achter hotel_id=.\n" +
+      "Laat leeg om het te wissen.", nu);
+    if(w === null) return;
+    IDS[suite] = w.replace(/\D/g, "");
+    bewaar();
+    alert(IDS[suite] ? "Opgeslagen. Voortaan opent Booking.com meteen de juiste reservering."
+                     : "Gewist. Booking.com opent nu op het overzicht.");
+  }
+
+  function bouw(){
+    var d = document.getElementById("bwfOvernemen");
+    if(!d || document.getElementById("bwfPortals")) return;
+
+    var vak = document.createElement("div");
+    vak.id = "bwfPortals";
+    vak.style.cssText = "display:flex;gap:9px;flex-wrap:wrap;align-items:center;" +
+      "margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)";
+    vak.innerHTML =
+      '<span style="font-size:12.5px;color:var(--muted);margin-right:4px">Gegevens ophalen bij het platform:</span>' +
+      '<button class="btn secondary sm" type="button" id="bwfBooking">Booking.com openen</button>' +
+      '<button class="btn secondary sm" type="button" id="bwfAirbnb">Airbnb openen</button>' +
+      '<button class="btn secondary sm" type="button" id="bwfPortalInst" title="Hotel-id per suite instellen">&#9881;</button>';
+    d.appendChild(vak);
+
+    document.getElementById("bwfBooking").onclick = function(){
+      window.open(bookingUrl(), "_blank", "noopener");
+    };
+    document.getElementById("bwfAirbnb").onclick = function(){
+      window.open(airbnbUrl(), "_blank", "noopener");
+    };
+    document.getElementById("bwfPortalInst").onclick = instellen;
+
+    laad();
+  }
+
+  function start(){
+    bouw();
+    if(!document.getElementById("bwfPortals")) setTimeout(start, 700);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1100); });
+  else setTimeout(start, 1100);
 })();
 </script>
 
