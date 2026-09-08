@@ -2861,10 +2861,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var t = await r.text();
     return t ? JSON.parse(t) : null;
   }
-  /* zelfde verzoek, maar met de publieke sleutel \u2014 voor als een sessie te weinig rechten heeft */
+  /* Gebruikte eerder de publieke sleutel. Dat maakte medewerkers en planning
+     voor iedereen op internet leesbaar, dus gaat dit nu via de ingelogde sessie.
+     Zonder login volgt een duidelijke melding in plaats van stilte. */
   async function sbPubliek(pad){
+    var t0 = token();
+    if(!t0 || t0 === SB_KEY) throw new Error('Niet ingelogd \u2014 open eerst het portaal en log in.');
     var r = await fetch(SB_URL+'/rest/v1/'+pad, {
-      headers: { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY } });
+      headers: { apikey:SB_KEY, Authorization:'Bearer '+t0 } });
     if(!r.ok) throw new Error('HTTP '+r.status);
     var t = await r.text();
     return t ? JSON.parse(t) : null;
