@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BWF Locatie Lelystad</title>
+<title>B&amp;W Locatie Lelystad Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -525,6 +525,14 @@ dialog.bwfkaart dl{display:grid;grid-template-columns:170px 1fr;gap:8px 18px;mar
 @media(min-width:900px){dialog.bwfkaart dl{grid-template-columns:170px 1fr 170px 1fr}}
 dialog.bwfkaart dt{opacity:.62}
 dialog.bwfkaart dd{margin:0;font-weight:500}
+.belrij{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.belrij .belnr{font-weight:700;text-decoration:none;color:inherit;border-bottom:1px dashed currentColor}
+.belrij .belknop{display:inline-flex;align-items:center;text-decoration:none;font-size:12px;font-weight:700;
+  padding:4px 10px;border-radius:999px;border:1px solid var(--line,#e3dad0);color:inherit;
+  background:var(--surface-2,#faf7f3);white-space:nowrap}
+.belrij .belknop:hover{border-color:var(--accent);color:var(--accent)}
+.belrij .belknop.wa{background:#167b5d;border-color:#167b5d;color:#fff}
+.belrij .belknop.wa:hover{color:#fff;filter:brightness(1.08)}
 dialog.bwfkaart .geld{background:var(--surface-2,#faf7f3);border:1px solid var(--line,#e3dad0);border-radius:12px;padding:14px 16px;margin-bottom:16px}
 dialog.bwfkaart .geld .rij{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
 dialog.bwfkaart .geld .rij.open{font-weight:700;border-top:1px solid var(--line,#e3dad0);margin-top:6px;padding-top:8px;font-size:15.5px}
@@ -778,7 +786,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="BWF Lelystad">
+<meta name="apple-mobile-web-app-title" content="B&amp;W Lelystad">
 </head>
 <body>
 <script>
@@ -794,11 +802,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 <div id="gate" hidden>
   <div class="gate-kaart">
     <span class="mark">B&amp;W</span>
-    <h1>Beden Wellness Flevoland</h1>
-    <p>Personeelsdashboard &mdash; vul de toegangscode van het team in.</p>
+    <h1>B&amp;W Locatie Lelystad Dashboard</h1>
+    <p>Vul de toegangscode van het team in.</p>
     <form id="gateForm">
       <div class="field"><label for="gate-input">Toegangscode</label>
         <input type="password" id="gate-input" autocomplete="current-password" required></div>
+      <label class="check" for="gate-onthoud" style="margin-top:4px"><input type="checkbox" id="gate-onthoud" checked>
+        Toegangscode onthouden op dit apparaat</label>
       <p class="gate-fout" id="gateFout" hidden>Die code klopt niet.</p>
       <button class="btn" type="submit">Openen</button>
     </form>
@@ -809,8 +819,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="brand">
       <span class="mark">B&amp;W</span>
       <span class="brand-txt">
-        <strong>Beden Wellness Flevoland</strong>
-        <span>Locatie Lelystad &middot; Malina Jacuzzi &amp; Malina Deluxe</span>
+        <strong>B&amp;W Locatie Lelystad Dashboard</strong>
+        <span>Malina Jacuzzi &amp; Malina Deluxe</span>
       </span>
     </div>
     <div class="topbar-right">
@@ -864,7 +874,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <button type="button" data-kal="week"  aria-pressed="false">Week</button>
           <button type="button" data-kal="maand" aria-pressed="true">Maand</button>
         </div>
-        <label class="check" for="ovVrij" style="gap:8px"><input type="checkbox" id="ovVrij" checked>Beschikbaarheid tonen</label>
+        <label class="check" for="ovVrij" style="gap:8px"><input type="checkbox" id="ovVrij">Beschikbaarheid tonen</label>
+        <button class="knop klein" type="button" id="ovCallsKlaar">Welkomstcalls klaarzetten</button>
         <button class="knop klein" type="button" id="ovBlokken">Tijdsblokken beheren</button>
         <button class="knop klein" type="button" id="ovVernieuw">Vernieuwen</button>
         <span id="ovMelding" style="font-size:13px;opacity:.7"></span>
@@ -899,14 +910,17 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <tbody id="ovVandaag"></tbody>
     </table>
 
-    <div class="lijstkop"><h2 style="font-size:19px">Meer bekijken</h2><span class="ovk-tel" id="sectieTel"></span></div>
+    <div class="lijstkop"><h2 style="font-size:19px">Reserveringsformulieren</h2><span class="ovk-tel" id="sectieTel"></span></div>
+    <p style="margin:-4px 0 12px;font-size:14px;opacity:.7;max-width:70ch">Vul hier een nieuw formulier in,
+    pak een concept op dat al klaarstaat, of zoek een afgerond formulier terug. In dezelfde keuzelijst
+    vind je ook de aanmeldingen die gasten zelf hebben ingevuld en de schademeldingen.</p>
     <div class="ov-bar" style="margin-bottom:14px">
       <div class="ov-rij">
         <select id="ovSectie" style="min-width:260px">
+          <option value="nieuw" selected>Nieuw formulier invullen</option>
+          <option value="concept">Concepten &mdash; alvast klaargezet</option>
+          <option value="definitief">Definitieve formulieren</option>
           <option value="aanm">Aanmeldingen van gasten</option>
-          <option value="nieuw">Incheckformulier &mdash; nieuw en leeg</option>
-          <option value="concept">Incheckformulieren &mdash; concepten</option>
-          <option value="definitief" selected>Incheckformulieren &mdash; definitief</option>
           <option value="schade">Schademeldingen</option>
         </select>
         <input type="search" id="cfZoek" placeholder="Zoek op naam of reserveringsnummer" style="min-width:200px">
@@ -1594,7 +1608,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   function gateStart(){
     var opgeslagen = "";
-    try { opgeslagen = localStorage.getItem(GATE_SLEUTEL) || ""; } catch (e) {}
+    try { opgeslagen = localStorage.getItem(GATE_SLEUTEL) || sessionStorage.getItem(GATE_SLEUTEL) || ""; } catch (e) {}
     if (!SB_ACTIEF) {
       document.getElementById("gate").hidden = true;
       document.body.classList.remove("gate-open");
@@ -1614,7 +1628,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         e.preventDefault();
         var inv = document.getElementById("gate-input").value.trim();
         if (inv === code) {
-          try { localStorage.setItem(GATE_SLEUTEL, code); } catch (e2) {}
+          var onthoud = document.getElementById("gate-onthoud");
+          try {
+            if (onthoud && onthoud.checked) { localStorage.setItem(GATE_SLEUTEL, code); sessionStorage.removeItem(GATE_SLEUTEL); }
+            else { sessionStorage.setItem(GATE_SLEUTEL, code); localStorage.removeItem(GATE_SLEUTEL); }
+          } catch (e2) {}
           toonApp();
         } else {
           document.getElementById("gateFout").hidden = false;
@@ -2844,7 +2862,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       reedsBetaald: parseFloat(ev.betaald||0)||0,
       bijAankomst: ev.betalenBijAankomst||'',
       nummer: ev.nummer||'', personen: ev.personen||'',
-      kanaal: ev.bron||'', omschrijving: ev.omschrijving||'', titel: ev.titel||'' };
+      kanaal: ev.bron||'', omschrijving: ev.omschrijving||'', titel: ev.titel||'',
+      adres: ev.adres||'' };
   }
   function uitSupabase(r){
     return { bron:'handmatig', bewerkbaar:true, ruw:r,
@@ -2870,7 +2889,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function kop(r){ return KOPPEL[sleutel(r)] || {}; }
   function gastnaam(r){
     var k = kop(r);
-    return k.gast || (r.voornaam+' '+r.achternaam).trim() || r.titel || 'Zonder naam';
+    if(k.gast) return k.gast;
+    var vast = (r.voornaam+' '+r.achternaam).trim();
+    if(vast && vast.length < 40 && !/\u20ac|betaald|booking\.com/i.test(vast)) return vast;
+    return naamUitTekst(r.titel||'') || r.titel || 'Zonder naam';
   }
   /* bedragen die in de titel of omschrijving genoemd worden */
   var BRONNEN = ['Website','Priv\u00e9 sauna','Secret Rooms','Origineel Overnachten','Booking.com',
@@ -2894,6 +2916,109 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var n = parseFloat(s);
     return isNaN(n) ? 0 : n;
   }
+  /* naam, telefoon, e-mail en meer uit de tekst van de reservering */
+  var GEEN_NAAM = new RegExp('^(booking|bookingcom|com|relax|stay|all|inclusive|incl|late|check|checkin|checkout|in|out|'+
+    'overnachting|overnachten|origineel|orgineel|middag|deals|deal|geniet|uur|van|exclusieve|wellness|suite|'+
+    'jacuzzi|zwembad|luxe|deluxe|malina|angie|prive|priv\u00e9|sauna|whatsapp|wa|boeking|reservering|'+
+    'telefonisch|planyo|secret|rooms|arrangement|romantisch|verjaardag|verjaardags|ontbijt|diner|'+
+    'honeymoon|bruidsnacht|niet|beschikbaar|bezet|agenda|dicht|schoonmaken|prive|event|prachtige|deze|'+
+    'met|een|heerlijk|chips|snackpakket|handdoeken|badjassen|slippers|frisdranken|inbegrepen|pakket|'+
+    'drankjes|betaald|betalen|totaal|nog|contant|volledig|personen|pers|volwassenen|kind|kinderen|'+
+    'nachten|nacht|tot|juni|juli|augustus|september|oktober|november|december|januari|februari|maart|'+
+    'april|mei|the|voor|door|graag|koud|water|ochtend|vaste|klant|menu|onder|voobehoud|glory|kijken)$', 'i');
+
+  function telefoonUit(t){
+    var s = String(t||'');
+    var m = s.match(/\+\d{1,3}[\s-]?(?:\d[\s-]?){7,11}\d/);
+    if(m) return m[0].replace(/[\s-]/g,'');
+    m = s.match(/\b0[1-9](?:[\s-]?\d){8}\b/);
+    if(m) return m[0].replace(/[\s-]/g,'');
+    return '';
+  }
+  function emailUit(t){
+    var m = String(t||'').match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    return m ? m[0] : '';
+  }
+  function stopwoord(w){
+    var delen = String(w).split(/[-\/]/);
+    for(var i=0;i<delen.length;i++) if(GEEN_NAAM.test(delen[i])) return true;
+    return false;
+  }
+  function naamUitTekst(t){
+    var ruw = String(t||'');
+    var tel = telefoonUit(ruw);
+    var telPlek = tel ? ruw.replace(/[\s-]/g,'').indexOf(tel) : -1;
+
+    var s = ruw.replace(/\S+@\S+/g,' ').replace(/\u20ac\s*[\d.,]+/g,' ')
+      .replace(/[+\d][\d\s.\/-]{5,}/g,' | ').replace(/[#!,;:()]/g,' ');
+    var stukken = s.split('|');
+
+    var reeksen = [];
+    stukken.forEach(function(stuk, si){
+      var rij = [];
+      function sluit(){ if(rij.length) reeksen.push({ woorden:rij.slice(), stuk:si }); rij = []; }
+      stuk.split(/\s+/).filter(Boolean).forEach(function(w){
+        var schoon = w.replace(/[^A-Za-z\u00C0-\u017F'\/-]/g,'').replace(/^[-']+|[-']+$/g,'');
+        if(!schoon){ sluit(); return; }
+        var tussen = /^(van|de|der|den|het|te|ter|el|al|bin|di|du)$/i.test(schoon);
+        var hoofd  = /^[A-Z\u00C0-\u017F]/.test(schoon) && schoon.length > 1 && !stopwoord(schoon);
+        var naTussen = rij.length && /^(van|de|der|den|te|ter)$/i.test(rij[rij.length-1]) && schoon.length > 1;
+        if(hoofd || (tussen && rij.length) || naTussen) rij.push(schoon);
+        else sluit();
+      });
+      sluit();
+    });
+    if(!reeksen.length) return '';
+
+    /* de naam staat meestal vlak voor het telefoonnummer */
+    var beste = null;
+    if(telPlek > -1){
+      for(var i=0;i<reeksen.length;i++){
+        var r = reeksen[i];
+        if(r.stuk === 0 && stukken.length > 1 && i === reeksen.length-1) { beste = r; }
+      }
+      for(var j=reeksen.length-1;j>=0;j--){
+        if(reeksen[j].stuk === 0){ beste = reeksen[j]; break; }
+      }
+    }
+    if(!beste){
+      reeksen.forEach(function(r){ if(!beste || r.woorden.length > beste.woorden.length) beste = r; });
+    }
+    var w = beste.woorden;
+    /* een losse voornaam telt alleen als er een telefoonnummer bij staat */
+    if(w.length === 1 && telPlek < 0) return '';
+    if(w.length > 4) w = w.slice(-3);
+    return w.join(' ');
+  }
+  /* de gestructureerde regels die Planyo in de omschrijving zet */
+  function uitOmschrijving(t){
+    var s = String(t||''), uit = {};
+    function pak(label){
+      var m = s.match(new RegExp(label+'\\s*:\\s*([^\\n]+)', 'i'));
+      return m ? m[1].trim() : '';
+    }
+    uit.email    = pak('E-?mail');
+    uit.telefoon = pak('Tel');
+    uit.personen = pak('Aantal personen');
+    uit.nummer   = pak('Reserveringsnummer');
+    uit.bij      = pak('Betalen bij Aankomst');
+    return uit;
+  }
+  function naw(r){
+    var tekst = (r.titel||'') + ' ' + (r.omschrijving||'');
+    var o = uitOmschrijving(r.omschrijving);
+    var vast = (r.voornaam+' '+r.achternaam).trim();
+    return {
+      naam:     vast && !/\u20ac|betaald|booking\.com/i.test(vast) && vast.length < 40 ? vast : (naamUitTekst(r.titel||'') || vast),
+      telefoon: r.telefoon && r.telefoon.replace(/\D/g,'').length >= 9 ? r.telefoon
+                : (o.telefoon || telefoonUit(tekst)),
+      email:    r.email || o.email || emailUit(tekst),
+      personen: r.personen || o.personen || '',
+      nummer:   r.nummer || o.nummer || '',
+      adres:    r.adres || ''
+    };
+  }
+
   function bedragenUitTekst(txt){
     var uit = { totaal:0, betaald:0, open:0, gevonden:false };
     var t = String(txt||''); if(!t) return uit;
@@ -3045,6 +3170,62 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     vulSoorten(); vulMedewerkers(); tekenLM(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
+
+  /* ---------- welkomstcalls in bulk klaarzetten ---------- */
+  function callsTeDoen(){
+    var vandaag = dstr(new Date());
+    return ALLES.filter(function(r){
+      if(r.soort!=='reservering' && r.soort!=='extern' && r.soort!=='handmatig') return false;
+      if(!r.aankomst || r.aankomst < vandaag) return false;
+      var k = kop(r);
+      if(k.welkomstcall_id || k.welkomstcall_gedaan) return false;
+      return !callGedaan(r);
+    }).sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
+  }
+  async function maakCall(r, medewerker){
+    var n = naw(r);
+    var basis = {
+      gast: gastnaam(r),
+      telefoon: kop(r).telefoon || n.telefoon || '',
+      email: kop(r).email || n.email || '',
+      locatie: hoofdnaam(r.locatie),
+      aankomst: r.aankomst || null,
+      reservering: n.nummer || sleutel(r),
+      status: 'open'
+    };
+    var res;
+    try{
+      res = await sb('wz_welkomstcalls', { method:'POST',
+        body: JSON.stringify(Object.assign({ medewerker: medewerker }, basis)) });
+    }catch(e){
+      /* kent de tabel geen medewerker-kolom? dan zonder */
+      res = await sb('wz_welkomstcalls', { method:'POST', body: JSON.stringify(basis) });
+    }
+    var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
+    await bewaarKoppeling(r, { welkomstcall_id: id, medewerker: medewerker });
+    return id;
+  }
+  document.getElementById('ovCallsKlaar').onclick = async function(){
+    var knop = this, lijst = callsTeDoen();
+    if(!lijst.length){ melding('Alle komende reserveringen hebben al een welkomstcall.', true); return; }
+    var wie = prompt('Voor wie zet ik de welkomstcalls klaar in het Virtual Assistent Dashboard?', 'Kelly');
+    if(wie === null) return;
+    wie = wie.trim() || 'Kelly';
+    if(!confirm(lijst.length+' welkomstcall'+(lijst.length===1?'':'s')+' klaarzetten voor '+wie+'?\n\n'+
+      'Van '+lijst[0].aankomst+' tot en met '+lijst[lijst.length-1].aankomst+'.')) return;
+
+    knop.disabled = true;
+    var goed = 0, mis = 0;
+    for(var i=0;i<lijst.length && i<200;i++){
+      knop.textContent = 'Bezig \u2014 '+(i+1)+' van '+lijst.length;
+      try{ await maakCall(lijst[i], wie); goed++; }catch(e){ mis++; }
+    }
+    knop.disabled = false; knop.textContent = 'Welkomstcalls klaarzetten';
+    CALLS = await sb('wz_welkomstcalls?select=*&limit=1500') || CALLS;
+    herteken();
+    melding(goed+' welkomstcall'+(goed===1?'':'s')+' klaargezet voor '+wie+
+      (mis ? ' \u00b7 '+mis+' mislukt' : '')+'.', !mis);
+  };
 
   /* ---------- vaste tijdsblokken beheren ---------- */
   async function laadBlokken(){
@@ -3675,8 +3856,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<div style="min-width:0"><b>'+esc(aanmNaam(a))+'</b>'+
         '<div class="meta">'+esc([hoofdnaam(veld(a,['locatie'],'')),
           String(veld(a,['datum'],'')).slice(0,10),
-          veld(a,['telefoon'],''), veld(a,['email'],''),
-          a.lid ? 'wil member worden' : ''].filter(Boolean).join(' \u00b7 '))+'</div></div>'+
+          a.lid ? 'wil member worden' : ''].filter(Boolean).join(' \u00b7 '))+'</div>'+
+        (veld(a,['telefoon'],'') || veld(a,['email'],'') ? '<div class="belrij" style="margin-top:6px">'+
+          (veld(a,['telefoon'],'') ? '<a class="belknop" href="tel:'+esc(String(veld(a,['telefoon'],'')).replace(/\s/g,''))+'">Bellen</a>'+
+            '<a class="belknop wa" href="https://wa.me/'+esc(waNummer(veld(a,['telefoon'],'')))+'" target="_blank" rel="noopener">WhatsApp</a>' : '')+
+          (veld(a,['email'],'') ? '<a class="belknop" href="mailto:'+esc(veld(a,['email'],''))+'">Mailen</a>' : '')+
+          '</div>' : '')+'</div>'+
         '<span class="rechts">'+
           '<select data-res="'+esc(a.id)+'" aria-label="Koppelen aan reservering">'+
             '<option value="">Kies een reservering\u2026</option>'+opties+'</select>'+
@@ -3813,14 +3998,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         (soort==='concept' ? 'Er staan geen concepten klaar.' : 'Geen formulieren die aan dit filter voldoen.')+'</p>';
   }
 
-  try{
-    var vorige = localStorage.getItem('bwf-sectie');
-    if(vorige && vorige !== 'nieuw') document.getElementById('ovSectie').value = vorige;
-  }catch(e){}
-  document.getElementById('ovSectie').onchange = function(){
-    try{ localStorage.setItem('bwf-sectie', this.value); }catch(e){}
-    tekenSectie();
-  };
+  document.getElementById('ovSectie').onchange = tekenSectie;
   ['cfZoek','cfLoc','cfVan','cfTot'].forEach(function(id){
     var e = document.getElementById(id);
     e[id==='cfZoek' ? 'oninput' : 'onchange'] = tekenSectie;
@@ -3899,17 +4077,18 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     vl.push('<span class="vlag '+(ci?'ja':'nee')+'">Formulier '+(ci?'ingevuld':'niet ingevuld')+'</span>');
     document.getElementById('rkVlaggen').innerHTML = vl.join('');
 
-    var n = nachten(r.aankomst, r.vertrek);
+    var n = nachten(r.aankomst, r.vertrek), n2 = naw(r);
     var h = '<dl>'+
       rij('Suite', hoofdnaam(r.locatie)) +
       rij('Aankomst', (r.aankomst||'\u2014')+(r.tijdIn?' om '+r.tijdIn:'')) +
       rij('Vertrek',  (r.vertrek||'\u2014')+(r.tijdUit?' om '+r.tijdUit:'')) +
       rij('Verblijf', n ? n+' nacht'+(n===1?'':'en') : 'Dagverblijf') +
-      rij('Personen', k.personen || r.personen || '\u2014') +
+      rij('Personen', k.personen || n2.personen || '\u2014') +
       rij('Arrangement', k.arrangement || r.arrangement || '\u2014') +
       rij('Geboekt via', k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || r.kanaal || '\u2014') +
-      rij('Telefoon', k.telefoon || r.telefoon || '\u2014') +
-      rij('E-mail', k.email || r.email || '\u2014') +
+      belRij(k.telefoon || n2.telefoon) +
+      mailRij(k.email || n2.email) +
+      (n2.adres ? rij('Adres', n2.adres) : '') +
       (r.omschrijving ? rij('Omschrijving', r.omschrijving) : '') +
       (k.notitie ? rij('Notitie', k.notitie) : '') +
       '</dl>';
@@ -4026,11 +4205,33 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     document.getElementById('resKaart').showModal();
   }
   function rij(l,w){ return '<dt>'+esc(l)+'</dt><dd>'+esc(w)+'</dd>'; }
+  function rijRuw(l,h){ return '<dt>'+esc(l)+'</dt><dd>'+h+'</dd>'; }
+  function belRij(nummer){
+    var n = String(nummer||'').trim();
+    if(!n) return rij('Telefoon', '\u2014');
+    var wa = waNummer(n);
+    return rijRuw('Telefoon',
+      '<span class="belrij">'+
+      '<a class="belnr" href="tel:'+esc(n.replace(/\s/g,''))+'">'+esc(n)+'</a>'+
+      '<a class="belknop" href="tel:'+esc(n.replace(/\s/g,''))+'" title="Bellen">Bellen</a>'+
+      (wa ? '<a class="belknop wa" href="https://wa.me/'+esc(wa)+'" target="_blank" rel="noopener" title="WhatsApp">WhatsApp</a>' : '')+
+      '<a class="belknop" href="sms:'+esc(n.replace(/\s/g,''))+'" title="Sms">Sms</a>'+
+      '</span>');
+  }
+  function mailRij(adres){
+    var a = String(adres||'').trim();
+    if(!a) return rij('E-mail', '\u2014');
+    return rijRuw('E-mail',
+      '<span class="belrij"><a class="belnr" href="mailto:'+esc(a)+'">'+esc(a)+'</a>'+
+      '<a class="belknop" href="mailto:'+esc(a)+'">Mailen</a></span>');
+  }
 
   function terugLink(r){
     return location.origin+location.pathname+'?tab=overzicht&res='+encodeURIComponent(sleutel(r));
   }
   function bindKaart(r){
+    var k = kop(r);
+    var huidigKanaal = k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || '';
     var call = document.getElementById('rkCall');
     if(call) call.onclick = function(){
       var d = String(gastnaam(r)).split(' ');
@@ -4039,9 +4240,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '&gast='+encodeURIComponent(gastnaam(r))+
         '&voornaam='+encodeURIComponent(d[0]||'')+
         '&achternaam='+encodeURIComponent(d.slice(1).join(' '))+
-        '&telefoon='+encodeURIComponent(k.telefoon||r.telefoon||'')+
-        '&email='+encodeURIComponent(k.email||r.email||'')+
-        '&nummer='+encodeURIComponent(r.nummer||'')+
+        '&telefoon='+encodeURIComponent(k.telefoon||naw(r).telefoon||'')+
+        '&email='+encodeURIComponent(k.email||naw(r).email||'')+
+        '&nummer='+encodeURIComponent(naw(r).nummer||'')+
         '&locatie='+encodeURIComponent(hoofdnaam(r.locatie))+
         '&aankomst='+encodeURIComponent(r.aankomst||'')+
         '&vertrek='+encodeURIComponent(r.vertrek||'')+
