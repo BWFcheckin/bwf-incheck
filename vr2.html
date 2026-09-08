@@ -3922,8 +3922,32 @@ function wcSectiesKlaar(){
     });
   });
 }
-document.addEventListener('DOMContentLoaded', wcSectiesKlaar);
-setTimeout(wcSectiesKlaar, 0);
+/* ook de losse kaarten op dit tabblad worden uitklapbaar, met dezelfde
+   werking als op de overzichtspagina */
+function wcKaartenKlaar(){
+  const paneel = document.getElementById('panel-welkomstcall'); if(!paneel) return;
+  const stand = wcSectieStand();
+  const standaardDicht = ["Extra's bijboeken", 'Welkomstcall afronden', 'Afgerond per assistent', 'Laatst afgerond'];
+  paneel.querySelectorAll('.card').forEach(kaart=>{
+    const kop = kaart.querySelector('.card-head'); if(!kop) return;
+    const h2 = kop.querySelector('h2'); if(!h2) return;
+    const naam = h2.textContent.trim();
+    kaart.classList.add('inklap'); kaart.dataset.inklap = naam;
+    const open = stand[naam] !== undefined ? stand[naam] : !standaardDicht.includes(naam);
+    kaart.classList.toggle('dicht', !open);
+    if(!kop.dataset.inklapAan){
+      kop.dataset.inklapAan = '1';
+      kop.addEventListener('click', e=>{
+        if(e.target.closest('button, a, select, input, .segment')) return;
+        const dicht = kaart.classList.toggle('dicht');
+        const st = wcSectieStand(); st[naam] = !dicht;
+        try{ localStorage.setItem(WCSECTIE_SLEUTEL, JSON.stringify(st)); }catch(e){}
+      });
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', ()=>{ wcSectiesKlaar(); wcKaartenKlaar(); });
+setTimeout(()=>{ wcSectiesKlaar(); wcKaartenKlaar(); }, 0);
 
 /* de keuzelijst met wie de call heeft gedaan */
 function vulWcDoor(gekozen){
@@ -4011,8 +4035,25 @@ function wcHaalOvernemen(){
   if(typeof wcVerblijfAuto === 'function') wcVerblijfAuto();
   if(typeof wcHerhaalCheck === 'function') wcHerhaalCheck();
   if(typeof wcVersTekst === 'function') wcVersTekst(true);
+  /* arrangement en gelegenheid uit de boeking */
+  if($('#wcArr') && !$('#wcArr').value)
+    $('#wcArr').value = k.arrangement || String((r.ruw||{}).titel || (r.ruw||{}).omschrijving || '').slice(0,120);
+  /* staat de gast al in het klantenbestand, koppel hem dan meteen */
+  const bestaand = S.klanten.find(x=>
+    (k.telefoon && x.telefoon === k.telefoon) ||
+    (k.email && x.email === k.email) ||
+    (naam && String(x.naam||'').toLowerCase() === naam.toLowerCase()));
+  let klantTekst = '';
+  if(bestaand){
+    $('#wcKlant').value = bestaand.id;
+    klantTekst = ' Gekoppeld aan klant ' + (bestaand.naam || naam) + '.';
+    if(wcHuidig) wijzig('calls', wcHuidig, {klant_id: bestaand.id});
+  } else if(naam){
+    klantTekst = ' Deze gast staat nog niet in het bestand — met "Klant aanmaken van deze gast" voeg je hem toe.';
+  }
+  if(typeof wcOpenBalkToon === 'function') wcOpenBalkToon();
   $('#wcHaalNote').textContent = 'Gegevens overgenomen — loop ze even na.' +
-    (k.res_sleutel ? ' Bedragen komen van SMG #' + k.res_sleutel + '.' : '');
+    (k.res_sleutel ? ' Bedragen komen van SMG #' + k.res_sleutel + '.' : '') + klantTekst;
   toast('Gegevens overgenomen.');
 }
 function wcHaalPeriode(dagen){
@@ -4381,7 +4422,7 @@ document.addEventListener('click', e=>{
   }
   /* naar het belscript met het invoerformulier springen */
   setTimeout(()=>{
-    wcSectiesKlaar(); wcOpenBalkToon();
+    wcSectiesKlaar(); wcKaartenKlaar(); wcOpenBalkToon();
     const doel = document.getElementById('wcOpenBalk') || document.getElementById('wcVoor');
     if(doel) doel.scrollIntoView({behavior:'smooth', block:'center'});
   }, 120);
