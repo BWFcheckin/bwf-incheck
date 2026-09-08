@@ -4035,7 +4035,7 @@ function rzVul(){
   $('#rzFoot').textContent = rijen.length + ' van ' + RES.length + ' reserveringen';
   rzDetail();
 }
-const RZ = {rijen:[]};
+const RZ = {rijen:[], kaartOpen:false};
 function rzHuidig(){ return RZ.rijen[Number(($('#rzKeuze')||{}).value)] || null; }
 function rzDetail(){
   const d = $('#rzDetail'); if(!d) return;
@@ -4043,6 +4043,21 @@ function rzDetail(){
   if(!r){ d.innerHTML = '<div class="empty" style="padding:12px 0">Kies een reservering om de gegevens te zien.</div>'; return; }
   const dag = String(r.start||'').slice(0,10);
   const diensten = DIENSTEN.filter(x=>String(x.datum||'').slice(0,10) === dag);
+  /* de volledige kaart wordt hier in hetzelfde blok opgebouwd, met dezelfde
+     gegevens en knoppen als wanneer je in de kalender op een rij klikt */
+  let kaart = '';
+  if(RZ.kaartOpen){
+    let i = KAL_LIJST.indexOf(r);
+    if(i < 0){ KAL_LIJST.push(r); i = KAL_LIJST.length - 1; }
+    try{
+      kaart = `<div class="rzkaart" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">${
+        resDetailHtml(r, i)}</div>`;
+    }catch(err){
+      kaart = '<div class="empty" style="margin-top:14px"><strong>Deze kaart kon niet worden opgebouwd</strong>' +
+        esc(err && err.message ? err.message : String(err)) + '</div>';
+      if(window.console) console.error('resDetailHtml:', err);
+    }
+  }
   d.innerHTML = `<div class="od" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'}">
     <div class="odkop">
       <span class="pill accent">${esc(r.locatie||'onbekend')}</span>
@@ -4052,8 +4067,16 @@ function rzDetail(){
     </div>
     <div class="odtekst">${diensten.length
       ? 'Ingepland die dag: ' + diensten.map(x=>esc(mwNaam(x.medewerker_id))+' ('+esc(kalSoortLabel(x.dienst))+')').join(', ')
-      : 'Er staat die dag nog niemand ingepland — check de personeelsplanning.'}</div></div>`;
+      : 'Er staat die dag nog niemand ingepland — check de personeelsplanning.'}</div>
+    <div style="margin-top:12px">
+      <button class="btn small" type="button" id="rzKaart">${
+        RZ.kaartOpen ? 'Reserveringskaart sluiten' : 'Reserveringskaart openen'}</button>
+    </div>${kaart}</div>`;
 }
+document.addEventListener('click', e=>{
+  if(e.target.closest('#rzKaart')){ RZ.kaartOpen = !RZ.kaartOpen; rzDetail();
+    const k = document.querySelector('.rzkaart'); if(k) k.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+});
 $('#rzZoek').addEventListener('input', rzVul);
 $('#rzKeuze').addEventListener('change', rzDetail);
 $('#rzNaarDag').addEventListener('click', ()=>{
@@ -4218,7 +4241,7 @@ document.addEventListener('click', async e=>{
   const bew = e.target.closest('[data-rbewaar]');
   if(bew){
     const r = KAL_LIJST[Number(bew.dataset.rbewaar)];
-    const vak = bew.closest('td');
+    const vak = bew.closest('td, .od') || bew.parentElement;
     const note = vak.querySelector('[data-rnote]');
     const wijzigingen = {};
     vak.querySelectorAll('[data-rv]').forEach(el=>{ wijzigingen[el.dataset.rv] = el.value.trim() || null; });
@@ -4238,7 +4261,7 @@ document.addEventListener('click', async e=>{
   const kb = e.target.closest('[data-rkbewaar]');
   if(kb){
     const r = KAL_LIJST[Number(kb.dataset.rkbewaar)];
-    const vak = kb.closest('td'), note = vak.querySelector('[data-rnote]');
+    const vak = kb.closest('td, .od') || kb.parentElement, note = vak.querySelector('[data-rnote]');
     const wijziging = {};
     vak.querySelectorAll('[data-rk]').forEach(el=>{
       if(el.type === 'checkbox'){ wijziging[el.dataset.rk] = el.checked; return; }
@@ -4340,7 +4363,7 @@ document.addEventListener('click', async e=>{
   const smg = e.target.closest('[data-rsmgok]');
   if(smg){
     const r = KAL_LIJST[Number(smg.dataset.rsmgok)];
-    const vak = smg.closest('td');
+    const vak = smg.closest('td, .od') || smg.parentElement;
     const keuze = vak.querySelector('[data-rsmg]').value;
     const bron = KOPPEL[keuze];
     if(!bron){ toast('Kies eerst een boeking.'); return; }
