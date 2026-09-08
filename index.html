@@ -232,7 +232,7 @@ footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color
 <link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" id="themaKleur" content="#F4F1ED">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Lelystad">
@@ -466,7 +466,7 @@ const ACHTERGROND = { espresso:'#F4F1ED', salie:'#F3F6F2', leisteen:'#F2F5F7' };
 function zetThema(naam){
   if(!ACHTERGROND[naam]) naam = 'espresso';
   document.documentElement.dataset.thema = naam;
-  $('#themaKleur').setAttribute('content', ACHTERGROND[naam]);
+  const mk = $('#themaKleur'); if(mk) mk.setAttribute('content', ACHTERGROND[naam]);
   $$('.staal').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.kies === naam)));
   try{ localStorage.setItem('bwf-thema', naam); }catch(e){}
 }
