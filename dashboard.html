@@ -62,6 +62,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .mark{width:38px;height:38px;flex:none;border-radius:11px;background:var(--accent);color:var(--accent-ink);
   display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.merkknop{border:0;padding:0;cursor:pointer;overflow:hidden;position:relative}
+.merkknop img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.merkknop:hover{filter:brightness(1.1)}
+.merkknop:hover:after{content:"\270E";position:absolute;right:2px;bottom:1px;font-size:10px;
+  background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:0 3px;line-height:1.4}
 .brand-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .brand-txt strong{font-family:var(--f-display);font-weight:700;font-size:17px;letter-spacing:-.01em}
 .brand-txt span{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--f-mono)}
@@ -817,7 +822,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <span class="mark">B&amp;W</span>
+      <button class="mark merkknop" id="merkKnop" type="button" title="Logo wijzigen" aria-label="Logo wijzigen">
+        <img id="merkLogo" alt="" hidden><span id="merkTekst">B&amp;W</span></button>
+      <input type="file" id="merkBestand" accept="image/*" hidden>
       <span class="brand-txt">
         <strong>B&amp;W Locatie Lelystad Dashboard</strong>
         <span>Malina Jacuzzi &amp; Malina Deluxe</span>
@@ -829,8 +836,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <button class="who" id="whoBtn" type="button"><span class="avatar" id="whoAvatar">?</span><span id="whoName">Wie ben je?</span></button>
     </div>
   </header>
-
-  <div class="fotos" id="fotos"></div>
 
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
@@ -875,6 +880,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <button type="button" data-kal="maand" aria-pressed="true">Maand</button>
         </div>
         <label class="check" for="ovVrij" style="gap:8px"><input type="checkbox" id="ovVrij">Beschikbaarheid tonen</label>
+        <label class="check" for="ovPlanning" style="gap:8px"><input type="checkbox" id="ovPlanning" checked>Planning tonen</label>
         <button class="knop klein" type="button" id="ovCallsKlaar">Welkomstcalls klaarzetten</button>
         <button class="knop klein" type="button" id="ovBlokken">Tijdsblokken beheren</button>
         <button class="knop klein" type="button" id="ovVernieuw">Vernieuwen</button>
@@ -1433,7 +1439,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     { id: "bol",    naam: "Bol",           web: "https://www.bol.com",         tel: "", mail: "" }
   ];
 
-  var state = { medewerkers: [], planning: [], voorraad: [], overdracht: [], fotos: ["", "", ""], incheckUrl: "", links: kopie(LINKS_STANDAARD), leveranciers: kopie(LEV_STANDAARD) };
+  var state = { medewerkers: [], planning: [], voorraad: [], overdracht: [], fotos: ["", "", ""], logo: "", incheckUrl: "", links: kopie(LINKS_STANDAARD), leveranciers: kopie(LEV_STANDAARD) };
+  var LOGO_STANDAARD = "bwf-icon-192.png";
   var vorige = null, saveTimer = null, ophaalTimer = null, bezig = false;
   var chip = document.getElementById("saveChip"), chipTxt = document.getElementById("saveTxt");
 
@@ -1516,6 +1523,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       state.leveranciers = leesLijst(inst.leveranciers);
       if (!state.leveranciers.length) state.leveranciers = kopie(LEV_STANDAARD);
       state.fotos = [inst.foto_1 || "", inst.foto_2 || "", inst.foto_3 || ""];
+      state.logo = inst.logo || "";
       vorige = kopie(state);
       renderAll();
       setChip("saved", "Actueel");
@@ -1548,6 +1556,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     for (var i = 0; i < 3; i++) {
       if (!vorige || (vorige.fotos || [])[i] !== state.fotos[i]) lijst.push({ sleutel: "foto_" + (i + 1), waarde: state.fotos[i] });
     }
+    if (!vorige || vorige.logo !== state.logo) lijst.push({ sleutel: "logo", waarde: state.logo });
     return lijst;
   }
 
@@ -1702,8 +1711,31 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* ---------------- foto's ---------------- */
   var fotoBijschrift = ["Foto 1", "Foto 2", "Foto 3"];
+  function renderLogo(){
+    var img = document.getElementById("merkLogo"), tekst = document.getElementById("merkTekst");
+    var bron = state.logo || LOGO_STANDAARD;
+    if (bron) {
+      img.src = bron; img.hidden = false; tekst.hidden = true;
+      img.onerror = function(){ img.hidden = true; tekst.hidden = false; };
+    } else { img.hidden = true; tekst.hidden = false; }
+  }
+  document.getElementById("merkKnop").addEventListener("click", function(){
+    document.getElementById("merkBestand").click();
+  });
+  document.getElementById("merkBestand").addEventListener("change", function(){
+    var file = this.files && this.files[0]; if (!file) return;
+    var self = this;
+    verkleinFoto(file, function(dataUrl){
+      self.value = "";
+      if (!dataUrl) return;
+      state.logo = dataUrl;
+      renderLogo(); queueSave();
+    }, 320);
+  });
+
   function renderFotos(){
-    document.getElementById("fotos").innerHTML = state.fotos.slice(0, 3).map(function(src, i){
+    var houder = document.getElementById("fotos"); if (!houder) return;
+    houder.innerHTML = state.fotos.slice(0, 3).map(function(src, i){
       return '<div class="foto">' +
         (src ? '<img src="' + esc(src) + '" alt="' + esc(fotoBijschrift[i]) + '">' +
                '<button class="wis" type="button" data-wis-foto="' + i + '">&#10005;</button>'
@@ -1712,12 +1744,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         "</div>";
     }).join("");
   }
-  function verkleinFoto(file, klaar){
+  function verkleinFoto(file, klaar, maxBreedte){
     var reader = new FileReader();
     reader.onload = function(ev){
       var img = new Image();
       img.onload = function(){
-        var max = 1000, w = img.width, h = img.height;
+        var max = maxBreedte || 1000, w = img.width, h = img.height;
         if (w > max) { h = Math.round(h * max / w); w = max; }
         var c = document.createElement("canvas");
         c.width = w; c.height = h;
@@ -1730,7 +1762,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     reader.onerror = function(){ klaar(""); };
     reader.readAsDataURL(file);
   }
-  document.getElementById("fotos").addEventListener("change", function(e){
+  var fotoHouder = document.getElementById("fotos");
+  if (fotoHouder) fotoHouder.addEventListener("change", function(e){
     var inp = e.target;
     if (!inp.dataset || inp.dataset.foto === undefined) return;
     var i = +inp.dataset.foto, file = inp.files && inp.files[0];
@@ -2237,7 +2270,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
   }
 
-  function renderAll(){ vulMedewerkerSelect(); renderPlanning(); renderTeam(); renderVoorraad(); renderOverdracht(); renderFotos(); renderIncheck(); renderReserveringen(); renderLeveranciers(); }
+  function renderAll(){ vulMedewerkerSelect(); renderPlanning(); renderTeam(); renderVoorraad(); renderOverdracht(); renderLogo(); renderFotos(); renderIncheck(); renderReserveringen(); renderLeveranciers(); }
   function mutate(fn){ fn(); renderAll(); queueSave(); }
 
   /* ---------------- formulieren ---------------- */
@@ -3541,6 +3574,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   function tekenLM(){
     var balk = document.getElementById('lmBalk'); if(!balk) return;
+    if(!planningAan()){ balk.hidden = true; return; }
     var dag = (kalWeergave==='dag') ? dstr(anker) : dstr(new Date());
     var vandaag = dstr(new Date());
     var rijen = dienstenOp(dag).filter(function(p){ return p.dienst !== 'afwezig'; });
@@ -3661,7 +3695,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       return String(a.tijdIn).localeCompare(String(b.tijdIn)); }); });
     return map;
   }
+  function planningAan(){
+    var el = document.getElementById('ovPlanning');
+    return !el || el.checked;
+  }
   function dienstStrip(ds){
+    if(!planningAan()) return '';
     var rijen = DIENSTEN.filter(function(p){
       if(String(p.datum||'').slice(0,10) !== ds) return false;
       var l = String(p.locatie||'').toLowerCase();
@@ -4567,6 +4606,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   document.getElementById('ovTot').onchange     = herteken;
   document.getElementById('ovZoek').oninput     = herteken;
   document.getElementById('ovVrij').onchange    = herteken;
+  document.getElementById('ovPlanning').onchange = function(){ herteken(); tekenLM(); };
   document.getElementById('ovVernieuw').onclick = function(){ melding('Bezig\u2026'); laden(); };
 
   document.getElementById('ovVandaagKnop').onclick = function(){
