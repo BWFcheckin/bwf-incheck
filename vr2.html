@@ -1388,6 +1388,12 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       </div>
     </div>
 
+    <style>
+      th[data-wcsort]{cursor:pointer;user-select:none}
+      th[data-wcsort]:hover{color:var(--accent)}
+      th[data-wcsort][data-aan="op"]::after{content:" \2191";color:var(--accent)}
+      th[data-wcsort][data-aan="om"]::after{content:" \2193";color:var(--accent)}
+    </style>
     <div class="card">
       <div class="card-head"><h2>Welkomstcalls</h2>
         <div class="segment" id="wcFilter">
@@ -1395,8 +1401,35 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           <button type="button" data-f="alles" aria-pressed="false">Alles</button>
         </div>
       </div>
+      <div class="card-body" style="padding-bottom:0">
+        <div class="filters" style="margin-bottom:0">
+          <div class="field" style="min-width:250px"><label for="wcZoek">Zoeken</label>
+            <input type="text" id="wcZoek" placeholder="naam, reserveringsnummer of datum"></div>
+          <div class="field"><label for="wcSort">Sorteren op</label><select id="wcSort">
+            <option value="datum">Verblijf — eerstvolgende eerst</option>
+            <option value="datum-om">Verblijf — laatste eerst</option>
+            <option value="gast">Gast (A–Z)</option>
+            <option value="status">Status</option>
+            <option value="bedrag">Bijgeboekt — hoogste eerst</option>
+            <option value="wie">Toegewezen aan</option>
+          </select></div>
+          <div class="field"><label for="wcWie">Toegewezen aan</label><select id="wcWie"></select></div>
+          <div class="field"><label>&nbsp;</label>
+            <button class="btn ghost" type="button" id="wcFilterWis">Filter wissen</button></div>
+        </div>
+        <p class="note" style="margin-top:10px">Onder <strong>Open</strong> zie je alleen calls met een verblijf vanaf vandaag.
+          Kies <strong>Alles</strong> om ook oudere calls terug te zien.</p>
+      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Gast</th><th>Verblijf</th><th>Status</th><th class="num">Bijgeboekt</th><th>Notitie</th><th></th></tr></thead>
+        <thead><tr>
+          <th data-wcsort="gast">Gast</th>
+          <th data-wcsort="datum">Verblijf</th>
+          <th>Status</th>
+          <th data-wcsort="wie">Toegewezen aan</th>
+          <th class="num" data-wcsort="bedrag">Bijgeboekt</th>
+          <th>Notitie</th>
+          <th></th>
+        </tr></thead>
         <tbody id="wcLijst"></tbody>
       </table></div>
       <div class="card-foot"><span id="wcFoot"></span>
@@ -7327,35 +7360,115 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
   renderCalls(); renderTaken(); badges(); toast('Welkomstcall bewaard.');
 });
 let wcFilterStand = 'open';
+let wcSortStand = 'datum';
 $('#wcFilter').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
   wcFilterStand = b.dataset.f;
   $$('#wcFilter button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
   renderCalls(); });
+['#wcZoek','#wcSort','#wcWie'].forEach(s=>{ const el=$(s); if(!el) return;
+  el.addEventListener(s==='#wcZoek'?'input':'change', ()=>{
+    if(s==='#wcSort') wcSortStand = el.value;
+    renderCalls(); }); });
+$('#wcFilterWis').addEventListener('click', ()=>{
+  if($('#wcZoek')) $('#wcZoek').value = '';
+  if($('#wcWie'))  $('#wcWie').value  = '';
+  wcSortStand = 'datum';
+  renderCalls();
+});
+/* klikken op een kolomkop sorteert ook; nog eens op Verblijf draait de volgorde om */
+$('#wcLijst').closest('table').querySelector('thead').addEventListener('click', e=>{
+  const th = e.target.closest('th[data-wcsort]'); if(!th) return;
+  const v = th.dataset.wcsort;
+  wcSortStand = (v === 'datum' && wcSortStand === 'datum') ? 'datum-om' : v;
+  renderCalls();
+});
+/* een call telt als actueel zolang het verblijf vandaag of later ligt */
+function wcActueel(c){
+  const eind = String(c.datum_eind || c.datum || '').slice(0,10);
+  return !eind || eind >= vandaag();
+}
+function wcZoekTekst(c){
+  return [c.naam, c.voornaam, c.achternaam, c.referentie, c.locatie, c.telefoon, c.email,
+    c.datum, c.datum ? dmy(c.datum) : '', c.datum_eind, c.status, mwNaam(c.medewerker_id)]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function wcVulWie(){
+  const sel = $('#wcWie'); if(!sel) return;
+  const h = sel.value;
+  sel.innerHTML = '<option value="">Iedereen</option><option value="geen">Nog niemand</option>' +
+    (S.medewerkers||[]).filter(m=>m.actief!==false)
+      .map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
+  sel.value = h;
+}
 function wcSelectie(){
   let lijst = isEigenaar() ? S.calls : S.calls.filter(c=>!c.medewerker_id || c.medewerker_id===IK.id);
-  if(wcFilterStand==='open') lijst = lijst.filter(c=>c.status!=='afgerond' && c.status!=='gebeld');
-  return lijst;
+  if(wcFilterStand==='open')
+    lijst = lijst.filter(c=>c.status!=='afgerond' && c.status!=='gebeld' && wcActueel(c));
+  const q = (($('#wcZoek')||{}).value||'').toLowerCase().trim();
+  if(q) lijst = lijst.filter(c=>wcZoekTekst(c).includes(q));
+  const wie = ($('#wcWie')||{}).value || '';
+  if(wie) lijst = lijst.filter(c=> wie==='geen' ? !c.medewerker_id : c.medewerker_id===wie);
+  const d  = c => String(c.datum||'9999-99-99').slice(0,10);
+  const nm = c => String(c.naam||'').toLowerCase();
+  return lijst.slice().sort((a,b)=>{
+    switch(wcSortStand){
+      case 'datum-om': return d(b).localeCompare(d(a));
+      case 'gast':     return nm(a).localeCompare(nm(b));
+      case 'status':   return String(a.status||'').localeCompare(String(b.status||'')) || d(a).localeCompare(d(b));
+      case 'bedrag':   return (Number(b.totaal)||0) - (Number(a.totaal)||0);
+      case 'wie':      return mwNaam(a.medewerker_id).localeCompare(mwNaam(b.medewerker_id)) || d(a).localeCompare(d(b));
+      default:         return d(a).localeCompare(d(b));
+    }
+  });
 }
 function renderCalls(){
-  renderWcScript(); renderAfgerond();
+  renderWcScript(); renderAfgerond(); wcVulWie();
+  const sorteer = $('#wcSort'); if(sorteer && sorteer.value !== wcSortStand) sorteer.value = wcSortStand;
+  $$('th[data-wcsort]').forEach(th=>{
+    const v = th.dataset.wcsort;
+    th.dataset.aan = (wcSortStand===v) ? 'op' : (wcSortStand===v+'-om' ? 'om' : '');
+  });
   const lijst = wcSelectie();
+  const mensen = (S.medewerkers||[]).filter(m=>m.actief!==false);
   $('#wcLijst').innerHTML = lijst.length ? lijst.map(c=>`
     <tr class="${c.status==='afgerond'?'done':''}">
       <td class="name">${esc(c.naam || klNaam(S.klanten.find(k=>k.id===c.klant_id)||{}))}
+        ${c.referentie?`<span class="meta">#${esc(c.referentie)}</span>`:''}
         ${c.telefoon?`<span class="meta"><a class="tel" href="tel:${esc(String(c.telefoon).replace(/\s/g,''))}">${esc(c.telefoon)}</a></span>`:''}</td>
       <td>${esc(c.locatie||'')}<span class="meta">${c.datum?dmy(c.datum):''}${c.tijd?' · '+esc(c.tijd):''}</span></td>
       <td><select class="bel-status" data-wcstatus="${c.id}">
         ${['te bellen','gebeld','geen gehoor','terugbellen','afgerond'].map(s=>
           `<option value="${s}"${c.status===s?' selected':''}>${s}</option>`).join('')}</select></td>
+      <td><select class="bel-status" data-wctoewijs="${c.id}">
+        <option value="">— nog niemand —</option>
+        ${mensen.map(m=>`<option value="${m.id}"${c.medewerker_id===m.id?' selected':''}>${esc(m.naam)}</option>`).join('')}
+      </select></td>
       <td class="num">${Number(c.totaal)?eur(c.totaal):'—'}</td>
       <td>${esc(c.notitie||'')}</td>
       <td class="act">
         <button class="btn ghost small" type="button" data-wcopen="${c.id}">Openen</button>
         ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-wcwis="${c.id}">✕</button>`:''}
       </td></tr>`).join('')
-    : `<tr><td colspan="6"><div class="empty"><strong>Geen welkomstcalls</strong>Vul hierboven een gesprek in en klik op Opslaan.</div></td></tr>`;
-  $('#wcFoot').textContent = lijst.length+' gesprekken getoond';
+    : `<tr><td colspan="7"><div class="empty"><strong>Geen welkomstcalls</strong>${
+        wcFilterStand==='open'
+          ? 'Er staat niets open met een verblijf vanaf vandaag. Kies "Alles" om ook oudere calls te zien.'
+          : 'Vul hierboven een gesprek in en klik op Opslaan.'}</div></td></tr>`;
+  const totaal = (isEigenaar() ? S.calls
+    : S.calls.filter(c=>!c.medewerker_id || c.medewerker_id===IK.id)).length;
+  $('#wcFoot').textContent = lijst.length+' van '+totaal+' gesprekken getoond'+
+    (wcFilterStand==='open' ? ' · alleen verblijf vanaf '+dmy(vandaag()) : '');
 }
+/* toewijzen: de call komt als aparte taak bij die persoon op de takenlijst */
+document.addEventListener('change', async e=>{
+  const t = e.target.closest('[data-wctoewijs]'); if(!t) return;
+  const id = t.dataset.wctoewijs;
+  await wijzig('calls', id, {medewerker_id: t.value || null});
+  const c = (S.calls||[]).find(x=>x.id===id);
+  if(c) await wcTaakSync(c, true);
+  renderCalls(); renderTaken(); renderOverzicht(); badges();
+  toast(t.value ? 'Toegewezen aan '+mwNaam(t.value)+' — staat nu op de takenlijst.'
+                : 'Toewijzing verwijderd.');
+});
 document.addEventListener('change', async e=>{
   const s = e.target.closest('[data-wcstatus]');
   if(s){ await wijzig('calls', s.dataset.wcstatus, {status:s.value,
