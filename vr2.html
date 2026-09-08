@@ -353,6 +353,215 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Assistent">
+<!-- ===========================================================
+     BWF — vormgeving Virtual Assistent Dashboard
+     Dit blok zet alleen kleuren, vormen en de mobiele indeling om.
+     Aan de inhoud, de tabbladen en de scripts verandert niets.
+     Terug naar het oude uiterlijk? Verwijder dit blok tot </style>.
+     =========================================================== -->
+<style id="bwf-dashboardstijl">
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f4f7fb;
+  --surface:#ffffff;
+  --surface-2:#f7f9fc;
+  --line:#dfe6ef;
+  --line-soft:#edf1f6;
+  --ink:#142033;
+  --ink-2:#35435a;
+  --muted:#738097;
+  --accent:#165dff;
+  --accent-ink:#ffffff;
+  --accent-soft:#eaf1ff;
+  --accent-rgb:22,93,255;
+  --brass:#b5842c;
+  --ok:#14805e;
+  --ok-soft:#e5f6ef;
+  --warn:#a56a12;
+  --warn-soft:#fff3d9;
+  --crit:#c13e50;
+  --crit-soft:#ffebee;
+  --shadow:0 1px 2px rgba(20,32,51,.03),0 12px 32px rgba(32,59,96,.08);
+  --shadow-hover:0 18px 44px rgba(32,59,96,.14);
+  --r-s:10px; --r-m:14px; --r-l:20px;
+}
+
+/* ---------- pagina ---------- */
+html{background:var(--bg);scroll-behavior:smooth}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 0 0,rgba(var(--accent-rgb),.07),transparent 28rem),
+    linear-gradient(180deg,#f8faff 0,#f4f7fb 34rem);
+  color:var(--ink);
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;pointer-events:none;
+  background:linear-gradient(90deg,#165dff,#49a6ff 52%,#72d1be)}
+.app{max-width:1440px;padding:0 clamp(16px,3vw,42px) 88px}
+
+/* ---------- kop ---------- */
+.topbar{padding:26px 0 18px}
+.brand{gap:14px}
+.mark{width:46px;height:46px;border-radius:15px;font-size:16px;
+  background:linear-gradient(145deg,var(--accent),#5a8dff);
+  box-shadow:0 10px 24px rgba(var(--accent-rgb),.24)}
+.brand-txt strong{font-size:19px}
+.brand-txt span{margin-top:4px;letter-spacing:.08em}
+.chip,.who{height:38px;background:rgba(255,255,255,.9);border-color:#e1e7f0;
+  box-shadow:0 4px 14px rgba(32,59,96,.05)}
+.who{padding:0 14px 0 7px}
+.who .avatar{width:26px;height:26px}
+
+/* ---------- systeembalk ---------- */
+.sysbalk{margin-bottom:24px}
+.sysknop{border-radius:14px;padding:9px 14px;background:rgba(255,255,255,.92);border-color:#e1e7f0;
+  box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
+.sysknop:hover{transform:translateY(-1px);box-shadow:var(--shadow-hover)}
+.sysnieuw{border-radius:14px}
+
+/* ---------- tabbalk ---------- */
+.tabs{position:sticky;top:10px;z-index:30;gap:6px;width:max-content;max-width:100%;
+  margin:0 auto 30px;padding:7px;border:1px solid rgba(216,225,237,.9);border-radius:16px;
+  background:rgba(255,255,255,.88);box-shadow:0 10px 30px rgba(32,59,96,.09);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.tab{padding:10px 16px;border-radius:11px;color:#657289;
+  transition:background .18s ease,color .18s ease,box-shadow .18s ease}
+.tab:hover{background:#f2f6fc;color:#24344b}
+.tab[aria-selected="true"]{background:var(--accent);color:#fff;
+  box-shadow:0 7px 18px rgba(var(--accent-rgb),.23)}
+.tab[aria-selected="true"]::after{display:none}
+.tab[aria-selected="true"] .badge{background:rgba(255,255,255,.2);color:#fff;border-color:transparent}
+
+/* ---------- koppen ---------- */
+.panel{max-width:1360px;margin-inline:auto}
+.page-head{margin-bottom:24px;padding-left:2px}
+.page-head h1{font-size:clamp(28px,3vw,40px);letter-spacing:-.035em}
+.page-head p{max-width:70ch;margin-top:8px;font-size:15px;line-height:1.65}
+.eyebrow{display:inline-block;margin-bottom:7px;color:var(--accent);font-weight:600;letter-spacing:.13em}
+
+/* ---------- kaarten ---------- */
+.card{border-color:#e1e7f0;background:rgba(255,255,255,.95);box-shadow:var(--shadow);
+  border-radius:var(--r-l);overflow:hidden}
+.card + .card{margin-top:22px}
+.card-head{padding:19px 22px;background:linear-gradient(180deg,#fff,#fbfcfe)}
+.card-head h2{font-size:17px}
+.card-body{padding:22px}
+.card-foot{padding:15px 22px}
+
+/* ---------- cijfers ---------- */
+.stats{gap:16px}
+.stat{border-color:#e1e7f0;border-radius:18px;min-height:112px;padding:18px 20px;box-shadow:var(--shadow)}
+.stat::before{width:4px}
+.stat .value{font-size:31px}
+
+/* ---------- starttegels ---------- */
+.tegels{gap:16px}
+.tegel{border-color:#e1e7f0;border-radius:20px;padding:20px;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.tegel::before{width:4px}
+.tegel:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover)}
+.tegel .tico{border-radius:12px;width:36px;height:36px}
+.tegel .ttitel{font-size:16.5px}
+
+/* ---------- knoppen en velden ---------- */
+.btn{min-height:40px;border-radius:10px;box-shadow:0 7px 16px rgba(var(--accent-rgb),.18);
+  transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{box-shadow:none}
+.btn.ghost:hover{transform:none}
+.field input[type="text"],.field input[type="date"],.field input[type="number"],
+.field input[type="url"],.field input[type="tel"],.field input[type="email"],
+.field input[type="password"],.field input[type="month"],.field select,.field textarea{
+  min-height:42px;border-color:#dce4ef;border-radius:10px;background:#f8fafd}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--accent);background:#fff;
+  box-shadow:0 0 0 4px rgba(var(--accent-rgb),.1)}
+.segment{border-color:#dce4ef}
+.segment button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.dropzone{border-radius:16px;border-color:#dce4ef;background:#f8fafd}
+
+/* ---------- tabellen ---------- */
+th{background:#f8fafd;color:#68768d;padding-block:12px}
+td{padding-block:13px}
+tbody tr{transition:background .15s ease}
+tbody tr:hover{background:#f6f9fe}
+.pill{padding:4px 10px}
+
+/* ---------- lijstjes en losse blokken ---------- */
+.linkkaart{border-color:#e1e7f0;box-shadow:var(--shadow)}
+.linkkaart:hover{box-shadow:var(--shadow-hover)}
+.extrarij{border-radius:12px;border-color:#e1e7f0;background:#f8fafd}
+.extrasom{border-radius:12px;border-color:#e1e7f0}
+.scstap{border-radius:14px;border-color:#e1e7f0;background:#f8fafd}
+.sctip{border-radius:14px}
+.od{border-radius:16px;border-color:#e1e7f0;box-shadow:var(--shadow)}
+.doc{border-radius:16px;border-color:#e1e7f0;box-shadow:var(--shadow)}
+.wcbijlage{border-radius:16px;border-color:#dce4ef;background:#f8fafd}
+.preview{border-radius:14px;border-color:#dce4ef;background:#f8fafd}
+.progress{border-radius:999px}
+
+/* ---------- vensters en inlogscherm ---------- */
+dialog{border:0;border-radius:22px;box-shadow:0 26px 80px rgba(20,32,51,.24)}
+dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
+.slot{background:
+  radial-gradient(circle at 0 0,rgba(var(--accent-rgb),.08),transparent 26rem),
+  linear-gradient(180deg,#f8faff 0,#f4f7fb 30rem)}
+.slot-kaart{border-color:#e1e7f0;border-radius:22px;box-shadow:0 24px 60px rgba(32,59,96,.14)}
+.toast{background:#142033;color:#fff;border-radius:999px}
+
+/* ---------- brede schermen ---------- */
+@media (min-width:1200px){
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .grid-form{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* ---------- tablet ---------- */
+@media (max-width:900px){
+  .app{padding-inline:22px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card-body{padding:18px}
+}
+
+/* ---------- telefoon ---------- */
+@media (max-width:620px){
+  body{background:linear-gradient(180deg,#f8faff 0,#f4f7fb 28rem)}
+  .app{padding:0 14px 96px}
+  .topbar{padding:18px 2px 14px}
+  .mark{width:40px;height:40px;border-radius:13px;font-size:14px}
+  .brand-txt strong{font-size:16px;line-height:1.2}
+  .brand-txt span{font-size:10px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip{display:none}
+  .who{width:40px;height:40px;padding:0;justify-content:center;border-radius:13px}
+  .who #whoName{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .tabs{position:fixed;top:auto;bottom:10px;left:10px;right:10px;width:auto;max-width:none;
+    margin:0;padding:6px;justify-content:flex-start;overflow-x:auto;border-radius:17px;
+    box-shadow:0 14px 40px rgba(20,32,51,.2)}
+  .tab{flex:1 0 auto;min-width:max-content;padding:10px 12px;font-size:12.5px}
+  .page-head{margin:22px 2px 18px}
+  .page-head h1{font-size:30px}
+  .stats{grid-template-columns:1fr 1fr;gap:10px}
+  .stat{min-height:96px;padding:14px}
+  .stat .value{font-size:25px}
+  .card{border-radius:16px}
+  .card + .card{margin-top:16px}
+  .card-head{padding:15px 16px}
+  .card-body{padding:16px}
+  .grid-form{grid-template-columns:1fr}
+  .grid-form .field[style*="grid-column"]{grid-column:auto!important}
+  .btn{width:100%;justify-content:center;display:inline-flex}
+  .btn.small,.icon-btn{width:auto}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:640px}
+  dialog{width:calc(100% - 20px);max-height:calc(100dvh - 20px)}
+  .two-col{gap:14px}
+}
+@media (max-width:390px){
+  .brand-txt span{display:none}
+  .stats{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 <!-- ============ TOEGANGSSCHERM ============ -->
