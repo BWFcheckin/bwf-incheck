@@ -689,6 +689,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 .gmail-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .gmail-status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.gmail-status.verbonden .dot{background:var(--ok)}
 .gmail-compose{display:grid;gap:12px}.gmail-compose textarea{min-height:210px}
+.gmail-mappen{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:0 0 14px}.gmail-mappen .field{min-width:210px;flex:1}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @media(max-width:760px){.gmail-layout{grid-template-columns:1fr}.gmail-list{max-height:360px}.gmail-reader{min-height:300px}}
 </style>
@@ -1856,7 +1857,15 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         <button class="btn ghost small" id="gmailUit" type="button">Ontkoppelen</button>
       </div>
       <div class="gmail-layout">
-        <div class="card"><div class="card-head"><h2>Inbox</h2><span class="hint" id="gmailAantal"></span></div><div class="gmail-list" id="gmailLijst"></div></div>
+        <div>
+          <div class="gmail-mappen">
+            <div class="field"><label for="gmailMap">Map</label><select id="gmailMap"><option value="INBOX">Inbox</option></select></div>
+            <button class="btn ghost small" id="gmailMapNieuw" type="button">Nieuwe map</button>
+            <button class="btn ghost small" id="gmailMapHernoem" type="button">Hernoemen</button>
+            <button class="icon-btn" id="gmailMapWis" type="button" aria-label="Map verwijderen" title="Map verwijderen">✕</button>
+          </div>
+          <div class="card"><div class="card-head"><h2 id="gmailMapTitel">Inbox</h2><span class="hint" id="gmailAantal"></span></div><div class="gmail-list" id="gmailLijst"></div></div>
+        </div>
         <div class="card gmail-reader" id="gmailLezer"><div class="empty"><strong>Kies een bericht</strong>Selecteer links een e-mail om die hier te lezen.</div></div>
       </div>
     </div>
@@ -7281,7 +7290,8 @@ $('#afExport').addEventListener('click', ()=>{
 
 /* ---------------- Gmail ---------------- */
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send';
-let gmailToken = '', gmailTokenClient = null, gmailBerichten = [], gmailActief = null;
+let gmailToken = '', gmailTokenClient = null, gmailBerichten = [], gmailActief = null, gmailLabels = [];
+const GMAIL_SYSTEEMNAMEN={INBOX:'Inbox',SENT:'Verzonden',DRAFT:'Concepten',TRASH:'Prullenbak',SPAM:'Spam',STARRED:'Met ster',IMPORTANT:'Belangrijk',ALL:'Alle e-mail'};
 
 function gmailB64(s){
   s = String(s||'').replace(/-/g,'+').replace(/_/g,'/');
@@ -7323,7 +7333,7 @@ async function gmailKoppelen(){
     gmailTokenClient=google.accounts.oauth2.initTokenClient({client_id:id,scope:GMAIL_SCOPE,callback:async r=>{
       if(r.error){ toast('Google-koppeling is geannuleerd.'); return; }
       gmailToken=r.access_token; gmailToestand(true,'Verbonden');
-      try{ await gmailLaden(); }catch(e){ toast(e.message); }
+      try{ await gmailLabelsLaden(); await gmailLaden(); }catch(e){ toast(e.message); }
     }});
     gmailTokenClient.requestAccessToken({prompt:gmailToken?'':'consent'});
   }catch(e){ toast(e.message||'Gmail koppelen is niet gelukt.'); }
@@ -7331,7 +7341,8 @@ async function gmailKoppelen(){
 async function gmailLaden(zoek=''){
   if(!gmailToken) return;
   $('#gmailLijst').innerHTML='<div class="empty">Berichten laden…</div>';
-  const q=zoek.trim(); const p=new URLSearchParams({maxResults:'30',labelIds:'INBOX'}); if(q) p.set('q',q);
+  const q=zoek.trim(), map=$('#gmailMap').value||'INBOX'; const p=new URLSearchParams({maxResults:'30'}); if(map!=='ALL') p.set('labelIds',map); if(q) p.set('q',q);
+  $('#gmailMapTitel').textContent=gmailLabelNaam(map);
   const lijst=await gmailApi('messages?'+p);
   const ids=(lijst.messages||[]).map(m=>m.id);
   gmailBerichten=await Promise.all(ids.map(id=>gmailApi('messages/'+id+'?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date')));
@@ -7346,6 +7357,37 @@ function gmailRenderLijst(){
     <span class="gm-van"><span>${esc(gmailKop(m.payload,'From')||'Onbekende afzender')}</span><time>${esc(gmailDatum(Number(m.internalDate)))}</time></span>
     <span class="gm-onderwerp">${esc(gmailKop(m.payload,'Subject')||'(geen onderwerp)')}</span><span class="gm-snippet">${esc(m.snippet||'')}</span></button>`).join('');
 }
+function gmailLabelNaam(id){ const l=gmailLabels.find(x=>x.id===id); return (l&&l.name)||GMAIL_SYSTEEMNAMEN[id]||'Map'; }
+function gmailEigenLabel(){ const l=gmailLabels.find(x=>x.id===$('#gmailMap').value); return l&&l.type==='user' ? l : null; }
+function gmailMapKnoppen(){ const eigen=!!gmailEigenLabel(); $('#gmailMapHernoem').disabled=!eigen; $('#gmailMapWis').disabled=!eigen; }
+async function gmailLabelsLaden(kies){
+  const d=await gmailApi('labels'); gmailLabels=(d.labels||[]).filter(l=>l.type==='user'||['INBOX','SENT','DRAFT','TRASH','SPAM','STARRED','IMPORTANT'].includes(l.id));
+  gmailLabels.sort((a,b)=>{ if(a.type!==b.type) return a.type==='system'?-1:1; return gmailLabelNaam(a.id).localeCompare(gmailLabelNaam(b.id),'nl'); });
+  const sel=$('#gmailMap'), huidig=kies||sel.value||'INBOX'; sel.innerHTML='<option value="ALL">Alle e-mail</option>'+gmailLabels.map(l=>`<option value="${esc(l.id)}">${esc(gmailLabelNaam(l.id))}</option>`).join('');
+  sel.value=[...sel.options].some(o=>o.value===huidig)?huidig:'INBOX'; gmailMapKnoppen();
+}
+async function gmailMapNieuw(){
+  const naam=prompt('Naam van de nieuwe map:'); if(!naam||!naam.trim()) return;
+  try{ const l=await gmailApi('labels',{method:'POST',body:JSON.stringify({name:naam.trim(),labelListVisibility:'labelShow',messageListVisibility:'show'})}); await gmailLabelsLaden(l.id); await gmailLaden(); toast('Map aangemaakt.'); }
+  catch(e){ toast('Map aanmaken mislukt: '+e.message); }
+}
+async function gmailMapHernoem(){
+  const l=gmailEigenLabel(); if(!l) return; const naam=prompt('Nieuwe naam voor deze map:',l.name); if(!naam||!naam.trim()||naam.trim()===l.name) return;
+  try{ await gmailApi('labels/'+encodeURIComponent(l.id),{method:'PATCH',body:JSON.stringify({name:naam.trim()})}); await gmailLabelsLaden(l.id); $('#gmailMapTitel').textContent=naam.trim(); toast('Map hernoemd.'); }
+  catch(e){ toast('Hernoemen mislukt: '+e.message); }
+}
+async function gmailMapVerwijder(){
+  const l=gmailEigenLabel(); if(!l||!confirm('Map “'+l.name+'” verwijderen? De e-mails zelf blijven bewaard.')) return;
+  try{ await gmailApi('labels/'+encodeURIComponent(l.id),{method:'DELETE'}); await gmailLabelsLaden('INBOX'); await gmailLaden(); toast('Map verwijderd.'); }
+  catch(e){ toast('Verwijderen mislukt: '+e.message); }
+}
+async function gmailVerplaats(id,doel){
+  if(!doel||doel==='ALL') return; const bron=$('#gmailMap').value;
+  const bronLabel=gmailLabels.find(l=>l.id===bron), verwijder=(bron==='INBOX'||(bronLabel&&bronLabel.type==='user'))&&bron!==doel;
+  const body={addLabelIds:[doel],removeLabelIds:verwijder?[bron]:[]};
+  try{ await gmailApi('messages/'+id+'/modify',{method:'POST',body:JSON.stringify(body)}); gmailActief=null; $('#gmailLezer').innerHTML='<div class="empty"><strong>Bericht verplaatst</strong>Het bericht staat nu in '+esc(gmailLabelNaam(doel))+'.</div>'; await gmailLaden($('#gmailZoek').value); toast('Bericht verplaatst.'); }
+  catch(e){ toast('Verplaatsen mislukt: '+e.message); }
+}
 async function gmailOpen(id){
   gmailActief=id; gmailRenderLijst(); const lezer=$('#gmailLezer'); lezer.innerHTML='<div class="empty">Bericht openen…</div>';
   try{
@@ -7354,7 +7396,8 @@ async function gmailOpen(id){
     const van=gmailKop(m.payload,'From'), aan=gmailKop(m.payload,'To'), onderwerp=gmailKop(m.payload,'Subject')||'(geen onderwerp)', body=gmailBody(m.payload);
     lezer.innerHTML=''; const kop=document.createElement('div'); kop.className='gmail-reader-head';
     const h=document.createElement('h2'); h.textContent=onderwerp; const meta=document.createElement('div'); meta.className='gmail-reader-meta'; meta.textContent='Van: '+van+'\nAan: '+aan+' · '+gmailDatum(Number(m.internalDate));
-    const acties=document.createElement('div'); acties.style.marginTop='12px'; const antwoord=document.createElement('button'); antwoord.className='btn ghost small'; antwoord.type='button'; antwoord.textContent='Beantwoorden'; antwoord.onclick=()=>gmailSchrijven({aan:van.replace(/^.*<([^>]+)>.*$/,'$1'),onderwerp:/^Re:/i.test(onderwerp)?onderwerp:'Re: '+onderwerp,tekst:'\n\n--- Oorspronkelijk bericht ---\n'+body.slice(0,4000)}); acties.appendChild(antwoord); kop.append(h,meta,acties);
+    const acties=document.createElement('div'); acties.style.cssText='margin-top:12px;display:flex;gap:8px;flex-wrap:wrap'; const antwoord=document.createElement('button'); antwoord.className='btn ghost small'; antwoord.type='button'; antwoord.textContent='Beantwoorden'; antwoord.onclick=()=>gmailSchrijven({aan:van.replace(/^.*<([^>]+)>.*$/,'$1'),onderwerp:/^Re:/i.test(onderwerp)?onderwerp:'Re: '+onderwerp,tekst:'\n\n--- Oorspronkelijk bericht ---\n'+body.slice(0,4000)}); acties.appendChild(antwoord);
+    const map=document.createElement('select'); map.setAttribute('aria-label','Verplaatsen naar map'); map.innerHTML='<option value="">Verplaatsen naar…</option>'+gmailLabels.filter(l=>l.type==='user'||['INBOX','TRASH','SPAM'].includes(l.id)).map(l=>`<option value="${esc(l.id)}">${esc(gmailLabelNaam(l.id))}</option>`).join(''); map.onchange=()=>gmailVerplaats(id,map.value); acties.appendChild(map); kop.append(h,meta,acties);
     const inhoud=document.createElement('div'); inhoud.className='gmail-body'; inhoud.textContent=body||'(Dit bericht bevat geen leesbare tekst.)'; lezer.append(kop,inhoud);
     const item=gmailBerichten.find(x=>x.id===id); if(item) item.labelIds=(item.labelIds||[]).filter(x=>x!=='UNREAD'); gmailRenderLijst();
   }catch(e){ lezer.innerHTML='<div class="empty"><strong>Bericht kon niet worden geopend</strong>'+esc(e.message)+'</div>'; }
@@ -7375,13 +7418,15 @@ function gmailSchrijven(v={}){
     catch(e){ toast('Versturen mislukt: '+e.message); }
   });
 }
-function gmailOntkoppelen(){ if(gmailToken&&window.google) google.accounts.oauth2.revoke(gmailToken,()=>{}); gmailToken=''; gmailBerichten=[]; gmailActief=null; gmailToestand(false); $('#gmailLijst').innerHTML=''; }
+function gmailOntkoppelen(){ if(gmailToken&&window.google) google.accounts.oauth2.revoke(gmailToken,()=>{}); gmailToken=''; gmailBerichten=[]; gmailLabels=[]; gmailActief=null; gmailToestand(false); $('#gmailLijst').innerHTML=''; }
 $('#gmailKoppel').addEventListener('click',gmailKoppelen);
 $('#gmailVervers').addEventListener('click',()=>gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)));
 $('#gmailZoekBtn').addEventListener('click',()=>gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)));
 $('#gmailZoek').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#gmailZoekBtn').click(); });
 $('#gmailNieuw').addEventListener('click',()=>gmailSchrijven()); $('#gmailUit').addEventListener('click',gmailOntkoppelen);
 $('#gmailLijst').addEventListener('click',e=>{ const b=e.target.closest('[data-gmid]'); if(b) gmailOpen(b.dataset.gmid); });
+$('#gmailMap').addEventListener('change',()=>{ gmailMapKnoppen(); gmailActief=null; gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)); });
+$('#gmailMapNieuw').addEventListener('click',gmailMapNieuw); $('#gmailMapHernoem').addEventListener('click',gmailMapHernoem); $('#gmailMapWis').addEventListener('click',gmailMapVerwijder);
 try{ $('#gmailClientId').value=localStorage.getItem('bwf_gmail_client_id')||''; }catch(e){}
 
 /* ---------------- instellingen / uitloggen ---------------- */
