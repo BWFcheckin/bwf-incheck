@@ -1367,9 +1367,162 @@ function openKlant(key){
   html += '<div class="card"><div class="table-wrap" style="border-top:0"><table>' +
     '<thead><tr><th>Datum</th><th>Uit</th><th>Soort</th><th>Locatie / notitie</th><th class="num">Pers.</th>' +
     '<th class="num">Betaald</th><th class="num">Belasting</th><th></th></tr></thead><tbody>' + rh + "</tbody></table></div></div>";
+  var laatste = rijen.length ? rijen[0] : null;
+  var acties = '<div class="klantacties" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">' +
+    '<button class="btn" type="button" data-actie="boeking">Nieuwe boeking</button>' +
+    (laatste ? '<button class="btn" type="button" data-edit="' + esc(laatste.id) + '">Gegevens bewerken</button>' : "") +
+    '<button class="btn" type="button" data-actie="gmail">E-mail opstellen in Gmail</button>' +
+    '<button class="btn" type="button" data-actie="wa">WhatsApp</button>' +
+    "</div>";
+  html = acties + html +
+    '<div class="card" id="klantKoppel" style="margin-top:14px"><div class="card-body" style="padding:14px">' +
+    "Reserveringen en formulieren worden opgehaald\u2026</div></div>" +
+    '<div class="card" style="margin-top:14px"><div class="card-body" style="padding:14px">' +
+    '<label for="klantNotitie" style="display:block;font-size:13px;margin-bottom:5px">Notitie over deze klant</label>' +
+    '<textarea id="klantNotitie" rows="3" style="width:100%">' + esc(laatste ? (laatste.notitie || "") : "") + "</textarea>" +
+    '<div style="margin-top:8px"><button class="btn" type="button" data-actie="notitie">Notitie bewaren</button>' +
+    '<span id="klantNotitieMsg" style="margin-left:10px;font-size:13px"></span></div>' +
+    "</div></div>";
   $("klantBody").innerHTML = html;
   $("klantMember").textContent = k.member ? "Member-vinkje weghalen" : "Markeer als member";
   openModal("mdKlant");
+  laadKlantKoppelingen(k);
+}
+
+/* ================= koppelingen met reserveringen en formulieren =================
+   De klant staat in wz_klantbeheer, maar zijn boekingen staan in andere tabellen.
+   Er is geen vaste verwijzing, dus we zoeken op e-mailadres, telefoonnummer en
+   achternaam. Alle drie de tabellen zijn klein genoeg om in \u00e9\u00e9n keer op te halen. */
+var KOPPEL_CACHE = null;
+
+function normMail(v){ return String(v || "").trim().toLowerCase(); }
+function normTel(v){
+  var t = String(v || "").replace(/\D/g, "");
+  if(t.indexOf("0031") === 0) t = "0" + t.slice(4);
+  else if(t.indexOf("31") === 0 && t.length > 10) t = "0" + t.slice(2);
+  return t.length >= 9 ? t.slice(-9) : "";
+}
+function hoortBij(k, mail, tel, naam){
+  if(k.email && normMail(mail) && normMail(mail) === normMail(k.email)) return true;
+  if(k.telefoon && normTel(tel) && normTel(tel) === normTel(k.telefoon)) return true;
+  var an = k.achternaam ? String(k.achternaam).toLowerCase() : "";
+  if(an.length > 2 && String(naam || "").toLowerCase().indexOf(an) > -1) return true;
+  return false;
+}
+function haalKoppelBronnen(){
+  if(KOPPEL_CACHE) return Promise.resolve(KOPPEL_CACHE);
+  return Promise.all([
+    sbGet("reservations?select=*&limit=3000")["catch"](function(){ return []; }),
+    sbGet("res_koppeling?select=*&limit=5000")["catch"](function(){ return []; }),
+    sbGet("checkins?select=id,resnr,locatie,datum,checkuitdatum,voornaam,achternaam,email,telefoon,totaal,status,gekoppelde_reservering&order=created_at.desc&limit=2000")["catch"](function(){ return []; })
+  ]).then(function(r){ KOPPEL_CACHE = {res:r[0]||[], kop:r[1]||[], chk:r[2]||[]}; return KOPPEL_CACHE; });
+}
+function koppelRij(datum, wat, locatie, bedrag, link, knop){
+  return "<tr><td>" + (datum ? dNL(datum) : "\u2014") + "</td><td>" + wat + "</td><td>" +
+    esc(locatie || "\u2014") + '</td><td class="num">' + (bedrag ? eur(bedrag) : "\u2014") + "</td><td>" +
+    (link ? '<a class="rowbtn" href="' + link + '" target="_blank" rel="noopener">' + knop + "</a>" : "") +
+    "</td></tr>";
+}
+function laadKlantKoppelingen(k){
+  var doel = $("klantKoppel");
+  if(!doel) return;
+  var eerste = k.records && k.records.length ? k.records[0] : {};
+  k.achternaam = k.achternaam || eerste.achternaam || "";
+  haalKoppelBronnen().then(function(bron){
+    var rijen = [], i, x;
+    for(i = 0; i < bron.res.length; i++){
+      x = bron.res[i];
+      if(!hoortBij(k, x.email, x.telefoon, (x.voornaam || "") + " " + (x.achternaam || ""))) continue;
+      rijen.push({ d:x.checkindatum, html: koppelRij(x.checkindatum,
+        '<span class="pill nacht">reservering</span>', x.locatie, x.totaal,
+        "incheckformulier.html?reservering=" + encodeURIComponent(x.id) +
+        "&locatie=" + encodeURIComponent(x.locatie || "") + "&van=" + encodeURIComponent(x.checkindatum || ""),
+        "Openen") });
+    }
+    for(i = 0; i < bron.kop.length; i++){
+      x = bron.kop[i];
+      if(x.geannuleerd) continue;
+      if(!hoortBij(k, x.email, x.telefoon, x.gast)) continue;
+      rijen.push({ d:x.aankomst, html: koppelRij(x.aankomst,
+        '<span class="pill nacht">' + esc(x.bron || "boeking") + "</span>", x.locatie, x.totaal,
+        "incheckformulier.html?reservering=" + encodeURIComponent(x.res_sleutel), "Openen") });
+    }
+    for(i = 0; i < bron.chk.length; i++){
+      x = bron.chk[i];
+      if(!hoortBij(k, x.email, x.telefoon, (x.voornaam || "") + " " + (x.achternaam || ""))) continue;
+      rijen.push({ d:x.datum, html: koppelRij(x.datum,
+        '<span class="pill dag">incheckformulier</span>', x.locatie, x.totaal,
+        "incheckformulier.html?reservering=" + encodeURIComponent(x.resnr || ""), "Openen") });
+    }
+    rijen.sort(function(a, b){ return String(b.d || "").localeCompare(String(a.d || "")); });
+    var body = rijen.length
+      ? '<div class="table-wrap" style="border-top:0"><table><thead><tr><th>Datum</th><th>Wat</th>' +
+        '<th>Locatie</th><th class="num">Bedrag</th><th></th></tr></thead><tbody>' +
+        rijen.map(function(r){ return r.html; }).join("") + "</tbody></table></div>"
+      : '<div class="card-body" style="padding:14px">Geen reserveringen of formulieren gevonden die bij ' +
+        "deze klant horen. Er wordt gezocht op e-mailadres, telefoonnummer en achternaam \u2014 " +
+        "vul die aan als je weet dat er wel boekingen zijn.</div>";
+    doel.innerHTML = '<div class="card-head" style="padding:12px 14px"><h2 style="margin:0;font-size:15px">' +
+      "Reserveringen en formulieren</h2></div>" + body;
+  })["catch"](function(e){
+    doel.innerHTML = '<div class="card-body" style="padding:14px">Ophalen mislukte: ' + esc(e.message) + "</div>";
+  });
+}
+
+/* ================= acties op de klantkaart ================= */
+function klantActie(actie){
+  var map = klantenMap(), k = map[state.klantOpen];
+  if(!k) return;
+  var eerste = k.records && k.records.length ? k.records[0] : {};
+  var naam = k.naam || "";
+  var delen = String(naam).trim().split(/\s+/);
+  var bedrijf = state.settings.bedrijf || "Bed & Wellness Flevoland";
+
+  if(actie === "boeking"){
+    var p = new URLSearchParams();
+    if(delen[0]) p.set("voornaam", delen[0]);
+    if(delen.length > 1) p.set("achternaam", delen.slice(1).join(" "));
+    if(k.email) p.set("email", k.email);
+    if(k.telefoon) p.set("telefoon", k.telefoon);
+    if(eerste.locatieId) p.set("locatie", eerste.locatieId);
+    window.open("incheckformulier.html?" + p.toString(), "_blank", "noopener");
+    return;
+  }
+
+  if(actie === "gmail"){
+    if(!k.email){ toast("Van deze klant is geen e-mailadres bekend."); return; }
+    /* Gmail opent met een concept dat helemaal klaarstaat. Jij leest het na en
+       verstuurt zelf, vanaf het adres waarmee je in Gmail bent ingelogd. */
+    var body = "Beste " + naam + ",\n\n\n\nMet vriendelijke groet,\n" + bedrijf;
+    window.open("https://mail.google.com/mail/?view=cm&fs=1" +
+      "&to=" + encodeURIComponent(k.email) +
+      "&su=" + encodeURIComponent("Bericht van " + bedrijf) +
+      "&body=" + encodeURIComponent(body), "_blank", "noopener");
+    return;
+  }
+
+  if(actie === "wa"){
+    var tel = String(k.telefoon || "").replace(/\D/g, "");
+    if(!tel){ toast("Van deze klant is geen telefoonnummer bekend."); return; }
+    if(tel.indexOf("0031") === 0) tel = "31" + tel.slice(4);
+    else if(tel.indexOf("0") === 0) tel = "31" + tel.slice(1);
+    window.open("https://wa.me/" + tel + "?text=" +
+      encodeURIComponent("Hallo " + (delen[0] || "") + ", "), "_blank", "noopener");
+    return;
+  }
+
+  if(actie === "notitie"){
+    var veld = $("klantNotitie"), msg = $("klantNotitieMsg");
+    if(!veld || !k.records.length) return;
+    var rec = k.records[0], i;
+    for(i = 0; i < state.records.length; i++){
+      if(state.records[i].id === rec.id){ state.records[i].notitie = veld.value; rec = state.records[i]; }
+    }
+    bewaarRecord(rec);
+    if(msg){ msg.textContent = "Bewaard."; setTimeout(function(){ msg.textContent = ""; }, 2500); }
+    herteken();
+    return;
+  }
 }
 
 /* ---------- exports ---------- */
@@ -1505,6 +1658,8 @@ document.addEventListener("click", function(e){
   if(kl){ openKlant(kl.dataset.klant); return; }
   var ed = e.target.closest("[data-edit]");
   if(ed){ bewerk(ed.dataset.edit); return; }
+  var ac = e.target.closest("[data-actie]");
+  if(ac){ klantActie(ac.dataset.actie); return; }
   var dl = e.target.closest("[data-del]");
   if(dl){
     if(!confirm("Deze registratie definitief verwijderen?")) return;
