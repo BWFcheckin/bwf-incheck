@@ -983,6 +983,33 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div id="aanmLijst"></div>
     <div id="cfLijst"></div>
 
+    <div class="lijstkop uitklapkop" id="fkKop" role="button" tabindex="0" aria-expanded="false">
+      <span class="uitklappijl">&rsaquo;</span>
+      <h2 style="font-size:19px">Formulier koppelen aan reservering</h2>
+      <span class="ovk-tel" id="fkTel"></span>
+    </div>
+    <div id="fkBlok" hidden>
+      <div class="ov-bar" style="margin-bottom:12px">
+        <div class="ov-rij">
+          <select id="fkForm" style="min-width:260px"></select>
+          <input type="search" id="fkZoek" placeholder="Zoek op naam of nummer" style="min-width:200px">
+          <input type="date" id="fkDatum" aria-label="Aankomstdatum">
+          <select id="fkSuite">
+            <option value="">Alle suites</option>
+            <option value="Malina Jacuzzi">Malina Jacuzzi</option>
+            <option value="Malina Deluxe">Malina Deluxe</option>
+            <option value="Suite Angie">Suite Angie</option>
+          </select>
+          <label class="check" for="fkLos" style="gap:8px"><input type="checkbox" id="fkLos" checked>Alleen nog niet gekoppelde</label>
+        </div>
+        <div class="ov-rij" style="margin-top:10px">
+          <select id="fkRes" style="min-width:340px;flex:1"></select>
+          <button class="knop vol" type="button" id="fkKoppel">Koppelen</button>
+        </div>
+        <p class="hint" id="fkNote" style="margin:8px 0 0"></p>
+      </div>
+    </div>
+
     <div class="lijstkop"><h2 style="font-size:19px">Contact</h2>
       <button class="knop klein" type="button" id="ovContactBeheer" style="margin-left:auto">Beheren</button></div>
     <div class="contactrij" id="ovContact"></div>
@@ -4820,6 +4847,125 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       document.getElementById('tkTitel').focus();
     };
   }
+  /* ---------- formulier aan een reservering koppelen ---------- */
+  var FK = { forms:[], res:[] };
+  function fkNaam(f){
+    return String(veld(f,['naam','gast'],'') ||
+      ((veld(f,['voornaam'],'')+' '+veld(f,['achternaam'],'')).trim())).trim();
+  }
+  function fkDatumVan(f){ return String(veld(f,['checkindatum','aankomst','datum'],'')).slice(0,10); }
+  function fkLocVan(f){ return hoofdnaam(veld(f,['locatie','suite'],'')); }
+  function fkRefVan(f){ return String(veld(f,['reserveringsnummer','referentie','nummer'],'')); }
+  function fkGekoppeld(f){
+    for(var k in KOPPEL) if(String(KOPPEL[k].checkin_id||'') === String(f.id)) return true;
+    return false;
+  }
+  function fkVul(){
+    var selF = document.getElementById('fkForm'); if(!selF) return;
+    var zoek  = (document.getElementById('fkZoek').value||'').toLowerCase().trim();
+    var datum = document.getElementById('fkDatum').value || '';
+    var suite = document.getElementById('fkSuite').value || '';
+    var alleen = document.getElementById('fkLos').checked;
+
+    var bron = (CHECKINS||[]).map(function(x){ var o = Object.assign({}, x); o._soort='incheckformulier'; return o; })
+      .concat((AANMELDINGEN||[]).map(function(x){ var o = Object.assign({}, x); o._soort='aanmelding'; return o; }));
+    var forms = bron.filter(function(f){
+      if(alleen && fkGekoppeld(f)) return false;
+      if(suite && fkLocVan(f) !== suite) return false;
+      if(datum && fkDatumVan(f) !== datum) return false;
+      if(zoek){
+        var t = [fkNaam(f), fkRefVan(f), fkLocVan(f), veld(f,['email'],''), veld(f,['telefoon'],'')]
+          .join(' ').toLowerCase();
+        if(t.indexOf(zoek) < 0) return false;
+      }
+      return true;
+    }).sort(function(a,b){ return String(fkDatumVan(b)).localeCompare(String(fkDatumVan(a))); });
+    FK.forms = forms;
+    var vorige = selF.value;
+    selF.innerHTML = forms.length
+      ? forms.map(function(f,i){
+          return '<option value="'+i+'">'+esc(fkNaam(f)||'zonder naam')+' \u00b7 '+
+            esc(fkDatumVan(f)||'geen datum')+' \u00b7 '+esc(f._soort)+'</option>'; }).join('')
+      : '<option value="">geen formulieren gevonden</option>';
+    if(vorige && forms[vorige]) selF.value = vorige;
+    document.getElementById('fkTel').textContent = forms.length + ' formulier' + (forms.length===1?'':'en');
+    fkVulRes();
+  }
+  function fkVulRes(){
+    var selR = document.getElementById('fkRes'); if(!selR) return;
+    var f = FK.forms[parseInt(document.getElementById('fkForm').value,10)] || null;
+    var zoek  = (document.getElementById('fkZoek').value||'').toLowerCase().trim();
+    var datum = document.getElementById('fkDatum').value || '';
+    var suite = document.getElementById('fkSuite').value || '';
+    var eigen = !!(zoek || datum || suite);
+
+    var pool = ALLES.filter(function(r){
+      if(isVrijBlok(r)) return false;
+      if(suite && hoofdnaam(r.locatie) !== suite) return false;
+      if(datum && r.aankomst !== datum) return false;
+      if(zoek){
+        var t = [gastnaam(r), r.nummer, hoofdnaam(r.locatie), r.kanaal, r.telefoon].join(' ').toLowerCase();
+        if(t.indexOf(zoek) < 0) return false;
+      }
+      return true;
+    });
+    var voorstel = [];
+    if(f && !eigen){
+      var naam = fkNaam(f).toLowerCase(), dag = fkDatumVan(f), ref = fkRefVan(f);
+      voorstel = pool.filter(function(r){
+        if(ref && String(r.nummer||'') === ref) return true;
+        var g = String(gastnaam(r)).toLowerCase();
+        if(naam && g && (g.indexOf(naam) > -1 || naam.indexOf(g) > -1)) return true;
+        return !!(dag && r.aankomst === dag);
+      });
+    }
+    var rest = pool.filter(function(r){ return voorstel.indexOf(r) < 0; })
+      .sort(function(a,b){ return String(b.aankomst).localeCompare(String(a.aankomst)); });
+    FK.res = voorstel.concat(rest);
+    function regel(r){
+      var nr = /^\d{4,9}$/.test(String(r.nummer||'')) ? ' \u00b7 #'+r.nummer : '';
+      return dmyKort(r.aankomst) + ' \u00b7 ' + hoofdnaam(r.locatie) + ' \u00b7 ' + gastnaam(r) + nr;
+    }
+    selR.innerHTML = FK.res.length
+      ? (voorstel.length
+          ? '<optgroup label="Voorstellen">' + voorstel.map(function(r,i){
+              return '<option value="'+i+'">'+esc(regel(r))+'</option>'; }).join('') + '</optgroup>' +
+            '<optgroup label="Alle reserveringen">' + rest.map(function(r,i){
+              return '<option value="'+(voorstel.length+i)+'">'+esc(regel(r))+'</option>'; }).join('') + '</optgroup>'
+          : FK.res.map(function(r,i){ return '<option value="'+i+'">'+esc(regel(r))+'</option>'; }).join(''))
+      : '<option value="">geen reserveringen gevonden</option>';
+    document.getElementById('fkNote').textContent = eigen
+      ? pool.length + ' van ' + ALLES.length + ' reserveringen voldoen aan je zoekopdracht.'
+      : voorstel.length
+        ? voorstel.length + ' voorstel' + (voorstel.length===1?'':'len') + ' bovenaan \u00b7 alle reserveringen staan eronder.'
+        : 'Zoek op naam, datum of suite om de juiste reservering te vinden.';
+  }
+  (function(){
+    var kop = document.getElementById('fkKop'); if(!kop) return;
+    kop.addEventListener('click', function(){
+      var open = kop.getAttribute('aria-expanded') !== 'true';
+      kop.setAttribute('aria-expanded', String(open));
+      document.getElementById('fkBlok').hidden = !open;
+      if(open) fkVul();
+    });
+    ['fkZoek','fkDatum','fkSuite','fkLos'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.addEventListener(id === 'fkZoek' ? 'input' : 'change', fkVul);
+    });
+    var selF = document.getElementById('fkForm');
+    if(selF) selF.addEventListener('change', fkVulRes);
+    var kn = document.getElementById('fkKoppel');
+    if(kn) kn.addEventListener('click', async function(){
+      var f = FK.forms[parseInt(document.getElementById('fkForm').value,10)];
+      var r = FK.res[parseInt(document.getElementById('fkRes').value,10)];
+      var note = document.getElementById('fkNote');
+      if(!f || !r){ note.textContent = 'Kies eerst een formulier en een reservering.'; return; }
+      await bewaarKoppeling(r, { checkin_id: f.id, gast: fkNaam(f) || gastnaam(r) });
+      note.textContent = 'Gekoppeld \u2014 ook zichtbaar in het VR Dashboard.';
+      fkVul(); tekenVandaag();
+    });
+  })();
+
   async function bewaarKoppeling(r, wijziging){
     var sl = sleutel(r);
     var obj = Object.assign({ res_sleutel:sl, bron:r.bron }, wijziging, { bijgewerkt:new Date().toISOString() });
