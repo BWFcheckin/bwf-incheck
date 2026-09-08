@@ -3590,7 +3590,20 @@ function resDetailHtml(r, i){
     <button class="btn ghost small" type="button" data-rwijzig="${i}">Wijziging doorgeven</button>
     <button class="btn ghost small" type="button" data-rdag="${i}">Toon dag in kalender</button>
     ${form ? '' : `<button class="btn ghost small" type="button" data-rkoppel="${i}">Formulier koppelen</button>`}
-  </div>`;
+  </div>` + (k.res_sleutel ? '' : `
+  <div class="field" style="margin-top:14px">
+    <label>SMG-gegevens er zelf bij zoeken</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <select data-rsmg="${i}" style="min-width:320px;flex:1">
+        <option value="">— kies de juiste boeking —</option>
+        ${smgKeuzes(r).map(x=>`<option value="${esc(x.res_sleutel)}">#${esc(x.res_sleutel)} · ${
+          esc(x.gast||'zonder naam')} · ${esc(x.aankomst ? dmy(String(x.aankomst).slice(0,10)) : '')}${
+          x.totaal != null ? ' · ' + esc(eur(x.totaal)) : ''}</option>`).join('')}
+      </select>
+      <button class="btn ghost small" type="button" data-rsmgok="${i}">Overnemen</button>
+    </div>
+    <span class="note">De boekingen van rond deze datum staan bovenaan. Wat je kiest wordt bij deze reservering bewaard, ook voor je collega's.</span>
+  </div>`);
   return vlaggen + vast + bewerken + acties;
 }
 document.addEventListener('click', async e=>{
@@ -3670,6 +3683,29 @@ document.addEventListener('click', async e=>{
     $('#wjRef').scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
+  /* een SMG-boeking handmatig aan deze agendaregel hangen */
+  const smg = e.target.closest('[data-rsmgok]');
+  if(smg){
+    const r = KAL_LIJST[Number(smg.dataset.rsmgok)];
+    const vak = smg.closest('td');
+    const keuze = vak.querySelector('[data-rsmg]').value;
+    const bron = KOPPEL[keuze];
+    if(!bron){ toast('Kies eerst een boeking.'); return; }
+    try{
+      await bewaarKoppeling(r, {
+        gast: bron.gast || null, telefoon: bron.telefoon || null, email: bron.email || null,
+        personen: bron.personen || null, arrangement: bron.arrangement || null,
+        totaal: bron.totaal != null ? bron.totaal : null,
+        betaald: bron.betaald != null ? bron.betaald : null,
+        tijd_in: bron.tijd_in || null, tijd_uit: bron.tijd_uit || null,
+        kanaal: bron.kanaal || r.bron || null,
+        notitie: 'gekoppeld aan SMG #' + keuze
+      });
+      resPasKoppelingToe(); renderKalender(); rzVul();
+      toast('SMG-gegevens overgenomen.');
+    }catch(err){ toast('Overnemen lukte niet: ' + err.message); }
+    return;
+  }
   const kp = e.target.closest('[data-rkoppel]');
   if(kp){
     const r = KAL_LIJST[Number(kp.dataset.rkoppel)];
@@ -3690,6 +3726,21 @@ document.addEventListener('click', async e=>{
     $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
   }
 });
+
+/* Boekingen uit res_koppeling die bij deze reservering zouden kunnen horen:
+   die van rond de aankomstdatum eerst, daarna de rest. */
+function smgKeuzes(r){
+  const datum = String(r.start||'').slice(0,10);
+  const dagen = k=>{
+    const d = String(k.aankomst || k.datum || '').slice(0,10);
+    if(!d || !datum) return 9999;
+    return Math.abs((new Date(d) - new Date(datum)) / 86400000);
+  };
+  return Object.values(KOPPEL)
+    .filter(k=>k.res_sleutel)
+    .sort((a,b)=> dagen(a) - dagen(b) || String(b.aankomst||'').localeCompare(String(a.aankomst||'')))
+    .slice(0, 60);
+}
 
 /* ---------------- GASTFORMULIER AAN EEN RESERVERING KOPPELEN ----------------
    Het formulier dat de gast invult bevat lang niet altijd een reserveringsnummer.
@@ -4081,14 +4132,21 @@ function koppelingVoor(r){
   });
   if(opLocatie.length === 1) return opLocatie[0];
 
-  /* 3 · zelfde dag en de naam komt in de tekst voor */
+  /* 3 · zelfde dag en dezelfde inchecktijd */
+  const tijd = kalTijd(r.start);
+  if(tijd){
+    const opTijd = kandidaten.filter(k=>String(k.tijd_in||'').slice(0,5) === tijd);
+    if(opTijd.length === 1) return opTijd[0];
+  }
+
+  /* 4 · zelfde dag en de naam komt in de tekst voor */
   const inTekst = kandidaten.find(k=>{
     const kn = String(k.gast||'').trim();
     return kn.length > 3 && String(tekst).toLowerCase().includes(kn.toLowerCase());
   });
   if(inTekst) return inTekst;
 
-  /* 4 · zelfde dag en verder maar één mogelijkheid */
+  /* 5 · zelfde dag en verder maar één mogelijkheid */
   if(opLocatie.length > 1) return null;
   return kandidaten.length === 1 ? kandidaten[0] : null;
 }
