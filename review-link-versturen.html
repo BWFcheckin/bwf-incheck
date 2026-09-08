@@ -1,0 +1,182 @@
+<!-- ================= Review-link versturen =================
+     Plak dit blok vlak vóór </body> in je dashboardbestand.
+     Werkt op elke knop of link waar "review link" in de tekst staat,
+     ook als die rijen pas later uit Supabase geladen worden.
+     Kiest automatisch de juiste link per locatie.
+     ========================================================= -->
+<script>
+(function () {
+  // 1) De twee openbare reviewlinks
+  const REVIEW_LINKS = {
+    almere:   "https://app.reviewplus.io/review/angies-enterprises",
+    lelystad: "https://app.reviewplus.io/review/angies-enterprises-2"
+  };
+
+  // 2) Staat deze pagina vast op één locatie? Vul dan "almere" of "lelystad" in.
+  //    Laat leeg als het dashboard beide locaties toont.
+  const VASTE_LOCATIE = "";
+
+  const NAAM_LOCATIE = { almere: "Almere", lelystad: "Lelystad" };
+
+  // 3) Het bericht dat wordt klaargezet
+  function bericht(naam, link) {
+    const hoi = naam ? "Hoi " + naam : "Hoi";
+    return hoi + ",\n\n"
+      + "bedankt voor je verblijf bij Bed & Wellness Flevoland. "
+      + "Wil je ons helpen met een korte beoordeling? Het kost je een minuut:\n\n"
+      + link + "\n\n"
+      + "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
+  }
+
+  function rijVan(knop) {
+    return knop.closest("tr, .kaart, .card, .reservering, li, .rij") || document.body;
+  }
+
+  // --- Welke locatie hoort bij deze rij? ---
+  function locatieVan(rij) {
+    if (VASTE_LOCATIE) return VASTE_LOCATIE;
+
+    const attr = (rij.getAttribute && (rij.getAttribute("data-locatie") || rij.getAttribute("data-suite"))) || "";
+    const tekst = (attr + " " + (rij.textContent || "")).toLowerCase();
+
+    if (/lelystad|malina|birdielaan/.test(tekst)) return "lelystad";
+    if (/almere|specerij|suite\s*angie|angie\b/.test(tekst)) return "almere";
+
+    const kop = ((document.title || "") + " " +
+      ([...document.querySelectorAll("h1, h2")].map(h => h.textContent).join(" "))).toLowerCase();
+    if (/lelystad|malina/.test(kop)) return "lelystad";
+    if (/almere/.test(kop)) return "almere";
+
+    return "";
+  }
+
+  // --- Telefoon, e-mail en naam uit de rij halen ---
+  function context(rij) {
+    const attr = (n) => (rij.getAttribute && rij.getAttribute(n)) || "";
+    const tekst = rij.textContent || "";
+
+    const tel =
+      attr("data-telefoon") || attr("data-tel") || attr("data-phone") ||
+      ((rij.querySelector && (rij.querySelector('a[href^="tel:"]') || {}).href) || "").replace("tel:", "") ||
+      (tekst.match(/(\+31|0031|0)\s?6[\s-]?\d{4}[\s-]?\d{4}/) || [])[0] || "";
+
+    const mail =
+      attr("data-email") || attr("data-mail") ||
+      ((rij.querySelector && (rij.querySelector('a[href^="mailto:"]') || {}).href) || "").replace("mailto:", "") ||
+      (tekst.match(/[\w.+-]+@[\w-]+\.[\w.]+/) || [])[0] || "";
+
+    return { tel: tel.trim(), mail: mail.trim(), naam: (attr("data-naam") || attr("data-gast")).trim() };
+  }
+
+  function naarWhatsapp(tel) {
+    let n = tel.replace(/[^\d+]/g, "");
+    if (n.startsWith("+")) n = n.slice(1);
+    if (n.startsWith("00")) n = n.slice(2);
+    if (n.startsWith("0")) n = "31" + n.slice(1);
+    return n;
+  }
+
+  function melding(tekst) {
+    const t = document.createElement("div");
+    t.textContent = tekst;
+    t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);" +
+      "background:#1f2933;color:#fff;padding:10px 16px;border-radius:8px;" +
+      "font:14px/1.4 system-ui,sans-serif;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.2)";
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2600);
+  }
+
+  function toonMenu(knop, opties, kopje) {
+    document.querySelectorAll(".rp-menu").forEach((m) => m.remove());
+
+    const box = document.createElement("div");
+    box.className = "rp-menu";
+    box.style.cssText = "position:absolute;z-index:9999;background:#fff;border:1px solid #dfe3e8;" +
+      "border-radius:10px;padding:6px;box-shadow:0 6px 20px rgba(0,0,0,.15);min-width:200px;" +
+      "font:14px/1.4 system-ui,sans-serif";
+
+    if (kopje) {
+      const k = document.createElement("div");
+      k.textContent = kopje;
+      k.style.cssText = "padding:6px 12px 8px;color:#66727f;font-size:12.5px";
+      box.appendChild(k);
+    }
+
+    opties.forEach(([label, actie]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.style.cssText = "display:block;width:100%;text-align:left;background:none;border:0;" +
+        "padding:9px 12px;border-radius:6px;cursor:pointer;font:inherit;color:#1f2933";
+      b.onmouseenter = () => (b.style.background = "#f1f4f8");
+      b.onmouseleave = () => (b.style.background = "none");
+      b.onclick = () => { box.remove(); actie(); };
+      box.appendChild(b);
+    });
+
+    document.body.appendChild(box);
+    const r = knop.getBoundingClientRect();
+    box.style.top = (window.scrollY + r.bottom + 6) + "px";
+    box.style.left = Math.min(window.scrollX + r.left, window.innerWidth - 220) + "px";
+
+    setTimeout(() => {
+      document.addEventListener("click", function sluit(e) {
+        if (!box.contains(e.target)) { box.remove(); document.removeEventListener("click", sluit); }
+      });
+    }, 0);
+  }
+
+  function verstuurMenu(knop, gegevens, locatie) {
+    const link = REVIEW_LINKS[locatie];
+    const opties = [];
+
+    if (gegevens.tel) opties.push(["Versturen via WhatsApp", () => {
+      window.open("https://wa.me/" + naarWhatsapp(gegevens.tel) +
+        "?text=" + encodeURIComponent(bericht(gegevens.naam, link)), "_blank", "noopener");
+    }]);
+
+    if (gegevens.mail) opties.push(["Versturen via e-mail", () => {
+      window.location.href = "mailto:" + gegevens.mail +
+        "?subject=" + encodeURIComponent("Uw beoordeling van Bed & Wellness Flevoland") +
+        "&body=" + encodeURIComponent(bericht(gegevens.naam, link));
+    }]);
+
+    opties.push(["Link kopiëren", () => {
+      navigator.clipboard.writeText(link)
+        .then(() => melding("Reviewlink " + NAAM_LOCATIE[locatie] + " gekopieerd"))
+        .catch(() => melding("Kopiëren lukte niet — link: " + link));
+    }]);
+
+    opties.push(["Bericht kopiëren", () => {
+      navigator.clipboard.writeText(bericht(gegevens.naam, link))
+        .then(() => melding("Bericht gekopieerd"))
+        .catch(() => melding("Kopiëren lukte niet"));
+    }]);
+
+    toonMenu(knop, opties, "Locatie " + NAAM_LOCATIE[locatie]);
+  }
+
+  // --- Elke klik op een 'review link'-knop opvangen, ook bij nieuwe rijen ---
+  document.addEventListener("click", function (e) {
+    const knop = e.target.closest("button, a, .btn, [role='button']");
+    if (!knop) return;
+    if (!/review\s*-?\s*link/i.test(knop.textContent || "")) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rij = rijVan(knop);
+    const gegevens = context(rij);
+    const locatie = locatieVan(rij);
+
+    if (locatie) {
+      verstuurMenu(knop, gegevens, locatie);
+    } else {
+      toonMenu(knop, [
+        ["Almere — Suite Angie", () => verstuurMenu(knop, gegevens, "almere")],
+        ["Lelystad — Malina", () => verstuurMenu(knop, gegevens, "lelystad")]
+      ], "Welke locatie?");
+    }
+  }, true);
+})();
+</script>
