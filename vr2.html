@@ -708,6 +708,26 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           <button type="button" data-f="alles" aria-pressed="false">Alles</button>
         </div>
       </div>
+      <div class="card-body" style="padding-bottom:0">
+        <div class="filters" style="margin-bottom:0">
+          <div class="field"><label for="tfSuite">Suite</label><select id="tfSuite">
+            <option value="">Alle suites</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
+          <div class="field"><label for="tfType">Type</label><select id="tfType">
+            <option value="">Alle types</option>
+            <option value="welkomstcall">Welkomstcall</option>
+            <option value="email">E-mail</option>
+            <option value="handmatig">Zelf aangemaakt</option></select></div>
+          <div class="field"><label for="tfPrio">Prioriteit</label><select id="tfPrio">
+            <option value="">Alle prioriteiten</option>
+            <option value="hoog">Hoog</option><option value="normaal">Normaal</option>
+            <option value="laag">Laag</option></select></div>
+          <div class="field"><label for="tfWie">Voor wie</label><select id="tfWie"></select></div>
+          <div class="field"><label>&nbsp;</label>
+            <button class="btn ghost" type="button" id="tfWis">Filter wissen</button></div>
+        </div>
+      </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Taak</th><th>Voor</th><th>Deadline</th><th>Status</th><th></th></tr></thead>
         <tbody id="tkLijst"></tbody>
@@ -840,7 +860,12 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         </div>
         <div class="grid-form" style="margin-top:14px">
           <div class="field wide" id="wcMollieVeld"><label for="wcBetaallink">Mollie-betaallink <span style="font-weight:400;color:var(--muted)">(plak hier de link die je in Mollie aanmaakt)</span></label>
-            <input type="text" id="wcBetaallink" inputmode="url" placeholder="https://pay.mollie.com/…"></div>
+            <input type="text" id="wcBetaallink" inputmode="url" placeholder="https://pay.mollie.com/…">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+              <button class="btn ghost small" id="wcMollieOpen" type="button">Betaallink maken in Mollie</button>
+              <button class="btn ghost small" id="wcMolliePlak" type="button">Link van klembord plakken</button>
+            </div>
+            <span class="note" id="wcMollieNote"></span></div>
           <div class="field"><label for="wcStatus">Status</label><select id="wcStatus">
             <option value="te bellen">te bellen</option><option value="gebeld">gebeld</option>
             <option value="geen gehoor">geen gehoor</option><option value="terugbellen">terugbellen</option>
@@ -914,6 +939,28 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       <div class="card-foot"><span id="wcFoot"></span>
         <span><button class="btn ghost small" id="wcNaarTaken" type="button">Openstaande calls op de takenlijst</button>
         <button class="btn ghost small" id="wcExport" type="button">Exporteer CSV</button></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Afgerond per assistent</h2>
+        <div class="segment" id="afFilter">
+          <button type="button" data-p="maand" aria-pressed="true">Deze maand</button>
+          <button type="button" data-p="vorige" aria-pressed="false">Vorige maand</button>
+          <button type="button" data-p="alles" aria-pressed="false">Alles</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Assistent</th><th class="num">Welkomstcalls</th><th class="num">Taken</th>
+          <th class="num">Samen</th><th>Laatst afgerond</th></tr></thead>
+        <tbody id="afLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="afFoot"></span>
+        <button class="btn ghost small" id="afExport" type="button">Exporteer CSV</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Laatst afgerond</h2><span class="hint">de twintig meest recente</span></div>
+      <div class="card-body" id="afRecent"></div>
     </div>
   </section>
 
@@ -1275,6 +1322,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   </section>
 
   <div class="sysbalk" id="sysbalk" aria-label="Systemen en agenda's"></div>
+  <div class="sysbalk" id="webbalk" aria-label="Website en documenten"></div>
 </div>
 
 <!-- ============ DIALOGEN ============ -->
@@ -1623,7 +1671,7 @@ async function start(){
     : 'Registreer wat er is gedaan; de tarievenlijst waarmee gerekend wordt staat onderaan deze pagina.';
   $('#lokaalBanner').hidden = online();
   vulSelects(); renderAlles();
-  await zorgVoorSysteemknoppen(); renderSys();
+  await zorgVoorSysteemknoppen(); await zorgVoorWebsiteknoppen(); renderSys();
   await zorgVoorScripts(); renderScripts(); renderWcScript();
   await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetBetaal('mollie'); wcSmgVat(); wcHerhaalCheck();
   wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
@@ -1700,27 +1748,52 @@ async function zorgVoorSysteemknoppen(){
   if(S.links.some(l=>l.tab==='systeem')) return;
   await maak('links', SYSTEMEN_START.map(s=>Object.assign({tab:'systeem'}, s)));
 }
+
+/* knoppen naar de website en de documenten — adressen pas je aan met het potloodje */
+const SITE = 'https://bedenwellnessflevoland.nl/';
+const WEBSITE_START = [
+  {titel:'Website',                url:SITE,                              kleur:'#165dff', sortering:10},
+  {titel:'Tarieven',               url:SITE+'tarieven',                   kleur:'#14805e', sortering:20},
+  {titel:'Arrangementen',          url:SITE+'arrangementen',              kleur:'#9A7B4F', sortering:30},
+  {titel:'Menukaart',              url:SITE+'menukaart',                  kleur:'#A25E48', sortering:40},
+  {titel:'Huisregels',             url:SITE+'huisregels',                 kleur:'#6F7A5A', sortering:50},
+  {titel:'Algemene voorwaarden',   url:SITE+'algemene-voorwaarden',       kleur:'#483C34', sortering:60},
+  {titel:'Annuleringsvoorwaarden', url:SITE+'annuleringsvoorwaarden',     kleur:'#8F6420', sortering:70}
+];
+async function zorgVoorWebsiteknoppen(){
+  if(LAADFOUTEN.indexOf('links') >= 0) return;
+  if(S.links.some(l=>l.tab==='website')) return;
+  await maak('links', WEBSITE_START.map(w=>Object.assign({tab:'website'}, w)));
+}
 function letters(titel){
   const w = String(titel||'?').replace(/[^\p{L}\p{N} ]/gu,' ').trim().split(/\s+/);
   return (w.length>1 ? w[0][0]+w[1][0] : (w[0]||'?').slice(0,2)).toUpperCase();
 }
-function renderSys(){
-  const rijen = S.links.filter(l=>l.tab==='systeem').sort((a,b)=>(a.sortering||0)-(b.sortering||0));
-  $('#sysbalk').innerHTML = `<span class="syskop">Systemen</span>` +
+function renderBalk(tab, doel, kop){
+  const el = $(doel); if(!el) return;
+  const rijen = S.links.filter(l=>l.tab===tab).sort((a,b)=>(a.sortering||0)-(b.sortering||0));
+  el.innerHTML = `<span class="syskop">${esc(kop)}</span>` +
     rijen.map(l=>`<span class="sysknop" style="--c:${esc(l.kleur||'#9A7B4F')}">
         <a href="${esc(l.url)}" target="_blank" rel="noopener"
            style="text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:9px">
           <span class="ico">${esc(letters(l.titel))}</span>${esc(l.titel)}</a>
         ${isEigenaar()?`<button class="sysbew" type="button" title="Aanpassen" data-syswijzig="${l.id}">✎</button>`:''}
       </span>`).join('') +
-    (isEigenaar() ? `<button class="sysnieuw" type="button" data-sysnieuw="1">+ Knop toevoegen</button>` : '');
+    (isEigenaar() ? `<button class="sysnieuw" type="button" data-sysnieuw="${tab}">+ Knop toevoegen</button>` : '');
+}
+function renderSys(){
+  renderBalk('systeem', '#sysbalk', 'Systemen');
+  renderBalk('website', '#webbalk', 'Website & documenten');
 }
 
 /* dialoog voor systeemknoppen: nieuw, aanpassen of verwijderen */
-function sysDialoog(link){
+function sysDialoog(link, tab){
+  const balk = (link && link.tab) || tab || 'systeem';
   const d = $('#dlgLink');
   $('#dlgLinkKop').textContent = link ? 'Knop aanpassen' : 'Nieuwe knop';
-  $('#dlgLinkTab').textContent = 'Deze knop staat op elk tabblad bovenaan.';
+  $('#dlgLinkTab').textContent = balk === 'website'
+    ? 'Deze knop komt onderaan bij Website & documenten.'
+    : 'Deze knop komt onderaan bij Systemen.';
   $('#lkTitel').value = link ? link.titel : '';
   $('#lkUrl').value   = link ? link.url   : 'https://';
   $('#lkKleur').value = (link && link.kleur) || '#9A7B4F';
@@ -1741,13 +1814,14 @@ function sysDialoog(link){
     if(url && !/^https?:\/\//i.test(url)) url = 'https://'+url;
     if(!titel || !url || url==='https://'){ toast('Vul een naam en een adres in.'); return; }
     if(link) await wijzig('links', link.id, {titel, url, kleur});
-    else await maak('links', {tab:'systeem', titel, url, kleur,
-      sortering: (S.links.filter(l=>l.tab==='systeem').length+1)*10});
+    else await maak('links', {tab:balk, titel, url, kleur,
+      sortering: (S.links.filter(l=>l.tab===balk).length+1)*10});
     renderSys();
   });
 }
 document.addEventListener('click', e=>{
-  const n = e.target.closest('[data-sysnieuw]'); if(n){ sysDialoog(null); return; }
+  const n = e.target.closest('[data-sysnieuw]');
+  if(n){ sysDialoog(null, n.dataset.sysnieuw === 'website' ? 'website' : 'systeem'); return; }
   const w = e.target.closest('[data-syswijzig]');
   if(w){ sysDialoog(S.links.find(l=>l.id===w.dataset.syswijzig)); }
 });
@@ -1841,6 +1915,14 @@ $('#tkFilter').addEventListener('click', e=>{ const b=e.target.closest('button')
   $$('#tkFilter button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
   renderTaken(); });
 
+['#tfSuite','#tfType','#tfPrio','#tfWie'].forEach(sel=>{
+  const el = $(sel); if(el) el.addEventListener('change', renderTaken);
+});
+$('#tfWis').addEventListener('click', ()=>{
+  ['#tfSuite','#tfType','#tfPrio','#tfWie'].forEach(sel=>{ const el=$(sel); if(el) el.value=''; });
+  renderTaken();
+});
+
 $('#tkOpslaan').addEventListener('click', async ()=>{
   const titel = $('#tkTitel').value.trim();
   if(!titel){ toast('Geef de taak een naam.'); return; }
@@ -1854,10 +1936,42 @@ $('#tkOpslaan').addEventListener('click', async ()=>{
   renderTaken(); renderOverzicht(); badges(); toast('Taak toegevoegd.');
 });
 
+/* soort taak: welkomstcall, uit e-mail, of zelf aangemaakt */
+function tkSoort(t){
+  if(t.call_id || /^welkomstcall/i.test(String(t.titel||''))) return 'welkomstcall';
+  if(t.bron === 'email') return 'email';
+  return 'handmatig';
+}
+/* de suite staat in de titel of de toelichting van de taak */
+function tkSuite(t){
+  const x = (String(t.titel||'')+' '+String(t.omschrijving||'')).toLowerCase();
+  if(/zwembad|deluxe/.test(x)) return 'Malina Zwembad';
+  if(/jacuzzi/.test(x))        return 'Malina Jacuzzi';
+  if(/angie|almere/.test(x))   return 'Suite Angie Almere';
+  return '';
+}
+function tkVulWie(){
+  const sel = $('#tfWie'); if(!sel) return;
+  const h = sel.value;
+  sel.innerHTML = '<option value="">Iedereen</option>' +
+    S.medewerkers.filter(m=>m.actief!==false)
+      .map(m=>`<option value="${m.id}"${m.id===h?' selected':''}>${esc(m.naam)}</option>`).join('');
+}
 function renderTaken(){
+  tkVulWie();
   let lijst = mijnTaken();
   if(takenFilter==='open')  lijst = lijst.filter(t=>t.status!=='klaar');
   if(takenFilter==='klaar') lijst = lijst.filter(t=>t.status==='klaar');
+  const fSuite = ($('#tfSuite')||{}).value || '';
+  const fType  = ($('#tfType') ||{}).value || '';
+  const fPrio  = ($('#tfPrio') ||{}).value || '';
+  const fWie   = ($('#tfWie')  ||{}).value || '';
+  const alles  = lijst.length;
+  if(fSuite) lijst = lijst.filter(t=>tkSuite(t)===fSuite);
+  if(fType)  lijst = lijst.filter(t=>tkSoort(t)===fType);
+  if(fPrio)  lijst = lijst.filter(t=>(t.prioriteit||'normaal')===fPrio);
+  if(fWie)   lijst = lijst.filter(t=>t.medewerker_id===fWie);
+  const gefilterd = !!(fSuite||fType||fPrio||fWie);
   lijst = lijst.slice().sort((a,b)=>{
     if((a.status==='klaar')!==(b.status==='klaar')) return a.status==='klaar'?1:-1;
     return (a.deadline||'9999')<(b.deadline||'9999')?-1:1; });
@@ -1868,6 +1982,7 @@ function renderTaken(){
     <tr class="${t.status==='klaar'?'done':''}">
       <td class="name">${esc(t.titel)} ${prio(t.prioriteit)}
         ${t.bron==='email'?'<span class="pill accent">e-mail</span>':''}
+        ${tkSuite(t)?`<span class="pill neutral">${esc(tkSuite(t))}</span>`:''}
         ${t.link?` <a href="${esc(t.link)}" target="_blank" rel="noopener">↗ link</a>`:''}
         ${t.van?`<span class="meta">van ${esc(t.van)}${t.email_datum?' · '+esc(String(t.email_datum).slice(0,25)):''}</span>`:''}
         ${t.omschrijving?`<span class="meta">${esc(kort(t.omschrijving))}</span>`:''}
@@ -1884,7 +1999,9 @@ function renderTaken(){
         ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-deltaak="${t.id}">✕</button>`:''}
       </td></tr>`).join('')
     : `<tr><td colspan="5"><div class="empty"><strong>Geen taken</strong>Voeg hierboven je eerste taak toe.</div></td></tr>`;
-  $('#tkFoot').textContent = lijst.length+' taken getoond';
+  $('#tkFoot').textContent = gefilterd
+    ? lijst.length+' van '+alles+' taken · filter actief'
+    : lijst.length+' taken getoond';
 }
 
 document.addEventListener('click', async e=>{
@@ -2921,7 +3038,7 @@ function renderAlles(){
   renderSys(); renderLinks(); renderOverzicht(); renderTaken(); renderOverdracht(); renderGasten();
   renderScripts(); renderWerk(); renderKlanten(); renderExtras(); renderCalls(); vulKlantKeuze();
   if(isEigenaar()){ renderTarieven(); renderMw(); }
-  renderDocs(); renderBelKeuze(); renderBel(); badges();
+  renderDocs(); renderBelKeuze(); renderBel(); renderAfgerond(); badges();
 }
 
 
@@ -3954,6 +4071,16 @@ function wcOnderwerpTekst(f){
   return 'Je verblijf bij Bed & Wellness Flevoland'+(stuk.length?' — '+stuk.join(', '):'');
 }
 
+/* Gmail opstelvenster: geadresseerde, onderwerp en tekst staan er al in.
+   Werkt in de browser waar je bij Gmail bent ingelogd; er is geen koppeling
+   met je postvak nodig, je klikt zelf op Verzenden. */
+function gmailLink(naar, onderwerp, tekst){
+  return 'https://mail.google.com/mail/?view=cm&fs=1'
+    + '&to=' + encodeURIComponent(naar||'')
+    + '&su=' + encodeURIComponent(onderwerp||'')
+    + '&body=' + encodeURIComponent(tekst||'');
+}
+
 /* ---- kanaalkeuze, bijlage en de tekst in het venster ---- */
 let wcKanaalStand = 'whatsapp';
 let wcBijlage = null;              /* {url, naam} */
@@ -4014,13 +4141,11 @@ $('#wcVersturen').addEventListener('click', ()=>{
   const tekst = $('#wcTekst').value;
   if(wcKanaalStand === 'email'){
     if(!f.email){ $('#wcNote').textContent = 'Vul eerst een e-mailadres in bij de gegevens hierboven.'; return; }
-    const url = 'mailto:'+encodeURIComponent(f.email)
-      + '?subject=' + encodeURIComponent($('#wcOnderwerp').value || wcOnderwerpTekst(f))
-      + '&body=' + encodeURIComponent(tekst);
-    window.location.href = url;
-    $('#wcNote').innerHTML = 'Je mailprogramma opent met het bericht klaar.'
+    const onderwerp = $('#wcOnderwerp').value || wcOnderwerpTekst(f);
+    window.open(gmailLink(f.email, onderwerp, tekst), '_blank', 'noopener');
+    $('#wcNote').innerHTML = 'Gmail opent in een nieuw tabblad met het bericht klaar — je hoeft alleen nog op Verzenden te klikken.'
       + (wcBijlage ? ' Wil je het bestand als echte bijlage meesturen? <a href="'+esc(wcBijlage.url)+'" target="_blank" rel="noopener">Download het hier</a> en sleep het in de mail.' : '')
-      + ' Opent er niets? Gebruik dan "Bericht kopiëren" en plak het in Gmail.';
+      + ' Blokkeert je browser het venster, sta pop-ups dan toe voor deze pagina.';
     return;
   }
   const tel = String(f.telefoon||'').replace(/[^0-9]/g,'').replace(/^0/,'31');
@@ -4028,6 +4153,42 @@ $('#wcVersturen').addEventListener('click', ()=>{
   $('#wcNote').textContent = tel ? 'WhatsApp is geopend met het bericht klaar.' :
     'Geen telefoonnummer ingevuld — WhatsApp is geopend zonder ontvanger, kies daar zelf de contactpersoon.';
 });
+/* Mollie-snelknop: bedrag en omschrijving op het klembord, daarna Mollie openen.
+   De sleutel van Mollie staat bewust niet in deze pagina — die is openbaar. */
+const MOLLIE_LINKS = 'https://my.mollie.com/dashboard/payment-links';
+$('#wcMollieOpen').addEventListener('click', async ()=>{
+  const f = wcFormulier();
+  const bedrag = (Number(f.totaal)||0).toFixed(2);
+  const oms = [f.naam || 'gast', f.locatie, f.datum ? dmy(f.datum) : '',
+    f.referentie ? 'res. '+f.referentie : ''].filter(Boolean).join(' · ');
+  const note = $('#wcMollieNote');
+  if(!Number(f.totaal)){
+    if(note) note.textContent = 'Er staat nog niets bijgeboekt — vink eerst de extra\'s aan.';
+    return;
+  }
+  try{ await navigator.clipboard.writeText(bedrag); }catch(e){}
+  window.open(MOLLIE_LINKS, '_blank', 'noopener');
+  if(note) note.innerHTML = 'Mollie is geopend. Maak daar een betaallink voor <strong>'+eur(f.totaal)+
+    '</strong> (het bedrag staat op je klembord) met als omschrijving <strong>'+esc(oms)+
+    '</strong>. Kopieer daarna de link en klik hier op "Link van klembord plakken".';
+});
+$('#wcMolliePlak').addEventListener('click', async ()=>{
+  const note = $('#wcMollieNote');
+  try{
+    const t = (await navigator.clipboard.readText()).trim();
+    if(!/^https?:\/\//i.test(t)){
+      if(note) note.textContent = 'Op je klembord staat geen webadres. Kopieer eerst de betaallink in Mollie.';
+      return;
+    }
+    $('#wcBetaallink').value = t;
+    wcVersTekst(true);
+    if(note) note.textContent = 'Betaallink overgenomen — hij staat nu ook in het bericht hieronder.';
+    toast('Betaallink toegevoegd.');
+  }catch(e){
+    if(note) note.textContent = 'Je browser geeft geen toegang tot het klembord. Plak de link zelf in het veld hierboven.';
+  }
+});
+
 $('#wcKopieer').addEventListener('click', async ()=>{
   const tekst = ($('#wcTekst').value || '').trim();
   try{ await navigator.clipboard.writeText(tekst); toast('Bericht gekopieerd.'); }
@@ -4186,7 +4347,7 @@ function wcSelectie(){
   return lijst;
 }
 function renderCalls(){
-  renderWcScript();
+  renderWcScript(); renderAfgerond();
   const lijst = wcSelectie();
   $('#wcLijst').innerHTML = lijst.length ? lijst.map(c=>`
     <tr class="${c.status==='afgerond'?'done':''}">
@@ -4262,6 +4423,93 @@ $('#wcExport').addEventListener('click', ()=>{
     (c.regels||[]).map(r=>r.naam+(r.aantal>1?' x'+r.aantal:'')).join(' | '),
     String(c.totaal??0).replace('.',','), c.betaalwijze||'', c.status, c.notitie||'']));
   csv(rows, 'welkomstcalls-'+vandaag()+'.csv');
+});
+
+/* ---------------- AFGEROND PER ASSISTENT ---------------- */
+/* telt afgeronde welkomstcalls en afgevinkte taken per persoon.
+   Een taak die bij een welkomstcall hoort telt alleen als call mee,
+   zodat hetzelfde werk niet dubbel in de lijst komt. */
+let afPeriode = 'maand';
+const afMaand = d => String(d||'').slice(0,7);
+function afVorigeMaand(){
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);
+  return d.toISOString().slice(0,7);
+}
+function afBinnen(datum){
+  if(afPeriode === 'alles') return true;
+  const m = afMaand(datum);
+  if(!m) return false;
+  return m === (afPeriode === 'maand' ? vandaag().slice(0,7) : afVorigeMaand());
+}
+function afRegels(){
+  const uit = [];
+  (S.calls||[]).filter(c=>c.status === 'afgerond').forEach(c=>{
+    const wanneer = c.gebeld_op || c.aangemaakt || null;
+    if(afBinnen(wanneer)) uit.push({soort:'welkomstcall', wie:c.medewerker_id,
+      titel:'Welkomstcall · '+(c.naam||'gast'), extra:c.locatie||'', wanneer});
+  });
+  (S.taken||[]).filter(t=>t.status === 'klaar' && !t.call_id).forEach(t=>{
+    const wanneer = t.afgerond_op || t.deadline || t.aangemaakt || null;
+    if(afBinnen(wanneer)) uit.push({soort:'taak', wie:t.medewerker_id,
+      titel:t.titel||'Taak', extra:tkSuite(t), wanneer});
+  });
+  return uit.sort((a,b)=> String(b.wanneer||'').localeCompare(String(a.wanneer||'')));
+}
+function afTijd(w){
+  if(!w) return '—';
+  const d = new Date(w);
+  return isNaN(d) ? dmy(w) : d.toLocaleDateString('nl-NL',{day:'numeric', month:'short'});
+}
+function renderAfgerond(){
+  if(!$('#afLijst')) return;
+  const regels = afRegels();
+  const per = {};
+  regels.forEach(r=>{
+    const id = r.wie || 'onbekend';
+    per[id] = per[id] || {calls:0, taken:0, laatst:''};
+    per[id][r.soort === 'welkomstcall' ? 'calls' : 'taken']++;
+    if(String(r.wanneer||'') > per[id].laatst) per[id].laatst = String(r.wanneer||'');
+  });
+  const rijen = Object.keys(per).map(id=>({id, naam: id==='onbekend' ? 'Niet toegewezen' : mwNaam(id),
+    ...per[id], samen: per[id].calls + per[id].taken}))
+    .sort((a,b)=> b.samen - a.samen);
+  $('#afLijst').innerHTML = rijen.length ? rijen.map(r=>`
+    <tr>
+      <td class="name">${esc(r.naam)}</td>
+      <td class="num">${r.calls}</td>
+      <td class="num">${r.taken}</td>
+      <td class="num"><span class="pill ${r.samen? 'ok':'neutral'}">${r.samen}</span></td>
+      <td>${esc(afTijd(r.laatst))}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty"><strong>Nog niets afgerond</strong>In deze periode is er nog geen welkomstcall of taak afgevinkt.</div></td></tr>`;
+  const totCalls = rijen.reduce((a,r)=>a+r.calls,0), totTaken = rijen.reduce((a,r)=>a+r.taken,0);
+  $('#afFoot').textContent = totCalls+' welkomstcall'+(totCalls===1?'':'s')+' · '+
+    totTaken+' taak'+(totTaken===1?'':'en')+' · '+
+    (afPeriode==='maand' ? 'deze maand' : afPeriode==='vorige' ? 'vorige maand' : 'alles bij elkaar');
+
+  $('#afRecent').innerHTML = regels.length ? regels.slice(0,20).map(r=>`
+    <div class="od" style="--c:${r.soort==='welkomstcall' ? 'var(--brass)' : 'var(--ok)'}">
+      <div class="odkop">
+        <span class="pill ${r.soort==='welkomstcall'?'accent':'ok'}">${r.soort==='welkomstcall'?'welkomstcall':'taak'}</span>
+        <span>${esc(mwNaam(r.wie))}</span>
+        ${r.extra?`<span class="pill neutral">${esc(r.extra)}</span>`:''}
+        <span>· ${esc(afTijd(r.wanneer))}</span>
+      </div>
+      <div class="odtekst">${esc(r.titel)}</div>
+    </div>`).join('')
+    : `<div class="empty" style="padding:18px 0">Nog niets afgerond in deze periode.</div>`;
+}
+$('#afFilter').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  afPeriode = b.dataset.p;
+  $$('#afFilter button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  renderAfgerond();
+});
+$('#afExport').addEventListener('click', ()=>{
+  const rows = [['Wat','Assistent','Omschrijving','Suite of locatie','Afgerond op']];
+  afRegels().forEach(r=>rows.push([r.soort, mwNaam(r.wie), r.titel, r.extra||'',
+    String(r.wanneer||'').slice(0,10)]));
+  csv(rows, 'afgerond-'+afPeriode+'-'+vandaag()+'.csv');
 });
 
 /* ---------------- instellingen / uitloggen ---------------- */
