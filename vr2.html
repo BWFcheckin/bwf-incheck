@@ -3546,6 +3546,8 @@ function resDetailHtml(r, i){
       call ? esc(call.status||'te bellen') : 'nog niet aangemaakt'}</span>
     <span class="pill neutral">${r.eigen ? 'eigen reservering' : 'uit de agenda'}</span>
     <span class="pill ${form ? 'ok' : 'neutral'}">Formulier: ${form ? 'ingevuld' : 'nog niet gekoppeld'}</span>
+    <span class="pill ${k.res_sleutel ? 'ok' : 'neutral'}">SMG-gegevens: ${
+      k.res_sleutel ? 'gevonden (' + esc(k.res_sleutel) + ')' : 'niet gevonden'}</span>
   </div>`;
   const extern = !r.eigen;
   const bewerkenExtern = `
@@ -4062,17 +4064,33 @@ function koppelingVoor(r){
   if(recht) return recht;
   const g = r.ruw || {};
   const tekst = [g.titel, g.omschrijving, g.beschrijving, g.description, r.naam].filter(Boolean).join(' ');
-  const nummers = String(tekst).match(/\b\d{5,8}\b/g) || [];
-  for(const nr of nummers){ if(KOPPEL[nr]) return KOPPEL[nr]; }
+
+  /* 1 · een reserveringsnummer in de tekst van de afspraak */
+  for(const nr of (String(tekst).match(/\b\d{5,8}\b/g) || [])) if(KOPPEL[nr]) return KOPPEL[nr];
+
   const datum = String(r.start||'').slice(0,10);
-  const naam = String(r.naam||'').toLowerCase().trim();
   if(!datum) return null;
-  return Object.values(KOPPEL).find(k=>{
-    const kd = String(k.aankomst || k.datum || '').slice(0,10);
-    if(kd !== datum) return false;
-    const kn = String(k.gast||'').toLowerCase().trim();
-    return !kn || !naam || kn === naam || kn.includes(naam) || naam.includes(kn);
-  }) || null;
+  const kandidaten = Object.values(KOPPEL).filter(k=>
+    String(k.aankomst || k.datum || k.checkindatum || '').slice(0,10) === datum);
+  if(!kandidaten.length) return null;
+
+  /* 2 · zelfde dag én zelfde suite */
+  const opLocatie = kandidaten.filter(k=>{
+    const kl = ovLocNaam(k.locatie || k.suite || '');
+    return kl && r.locatie && kl === r.locatie;
+  });
+  if(opLocatie.length === 1) return opLocatie[0];
+
+  /* 3 · zelfde dag en de naam komt in de tekst voor */
+  const inTekst = kandidaten.find(k=>{
+    const kn = String(k.gast||'').trim();
+    return kn.length > 3 && String(tekst).toLowerCase().includes(kn.toLowerCase());
+  });
+  if(inTekst) return inTekst;
+
+  /* 4 · zelfde dag en verder maar één mogelijkheid */
+  if(opLocatie.length > 1) return null;
+  return kandidaten.length === 1 ? kandidaten[0] : null;
 }
 function resPasKoppelingToe(){
   RES.forEach(r=>{
