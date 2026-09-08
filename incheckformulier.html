@@ -401,7 +401,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 8 · VOORAF GERESERVEERD ================= -->
   <div class="card">
-    <h2>8 &middot; Vooraf gereserveerd</h2>
+    <h2>8 &middot; Arrangementen vooraf geboekt</h2>
     <p class="desc">Wat de gast al vooraf heeft geboekt. Dit zit in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat ter plekke wordt besteld zet je bij &quot;Bestellingen op locatie&quot;.</p>
     <div class="order-add">
       <div><label>Onderdeel</label><select id="voorSelect"></select></div>
@@ -422,11 +422,16 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <div style="flex:0;"><button type="button" class="btn sm" onclick="addOrderItem()">+ Toevoegen</button></div>
     </div>
 
-    <h3>Service &amp; toeslagen</h3>
+    <h3>Service, toeslagen &amp; cadeau</h3>
     <div class="order-add">
       <div><label>Onderdeel</label><select id="servSelect"></select></div>
       <div class="qty"><label>Aantal</label><input type="number" id="servQty" min="1" value="1"></div>
       <div style="flex:0;"><button type="button" class="btn sm" onclick="voegServiceToe()">+ Toevoegen</button></div>
+    </div>
+    <div class="formgrid3" style="margin-top:10px">
+      <div><label>Cadeau</label><select id="c_cadeau" onchange="toggleCadeau()"></select></div>
+      <div><label>Prijs cadeau (&euro;)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+      <div id="cadeauCodeWrap" style="display:none;"><label>Code van de cadeaubon</label><input type="text" id="c_cadeaucode" placeholder="vul de code in"></div>
     </div>
 
     <h3>Extra personen bijboeken</h3>
@@ -445,13 +450,6 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <div><label>Extra personen komen om</label><input type="time" id="persVan"></div>
       <div><label>Extra personen gaan om</label><input type="time" id="persTot"></div>
       <div></div>
-    </div>
-
-    <h3>Cadeau</h3>
-    <div class="formgrid3">
-      <div><label>Cadeau</label><select id="c_cadeau" onchange="toggleCadeau()"></select></div>
-      <div><label>Prijs (&euro;)</label><input type="number" id="c_cadeauprijs" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
-      <div id="cadeauCodeWrap" style="display:none;"><label>Code van de cadeaubon</label><input type="text" id="c_cadeaucode" placeholder="vul de code in"></div>
     </div>
 
     <div class="order-list" id="orderList"></div>
@@ -3335,6 +3333,275 @@ body{background:#f4f7fb!important}
 
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(opstarten, 60); });
   else setTimeout(opstarten, 60);
+})();
+</script>
+
+<style id="bwf-incheck-thema">
+/* ---------- dezelfde blauwe uitstraling als het dashboard ---------- */
+:root,:root[data-theme="dark"],:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f4f7fb; --surface:#ffffff; --surface-2:#f7f9fc;
+  --line:#dfe6ef; --line-soft:#edf1f6;
+  --ink:#142033; --ink-2:#35435a; --muted:#738097;
+  --accent:#165dff; --accent-ink:#ffffff; --accent-soft:#eaf1ff; --accent-rgb:22,93,255;
+  --brass:#b5842c; --ok:#14805e; --ok-soft:#e5f6ef; --warn:#a56a12; --warn-soft:#fff3d9;
+  --crit:#c13e50; --crit-soft:#ffebee;
+  --loc-angie:#b5842c; --loc-jacuzzi:#1C6FD0; --loc-deluxe:#D63A2A;
+  --shadow:0 1px 2px rgba(20,32,51,.03),0 12px 32px rgba(32,59,96,.08);
+  --r-s:10px; --r-m:14px; --r-l:20px;
+}
+:root[data-color-scheme="olijf"]{--accent:#5D6E33;--accent-soft:#EDF1E2;--accent-rgb:93,110,51;--brass:#96792B}
+:root[data-color-scheme="beige"]{--accent:#8A7350;--accent-soft:#F5EFE5;--accent-rgb:138,115,80;--brass:#A07A38}
+:root[data-color-scheme="bruin"]{--accent:#6B4A35;--accent-soft:#F2E9E2;--accent-rgb:107,74,53;--brass:#A3743A}
+:root[data-color-scheme="paars"]{--accent:#6F45C0;--accent-soft:#F0EAFD;--accent-rgb:111,69,192;--brass:#A97421}
+:root[data-color-scheme="zwartwit"]{
+  --accent:#1B1B1B;--accent-soft:#ECECEC;--accent-rgb:27,27,27;--brass:#5C5C5C;
+  --bg:#F5F5F5;--surface:#FFFFFF;--surface-2:#F7F7F7;--line:#DCDCDC;--line-soft:#EAEAEA;
+  --ink:#111111;--ink-2:#333333;--muted:#6E6E6E;
+  --ok:#2F2F2F;--ok-soft:#EDEDED;--warn:#4A4A4A;--warn-soft:#EFEFEF;--crit:#000000;--crit-soft:#E4E4E4}
+
+/* de secties volgen nu de gekozen kleur */
+:root{--bwf-accent:var(--accent);--bwf-accent-zacht:var(--accent-soft);
+  --bwf-lijn:var(--line);--bwf-vlak:var(--surface);--bwf-vlak2:var(--surface-2);
+  --bwf-ink:var(--ink);--bwf-grijs:var(--muted)}
+
+html{background:var(--bg)}
+body{background:
+  radial-gradient(circle at 0 0,rgba(var(--accent-rgb),.07),transparent 28rem),
+  linear-gradient(180deg,color-mix(in srgb,var(--accent) 4%,#fff) 0,var(--bg) 34rem)!important;
+  color:var(--ink)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;pointer-events:none;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent),white 32%) 52%,var(--brass))}
+
+input,select,textarea{min-height:42px;border:1px solid #dce4ef!important;border-radius:10px!important;
+  background:#f8fafd!important;color:var(--ink)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;
+  box-shadow:0 0 0 4px rgba(var(--accent-rgb),.1)!important;background:#fff!important;outline:none}
+textarea{min-height:90px}
+label{color:var(--ink-2)}
+.btn,button.btn{background:var(--accent)!important;border:1px solid var(--accent)!important;color:#fff!important;
+  border-radius:10px!important;min-height:40px;font-weight:600;
+  box-shadow:0 7px 16px rgba(var(--accent-rgb),.18);transition:transform .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn.secondary,.btn.ghost{background:#fff!important;color:var(--ink)!important;border-color:var(--line)!important;
+  box-shadow:none}
+.btn.secondary:hover,.btn.ghost:hover{border-color:var(--accent)!important;color:var(--accent)!important}
+.btn.sm{min-height:34px;padding:6px 13px;font-size:13px}
+table th{background:#f8fafd;color:#68768d}
+table td,table th{border-color:var(--line-soft)}
+.status.ok{background:var(--ok-soft);color:var(--ok)}
+.status.err{background:var(--crit-soft);color:var(--crit)}
+dialog{border:0;border-radius:22px;box-shadow:0 26px 80px rgba(20,32,51,.24)}
+dialog::backdrop{background:rgba(20,32,51,.38)}
+
+/* kleurenkiezer */
+.thema-knop{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink)}
+.thema-knop:hover{border-color:var(--accent);color:var(--accent)}
+.thema-knop i{width:14px;height:14px;border-radius:50%;background:var(--accent);display:inline-block}
+#themaVenster{padding:0;width:min(460px,94vw);background:var(--surface);color:var(--ink)}
+#themaVenster .binnen{padding:22px 24px}
+#themaVenster h2{margin:0 0 6px;font-size:18px}
+#themaVenster p{margin:0;font-size:13.5px;color:var(--muted)}
+.thema-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.thema-optie{border:1px solid var(--line);background:var(--surface-2);border-radius:14px;padding:11px 7px 9px;
+  cursor:pointer;font:inherit;font-size:12px;color:var(--ink-2);text-align:center}
+.thema-optie:hover{border-color:var(--kleur)}
+.thema-optie[aria-pressed="true"]{border-color:var(--kleur);box-shadow:0 0 0 3px color-mix(in srgb,var(--kleur),transparent 82%)}
+.thema-optie span{display:block;width:30px;height:30px;margin:0 auto 7px;border-radius:50%;background:var(--kleur);
+  box-shadow:inset 0 0 0 5px rgba(255,255,255,.72)}
+@media(max-width:620px){.thema-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+
+<dialog id="themaVenster">
+  <div class="binnen">
+    <h2>Jouw kleur</h2>
+    <p>Dezelfde keuze als in het dashboard. Blijft persoonlijk op dit apparaat.</p>
+    <div class="thema-grid" id="themaGrid">
+      <button class="thema-optie" type="button" data-schema="blauw"    style="--kleur:#165dff"><span></span>Blauw</button>
+      <button class="thema-optie" type="button" data-schema="olijf"    style="--kleur:#5D6E33"><span></span>Olijfgroen</button>
+      <button class="thema-optie" type="button" data-schema="beige"    style="--kleur:#8A7350"><span></span>Beige</button>
+      <button class="thema-optie" type="button" data-schema="bruin"    style="--kleur:#6B4A35"><span></span>Bruin</button>
+      <button class="thema-optie" type="button" data-schema="paars"    style="--kleur:#6F45C0"><span></span>Paars</button>
+      <button class="thema-optie" type="button" data-schema="zwartwit" style="--kleur:#1B1B1B"><span></span>Zwart-wit</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:9px">
+      <button class="btn secondary sm" type="button" id="themaTerug">Terug naar blauw</button>
+      <button class="btn sm" type="button" id="themaKlaar">Klaar</button>
+    </div>
+  </div>
+</dialog>
+
+<script id="bwf-incheck-thema-js">
+(function(){
+  var geldig = ["blauw","olijf","beige","bruin","paars","zwartwit"];
+  function sleutel(){
+    var naam = "gast";
+    try { naam = (localStorage.getItem("bw-wie") || "gast").trim().toLowerCase(); } catch(e){}
+    return "bw-kleurenschema-" + (naam || "gast");
+  }
+  function opgeslagen(){
+    var s = "blauw";
+    try { s = localStorage.getItem(sleutel()) || "blauw"; } catch(e){}
+    if(s === "ocean") s = "blauw";
+    if(s === "emerald") s = "olijf";
+    if(s === "violet") s = "paars";
+    if(s === "rose" || s === "graphite") s = "blauw";
+    return geldig.indexOf(s) > -1 ? s : "blauw";
+  }
+  function toepassen(s, bewaren){
+    if(geldig.indexOf(s) < 0) s = "blauw";
+    if(s === "blauw") document.documentElement.removeAttribute("data-color-scheme");
+    else document.documentElement.setAttribute("data-color-scheme", s);
+    var g = document.getElementById("themaGrid");
+    if(g) g.querySelectorAll("[data-schema]").forEach(function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-schema") === s ? "true" : "false"); });
+    if(bewaren){ try { localStorage.setItem(sleutel(), s); } catch(e){} }
+  }
+  function start(){
+    toepassen(opgeslagen(), false);
+    var venster = document.getElementById("themaVenster");
+    document.getElementById("themaGrid").addEventListener("click", function(e){
+      var b = e.target.closest("[data-schema]"); if(b) toepassen(b.getAttribute("data-schema"), true);
+    });
+    document.getElementById("themaTerug").addEventListener("click", function(){ toepassen("blauw", true); });
+    document.getElementById("themaKlaar").addEventListener("click", function(){ venster.close(); });
+
+    var balk = document.querySelector(".bwf-balk");
+    if(balk && !document.getElementById("themaOpen")){
+      var k = document.createElement("button");
+      k.id = "themaOpen"; k.type = "button"; k.className = "thema-knop";
+      k.innerHTML = '<i></i>Kleur';
+      k.addEventListener("click", function(){ if(venster.showModal) venster.showModal(); });
+      balk.appendChild(k);
+    }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 120); });
+  else setTimeout(start, 120);
+})();
+</script>
+
+<script id="bwf-incheck-extra">
+/* Aanvullingen: standaard "Geen" in de keuzelijsten, samenvatting in de kop
+   van Boekingsgegevens, en Boekingsgegevens standaard ingeklapt. */
+(function(){
+  var LIJSTEN = ["voorSelect", "ordItem", "servSelect", "arrSelect"];
+
+  function zetGeen(sel){
+    if(!sel || sel.dataset.geen === "1") return;
+    if(sel.options.length && sel.options[0].value === "") { sel.dataset.geen = "1"; return; }
+    var o = document.createElement("option");
+    o.value = ""; o.textContent = "Geen";
+    sel.insertBefore(o, sel.firstChild);
+    if(!sel.value) sel.selectedIndex = 0;
+    sel.dataset.geen = "1";
+  }
+  function alleLijsten(){
+    LIJSTEN.forEach(function(id){
+      var sel = document.getElementById(id);
+      if(!sel) return;
+      sel.dataset.geen = "";      /* opnieuw opbouwen mag */
+      zetGeen(sel);
+    });
+  }
+
+  function bedrag(id){
+    var el = document.getElementById(id);
+    return el ? (parseFloat(el.value) || 0) : 0;
+  }
+  function eur(n){ return "\u20ac " + (Math.round(n*100)/100).toFixed(2).replace(".", ","); }
+
+  function samenvatting(){
+    var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"]');
+    if(!sec) return;
+    var doel = sec.querySelector(".sub");
+    if(!doel){
+      doel = document.createElement("span");
+      doel.className = "sub";
+      sec.querySelector(".bwf-kop").insertBefore(doel, sec.querySelector(".pijl"));
+    }
+    var d  = (document.getElementById("c_datum")||{}).value || "";
+    var in_ = (document.getElementById("c_checkin")||{}).value || "";
+    var uit = (document.getElementById("c_checkuit")||{}).value || "";
+    var pers = (document.getElementById("c_personen")||{}).value || "";
+    var type = document.querySelector('input[name="verblijftype"]:checked');
+    var res = bedrag("c_resbedrag"), aan = bedrag("c_aanbetaald");
+
+    var stukken = [];
+    if(d) stukken.push(d);
+    if(in_ || uit) stukken.push((in_ || "?") + "\u2013" + (uit || "?"));
+    if(type) stukken.push(type.value === "overnachting" ? "overnachting" : "dagverblijf");
+    if(pers) stukken.push(pers + " pers.");
+    if(res) stukken.push(eur(res) + " gereserveerd");
+    if(aan) stukken.push(eur(aan) + " betaald");
+    if(res && res - aan > 0.004) stukken.push("nog " + eur(res - aan));
+    doel.textContent = stukken.join(" \u00b7 ");
+  }
+
+  /* een klein overzicht bovenin Boekingsgegevens */
+  function overzicht(){
+    var kaart = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"] .bwf-body');
+    if(!kaart || document.getElementById("bwfResOverzicht")) return;
+    var d = document.createElement("div");
+    d.id = "bwfResOverzicht";
+    d.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;" +
+      "background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px";
+    kaart.insertBefore(d, kaart.firstChild);
+    vulOverzicht();
+  }
+  function vulOverzicht(){
+    var d = document.getElementById("bwfResOverzicht"); if(!d) return;
+    var res = bedrag("c_resbedrag"), aan = bedrag("c_aanbetaald"), open = Math.max(0, res - aan);
+    function vak(label, waarde, dik){
+      return '<div><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6">' +
+        label + '</div><div style="font-size:' + (dik ? "17px;font-weight:700" : "15px;font-weight:600") + '">' +
+        waarde + "</div></div>";
+    }
+    var in_ = (document.getElementById("c_checkin")||{}).value || "\u2014";
+    var uit = (document.getElementById("c_checkuit")||{}).value || "\u2014";
+    d.innerHTML =
+      vak("Check-in", in_) +
+      vak("Check-out", uit) +
+      vak("Vooraf gereserveerd", eur(res)) +
+      vak("Online betaald", eur(aan)) +
+      vak("Nog te betalen", eur(open), true);
+  }
+
+  function bij(){ samenvatting(); vulOverzicht(); }
+
+  function start(){
+    alleLijsten();
+    overzicht();
+    bij();
+
+    /* Boekingsgegevens standaard dicht, tenzij je hem zelf open had gezet */
+    try{
+      var stand = JSON.parse(localStorage.getItem("bwf-incheck-open") || "{}") || {};
+      if(!stand.hasOwnProperty("Boekingsgegevens")){
+        var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"]');
+        if(sec) sec.setAttribute("data-open", "0");
+      }
+    }catch(e){}
+
+    ["c_datum","c_checkin","c_checkuit","c_personen","c_resbedrag","c_aanbetaald"].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.addEventListener("input", bij); el.addEventListener("change", bij); }
+    });
+    document.querySelectorAll('input[name="verblijftype"]').forEach(function(r){
+      r.addEventListener("change", bij);
+    });
+
+    /* de keuzelijsten worden soms opnieuw opgebouwd; dan opnieuw "Geen" erin */
+    LIJSTEN.forEach(function(id){
+      var sel = document.getElementById(id); if(!sel) return;
+      new MutationObserver(function(){ sel.dataset.geen = ""; zetGeen(sel); })
+        .observe(sel, { childList:true });
+    });
+    setInterval(bij, 1500);
+  }
+
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 400); });
+  else setTimeout(start, 400);
 })();
 </script>
 
