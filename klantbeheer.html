@@ -168,6 +168,13 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
   .filters{padding:14px}
   .brand h1{font-size:19px}
 }
+
+.belrij{display:inline-flex;gap:7px;align-items:center;flex-wrap:wrap}
+.belrij .belnr{font-weight:600;text-decoration:none;color:inherit;border-bottom:1px dashed currentColor}
+.belrij .belknop{display:inline-flex;align-items:center;text-decoration:none;font-size:11.5px;font-weight:700;
+  padding:3px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap;
+  background:#167b5d;color:#fff}
+.belrij .belknop:hover{filter:brightness(1.08)}
 </style>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="bwf-icon-32.png">
@@ -1093,7 +1100,7 @@ function tekenKlanten(){
       (k.member ? ' <span class="pill member">member</span>' : "") + "</td>" +
       "<td>" + esc(k.woonplaats) + "</td>" +
       "<td>" + (k.email ? '<a href="mailto:' + esc(k.email) + '">' + esc(k.email) + "</a>" : "") + "</td>" +
-      "<td>" + esc(k.telefoon) + "</td>" +
+      "<td>" + belCel(k.telefoon) + "</td>" +
       "<td>" + esc(k.nationaliteit) + "</td>" +
       "<td>" + (k.geboortedatum ? dNL(k.geboortedatum) : "") + "</td>" +
       '<td class="num">' + k.overnachtingen + '</td><td class="num">' + k.nachten + '</td>' +
@@ -1110,6 +1117,23 @@ function tekenKlanten(){
   for(i=0;i<rijen.length;i++) if(!rijen[i].overnachtingen && !rijen[i].dagverblijven) contacten++;
   $("kSub").textContent = rijen.length + " klant(en) · " + contacten + " nog zonder verblijf · " +
     members + " member(s) · " + eur(besteed) + " totaal besteed";
+}
+
+/* ---------- telefoonnummer aanklikbaar ---------- */
+function bwfWaNummer(v){
+  var n = String(v||"").replace(/\D/g,"");
+  if(n.indexOf("00") === 0) n = n.slice(2);
+  if(n.indexOf("0") === 0)  n = "31" + n.slice(1);
+  return n;
+}
+function belCel(nummer){
+  var n = String(nummer||"").trim();
+  if(!n) return "";
+  var kaal = n.replace(/\s/g,""), wa = bwfWaNummer(n);
+  return '<span class="belrij">' +
+    '<a class="belnr" href="tel:' + esc(kaal) + '">' + esc(n) + '</a>' +
+    (wa ? '<a class="belknop wa" href="https://wa.me/' + esc(wa) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') +
+    '</span>';
 }
 
 /* ---------- nachtregister ---------- */
@@ -1269,7 +1293,7 @@ function tekenMembers(){
     html += '<tr><td><button class="linkbtn" data-klant="' + esc(k.key) + '">' + esc(k.naam) + "</button></td>" +
       "<td>" + esc(k.woonplaats) + "</td>" +
       "<td>" + (k.email ? '<a href="mailto:' + esc(k.email) + '">' + esc(k.email) + "</a>" : '<span style="color:var(--copper)">ontbreekt</span>') + "</td>" +
-      "<td>" + esc(k.telefoon) + "</td>" +
+      "<td>" + belCel(k.telefoon) + "</td>" +
       '<td class="num">' + k.overnachtingen + '</td><td class="num">' + k.nachten + '</td>' +
       '<td class="num">' + k.dagverblijven + '</td><td class="num">' + eur(k.besteed) + "</td>" +
       "<td>" + (k.eerste ? dNL(k.eerste) : (k.contactDatum ? "aangemeld " + dNL(k.contactDatum) : "—")) + "</td>" +
@@ -1297,7 +1321,7 @@ function openKlant(key){
   var html = '<div class="kv">' +
     "<div><span>Woonplaats</span><b>" + esc(k.woonplaats || "—") + "</b></div>" +
     "<div><span>E-mail</span><b>" + (k.email ? '<a href="mailto:'+esc(k.email)+'">'+esc(k.email)+"</a>" : "—") + "</b></div>" +
-    "<div><span>Telefoon</span><b>" + esc(k.telefoon || "—") + "</b></div>" +
+    "<div><span>Telefoon</span><b>" + (k.telefoon ? belCel(k.telefoon) : "—") + "</b></div>" +
     "<div><span>Nationaliteit</span><b>" + esc(k.nationaliteit || "—") + "</b></div>" +
     "<div><span>Geboortedatum</span><b>" + (k.geboortedatum ? dNL(k.geboortedatum) : "—") + "</b></div>" +
     "<div><span>Member</span><b>" + (k.member ? "ja" : "nee") + "</b></div>" +
