@@ -951,7 +951,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <table class="res">
       <thead><tr>
         <th>Suite</th><th>Datum</th><th>Incheck</th><th>Uitcheck</th>
-        <th>Gast</th><th>Kanaal</th><th>Openstaand</th><th>Status</th>
+        <th>Verblijf</th><th>Gast</th><th>Openstaand</th><th>Status</th>
       </tr></thead>
       <tbody id="ovVandaag"></tbody>
     </table>
@@ -2984,6 +2984,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(/psa|angie|almere/.test(s))        return 'Suite Angie';
     return loc ? String(loc) : 'Onbekend';
   }
+  function suiteKort(loc){
+    var h = hoofdnaam(loc);
+    return h==='Malina Deluxe' ? 'Deluxe' : h==='Malina Jacuzzi' ? 'Jacuzzi'
+         : h==='Suite Angie' ? 'Angie' : h;
+  }
   function isLelystad(loc){ var h = hoofdnaam(loc); return h==='Malina Jacuzzi' || h==='Malina Deluxe'; }
   function suiteKleur(loc){
     var h = hoofdnaam(loc);
@@ -3977,7 +3982,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var soortTekst = verblijfType(r);
     var tekst = alleenTijden(s)
       ? '<span class="t">'+esc(t + (r.tijdUit ? '\u2013'+r.tijdUit : ''))+'</span>'
-      : '<span class="t">'+esc(t)+'</span>'+esc((soortTekst ? soortTekst+' \u00b7 ' : '')+gastnaam(r));
+      : esc(suiteKort(r.locatie))+' '+'<span class="t">'+esc(t)+'</span>'+
+        esc((soortTekst ? soortTekst+' \u00b7 ' : '')+gastnaam(r));
     if(r.virtueel){
       var prijs = r.tarief ? ' <b>'+esc(euro(r.tarief))+'</b>' : '';
       var tip = esc((r.blokNaam?r.blokNaam+' \u2014 ':'')+'nog te boeken \u2014 '+hoofdnaam(r.locatie));
@@ -4138,8 +4144,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<td>'+esc(r.aankomst||'')+'</td>'+
       '<td>'+esc(r.tijdIn||'\u2014')+'</td>'+
       '<td>'+esc((r.vertrek||'')+(r.tijdUit?' '+r.tijdUit:''))+'</td>'+
-      '<td>'+esc(gastnaam(r))+'</td>'+
       '<td>'+esc(verblijfType(r) || r.kanaal || SOORTNAAM[r.soort] || '')+'</td>'+
+      '<td>'+esc(gastnaam(r))+'</td>'+
       '<td>'+(b.open>0?'<strong>'+euro(b.open)+'</strong>':'<span style="opacity:.5">voldaan</span>')+'</td>'+
       '<td>'+vlag+'</td></tr>';
   }
