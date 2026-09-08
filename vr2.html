@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>VR Dashboard — Beden Wellness Flevoland</title>
+<title>Virtual Assistent Dashboard — Bed &amp; Wellness Flevoland</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
@@ -352,14 +352,14 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="BWF Lelystad">
+<meta name="apple-mobile-web-app-title" content="BWF Assistent">
 </head>
 <body>
 <!-- ============ TOEGANGSSCHERM ============ -->
 <div class="slot" id="slot">
   <div class="slot-kaart">
     <span class="mark">B&amp;W</span>
-    <h1>Werkzaamheden &amp; Taken</h1>
+    <h1>Virtual Assistent Dashboard</h1>
     <p>Log in met je e-mailadres en wachtwoord.</p>
     <div class="field">
       <label for="slotMail">E-mailadres</label>
@@ -369,6 +369,10 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
       <label for="slotCode">Wachtwoord</label>
       <input type="password" id="slotCode" autocomplete="current-password" placeholder="••••••••">
     </div>
+    <label class="check" for="slotOnthoud" style="display:flex;align-items:center;gap:9px;margin:4px 0 12px;font-size:13.5px;cursor:pointer">
+      <input type="checkbox" id="slotOnthoud" checked style="width:16px;height:16px;accent-color:var(--accent)">
+      E-mailadres onthouden op dit apparaat
+    </label>
     <button class="btn" id="slotOk" type="button" style="width:100%">Inloggen</button>
     <div class="slot-fout" id="slotFout"></div>
     <button class="btn ghost small" id="slotVergeten" type="button" style="margin-top:14px">Wachtwoord vergeten</button>
@@ -381,8 +385,8 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
     <div class="brand">
       <span class="mark">B&amp;W</span>
       <span class="brand-txt">
-        <strong>Beden Wellness Flevoland</strong>
-        <span>Werkzaamheden &amp; Taken</span>
+        <strong>Bed &amp; Wellness Flevoland</strong>
+        <span>Virtual Assistent Dashboard</span>
       </span>
     </div>
     <div class="topbar-right">
@@ -1363,6 +1367,10 @@ async function naLogin(){
 }
 async function probeerLogin(){
   const email = $('#slotMail').value.trim(), ww = $('#slotCode').value;
+  try{
+    if($('#slotOnthoud') && $('#slotOnthoud').checked) localStorage.setItem('bwf-mail', email);
+    else localStorage.removeItem('bwf-mail');
+  }catch(e){}
   $('#slotFout').style.color = '';
   if(!email || !ww){ $('#slotFout').textContent = 'Vul je e-mailadres en wachtwoord in.'; return; }
   $('#slotOk').disabled = true; $('#slotFout').textContent = 'Bezig met inloggen…';
@@ -4031,7 +4039,7 @@ $('#whoBtn').addEventListener('click', ()=>{
     ]},
     { groep:"Werken", items:[
       { naam:"Personeelsdashboard", bestand:"dashboard.html" },
-      { naam:"VR Dashboard",        bestand:"vr2.html" },
+      { naam:"Virtual Assistent Dashboard", bestand:"vr2.html" },
       { naam:"Klantbeheer",         bestand:"klantbeheer.html" }
     ]}
   ];
@@ -4111,56 +4119,89 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-shell.js"></script>
+<script>
+/* onthouden e-mailadres terugzetten in het inlogscherm */
+(function(){
+  function vul(){
+    try{
+      var m = localStorage.getItem('bwf-mail'), el = document.getElementById('slotMail');
+      if(m && el && !el.value){ el.value = m; var w = document.getElementById('slotCode'); if(w) w.focus(); }
+      var v = document.getElementById('slotOnthoud');
+      if(v) v.checked = !!m || localStorage.getItem('bwf-mail') === null;
+    }catch(e){}
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vul);
+  else vul();
+})();
+</script>
 <script id="bwf-open-welkomstcall">
 /* Rechtstreeks een welkomstcall openen vanuit het overzicht van Lelystad */
 (function(){
   var p = new URLSearchParams(location.search);
   if(p.get('open') !== 'welkomstcall') return;
 
+  var klaar = false, pogingen = 0;
+
   function zet(id, waarde){
     var el = document.getElementById(id);
     if(el && waarde && !el.value) el.value = waarde;
   }
-  function start(){
-    var tab = document.getElementById('tab-welkomstcall');
-    if(tab) tab.click();
-    var nieuw = document.getElementById('wcNieuw');
-    if(nieuw) nieuw.click();
-
-    setTimeout(function(){
-      zet('wcNaam',   p.get('gast'));
-      zet('wcVoor',   p.get('voornaam'));
-      zet('wcAchter', p.get('achternaam'));
-      zet('wcTel',    p.get('telefoon'));
-      zet('wcMail',   p.get('email'));
-      zet('wcRef',    p.get('nummer'));
-      zet('wcDatum',  p.get('aankomst'));
-      zet('wcDatumEind', p.get('vertrek'));
-      zet('wcTijd',   p.get('tijdin'));
-      zet('wcTijdEind', p.get('tijduit'));
-      var t = document.getElementById('wcType');
-      if(t && p.get('type')) t.value = p.get('type');
-      var b = document.getElementById('wcBron');
-      if(b && p.get('bron')) b.value = p.get('bron');
-      window.scrollTo({ top:0, behavior:'smooth' });
-    }, 260);
-
-    var terug = p.get('terug');
-    if(terug){
-      var balk = document.createElement('div');
-      balk.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9600;display:flex;gap:12px;'+
-        'align-items:center;justify-content:center;padding:11px 16px;background:#3B322B;color:#fff;'+
-        'font:600 14px/1.4 "Public Sans",Arial,sans-serif';
-      balk.innerHTML = '<span>Welkomstcall voor '+
-        (p.get('gast')||'deze reservering').replace(/[<>&]/g,'')+'</span>'+
-        '<a href="'+terug.replace(/"/g,'&quot;')+'" style="color:#fff;background:rgba(255,255,255,.18);'+
-        'padding:7px 14px;border-radius:9px;text-decoration:none">Terug naar de reservering</a>';
-      document.body.appendChild(balk);
-      document.body.style.paddingBottom = '64px';
+  function vulIn(){
+    zet('wcNaam',   p.get('gast'));
+    zet('wcVoor',   p.get('voornaam'));
+    zet('wcAchter', p.get('achternaam'));
+    zet('wcTel',    p.get('telefoon'));
+    zet('wcMail',   p.get('email'));
+    zet('wcRef',    p.get('nummer'));
+    zet('wcDatum',  p.get('aankomst'));
+    zet('wcDatumEind', p.get('vertrek'));
+    zet('wcTijd',   p.get('tijdin'));
+    zet('wcTijdEind', p.get('tijduit'));
+    var t = document.getElementById('wcType');
+    if(t && p.get('type')) t.value = p.get('type');
+    var b = document.getElementById('wcBron');
+    if(b && p.get('bron')){
+      for(var i=0;i<b.options.length;i++)
+        if(b.options[i].text.toLowerCase() === p.get('bron').toLowerCase()){ b.selectedIndex = i; break; }
     }
   }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(start, 500); });
-  else setTimeout(start, 500);
+  function probeer(){
+    if(klaar) return;
+    pogingen++;
+    var vergrendeld = document.body.classList.contains('bwf-vergrendeld') ||
+                      document.body.classList.contains('gate-open');
+    var tab   = document.getElementById('tab-welkomstcall');
+    var nieuw = document.getElementById('wcNieuw');
+    if(!vergrendeld && tab && nieuw){
+      klaar = true;
+      try{ tab.click(); }catch(e){}
+      try{ nieuw.click(); }catch(e){}
+      setTimeout(vulIn, 300);
+      setTimeout(function(){ window.scrollTo({ top:0, behavior:'smooth' }); }, 400);
+      return;
+    }
+    if(pogingen < 60) setTimeout(probeer, 400);   /* tot 24 seconden wachten op het inloggen */
+  }
+
+  function balk(){
+    var terug = p.get('terug'); if(!terug) return;
+    var d = document.createElement('div');
+    d.id = 'bwfTerugBalk';
+    d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9600;display:flex;gap:12px;'+
+      'align-items:center;justify-content:center;flex-wrap:wrap;padding:11px 16px;'+
+      'background:#3B322B;color:#fff;font:600 14px/1.4 "Public Sans",Arial,sans-serif;'+
+      'box-shadow:0 -6px 20px -10px rgba(0,0,0,.6)';
+    var naam = (p.get('gast') || 'deze reservering').replace(/[<>&"]/g, '');
+    d.innerHTML = '<span>Welkomstcall voor ' + naam + '</span>' +
+      '<a href="' + terug.replace(/"/g, '&quot;') + '" style="color:#fff;background:rgba(255,255,255,.2);' +
+      'padding:8px 15px;border-radius:9px;text-decoration:none">&larr; Terug naar de reservering</a>';
+    document.body.appendChild(d);
+    document.body.style.paddingBottom = '68px';
+  }
+
+  function start(){ balk(); probeer(); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();
 </script>
 </body>
