@@ -416,6 +416,31 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 
 /* ---------- systeembalk ---------- */
 .sysbalk{margin:34px 0 0;padding-top:22px;border-top:1px solid var(--line)}
+
+/* ---- planningkalender ---- */
+.kal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.kal .kop{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  text-align:center;padding:4px 0;font-weight:600}
+.kal .dag{min-height:62px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);
+  padding:6px 7px;display:flex;flex-direction:column;gap:5px;cursor:pointer;
+  transition:border-color .15s ease,background .15s ease,transform .12s ease}
+.kal .dag:hover{border-color:var(--accent);transform:translateY(-1px)}
+.kal .dag.leeg{background:transparent;border-color:transparent;cursor:default}
+.kal .dag.leeg:hover{transform:none}
+.kal .dag.vandaag{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12)}
+.kal .dag.gekozen{background:var(--accent-soft);border-color:var(--accent)}
+.kal .dag .nr{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.kal .dag.weekend .nr{color:var(--muted)}
+.kal .stip{display:flex;gap:3px;flex-wrap:wrap}
+.kal .stip i{width:7px;height:7px;border-radius:50%;display:block}
+.kalleg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+.kalleg span{display:inline-flex;align-items:center;gap:6px}
+.kalleg i{width:8px;height:8px;border-radius:50%;display:block}
+@media (max-width:620px){
+  .kal{gap:4px}
+  .kal .dag{min-height:50px;padding:4px 5px;border-radius:9px}
+  .kal .kop{font-size:9.5px}
+}
 .sysknop{border-radius:14px;padding:9px 14px;background:rgba(255,255,255,.92);border-color:#e1e7f0;
   box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
 .sysknop:hover{transform:translateY(-1px);box-shadow:var(--shadow-hover)}
@@ -632,7 +657,64 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
       <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
     </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-head"><h2 id="kalKop">Planning</h2>
+        <span style="display:flex;gap:6px;align-items:center">
+          <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">‹</button>
+          <button class="btn ghost small" id="kalNu" type="button">Vandaag</button>
+          <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">›</button>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="kal" id="kalender"></div>
+        <div class="kalleg">
+          <span><i style="background:var(--accent)"></i>Malina Jacuzzi</span>
+          <span><i style="background:var(--brass)"></i>Malina Zwembad</span>
+          <span><i style="background:var(--ok)"></i>Suite Angie Almere</span>
+          <span><i style="background:var(--muted)"></i>overig</span>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
+        <tbody id="kalLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="kalFoot"></span>
+        <button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button></div>
+    </div>
     <div class="tegels" id="tegels"></div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-head"><h2>Wijziging doorgeven</h2>
+        <span class="hint">naar de groepsapp of per e-mail</span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field"><label for="wjRef">Reserveringsnummer</label>
+            <input type="text" id="wjRef" placeholder="bijv. 776886"></div>
+          <div class="field"><label for="wjNaam">Naam van de gast</label>
+            <input type="text" id="wjNaam" placeholder="voor- en achternaam"></div>
+          <div class="field"><label for="wjLoc">Locatie</label><select id="wjLoc">
+            <option value="">— kies —</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
+          <div class="field"><label for="wjDatum">Huidige aankomst</label>
+            <input type="date" id="wjDatum"></div>
+          <div class="field wide"><label for="wjWat">Wat moet er wijzigen</label>
+            <input type="text" id="wjWat" placeholder="bijv. verzetten naar 14 oktober, 20:00 tot 10:00"></div>
+          <div class="field wide"><label for="wjVw">Onder welke voorwaarden</label>
+            <input type="text" id="wjVw" placeholder="bijv. eenmalig kosteloos verzetten binnen 3 maanden"></div>
+        </div>
+        <div class="field" style="margin-top:12px"><label for="wjTekst">Bericht</label>
+          <textarea id="wjTekst" rows="9"></textarea></div>
+        <span class="note" id="wjNote"></span>
+      </div>
+      <div class="card-foot">
+        <span><button class="btn" id="wjApp" type="button">Naar de groepsapp</button>
+          <button class="btn ghost small" id="wjMail" type="button">Per e-mail</button>
+          <button class="btn ghost small" id="wjKopie" type="button">Kopiëren</button></span>
+        <button class="btn ghost small" id="wjGroep" type="button">Groepslink instellen</button>
+      </div>
+    </div>
     <div class="two-col" style="margin-top:20px">
       <div class="card">
         <div class="card-head"><h2>Openstaande taken</h2><span class="hint" id="ovTakenHint"></span></div>
@@ -3106,6 +3188,150 @@ function ovLocTel(locatie, start, eind){
   if(s === vd) rij.vandaag++;
   if(s >= vd && s <= ovDag(7)) rij.week++;
 }
+/* ---------------- WIJZIGING DOORGEVEN ----------------
+   standaardtekst voor de groepsapp: wat er moet wijzigen, onder welke
+   voorwaarden, met het verzoek het aan te passen en aan de gast te bevestigen.
+   De groepslink bewaar je met de knop "Groepslink instellen". */
+const WJ_SLEUTEL = 'bwf_wijziging_groep';
+const wjGroepLink = () => { try{ return localStorage.getItem(WJ_SLEUTEL) || ''; }catch(e){ return ''; } };
+
+function wjTekstMaken(){
+  const w = id => ($('#'+id) ? $('#'+id).value.trim() : '');
+  const r = [];
+  r.push('WIJZIGING RESERVERING');
+  r.push('');
+  if(w('wjRef'))   r.push('Reserveringsnummer: '+w('wjRef'));
+  if(w('wjNaam'))  r.push('Gast: '+w('wjNaam'));
+  if(w('wjLoc'))   r.push('Locatie: '+w('wjLoc'));
+  if(w('wjDatum')) r.push('Huidige aankomst: '+dmy(w('wjDatum')));
+  r.push('');
+  r.push('Wat er moet wijzigen:');
+  r.push(w('wjWat') || '—');
+  r.push('');
+  r.push('Voorwaarden:');
+  r.push(w('wjVw') || '—');
+  r.push('');
+  r.push('Kunnen jullie de reservering zo aanpassen en de wijziging daarna aan de gast bevestigen?');
+  r.push('Laat even weten wanneer het is doorgevoerd.');
+  const t = r.join('\n');
+  if($('#wjTekst')) $('#wjTekst').value = t;
+  return t;
+}
+['wjRef','wjNaam','wjLoc','wjDatum','wjWat','wjVw'].forEach(id=>{
+  const el = $('#'+id); if(el) el.addEventListener('input', wjTekstMaken);
+  if(el) el.addEventListener('change', wjTekstMaken);
+});
+$('#wjApp').addEventListener('click', ()=>{
+  const tekst = $('#wjTekst').value.trim() || wjTekstMaken();
+  const link = wjGroepLink();
+  if(!link){
+    $('#wjNote').textContent = 'Stel eerst de groepslink in — open de groep in WhatsApp, kies Groepsinfo, ' +
+      'Uitnodigen via link, en plak die hier met de knop rechts.';
+    return;
+  }
+  navigator.clipboard.writeText(tekst).catch(()=>{});
+  window.open(link, '_blank', 'noopener');
+  $('#wjNote').textContent = 'De groep is geopend en het bericht staat op je klembord — plak het daar met Ctrl+V.';
+});
+$('#wjMail').addEventListener('click', ()=>{
+  const tekst = $('#wjTekst').value.trim() || wjTekstMaken();
+  const ref = $('#wjRef').value.trim();
+  window.open(gmailLink('', 'Wijziging reservering'+(ref?' '+ref:''), tekst), '_blank', 'noopener');
+  $('#wjNote').textContent = 'Gmail is geopend — vul zelf de ontvanger in en klik op Verzenden.';
+});
+$('#wjKopie').addEventListener('click', async ()=>{
+  const tekst = $('#wjTekst').value.trim() || wjTekstMaken();
+  try{ await navigator.clipboard.writeText(tekst); toast('Bericht gekopieerd.'); }
+  catch(e){ $('#wjNote').textContent = 'Kopiëren lukte niet — selecteer de tekst zelf en kopieer met Ctrl+C.'; }
+});
+$('#wjGroep').addEventListener('click', ()=>{
+  const nu = wjGroepLink();
+  const link = prompt('Plak hier de uitnodigingslink van de WhatsApp-groep:', nu || 'https://chat.whatsapp.com/');
+  if(link === null) return;
+  try{ localStorage.setItem(WJ_SLEUTEL, link.trim()); }catch(e){}
+  $('#wjNote').textContent = link.trim()
+    ? 'Groepslink bewaard op dit apparaat.'
+    : 'Groepslink gewist.';
+});
+wjTekstMaken();
+
+/* ---------------- PLANNINGKALENDER ----------------
+   alle reserveringen vanaf vandaag, uit de agenda en uit de eigen tabel.
+   Klik op een dag om alleen die dag in de lijst eronder te zien. */
+const RES = [];
+const KAL_KLEUR = {'Malina Jacuzzi':'var(--accent)', 'Malina Zwembad':'var(--brass)',
+                   'Suite Angie Almere':'var(--ok)'};
+let kalMaand = null, kalDag = '';
+const kalSleutel = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+function kalStart(){ if(!kalMaand){ const d = new Date(); kalMaand = kalSleutel(d); } return kalMaand; }
+function kalSchuif(stap){
+  const [j,m] = kalStart().split('-').map(Number);
+  const d = new Date(j, m-1+stap, 1);
+  kalMaand = kalSleutel(d); kalDag = ''; renderKalender();
+}
+function renderKalender(){
+  const rooster = $('#kalender'); if(!rooster) return;
+  const maand = kalStart();
+  const [j,m] = maand.split('-').map(Number);
+  const eerste = new Date(j, m-1, 1), dagen = new Date(j, m, 0).getDate();
+  const schuif = (eerste.getDay() + 6) % 7;              /* week begint op maandag */
+  const vd = vandaag();
+
+  const perDag = {};
+  RES.forEach(r=>{
+    const d = String(r.start||'').slice(0,10); if(!d) return;
+    (perDag[d] = perDag[d] || []).push(r);
+  });
+
+  let html = ['ma','di','wo','do','vr','za','zo'].map(k=>`<span class="kop">${k}</span>`).join('');
+  for(let i=0;i<schuif;i++) html += '<div class="dag leeg"></div>';
+  for(let dag=1; dag<=dagen; dag++){
+    const datum = maand+'-'+String(dag).padStart(2,'0');
+    const rijen = perDag[datum] || [];
+    const wknd = [0,6].includes(new Date(j, m-1, dag).getDay());
+    html += `<div class="dag${datum===vd?' vandaag':''}${datum===kalDag?' gekozen':''}${wknd?' weekend':''}"
+      data-kaldag="${datum}" title="${rijen.length} aankomst${rijen.length===1?'':'en'}">
+      <span class="nr">${dag}</span>
+      <span class="stip">${rijen.slice(0,8).map(r=>
+        `<i style="background:${KAL_KLEUR[r.locatie]||'var(--muted)'}"></i>`).join('')}</span>
+    </div>`;
+  }
+  rooster.innerHTML = html;
+  $('#kalKop').textContent = 'Planning · ' +
+    new Date(j, m-1, 1).toLocaleDateString('nl-NL', {month:'long', year:'numeric'});
+
+  /* de lijst eronder: gekozen dag, anders de hele maand */
+  const lijst = RES.filter(r=>{
+    const d = String(r.start||'').slice(0,10);
+    return kalDag ? d === kalDag : d.slice(0,7) === maand;
+  }).sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
+
+  $('#kalLijst').innerHTML = lijst.length ? lijst.map(r=>`
+    <tr>
+      <td class="name">${esc(dmy(String(r.start||'').slice(0,10)))}</td>
+      <td><span class="pill" style="background:${KAL_KLEUR[r.locatie]||'var(--muted)'};color:#fff">${
+        esc(r.locatie||'onbekend')}</span></td>
+      <td>${esc(r.naam || '—')}</td>
+      <td>${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</td>
+      <td>${esc(r.bron||'')}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty"><strong>Geen reserveringen</strong>${
+        kalDag ? 'Op deze dag komt er niemand aan.' : 'In deze maand staat nog niets vanaf vandaag.'}</div></td></tr>`;
+  $('#kalFoot').textContent = kalDag
+    ? lijst.length+' aankomst'+(lijst.length===1?'':'en')+' op '+dmy(kalDag)
+    : lijst.length+' aankomst'+(lijst.length===1?'':'en')+' deze maand';
+  $('#kalAlles').hidden = !kalDag;
+}
+document.addEventListener('click', e=>{
+  const d = e.target.closest('[data-kaldag]'); if(!d) return;
+  kalDag = (kalDag === d.dataset.kaldag) ? '' : d.dataset.kaldag;
+  renderKalender();
+});
+$('#kalVorige').addEventListener('click', ()=>kalSchuif(-1));
+$('#kalVolgende').addEventListener('click', ()=>kalSchuif(1));
+$('#kalNu').addEventListener('click', ()=>{ kalMaand = kalSleutel(new Date()); kalDag=''; renderKalender(); });
+$('#kalAlles').addEventListener('click', ()=>{ kalDag=''; renderKalender(); });
+
 function renderLocaties(){
   const doel = $('#ovLocaties'); if(!doel) return;
   doel.innerHTML = LOCATIES.map(l=>{
@@ -3131,31 +3357,36 @@ async function ovProbeer(paden){
   return null;
 }
 async function laadOverzicht(){
-  if(!online()){ ovLocLeeg(); renderLocaties(); renderTegels(); return; }
+  if(!online()){ ovLocLeeg(); RES.length = 0; renderLocaties(); renderKalender(); renderTegels(); return; }
   const vd = vandaag();
 
   /* reserveringen — agenda plus de handmatige reserveringen, alles vanaf vandaag,
      tegelijk geteld per locatie voor het overzicht bovenaan */
   let n = 0, vandaagIn = 0;
-  ovLocLeeg();
+  ovLocLeeg(); RES.length = 0;
   try{
     const j = await (await fetch(AGENDA_PROXY+'?k='+encodeURIComponent(AGENDA_KEY))).json();
     (j.events||[]).forEach(ev=>{
       if(ev.soort !== 'reservering' && ev.soort !== 'extern') return;
       const s = String(ev.start||'').slice(0,10), e = String(ev.eind||'').slice(0,10) || s;
-      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind); }
+      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind);
+        RES.push({locatie: ovLocNaam(ev.suite || ev.locatie), naam: ev.gast || ev.naam || ev.titel || '',
+          start: ev.start, eind: ev.eind, bron: ev.bron || (ev.soort === 'extern' ? 'extern' : 'agenda')}); }
     });
   }catch(e){}
   try{
-    const eigen = await api('reservations?select=checkindatum,checkuitdatum,locatie&limit=3000') || [];
+    const eigen = await api('reservations?select=checkindatum,checkuitdatum,locatie,voornaam,achternaam,naam,bron&limit=3000')
+      || await api('reservations?select=checkindatum,checkuitdatum,locatie&limit=3000') || [];
     eigen.forEach(r=>{
       const s = String(r.checkindatum||'').slice(0,10), e = String(r.checkuitdatum||'').slice(0,10) || s;
-      if(s && e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(r.locatie, r.checkindatum, r.checkuitdatum); }
+      if(s && e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(r.locatie, r.checkindatum, r.checkuitdatum);
+        RES.push({locatie: ovLocNaam(r.locatie), naam: [r.voornaam, r.achternaam].filter(Boolean).join(' ') || r.naam || '',
+          start: r.checkindatum, eind: r.checkuitdatum, bron: r.bron || 'eigen'}); }
     });
   }catch(e){}
   OV.res = n;
   OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
-  renderLocaties();
+  renderLocaties(); renderKalender();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
   const g = await ovProbeer(['gast_aanmeldingen?select=*&limit=1000', 'checkins?select=*&limit=1000']);
