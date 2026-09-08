@@ -417,30 +417,25 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 /* ---------- systeembalk ---------- */
 .sysbalk{margin:34px 0 0;padding-top:22px;border-top:1px solid var(--line)}
 
-/* ---- planningkalender ---- */
-.kal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.kal .kop{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
-  text-align:center;padding:4px 0;font-weight:600}
-.kal .dag{min-height:62px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);
-  padding:6px 7px;display:flex;flex-direction:column;gap:5px;cursor:pointer;
-  transition:border-color .15s ease,background .15s ease,transform .12s ease}
-.kal .dag:hover{border-color:var(--accent);transform:translateY(-1px)}
-.kal .dag.leeg{background:transparent;border-color:transparent;cursor:default}
-.kal .dag.leeg:hover{transform:none}
-.kal .dag.vandaag{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12)}
-.kal .dag.gekozen{background:var(--accent-soft);border-color:var(--accent)}
-.kal .dag .nr{font-size:12.5px;font-weight:600;color:var(--ink-2)}
-.kal .dag.weekend .nr{color:var(--muted)}
-.kal .stip{display:flex;gap:3px;flex-wrap:wrap}
-.kal .stip i{width:7px;height:7px;border-radius:50%;display:block}
-.kalleg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
-.kalleg span{display:inline-flex;align-items:center;gap:6px}
-.kalleg i{width:8px;height:8px;border-radius:50%;display:block}
-@media (max-width:620px){
-  .kal{gap:4px}
-  .kal .dag{min-height:50px;padding:4px 5px;border-radius:9px}
-  .kal .kop{font-size:9.5px}
-}
+/* ---- kalender: zelfde opzet als het Lelystad-dashboard ---- */
+.kal-wrap{overflow-x:auto;padding-bottom:4px}
+.kal{display:grid;grid-template-columns:repeat(7,minmax(94px,1fr));gap:4px;min-width:672px}
+.kal-kop{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  text-align:center;padding:2px 0 5px}
+.kal-cel{min-height:82px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--surface-2);
+  padding:5px 6px 7px;display:flex;flex-direction:column;gap:3px;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.kal-cel:hover{border-color:var(--accent);background:var(--surface)}
+.kal-cel.leeg{background:transparent;border-color:transparent;cursor:default;min-height:0}
+.kal-cel.vandaag{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kal-cel.gekozen{background:var(--accent-soft);border-color:var(--accent)}
+.kal-num{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.kal-cel.vandaag .kal-num{color:var(--accent);font-weight:600}
+.kal-chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 7px;
+  border-radius:999px;background:var(--surface);border:1px solid var(--line-soft);white-space:nowrap;overflow:hidden}
+.kal-dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--accent));flex:none;display:inline-block}
+.kal-nacht{margin-left:auto;color:var(--muted);font-size:11px}
+.legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;color:var(--ink-2)}
+.leg{display:inline-flex;align-items:center;gap:6px}
 .sysknop{border-radius:14px;padding:9px 14px;background:rgba(255,255,255,.92);border-color:#e1e7f0;
   box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
 .sysknop:hover{transform:translateY(-1px);box-shadow:var(--shadow-hover)}
@@ -661,30 +656,30 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     <div class="card" style="margin-bottom:18px">
       <div class="card-head"><h2 id="kalKop">Planning</h2>
         <span style="display:flex;gap:6px;align-items:center">
-          <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">‹</button>
-          <button class="btn ghost small" id="kalNu" type="button">Vandaag</button>
-          <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">›</button>
+          <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">←</button>
+          <button class="btn ghost small" id="kalNu" type="button">Deze maand</button>
+          <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">→</button>
+          <span class="segment" id="kalWat" style="margin-left:6px">
+            <button type="button" data-w="alles" aria-pressed="true">Alles</button>
+            <button type="button" data-w="res" aria-pressed="false">Reserveringen</button>
+            <button type="button" data-w="dienst" aria-pressed="false">Diensten</button>
+          </span>
         </span>
       </div>
       <div class="card-body">
-        <div class="kal" id="kalender"></div>
-        <div class="kalleg">
-          <span><i style="background:var(--accent)"></i>Malina Jacuzzi</span>
-          <span><i style="background:var(--brass)"></i>Malina Zwembad</span>
-          <span><i style="background:var(--ok)"></i>Suite Angie Almere</span>
-          <span><i style="background:var(--muted)"></i>overig</span>
-        </div>
+        <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
+        <div class="legend" id="kalLegend"></div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
         <tbody id="kalLijst"></tbody>
       </table></div>
       <div class="card-foot"><span id="kalFoot"></span>
-        <button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button></div>
+        <span><button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button>
+        <a class="btn ghost small" id="kalPlanning" href="dashboard.html" target="_blank" rel="noopener"
+           style="text-decoration:none">Personeelsplanning openen</a></span></div>
     </div>
-    <div class="tegels" id="tegels"></div>
-
-    <div class="card" style="margin-top:20px">
+    <div class="card" style="margin-bottom:18px">
       <div class="card-head"><h2>Wijziging doorgeven</h2>
         <span class="hint">naar de groepsapp of per e-mail</span></div>
       <div class="card-body">
@@ -714,6 +709,9 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           <button class="btn ghost small" id="wjKopie" type="button">Kopiëren</button></span>
         <button class="btn ghost small" id="wjGroep" type="button">Groepslink instellen</button>
       </div>
+
+    <div class="tegels" id="tegels"></div>
+
     </div>
     <div class="two-col" style="margin-top:20px">
       <div class="card">
@@ -3261,7 +3259,15 @@ wjTekstMaken();
 const RES = [];
 const KAL_KLEUR = {'Malina Jacuzzi':'var(--accent)', 'Malina Zwembad':'var(--brass)',
                    'Suite Angie Almere':'var(--ok)'};
-let kalMaand = null, kalDag = '';
+let kalMaand = null, kalDag = '', kalWat = 'alles';
+/* de diensten uit het personeelsdashboard — zelfde Supabase-project, tabel 'planning' */
+const DIENSTEN = [];
+async function laadDiensten(){
+  try{
+    const rijen = await api('planning?select=*&order=datum.asc&limit=4000') || [];
+    DIENSTEN.length = 0; rijen.forEach(r=>DIENSTEN.push(r));
+  }catch(e){}
+}
 const kalSleutel = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 function kalStart(){ if(!kalMaand){ const d = new Date(); kalMaand = kalSleutel(d); } return kalMaand; }
 function kalSchuif(stap){
@@ -3269,36 +3275,65 @@ function kalSchuif(stap){
   const d = new Date(j, m-1+stap, 1);
   kalMaand = kalSleutel(d); kalDag = ''; renderKalender();
 }
+function kalSoortLabel(d){
+  return d === 'nacht' ? 'Nachtverblijf' : d === 'schoonmaak' ? 'Schoonmaak'
+       : d === 'afwezig' ? 'Niet beschikbaar' : 'Dagverblijf';
+}
+const kalVoornaam = x => String(x||'').split(' ')[0];
+/* kleur per medewerker, in dezelfde volgorde als het personeelsdashboard */
+function kalMwKleur(id){
+  const i = Math.max(0, (S.medewerkers||[]).findIndex(m=>m.id===id));
+  return ['#165dff','#b5842c','#14805e','#c13e50'][i % 4];
+}
 function renderKalender(){
   const rooster = $('#kalender'); if(!rooster) return;
   const maand = kalStart();
   const [j,m] = maand.split('-').map(Number);
-  const eerste = new Date(j, m-1, 1), dagen = new Date(j, m, 0).getDate();
-  const schuif = (eerste.getDay() + 6) % 7;              /* week begint op maandag */
+  const start = (new Date(j, m-1, 1).getDay() + 6) % 7;   /* week begint op maandag */
+  const dagen = new Date(j, m, 0).getDate();
   const vd = vandaag();
 
-  const perDag = {};
-  RES.forEach(r=>{
-    const d = String(r.start||'').slice(0,10); if(!d) return;
-    (perDag[d] = perDag[d] || []).push(r);
+  const resDag = {}, dienstDag = {};
+  if(kalWat !== 'dienst') RES.forEach(r=>{
+    const d = String(r.start||'').slice(0,10); if(d) (resDag[d] = resDag[d] || []).push(r);
+  });
+  if(kalWat !== 'res') DIENSTEN.forEach(r=>{
+    const d = String(r.datum||'').slice(0,10); if(d) (dienstDag[d] = dienstDag[d] || []).push(r);
   });
 
-  let html = ['ma','di','wo','do','vr','za','zo'].map(k=>`<span class="kop">${k}</span>`).join('');
-  for(let i=0;i<schuif;i++) html += '<div class="dag leeg"></div>';
+  let html = ['ma','di','wo','do','vr','za','zo']
+    .map(d=>`<div class="kal-kop">${d}</div>`).join('');
+  for(let i=0;i<start;i++) html += '<div class="kal-cel leeg"></div>';
   for(let dag=1; dag<=dagen; dag++){
-    const datum = maand+'-'+String(dag).padStart(2,'0');
-    const rijen = perDag[datum] || [];
-    const wknd = [0,6].includes(new Date(j, m-1, dag).getDay());
-    html += `<div class="dag${datum===vd?' vandaag':''}${datum===kalDag?' gekozen':''}${wknd?' weekend':''}"
-      data-kaldag="${datum}" title="${rijen.length} aankomst${rijen.length===1?'':'en'}">
-      <span class="nr">${dag}</span>
-      <span class="stip">${rijen.slice(0,8).map(r=>
-        `<i style="background:${KAL_KLEUR[r.locatie]||'var(--muted)'}"></i>`).join('')}</span>
-    </div>`;
+    const iso = maand+'-'+String(dag).padStart(2,'0');
+    const res = resDag[iso] || [], dnst = dienstDag[iso] || [];
+    html += `<button type="button" class="kal-cel${iso===vd?' vandaag':''}${iso===kalDag?' gekozen':''}" data-kaldag="${iso}">` +
+      `<span class="kal-num">${dag}</span>` +
+      res.map(r=>`<span class="kal-chip" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'}"
+          title="${esc((r.locatie||'onbekend')+' · '+(r.naam||'gast'))}">
+          <span class="kal-dot"></span>${esc(kalVoornaam(r.naam) || (r.locatie||'gast').split(' ')[1] || 'gast')}
+          ${r.eind && String(r.eind).slice(0,10) !== iso ? '<span class="kal-nacht" aria-hidden="true">☾</span>' : ''}
+        </span>`).join('') +
+      dnst.map(r=>{
+        const afw = r.dienst === 'afwezig';
+        return `<span class="kal-chip" style="--c:${kalMwKleur(r.medewerker_id)}${afw?';opacity:.85;text-decoration:line-through':''}"
+          title="${esc(mwNaam(r.medewerker_id)+' · '+kalSoortLabel(r.dienst)+(r.notitie?' · '+r.notitie:''))}">
+          <span class="kal-dot"></span>${esc(kalVoornaam(mwNaam(r.medewerker_id)))}
+          ${r.dienst === 'nacht' ? '<span class="kal-nacht" aria-hidden="true">☾</span>' : ''}
+        </span>`;
+      }).join('') + '</button>';
   }
+  const rest = (7 - ((start + dagen) % 7)) % 7;
+  for(let i=0;i<rest;i++) html += '<div class="kal-cel leeg"></div>';
   rooster.innerHTML = html;
-  $('#kalKop').textContent = 'Planning · ' +
-    new Date(j, m-1, 1).toLocaleDateString('nl-NL', {month:'long', year:'numeric'});
+
+  const lbl = new Date(j, m-1, 1).toLocaleDateString('nl-NL', {month:'long', year:'numeric'});
+  $('#kalKop').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+  $('#kalLegend').innerHTML =
+    LOCATIES.map(l=>`<span class="leg"><span class="kal-dot" style="--c:${KAL_KLEUR[l.naam]}"></span>${esc(l.naam)}</span>`).join('') +
+    (S.medewerkers||[]).filter(m=>m.actief!==false).map(m=>
+      `<span class="leg"><span class="kal-dot" style="--c:${kalMwKleur(m.id)}"></span>${esc(m.naam)}</span>`).join('') +
+    '<span class="leg" style="color:var(--muted)">☾ = nacht</span>';
 
   /* de lijst eronder: gekozen dag, anders de hele maand */
   const lijst = RES.filter(r=>{
@@ -3309,22 +3344,31 @@ function renderKalender(){
   $('#kalLijst').innerHTML = lijst.length ? lijst.map(r=>`
     <tr>
       <td class="name">${esc(dmy(String(r.start||'').slice(0,10)))}</td>
-      <td><span class="pill" style="background:${KAL_KLEUR[r.locatie]||'var(--muted)'};color:#fff">${
-        esc(r.locatie||'onbekend')}</span></td>
+      <td><span class="kal-dot" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'};margin-right:7px"></span>${
+        esc(r.locatie||'onbekend')}</td>
       <td>${esc(r.naam || '—')}</td>
       <td>${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</td>
       <td>${esc(r.bron||'')}</td>
     </tr>`).join('')
     : `<tr><td colspan="5"><div class="empty"><strong>Geen reserveringen</strong>${
         kalDag ? 'Op deze dag komt er niemand aan.' : 'In deze maand staat nog niets vanaf vandaag.'}</div></td></tr>`;
-  $('#kalFoot').textContent = kalDag
-    ? lijst.length+' aankomst'+(lijst.length===1?'':'en')+' op '+dmy(kalDag)
-    : lijst.length+' aankomst'+(lijst.length===1?'':'en')+' deze maand';
+
+  const dnstMaand = DIENSTEN.filter(r=>String(r.datum||'').slice(0,7) === maand).length;
+  $('#kalFoot').textContent = (kalDag
+      ? lijst.length+' aankomst'+(lijst.length===1?'':'en')+' op '+dmy(kalDag)
+      : lijst.length+' aankomst'+(lijst.length===1?'':'en')+' deze maand')
+    + ' · ' + dnstMaand + ' dienst'+(dnstMaand===1?'':'en')+' ingepland';
   $('#kalAlles').hidden = !kalDag;
 }
 document.addEventListener('click', e=>{
   const d = e.target.closest('[data-kaldag]'); if(!d) return;
   kalDag = (kalDag === d.dataset.kaldag) ? '' : d.dataset.kaldag;
+  renderKalender();
+});
+$('#kalWat').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  kalWat = b.dataset.w;
+  $$('#kalWat button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
   renderKalender();
 });
 $('#kalVorige').addEventListener('click', ()=>kalSchuif(-1));
@@ -3386,6 +3430,7 @@ async function laadOverzicht(){
   }catch(e){}
   OV.res = n;
   OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
+  await laadDiensten();
   renderLocaties(); renderKalender();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
