@@ -1609,13 +1609,30 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     return uit;
   }
 
+  /* De ingelogde sessie opzoeken. Deze pagina bestaat uit losse scriptblokken
+     die elkaars functies niet kunnen zien, dus dit blok heeft zijn eigen versie. */
+  function sessieToken(){
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > -1) {
+          var v = JSON.parse(localStorage.getItem(k));
+          if (v && v.access_token) {
+            var deel = JSON.parse(atob(v.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+            if (!deel.exp || deel.exp * 1000 > Date.now()) return v.access_token;
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function api(pad, opties){
     opties = opties || {};
     /* Ging eerder met de publieke sleutel. Die mag sinds de beveiligingsronde
-       niets meer lezen, dus dit loopt nu via de ingelogde sessie \u2014 net als
-       de rest van de pagina. */
-    var t0 = token();
-    if (!t0 || t0 === SB_KEY) {
+       niets meer lezen, dus dit loopt nu via de ingelogde sessie. */
+    var t0 = sessieToken();
+    if (!t0) {
       return Promise.reject(new Error("Niet ingelogd \u2014 open eerst het portaal en log in."));
     }
     var kop = {
