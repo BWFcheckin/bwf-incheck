@@ -658,7 +658,8 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 
   <nav class="tabs" id="groeptabs" role="tablist" aria-label="Dashboardonderdelen">
     <button class="tab" role="tab" data-groep="overzicht" aria-selected="true">Overzicht</button>
-    <button class="tab" role="tab" data-groep="werk">Taken &amp; welkomstcalls<span class="badge" id="badge-groep-werk">0</span></button>
+    <button class="tab" role="tab" data-groep="werk">Taken<span class="badge" id="badge-groep-werk">0</span></button>
+    <button class="tab" role="tab" data-groep="calls">Welkomstcalls<span class="badge" id="badge-groep-calls">0</span></button>
     <button class="tab" role="tab" data-groep="reserveringen">Reserveringen &amp; incheck<span class="badge" id="badge-groep-reserveringen">0</span></button>
     <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
     <button class="tab" role="tab" data-groep="bellen">Belscripts &amp; lijsten<span class="badge" id="badge-groep-bellen">0</span></button>
@@ -769,8 +770,25 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 
     <div class="card" style="margin-bottom:18px">
       <div class="card-head"><h2>Welkomstcalls te doen</h2><span class="hint" id="wtHint"></span></div>
+      <div class="card-body" style="padding-bottom:0">
+        <div class="filters" style="margin-bottom:0">
+          <div class="field"><label for="wtLoc">Locatie</label><select id="wtLoc">
+            <option value="">Alle locaties</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
+          <div class="field"><label for="wtStatus">Status</label><select id="wtStatus">
+            <option value="open">Alles wat nog open staat</option>
+            <option value="te bellen">Te bellen</option>
+            <option value="geen gehoor">Geen gehoor</option>
+            <option value="terugbellen">Terugbellen</option>
+            <option value="afgerond">Afgerond</option>
+            <option value="alles">Alles</option></select></div>
+          <div class="field"><label for="wtSpoed">Alleen spoed</label><select id="wtSpoed">
+            <option value="">Nee</option><option value="ja">Ja</option></select></div>
+        </div>
+      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Gast</th><th>Locatie</th><th>Aankomst</th><th>Bellen vóór</th><th>Telefoon</th><th class="num"></th></tr></thead>
+        <thead><tr><th>Gast</th><th>Locatie</th><th>Aankomst</th><th>Bellen vóór</th><th>Telefoon</th><th>Status</th><th class="num"></th></tr></thead>
         <tbody id="wtLijst"></tbody>
       </table></div>
     </div>
@@ -1908,7 +1926,8 @@ async function start(){
    blijven werken. */
 const GROEPEN = {
   overzicht:     ['start'],
-  werk:          ['taken', 'welkomstcall'],
+  werk:          ['taken'],
+  calls:         ['welkomstcall'],
   reserveringen: ['klanten'],          /* reserveringen én incheckformulieren samen */
   klantbeheer:   ['klantbeheer'],
   bellen:        ['bellen'],
@@ -3311,7 +3330,8 @@ function badges(){
   zet('overdracht', S.overdracht.filter(o=>!o.afgehandeld).length);
   /* de tellers op de nieuwe groepsknoppen */
   const groepTeller = {
-    werk: S.taken.filter(t=>t.status!=='klaar').length + (S.calls||[]).filter(c=>c.status!=='afgerond').length,
+    werk: S.taken.filter(t=>t.status!=='klaar').length,
+    calls: (S.calls||[]).filter(c=>c.status!=='afgerond').length,
     reserveringen: RES.length,
     klantbeheer: (S.klanten||[]).length,
     bellen: (S.belitems||[]).filter(b=>!b.gebeld).length,
@@ -3409,7 +3429,7 @@ function inklapKlaar(){
   const paneel = $('#panel-start'); if(!paneel) return;
   const stand = inklapStand();
   /* deze twee staan standaard open, de rest dicht */
-  const standaardOpen = ['Planning', 'De drie locaties'];
+  const standaardOpen = ['Planning', 'De drie locaties', 'Welkomstcalls te doen'];
   paneel.querySelectorAll(':scope > .card, :scope > .two-col > .card').forEach(kaart=>{
     const kop = kaart.querySelector('.card-head'); if(!kop) return;
     const titel = (kop.querySelector('h2') || {}).textContent || '';
@@ -3587,6 +3607,10 @@ function resDetailHtml(r, i){
     <button class="btn small" type="button" data-r${r.eigen?'bewaar':'kbewaar'}="${i}">Wijzigingen opslaan</button>
     ${call ? `<button class="btn ghost small" type="button" data-wcopen="${call.id}">Welkomstcall openen</button>`
            : `<button class="btn ghost small" type="button" data-rcall="${i}">Welkomstcall aanmaken</button>`}
+    <button class="btn ghost small" type="button" data-rstuur="gastform" data-ri="${i}">Incheckformulier sturen</button>
+    <button class="btn ghost small" type="button" data-rstuur="info" data-ri="${i}">Incheckinfo sturen</button>
+    <button class="btn ghost small" type="button" data-rstuur="review" data-ri="${i}">Reviewlink sturen</button>
+    <button class="btn ghost small" type="button" data-rtaak="${i}">Taak aanmaken</button>
     <button class="btn ghost small" type="button" data-rwijzig="${i}">Wijziging doorgeven</button>
     <button class="btn ghost small" type="button" data-rdag="${i}">Toon dag in kalender</button>
     ${form ? '' : `<button class="btn ghost small" type="button" data-rkoppel="${i}">Formulier koppelen</button>`}
@@ -3706,6 +3730,32 @@ document.addEventListener('click', async e=>{
     }catch(err){ toast('Overnemen lukte niet: ' + err.message); }
     return;
   }
+  /* een van de drie berichten versturen */
+  const vst = e.target.closest('[data-rstuur]');
+  if(vst){
+    const r = KAL_LIJST[Number(vst.dataset.ri)];
+    const b = resBericht(r, vst.dataset.rstuur);
+    toast(resVerstuur(r, b.tekst, b.onderwerp));
+    return;
+  }
+  /* een taak bij deze reservering aanmaken */
+  const tk = e.target.closest('[data-rtaak]');
+  if(tk){
+    const r = KAL_LIJST[Number(tk.dataset.rtaak)];
+    const g = resGegevens(r);
+    const wat = prompt('Wat moet er gebeuren?', 'Voorbereiden verblijf ' + g.naam);
+    if(!wat) return;
+    await maak('taken', {
+      titel: wat,
+      omschrijving: [g.locatie, g.datum ? dmy(g.datum) : '', g.ref ? 'res. ' + g.ref : '',
+        g.telefoon ? 'tel. ' + g.telefoon : ''].filter(Boolean).join(' · '),
+      medewerker_id: IK.id, deadline: wcDeadline(g.datum), prioriteit: 'normaal',
+      status: 'open', bron: 'reservering'
+    });
+    renderTaken(); renderOverzicht(); badges();
+    toast('Taak aangemaakt.');
+    return;
+  }
   const kp = e.target.closest('[data-rkoppel]');
   if(kp){
     const r = KAL_LIJST[Number(kp.dataset.rkoppel)];
@@ -3726,6 +3776,66 @@ document.addEventListener('click', async e=>{
     $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
   }
 });
+
+/* ---------------- VERSTUREN VANUIT EEN RESERVERING ----------------
+   drie berichten: de gastenlink, de reviewlink en de incheckinformatie.
+   De adressen van de review- en informatiepagina stel je één keer in. */
+const LINK_SLEUTELS = {review:'bwf_reviewlink', info:'bwf_incheckinfo'};
+const bewaardeLink = soort => { try{ return localStorage.getItem(LINK_SLEUTELS[soort]) || ''; }catch(e){ return ''; } };
+function vraagLink(soort, wat){
+  const nu = bewaardeLink(soort);
+  const l = prompt('Plak hier de link naar ' + wat + ':', nu || 'https://');
+  if(l === null) return nu;
+  try{ localStorage.setItem(LINK_SLEUTELS[soort], l.trim()); }catch(e){}
+  return l.trim();
+}
+function resGegevens(r){
+  const k = r.kop || koppelingVoor(r) || {};
+  return {
+    naam: k.gast || r.naam || 'gast',
+    telefoon: k.telefoon || (r.ruw||{}).telefoon || '',
+    email: k.email || (r.ruw||{}).email || '',
+    datum: String(r.start||'').slice(0,10),
+    locatie: r.locatie || '',
+    ref: r.ref || k.res_sleutel || ''
+  };
+}
+function resVerstuur(r, tekst, onderwerp){
+  const g = resGegevens(r);
+  if(g.telefoon){
+    const tel = String(g.telefoon).replace(/[^0-9]/g,'').replace(/^0/,'31');
+    window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(tekst), '_blank', 'noopener');
+    return 'WhatsApp is geopend met het bericht klaar.';
+  }
+  if(g.email){
+    window.open(gmailLink(g.email, onderwerp, tekst), '_blank', 'noopener');
+    return 'Gmail is geopend met het bericht klaar.';
+  }
+  navigator.clipboard.writeText(tekst).catch(()=>{});
+  return 'Geen telefoonnummer of e-mailadres bekend — het bericht staat op je klembord.';
+}
+function resBericht(r, soort){
+  const g = resGegevens(r);
+  const aanhef = 'Hallo ' + String(g.naam).split(' ')[0] + ',';
+  if(soort === 'gastform'){
+    const link = gastLink({referentie:g.ref, locatie:g.locatie, datum:g.datum});
+    return {onderwerp:'Je incheckformulier — Bed & Wellness Flevoland',
+      tekst:[aanhef,'','Wat leuk dat je bij ons komt' + (g.datum ? ' op ' + dmy(g.datum) : '') + '.',
+        'Wil je alvast je gegevens invullen? Dat kan hier:', link, '',
+        'Dan is het inchecken zo geregeld.','','Hartelijke groet, Bed & Wellness Flevoland'].join('\n')};
+  }
+  if(soort === 'review'){
+    const link = bewaardeLink('review') || vraagLink('review', 'de reviewpagina');
+    return {onderwerp:'Hoe was je verblijf?',
+      tekst:[aanhef,'','Bedankt voor je verblijf bij ons. We horen graag wat je ervan vond —',
+        'een korte review helpt ons enorm:', link, '','Hartelijke groet, Bed & Wellness Flevoland'].join('\n')};
+  }
+  const link = bewaardeLink('info') || vraagLink('info', 'de incheckinformatie (pdf, afbeelding of pagina)');
+  return {onderwerp:'De incheckinformatie voor je verblijf',
+    tekst:[aanhef,'','Hierbij de informatie over het inchecken' +
+      (g.locatie ? ' bij ' + g.locatie : '') + (g.datum ? ' op ' + dmy(g.datum) : '') + ':', link, '',
+      'Kom je er niet uit, laat het gerust weten.','','Hartelijke groet, Bed & Wellness Flevoland'].join('\n')};
+}
 
 /* Boekingen uit res_koppeling die bij deze reservering zouden kunnen horen:
    die van rond de aankomstdatum eerst, daarna de rest. */
@@ -3865,7 +3975,13 @@ async function wcAutoAanmaken(){
 /* ---------------- WELKOMSTCALLS TE DOEN (op de overzichtspagina) ---------------- */
 function renderWcTeDoen(){
   const doel = $('#wtLijst'); if(!doel) return;
-  const open = (S.calls||[]).filter(c=>c.status !== 'afgerond')
+  const fLoc   = ($('#wtLoc')   ||{}).value || '';
+  const fStat  = ($('#wtStatus')||{}).value || 'open';
+  const fSpoed = ($('#wtSpoed') ||{}).value || '';
+  const open = (S.calls||[])
+    .filter(c=> fStat === 'alles' ? true : fStat === 'open' ? c.status !== 'afgerond' : (c.status||'te bellen') === fStat)
+    .filter(c=> !fLoc || c.locatie === fLoc)
+    .filter(c=> !fSpoed || wcSpoed(c.datum))
     .sort((a,b)=>{
       const sa = wcSpoed(a.datum), sb = wcSpoed(b.datum);
       if(sa !== sb) return sa ? -1 : 1;                        /* spoed bovenaan */
@@ -3883,12 +3999,26 @@ function renderWcTeDoen(){
       <td>${esc(c.datum ? dmy(c.datum) : '—')}${wcSpoed(c.datum)?' <span class="pill crit">spoed</span>':''}</td>
       <td>${dl?`<span class="pill ${laat?'crit':'neutral'}">${esc(dmy(dl))}</span>`:'—'}</td>
       <td>${c.telefoon?`<a href="tel:${esc(c.telefoon)}">${esc(c.telefoon)}</a>`:'—'}</td>
-      <td class="num"><button class="btn ghost small" type="button" data-wcopen="${c.id}">Openen</button></td>
+      <td><select data-wcstatus="${c.id}" style="min-height:34px;padding:4px 8px">
+        ${['te bellen','geen gehoor','terugbellen','afgerond']
+          .map(x=>`<option${(c.status||'te bellen')===x?' selected':''}>${x}</option>`).join('')}
+      </select></td>
+      <td class="num"><button class="btn ghost small" type="button" data-wcopen="${c.id}">Verwerken</button></td>
     </tr>`;}).join('')
-    : `<tr><td colspan="6"><div class="empty"><strong>Niets te bellen</strong>Alle welkomstcalls zijn afgerond.</div></td></tr>`;
+    : `<tr><td colspan="7"><div class="empty"><strong>Niets te bellen</strong>Er staat niets open binnen dit filter.</div></td></tr>`;
   const spoed = open.filter(c=>wcSpoed(c.datum)).length;
   $('#wtHint').textContent = open.length + ' te doen' + (spoed ? ' · ' + spoed + ' spoed' : '');
 }
+['#wtLoc','#wtStatus','#wtSpoed'].forEach(x=>{
+  const el = $(x); if(el) el.addEventListener('change', renderWcTeDoen);
+});
+document.addEventListener('change', async e=>{
+  const sel = e.target.closest('[data-wcstatus]'); if(!sel) return;
+  await wijzig('calls', sel.dataset.wcstatus, {status: sel.value});
+  renderWcTeDoen(); renderCalls(); renderAfgerond(); badges();
+  toast('Status bijgewerkt naar ' + sel.value + '.');
+});
+
 /* de call zelf wordt geladen door de bestaande [data-wcopen]-afhandeling;
    hier springen we alleen naar het juiste tabblad */
 document.addEventListener('click', e=>{
