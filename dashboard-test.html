@@ -886,6 +886,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
     <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad" hidden style="display:none">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
+    <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Vragen &amp; taken</button>
   </nav>
 
@@ -1452,6 +1453,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           </div>
           <div class="field" style="margin-top:12px"><label for="o-tekst">Bericht</label><textarea id="o-tekst" required placeholder="Bijv. bubbelbad suite 2 loopt langzaam leeg, monteur belt maandag terug"></textarea></div>
           <div style="margin-top:12px"><button class="btn" type="submit">Plaatsen</button></div>
+          <div id="odMelding" style="margin-top:12px"></div>
         </form>
       </div>
     </div>
@@ -2528,7 +2530,42 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     mutate(function(){ state.overdracht.unshift(o); });
     document.getElementById("o-tekst").value = "";
     document.getElementById("o-datum").value = today();
+    meldOverdracht(o);
   });
+
+  /* De overdracht staat opgeslagen; hiermee stuur je de ontvanger een berichtje.
+     Versturen gebeurt in je eigen WhatsApp of mailprogramma, zodat je het
+     bericht nog kunt aanpassen voordat het weggaat. */
+  function meldOverdracht(o){
+    var doel = document.getElementById("odMelding");
+    if (!doel) return;
+    var soort = { info:"Informatie", storing:"Storing", defect:"Defect", klacht:"Klacht" }[o.cat] || "Overdracht";
+    var mw = null, i;
+    for (i = 0; i < state.medewerkers.length; i++) {
+      if (state.medewerkers[i].id === o.aan || state.medewerkers[i].naam === o.aan) mw = state.medewerkers[i];
+    }
+    var naam = mw ? mw.naam : (o.aan || "");
+    var bericht = [
+      "Overdracht " + o.locatie + " \u2014 " + soort,
+      "Datum: " + (o.datum || today()),
+      "",
+      o.tekst,
+      "",
+      "Geplaatst door " + (o.auteur || "") + ". Staat ook in het dashboard."
+    ].join("\n");
+    var wa = "https://wa.me/?text=" + encodeURIComponent((naam ? naam + ", " : "") + bericht);
+    var mail = "mailto:" + (mw && mw.email ? encodeURIComponent(mw.email) : "") +
+      "?subject=" + encodeURIComponent("Overdracht " + o.locatie + " \u2014 " + soort) +
+      "&body=" + encodeURIComponent(bericht);
+    doel.innerHTML =
+      '<div class="card" style="margin:0"><div class="card-body" style="display:flex;gap:9px;' +
+      'align-items:center;flex-wrap:wrap"><span class="hint" style="margin-right:auto">' +
+      'Geplaatst. Ontvanger even laten weten?</span>' +
+      '<a class="btn" href="' + wa + '" target="_blank" rel="noopener">Via WhatsApp</a>' +
+      '<a class="btn" href="' + mail + '">Via e-mail' + (mw && mw.email ? "" : " (adres invullen)") + '</a>' +
+      '<button class="btn" type="button" onclick="document.getElementById(\'odMelding\').innerHTML=\'\'">Sluiten</button>' +
+      '</div></div>';
+  }
 
   /* ---------------- inline bewerken ---------------- */
   document.addEventListener("change", function(e){
