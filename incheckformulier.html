@@ -3132,5 +3132,211 @@ if(auth?.access_token){
 </script>
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-shell.js"></script>
+<style id="bwf-incheck-indeling">
+/* ---------- zelfde stijl als het dashboard ---------- */
+:root{
+  --bwf-accent:#165dff; --bwf-accent-zacht:#eaf1ff;
+  --bwf-lijn:#e1e7f0; --bwf-vlak:#ffffff; --bwf-vlak2:#f7f9fc;
+  --bwf-ink:#142033; --bwf-grijs:#738097;
+}
+body{background:#f4f7fb!important}
+.bwf-secties{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.bwf-sec{background:var(--bwf-vlak);border:1px solid var(--bwf-lijn);border-radius:18px;
+  box-shadow:0 1px 2px rgba(20,32,51,.03),0 12px 32px rgba(32,59,96,.07);overflow:hidden}
+.bwf-kop{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;user-select:none;
+  background:linear-gradient(180deg,#fff,#fbfcfe)}
+.bwf-kop .nr{flex:none;width:26px;height:26px;border-radius:8px;background:var(--bwf-accent-zacht);
+  color:var(--bwf-accent);display:grid;place-items:center;font-size:12.5px;font-weight:800}
+.bwf-kop h2{margin:0;font-size:16.5px;font-weight:700;color:var(--bwf-ink);letter-spacing:-.01em}
+.bwf-kop .sub{font-size:12.5px;color:var(--bwf-grijs);margin-left:2px}
+.bwf-kop .pijl{margin-left:auto;color:var(--bwf-grijs);font-size:12px;transition:transform .18s ease}
+.bwf-sec[data-open="0"] .pijl{transform:rotate(-90deg)}
+.bwf-sec[data-open="0"] .bwf-body{display:none}
+.bwf-body{padding:4px 20px 20px}
+.bwf-body .card{border:0!important;box-shadow:none!important;padding:0!important;margin:0 0 18px!important;
+  background:transparent!important;border-radius:0!important}
+.bwf-body .card:last-child{margin-bottom:0!important}
+.bwf-body .card > h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--bwf-grijs);
+  margin:0 0 8px;font-weight:700}
+.bwf-body .card.zonderkop > h2{display:none}
+
+/* keuzeknoppen binnen een sectie */
+.bwf-keuze{display:inline-flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:5px;
+  border:1px solid var(--bwf-lijn);border-radius:12px;background:var(--bwf-vlak2)}
+.bwf-keuze button{border:0;background:transparent;padding:8px 15px;border-radius:9px;font:inherit;
+  font-size:13.5px;font-weight:600;color:var(--bwf-grijs);cursor:pointer}
+.bwf-keuze button[aria-pressed="true"]{background:var(--bwf-accent);color:#fff}
+.bwf-stuk[hidden]{display:none}
+
+.bwf-balk{max-width:1200px;margin:0 auto 14px;display:flex;gap:9px;flex-wrap:wrap}
+.bwf-balk button{border:1px solid var(--bwf-lijn);background:#fff;border-radius:10px;padding:8px 14px;
+  font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--bwf-ink)}
+.bwf-balk button:hover{border-color:var(--bwf-accent);color:var(--bwf-accent)}
+@media(max-width:620px){
+  .bwf-kop{padding:14px 15px}
+  .bwf-body{padding:2px 15px 16px}
+  .bwf-kop h2{font-size:15px}
+}
+</style>
+
+<script id="bwf-incheck-indeling-js">
+/* =========================================================
+   Het incheckformulier opnieuw indelen: chronologisch,
+   alles ingeklapt, in dezelfde stijl als het dashboard.
+   De formulieren zelf blijven ongewijzigd.
+   ========================================================= */
+(function(){
+  var STAND = "bwf-incheck-open";
+
+  function opstarten(){
+    var kaarten = Array.prototype.slice.call(document.querySelectorAll(".card"));
+    if(!kaarten.length || document.querySelector(".bwf-secties")) return;
+
+    function kop(c){ var h = c.querySelector("h2"); return h ? h.textContent.replace(/\s+/g," ").trim() : ""; }
+    function nr(n){
+      for(var i=0;i<kaarten.length;i++){
+        var t = kop(kaarten[i]);
+        if(t.indexOf(n + " ") === 0 || t.indexOf(n + "\u00b7") === 0 ||
+           new RegExp("^" + n + "\\s*[·.\u00b7]").test(t)) return kaarten[i];
+      }
+      return null;
+    }
+    function opTekst(zoek){
+      for(var i=0;i<kaarten.length;i++) if(kop(kaarten[i]).toLowerCase().indexOf(zoek) > -1) return kaarten[i];
+      return null;
+    }
+
+    var K = {
+      koppel:   nr("1"), aanmeld: nr("2"), concept: nr("3"), gastform: nr("4"),
+      boeking:  nr("5"), tijden:  nr("6"), arr:     nr("7"), vooraf:   nr("8"),
+      besteld:  nr("9"), afreken: nr("10"), opslaan: nr("11"),
+      titel:    opTekst("incheckformulier") , definitief: opTekst("definitieve")
+    };
+    if(K.titel === K.koppel) K.titel = null;
+
+    /* het veld Locatiemanager hoort bij stap 1 */
+    var mgr = document.getElementById("c_manager");
+    var mgrVak = mgr ? mgr.closest("div") : null;
+    var raster = K.koppel ? K.koppel.querySelector(".formgrid3") : null;
+    if(mgrVak && raster) raster.appendChild(mgrVak);
+
+    var houder = document.createElement("div");
+    houder.className = "bwf-secties";
+    (K.koppel || kaarten[0]).parentNode.insertBefore(houder, K.koppel || kaarten[0]);
+
+    function sectie(nummer, titel, sub, delen, open){
+      delen = delen.filter(Boolean);
+      if(!delen.length) return null;
+      var s = document.createElement("section");
+      s.className = "bwf-sec";
+      s.setAttribute("data-titel", titel);
+      s.setAttribute("data-open", open ? "1" : "0");
+      s.innerHTML = '<div class="bwf-kop" role="button" tabindex="0">' +
+        '<span class="nr">' + nummer + "</span>" +
+        "<h2>" + titel + "</h2>" +
+        (sub ? '<span class="sub">' + sub + "</span>" : "") +
+        '<span class="pijl">\u25BC</span></div><div class="bwf-body"></div>';
+      var body = s.querySelector(".bwf-body");
+      delen.forEach(function(c, i){
+        if(delen.length === 1) c.classList.add("zonderkop");
+        body.appendChild(c);
+      });
+      houder.appendChild(s);
+      return s;
+    }
+
+    /* ---- chronologische volgorde ---- */
+    sectie(1, "Reservering koppelen", "en wie er op locatie staat", [K.koppel], true);
+    sectie(2, "Boekingsgegevens", "datum, tijden, personen en wat vooraf geboekt is",
+      [K.boeking, K.vooraf, K.arr], true);
+    sectie(3, "Op locatie bijgeboekt", "extra's, bestellingen en aangepaste tijden",
+      [K.tijden, K.besteld], false);
+    sectie(4, "Eindafrekening", "totaal, betaald en betaalwijze", [K.afreken], false);
+    sectie(5, "Opslaan &amp; versturen", "", [K.opslaan], false);
+
+    /* 2, 3 en 4 samen onder \u00e9\u00e9n noemer, met knoppen ertussen */
+    var gasten = sectie(6, "Gasten &amp; klaargezette formulieren",
+      "aanmeldingen, concepten en het gastformulier",
+      [K.aanmeld, K.concept, K.gastform], false);
+    if(gasten){
+      var body = gasten.querySelector(".bwf-body");
+      var stukken = [
+        { el:K.aanmeld,  naam:"Aanmeldingen van gasten" },
+        { el:K.concept,  naam:"Klaargezette formulieren" },
+        { el:K.gastform, naam:"Formulier van de gast" }
+      ].filter(function(x){ return x.el; });
+      var keuze = document.createElement("div");
+      keuze.className = "bwf-keuze";
+      keuze.innerHTML = stukken.map(function(x, i){
+        return '<button type="button" data-stuk="' + i + '" aria-pressed="' + (i === 0) + '">' + x.naam + "</button>";
+      }).join("");
+      body.insertBefore(keuze, body.firstChild);
+      stukken.forEach(function(x, i){ x.el.classList.add("bwf-stuk", "zonderkop"); x.el.hidden = i !== 0; });
+      keuze.addEventListener("click", function(e){
+        var b = e.target.closest("[data-stuk]"); if(!b) return;
+        var k = +b.getAttribute("data-stuk");
+        stukken.forEach(function(x, i){ x.el.hidden = i !== k; });
+        keuze.querySelectorAll("[data-stuk]").forEach(function(x){
+          x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      });
+    }
+
+    sectie(7, "Definitieve incheckformulieren", "terugzoeken, openen en afronden", [K.definitief], false);
+
+    /* ---- open of dicht onthouden ---- */
+    var stand = {};
+    try { stand = JSON.parse(localStorage.getItem(STAND) || "{}") || {}; } catch(e){}
+    houder.querySelectorAll(".bwf-sec").forEach(function(s){
+      var t = s.getAttribute("data-titel");
+      if(stand.hasOwnProperty(t)) s.setAttribute("data-open", stand[t] ? "1" : "0");
+    });
+    function wissel(s){
+      var open = s.getAttribute("data-open") !== "1";
+      s.setAttribute("data-open", open ? "1" : "0");
+      stand[s.getAttribute("data-titel")] = open;
+      try { localStorage.setItem(STAND, JSON.stringify(stand)); } catch(e){}
+    }
+    houder.addEventListener("click", function(e){
+      if(e.target.closest(".bwf-body")) return;
+      var k = e.target.closest(".bwf-kop"); if(k) wissel(k.parentElement);
+    });
+    houder.addEventListener("keydown", function(e){
+      if(e.key !== "Enter" && e.key !== " ") return;
+      var k = e.target.closest(".bwf-kop");
+      if(k){ e.preventDefault(); wissel(k.parentElement); }
+    });
+
+    /* ---- balk met alles open of dicht ---- */
+    var balk = document.createElement("div");
+    balk.className = "bwf-balk";
+    balk.innerHTML = '<button type="button" id="bwfAllesOpen">Alles uitklappen</button>';
+    houder.parentNode.insertBefore(balk, houder);
+    document.getElementById("bwfAllesOpen").addEventListener("click", function(){
+      var dicht = houder.querySelectorAll('.bwf-sec[data-open="0"]').length;
+      var open = dicht > 0;
+      houder.querySelectorAll(".bwf-sec").forEach(function(s){
+        s.setAttribute("data-open", open ? "1" : "0");
+        stand[s.getAttribute("data-titel")] = open;
+      });
+      try { localStorage.setItem(STAND, JSON.stringify(stand)); } catch(e){}
+      this.textContent = open ? "Alles inklappen" : "Alles uitklappen";
+    });
+
+    /* een sectie vanzelf openen als er binnenin iets gebeurt */
+    window.bwfOpenSectie = function(titel){
+      houder.querySelectorAll(".bwf-sec").forEach(function(s){
+        if((s.getAttribute("data-titel")||"").toLowerCase().indexOf(String(titel).toLowerCase()) > -1){
+          s.setAttribute("data-open", "1");
+          s.scrollIntoView({ behavior:"smooth", block:"start" });
+        }
+      });
+    };
+  }
+
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(opstarten, 60); });
+  else setTimeout(opstarten, 60);
+})();
+</script>
+
 </body>
 </html>
