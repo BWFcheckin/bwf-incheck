@@ -1004,8 +1004,8 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 
             <div class="wcbijlage" style="margin-bottom:16px">
               <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
-                <h3 style="margin:0;font-size:13px">1 &middot; Reservering uit SMG</h3>
-                <span class="hint" id="wcSmgHint">plakken of een bestand inlezen</span>
+                <h3 style="margin:0;font-size:13px">1 &middot; Koppel de reservering</h3>
+                <span class="hint" id="wcSmgHint">kies de boeking of plak hem erin</span>
               </div>
               <div class="grid-form" style="margin-bottom:10px">
                 <div class="field"><label for="wcHaalBron">Gegevens ophalen uit</label><select id="wcHaalBron">
@@ -1036,6 +1036,19 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
                 <button class="btn ghost small" id="wcSmgLeeg" type="button">Veld leegmaken</button>
                 <input type="file" id="wcSmgFile" accept=".xlsx,.xls,.csv,.txt,.pdf,.jpg,.jpeg,.png" style="display:none">
               </div>
+              <div class="grid-form" style="margin-bottom:10px">
+                <div class="field"><label for="wcRef">Reserveringsnummer</label><input type="text" id="wcRef"></div>
+                <div class="field"><label for="wcBron">Bron van de boeking</label><select id="wcBron">
+                  <option value="">— kies —</option>
+                  <option>Privésauna</option><option>Origineel Overnachten</option><option>Booking.com</option>
+                  <option>Website</option><option>Telefonisch</option><option>Anders</option></select></div>
+                <div class="field wide"><label class="check" for="wcVooraf"
+                  style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer">
+                  <input type="checkbox" id="wcVooraf" style="width:16px;height:16px;accent-color:var(--accent)">
+                  <span>Reservering is vooraf volledig betaald</span></label>
+                  <span class="note" id="wcVoorafNote" style="margin-top:4px"></span></div>
+              </div>
+
               <textarea id="wcSmg" style="min-height:130px" placeholder="Plak hier de reservering uit het SMG-dashboard, of lees een Excel-, pdf-, txt- of fotobestand in."></textarea>
               <div class="preview" id="wcSmgVat" style="margin-top:10px"><span class="opbouw">Nog niets ingelezen.</span></div>
             </div>
@@ -1078,18 +1091,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
                 <input type="text" id="wcGeleg" placeholder="verjaardag, jubileum, gewoon ontspannen…"></div>
             </div>
 
-            <h3 style="margin:18px 0 8px;font-size:13px">4 &middot; Boeking</h3>
-            <div class="grid-form">
-              <div class="field"><label for="wcRef">Reserveringsnummer</label><input type="text" id="wcRef"></div>
-              <div class="field"><label for="wcBron">Bron van de boeking</label><select id="wcBron">
-                <option value="">— kies —</option>
-                <option>Privésauna</option><option>Origineel Overnachten</option><option>Booking.com</option>
-                <option>Website</option><option>Telefonisch</option><option>Anders</option></select></div>
-              <div class="field wide"><label class="check" for="wcVooraf"
-                style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer">
-                <input type="checkbox" id="wcVooraf" style="width:16px;height:16px;accent-color:var(--accent)">
-                <span>Reservering is vooraf volledig betaald</span></label>
-                <span class="note" id="wcVoorafNote" style="margin-top:4px"></span></div>
+            <div class="grid-form" style="margin-top:14px">
               <div class="field wide"><label for="wcNotitie">Notitie</label>
                 <input type="text" id="wcNotitie" placeholder="wat is er afgesproken of opgevallen"></div>
             </div>
@@ -3578,9 +3580,11 @@ function resDetailHtml(r, i){
   const vast = `<div class="resdl">
     ${resVeld('Suite', r.locatie || g.locatie)}
     ${resVeld('Aankomst', (String(r.start||'').slice(0,10) ? dmy(String(r.start).slice(0,10)) : '') +
-      (kalTijd(r.start) ? ' om ' + kalTijd(r.start) : (g.checkintijd ? ' om ' + g.checkintijd : '')))}
+      ((kalTijd(r.start) || kalTijd(g.checkintijd) || kalTijd(k.tijd_in))
+        ? ' om ' + (kalTijd(r.start) || kalTijd(g.checkintijd) || kalTijd(k.tijd_in)) : ''))}
     ${resVeld('Vertrek', (r.eind ? dmy(String(r.eind).slice(0,10)) : '') +
-      (kalTijd(r.eind) ? ' om ' + kalTijd(r.eind) : (g.checkuittijd ? ' om ' + g.checkuittijd : '')))}
+      ((kalTijd(r.eind) || kalTijd(g.checkuittijd) || kalTijd(k.tijd_uit))
+        ? ' om ' + (kalTijd(r.eind) || kalTijd(g.checkuittijd) || kalTijd(k.tijd_uit)) : ''))}
     ${resVeld('Verblijf', kalNacht(r) ? 'Overnachting' : 'Dagverblijf')}
     ${resVeld('Reserveringsnummer', r.ref)}
     ${resVeld('Geboekt via', r.bron)}
@@ -3652,11 +3656,13 @@ function resDetailHtml(r, i){
     <span class="note" data-rnote=""></span>` : bewerkenExtern;
   const acties = `<div class="resacties">
     <button class="btn small" type="button" data-r${r.eigen?'bewaar':'kbewaar'}="${i}">Wijzigingen opslaan</button>
-    ${call ? `<button class="btn ghost small" type="button" data-wcopen="${call.id}">Welkomstcall openen</button>`
+    ${call ? `<button class="btn ghost small" type="button" data-wcopen="${call.id}" data-wcvul="${i}">Welkomstcall openen</button>`
            : `<button class="btn ghost small" type="button" data-rcall="${i}">Welkomstcall aanmaken</button>`}
     <button class="btn ghost small" type="button" data-rstuur="gastform" data-ri="${i}">Incheckformulier sturen</button>
     <button class="btn ghost small" type="button" data-rstuur="info" data-ri="${i}">Incheckinfo sturen</button>
     <button class="btn ghost small" type="button" data-rstuur="review" data-ri="${i}">Reviewlink sturen</button>
+    <button class="btn ghost small" type="button" data-rklant="${i}">Klant aanmaken</button>
+    <button class="btn ghost small" type="button" data-rgast="${i}">Naar gastenregister</button>
     <button class="btn ghost small" type="button" data-rtaak="${i}">Taak aanmaken</button>
     <button class="btn ghost small" type="button" data-rwijzig="${i}">Wijziging doorgeven</button>
     <button class="btn ghost small" type="button" data-rdag="${i}">Toon dag in kalender</button>
@@ -3734,11 +3740,69 @@ document.addEventListener('click', async e=>{
   const c = e.target.closest('[data-rcall]');
   if(c){
     const r = KAL_LIJST[Number(c.dataset.rcall)];
-    const datum = String(r.start||'').slice(0,10);
-    await maak('calls', {naam: r.naam || 'gast', locatie: r.locatie || null, datum,
-      datum_eind: r.eind ? String(r.eind).slice(0,10) : null, referentie: r.ref || null,
-      bron: r.bron || null, status:'te bellen', deadline: wcDeadline(datum), automatisch:false});
-    renderCalls(); renderWcTeDoen(); badges(); toast('Welkomstcall aangemaakt.');
+    const g = resGegevens(r);
+    const k = r.kop || koppelingVoor(r) || {};
+    const stuk = String(g.naam||'').trim().split(' ');
+    const rij = await maak('calls', {
+      naam: g.naam || 'gast',
+      voornaam: stuk.length > 1 ? stuk.slice(0,-1).join(' ') : (g.naam||null),
+      achternaam: stuk.length > 1 ? stuk[stuk.length-1] : null,
+      telefoon: g.telefoon || null, email: g.email || null,
+      locatie: r.locatie || null, datum: g.datum,
+      datum_eind: r.eind ? String(r.eind).slice(0,10) : null,
+      referentie: r.ref || k.res_sleutel || resSleutel(r),
+      bron: r.bron || null, personen: k.personen || null,
+      smg_bedrag: k.totaal != null ? k.totaal : null,
+      smg_betaald: (k.totaal != null && k.betaald != null) ? k.betaald >= k.totaal : false,
+      status:'te bellen', deadline: wcDeadline(g.datum), automatisch:false
+    });
+    renderCalls(); renderWcTeDoen(); badges();
+    const nieuw = Array.isArray(rij) ? rij[0] : rij;
+    if(nieuw && nieuw.id){
+      /* meteen openen in het belscript, met alle gegevens erin */
+      const knop = document.createElement('button');
+      knop.dataset.wcopen = nieuw.id; knop.style.display = 'none';
+      document.body.appendChild(knop); knop.click(); knop.remove();
+    }
+    toast('Welkomstcall aangemaakt en geopend.');
+    return;
+  }
+  /* van deze reservering een klant maken */
+  const kl = e.target.closest('[data-rklant]');
+  if(kl){
+    const r = KAL_LIJST[Number(kl.dataset.rklant)];
+    const g = resGegevens(r);
+    const stuk = String(g.naam||'').trim().split(' ');
+    const bestaat = S.klanten.find(x=>
+      (g.telefoon && x.telefoon === g.telefoon) || (g.email && x.email === g.email));
+    if(bestaat){ toast('Deze klant staat al in het bestand: ' + (bestaat.naam || g.naam)); return; }
+    await maak('klanten', {
+      naam: g.naam || null,
+      voornaam: stuk.length > 1 ? stuk.slice(0,-1).join(' ') : (g.naam||null),
+      achternaam: stuk.length > 1 ? stuk[stuk.length-1] : null,
+      telefoon: g.telefoon || null, email: g.email || null, locatie: r.locatie || null
+    });
+    vulKlantKeuze(); toast('Klant toegevoegd aan het bestand.');
+    return;
+  }
+  /* in het gastenregister zetten voor het nachtregister en de toeristenbelasting */
+  const gr = e.target.closest('[data-rgast]');
+  if(gr){
+    const r = KAL_LIJST[Number(gr.dataset.rgast)];
+    const g = resGegevens(r);
+    const k = r.kop || koppelingVoor(r) || {};
+    if(!kalNacht(r)){ toast('Dit is een dagverblijf — dat hoort niet in het nachtregister.'); return; }
+    const pers = Number(k.personen) || Number(prompt('Aantal volwassenen?', '2')) || 0;
+    await maak('gasten', {
+      locatie: r.locatie || null,
+      aankomst: g.datum, vertrek: r.eind ? String(r.eind).slice(0,10) : null,
+      volwassenen: pers, kinderen: 0,
+      omzet: k.totaal != null ? Number(k.totaal) : 0,
+      naam: g.naam || null, referentie: g.ref || null, bron: r.bron || null,
+      notitie: 'vanuit de reservering toegevoegd', ingevoerd_door: IK.id
+    });
+    if(typeof renderGasten === 'function') renderGasten();
+    toast('In het gastenregister gezet.');
     return;
   }
   const w = e.target.closest('[data-rwijzig]');
@@ -4299,9 +4363,22 @@ document.addEventListener('change', async e=>{
 /* de call zelf wordt geladen door de bestaande [data-wcopen]-afhandeling;
    hier springen we alleen naar het juiste tabblad */
 document.addEventListener('click', e=>{
-  if(!e.target.closest('[data-wcopen]')) return;
+  const knop = e.target.closest('[data-wcopen]'); if(!knop) return;
   const tab = document.getElementById('tab-welkomstcall');
   if(tab) tab.click();
+  /* kom je vanuit een reservering, vul dan aan wat de call nog niet heeft */
+  if(knop.dataset.wcvul !== undefined){
+    const r = KAL_LIJST[Number(knop.dataset.wcvul)];
+    const g = r ? resGegevens(r) : null;
+    if(g) setTimeout(()=>{
+      if(!$('#wcTel').value  && g.telefoon) $('#wcTel').value  = g.telefoon;
+      if(!$('#wcMail').value && g.email)    $('#wcMail').value = g.email;
+      if($('#wcRef') && !$('#wcRef').value && g.ref) $('#wcRef').value = g.ref;
+      if(!$('#wcDatum').value && g.datum)   $('#wcDatum').value = g.datum;
+      if($('#wcLoc') && !$('#wcLoc').value && r.locatie) $('#wcLoc').value = r.locatie;
+      if(typeof wcVersTekst === 'function') wcVersTekst(true);
+    }, 200);
+  }
   /* naar het belscript met het invoerformulier springen */
   setTimeout(()=>{
     wcSectiesKlaar(); wcOpenBalkToon();
@@ -4598,7 +4675,12 @@ function kalSoortLabel(d){
 const kalVoornaam = x => String(x||'').split(' ')[0];
 /* dezelfde kleur per medewerker als in het personeelsdashboard */
 const kalMwKleur = id => DIENSTKLEUR[id] || '#9A7B4F';
-const kalTijd = w => { const t = String(w||'').slice(11,16); return t && t !== '00:00' ? t : ''; };
+/* HH:MM uit een datum-tijd of uit een los tijdveld halen */
+const kalTijd = w => {
+  const x = String(w||'');
+  let t = x.length > 10 ? x.slice(11,16) : (/^\d{1,2}:\d{2}/.test(x) ? x.slice(0,5) : '');
+  return t && t !== '00:00' ? t : '';
+};
 const kalNacht = r => {
   const a = String(r.start||'').slice(0,10), b = String(r.eind||'').slice(0,10);
   return b && b !== a;
