@@ -670,6 +670,27 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .brand-txt span{display:none}
   .stats{grid-template-columns:1fr}
 }
+
+/* Gmail */
+.gmail-layout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(0,1.6fr);gap:18px}
+.gmail-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.gmail-toolbar .field{flex:1;min-width:210px}
+.gmail-list{display:flex;flex-direction:column;max-height:620px;overflow:auto}
+.gmail-item{border:0;border-bottom:1px solid var(--line-soft);background:transparent;color:inherit;text-align:left;
+  padding:13px 15px;cursor:pointer;font:inherit}
+.gmail-item:last-child{border-bottom:0}.gmail-item:hover,.gmail-item[aria-current="true"]{background:var(--surface-2)}
+.gmail-item.ongelezen{font-weight:600}.gmail-item .gm-van,.gmail-item .gm-regel{display:flex;justify-content:space-between;gap:10px}
+.gmail-item .gm-onderwerp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.gmail-item .gm-snippet{font-size:12.5px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmail-item time{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);font-weight:400;white-space:nowrap}
+.gmail-reader{min-height:420px}.gmail-reader-head{padding:18px;border-bottom:1px solid var(--line-soft)}
+.gmail-reader-head h2{font-family:var(--f-display);font-size:20px;line-height:1.25;margin-bottom:8px}
+.gmail-reader-meta{font-size:12.5px;color:var(--muted)}.gmail-body{padding:20px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
+.gmail-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.gmail-status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.gmail-status.verbonden .dot{background:var(--ok)}
+.gmail-compose{display:grid;gap:12px}.gmail-compose textarea{min-height:210px}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:760px){.gmail-layout{grid-template-columns:1fr}.gmail-list{max-height:360px}.gmail-reader{min-height:300px}}
 </style>
 </head>
 <body>
@@ -721,6 +742,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
     <button class="tab" role="tab" data-groep="bellen">Belscripts &amp; lijsten<span class="badge" id="badge-groep-bellen">0</span></button>
     <button class="tab" role="tab" data-groep="entry">Data entry<span class="badge" id="badge-groep-entry">0</span></button>
+    <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
   </nav>
 
   <div class="sysbalk boven" id="topbalk" aria-label="Reservering opzoeken bij"></div>
@@ -735,6 +757,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     <button class="tab" role="tab" id="tab-werk" data-tab="werk" aria-selected="false" aria-controls="panel-werk">Werk &amp; tarieven<span class="badge" id="badge-werk">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-uploads" data-tab="uploads" aria-selected="false" aria-controls="panel-uploads">Uploads<span class="badge" id="badge-uploads">0</span></button>
+    <button class="tab" role="tab" id="tab-gmail" data-tab="gmail" aria-selected="false" aria-controls="panel-gmail">Gmail</button>
   </nav>
 
   <div id="lokaalBanner" class="banner" hidden><span>&#9888;</span><span><strong>Lokale modus.</strong>
@@ -817,24 +840,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           </select>
         </div>
       </div>
-      <div class="card-body" id="dienstBlok" hidden>
-        <div class="grid-form" style="margin-bottom:14px">
-          <div class="field"><label for="dpDatum">Datum</label><input type="date" id="dpDatum"></div>
-          <div class="field"><label for="dpWie">Medewerker</label><select id="dpWie"></select></div>
-          <div class="field"><label for="dpLoc">Locatie</label><select id="dpLoc">
-            <option>Lelystad Malina</option><option>Almere</option></select></div>
-          <div class="field"><label for="dpSoort">Soort dienst</label><select id="dpSoort">
-            <option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option>
-            <option value="schoonmaak">Alleen schoonmaak</option>
-            <option value="afwezig">Niet beschikbaar</option></select></div>
-          <div class="field wide"><label for="dpNotitie">Notitie</label>
-            <input type="text" id="dpNotitie" placeholder="bijv. incheck 20:00, sushi besteld"></div>
-          <div class="field"><label>&nbsp;</label>
-            <button class="btn" id="dpOpslaan" type="button">Dienst inplannen</button></div>
-        </div>
-        <span class="note" id="dpNote" style="display:block;margin-bottom:12px"></span>
-        <div id="dienstLijst"></div>
-      </div>
+      <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
 
       <div class="reskop" id="resKop">
         <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
@@ -1824,6 +1830,38 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     </div>
   </section>
 
+  <section class="panel" id="panel-gmail" role="tabpanel" aria-labelledby="tab-gmail" hidden>
+    <div class="page-head">
+      <span class="eyebrow">E-mail</span>
+      <h1>Gmail</h1>
+      <p>Lees en verstuur e-mail vanuit het dashboard. Google vraagt apart toestemming voor je mailbox.</p>
+    </div>
+    <div class="card" id="gmailKoppelKaart">
+      <div class="card-head"><h2>Gmail koppelen</h2><span class="gmail-status" id="gmailStatus"><span class="dot"></span><span>Niet verbonden</span></span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field" style="grid-column:span 3"><label for="gmailClientId">Google OAuth-client-ID</label>
+            <input type="text" id="gmailClientId" autocomplete="off" placeholder="1234567890-….apps.googleusercontent.com"></div>
+          <button class="btn" id="gmailKoppel" type="button">Koppelen met Google</button>
+        </div>
+        <p class="note">Maak in Google Cloud een OAuth-client voor een webapp, schakel de Gmail API in en voeg het webadres van dit dashboard toe als toegestane JavaScript-origin. Het client-ID wordt alleen op dit apparaat bewaard.</p>
+      </div>
+    </div>
+    <div id="gmailWerk" hidden>
+      <div class="gmail-toolbar" style="margin:18px 0">
+        <button class="btn" id="gmailNieuw" type="button">Nieuw bericht</button>
+        <button class="btn ghost" id="gmailVervers" type="button">Vernieuwen</button>
+        <div class="field"><label class="sr-only" for="gmailZoek">Zoeken in Gmail</label><input type="text" id="gmailZoek" placeholder="Zoeken in Gmail"></div>
+        <button class="btn ghost" id="gmailZoekBtn" type="button">Zoeken</button>
+        <button class="btn ghost small" id="gmailUit" type="button">Ontkoppelen</button>
+      </div>
+      <div class="gmail-layout">
+        <div class="card"><div class="card-head"><h2>Inbox</h2><span class="hint" id="gmailAantal"></span></div><div class="gmail-list" id="gmailLijst"></div></div>
+        <div class="card gmail-reader" id="gmailLezer"><div class="empty"><strong>Kies een bericht</strong>Selecteer links een e-mail om die hier te lezen.</div></div>
+      </div>
+    </div>
+  </section>
+
   <div class="sysbalk" id="sysbalk" aria-label="Systemen en agenda's"></div>
   <div class="sysbalk" id="webbalk" aria-label="Website en documenten"></div>
 </div>
@@ -2197,7 +2235,8 @@ const GROEPEN = {
   reserveringen: ['klanten'],          /* reserveringen én incheckformulieren samen */
   klantbeheer:   ['klantbeheer'],
   bellen:        ['bellen'],
-  entry:         ['entry']
+  entry:         ['entry'],
+  gmail:         ['gmail']
 };
 /* Klantbeheer krijgt een eigen paneel: de kaarten Nieuwe klant en Klantenbestand
    verhuizen daarheen, de rest (gastformulieren, nachtregister) blijft bij
@@ -3802,8 +3841,6 @@ $('#cfDef').addEventListener('click', ()=> cfLijstToon('definitief'));
    De volledige planning van het team, uitklapbaar onder de kalender. */
 function renderDiensten(){
   const lijst = $('#dienstLijst'); if(!lijst) return;
-  dpVulWie();
-  if($('#dpDatum') && !$('#dpDatum').value) $('#dpDatum').value = vandaag();
   const sel = $('#dienstWie');
   if(sel && sel.options.length <= 1 && TEAM.length){
     sel.innerHTML = '<option value="">Alle medewerkers</option>' +
@@ -3829,60 +3866,9 @@ function renderDiensten(){
       <span class="pill neutral">${esc(kalSoortLabel(d.dienst))}</span>
       ${d.locatie?`<span>${esc(d.locatie)}</span>`:''}
       ${d.notitie?`<em>${esc(d.notitie)}</em>`:''}
-      <button class="icon-btn" type="button" title="Verwijderen" data-dpwis="${d.id}"
-        style="margin-left:auto">✕</button>
     </div>`).join('')
     : '<p class="note" style="margin:0">Geen diensten binnen deze keuze.</p>';
 }
-/* een dienst inplannen — schrijft rechtstreeks naar dezelfde tabel 'planning'
-   die het personeelsdashboard gebruikt, dus het is daar meteen zichtbaar */
-async function planSchrijf(pad, opties){
-  try{ return await api(pad, opties); }
-  catch(e){
-    const r = await fetch(CFG.url.replace(/\/$/,'')+'/rest/v1/'+pad, Object.assign({}, opties, {
-      headers: Object.assign({'Content-Type':'application/json', apikey:PLAN_KEY,
-        Authorization:'Bearer '+PLAN_KEY}, (opties && opties.headers) || {})
-    }));
-    if(!r.ok) throw new Error(await r.text());
-    return r.status === 204 ? null : await r.json().catch(()=>null);
-  }
-}
-function dpVulWie(){
-  const sel = $('#dpWie'); if(!sel || sel.options.length) return;
-  sel.innerHTML = TEAM.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('')
-    || (S.medewerkers||[]).map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
-}
-$('#dpOpslaan').addEventListener('click', async ()=>{
-  const note = $('#dpNote');
-  const datum = $('#dpDatum').value, wie = $('#dpWie').value;
-  if(!datum || !wie){ note.textContent = 'Kies eerst een datum en een medewerker.'; return; }
-  const dubbel = DIENSTEN.some(d=>String(d.datum||'').slice(0,10) === datum &&
-    String(d.medewerker_id) === String(wie));
-  if(dubbel && !confirm('Deze medewerker staat die dag al ingepland. Toch nog een dienst toevoegen?')) return;
-  try{
-    await planSchrijf('planning', {method:'POST', headers:{Prefer:'return=minimal'},
-      body: JSON.stringify({
-        datum, medewerker_id: wie, locatie: $('#dpLoc').value,
-        dienst: $('#dpSoort').value, notitie: $('#dpNotitie').value.trim() || null
-      })});
-    $('#dpNotitie').value = '';
-    note.textContent = 'Ingepland — ook zichtbaar in het personeelsdashboard.';
-    await laadDiensten(); renderDiensten(); renderKalender();
-    toast('Dienst ingepland.');
-  }catch(e){
-    note.textContent = 'Inplannen lukte niet: ' + String(e.message||e).slice(0,140);
-  }
-});
-document.addEventListener('click', async e=>{
-  const w = e.target.closest('[data-dpwis]'); if(!w) return;
-  if(!confirm('Deze dienst verwijderen?')) return;
-  try{
-    await planSchrijf('planning?id=eq.'+encodeURIComponent(w.dataset.dpwis), {method:'DELETE'});
-    await laadDiensten(); renderDiensten(); renderKalender();
-    toast('Dienst verwijderd.');
-  }catch(err){ toast('Verwijderen lukte niet: ' + String(err.message||err).slice(0,80)); }
-});
-
 $('#dienstToggle').addEventListener('click', ()=>{
   const knop = $('#dienstToggle'), blok = $('#dienstBlok');
   const open = knop.getAttribute('aria-expanded') !== 'true';
@@ -7293,6 +7279,111 @@ $('#afExport').addEventListener('click', ()=>{
   csv(rows, 'afgerond-'+afPeriode+'-'+vandaag()+'.csv');
 });
 
+/* ---------------- Gmail ---------------- */
+const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send';
+let gmailToken = '', gmailTokenClient = null, gmailBerichten = [], gmailActief = null;
+
+function gmailB64(s){
+  s = String(s||'').replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4) s += '=';
+  try{ const bytes=Uint8Array.from(atob(s),c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }catch(e){ return ''; }
+}
+function gmailBody(payload){
+  if(!payload) return '';
+  if(payload.mimeType==='text/plain' && payload.body && payload.body.data) return gmailB64(payload.body.data);
+  const delen=payload.parts||[];
+  for(const p of delen){ const t=gmailBody(p); if(t) return t; }
+  if(payload.mimeType==='text/html' && payload.body && payload.body.data) return htmlNaarTekst(gmailB64(payload.body.data));
+  return payload.body && payload.body.data ? gmailB64(payload.body.data) : '';
+}
+function gmailKop(payload, naam){
+  const h=((payload||{}).headers||[]).find(x=>String(x.name).toLowerCase()===naam.toLowerCase());
+  return h ? h.value : '';
+}
+function gmailDatum(v){ const d=new Date(v); return isNaN(d)?'':d.toLocaleString('nl-NL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function gmailToestand(aan, tekst){
+  const s=$('#gmailStatus'); s.classList.toggle('verbonden',!!aan); s.querySelector('span:last-child').textContent=tekst||(aan?'Verbonden':'Niet verbonden');
+  $('#gmailWerk').hidden=!aan; $('#gmailKoppel').textContent=aan?'Opnieuw koppelen':'Koppelen met Google';
+}
+function gmailScript(){
+  if(window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  return new Promise((ok,fout)=>{ const s=document.createElement('script'); s.src='https://accounts.google.com/gsi/client'; s.async=true; s.onload=ok; s.onerror=()=>fout(new Error('Google kon niet worden geladen.')); document.head.appendChild(s); });
+}
+async function gmailApi(pad, opties={}){
+  const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+pad,{...opties,headers:{Authorization:'Bearer '+gmailToken,'Content-Type':'application/json',...(opties.headers||{})}});
+  if(r.status===401){ gmailToken=''; gmailToestand(false,'Sessie verlopen'); throw new Error('Je Google-sessie is verlopen. Koppel Gmail opnieuw.'); }
+  const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error((d.error&&d.error.message)||'Gmail gaf een foutmelding.'); return d;
+}
+async function gmailKoppelen(){
+  const id=$('#gmailClientId').value.trim();
+  if(!/\.apps\.googleusercontent\.com$/.test(id)){ toast('Vul eerst een geldig Google OAuth-client-ID in.'); return; }
+  try{ localStorage.setItem('bwf_gmail_client_id',id); }catch(e){}
+  try{
+    await gmailScript();
+    gmailTokenClient=google.accounts.oauth2.initTokenClient({client_id:id,scope:GMAIL_SCOPE,callback:async r=>{
+      if(r.error){ toast('Google-koppeling is geannuleerd.'); return; }
+      gmailToken=r.access_token; gmailToestand(true,'Verbonden');
+      try{ await gmailLaden(); }catch(e){ toast(e.message); }
+    }});
+    gmailTokenClient.requestAccessToken({prompt:gmailToken?'':'consent'});
+  }catch(e){ toast(e.message||'Gmail koppelen is niet gelukt.'); }
+}
+async function gmailLaden(zoek=''){
+  if(!gmailToken) return;
+  $('#gmailLijst').innerHTML='<div class="empty">Berichten laden…</div>';
+  const q=zoek.trim(); const p=new URLSearchParams({maxResults:'30',labelIds:'INBOX'}); if(q) p.set('q',q);
+  const lijst=await gmailApi('messages?'+p);
+  const ids=(lijst.messages||[]).map(m=>m.id);
+  gmailBerichten=await Promise.all(ids.map(id=>gmailApi('messages/'+id+'?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date')));
+  gmailRenderLijst();
+}
+function gmailRenderLijst(){
+  const el=$('#gmailLijst'); $('#gmailAantal').textContent=gmailBerichten.length+' berichten';
+  const ongelezen=gmailBerichten.filter(m=>(m.labelIds||[]).includes('UNREAD')).length;
+  const badge=$('#badge-groep-gmail'); badge.hidden=!ongelezen; badge.textContent=ongelezen;
+  if(!gmailBerichten.length){ el.innerHTML='<div class="empty"><strong>Geen berichten</strong>Probeer een andere zoekopdracht.</div>'; return; }
+  el.innerHTML=gmailBerichten.map(m=>`<button type="button" class="gmail-item ${(m.labelIds||[]).includes('UNREAD')?'ongelezen':''}" data-gmid="${esc(m.id)}" aria-current="${m.id===gmailActief}">
+    <span class="gm-van"><span>${esc(gmailKop(m.payload,'From')||'Onbekende afzender')}</span><time>${esc(gmailDatum(Number(m.internalDate)))}</time></span>
+    <span class="gm-onderwerp">${esc(gmailKop(m.payload,'Subject')||'(geen onderwerp)')}</span><span class="gm-snippet">${esc(m.snippet||'')}</span></button>`).join('');
+}
+async function gmailOpen(id){
+  gmailActief=id; gmailRenderLijst(); const lezer=$('#gmailLezer'); lezer.innerHTML='<div class="empty">Bericht openen…</div>';
+  try{
+    const m=await gmailApi('messages/'+id+'?format=full');
+    if((m.labelIds||[]).includes('UNREAD')) await gmailApi('messages/'+id+'/modify',{method:'POST',body:JSON.stringify({removeLabelIds:['UNREAD']})});
+    const van=gmailKop(m.payload,'From'), aan=gmailKop(m.payload,'To'), onderwerp=gmailKop(m.payload,'Subject')||'(geen onderwerp)', body=gmailBody(m.payload);
+    lezer.innerHTML=''; const kop=document.createElement('div'); kop.className='gmail-reader-head';
+    const h=document.createElement('h2'); h.textContent=onderwerp; const meta=document.createElement('div'); meta.className='gmail-reader-meta'; meta.textContent='Van: '+van+'\nAan: '+aan+' · '+gmailDatum(Number(m.internalDate));
+    const acties=document.createElement('div'); acties.style.marginTop='12px'; const antwoord=document.createElement('button'); antwoord.className='btn ghost small'; antwoord.type='button'; antwoord.textContent='Beantwoorden'; antwoord.onclick=()=>gmailSchrijven({aan:van.replace(/^.*<([^>]+)>.*$/,'$1'),onderwerp:/^Re:/i.test(onderwerp)?onderwerp:'Re: '+onderwerp,tekst:'\n\n--- Oorspronkelijk bericht ---\n'+body.slice(0,4000)}); acties.appendChild(antwoord); kop.append(h,meta,acties);
+    const inhoud=document.createElement('div'); inhoud.className='gmail-body'; inhoud.textContent=body||'(Dit bericht bevat geen leesbare tekst.)'; lezer.append(kop,inhoud);
+    const item=gmailBerichten.find(x=>x.id===id); if(item) item.labelIds=(item.labelIds||[]).filter(x=>x!=='UNREAD'); gmailRenderLijst();
+  }catch(e){ lezer.innerHTML='<div class="empty"><strong>Bericht kon niet worden geopend</strong>'+esc(e.message)+'</div>'; }
+}
+function gmailRaw(aan,onderwerp,tekst){
+  const enc=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const subj='=?UTF-8?B?'+btoa(unescape(encodeURIComponent(onderwerp)))+'?=';
+  return enc('To: '+aan+'\r\nSubject: '+subj+'\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n'+tekst);
+}
+function gmailSchrijven(v={}){
+  let d=$('#dlgGmailSchrijf'); if(!d){ d=document.createElement('dialog'); d.id='dlgGmailSchrijf'; d.innerHTML=`<form method="dialog"><div class="card-body"><h2>Nieuw bericht</h2><div class="gmail-compose">
+    <div class="field"><label for="gmAan">Aan</label><input type="email" id="gmAan" required></div><div class="field"><label for="gmOnderwerp">Onderwerp</label><input type="text" id="gmOnderwerp"></div>
+    <div class="field"><label for="gmTekst">Bericht</label><textarea id="gmTekst" required></textarea></div></div><div class="dlg-acties"><button class="btn ghost" value="annuleer">Annuleren</button><button class="btn" value="verstuur">Versturen</button></div></div></form>`; document.body.appendChild(d); }
+  $('#gmAan').value=v.aan||''; $('#gmOnderwerp').value=v.onderwerp||''; $('#gmTekst').value=v.tekst||''; d.returnValue=''; d.showModal();
+  d.addEventListener('close',async function h(){ d.removeEventListener('close',h); if(d.returnValue!=='verstuur') return;
+    const aan=$('#gmAan').value.trim(), onderwerp=$('#gmOnderwerp').value.trim(), tekst=$('#gmTekst').value; if(!aan||!tekst){ toast('Vul een ontvanger en bericht in.'); return; }
+    try{ await gmailApi('messages/send',{method:'POST',body:JSON.stringify({raw:gmailRaw(aan,onderwerp,tekst)})}); toast('E-mail verzonden.'); }
+    catch(e){ toast('Versturen mislukt: '+e.message); }
+  });
+}
+function gmailOntkoppelen(){ if(gmailToken&&window.google) google.accounts.oauth2.revoke(gmailToken,()=>{}); gmailToken=''; gmailBerichten=[]; gmailActief=null; gmailToestand(false); $('#gmailLijst').innerHTML=''; }
+$('#gmailKoppel').addEventListener('click',gmailKoppelen);
+$('#gmailVervers').addEventListener('click',()=>gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)));
+$('#gmailZoekBtn').addEventListener('click',()=>gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)));
+$('#gmailZoek').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#gmailZoekBtn').click(); });
+$('#gmailNieuw').addEventListener('click',()=>gmailSchrijven()); $('#gmailUit').addEventListener('click',gmailOntkoppelen);
+$('#gmailLijst').addEventListener('click',e=>{ const b=e.target.closest('[data-gmid]'); if(b) gmailOpen(b.dataset.gmid); });
+try{ $('#gmailClientId').value=localStorage.getItem('bwf_gmail_client_id')||''; }catch(e){}
+
 /* ---------------- instellingen / uitloggen ---------------- */
 function openConfig(){
   $('#cfUrl').value = CFG.url; $('#cfKey').value = CFG.key;
@@ -7554,3 +7645,4 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
+  
