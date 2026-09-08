@@ -652,6 +652,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
       <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
     </div>
+    <div class="stats" id="ovStats" style="margin-bottom:18px"></div>
 
     <div class="card" style="margin-bottom:18px">
       <div class="card-head"><h2 id="kalKop">Planning</h2>
@@ -679,6 +680,31 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         <a class="btn ghost small" id="kalPlanning" href="dashboard.html" target="_blank" rel="noopener"
            style="text-decoration:none">Personeelsplanning openen</a></span></div>
     </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-head"><h2>Reservering zoeken</h2>
+        <span class="hint" id="rzHint">uit de agenda en de eigen reserveringen</span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field"><label for="rzZoek">Zoeken</label>
+            <input type="text" id="rzZoek" placeholder="naam, locatie of datum"></div>
+          <div class="field wide"><label for="rzKeuze">Reservering</label>
+            <select id="rzKeuze" size="1"></select></div>
+        </div>
+        <div id="rzDetail" style="margin-top:14px"></div>
+      </div>
+      <div class="card-foot"><span id="rzFoot"></span>
+        <span><button class="btn ghost small" id="rzNaarDag" type="button">Toon dag in kalender</button>
+          <button class="btn ghost small" id="rzNaarWijziging" type="button">Wijziging doorgeven</button></span></div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-head"><h2>Welkomstcalls te doen</h2><span class="hint" id="wtHint"></span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Gast</th><th>Locatie</th><th>Aankomst</th><th>Telefoon</th><th class="num"></th></tr></thead>
+        <tbody id="wtLijst"></tbody>
+      </table></div>
+    </div>
+
     <div class="card" style="margin-bottom:18px">
       <div class="card-head"><h2>Wijziging doorgeven</h2>
         <span class="hint">naar de groepsapp of per e-mail</span></div>
@@ -710,9 +736,43 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         <button class="btn ghost small" id="wjGroep" type="button">Groepslink instellen</button>
       </div>
 
-    <div class="tegels" id="tegels"></div>
-
     </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-head"><h2>Gesprekslog</h2><span class="hint" id="clHint"></span></div>
+      <div class="card-body">
+        <div class="grid-form">
+          <div class="field"><label for="clWie">Assistent</label><select id="clWie"></select></div>
+          <div class="field"><label for="clSoort">Soort gesprek</label><select id="clSoort">
+            <option value="inkomend">Inkomend telefoontje</option>
+            <option value="uitgaand">Uitgaand gesprek</option>
+            <option value="welkomstcall">Welkomstcall</option>
+            <option value="terugbel">Terugbelverzoek</option></select></div>
+          <div class="field"><label for="clStatus">Status</label><select id="clStatus">
+            <option value="afgehandeld">Afgehandeld</option>
+            <option value="geen gehoor">Geen gehoor</option>
+            <option value="terugbellen">Terugbellen</option>
+            <option value="doorgezet">Doorgezet</option></select></div>
+          <div class="field"><label for="clNaam">Gast of beller</label>
+            <input type="text" id="clNaam" placeholder="naam"></div>
+          <div class="field"><label for="clTel">Telefoon</label>
+            <input type="text" id="clTel" inputmode="tel" placeholder="06…"></div>
+          <div class="field"><label for="clLoc">Locatie</label><select id="clLoc">
+            <option value="">— geen —</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
+          <div class="field wide"><label for="clNotitie">Waar ging het over</label>
+            <input type="text" id="clNotitie" placeholder="kort wat er is besproken of afgesproken"></div>
+        </div>
+        <span class="note" id="clNote"></span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Wanneer</th><th>Assistent</th><th>Soort</th><th>Gast</th><th>Status</th><th>Notitie</th></tr></thead>
+        <tbody id="clLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="clFoot"></span>
+        <button class="btn" id="clOpslaan" type="button">Gesprek vastleggen</button></div>
+    </div>
+
     <div class="two-col" style="margin-top:20px">
       <div class="card">
         <div class="card-head"><h2>Openstaande taken</h2><span class="hint" id="ovTakenHint"></span></div>
@@ -722,14 +782,23 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         </table></div>
       </div>
       <div class="card">
-        <div class="card-head"><h2>Laatste werkzaamheden</h2><span class="hint">bedragen bij Werk &amp; tarieven</span></div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Datum</th><th>Werkzaamheid</th><th class="num">Aantal</th></tr></thead>
-          <tbody id="ovWerk"></tbody>
-        </table></div>
+        <div class="card-head"><h2>Overdracht aanmaken</h2><span class="hint">voor de volgende dienst</span></div>
+        <div class="card-body">
+          <div class="grid-form">
+            <div class="field"><label for="ovOdLoc">Locatie</label><select id="ovOdLoc">
+              <option value="">— alle —</option>
+              <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+              <option>Suite Angie Almere</option></select></div>
+            <div class="field"><label for="ovOdAan">Voor wie</label><select id="ovOdAan"></select></div>
+            <div class="field wide"><label for="ovOdTekst">Bericht</label>
+              <textarea id="ovOdTekst" rows="4" placeholder="wat moet de volgende dienst weten"></textarea></div>
+          </div>
+          <span class="note" id="ovOdNote"></span>
+        </div>
+        <div class="card-foot"><span id="ovOdFoot"></span>
+          <button class="btn" id="ovOdOpslaan" type="button">Op de overdracht zetten</button></div>
       </div>
     </div>
-    <div class="stats" id="ovStats" style="margin-top:18px"></div>
   </section>
 
   <!-- ============ TAKEN ============ -->
@@ -1981,7 +2050,7 @@ function renderOverzicht(){
   $('#ovTakenHint').textContent = open.length+' open';
 
   const laatste = werk.slice(0,7);
-  $('#ovWerk').innerHTML = laatste.length ? laatste.map(w=>`
+  if($('#ovWerk')) $('#ovWerk').innerHTML = laatste.length ? laatste.map(w=>`
     <tr><td>${dmy(w.datum)}</td>
       <td class="name">${esc(w.taak_naam)}<span class="meta">${esc(mwNaam(w.medewerker_id))}${Number(w.uren)?' · '+num(w.uren)+' uur':''}</span></td>
       <td class="num">${num(w.aantal)} ${esc(w.eenheid||'')}</td></tr>`).join('')
@@ -3118,7 +3187,8 @@ function renderAlles(){
   renderSys(); renderLinks(); renderOverzicht(); renderTaken(); renderOverdracht(); renderGasten();
   renderScripts(); renderWerk(); renderKlanten(); renderExtras(); renderCalls(); vulKlantKeuze();
   if(isEigenaar()){ renderTarieven(); renderMw(); }
-  renderDocs(); renderBelKeuze(); renderBel(); renderAfgerond(); badges();
+  renderDocs(); renderBelKeuze(); renderBel(); renderAfgerond();
+  renderWcTeDoen(); renderGesprekken(); renderOvOd(); rzVul(); badges();
 }
 
 
@@ -3186,6 +3256,163 @@ function ovLocTel(locatie, start, eind){
   if(s === vd) rij.vandaag++;
   if(s >= vd && s <= ovDag(7)) rij.week++;
 }
+/* ---------------- RESERVERING ZOEKEN ----------------
+   dezelfde reserveringen als in de kalender, doorzoekbaar in één keuzelijst. */
+function rzVul(){
+  const sel = $('#rzKeuze'); if(!sel) return;
+  const zoek = (($('#rzZoek')||{}).value || '').toLowerCase().trim();
+  const treffer = r => !zoek || [r.naam, r.locatie, r.bron, dmy(String(r.start||'').slice(0,10)),
+    String(r.start||'').slice(0,10)].join(' ').toLowerCase().includes(zoek);
+  const rijen = RES.filter(treffer)
+    .sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
+  const vorige = sel.value;
+  sel.innerHTML = rijen.length
+    ? rijen.map((r,i)=>`<option value="${i}">${esc(dmy(String(r.start||'').slice(0,10)))} · ${
+        esc(r.locatie||'onbekend')} · ${esc(r.naam||'gast')}</option>`).join('')
+    : '<option value="">geen reservering gevonden</option>';
+  RZ.rijen = rijen;
+  if(vorige && rijen[vorige]) sel.value = vorige;
+  $('#rzFoot').textContent = rijen.length + ' van ' + RES.length + ' reserveringen';
+  rzDetail();
+}
+const RZ = {rijen:[]};
+function rzHuidig(){ return RZ.rijen[Number(($('#rzKeuze')||{}).value)] || null; }
+function rzDetail(){
+  const d = $('#rzDetail'); if(!d) return;
+  const r = rzHuidig();
+  if(!r){ d.innerHTML = '<div class="empty" style="padding:12px 0">Kies een reservering om de gegevens te zien.</div>'; return; }
+  const dag = String(r.start||'').slice(0,10);
+  const diensten = DIENSTEN.filter(x=>String(x.datum||'').slice(0,10) === dag);
+  d.innerHTML = `<div class="od" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'}">
+    <div class="odkop">
+      <span class="pill accent">${esc(r.locatie||'onbekend')}</span>
+      <span>${esc(r.naam||'gast')}</span>
+      <span>· aankomst ${esc(dmy(dag))}${r.eind?' tot '+esc(dmy(String(r.eind).slice(0,10))):''}</span>
+      ${r.bron?`<span class="pill neutral">${esc(r.bron)}</span>`:''}
+    </div>
+    <div class="odtekst">${diensten.length
+      ? 'Ingepland die dag: ' + diensten.map(x=>esc(mwNaam(x.medewerker_id))+' ('+esc(kalSoortLabel(x.dienst))+')').join(', ')
+      : 'Er staat die dag nog niemand ingepland — check de personeelsplanning.'}</div></div>`;
+}
+$('#rzZoek').addEventListener('input', rzVul);
+$('#rzKeuze').addEventListener('change', rzDetail);
+$('#rzNaarDag').addEventListener('click', ()=>{
+  const r = rzHuidig(); if(!r) return;
+  const dag = String(r.start||'').slice(0,10);
+  kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
+  $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
+});
+$('#rzNaarWijziging').addEventListener('click', ()=>{
+  const r = rzHuidig(); if(!r) return;
+  $('#wjNaam').value  = r.naam || '';
+  $('#wjLoc').value   = r.locatie || '';
+  $('#wjDatum').value = String(r.start||'').slice(0,10);
+  wjTekstMaken();
+  $('#wjRef').scrollIntoView({behavior:'smooth', block:'center'});
+  $('#wjRef').focus();
+});
+
+/* ---------------- WELKOMSTCALLS TE DOEN (op de overzichtspagina) ---------------- */
+function renderWcTeDoen(){
+  const doel = $('#wtLijst'); if(!doel) return;
+  const open = (S.calls||[]).filter(c=>c.status !== 'afgerond')
+    .sort((a,b)=> String(a.datum||'9999').localeCompare(String(b.datum||'9999')));
+  doel.innerHTML = open.length ? open.map(c=>`
+    <tr>
+      <td class="name">${esc(c.naam||'gast')}<span class="meta">${esc(c.status||'te bellen')}</span></td>
+      <td>${esc(c.locatie||'—')}</td>
+      <td>${esc(c.datum ? dmy(c.datum) : '—')}</td>
+      <td>${c.telefoon?`<a href="tel:${esc(c.telefoon)}">${esc(c.telefoon)}</a>`:'—'}</td>
+      <td class="num"><button class="btn ghost small" type="button" data-wcopen="${c.id}">Openen</button></td>
+    </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty"><strong>Niets te bellen</strong>Alle welkomstcalls zijn afgerond.</div></td></tr>`;
+  $('#wtHint').textContent = open.length + ' te doen';
+}
+/* de call zelf wordt geladen door de bestaande [data-wcopen]-afhandeling;
+   hier springen we alleen naar het juiste tabblad */
+document.addEventListener('click', e=>{
+  if(!e.target.closest('[data-wcopen]')) return;
+  const tab = document.getElementById('tab-welkomstcall');
+  if(tab) tab.click();
+});
+
+/* ---------------- GESPREKSLOG ----------------
+   elk telefoontje kort vastleggen: wie, wat voor gesprek, welke status.
+   Wordt bewaard in de tabel wz_gesprekken; bestaat die nog niet, dan blijft
+   het log leeg en zie je een melding onder het formulier. */
+const GESPREKKEN = [];
+async function laadGesprekken(){
+  try{
+    const rijen = await api('wz_gesprekken?select=*&order=aangemaakt.desc&limit=200');
+    GESPREKKEN.length = 0; (rijen||[]).forEach(r=>GESPREKKEN.push(r));
+    return true;
+  }catch(e){ return false; }
+}
+function renderGesprekken(){
+  const doel = $('#clLijst'); if(!doel) return;
+  const wie = $('#clWie');
+  if(wie && !wie.options.length){
+    wie.innerHTML = (S.medewerkers||[]).filter(m=>m.actief!==false)
+      .map(m=>`<option value="${m.id}"${m.id===IK.id?' selected':''}>${esc(m.naam)}</option>`).join('');
+  }
+  doel.innerHTML = GESPREKKEN.length ? GESPREKKEN.slice(0,25).map(g=>`
+    <tr>
+      <td class="name">${esc(afTijd(g.aangemaakt))}</td>
+      <td>${esc(mwNaam(g.medewerker_id))}</td>
+      <td><span class="pill ${g.soort==='welkomstcall'?'accent':'neutral'}">${esc(g.soort||'')}</span></td>
+      <td>${esc(g.naam||'—')}${g.telefoon?`<span class="meta">${esc(g.telefoon)}</span>`:''}</td>
+      <td><span class="pill ${g.status==='afgehandeld'?'ok':g.status==='terugbellen'?'warn':'neutral'}">${esc(g.status||'')}</span></td>
+      <td>${esc(g.notitie||'')}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty"><strong>Nog geen gesprekken</strong>Leg hierboven het eerste telefoontje vast.</div></td></tr>`;
+  $('#clFoot').textContent = GESPREKKEN.length + ' gesprek' + (GESPREKKEN.length===1?'':'ken') + ' vastgelegd';
+  $('#clHint').textContent = 'per assistent bijhouden';
+}
+$('#clOpslaan').addEventListener('click', async ()=>{
+  const rij = {
+    medewerker_id: $('#clWie').value || IK.id,
+    soort: $('#clSoort').value, status: $('#clStatus').value,
+    naam: $('#clNaam').value.trim() || null, telefoon: $('#clTel').value.trim() || null,
+    locatie: $('#clLoc').value || null, notitie: $('#clNotitie').value.trim() || null,
+    aangemaakt: new Date().toISOString()
+  };
+  if(!rij.naam && !rij.notitie){ $('#clNote').textContent = 'Vul minstens een naam of een notitie in.'; return; }
+  try{
+    await api('wz_gesprekken', {method:'POST', body: JSON.stringify(rij)});
+    ['#clNaam','#clTel','#clNotitie'].forEach(x=>{ if($(x)) $(x).value=''; });
+    $('#clNote').textContent = '';
+    await laadGesprekken(); renderGesprekken();
+    toast('Gesprek vastgelegd.');
+  }catch(e){
+    $('#clNote').innerHTML = 'Opslaan lukte niet. Waarschijnlijk bestaat de tabel <code>wz_gesprekken</code> nog niet in Supabase — ' +
+      'maak die eerst aan met de kolommen medewerker_id, soort, status, naam, telefoon, locatie, notitie en aangemaakt.';
+  }
+});
+
+/* ---------------- OVERDRACHT VANAF DE OVERZICHTSPAGINA ---------------- */
+function renderOvOd(){
+  const aan = $('#ovOdAan'); if(!aan) return;
+  if(!aan.options.length){
+    aan.innerHTML = '<option value="">Iedereen</option>' +
+      (S.medewerkers||[]).filter(m=>m.actief!==false)
+        .map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
+  }
+  const open = (S.overdracht||[]).filter(o=>!o.afgehandeld).length;
+  $('#ovOdFoot').textContent = open + ' punt' + (open===1?'':'en') + ' openstaand';
+}
+$('#ovOdOpslaan').addEventListener('click', async ()=>{
+  const tekst = $('#ovOdTekst').value.trim();
+  if(!tekst){ $('#ovOdNote').textContent = 'Schrijf eerst een bericht.'; return; }
+  await maak('overdracht', {
+    van_id: IK.id, aan_id: $('#ovOdAan').value || null,
+    locatie: $('#ovOdLoc').value || '', soort: 'algemeen',
+    tekst, afgehandeld:false
+  });
+  $('#ovOdTekst').value = ''; $('#ovOdNote').textContent = '';
+  renderOverdracht(); renderOvOd(); badges();
+  toast('Op de overdracht gezet.');
+});
+
 /* ---------------- WIJZIGING DOORGEVEN ----------------
    standaardtekst voor de groepsapp: wat er moet wijzigen, onder welke
    voorwaarden, met het verzoek het aan te passen en aan de gast te bevestigen.
@@ -3430,8 +3657,8 @@ async function laadOverzicht(){
   }catch(e){}
   OV.res = n;
   OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
-  await laadDiensten();
-  renderLocaties(); renderKalender();
+  await laadDiensten(); await laadGesprekken();
+  renderLocaties(); renderKalender(); rzVul(); renderGesprekken();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
   const g = await ovProbeer(['gast_aanmeldingen?select=*&limit=1000', 'checkins?select=*&limit=1000']);
