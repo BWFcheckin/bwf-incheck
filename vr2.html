@@ -913,9 +913,10 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
           <div class="field"><label for="wtStatus">Status</label><select id="wtStatus">
             <option value="open">Alles wat nog open staat</option>
             <option value="te bellen">Te bellen</option>
-            <option value="geen gehoor">Geen gehoor</option>
-            <option value="terugbellen">Terugbellen</option>
-            <option value="afgerond">Afgerond</option>
+            <option value="gebeld">Gebeld</option>
+            <option value="nog een keer proberen">Nog een keer proberen</option>
+            <option value="afgesloten + e-mail gestuurd">Afgesloten + e-mail gestuurd</option>
+            <option value="afgesloten + extra service verkocht">Afgesloten + extra service verkocht</option>
             <option value="alles">Alles</option></select></div>
           <div class="field"><label for="wtSpoed">Alleen spoed</label><select id="wtSpoed">
             <option value="">Nee</option><option value="ja">Ja</option></select></div>
@@ -3578,7 +3579,7 @@ function badges(){
   /* de tellers op de nieuwe groepsknoppen */
   const groepTeller = {
     werk: S.taken.filter(t=>t.status!=='klaar').length,
-    calls: (S.calls||[]).filter(c=>c.status!=='afgerond').length,
+    calls: (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
     reserveringen: RES.length,
     klantbeheer: (S.klanten||[]).length,
     bellen: (S.belitems||[]).filter(b=>!b.gebeld).length,
@@ -4696,14 +4697,25 @@ function kpVulReserveringen(){
     if(naam && rn && (rn.includes(naam) || naam.includes(rn))) return true;
     return !!(datum && rd === datum);
   };
-  const treffers = (g ? RES.filter(past) : []).sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
-  KP.res = treffers.length ? treffers : RES.slice();
-  sel.innerHTML = KP.res.map((r,i)=>`<option value="${i}">${
-    esc(dmy(String(r.start||'').slice(0,10)))} · ${esc(r.locatie||'onbekend')} · ${esc(r.naam||'gast')}${
-    r.ref?' · '+esc(r.ref):''}</option>`).join('') || '<option value="">geen reservering gevonden</option>';
+  /* alle reserveringen blijven kiesbaar; de voorstellen staan bovenaan */
+  const treffers = g ? RES.filter(past) : [];
+  const rest = RES.filter(r=>treffers.indexOf(r) < 0)
+    .sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
+  KP.res = treffers.concat(rest);
+  const regel = r=>`${dmy(String(r.start||'').slice(0,10))} · ${r.locatie||'onbekend'} · ${
+    (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || 'gast'}${r.ref?' · '+r.ref:''}`;
+  sel.innerHTML = KP.res.length
+    ? (treffers.length
+        ? `<optgroup label="Voorstellen">${treffers.map((r,i)=>
+             `<option value="${i}">${esc(regel(r))}</option>`).join('')}</optgroup>` +
+          `<optgroup label="Alle reserveringen">${rest.map((r,i)=>
+             `<option value="${treffers.length + i}">${esc(regel(r))}</option>`).join('')}</optgroup>`
+        : KP.res.map((r,i)=>`<option value="${i}">${esc(regel(r))}</option>`).join(''))
+    : '<option value="">geen reserveringen geladen</option>';
   $('#kpNote').textContent = !g ? 'Er zijn geen formulieren gevonden.'
-    : treffers.length ? treffers.length + ' mogelijke reservering' + (treffers.length===1?'':'en') + ' gevonden.'
-    : 'Geen match gevonden — de hele lijst staat er nu in, kies zelf de juiste.';
+    : treffers.length ? treffers.length + ' voorstel' + (treffers.length===1?'':'len') +
+        ' bovenaan · alle ' + RES.length + ' reserveringen staan eronder.'
+    : 'Geen match gevonden — kies zelf de juiste uit de lijst van ' + RES.length + ' reserveringen.';
 }
 $('#kpForm').addEventListener('change', kpVulReserveringen);
 $('#kpAlleenLos').addEventListener('change', kpVulFormulieren);
@@ -4772,14 +4784,19 @@ async function wcAutoAanmaken(){
   wcAutoBezig = false;
 }
 
-/* ---------------- WELKOMSTCALLS TE DOEN (op de overzichtspagina) ---------------- */
+/* ---------------- WELKOMSTCALLS TE DOEN (op de overzichtspagina) ----------------
+   Per call regel je hier alles: koppelen aan een reservering en aan een ingevuld
+   formulier, klant aanmaken, wie hem verwerkte, wat er is bijgeboekt en de status. */
+const WC_STATUS = ['te bellen','gebeld','nog een keer proberen',
+  'afgesloten + e-mail gestuurd','afgesloten + extra service verkocht'];
+const callAf = c => /^afgesloten|^afgerond/i.test(String(c && c.status || ''));
 function renderWcTeDoen(){
   const doel = $('#wtLijst'); if(!doel) return;
   const fLoc   = ($('#wtLoc')   ||{}).value || '';
   const fStat  = ($('#wtStatus')||{}).value || 'open';
   const fSpoed = ($('#wtSpoed') ||{}).value || '';
   const open = (S.calls||[])
-    .filter(c=> fStat === 'alles' ? true : fStat === 'open' ? c.status !== 'afgerond' : (c.status||'te bellen') === fStat)
+    .filter(c=> fStat === 'alles' ? true : fStat === 'open' ? !callAf(c) : (c.status||'te bellen') === fStat)
     .filter(c=> !fLoc || c.locatie === fLoc)
     .filter(c=> !fSpoed || wcSpoed(c.datum))
     .sort((a,b)=>{
@@ -4800,15 +4817,127 @@ function renderWcTeDoen(){
       <td>${dl?`<span class="pill ${laat?'crit':'neutral'}">${esc(dmy(dl))}</span>`:'—'}</td>
       <td>${c.telefoon?`<a href="tel:${esc(c.telefoon)}">${esc(c.telefoon)}</a>`:'—'}</td>
       <td><select data-wcstatus="${c.id}" style="min-height:34px;padding:4px 8px">
-        ${['te bellen','geen gehoor','terugbellen','afgerond']
-          .map(x=>`<option${(c.status||'te bellen')===x?' selected':''}>${x}</option>`).join('')}
+        ${WC_STATUS.map(x=>`<option${(c.status||'te bellen')===x?' selected':''}>${x}</option>`).join('')}
       </select></td>
-      <td class="num"><button class="btn ghost small" type="button" data-wcopen="${c.id}">Verwerken</button></td>
-    </tr>`;}).join('')
+      <td class="num">
+        <button class="btn ghost small" type="button" data-wcmeer="${c.id}">Meer</button>
+        <button class="btn ghost small" type="button" data-wcopen="${c.id}">Verwerken</button></td>
+    </tr>
+    <tr class="wcdetail" data-wcrij="${c.id}" hidden><td colspan="7"></td></tr>`;}).join('')
     : `<tr><td colspan="7"><div class="empty"><strong>Niets te bellen</strong>Er staat niets open binnen dit filter.</div></td></tr>`;
   const spoed = open.filter(c=>wcSpoed(c.datum)).length;
   $('#wtHint').textContent = open.length + ' te doen' + (spoed ? ' · ' + spoed + ' spoed' : '');
 }
+/* alles wat je bij een call kunt regelen zonder het belscript te openen */
+function wcRijHtml(c){
+  const klant = S.klanten.find(k=>k.id === c.klant_id);
+  const bij = callExtras(c);
+  return `
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">
+    <div class="field"><label>Koppelen aan reservering</label>
+      <select data-wcres="${c.id}">
+        <option value="">— kies een reservering —</option>
+        ${RES.slice(0,150).map((r,i)=>`<option value="${i}"${
+          c.referentie && (String(r.ref) === String(c.referentie) || resSleutel(r) === c.referentie) ? ' selected' : ''
+        }>${esc(dmy(String(r.start||'').slice(0,10)))} · ${esc(r.locatie||'')} · ${
+          esc((r.kop&&r.kop.gast) || r.naam || 'gast')}</option>`).join('')}
+      </select></div>
+
+    <div class="field"><label>Koppelen aan ingevuld formulier</label>
+      <select data-wcform="${c.id}">
+        <option value="">— kies een formulier —</option>
+        ${FORMS.slice(0,150).map((f,i)=>`<option value="${i}">${esc(formNaam(f)||'zonder naam')} · ${
+          esc(formDatum(f) ? dmy(formDatum(f)) : 'geen datum')} · ${esc(f._soort)}</option>`).join('')}
+      </select></div>
+
+    <div class="field"><label>Verwerkt door</label>
+      <select data-wcdoor="${c.id}">
+        <option value="">— kies —</option>
+        ${(S.medewerkers||[]).filter(m=>m.actief!==false).map(m=>
+          `<option value="${m.id}"${c.medewerker_id===m.id?' selected':''}>${esc(m.naam)}</option>`).join('')}
+      </select></div>
+
+    <div class="field"><label>Bijgeboekt</label>
+      <input type="text" value="${esc(bij || '')}" placeholder="nog niets bijgeboekt" readonly></div>
+
+    <div class="field"><label>Bedrag</label>
+      <input type="number" step="0.01" data-wcbedrag="${c.id}"
+        value="${c.totaal != null ? c.totaal : ''}" placeholder="0,00"></div>
+
+    <div class="field"><label>Klant</label>
+      <div style="display:flex;gap:8px;align-items:center;min-height:42px">
+        ${klant ? `<span class="pill ok">${esc(klant.naam || [klant.voornaam,klant.achternaam].filter(Boolean).join(' '))}</span>`
+                : `<button class="btn ghost small" type="button" data-wcklant="${c.id}">Klant aanmaken</button>`}
+      </div></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+    <button class="btn small" type="button" data-wcbewaar="${c.id}">Opslaan</button>
+    <button class="btn ghost small" type="button" data-wcopen="${c.id}">Openen in belscript</button>
+    <span class="note" data-wcnote="${c.id}"></span>
+  </div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-wcmeer]'); if(!b) return;
+  const rij = document.querySelector('tr.wcdetail[data-wcrij="' + b.dataset.wcmeer + '"]');
+  const c = (S.calls||[]).find(x=>x.id === b.dataset.wcmeer);
+  if(!rij || !c) return;
+  const open = rij.hidden;
+  rij.hidden = !open;
+  b.textContent = open ? 'Sluiten' : 'Meer';
+  if(open) rij.firstElementChild.innerHTML = wcRijHtml(c);
+});
+document.addEventListener('click', async e=>{
+  const kn = e.target.closest('[data-wcklant]');
+  if(kn){
+    const c = (S.calls||[]).find(x=>x.id === kn.dataset.wcklant); if(!c) return;
+    const stuk = String(c.naam||'').trim().split(' ');
+    const r = await maak('klanten', {
+      naam: c.naam || null,
+      voornaam: c.voornaam || (stuk.length>1 ? stuk.slice(0,-1).join(' ') : (c.naam||null)),
+      achternaam: c.achternaam || (stuk.length>1 ? stuk[stuk.length-1] : null),
+      telefoon: c.telefoon || null, email: c.email || null, locatie: c.locatie || null
+    });
+    const nieuw = Array.isArray(r) ? r[0] : r;
+    if(nieuw && nieuw.id) await wijzig('calls', c.id, {klant_id: nieuw.id});
+    vulKlantKeuze(); renderWcTeDoen(); toast('Klant aangemaakt en gekoppeld.');
+    return;
+  }
+  const bw = e.target.closest('[data-wcbewaar]');
+  if(bw){
+    const id = bw.dataset.wcbewaar, vak = bw.closest('td');
+    const res  = vak.querySelector('[data-wcres]').value;
+    const frm  = vak.querySelector('[data-wcform]').value;
+    const door = vak.querySelector('[data-wcdoor]').value;
+    const bedrag = vak.querySelector('[data-wcbedrag]').value;
+    const note = vak.querySelector('[data-wcnote]');
+    const wijziging = {};
+    if(door) wijziging.medewerker_id = door;
+    if(bedrag !== '') wijziging.totaal = Number(bedrag);
+    let gekozen = null;
+    if(res !== ''){
+      gekozen = RES[Number(res)];
+      if(gekozen){
+        wijziging.referentie = gekozen.ref || resSleutel(gekozen);
+        wijziging.locatie = gekozen.locatie || null;
+        wijziging.datum = String(gekozen.start||'').slice(0,10) || null;
+      }
+    }
+    try{
+      await wijzig('calls', id, wijziging);
+      if(frm !== '' && gekozen){
+        const f = FORMS[Number(frm)];
+        if(f) await bewaarKoppeling(gekozen, {checkin_id: f.id, gast: formNaam(f) || null});
+      } else if(frm !== '' && note){
+        note.textContent = 'Kies ook een reservering, anders weet ik niet waar het formulier bij hoort.';
+      }
+      if(note && !note.textContent) note.textContent = 'Opgeslagen.';
+      renderWcTeDoen(); renderCalls(); renderAfgerond(); badges();
+      toast('Welkomstcall bijgewerkt.');
+    }catch(err){ if(note) note.textContent = 'Opslaan lukte niet: ' + err.message; }
+    return;
+  }
+});
+
 ['#wtLoc','#wtStatus','#wtSpoed'].forEach(x=>{
   const el = $(x); if(el) el.addEventListener('change', renderWcTeDoen);
 });
@@ -6855,7 +6984,7 @@ function afBinnen(datum){
 }
 function afRegels(){
   const uit = [];
-  (S.calls||[]).filter(c=>c.status === 'afgerond').forEach(c=>{
+  (S.calls||[]).filter(c=>callAf(c)).forEach(c=>{
     const wanneer = c.gebeld_op || c.aangemaakt || null;
     if(afBinnen(wanneer)) uit.push({soort:'welkomstcall', wie:c.medewerker_id,
       titel:'Welkomstcall · '+(c.naam||'gast'), extra:c.locatie||'', wanneer, call:c});
