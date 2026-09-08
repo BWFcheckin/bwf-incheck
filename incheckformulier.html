@@ -2192,7 +2192,52 @@ function neemKoppelOver(){
   toonKoppelVoorbeeld();
   st.className = 'status ok';
   st.textContent = '✓ Overgenomen: ' + x.label + '. Controleer de boekingsgegevens hieronder.';
+  if(bron === 'reservering') zoekGastformulier(d);
 }
+/* Heeft de gast zelf al een gastformulier ingevuld? Zoek dat op naam (en datum)
+   en bied aan om de gegevens over te nemen, zodat je niets dubbel intypt. */
+function naamVan(o){
+  return String((o && (o.naam || o.gast)) ||
+    (((o && o.voornaam) || '') + ' ' + ((o && o.achternaam) || ''))).toLowerCase()
+    .replace(/\s+/g,' ').trim();
+}
+function zoekGastformulier(res){
+  var st = document.getElementById('k_status');
+  var naam = naamVan(res), dag = String(res.checkindatum || res.datum || '').slice(0,10);
+  if(!naam || naam.length < 4 || !aanmeldingen || !aanmeldingen.length) return;
+  var beste = null;
+  for(var i=0;i<aanmeldingen.length;i++){
+    var a = aanmeldingen[i], an = naamVan(a);
+    if(!an) continue;
+    var zelfdeNaam = an === naam || an.indexOf(naam) > -1 || naam.indexOf(an) > -1;
+    if(!zelfdeNaam) continue;
+    var ad = String(a.aankomst || a.checkindatum || '').slice(0,10);
+    if(dag && ad && ad !== dag) continue;      /* zelfde naam maar andere datum: overslaan */
+    beste = a; break;
+  }
+  if(!beste) return;
+  var vraag = document.createElement('div');
+  vraag.className = 'status ok';
+  vraag.style.marginTop = '8px';
+  vraag.innerHTML = 'Er is een gastformulier van <b>' + (beste.voornaam || '') + ' ' +
+    (beste.achternaam || '') + '</b> gevonden. ' +
+    '<button type="button" class="knop klein" id="gfOvernemen" style="margin-left:8px">Gegevens overnemen</button>';
+  if(st && st.parentNode){
+    var oud = document.getElementById('gfVraag');
+    if(oud) oud.remove();
+    vraag.id = 'gfVraag';
+    st.parentNode.insertBefore(vraag, st.nextSibling);
+    document.getElementById('gfOvernemen').addEventListener('click', function(){
+      document.getElementById('k_bron').value = 'aanmelding';
+      vulKoppelKeuze();
+      document.getElementById('k_keuze').value = beste.id;
+      if(typeof toonKoppelVoorbeeld === 'function') toonKoppelVoorbeeld();
+      neemKoppelOver();
+      vraag.remove();
+    });
+  }
+}
+
 function wisKoppeling(){
   gekoppeld = null; resArrangementen = [];
   buildArrangementSelect();
