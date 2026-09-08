@@ -433,6 +433,19 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 .kal-cel{min-height:120px}
 
 /* ---- inklapbare blokken op de overzichtspagina ---- */
+/* ---- secties van het welkomstcallformulier ---- */
+.wcsectie{border:1px solid var(--line);border-radius:var(--r-m);margin-bottom:10px;background:var(--surface)}
+.wcsectie > h3{margin:0;padding:13px 16px;cursor:pointer;user-select:none;font-size:13.5px;
+  display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line-soft)}
+.wcsectie > h3:hover{background:var(--surface-2)}
+.wcsectie > h3::before{content:"›";display:inline-grid;place-items:center;width:20px;height:20px;
+  border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:15px;line-height:1;
+  transform:rotate(90deg);transition:transform .16s ease}
+.wcsectie.dicht > h3::before{transform:rotate(0deg)}
+.wcsectie.dicht > h3{border-bottom:0}
+.wcsectie > .wcinhoud{padding:16px}
+.wcsectie.dicht > .wcinhoud{display:none}
+
 .card.inklap > .card-head{cursor:pointer;user-select:none;padding-right:16px}
 .card.inklap > .card-head:hover{background:var(--surface-2)}
 .card.inklap > .card-head h2{display:flex;align-items:center;gap:9px}
@@ -994,7 +1007,30 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
                 <h3 style="margin:0;font-size:13px">1 &middot; Reservering uit SMG</h3>
                 <span class="hint" id="wcSmgHint">plakken of een bestand inlezen</span>
               </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div class="grid-form" style="margin-bottom:10px">
+                <div class="field"><label for="wcHaalBron">Gegevens ophalen uit</label><select id="wcHaalBron">
+                  <option value="planning">Planning en agenda</option>
+                  <option value="nummer">Reserveringsnummer</option>
+                  <option value="booking">Booking.com</option>
+                  <option value="origineel">Origineel Overnachten</option>
+                  <option value="prive">Privésauna</option>
+                  <option value="eigen">Eigen reserveringen</option>
+                  <option value="plakken">Zelf plakken of inlezen</option></select></div>
+                <div class="field"><label for="wcHaalVan">Vanaf</label><input type="date" id="wcHaalVan"></div>
+                <div class="field"><label for="wcHaalTot">Tot en met</label><input type="date" id="wcHaalTot"></div>
+                <div class="field"><label for="wcHaalZoek">Zoeken</label>
+                  <input type="text" id="wcHaalZoek" placeholder="naam of nummer"></div>
+                <div class="field wide"><label for="wcHaalRes">Reservering</label><select id="wcHaalRes"></select></div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                <button class="btn small" id="wcHaalOver" type="button">Gegevens overnemen</button>
+                <button class="btn ghost small" id="wcHaalWeek" type="button">Komende week</button>
+                <button class="btn ghost small" id="wcHaalMaand" type="button">Komende maand</button>
+                <button class="btn ghost small" id="wcHaalWis" type="button">Filter wissen</button>
+              </div>
+              <span class="note" id="wcHaalNote" style="display:block;margin-bottom:10px"></span>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px" id="wcPlakKnoppen">
                 <button class="btn ghost small" id="wcSmgUpload" type="button">Bestand inlezen</button>
                 <button class="btn small" id="wcSmgLees" type="button">Gegevens overnemen</button>
                 <button class="btn ghost small" id="wcSmgLeeg" type="button">Veld leegmaken</button>
@@ -1004,10 +1040,17 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
               <div class="preview" id="wcSmgVat" style="margin-top:10px"><span class="opbouw">Nog niets ingelezen.</span></div>
             </div>
 
+            <div id="wcOpenBalk" hidden style="margin:0 0 14px"></div>
+
             <h3 style="margin:0 0 8px;font-size:13px">2 &middot; Gast</h3>
             <div class="grid-form">
               <div class="field" style="grid-column:span 2"><label for="wcKlant">Klant uit het bestand</label>
-                <select id="wcKlant"></select></div>
+                <select id="wcKlant"></select>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                  <button class="btn ghost small" id="wcKlantNieuw" type="button">Klant aanmaken van deze gast</button>
+                  <button class="btn ghost small" id="wcKlantZoek" type="button">Zoeken op naam of telefoon</button>
+                </div>
+                <span class="note" id="wcKlantNote"></span></div>
               <div class="field"><label for="wcVoor">Voornaam</label><input type="text" id="wcVoor"></div>
               <div class="field"><label for="wcAchter">Achternaam</label><input type="text" id="wcAchter"></div>
               <div class="field"><label for="wcTel">Telefoon</label><input type="text" id="wcTel" inputmode="tel" placeholder="06…"></div>
@@ -1103,6 +1146,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
               <button class="btn ghost small" id="wcMolliePlak" type="button">Link van klembord plakken</button>
             </div>
             <span class="note" id="wcMollieNote"></span></div>
+          <div class="field"><label for="wcDoor">Afgerond door</label><select id="wcDoor"></select></div>
           <div class="field"><label for="wcStatus">Status</label><select id="wcStatus">
             <option value="te bellen">te bellen</option><option value="gebeld">gebeld</option>
             <option value="geen gehoor">geen gehoor</option><option value="terugbellen">terugbellen</option>
@@ -1196,7 +1240,8 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Laatst afgerond</h2><span class="hint">de twintig meest recente</span></div>
+      <div class="card-head"><h2>Laatst afgerond</h2>
+        <span class="hint">status, wat er is bijgeboekt en de notities</span></div>
       <div class="card-body" id="afRecent"></div>
     </div>
   </section>
@@ -3559,11 +3604,13 @@ function resDetailHtml(r, i){
     ${resVeld('Nationaliteit', fveld(form,['nationaliteit']))}
   </div>` : '');
   const tekst = g.omschrijving || g.opmerkingen || g.titel || '';
-  const call = (S.calls||[]).find(c=>
-    wcSleutel(c.referentie, c.naam, c.datum) === wcSleutel(r.ref, r.naam, r.start));
+  const call = callVoor(r);
   const vlaggen = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     <span class="pill ${call ? (call.status==='afgerond'?'ok':'warn') : 'neutral'}">Welkomstcall: ${
       call ? esc(call.status||'te bellen') : 'nog niet aangemaakt'}</span>
+    ${call && callExtras(call) ? `<span class="pill accent">Bijgeboekt: ${esc(callExtras(call))}</span>` : ''}
+    ${call && call.status==='afgerond' ? `<span class="pill neutral">door ${esc(mwNaam(call.medewerker_id))}</span>` : ''}
+    ${call && call.notitie ? `<span class="pill neutral">notitie: ${esc(call.notitie)}</span>` : ''}
     <span class="pill neutral">${r.eigen ? 'eigen reservering' : 'uit de agenda'}</span>
     <span class="pill ${form ? 'ok' : 'neutral'}">Formulier: ${form ? 'ingevuld' : 'nog niet gekoppeld'}</span>
     <span class="pill ${k.res_sleutel ? 'ok' : 'neutral'}">SMG-gegevens: ${
@@ -3775,6 +3822,236 @@ document.addEventListener('click', async e=>{
     kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
     $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
   }
+});
+
+/* Elk genummerd kopje in het welkomstcallformulier wordt een uitklapbare sectie.
+   De eerste twee staan open, de rest dicht; wat jij openlaat wordt onthouden. */
+const WCSECTIE_SLEUTEL = 'bwf_wc_secties';
+function wcSectieStand(){ try{ return JSON.parse(localStorage.getItem(WCSECTIE_SLEUTEL)||'{}'); }catch(e){ return {}; } }
+function wcSectiesKlaar(){
+  const paneel = document.getElementById('panel-welkomstcall'); if(!paneel) return;
+  /* alleen de genummerde kopjes die los in het formulier staan; sectie 1 zit in
+     een eigen kader met een eigen kop en laten we ongemoeid */
+  const koppen = [...paneel.querySelectorAll('.card-body > h3')]
+    .filter(h=>/^\s*\d+\s*[·.]/.test(h.textContent) && !h.closest('.wcsectie'));
+  if(!koppen.length) return;
+  const stand = wcSectieStand();
+  koppen.forEach((h, i)=>{
+    const naam = h.textContent.trim();
+    const wrap = document.createElement('div');
+    wrap.className = 'wcsectie'; wrap.dataset.wcsectie = naam;
+    const inhoud = document.createElement('div');
+    inhoud.className = 'wcinhoud';
+    h.parentNode.insertBefore(wrap, h);
+    wrap.appendChild(h);
+    let volgend = wrap.nextSibling;
+    while(volgend && !(volgend.nodeType === 1 && (volgend.tagName === 'H3' || volgend.classList.contains('wcsectie')))){
+      const nu = volgend; volgend = volgend.nextSibling; inhoud.appendChild(nu);
+    }
+    wrap.appendChild(inhoud);
+    const open = stand[naam] !== undefined ? stand[naam] : i < 2;
+    wrap.classList.toggle('dicht', !open);
+    h.addEventListener('click', ()=>{
+      const dicht = wrap.classList.toggle('dicht');
+      const st = wcSectieStand(); st[naam] = !dicht;
+      try{ localStorage.setItem(WCSECTIE_SLEUTEL, JSON.stringify(st)); }catch(e){}
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', wcSectiesKlaar);
+setTimeout(wcSectiesKlaar, 0);
+
+/* de keuzelijst met wie de call heeft gedaan */
+function vulWcDoor(gekozen){
+  const sel = $('#wcDoor'); if(!sel) return;
+  const lijst = (S.medewerkers||[]).filter(m=>m.actief!==false);
+  const kies = gekozen || sel.value || (IK ? IK.id : '');
+  sel.innerHTML = lijst.map(m=>`<option value="${m.id}"${m.id===kies?' selected':''}>${esc(m.naam)}</option>`).join('');
+}
+
+/* ---------------- SECTIE 1 · GEGEVENS OPHALEN ----------------
+   Kies waar de reservering vandaan komt, filter op periode of zoek op naam of
+   nummer, en neem de gegevens over in het formulier. */
+const WC_BRONNEN = {
+  planning:  r => true,
+  nummer:    r => !!r.ref,
+  booking:   r => /booking/i.test(r.bron||'') || /booking/i.test(String((r.ruw||{}).titel||'')),
+  origineel: r => /origineel/i.test(r.bron||'') || /origineel/i.test(String((r.ruw||{}).titel||'')),
+  prive:     r => /priv|sauna|smg|agenda/i.test(r.bron||''),
+  eigen:     r => !!r.eigen,
+  plakken:   r => false
+};
+function wcHaalLijst(){
+  const bron  = ($('#wcHaalBron')||{}).value || 'planning';
+  const van   = ($('#wcHaalVan') ||{}).value || '';
+  const tot   = ($('#wcHaalTot') ||{}).value || '';
+  const zoek  = (($('#wcHaalZoek')||{}).value || '').toLowerCase().trim();
+  const test  = WC_BRONNEN[bron] || WC_BRONNEN.planning;
+  return RES.filter(r=>{
+    if(!test(r)) return false;
+    const d = String(r.start||'').slice(0,10);
+    if(van && d < van) return false;
+    if(tot && d > tot) return false;
+    if(zoek){
+      const k = koppelingVoor(r) || {};
+      const tekst = [r.naam, r.ref, r.locatie, r.bron, k.gast, k.telefoon,
+        (r.ruw||{}).titel, (r.ruw||{}).omschrijving].filter(Boolean).join(' ').toLowerCase();
+      if(!tekst.includes(zoek)) return false;
+    }
+    return true;
+  }).sort((a,b)=> String(a.start||'').localeCompare(String(b.start||'')));
+}
+const WCHAAL = {lijst:[]};
+function wcHaalVul(){
+  const sel = $('#wcHaalRes'); if(!sel) return;
+  const plakken = ($('#wcHaalBron')||{}).value === 'plakken';
+  const blok = $('#wcPlakKnoppen'), veld = $('#wcSmg');
+  if(blok) blok.style.display = plakken ? 'flex' : 'none';
+  if(veld) veld.style.display = plakken ? '' : 'none';
+  const lijst = plakken ? [] : wcHaalLijst();
+  WCHAAL.lijst = lijst;
+  sel.innerHTML = lijst.length
+    ? lijst.map((r,i)=>{
+        const k = koppelingVoor(r) || {};
+        return `<option value="${i}">${esc(dmy(String(r.start||'').slice(0,10)))} · ${
+          esc(r.locatie||'onbekend')} · ${esc(k.gast || r.naam || 'gast')}${
+          r.ref ? ' · #' + esc(r.ref) : ''}</option>`;
+      }).join('')
+    : `<option value="">${plakken ? 'plak de reservering hieronder' : 'geen reservering binnen dit filter'}</option>`;
+  $('#wcHaalNote').textContent = plakken
+    ? 'Plak de reservering in het veld hieronder en klik op Gegevens overnemen.'
+    : lijst.length + ' reservering' + (lijst.length===1?'':'en') + ' gevonden.';
+}
+function wcHaalOvernemen(){
+  const r = WCHAAL.lijst[Number(($('#wcHaalRes')||{}).value)];
+  if(!r){ $('#wcHaalNote').textContent = 'Kies eerst een reservering.'; return; }
+  const k = koppelingVoor(r) || {};
+  const naam = String(k.gast || r.naam || '').trim();
+  const stuk = naam.split(' ');
+  $('#wcVoor').value   = stuk.length > 1 ? stuk.slice(0,-1).join(' ') : naam;
+  $('#wcAchter').value = stuk.length > 1 ? stuk[stuk.length-1] : '';
+  if(typeof wcZetNaam === 'function') $('#wcNaam').value = wcVolledigeNaam();
+  if(k.telefoon) $('#wcTel').value  = k.telefoon;
+  if(k.email)    $('#wcMail').value = k.email;
+  if(r.locatie)  $('#wcLoc').value  = r.locatie;
+  $('#wcDatum').value = String(r.start||'').slice(0,10);
+  if(r.eind) $('#wcDatumEind').value = String(r.eind).slice(0,10);
+  if($('#wcPers') && k.personen) $('#wcPers').value = k.personen;
+  if($('#wcRef'))  $('#wcRef').value  = r.ref || k.res_sleutel || '';
+  if($('#wcBron')) $('#wcBron').value = /booking/i.test(r.bron||'') ? 'Booking.com'
+    : /origineel/i.test(r.bron||'') ? 'Origineel Overnachten' : ($('#wcBron').value || '');
+  if(typeof voorafBron === 'function' && voorafBron()) wcZetVooraf(true, true);
+  wcSmgInfo = {extra:null, betaald: k.betaald != null && k.totaal != null ? k.betaald >= k.totaal : null,
+    bedrag: k.totaal != null ? k.totaal : null};
+  if(typeof wcSmgVat === 'function') wcSmgVat();
+  if(typeof wcVerblijfAuto === 'function') wcVerblijfAuto();
+  if(typeof wcHerhaalCheck === 'function') wcHerhaalCheck();
+  if(typeof wcVersTekst === 'function') wcVersTekst(true);
+  $('#wcHaalNote').textContent = 'Gegevens overgenomen — loop ze even na.' +
+    (k.res_sleutel ? ' Bedragen komen van SMG #' + k.res_sleutel + '.' : '');
+  toast('Gegevens overgenomen.');
+}
+function wcHaalPeriode(dagen){
+  const vd = new Date();
+  const tot = new Date(); tot.setDate(tot.getDate() + dagen);
+  $('#wcHaalVan').value = vd.toISOString().slice(0,10);
+  $('#wcHaalTot').value = tot.toISOString().slice(0,10);
+  wcHaalVul();
+}
+['#wcHaalBron','#wcHaalVan','#wcHaalTot'].forEach(x=>{
+  const el = $(x); if(el) el.addEventListener('change', wcHaalVul);
+});
+$('#wcHaalZoek').addEventListener('input', wcHaalVul);
+$('#wcHaalOver').addEventListener('click', wcHaalOvernemen);
+$('#wcHaalWeek').addEventListener('click', ()=>wcHaalPeriode(7));
+$('#wcHaalMaand').addEventListener('click', ()=>wcHaalPeriode(31));
+$('#wcHaalWis').addEventListener('click', ()=>{
+  ['#wcHaalVan','#wcHaalTot','#wcHaalZoek'].forEach(x=>{ if($(x)) $(x).value=''; });
+  wcHaalVul();
+});
+
+/* de welkomstcall die bij een reservering hoort */
+function callVoor(r){
+  const calls = S.calls || [];
+  const sleutel = resSleutel(r);
+  const datum = String(r.start||'').slice(0,10);
+  return calls.find(c=>c.referentie && String(c.referentie) === String(sleutel))
+      || calls.find(c=>r.ref && c.referentie && String(c.referentie) === String(r.ref))
+      || calls.find(c=>wcSleutel(c.referentie, c.naam, c.datum) === wcSleutel(r.ref, r.naam, r.start))
+      || calls.find(c=>String(c.datum||'').slice(0,10) === datum && c.locatie === r.locatie)
+      || null;
+}
+/* wat er tijdens de call is bijgeboekt, kort samengevat */
+function callExtras(c){
+  const regels = (c && c.regels) || [];
+  if(!regels.length) return '';
+  return regels.map(x=>x.naam + (x.aantal > 1 ? ' ' + x.aantal + '×' : '')).join(', ') +
+    (c.totaal ? ' — ' + eur(c.totaal) : '');
+}
+
+/* ---------------- DE GEOPENDE WELKOMSTCALL ----------------
+   Boven het formulier zie je welke call open staat, wie hem heeft gedaan
+   en aan welke klant hij hangt. */
+function wcOpenBalkToon(){
+  const balk = $('#wcOpenBalk'); if(!balk) return;
+  const c = (S.calls||[]).find(x=>x.id === wcHuidig);
+  if(!c){ balk.hidden = true; balk.innerHTML = ''; return; }
+  const klant = S.klanten.find(k=>k.id === c.klant_id);
+  const af = c.status === 'afgerond';
+  balk.hidden = false;
+  balk.innerHTML = `<div class="od" style="--c:${af ? 'var(--ok)' : 'var(--brass)'}">
+    <div class="odkop">
+      <span class="pill ${af ? 'ok' : 'warn'}">${af ? 'Afgerond' : esc(c.status || 'te bellen')}</span>
+      <span>${esc(c.naam || 'gast')}</span>
+      ${c.locatie?`<span class="pill neutral">${esc(c.locatie)}</span>`:''}
+      ${c.datum?`<span>· aankomst ${esc(dmy(c.datum))}</span>`:''}
+      ${wcSpoed(c.datum)?'<span class="pill crit">spoed</span>':''}
+    </div>
+    <div class="odtekst">
+      ${af ? 'Gedaan door ' + esc(mwNaam(c.medewerker_id)) + (c.gebeld_op ? ' op ' + esc(afTijd(c.gebeld_op)) : '') + '. '
+           : 'Loop het belscript hieronder af en zet de status daarna op afgerond. '}
+      ${klant ? 'Gekoppeld aan klant ' + esc(klant.naam || [klant.voornaam,klant.achternaam].filter(Boolean).join(' ')) + '.'
+              : 'Nog niet aan een klant uit het bestand gekoppeld.'}
+    </div>
+  </div>`;
+}
+/* van de gast in het formulier een klant maken en meteen koppelen */
+$('#wcKlantNieuw').addEventListener('click', async ()=>{
+  const note = $('#wcKlantNote');
+  const voor = $('#wcVoor').value.trim(), achter = $('#wcAchter').value.trim();
+  if(!voor && !achter){ note.textContent = 'Vul eerst een naam in.'; return; }
+  try{
+    const r = await maak('klanten', {
+      voornaam: voor || null, achternaam: achter || null,
+      naam: [voor, achter].filter(Boolean).join(' ') || null,
+      telefoon: $('#wcTel').value.trim() || null, email: $('#wcMail').value.trim() || null,
+      locatie: $('#wcLoc') ? $('#wcLoc').value || null : null
+    });
+    const nieuw = Array.isArray(r) ? r[0] : r;
+    vulKlantKeuze();
+    if(nieuw && nieuw.id){
+      $('#wcKlant').value = nieuw.id;
+      if(wcHuidig) await wijzig('calls', wcHuidig, {klant_id: nieuw.id});
+    }
+    wcOpenBalkToon();
+    note.textContent = 'Klant aangemaakt en gekoppeld.';
+    toast('Klant toegevoegd aan het bestand.');
+  }catch(e){ note.textContent = 'Aanmaken lukte niet: ' + e.message; }
+});
+/* zoeken in het bestand op naam of telefoon */
+$('#wcKlantZoek').addEventListener('click', ()=>{
+  const note = $('#wcKlantNote');
+  const vraag = prompt('Zoek een klant op naam of telefoonnummer:',
+    [$('#wcVoor').value, $('#wcAchter').value].filter(Boolean).join(' ') || $('#wcTel').value);
+  if(!vraag) return;
+  const q = vraag.toLowerCase().trim();
+  const t = S.klanten.find(k=>[k.naam, k.voornaam, k.achternaam, k.telefoon, k.email]
+    .filter(Boolean).join(' ').toLowerCase().includes(q));
+  if(!t){ note.textContent = 'Geen klant gevonden die daarop lijkt.'; return; }
+  $('#wcKlant').value = t.id;
+  vulUitKlant();
+  if(wcHuidig) wijzig('calls', wcHuidig, {klant_id: t.id}).then(wcOpenBalkToon);
+  note.textContent = 'Gekoppeld aan ' + (t.naam || [t.voornaam,t.achternaam].filter(Boolean).join(' ')) + '.';
 });
 
 /* ---------------- VERSTUREN VANUIT EEN RESERVERING ----------------
@@ -4025,6 +4302,12 @@ document.addEventListener('click', e=>{
   if(!e.target.closest('[data-wcopen]')) return;
   const tab = document.getElementById('tab-welkomstcall');
   if(tab) tab.click();
+  /* naar het belscript met het invoerformulier springen */
+  setTimeout(()=>{
+    wcSectiesKlaar(); wcOpenBalkToon();
+    const doel = document.getElementById('wcOpenBalk') || document.getElementById('wcVoor');
+    if(doel) doel.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 120);
 });
 
 /* ---------------- GESPREKSLOG ----------------
@@ -4471,7 +4754,7 @@ async function laadOverzicht(){
   OV.resSub = vandaagIn + ' aankomst' + (vandaagIn===1?'':'en') + ' vandaag';
   await laadDiensten(); await laadGesprekken(); await laadFormulieren();
   resPasKoppelingToe();
-  renderLocaties(); renderKalender(); rzVul(); renderGesprekken(); kpVulFormulieren();
+  renderLocaties(); renderKalender(); rzVul(); renderGesprekken(); kpVulFormulieren(); wcHaalVul();
   wcAutoAanmaken();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
@@ -5039,7 +5322,8 @@ function wcFormulier(){
     bijlage_url:  wcBijlage ? wcBijlage.url  : null,
     bijlage_naam: wcBijlage ? wcBijlage.naam : null,
     kanaal: wcKanaalStand,
-    medewerker_id: IK.id
+    /* wie de call heeft gedaan — standaard jijzelf, maar aan te passen */
+    medewerker_id: ($('#wcDoor') && $('#wcDoor').value) || IK.id
   };
 }
 /* ============ naam, verblijf, herhaalbezoek ============ */
@@ -5557,6 +5841,7 @@ $('#wcNieuw').addEventListener('click', ()=>{
    '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg'].forEach(s=>{ const el=$(s); if(el) el.value=''; });
   $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcDatumEind').value='';
   $('#wcStatus').value='te bellen'; $('#wcMember').value=''; $('#wcBron').value='';
+  vulWcDoor(IK ? IK.id : '');
   $('#wcType').value='Overnachting';
   wcSmgInfo = {extra:null, betaald:null, bedrag:null};
   if($('#wcVooraf')) $('#wcVooraf').checked = false;
@@ -5699,6 +5984,8 @@ document.addEventListener('click', async e=>{
   if(o){
     const c = S.calls.find(x=>x.id===o.dataset.wcopen); if(!c) return;
     wcHuidig = c.id; wcKeuzes = {};
+    vulWcDoor(c.medewerker_id || (IK ? IK.id : ''));
+    setTimeout(wcOpenBalkToon, 0);
     (c.regels||[]).forEach(r=>{ if(r && r.id) wcKeuzes[r.id] = r.per_persoon ? 1 : (r.aantal||1); });
     $('#wcKlant').value = c.klant_id||'';
     if(c.voornaam || c.achternaam){ $('#wcVoor').value = c.voornaam||''; $('#wcAchter').value = c.achternaam||'';
@@ -5763,7 +6050,7 @@ function afRegels(){
   (S.calls||[]).filter(c=>c.status === 'afgerond').forEach(c=>{
     const wanneer = c.gebeld_op || c.aangemaakt || null;
     if(afBinnen(wanneer)) uit.push({soort:'welkomstcall', wie:c.medewerker_id,
-      titel:'Welkomstcall · '+(c.naam||'gast'), extra:c.locatie||'', wanneer});
+      titel:'Welkomstcall · '+(c.naam||'gast'), extra:c.locatie||'', wanneer, call:c});
   });
   (S.taken||[]).filter(t=>t.status === 'klaar' && !t.call_id).forEach(t=>{
     const wanneer = t.afgerond_op || t.deadline || t.aangemaakt || null;
@@ -5804,16 +6091,31 @@ function renderAfgerond(){
     totTaken+' taak'+(totTaken===1?'':'en')+' · '+
     (afPeriode==='maand' ? 'deze maand' : afPeriode==='vorige' ? 'vorige maand' : 'alles bij elkaar');
 
-  $('#afRecent').innerHTML = regels.length ? regels.slice(0,20).map(r=>`
+  $('#afRecent').innerHTML = regels.length ? regels.slice(0,20).map(r=>{
+    const c = r.call;
+    const bij = c ? callExtras(c) : '';
+    const gekoppeld = c && c.referentie;
+    return `
     <div class="od" style="--c:${r.soort==='welkomstcall' ? 'var(--brass)' : 'var(--ok)'}">
       <div class="odkop">
         <span class="pill ${r.soort==='welkomstcall'?'accent':'ok'}">${r.soort==='welkomstcall'?'welkomstcall':'taak'}</span>
         <span>${esc(mwNaam(r.wie))}</span>
         ${r.extra?`<span class="pill neutral">${esc(r.extra)}</span>`:''}
         <span>· ${esc(afTijd(r.wanneer))}</span>
+        ${c?`<span class="pill ${c.status==='afgerond'?'ok':'warn'}">${esc(c.status||'')}</span>`:''}
+        ${bij?`<span class="pill accent">bijgeboekt: ${esc(bij)}</span>`:''}
+        ${c?`<span class="pill ${gekoppeld?'ok':'neutral'}">${gekoppeld?'reservering '+esc(c.referentie):'niet gekoppeld'}</span>`:''}
       </div>
-      <div class="odtekst">${esc(r.titel)}</div>
-    </div>`).join('')
+      <div class="odtekst">${esc(r.titel)}${c && c.notitie ? '<br>Notitie: ' + esc(c.notitie) : ''}</div>
+      ${c && !gekoppeld ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+        <select data-afres="${c.id}" style="min-width:300px;flex:1">
+          <option value="">— koppel aan een reservering —</option>
+          ${RES.slice(0,80).map((x,ix)=>`<option value="${ix}">${esc(dmy(String(x.start||'').slice(0,10)))} · ${
+            esc(x.locatie||'onbekend')} · ${esc(x.naam||'gast')}</option>`).join('')}
+        </select>
+        <button class="btn ghost small" type="button" data-afkoppel="${c.id}">Koppelen</button>
+      </div>` : ''}
+    </div>`;}).join('')
     : `<div class="empty" style="padding:18px 0">Nog niets afgerond in deze periode.</div>`;
 }
 $('#afFilter').addEventListener('click', e=>{
@@ -5822,10 +6124,28 @@ $('#afFilter').addEventListener('click', e=>{
   $$('#afFilter button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
   renderAfgerond();
 });
+document.addEventListener('click', async e=>{
+  const b = e.target.closest('[data-afkoppel]'); if(!b) return;
+  const sel = b.parentNode.querySelector('[data-afres]');
+  const r = RES[Number(sel.value)];
+  if(!r){ toast('Kies eerst een reservering.'); return; }
+  await wijzig('calls', b.dataset.afkoppel, {
+    referentie: r.ref || resSleutel(r),
+    locatie: r.locatie || null,
+    datum: String(r.start||'').slice(0,10) || null
+  });
+  renderAfgerond(); renderKalender(); renderWcTeDoen();
+  toast('Welkomstcall gekoppeld aan de reservering.');
+});
+
 $('#afExport').addEventListener('click', ()=>{
-  const rows = [['Wat','Assistent','Omschrijving','Suite of locatie','Afgerond op']];
-  afRegels().forEach(r=>rows.push([r.soort, mwNaam(r.wie), r.titel, r.extra||'',
-    String(r.wanneer||'').slice(0,10)]));
+  const rows = [['Wat','Assistent','Omschrijving','Suite of locatie','Afgerond op',
+    'Status','Bijgeboekt','Bedrag','Notitie','Reservering']];
+  afRegels().forEach(r=>{
+    const c = r.call || {};
+    rows.push([r.soort, mwNaam(r.wie), r.titel, r.extra||'', String(r.wanneer||'').slice(0,10),
+      c.status||'', callExtras(c)||'', c.totaal != null ? c.totaal : '', c.notitie||'', c.referentie||'']);
+  });
   csv(rows, 'afgerond-'+afPeriode+'-'+vandaag()+'.csv');
 });
 
