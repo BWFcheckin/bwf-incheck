@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle — BWF</title>
+<style>
+  body{margin:0;padding:20px;background:#F4F1ED;color:#241E19;
+    font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5}
+  .kaart{max-width:760px;margin:0 auto 16px;background:#fff;border:1px solid #E3DAD0;
+    border-radius:12px;padding:18px}
+  h1{font-size:21px;margin:0 0 4px}
+  h2{font-size:15px;margin:0 0 10px}
+  p.uitleg{color:#7B6E62;margin:0 0 16px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #EFE8E1;vertical-align:top}
+  th{color:#7B6E62;font-weight:500;font-size:12px}
+  code{font-family:"IBM Plex Mono",monospace;font-size:12px;word-break:break-word}
+  .goed{color:#3F7A55;font-weight:600}
+  .fout{color:#A34434;font-weight:600}
+  .kop{display:flex;gap:10px;align-items:baseline}
+  .kop span{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#7B6E62}
+  button{background:#483C34;color:#fff;border:0;border-radius:6px;padding:9px 15px;
+    cursor:pointer;font:inherit;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="kaart">
+  <div class="kop"><h1>Controle</h1><span id="tijd"></span></div>
+  <p class="uitleg">Deze pagina test of je bent ingelogd en welke tabellen wel en niet
+    opgehaald kunnen worden. Lees de uitkomst hieronder voor.</p>
+</div>
+
+<div class="kaart">
+  <h2>1 · Je sessie</h2>
+  <div id="sessie">Bezig…</div>
+</div>
+
+<div class="kaart">
+  <h2>2 · De tabellen die het dashboard nodig heeft</h2>
+  <div id="tabellen">Bezig…</div>
+  <button onclick="location.reload()">Opnieuw testen</button>
+</div>
+
+<script>
+const SB_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
+const SB_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+
+document.getElementById('tijd').textContent = new Date().toLocaleString('nl-NL');
+
+/* ---------- 1. sessie zoeken, precies zoals dashboard.html het doet ---------- */
+function zoekSessie(){
+  const gevonden = [];
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > -1){
+      let v = null;
+      try{ v = JSON.parse(localStorage.getItem(k)); }catch(e){}
+      gevonden.push({ sleutel:k, waarde:v });
+    }
+  }
+  return gevonden;
+}
+function leesJwt(t){
+  try{ return JSON.parse(atob(t.split('.')[1])); }catch(e){ return null; }
+}
+
+const sessies = zoekSessie();
+let TOKEN = null, uitleg = '';
+
+if(!sessies.length){
+  uitleg = '<p class="fout">Geen sessie gevonden.</p>' +
+    '<p>Er staat niets van een login in deze browser. Log eerst in via het portaal ' +
+    '(<code>index.html</code>) en open deze pagina daarna opnieuw in hetzelfde venster.</p>';
+}else{
+  const rijen = sessies.map(s => {
+    const t = s.waarde && s.waarde.access_token;
+    const p = t ? leesJwt(t) : null;
+    const verloopt = p && p.exp ? new Date(p.exp * 1000) : null;
+    const geldig = verloopt && verloopt > new Date();
+    if(t && geldig && !TOKEN) TOKEN = t;
+    return `<tr>
+      <td><code>${s.sleutel}</code></td>
+      <td>${p && p.email ? p.email : '—'}</td>
+      <td>${p && p.role ? p.role : '—'}</td>
+      <td>${verloopt ? verloopt.toLocaleString('nl-NL') : '—'}</td>
+      <td class="${geldig ? 'goed' : 'fout'}">${geldig ? 'geldig' : 'verlopen'}</td>
+    </tr>`;
+  }).join('');
+  uitleg = `<table><tr><th>opslagnaam</th><th>e-mailadres</th><th>rol</th>
+    <th>geldig tot</th><th></th></tr>${rijen}</table>` +
+    (TOKEN ? '<p class="goed" style="margin-top:12px">Er is een geldige sessie. De tabellen hieronder zijn hiermee getest.</p>'
+           : '<p class="fout" style="margin-top:12px">De sessie is verlopen. Log opnieuw in via het portaal.</p>');
+}
+document.getElementById('sessie').innerHTML = uitleg;
+
+/* ---------- 2. exact de verzoeken die dashboard.html doet ---------- */
+const TESTS = [
+  ['medewerkers', 'medewerkers?select=*&order=aangemaakt.asc'],
+  ['planning',    'planning?select=*&order=datum.asc'],
+  ['voorraad',    'voorraad?select=*&order=aangemaakt.asc'],
+  ['overdracht',  'overdracht?select=*&order=ts.desc'],
+  ['instellingen','instellingen?select=*'],
+  ['reservations','reservations?select=id&limit=1'],
+  ['res_koppeling','res_koppeling?select=res_sleutel&limit=1'],
+  ['checkins',    'checkins?select=id&limit=1'],
+  ['documenten',  'documenten?select=id&limit=1']
+];
+
+async function test(pad, token){
+  try{
+    const r = await fetch(SB_URL + '/rest/v1/' + pad, {
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + token }
+    });
+    const txt = await r.text();
+    let n = null;
+    try{ n = JSON.parse(txt); }catch(e){}
+    return {
+      code: r.status,
+      ok: r.ok,
+      info: r.ok
+        ? (Array.isArray(n) ? n.length + ' rijen' : 'gelukt')
+        : ((n && (n.message || n.hint)) || txt).slice(0, 160)
+    };
+  }catch(e){
+    return { code: 0, ok:false, info:'verbinding niet tot stand gekomen: ' + e.message };
+  }
+}
+
+(async () => {
+  const doel = document.getElementById('tabellen');
+  if(!TOKEN){
+    doel.innerHTML = '<p class="fout">Kan niet testen zonder geldige sessie. Log eerst in.</p>';
+    return;
+  }
+  const rijen = [];
+  for(const [naam, pad] of TESTS){
+    const u = await test(pad, TOKEN);
+    rijen.push(`<tr>
+      <td><strong>${naam}</strong></td>
+      <td class="${u.ok ? 'goed' : 'fout'}">${u.ok ? 'goed' : 'fout ' + u.code}</td>
+      <td><code>${u.info.replace(/</g,'&lt;')}</code></td>
+    </tr>`);
+    doel.innerHTML = `<table><tr><th>tabel</th><th>uitkomst</th><th>toelichting</th></tr>${rijen.join('')}</table>`;
+  }
+})();
+</script>
+</body>
+</html>
