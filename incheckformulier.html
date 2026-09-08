@@ -265,7 +265,11 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
         </select>
       </div>
       <div><label>Zoeken</label><input type="text" id="k_zoek" placeholder="naam, nummer of datum" oninput="vulKoppelKeuze()"></div>
-      <div><label>Kies</label><select id="k_keuze" onchange="toonKoppelVoorbeeld()"></select></div>
+      <div><label>Kies</label><select id="k_keuze" onchange="toonKoppelVoorbeeld()"></select>
+        <span class="desc" id="k_tel" style="display:block;margin-top:4px;font-size:12px"></span></div>
+    </div>
+    <div class="linkbox" style="margin-top:4px">
+      <button class="btn secondary sm" type="button" onclick="herlaadKoppelBronnen()">Lijst vernieuwen</button>
     </div>
     <div class="linkbox">
       <button class="btn sm" type="button" onclick="neemKoppelOver()">Gegevens overnemen</button>
@@ -1905,7 +1909,9 @@ function agBron(t){
   if(/telefonisch/.test(s))                       return 'Telefonisch';
   return '';
 }
+var AGENDA_FOUT = '';
 async function laadAgenda(){
+  AGENDA_FOUT = '';
   try{
     var json = await (await fetch(AGENDA_CFG.PROXY + '?k=' + encodeURIComponent(AGENDA_CFG.SLEUTEL))).json();
     if(json.fout) throw new Error(json.fout);
@@ -1936,7 +1942,7 @@ async function laadAgenda(){
           boekingsbron: agBron(tekst)
         };
       });
-  }catch(e){ AGENDA_RES = []; }
+  }catch(e){ AGENDA_RES = []; AGENDA_FOUT = e.message || 'onbekende fout'; }
 }
 var voorinvulling = null;   // naam/contact die alvast klaarstaat voor de gastpopup
 var NIEUWE_KOLOMMEN = true;
@@ -1952,6 +1958,11 @@ async function laadKoppelBronnen(){
   catch(e){ NIEUWE_KOLOMMEN = false; }
   vulKoppelKeuze();
   koppelUitAdres();
+}
+async function herlaadKoppelBronnen(){
+  var tel = document.getElementById('k_tel');
+  if(tel) tel.textContent = 'Bezig met ophalen\u2026';
+  await laadKoppelBronnen();
 }
 function resLabel(r){
   var naam = ((r.voornaam||'') + ' ' + (r.achternaam||'')).trim() || 'zonder naam';
@@ -1992,6 +2003,17 @@ function vulKoppelKeuze(){
   sel.innerHTML = lijst.length
     ? '<option value="">— kies —</option>' + lijst.map(function(x){ return '<option value="' + escapeHtml(String(x.id)) + '">' + escapeHtml(x.label) + '</option>'; }).join('')
     : '<option value="">— niets gevonden —</option>';
+
+  var tel = document.getElementById('k_tel');
+  if(tel && document.getElementById('k_bron').value === 'reservering'){
+    var stukken = [AGENDA_RES.length + ' uit de agenda', RESERVERINGEN.length + ' uit het systeem'];
+    if(AGENDA_FOUT) stukken.push('agenda kon niet worden opgehaald: ' + AGENDA_FOUT);
+    tel.textContent = stukken.join(' \u00b7 ');
+    tel.style.color = AGENDA_FOUT ? '#c13e50' : '';
+  } else if(tel){
+    tel.textContent = lijst.length + ' gevonden';
+    tel.style.color = '';
+  }
 }
 function koppelHuidige(){
   var id = document.getElementById('k_keuze').value;
