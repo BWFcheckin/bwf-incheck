@@ -1862,6 +1862,22 @@ function agNaam(t){
   return beste.slice(0,3).join(' ');
 }
 /* leest de losse regels die het terminalscript in de omschrijving zet */
+/* Booking.com-bevestiging: daar staat vrijwel alleen het boekingsnummer in */
+function bookingUit(t){
+  var s = String(t||''), uit = {};
+  var m = s.match(/Booking\s*confirmation\s*[\u2014\u2013-]\s*(\d{6,})/i)
+       || s.match(/\bres_id=(\d{6,})/i)
+       || s.match(/\bboekingsnummer\s*:?\s*(\d{6,})/i);
+  if(m) uit.nummer = m[1];
+  var loc = s.match(/Bed\s*&\s*Wellness\s+([^\n<]{3,60})/i);
+  if(loc){
+    var n = loc[1].toLowerCase();
+    uit.locatie = /deluxe|zwembad/.test(n) ? 'deluxe'
+                : /jacuzzi|malina/.test(n) ? 'jacuzzi'
+                : /angie|almere/.test(n)   ? 'angie' : '';
+  }
+  return uit;
+}
 function agLabels(t){
   var s = String(t||''), uit = {};
   function pak(label){
@@ -2016,6 +2032,7 @@ function aanmeldLabel(a){
 function klantLabel(k){
   return ((k.voornaam||'') + ' ' + (k.achternaam||'')).trim() + (k.email ? ' — ' + k.email : '');
 }
+window.koppelBronLijst = koppelBronLijst;
 function koppelBronLijst(){
   var bron = document.getElementById('k_bron').value;
   if(bron === 'reservering'){
@@ -2028,6 +2045,7 @@ function koppelBronLijst(){
   if(bron === 'klant')       return KLANTEN.map(function(k){ return { id:k.id, label:klantLabel(k), data:k }; });
   return [];
 }
+window.vulKoppelKeuze = vulKoppelKeuze;
 function vulKoppelKeuze(){
   var sel = document.getElementById('k_keuze');
   if(!sel) return;
@@ -2082,6 +2100,7 @@ function zetVeld(id, waarde){
   var el = document.getElementById(id);
   if(el && waarde != null && waarde !== '') el.value = waarde;
 }
+window.neemKoppelOver = neemKoppelOver;
 function neemKoppelOver(){
   var st = document.getElementById('k_status');
   var bron = document.getElementById('k_bron').value;
@@ -2215,6 +2234,7 @@ async function laadPdfJs(){
   });
   window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
+window.pdfNaarTekst = pdfNaarTekst;
 async function pdfNaarTekst(bestand){
   await laadPdfJs();
   var buffer = await bestand.arrayBuffer();
@@ -2269,6 +2289,7 @@ function parseReservering(tekst){
   uit.items = ALLE_MENU_ITEMS.filter(function(it){ return t.toLowerCase().indexOf(it.naam.toLowerCase()) !== -1; }).map(function(it){ return it.naam; });
   return uit;
 }
+window.vulUitTekst = vulUitTekst;
 function vulUitTekst(tekst){
   var g = parseReservering(tekst);
   var st = document.getElementById('k_status');
@@ -4059,6 +4080,712 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     p.onclick = function(){ var id = window.__bwfDetailId || window.openDetailId; if(id) afdrukken(id); };
     btn.parentElement.insertBefore(p, btn.nextSibling);
   }, 500);
+})();
+</script>
+
+<style id="bwf-overnemen-css">
+#bwfOvernemen{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;margin-bottom:16px}
+#bwfOvernemen .rij{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+#bwfOvernemen label{display:block;font-size:12px;margin-bottom:4px;color:var(--ink-2)}
+#bwfOvernemen select{min-width:250px}
+#bwfOvernemen textarea{width:100%;min-height:110px;margin-top:10px}
+#bwfOvStatus{font-size:13px;margin-top:8px;display:block}
+@media(max-width:620px){#bwfOvernemen select,#bwfOvernemen .rij>div{width:100%}}
+</style>
+
+<script id="bwf-overnemen-js">
+/* Snelkoppeling bij Boekingsgegevens: gegevens overnemen uit de planning,
+   uit een aanmelding, of uit geplakte tekst of een geupload bestand. */
+(function(){
+
+  function melding(tekst, fout){
+    var el = document.getElementById("bwfOvStatus");
+    if(!el) return;
+    el.textContent = tekst || "";
+    el.style.color = fout ? "var(--crit)" : "var(--muted)";
+  }
+
+  function naarStap1(bron){
+    var sel = document.getElementById("k_bron");
+    if(sel){ sel.value = bron; if(typeof vulKoppelKeuze === "function") vulKoppelKeuze(); }
+    if(typeof window.bwfOpenSectie === "function") window.bwfOpenSectie("Reservering koppelen");
+    melding("Kies hierboven bij stap 1 de juiste regel en klik op Gegevens overnemen.");
+  }
+
+  function zetBoekingVia(waarde){
+    var sel = document.getElementById("c_boekingvia");
+    if(!sel || !waarde) return;
+    for(var i = 0; i < sel.options.length; i++){
+      if(sel.options[i].text.toLowerCase().indexOf(waarde.toLowerCase()) > -1){
+        sel.selectedIndex = i; return;
+      }
+    }
+  }
+
+  function bouw(){
+    var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"] .bwf-body');
+    if(!sec || document.getElementById("bwfOvernemen")) return;
+
+    var d = document.createElement("div");
+    d.id = "bwfOvernemen";
+    d.innerHTML =
+      '<div class="rij">' +
+        '<div><label for="bwfOvBron">Gegevens overnemen uit</label>' +
+        '<select id="bwfOvBron">' +
+          '<option value="">Kies een bron\u2026</option>' +
+          '<option value="reservering">De planning (agenda + systeem)</option>' +
+          '<option value="aanmelding">Aanmelding van de gast</option>' +
+          '<option value="klant">Klantenbestand</option>' +
+          '<option value="smg">Priv\u00e9 sauna / SMG \u2014 tekst plakken</option>' +
+          '<option value="booking">Booking.com \u2014 tekst plakken</option>' +
+          '<option value="tekst">Ander bericht \u2014 tekst plakken</option>' +
+          '<option value="bestand">Bestand uploaden (pdf of txt)</option>' +
+        '</select></div>' +
+        '<div id="bwfOvKnopVak" style="display:none"><label>&nbsp;</label>' +
+        '<button class="btn sm" type="button" id="bwfOvLees">Gegevens overnemen</button></div>' +
+      '</div>' +
+      '<textarea id="bwfOvTekst" style="display:none" ' +
+      'placeholder="Plak hier de bevestiging of het bericht. Naam, datum, tijden, aantal personen, arrangementen en bedragen worden er zelf uitgehaald."></textarea>' +
+      '<span id="bwfOvStatus"></span>';
+    sec.insertBefore(d, sec.firstChild);
+
+    var bron = document.getElementById("bwfOvBron");
+    var vak  = document.getElementById("bwfOvTekst");
+    var knop = document.getElementById("bwfOvKnopVak");
+
+    bron.onchange = function(){
+      var w = this.value;
+      vak.style.display = "none";
+      knop.style.display = "none";
+      melding("");
+
+      if(w === "reservering" || w === "aanmelding" || w === "klant"){ naarStap1(w); this.value = ""; return; }
+
+      if(w === "bestand"){
+        var inp = document.getElementById("k_bestand");
+        if(inp){
+          inp.click();
+          melding("Kies een bestand. De gegevens verschijnen daarna in het formulier.");
+          if(typeof window.bwfOpenSectie === "function") window.bwfOpenSectie("Reservering koppelen");
+        } else {
+          melding("Het bestandsveld staat bij stap 1 \u2014 open die sectie.", true);
+        }
+        this.value = "";
+        return;
+      }
+
+      if(w === "smg" || w === "booking" || w === "tekst"){
+        vak.style.display = "";
+        knop.style.display = "";
+        vak.focus();
+        melding(w === "booking"
+          ? "Plak de bevestigingsmail van Booking.com."
+          : w === "smg"
+            ? "Plak de bevestiging van Special Moments \u2014 ook de Verhuur-oke-mail werkt."
+            : "Plak het bericht met de reserveringsgegevens.");
+      }
+    };
+
+    document.getElementById("bwfOvLees").onclick = function(){
+      var tekst = vak.value || "";
+      if(!tekst.trim()){ melding("Plak eerst de tekst.", true); return; }
+      if(typeof window.vulUitTekst !== "function"){
+        melding("Het inlezen is nog niet geladen \u2014 ververs de pagina.", true); return;
+      }
+      var k = document.getElementById("k_plak");
+      if(k) k.value = tekst;
+      window.vulUitTekst(tekst);
+
+      var extra = (typeof bookingUit === "function") ? bookingUit(tekst) : {};
+      if(extra.nummer){
+        var rn = document.getElementById("c_resnr");
+        if(rn && !rn.value) rn.value = extra.nummer;
+      }
+      if(extra.locatie){
+        var lo = document.getElementById("c_locatie");
+        if(lo && !lo.value){
+          lo.value = extra.locatie;
+          if(typeof updateCheckinManagerOptions === "function") updateCheckinManagerOptions();
+        }
+      }
+
+      if(bron.value === "booking") zetBoekingVia("Booking.com");
+      if(bron.value === "smg")     zetBoekingVia("Prive sauna");
+
+      var mager = !(document.getElementById("c_datum")||{}).value &&
+                  !(document.getElementById("c_resbedrag")||{}).value;
+      melding(mager
+        ? "\u2713 Boekingsnummer" + (extra.locatie ? " en suite" : "") +
+          " overgenomen. In deze mail staan verder geen gastgegevens of bedragen \u2014 " +
+          "die haal je uit het Booking.com-beheerscherm."
+        : "\u2713 Gegevens overgenomen. Loop de velden hieronder na en vul aan wat ontbreekt.");
+      setTimeout(function(){
+        var o = document.getElementById("bwfResOverzicht");
+        if(o && o.scrollIntoView) o.scrollIntoView({ behavior:"smooth", block:"center" });
+      }, 200);
+    };
+  }
+
+  function start(){
+    bouw();
+    if(!document.getElementById("bwfOvernemen")) setTimeout(start, 500);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 600); });
+  else setTimeout(start, 600);
+})();
+</script>
+
+<script id="bwf-overnemen2-js">
+/* De bronnen uit stap 1 ook ter plekke bruikbaar bij Boekingsgegevens. */
+(function(){
+  function melding(t, fout){
+    var el = document.getElementById("bwfOvStatus"); if(!el) return;
+    el.textContent = t || "";
+    el.style.color = fout ? "var(--crit)" : "var(--muted)";
+  }
+
+  function bouwKeuze(bron){
+    var vak = document.getElementById("bwfOvKeuzeVak");
+    if(!vak) return;
+    var sel = document.getElementById("k_bron");
+    if(sel){ sel.value = bron; }
+    var lijst = [];
+    try{ lijst = window.koppelBronLijst ? window.koppelBronLijst() : []; }catch(e){}
+
+    var zoek = (document.getElementById("bwfOvZoek")||{}).value || "";
+    zoek = zoek.toLowerCase().trim();
+    if(zoek) lijst = lijst.filter(function(x){ return String(x.label).toLowerCase().indexOf(zoek) > -1; });
+
+    var k = document.getElementById("bwfOvKeuze");
+    k.innerHTML = lijst.length
+      ? '<option value="">\u2014 kies \u2014</option>' + lijst.map(function(x){
+          return '<option value="' + String(x.id).replace(/"/g,"&quot;") + '">' +
+            String(x.label).replace(/[<>&]/g,"") + "</option>"; }).join("")
+      : '<option value="">\u2014 niets gevonden \u2014</option>';
+    vak.style.display = lijst.length || zoek ? "" : "";
+    melding(lijst.length + " gevonden. Kies er een en klik op Gegevens overnemen.");
+  }
+
+  function overnemen(){
+    var id = (document.getElementById("bwfOvKeuze")||{}).value;
+    if(!id){ melding("Kies eerst een regel uit de lijst.", true); return; }
+    var k = document.getElementById("k_keuze");
+    if(!k){ melding("Stap 1 is nog niet geladen \u2014 ververs de pagina.", true); return; }
+    k.value = id;
+    if(typeof toonKoppelVoorbeeld === "function") toonKoppelVoorbeeld();
+    if(typeof window.neemKoppelOver === "function") window.neemKoppelOver();
+    melding("\u2713 Gegevens overgenomen. Loop de velden hieronder na.");
+    setTimeout(function(){
+      var o = document.getElementById("bwfResOverzicht");
+      if(o && o.scrollIntoView) o.scrollIntoView({ behavior:"smooth", block:"center" });
+    }, 250);
+  }
+
+  function bouw(){
+    var d = document.getElementById("bwfOvernemen");
+    if(!d || document.getElementById("bwfOvKeuzeVak")) return;
+
+    var extra = document.createElement("div");
+    extra.id = "bwfOvKeuzeVak";
+    extra.style.cssText = "display:none;margin-top:10px";
+    extra.innerHTML =
+      '<div class="rij">' +
+        '<div style="flex:1;min-width:190px"><label for="bwfOvZoek">Zoeken</label>' +
+        '<input type="text" id="bwfOvZoek" placeholder="naam, nummer of datum"></div>' +
+        '<div style="flex:2;min-width:240px"><label for="bwfOvKeuze">Kies</label>' +
+        '<select id="bwfOvKeuze"></select></div>' +
+        '<div style="flex:0"><label>&nbsp;</label>' +
+        '<button class="btn sm" type="button" id="bwfOvNeem">Gegevens overnemen</button></div>' +
+      '</div>';
+    var status = document.getElementById("bwfOvStatus");
+    d.insertBefore(extra, status);
+
+    document.getElementById("bwfOvNeem").onclick = overnemen;
+    document.getElementById("bwfOvZoek").oninput = function(){
+      var b = document.getElementById("bwfOvBron").value;
+      if(b === "reservering" || b === "aanmelding" || b === "klant") bouwKeuze(b);
+    };
+
+    /* de keuzelijst van de bron overnemen zonder naar stap 1 te springen */
+    var bron = document.getElementById("bwfOvBron");
+    var oud = bron.onchange;
+    bron.onchange = function(){
+      var w = this.value;
+      var keuzeVak = document.getElementById("bwfOvKeuzeVak");
+      if(w === "reservering" || w === "aanmelding" || w === "klant"){
+        document.getElementById("bwfOvTekst").style.display = "none";
+        document.getElementById("bwfOvKnopVak").style.display = "none";
+        keuzeVak.style.display = "";
+        bouwKeuze(w);
+        return;
+      }
+      keuzeVak.style.display = "none";
+      if(oud) oud.call(this);
+    };
+  }
+
+  function start(){
+    bouw();
+    if(!document.getElementById("bwfOvKeuzeVak")) setTimeout(start, 500);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 800); });
+  else setTimeout(start, 800);
+})();
+</script>
+
+<style id="bwf-sjabloon-css">
+#bwfDoc .rij{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+#bwfDoc label{display:block;font-size:12px;margin-bottom:4px;color:var(--ink-2)}
+#bwfDoc select{min-width:230px}
+#bwfDocBewerk{display:none;margin-top:12px}
+#bwfDocBewerk textarea{width:100%;min-height:280px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.5}
+#bwfDocVelden{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7}
+#bwfDocVelden code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;
+  padding:1px 6px;margin-right:4px;display:inline-block;cursor:pointer}
+#bwfDocVoorbeeld{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:#fff;
+  padding:18px;max-height:520px;overflow:auto}
+#bwfDocStatus{display:block;font-size:13px;margin-top:8px;color:var(--muted)}
+</style>
+
+<script id="bwf-sjabloon-js">
+/* =========================================================
+   Reserveringsbevestiging en factuur uit een eigen sjabloon.
+   Opslaan in Supabase, afdrukken als pdf, mailen via Gmail.
+   ========================================================= */
+(function(){
+
+  var SLEUTELS = { bevestiging: "sjabloon_bevestiging", factuur: "sjabloon_factuur" };
+  var SJABLOON = {};
+
+  var STANDAARD_BEVESTIGING =
+'<div class="kop">\n' +
+'  <h1>Reserveringsbevestiging</h1>\n' +
+'  <p>{bedrijf} &middot; {suite}</p>\n' +
+'</div>\n\n' +
+'<p>Beste {voornaam},</p>\n\n' +
+'<p>Wat leuk dat je bij ons komt. Hieronder staat je reservering nog een keer op een rij.</p>\n\n' +
+'<table class="gegevens">\n' +
+'  <tr><th>Reserveringsnummer</th><td>{resnr}</td></tr>\n' +
+'  <tr><th>Suite</th><td>{suite}</td></tr>\n' +
+'  <tr><th>Aankomst</th><td>{datum} vanaf {incheck}</td></tr>\n' +
+'  <tr><th>Vertrek</th><td>{vertrek} tot {uitcheck}</td></tr>\n' +
+'  <tr><th>Aantal personen</th><td>{personen}</td></tr>\n' +
+'  <tr><th>Arrangementen</th><td>{arrangementen}</td></tr>\n' +
+'</table>\n\n' +
+'<table class="regels">{regels}</table>\n\n' +
+'<table class="totalen">\n' +
+'  <tr><th>Totaal</th><td>{totaal}</td></tr>\n' +
+'  <tr><th>Reeds betaald</th><td>{betaald}</td></tr>\n' +
+'  <tr class="dik"><th>Nog te betalen bij aankomst</th><td>{openstaand}</td></tr>\n' +
+'</table>\n\n' +
+'<p>Heb je nog vragen of wensen, laat het gerust weten. Tot binnenkort!</p>\n\n' +
+'<p class="afzender">Hartelijke groet,<br>{bedrijf}<br>{contact}</p>';
+
+  var STANDAARD_FACTUUR =
+'<div class="kop">\n' +
+'  <h1>Factuur</h1>\n' +
+'  <p>{bedrijf} &middot; factuurdatum {vandaag}</p>\n' +
+'</div>\n\n' +
+'<table class="gegevens">\n' +
+'  <tr><th>Factuurnummer</th><td>{factuurnr}</td></tr>\n' +
+'  <tr><th>Reserveringsnummer</th><td>{resnr}</td></tr>\n' +
+'  <tr><th>Op naam van</th><td>{naam}<br>{woonplaats}</td></tr>\n' +
+'  <tr><th>Verblijf</th><td>{suite} &middot; {datum} tot {vertrek}</td></tr>\n' +
+'  <tr><th>Aantal personen</th><td>{personen}</td></tr>\n' +
+'</table>\n\n' +
+'<table class="regels">{regels}</table>\n\n' +
+'<table class="totalen">\n' +
+'  <tr><th>Totaal</th><td>{totaal}</td></tr>\n' +
+'  <tr><th>Reeds betaald</th><td>{betaald}</td></tr>\n' +
+'  <tr class="dik"><th>Nog te voldoen</th><td>{openstaand}</td></tr>\n' +
+'  <tr><th>Betaalwijze</th><td>{betaalwijze}</td></tr>\n' +
+'</table>\n\n' +
+'<p class="klein">Bedragen zijn inclusief btw. Vragen over deze factuur? Neem gerust contact op.</p>\n\n' +
+'<p class="afzender">{bedrijf}<br>{contact}</p>';
+
+  /* ---------- gegevens uit het formulier ---------- */
+  function w(id){ var e = document.getElementById(id); return e ? String(e.value || "") : ""; }
+  function n(id){ var e = document.getElementById(id); return e ? (parseFloat(e.value) || 0) : 0; }
+  function eur(x){ return "\u20ac " + (Math.round((Number(x)||0)*100)/100).toFixed(2).replace(".", ","); }
+  function datumNl(iso){
+    if(!iso) return "\u2014";
+    var d = new Date(iso + "T12:00:00");
+    if(isNaN(d)) return iso;
+    return d.toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  }
+
+  function regelsUitLijst(){
+    var lijst = document.getElementById("rekenLijst");
+    if(!lijst) return "";
+    var rijen = [];
+    lijst.querySelectorAll("div,li,tr").forEach(function(el){
+      if(el.children.length && el.children.length > 3) return;
+      var t = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if(!t || t.length > 120) return;
+      var m = t.match(/^(.*?)(\u20ac\s*[\d.,]+)$/);
+      if(m) rijen.push([m[1].trim(), m[2].trim()]);
+    });
+    var uniek = [], gezien = {};
+    rijen.forEach(function(r){
+      var s = r[0] + "|" + r[1];
+      if(!gezien[s]){ gezien[s] = 1; uniek.push(r); }
+    });
+    return uniek.map(function(r){
+      return "<tr><td>" + r[0].replace(/[<>]/g,"") + "</td><td>" + r[1] + "</td></tr>";
+    }).join("");
+  }
+
+  function velden(){
+    var overnacht = (document.querySelector('input[name="verblijftype"]:checked')||{}).value === "overnachting";
+    var voor = w("g_voornaam"), ach = w("g_achternaam");
+    var totaal = n("c_totaal") || (n("c_resbedrag") + n("c_extrasTotaal"));
+    var betaald = n("c_aanbetaald");
+    var open = n("c_nog") || Math.max(0, totaal - betaald);
+    var suite = (typeof locName === "function") ? locName(w("c_locatie")) : w("c_locatie");
+    var vandaag = new Date();
+
+    return {
+      bedrijf: "Bed & Wellness Flevoland",
+      contact: "info@bedenwellnessflevoland.nl",
+      naam: (voor + " " + ach).trim() || "\u2014",
+      voornaam: voor || "gast",
+      achternaam: ach,
+      woonplaats: w("g_woonplaats"),
+      email: w("g_email"),
+      telefoon: w("g_telefoon"),
+      suite: suite || "\u2014",
+      resnr: w("c_resnr") || "\u2014",
+      boekingvia: w("c_boekingvia"),
+      datum: datumNl(w("c_datum")),
+      vertrek: datumNl(overnacht ? w("c_checkuitdatum") : w("c_datum")),
+      incheck: w("c_checkin") || "\u2014",
+      uitcheck: w("c_checkuit") || "\u2014",
+      personen: w("c_personen") || "\u2014",
+      kinderen: w("c_kinderen") || "0",
+      arrangementen: (function(){
+        var a = [];
+        document.querySelectorAll("#rekenLijst *").forEach(function(){});
+        var t = document.getElementById("rekenLijst");
+        if(t){
+          (t.textContent || "").split("\n").forEach(function(x){
+            x = x.replace(/\s+/g," ").trim();
+            if(x && !/\u20ac/.test(x) && x.length < 60) a.push(x);
+          });
+        }
+        return a.length ? a.slice(0, 8).join(", ") : "Geen";
+      })(),
+      regels: regelsUitLijst() ||
+        ("<tr><td>Verblijf " + (suite||"") + "</td><td>" + eur(n("c_resbedrag")) + "</td></tr>" +
+         (n("c_extrasTotaal") ? "<tr><td>Extra\u2019s op locatie</td><td>" + eur(n("c_extrasTotaal")) + "</td></tr>" : "")),
+      totaal: eur(totaal),
+      betaald: eur(betaald),
+      openstaand: eur(open),
+      betaalwijze: w("c_betaalwijze") || "\u2014",
+      factuurnr: (w("c_resnr") || vandaag.getFullYear() + "-" + String(Date.now()).slice(-5)),
+      vandaag: vandaag.toLocaleDateString("nl-NL", { day:"numeric", month:"long", year:"numeric" })
+    };
+  }
+
+  function vul(sjabloon){
+    var v = velden();
+    return String(sjabloon).replace(/\{(\w+)\}/g, function(hele, sleutel){
+      return v[sleutel] !== undefined ? v[sleutel] : hele;
+    });
+  }
+
+  /* ---------- opmaak van het document ---------- */
+  function paginaHtml(inhoud, titel){
+    return '<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>' + titel + '</title><style>' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#142033;margin:30px;font-size:13.5px;line-height:1.6}' +
+      '.kop{border-bottom:3px solid #165dff;padding-bottom:12px;margin-bottom:22px}' +
+      '.kop h1{font-size:24px;margin:0 0 3px;letter-spacing:-.02em}' +
+      '.kop p{margin:0;color:#738097;font-size:13px}' +
+      'table{border-collapse:collapse;width:100%;margin:14px 0}' +
+      'table.gegevens th{text-align:left;width:210px;font-weight:600;color:#35435a;padding:5px 8px 5px 0;vertical-align:top}' +
+      'table.gegevens td{padding:5px 0;border-bottom:1px solid #edf1f6}' +
+      'table.regels td{padding:7px 0;border-bottom:1px solid #edf1f6}' +
+      'table.regels td:last-child{text-align:right;white-space:nowrap;width:130px}' +
+      'table.totalen th{text-align:left;font-weight:600;padding:6px 0;color:#35435a}' +
+      'table.totalen td{text-align:right;padding:6px 0;white-space:nowrap}' +
+      'table.totalen tr.dik th,table.totalen tr.dik td{font-size:16px;font-weight:800;' +
+        'border-top:2px solid #142033;padding-top:9px}' +
+      '.afzender{margin-top:26px;color:#35435a}' +
+      '.klein{font-size:12px;color:#738097}' +
+      '@media print{body{margin:14mm}}</style></head><body>' + inhoud + '</body></html>';
+  }
+
+  function huidigeSoort(){ return (document.getElementById("bwfDocSoort")||{}).value || "bevestiging"; }
+  function huidigSjabloon(){
+    var s = huidigeSoort();
+    return SJABLOON[s] || (s === "factuur" ? STANDAARD_FACTUUR : STANDAARD_BEVESTIGING);
+  }
+
+  function toonVoorbeeld(){
+    var doel = document.getElementById("bwfDocVoorbeeld");
+    if(doel) doel.innerHTML = vul(huidigSjabloon());
+  }
+
+  function afdrukken(){
+    var titel = huidigeSoort() === "factuur" ? "Factuur" : "Reserveringsbevestiging";
+    var v = window.open("", "_blank");
+    if(!v){ status("Je browser blokkeert het nieuwe venster. Sta pop-ups toe.", true); return; }
+    v.document.write(paginaHtml(vul(huidigSjabloon()), titel));
+    v.document.close();
+    setTimeout(function(){ try{ v.focus(); v.print(); }catch(e){} }, 400);
+  }
+
+  function mailen(){
+    var v = velden();
+    if(!v.email || v.email.indexOf("@") < 0){
+      status("Vul eerst het e-mailadres van de gast in bij de klantgegevens.", true); return;
+    }
+    var factuur = huidigeSoort() === "factuur";
+    var onderwerp = factuur
+      ? "Factuur " + v.factuurnr + " \u2014 " + v.bedrijf
+      : "Reserveringsbevestiging " + v.resnr + " \u2014 " + v.suite;
+    var tekst = vul(huidigSjabloon())
+      .replace(/<tr>/g, "\n").replace(/<\/t[dh]>\s*<t[dh][^>]*>/g, ": ")
+      .replace(/<[^>]+>/g, "").replace(/&middot;/g, "\u00b7").replace(/&nbsp;/g, " ")
+      .replace(/\n{3,}/g, "\n\n").trim();
+    window.open("https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(v.email) +
+      "&su=" + encodeURIComponent(onderwerp) + "&body=" + encodeURIComponent(tekst),
+      "_blank", "noopener");
+    status("Gmail geopend. De opmaak gaat verloren in een mail \u2014 stuur de pdf mee als bijlage als je die wilt.");
+  }
+
+  function status(t, fout){
+    var el = document.getElementById("bwfDocStatus");
+    if(!el) return;
+    el.textContent = t || "";
+    el.style.color = fout ? "var(--crit)" : "var(--muted)";
+  }
+
+  /* ---------- sjabloon bewaren ---------- */
+  async function laadSjablonen(){
+    try{
+      var r = await sb("instellingen?select=sleutel,waarde&or=(sleutel.eq." +
+        SLEUTELS.bevestiging + ",sleutel.eq." + SLEUTELS.factuur + ")") || [];
+      r.forEach(function(x){
+        if(x.sleutel === SLEUTELS.bevestiging) SJABLOON.bevestiging = x.waarde;
+        if(x.sleutel === SLEUTELS.factuur)     SJABLOON.factuur = x.waarde;
+      });
+    }catch(e){}
+  }
+  async function bewaarSjabloon(){
+    var soort = huidigeSoort();
+    var tekst = document.getElementById("bwfDocTekst").value;
+    try{
+      await sb("instellingen", { method:"POST",
+        body: JSON.stringify({ sleutel: SLEUTELS[soort], waarde: tekst }),
+        prefer: "resolution=merge-duplicates,return=minimal" });
+      SJABLOON[soort] = tekst;
+      toonVoorbeeld();
+      status("\u2713 Sjabloon opgeslagen. Iedereen ziet nu deze versie.");
+    }catch(e){ status("Opslaan lukte niet: " + e.message, true); }
+  }
+
+  /* ---------- het blok bouwen ---------- */
+  function bouw(){
+    var sec = document.querySelector('.bwf-sec[data-titel="Eindafrekening"] .bwf-body')
+           || document.querySelector('.bwf-sec[data-titel*="Opslaan"] .bwf-body');
+    if(!sec || document.getElementById("bwfDoc")) return;
+
+    var d = document.createElement("div");
+    d.id = "bwfDoc";
+    d.style.cssText = "border-top:1px solid var(--line);margin-top:18px;padding-top:16px";
+    d.innerHTML =
+      '<h3 style="margin:0 0 10px">Bevestiging &amp; factuur</h3>' +
+      '<div class="rij">' +
+        '<div><label for="bwfDocSoort">Document</label><select id="bwfDocSoort">' +
+          '<option value="bevestiging">Reserveringsbevestiging</option>' +
+          '<option value="factuur">Factuur</option></select></div>' +
+        '<div><label>&nbsp;</label><button class="btn sm" type="button" id="bwfDocPrint">Afdrukken of pdf</button></div>' +
+        '<div><label>&nbsp;</label><button class="btn secondary sm" type="button" id="bwfDocMail">Mailen naar de gast</button></div>' +
+        '<div><label>&nbsp;</label><button class="btn secondary sm" type="button" id="bwfDocEdit">Sjabloon aanpassen</button></div>' +
+      '</div>' +
+      '<div id="bwfDocBewerk">' +
+        '<textarea id="bwfDocTekst" spellcheck="false"></textarea>' +
+        '<p id="bwfDocVelden"></p>' +
+        '<div class="rij" style="margin-top:8px">' +
+          '<button class="btn sm" type="button" id="bwfDocBewaar">Sjabloon opslaan</button>' +
+          '<button class="btn secondary sm" type="button" id="bwfDocHerstel">Terug naar standaard</button>' +
+          '<button class="btn secondary sm" type="button" id="bwfDocSluit">Klaar met bewerken</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="bwfDocVoorbeeld"></div>' +
+      '<span id="bwfDocStatus"></span>';
+    sec.appendChild(d);
+
+    var namen = ["naam","voornaam","achternaam","woonplaats","email","telefoon","suite","resnr",
+      "boekingvia","datum","vertrek","incheck","uitcheck","personen","kinderen","arrangementen",
+      "regels","totaal","betaald","openstaand","betaalwijze","factuurnr","vandaag","bedrijf","contact"];
+    document.getElementById("bwfDocVelden").innerHTML =
+      "Klik een veld om het in te voegen: " +
+      namen.map(function(x){ return "<code>{" + x + "}</code>"; }).join("");
+
+    document.getElementById("bwfDocVelden").addEventListener("click", function(e){
+      if(e.target.tagName !== "CODE") return;
+      var ta = document.getElementById("bwfDocTekst");
+      var p = ta.selectionStart || 0;
+      ta.value = ta.value.slice(0, p) + e.target.textContent + ta.value.slice(ta.selectionEnd || p);
+      ta.focus(); ta.selectionStart = ta.selectionEnd = p + e.target.textContent.length;
+    });
+
+    document.getElementById("bwfDocSoort").onchange = function(){
+      document.getElementById("bwfDocTekst").value = huidigSjabloon();
+      toonVoorbeeld(); status("");
+    };
+    document.getElementById("bwfDocPrint").onclick = afdrukken;
+    document.getElementById("bwfDocMail").onclick  = mailen;
+    document.getElementById("bwfDocEdit").onclick  = function(){
+      var b = document.getElementById("bwfDocBewerk");
+      var open = b.style.display !== "none" && b.style.display !== "";
+      b.style.display = open ? "none" : "block";
+      if(!open) document.getElementById("bwfDocTekst").value = huidigSjabloon();
+    };
+    document.getElementById("bwfDocTekst").oninput = function(){
+      var doel = document.getElementById("bwfDocVoorbeeld");
+      if(doel) doel.innerHTML = vul(this.value);
+    };
+    document.getElementById("bwfDocBewaar").onclick = bewaarSjabloon;
+    document.getElementById("bwfDocHerstel").onclick = function(){
+      document.getElementById("bwfDocTekst").value =
+        huidigeSoort() === "factuur" ? STANDAARD_FACTUUR : STANDAARD_BEVESTIGING;
+      document.getElementById("bwfDocVoorbeeld").innerHTML = vul(document.getElementById("bwfDocTekst").value);
+      status("Standaard teruggezet. Klik op Sjabloon opslaan om het te bewaren.");
+    };
+    document.getElementById("bwfDocSluit").onclick = function(){
+      document.getElementById("bwfDocBewerk").style.display = "none";
+    };
+
+    laadSjablonen().then(toonVoorbeeld);
+    setInterval(function(){
+      var b = document.getElementById("bwfDocBewerk");
+      if(b && b.style.display === "block") return;    /* niet verversen tijdens bewerken */
+      toonVoorbeeld();
+    }, 2500);
+  }
+
+  function start(){
+    bouw();
+    if(!document.getElementById("bwfDoc")) setTimeout(start, 600);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 900); });
+  else setTimeout(start, 900);
+})();
+</script>
+
+<script id="bwf-zoekfilter-js">
+/* Zoeken en filteren op datum en suite in de reserveringslijsten. */
+(function(){
+  var F = { suite: "", van: "", tot: "" };
+
+  function suiteVan(d){
+    var s = String((d && (d.locatie || d.suite)) || "").toLowerCase();
+    if(/psmd|psd|deluxe|zwembad/.test(s)) return "deluxe";
+    if(/psm|jacuzzi/.test(s))             return "jacuzzi";
+    if(/psa|angie|almere/.test(s))        return "angie";
+    return "";
+  }
+  function datumVan(d){
+    return String((d && (d.checkindatum || d.datum || d.datum_in || d.aankomst)) || "").slice(0, 10);
+  }
+
+  function bouwVelden(naArtikel, prefix){
+    if(!naArtikel || document.getElementById(prefix + "Suite")) return;
+    var vak = document.createElement("div");
+    vak.style.cssText = "display:flex;gap:9px;flex-wrap:wrap;margin-top:8px;width:100%";
+    vak.innerHTML =
+      '<div style="flex:1;min-width:150px"><label style="display:block;font-size:12px;margin-bottom:4px">Suite</label>' +
+      '<select id="' + prefix + 'Suite">' +
+        '<option value="">Alle suites</option>' +
+        '<option value="jacuzzi">Malina Jacuzzi</option>' +
+        '<option value="deluxe">Malina Deluxe</option>' +
+        '<option value="angie">Suite Angie</option></select></div>' +
+      '<div style="flex:1;min-width:130px"><label style="display:block;font-size:12px;margin-bottom:4px">Van</label>' +
+      '<input type="date" id="' + prefix + 'Van"></div>' +
+      '<div style="flex:1;min-width:130px"><label style="display:block;font-size:12px;margin-bottom:4px">Tot en met</label>' +
+      '<input type="date" id="' + prefix + 'Tot"></div>' +
+      '<div style="flex:0"><label style="display:block;font-size:12px;margin-bottom:4px">&nbsp;</label>' +
+      '<button class="btn secondary sm" type="button" id="' + prefix + 'Wis">Wissen</button></div>';
+    naArtikel.appendChild(vak);
+
+    function lees(){
+      F.suite = document.getElementById(prefix + "Suite").value;
+      F.van   = document.getElementById(prefix + "Van").value;
+      F.tot   = document.getElementById(prefix + "Tot").value;
+      spiegel(prefix);
+      ververs();
+    }
+    ["Suite","Van","Tot"].forEach(function(x){
+      document.getElementById(prefix + x).onchange = lees;
+    });
+    document.getElementById(prefix + "Wis").onclick = function(){
+      F.suite = F.van = F.tot = "";
+      ["k","ov"].forEach(function(p){
+        ["Suite","Van","Tot"].forEach(function(x){
+          var el = document.getElementById(p + "Filter" + x);
+          if(el) el.value = "";
+        });
+      });
+      ververs();
+    };
+  }
+
+  /* beide plekken gelijk houden */
+  function spiegel(bron){
+    ["kFilter","ovFilter"].forEach(function(p){
+      if(p === bron) return;
+      var s = document.getElementById(p + "Suite"), v = document.getElementById(p + "Van"),
+          t = document.getElementById(p + "Tot");
+      if(s) s.value = F.suite;
+      if(v) v.value = F.van;
+      if(t) t.value = F.tot;
+    });
+  }
+
+  function ververs(){
+    if(typeof vulKoppelKeuze === "function") try{ vulKoppelKeuze(); }catch(e){}
+    var bron = document.getElementById("bwfOvBron");
+    if(bron && (bron.value === "reservering" || bron.value === "aanmelding" || bron.value === "klant")){
+      var z = document.getElementById("bwfOvZoek");
+      if(z) z.dispatchEvent(new Event("input"));
+    }
+  }
+
+  /* de lijst filteren, waar hij ook wordt opgevraagd */
+  function haakLijst(){
+    if(typeof window.koppelBronLijst !== "function"){ setTimeout(haakLijst, 400); return; }
+    if(window.koppelBronLijst.__bwfFilter) return;
+    var origineel = window.koppelBronLijst;
+    window.koppelBronLijst = function(){
+      var lijst = origineel.apply(this, arguments) || [];
+      if(!F.suite && !F.van && !F.tot) return lijst;
+      return lijst.filter(function(x){
+        var d = x.data || {};
+        if(F.suite && suiteVan(d) && suiteVan(d) !== F.suite) return false;
+        var dat = datumVan(d);
+        if(F.van && dat && dat < F.van) return false;
+        if(F.tot && dat && dat > F.tot) return false;
+        return true;
+      });
+    };
+    window.koppelBronLijst.__bwfFilter = true;
+  }
+
+  function start(){
+    haakLijst();
+    var zoek = document.getElementById("k_zoek");
+    if(zoek && zoek.closest(".order-add, .formgrid3, div"))
+      bouwVelden(zoek.closest(".order-add") || zoek.parentElement.parentElement, "kFilter");
+    var ov = document.getElementById("bwfOvKeuzeVak");
+    if(ov) bouwVelden(ov, "ovFilter");
+    if(!document.getElementById("kFilterSuite") || !document.getElementById("ovFilterSuite"))
+      setTimeout(start, 700);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1000); });
+  else setTimeout(start, 1000);
 })();
 </script>
 
