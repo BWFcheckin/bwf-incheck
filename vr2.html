@@ -1212,6 +1212,32 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
                 <input type="text" id="wcArr" placeholder="wat er volgens SMG al geboekt is"></div>
               <div class="field wide"><label for="wcGeleg">Gelegenheid</label>
                 <input type="text" id="wcGeleg" placeholder="verjaardag, jubileum, gewoon ontspannen…"></div>
+
+              <div class="field wide"><label for="wcBijz">Bijzonderheden van de gast</label>
+                <textarea id="wcBijz" rows="3"
+                  placeholder="wensen, verrassingen, slecht ter been, wat de gast verder doorgeeft"></textarea></div>
+
+              <div class="field wide"><label for="wcAllergie">Allergieën en/of dieetwensen</label>
+                <textarea id="wcAllergie" rows="2"
+                  placeholder="bijv. notenallergie, lactosevrij, vegetarisch, halal"></textarea>
+                <span class="note">Geef dit door voordat er eten wordt besteld.</span></div>
+
+              <div class="field"><label for="wcTijdVerzoek">Verzoek in- of uitchecktijd</label>
+                <select id="wcTijdVerzoek">
+                  <option value="">Geen verzoek — standaard om 20:00</option>
+                  <option value="eerder">Eerder inchecken</option>
+                  <option value="later-uit">Later uitchecken</option>
+                  <option value="later-in">Later inchecken (in overleg)</option>
+                </select></div>
+              <div class="field"><label for="wcTijdUren">Aantal uren</label>
+                <select id="wcTijdUren">
+                  <option value="0.5">een half uur</option>
+                  <option value="1" selected>1 uur</option><option value="2">2 uur</option>
+                  <option value="3">3 uur</option><option value="4">4 uur</option>
+                  <option value="5">5 uur</option><option value="6">6 uur</option>
+                  <option value="7">7 uur</option><option value="8">8 uur</option>
+                </select></div>
+              <div class="field wide"><span class="note" id="wcTijdNote"></span></div>
             </div>
 
             <div class="grid-form" style="margin-top:14px">
@@ -4784,6 +4810,46 @@ async function wcAutoAanmaken(){
   wcAutoBezig = false;
 }
 
+/* ---------------- EERDER IN- OF LATER UITCHECKEN ----------------
+   Standaard inchecken is om 20:00. Eerder in- of later uitchecken kan alleen als
+   de suite vrij is: €50 per uur, een half uur €30, maximaal 8 uur. Later
+   inchecken in overleg kost €25. */
+const TIJD_TARIEF = {uur: 50, half: 30, maxUren: 8, laterIn: 25};
+function tijdBedrag(){
+  const soort = ($('#wcTijdVerzoek')||{}).value || '';
+  if(!soort) return 0;
+  if(soort === 'later-in') return TIJD_TARIEF.laterIn;
+  const uren = Number(($('#wcTijdUren')||{}).value || 0);
+  if(uren === 0.5) return TIJD_TARIEF.half;
+  return Math.min(uren, TIJD_TARIEF.maxUren) * TIJD_TARIEF.uur;
+}
+function tijdTekst(){
+  const soort = ($('#wcTijdVerzoek')||{}).value || '';
+  if(!soort) return '';
+  const uren = Number(($('#wcTijdUren')||{}).value || 0);
+  const urenTekst = uren === 0.5 ? 'een half uur' : uren + ' uur';
+  if(soort === 'eerder')    return 'Eerder inchecken, ' + urenTekst + ' — ' + eur(tijdBedrag());
+  if(soort === 'later-uit') return 'Later uitchecken, ' + urenTekst + ' — ' + eur(tijdBedrag());
+  return 'Later inchecken in overleg — ' + eur(TIJD_TARIEF.laterIn);
+}
+function wcTijdToon(){
+  const note = $('#wcTijdNote'); if(!note) return;
+  const soort = ($('#wcTijdVerzoek')||{}).value || '';
+  const urenVeld = $('#wcTijdUren');
+  if(urenVeld && urenVeld.closest('.field'))
+    urenVeld.closest('.field').style.display = (soort === 'eerder' || soort === 'later-uit') ? '' : 'none';
+  note.innerHTML = soort
+    ? '<strong>' + esc(tijdTekst()) + '</strong> — onder voorbehoud van beschikbaarheid, vooraf ' +
+      'bevestigen per bericht. Dit bedrag komt bovenop de reservering.'
+    : 'Standaard inchecken is om 20:00. Eerder inchecken kan als de suite vrij is: <strong>€50 per uur</strong>, ' +
+      'een half uur €30, maximaal 8 uur. Later inchecken in overleg kost €25.';
+}
+['#wcTijdVerzoek','#wcTijdUren'].forEach(x=>{
+  const el = $(x);
+  if(el) el.addEventListener('change', ()=>{ wcTijdToon(); if(typeof wcVersTekst === 'function') wcVersTekst(true); });
+});
+setTimeout(wcTijdToon, 0);
+
 /* ---------------- WELKOMSTCALLS TE DOEN (op de overzichtspagina) ----------------
    Per call regel je hier alles: koppelen aan een reservering en aan een ingevuld
    formulier, klant aanmaken, wie hem verwerkte, wat er is bijgeboekt en de status. */
@@ -6256,6 +6322,10 @@ function wcFormulier(){
     incheck_link: $('#wcIncheckLink') ? $('#wcIncheckLink').value : null,
     status: $('#wcStatus').value,
     notitie: $('#wcNotitie').value.trim() || null,
+    bijzonderheden: $('#wcBijz') ? ($('#wcBijz').value.trim() || null) : null,
+    allergieen: $('#wcAllergie') ? ($('#wcAllergie').value.trim() || null) : null,
+    tijd_verzoek: ($('#wcTijdVerzoek') && $('#wcTijdVerzoek').value) || null,
+    tijd_bedrag: tijdBedrag() || null,
     bijlage_url:  wcBijlage ? wcBijlage.url  : null,
     bijlage_naam: wcBijlage ? wcBijlage.naam : null,
     kanaal: wcKanaalStand,
@@ -6581,6 +6651,18 @@ function wcBericht(f, kanaal){
     r.push('');
     r.push('Totaal bij te betalen: '+eur(f.totaal));
   }
+  if($('#wcTijdVerzoek') && $('#wcTijdVerzoek').value){
+    const soort = $('#wcTijdVerzoek').value;
+    r.push('');
+    r.push(soort === 'later-uit' ? 'Je vroeg of je later kunt uitchecken. Dat kan als de suite daarna vrij is.'
+      : soort === 'later-in' ? 'Je vroeg of je later kunt inchecken. Dat regelen we in overleg.'
+      : 'Je vroeg of je eerder kunt inchecken. Dat kan als de suite die dag vrij is.');
+    r.push('De kosten daarvoor zijn ' + eur(tijdBedrag()) + '. Ik bevestig het zodra ik het heb nagekeken.');
+  }
+  if($('#wcAllergie') && $('#wcAllergie').value.trim()){
+    r.push('');
+    r.push('Genoteerd bij allergieën of dieetwensen: ' + $('#wcAllergie').value.trim() + '.');
+  }
   if(f.vooraf_betaald){
     r.push('');
     r.push('Je reservering' + (f.bron ? ' via '+f.bron : '') + ' is al volledig vooraf betaald'
@@ -6775,7 +6857,9 @@ $('#wcGastform').addEventListener('click', ()=>{
 $('#wcNieuw').addEventListener('click', ()=>{
   wcHuidig = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
   ['#wcNaam','#wcVoor','#wcAchter','#wcTel','#wcMail','#wcPlaats','#wcRef','#wcTijd','#wcTijdEind',
-   '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg'].forEach(s=>{ const el=$(s); if(el) el.value=''; });
+   '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg','#wcBijz','#wcAllergie']
+    .forEach(s=>{ const el=$(s); if(el) el.value=''; });
+  if($('#wcTijdVerzoek')){ $('#wcTijdVerzoek').value=''; wcTijdToon(); }
   $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcDatumEind').value='';
   $('#wcStatus').value='te bellen'; $('#wcMember').value=''; $('#wcBron').value='';
   vulWcDoor(IK ? IK.id : '');
@@ -6943,6 +7027,9 @@ document.addEventListener('click', async e=>{
     wcToonVoorafNote(voorafBron());
     wcSmgVat(); wcHerhaalCheck(); wcZetBetaal(c.betaalwijze==='locatie' ? 'locatie' : 'mollie');
     $('#wcBetaallink').value = c.betaallink||''; $('#wcNotitie').value = c.notitie||'';
+    if($('#wcBijz'))     $('#wcBijz').value = c.bijzonderheden || '';
+    if($('#wcAllergie')) $('#wcAllergie').value = c.allergieen || '';
+    if($('#wcTijdVerzoek')){ $('#wcTijdVerzoek').value = c.tijd_verzoek || ''; wcTijdToon(); }
     $('#wcStatus').value = c.status||'te bellen';
     wcBijlage = c.bijlage_url ? {url:c.bijlage_url, naam:c.bijlage_naam || 'bijlage'} : null;
     wcTekstAangepast = false; wcToonBijlage();
