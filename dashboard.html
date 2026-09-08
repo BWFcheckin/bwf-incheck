@@ -470,6 +470,20 @@ body.gate-open{overflow:hidden}
 #panel-overzicht .dagblok h3:first-child{margin-top:0}
 
 #panel-overzicht .lijstkop{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+/* uitklapbare kopjes op het overzicht */
+.uitklapkop{cursor:pointer;user-select:none}
+.uitklapkop .uitklappijl{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:8px;
+  border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:16px;line-height:1;
+  transform:rotate(0deg);transition:transform .16s ease}
+.uitklapkop[aria-expanded="true"] .uitklappijl{transform:rotate(90deg)}
+
+/* twee teltegels die alleen op de telefoon verschijnen */
+.mobieltegels{display:none}
+@media(max-width:620px){
+  .mobieltegels{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  /* op de telefoon tonen we alleen de eerste twee gewone tegels niet meer dubbel */
+  #tegels .tegel-wrap:nth-child(-n+2){display:none}
+}
 #panel-overzicht .contactrij{display:flex;gap:10px;flex-wrap:wrap}
 #panel-overzicht .contactrij a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;
   border:1px solid var(--line,#e3dad0);border-radius:12px;padding:11px 16px;font-weight:600;font-size:14px;
@@ -840,7 +854,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
-    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
+    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad" hidden style="display:none">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Vragen &amp; taken</button>
   </nav>
 
@@ -857,8 +871,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     <div class="ov-tegels" id="ovTegels"></div>
 
-    <h2 class="ov-kopje">Voorraad &amp; bestellingen</h2>
-    <div class="ov-tegels" id="ovVoorraadTegels"></div>
 
     <div class="ov-bar">
       <div class="ov-rij">
@@ -907,14 +919,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     <div class="ovk" id="ovKalender"></div>
 
-    <div class="lijstkop"><h2 style="font-size:19px">Vandaag</h2><span class="ovk-tel" id="ovVandaagTel"></span></div>
-    <table class="res">
-      <thead><tr>
-        <th>Suite</th><th>Datum</th><th>Incheck</th><th>Uitcheck</th>
-        <th>Gast</th><th>Kanaal</th><th>Openstaand</th><th>Status</th>
-      </tr></thead>
-      <tbody id="ovVandaag"></tbody>
-    </table>
+    <div class="lijstkop uitklapkop" id="ovVandaagKop" role="button" tabindex="0" aria-expanded="false">
+      <span class="uitklappijl">&rsaquo;</span>
+      <h2 style="font-size:19px">Reserveringen vandaag</h2>
+      <span class="ovk-tel" id="ovVandaagTel"></span>
+    </div>
+    <div id="ovVandaagBlok" hidden>
+      <table class="res">
+        <thead><tr>
+          <th>Suite</th><th>Datum</th><th>Incheck</th><th>Uitcheck</th>
+          <th>Gast</th><th>Kanaal</th><th>Openstaand</th><th>Status</th>
+        </tr></thead>
+        <tbody id="ovVandaag"></tbody>
+      </table>
+    </div>
 
     <div class="lijstkop"><h2 style="font-size:19px">Reserveringsformulieren</h2><span class="ovk-tel" id="sectieTel"></span></div>
     <p style="margin:-4px 0 12px;font-size:14px;opacity:.7;max-width:70ch">Vul hier een nieuw formulier in,
@@ -945,6 +963,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="lijstkop"><h2 style="font-size:19px">Contact</h2>
       <button class="knop klein" type="button" id="ovContactBeheer" style="margin-left:auto">Beheren</button></div>
     <div class="contactrij" id="ovContact"></div>
+
+    <div class="lijstkop"><h2 style="font-size:19px">Voorraad &amp; bestellingen</h2></div>
+    <div class="contactrij">
+      <a href="#" id="ovVoorraadKnop" role="button">Voorraad &amp; bestellingen openen
+        <span class="badge" id="badge-voorraad-onder">0</span></a>
+    </div>
 
     <div class="lijstkop"><h2 style="font-size:19px">Documenten &amp; links</h2>
       <button class="knop klein" type="button" id="ovVoetBeheer" style="margin-left:auto">Beheren</button></div>
@@ -1109,6 +1133,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <h1>Start</h1>
       <p>Alles wat je dagelijks nodig hebt op &eacute;&eacute;n scherm. Klik een tegel om te openen. Met het potloodje pas je het webadres van een tegel aan.</p>
     </div>
+    <div class="stats mobieltegels" id="mobTegels"></div>
     <div class="tegels" id="tegels"></div>
   </section>
 
@@ -3666,7 +3691,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<b>'+g.n+'</b><span>'+esc(g.label)+'</span><small>'+esc(g.sub)+'</small></button>';
     }).join('');
   }
-  document.getElementById('ovVoorraadTegels').addEventListener('click', function(e){
+  /* het voorraadblok staat niet meer in het dagoverzicht; de code hieronder
+     blijft werken als het ooit terugkomt */
+  var vrTegels = document.getElementById('ovVoorraadTegels');
+  if(vrTegels) vrTegels.addEventListener('click', function(e){
     var t = e.target.closest('[data-doel]'); if(!t) return;
     var knop = document.getElementById('tab-voorraad');
     if(knop) knop.click();
@@ -3845,6 +3873,77 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<td>'+vlag+'</td></tr>';
   }
 
+  /* Boekingen vandaag en morgen — deze twee tegels staan alleen op de telefoon
+     bovenaan het startscherm, zodat je meteen ziet wie er komt. */
+  function tekenMobTegels(){
+    var houder = document.getElementById('mobTegels'); if(!houder) return;
+    var nu = new Date(), mor = new Date(); mor.setDate(nu.getDate()+1);
+    var dagVandaag = dstr(nu), dagMorgen = dstr(mor);
+    function tel(dag){
+      return gefilterd().filter(function(r){
+        if(isVrijBlok(r)) return false;
+        return r.aankomst === dag;
+      });
+    }
+    function vak(titel, dag, kleur){
+      var rijen = tel(dag);
+      var namen = rijen.slice(0,3).map(function(r){ return gastnaam(r); }).join(', ');
+      return '<div class="stat ' + kleur + '" data-mobdag="' + dag + '" role="button" tabindex="0">' +
+        '<span class="label">' + titel + '</span>' +
+        '<span class="value">' + rijen.length + '</span>' +
+        '<span class="sub">' + (rijen.length ? esc(namen) + (rijen.length > 3 ? ' e.a.' : '')
+          : 'niemand ingepland') + '</span></div>';
+    }
+    houder.innerHTML = vak('Boekingen vandaag', dagVandaag, '') +
+                       vak('Boekingen morgen',  dagMorgen,  'brass');
+    houder.querySelectorAll('[data-mobdag]').forEach(function(el){
+      el.addEventListener('click', function(){
+        vandaagOpen(true);
+        var kop = document.getElementById('ovVandaagKop');
+        if(kop) kop.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+  }
+
+  /* De lijst Vandaag staat standaard dicht; je klapt hem open met de kop
+     of door op een van de twee teltegels te tikken. */
+  function vandaagOpen(open){
+    var kop = document.getElementById('ovVandaagKop'),
+        blok = document.getElementById('ovVandaagBlok');
+    if(!kop || !blok) return;
+    if(open === undefined) open = kop.getAttribute('aria-expanded') !== 'true';
+    kop.setAttribute('aria-expanded', String(open));
+    blok.hidden = !open;
+    try{ localStorage.setItem('bw-vandaag-open', open ? '1' : '0'); }catch(e){}
+  }
+  (function(){
+    var kop = document.getElementById('ovVandaagKop'); if(!kop) return;
+    kop.addEventListener('click', function(){ vandaagOpen(); });
+    kop.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); vandaagOpen(); }
+    });
+    try{ if(localStorage.getItem('bw-vandaag-open') === '1') vandaagOpen(true); }catch(e){}
+  })();
+
+  /* Voorraad staat niet meer in de tabbalk maar onderaan bij Contact */
+  (function(){
+    var knop = document.getElementById('ovVoorraadKnop');
+    if(!knop) return;
+    knop.addEventListener('click', function(e){
+      e.preventDefault();
+      var tab = document.getElementById('tab-voorraad');
+      if(tab){ tab.hidden = false; tab.style.display = ''; tab.click(); tab.hidden = true; tab.style.display = 'none'; }
+    });
+    /* de teller onderaan meelopen met die van het tabblad */
+    var bron = document.getElementById('badge-voorraad'),
+        doel = document.getElementById('badge-voorraad-onder');
+    if(bron && doel && window.MutationObserver){
+      new MutationObserver(function(){ doel.textContent = bron.textContent; })
+        .observe(bron, {childList:true, characterData:true, subtree:true});
+      doel.textContent = bron.textContent;
+    }
+  })();
+
   function tekenVandaag(){
     var vandaag = dstr(new Date());
     function opVandaag(r){
@@ -3856,6 +3955,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var vrij    = (vrijAan() ? vrijeSlots(vandaag) : []).sort(function(a,b){
       return String(a.tijdIn).localeCompare(String(b.tijdIn)); });
 
+    tekenMobTegels();
     document.getElementById('ovVandaagTel').textContent =
       boeking.length+' boeking'+(boeking.length===1?'':'en')+
       (vrij.length ? ' \u00b7 '+vrij.length+' vrij blok'+(vrij.length===1?'':'ken') : '');
