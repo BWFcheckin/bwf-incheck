@@ -62,6 +62,22 @@ input[type=date],select{background:var(--surface);border:1px solid var(--line);b
 .teller b{font-family:var(--f-display);font-size:20px;line-height:1}
 .teller span{font-size:13px;color:var(--muted)}
 
+/* ---------- snelkoppelingen ---------- */
+.snelrij{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.snel{display:block;text-align:left;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-m);padding:12px 14px;text-decoration:none;color:var(--ink);cursor:pointer;
+  font:inherit;box-shadow:var(--shadow)}
+.snel:hover{background:var(--surface-2);border-color:var(--accent)}
+.snel b{display:block;font-family:var(--f-display);font-size:15px}
+.snel span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.dienstlijst{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);
+  padding:14px 16px;margin-bottom:16px}
+.dienstlijst h3{font-family:var(--f-display);font-size:15px;margin:0 0 8px}
+.dienstrij{display:flex;gap:12px;justify-content:space-between;padding:6px 0;
+  border-bottom:1px solid var(--line-soft);font-size:14px}
+.dienstrij:last-child{border-bottom:0}
+.dienstrij .dag{font-family:var(--f-mono)}
+
 /* ---------- lijst ---------- */
 .groep{margin-bottom:22px}
 .groepkop{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;
@@ -180,6 +196,17 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
     </div>
 
     <div class="tellers" id="tellers"></div>
+
+    <div class="snelrij">
+      <a class="snel" href="reserveringen.html" target="_blank" rel="noopener">
+        <b>Volledige agenda</b><span>alle reserveringen, lijst en kalender</span></a>
+      <button class="snel" type="button" id="knopDiensten">
+        <b>Mijn diensten</b><span id="dienstSub">wanneer sta jij ingeroosterd</span></button>
+      <a class="snel" href="https://www.smgdashboard.nl" target="_blank" rel="noopener">
+        <b>SMG-dashboard</b><span>ter controle openen</span></a>
+    </div>
+    <div id="dienstenVak"></div>
+
     <div id="lijst"></div>
   </div>
 </div>
@@ -938,6 +965,49 @@ async function bewaarNotitie(x){
   }
 }
 
+/* ============ mijn diensten ============
+   Uit de planning: wanneer staat de ingelogde persoon ingeroosterd. Er wordt
+   gezocht op medewerkersnummer, en anders op naam. */
+let DIENSTEN_OPEN = false;
+
+async function toonDiensten(){
+  const vak = document.getElementById('dienstenVak');
+  if(!vak) return;
+  DIENSTEN_OPEN = !DIENSTEN_OPEN;
+  if(!DIENSTEN_OPEN){ vak.innerHTML = ''; return; }
+
+  vak.innerHTML = '<div class="dienstlijst">Bezig met ophalen\u2026</div>';
+  const vanaf = DATUM;
+  const rijen = await haal('planning?select=*&datum=gte.' + vanaf + '&order=datum.asc&limit=200', 'planning');
+
+  const mijnId = IK ? String(IK.id || '').toLowerCase() : '';
+  const mijnNaam = IK ? String(IK.naam || '').toLowerCase().trim() : '';
+  const mijn = rijen.filter(function(p){
+    const m = String(p.medewerker_id || '').toLowerCase();
+    return (mijnId && m === mijnId) ||
+           (mijnNaam && m === mijnNaam) ||
+           (mijnNaam && String(p.dienst || '').toLowerCase().indexOf(mijnNaam) > -1);
+  });
+
+  vak.innerHTML = '<div class="dienstlijst"><h3>Mijn diensten' +
+    (IK && IK.naam ? ' \u2014 ' + esc(IK.naam) : '') + '</h3>' +
+    (mijn.length
+      ? mijn.slice(0, 20).map(function(p){
+          return '<div class="dienstrij"><span class="dag">' +
+            esc(nlDatum(String(p.datum).slice(0, 10))) + '</span><span>' +
+            esc(locNaam(locId(p.locatie)) || p.locatie || '') +
+            (p.dienst ? ' \u00b7 ' + esc(p.dienst) : '') +
+            (p.notitie ? ' \u00b7 ' + esc(p.notitie) : '') + '</span></div>';
+        }).join('')
+      : '<p style="margin:0;color:var(--muted);font-size:14px">Vanaf ' + esc(nlDatum(vanaf)) +
+        ' staan er geen diensten op jouw naam in de planning.</p>') + '</div>';
+
+  const sub = document.getElementById('dienstSub');
+  if(sub) sub.textContent = mijn.length
+    ? mijn.length + ' dienst' + (mijn.length === 1 ? '' : 'en') + ' vanaf vandaag'
+    : 'niets ingeroosterd gevonden';
+}
+
 /* ============ opstarten ============ */
 async function ververs(){
   await laadDag();
@@ -969,6 +1039,7 @@ document.getElementById('lg_knop').addEventListener('click', inloggen);
 document.getElementById('lg_ww').addEventListener('keydown', e => { if(e.key === 'Enter') inloggen(); });
 document.getElementById('knopUit').addEventListener('click', () => { zetSessie(null); location.reload(); });
 document.getElementById('knopVernieuw').addEventListener('click', ververs);
+document.getElementById('knopDiensten').addEventListener('click', toonDiensten);
 document.getElementById('dagTerug').addEventListener('click', () => zetDatum(schuifDag(DATUM, -1)));
 document.getElementById('dagVooruit').addEventListener('click', () => zetDatum(schuifDag(DATUM, 1)));
 document.getElementById('knopVandaag').addEventListener('click', () => zetDatum(vandaagISO()));
