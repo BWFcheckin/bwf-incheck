@@ -12,6 +12,8 @@ De website bevat nu een Planyo-agenda en een beveiligde aansluiting voor het kla
 
 Na het inloggen haalt de agenda automatisch reserveringen uit Planyo op. Zonder geldige dashboardsessie geeft de functie geen gastgegevens terug.
 
+De agenda voegt deze gegevens samen met de bestaande gezamenlijke agenda. Daardoor blijven reserveringen van Booking.com, Privésauna, Origineel Overnachten en andere reeds gekoppelde kanalen zichtbaar. Boekingen met hetzelfde reserveringsnummer worden maar één keer getoond.
+
 ## Wat al klaarstaat
 
 - Reserveringen ophalen voor de agenda, inclusief paginering.
