@@ -675,6 +675,11 @@ function rijHtml(x, veld){
     ? '<span class="tag ok">incheck klaar</span>'
     : '<span class="tag open">incheck open</span>');
   if(x.aanmelding) tags.push('<span class="tag ok">gast ingevuld</span>');
+  /* de welkomstcall en bijzonderheden meteen zichtbaar in de lijst */
+  const wcs = x.koppeling && x.koppeling.wc_status;
+  if(wcs === 'gebeld en geregeld') tags.push('<span class="tag ok">welkomstcall gedaan</span>');
+  else if(wcs && wcs !== 'nog niet gebeld') tags.push('<span class="tag open">' + esc(wcs) + '</span>');
+  if(x.koppeling && x.koppeling.notitie) tags.push('<span class="tag let">notitie</span>');
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   if(open > 0) tags.push(`<span class="tag let">${euro(open)} op locatie</span>`);
 
@@ -699,6 +704,11 @@ function openDetail(sleutel){
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   const g = x.aanmelding;
   const notitie = x.koppeling ? (x.koppeling.notitie || '') : '';
+  const wc = {
+    status : x.koppeling ? (x.koppeling.wc_status || 'nog niet gebeld') : 'nog niet gebeld',
+    bedrag : x.koppeling ? (x.koppeling.wc_extra_bedrag || '') : '',
+    betaald: x.koppeling ? (x.koppeling.wc_betaalwijze || 'nog niet betaald') : 'nog niet betaald'
+  };
 
   document.getElementById('d_body').innerHTML = `
     <div class="blok">
@@ -748,9 +758,35 @@ function openDetail(sleutel){
       </div>
     </div>
     <div class="blok">
-      <h3>Notitie voor het team</h3>
-      <textarea id="d_notitie" placeholder="Bijvoorbeeld: late aankomst afgesproken, taart om 20:00.">${esc(notitie)}</textarea>
-      <div class="knoprij"><button class="btn sm" id="d_bewaar">Notitie bewaren</button></div>
+      <h3>Snel naar</h3>
+      <div class="knoprij">
+        <a class="btn sec sm" href="${boekingLink(x)}" target="_blank" rel="noopener">Boeking aanmaken</a>
+        <a class="btn sec sm" href="${klantLink(x)}" target="_blank" rel="noopener">Klantgegevens</a>
+        <a class="btn sec sm" href="${gastLink(x)}" target="_blank" rel="noopener">Gastenformulier invullen</a>
+      </div>
+    </div>
+    <div class="blok">
+      <h3>Welkomstcall en bijzonderheden</h3>
+      <dl class="paar">
+        <dt>Status</dt><dd>
+          <select id="d_wcstatus" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px">
+            ${['nog niet gebeld','gebeld en geregeld','geen gehoor','terugbellen','nummer klopt niet',
+               'wil niet gebeld worden'].map(function(s){
+                 return '<option' + (wc.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('')}
+          </select></dd>
+        <dt>Bijgeboekt</dt><dd>
+          <input type="number" id="d_wcbedrag" step="0.01" min="0" value="${wc.bedrag || ''}"
+                 placeholder="bedrag extra's" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px"></dd>
+        <dt>Hoe betaald</dt><dd>
+          <select id="d_wcbetaald" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px">
+            ${['nog niet betaald','vooraf via betaallink','op locatie pin','op locatie contant',
+               'bij de reservering inbegrepen'].map(function(s){
+                 return '<option' + (wc.betaald === s ? ' selected' : '') + '>' + s + '</option>'; }).join('')}
+          </select></dd>
+      </dl>
+      <textarea id="d_notitie" style="margin-top:8px"
+        placeholder="Bijzonderheden voor de locatiemanager: late aankomst, allergie, taart om 20:00, welke extra's zijn bijgeboekt.">${esc(notitie)}</textarea>
+      <div class="knoprij"><button class="btn sm" id="d_bewaar">Bewaren</button></div>
       <div class="melding" id="d_melding"></div>
     </div>
     ${(x.opmerkingen || x.titelRuw) ? `<div class="blok"><h3>Uit de boeking</h3><p style="font-size:14px;margin:0">${esc(x.opmerkingen || x.titelRuw)}</p></div>` : ''}
@@ -801,6 +837,27 @@ function incheckLink(x){
   if(x.opmerkingen) p.set('opmerking', x.opmerkingen);
   return 'incheckformulier.html?' + p.toString();
 }
+/* Een boeking aanmaken op de reserveringenpagina, met wat we al weten. */
+function boekingLink(x){
+  const p = new URLSearchParams();
+  p.set('nieuw', '1');
+  if(x.locatie)  p.set('locatie', x.locatie);
+  if(x.aankomst) p.set('datum', x.aankomst);
+  if(x.vertrek && x.vertrek !== x.aankomst) p.set('tot', x.vertrek);
+  if(x.tijdIn)   p.set('tijdin', x.tijdIn);
+  if(x.tijdUit)  p.set('tijduit', x.tijdUit);
+  if(x.naam)     p.set('naam', x.naam);
+  if(x.telefoon) p.set('telefoon', x.telefoon);
+  if(x.email)    p.set('email', x.email);
+  if(x.resnr)    p.set('referentie', x.resnr);
+  return 'reserveringen.html?' + p.toString();
+}
+/* De klantkaart opzoeken in klantbeheer. */
+function klantLink(x){
+  const zoek = x.email || x.telefoon || String(x.naam || '').split(' ').slice(-1)[0] || '';
+  return 'klantbeheer.html' + (zoek ? '?zoek=' + encodeURIComponent(zoek) : '');
+}
+
 function gastLink(x){
   const p = new URLSearchParams();
   if(x.resnr)    p.set('r', x.resnr);
@@ -812,6 +869,9 @@ function gastLink(x){
 
 async function bewaarNotitie(x){
   const tekst = document.getElementById('d_notitie').value;
+  const wcStatus = (document.getElementById('d_wcstatus') || {}).value || null;
+  const wcBedrag = parseFloat((document.getElementById('d_wcbedrag') || {}).value || 0) || null;
+  const wcBetaald = (document.getElementById('d_wcbetaald') || {}).value || null;
   melding('Bezig met bewaren…', '');
   try{
     await api('res_koppeling?on_conflict=res_sleutel', {
@@ -821,12 +881,19 @@ async function bewaarNotitie(x){
         res_sleutel: x.sleutel,
         bron: x.eigen ? 'handmatig' : (x.bron || 'agenda'),
         notitie: tekst,
+        wc_status: wcStatus,
+        wc_extra_bedrag: wcBedrag,
+        wc_betaalwijze: wcBetaald,
         bijgewerkt: new Date().toISOString()
       })
     });
     if(!x.koppeling) x.koppeling = {};
     x.koppeling.notitie = tekst;
-    melding('Notitie bewaard.', 'ok');
+    x.koppeling.wc_status = wcStatus;
+    x.koppeling.wc_extra_bedrag = wcBedrag;
+    x.koppeling.wc_betaalwijze = wcBetaald;
+    melding('Bewaard \u2014 de locatiemanager ziet dit ook.', 'ok');
+    teken();
   }catch(e){
     melding('Bewaren lukte niet: ' + e.message, 'err');
   }
