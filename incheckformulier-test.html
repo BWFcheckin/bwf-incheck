@@ -289,8 +289,6 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 2 · AANMELDINGEN VAN GASTEN ================= -->
   <div class="card">
-    <h3>Aanmeldingen en gastgegevens</h3>
-    <p class="desc">Deze gegevens komen uit de koppeling in blok 1. Klopt er iets niet, dan pas je het hier aan; handmatig invullen kan altijd.</p>
     <h3>Aanmeldingen van gasten</h3>
     <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken &mdash; de klantgegevens en handtekening staan er dan al in.</p>
     <div class="aanmeld-lijst" id="aanmeldLijst"></div>
@@ -512,8 +510,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       </div>
     </div>
 
-    <h3>Betalingen</h3>
-    <p class="desc">Voeg elke betaling apart toe, ook als de gast later nog iets betaalt.</p>
+    <h3>Restant betalen bij uitchecken</h3>
+    <p class="desc">Voeg elke betaling apart toe: pin, contant of via een betaallink. Ook een betaling
+      achteraf hoort hier, dan blijft de afrekening kloppen.</p>
     <div class="order-add">
       <div class="qty" style="max-width:120px;"><label>Bedrag (&euro;)</label><input type="number" id="betBedrag" step="0.01" min="0"></div>
       <div><label>Betaalwijze</label>
@@ -1610,7 +1609,8 @@ function gebruikAanmelding(id){
   };
   renderGuestStatus();
   herberekenAlles();
-  document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
+  if(window.bwfToonGastgegevens) window.bwfToonGastgegevens();
+  else document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 async function verwerkteAanmeldingWegstrepen(checkinId){
@@ -3571,24 +3571,60 @@ body{background:#f4f7fb!important}
 
     /* ---- 1. Beginnen ---- */
     var start = sectie(1, "Beginnen", "nieuw formulier of verder met een concept",
-      "Start", [K.aanmeld, K.concept], true);
+      "Start", [K.aanmeld, K.concept, K.gastform], true);
     if(start){
       var body = start.querySelector(".bwf-body");
+
       var knoppen = document.createElement("div");
       knoppen.className = "linkbox";
-      knoppen.style.marginBottom = "14px";
+      knoppen.style.marginBottom = "12px";
       knoppen.innerHTML =
         '<button class="btn" type="button" id="bwfNieuwForm">Nieuw formulier beginnen</button>' +
-        '<button class="btn secondary" type="button" id="bwfConceptForm">Naar de klaargezette formulieren</button>';
+        '<button class="btn secondary" type="button" id="bwfConceptForm">Concept openen</button>';
       body.insertBefore(knoppen, body.firstChild);
+
+      /* Eén keuzelijst in plaats van drie lijsten onder elkaar. */
+      var stukken = [
+        { el:K.concept,  naam:"Klaargezette formulieren" },
+        { el:K.aanmeld,  naam:"Aanmeldingen van gasten" },
+        { el:K.gastform, naam:"Gastgegevens en akkoord" }
+      ].filter(function(x){ return x.el; });
+
+      var kiesVak = document.createElement("div");
+      kiesVak.style.marginBottom = "14px";
+      kiesVak.innerHTML =
+        '<label for="bwfStartKeuze" style="display:block;font-size:12px;margin-bottom:4px">Wat wil je zien</label>' +
+        '<select id="bwfStartKeuze" style="max-width:340px">' +
+        stukken.map(function(x, i){ return '<option value="' + i + '">' + x.naam + "</option>"; }).join("") +
+        "</select>";
+      body.insertBefore(kiesVak, knoppen.nextSibling);
+
+      function toon(k){
+        stukken.forEach(function(x, i){ x.el.hidden = i !== k; x.el.classList.add("zonderkop"); });
+      }
+      toon(0);
+      document.getElementById("bwfStartKeuze").onchange = function(){ toon(+this.value); };
 
       document.getElementById("bwfNieuwForm").onclick = function(){
         if(typeof clearCheckinForm === "function") clearCheckinForm();
         if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
       };
       document.getElementById("bwfConceptForm").onclick = function(){
+        document.getElementById("bwfStartKeuze").value = "0";
+        toon(0);
         var l = document.getElementById("conceptLijst");
         if(l) l.scrollIntoView({ behavior:"smooth", block:"center" });
+      };
+
+      /* Zodra er gastgegevens zijn overgenomen, springt de keuzelijst
+         daarheen zodat je meteen ziet wat er is opgeslagen. */
+      window.bwfToonGastgegevens = function(){
+        var i = stukken.map(function(x){ return x.el; }).indexOf(K.gastform);
+        if(i < 0) return;
+        document.getElementById("bwfStartKeuze").value = String(i);
+        toon(i);
+        start.setAttribute("data-open", "1");
+        K.gastform.scrollIntoView({ behavior:"smooth", block:"center" });
       };
     }
 
@@ -3596,7 +3632,7 @@ body{background:#f4f7fb!important}
     sectie(2, "Reserveringsgegevens",
       "koppelen, controleren en de gast erbij zoeken",
       "Boekingsgegevens",
-      [K.koppel, K.boeking, K.arr, K.vooraf, K.gastform], true);
+      [K.koppel, K.boeking, K.arr, K.vooraf], true);
 
     /* ---- 3. Locatiemanager (sleutel blijft Eindafrekening) ---- */
     sectie(3, "In te vullen door de locatiemanager",
