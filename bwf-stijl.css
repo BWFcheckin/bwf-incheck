@@ -1,0 +1,136 @@
+/* =========================================================
+   bwf-stijl.css — één vormgeving voor alle BWF-pagina's
+   Overgenomen uit het VR Dashboard.
+
+   Gebruik: zet in de <head> van een pagina deze regel, ná de
+   eigen stijl van die pagina zodat hij die kan overschrijven:
+
+     <link rel="stylesheet" href="bwf-stijl.css">
+
+   Pas kleuren hier aan, dan verandert het overal tegelijk.
+   ========================================================= */
+
+:root{
+  /* ---- kleuren ---- */
+  --bg:#F4F1ED;            /* achtergrond van de pagina */
+  --surface:#FFFFFF;       /* kaarten en panelen */
+  --surface-2:#FAF7F3;     /* invoervelden, lichte vlakken */
+  --line:#E3DAD0;          /* randen */
+  --line-soft:#EFE8E1;     /* scheidingslijnen binnen een kaart */
+
+  --ink:#241E19;           /* tekst */
+  --ink-2:#4B4239;         /* labels */
+  --muted:#7B6E62;         /* bijschriften */
+
+  --accent:#483C34;        /* knoppen en koppen */
+  --accent-ink:#FFFFFF;
+  --accent-soft:#E8DFD5;
+  --brass:#9A7B4F;         /* accentkleur, links */
+
+  --ok:#3F7A55;      --ok-soft:#DFEDE2;
+  --warn:#8F6420;    --warn-soft:#F6EBD9;
+  --crit:#A34434;    --crit-soft:#F7E2DC;
+
+  /* ---- per suite ---- */
+  --loc-angie:#9A7B4F;
+  --loc-jacuzzi:#6F7A5A;
+  --loc-deluxe:#A25E48;
+
+  /* ---- vorm ---- */
+  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
+  --r-s:6px; --r-m:10px; --r-l:16px;
+
+  /* ---- lettertypen ---- */
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+
+/* ---- donkere modus, gestuurd door data-theme op <html> ---- */
+:root[data-theme="dark"]{
+  --bg:#1A1613; --surface:#221D19; --surface-2:#2A241F;
+  --line:#3A322B; --line-soft:#312A24;
+  --ink:#F0EAE3; --ink-2:#D5CABF; --muted:#9C8E80;
+  --accent:#7A6248; --accent-ink:#FFFFFF; --accent-soft:#33291F;
+  --brass:#C79A63;
+  --ok:#6FA783; --ok-soft:#25352B; --warn:#C79A63; --warn-soft:#352C1F;
+  --crit:#D98B7D; --crit-soft:#3A2622;
+  --loc-angie:#C79A63; --loc-jacuzzi:#9FAE82; --loc-deluxe:#D98B7D;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 24px -14px rgba(0,0,0,.6);
+}
+
+/* =========================================================
+   Basis
+   ========================================================= */
+html{ background:var(--bg); }
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--f-body); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{ font-family:var(--f-display); font-weight:600; letter-spacing:-.01em; }
+a{ color:var(--brass); }
+:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; border-radius:4px; }
+@media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
+
+/* =========================================================
+   Onderdelen — dezelfde namen als in het VR Dashboard
+   ========================================================= */
+.card,.paneel,.kaart{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-l); box-shadow:var(--shadow);
+}
+
+.btn,.knop{
+  display:inline-flex; align-items:center; gap:7px;
+  background:var(--accent); color:var(--accent-ink);
+  border:1px solid var(--accent); border-radius:var(--r-s);
+  padding:9px 16px; font-size:13.5px; font-weight:600;
+  text-decoration:none; cursor:pointer; white-space:nowrap;
+}
+.btn:hover,.knop:hover{ filter:brightness(1.12); }
+.btn.secondary,.btn.sec,.btn.ghost,.knop.secondary{
+  background:var(--surface); color:var(--ink); border-color:var(--line); filter:none;
+}
+.btn.secondary:hover,.btn.sec:hover,.btn.ghost:hover,.knop.secondary:hover{
+  border-color:var(--accent); color:var(--accent); background:var(--surface-2);
+}
+.btn.danger,.knop.gevaar{ background:var(--surface); color:var(--crit); border-color:var(--crit); }
+.btn.sm,.btn.small,.knop.klein{ padding:6px 11px; font-size:12.5px; }
+.btn:disabled,.knop:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
+
+input,select,textarea{
+  background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--r-s); padding:8px 10px; font:inherit; color:var(--ink);
+}
+input:focus,select:focus,textarea:focus{
+  outline:2px solid var(--accent); outline-offset:-1px; background:var(--surface);
+}
+label{ color:var(--ink-2); }
+
+table{ border-collapse:collapse; width:100%; }
+th{
+  text-align:left; font-family:var(--f-mono); font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted); font-weight:500;
+  padding:10px 12px; border-bottom:1px solid var(--line);
+}
+td{ padding:10px 12px; border-bottom:1px solid var(--line-soft); }
+tbody tr:hover{ background:var(--surface-2); }
+
+.tag,.pill,.gekoppeld{
+  font-family:var(--f-mono); font-size:11px; padding:2px 8px;
+  border-radius:999px; background:var(--accent-soft); color:var(--ink-2);
+  white-space:nowrap; display:inline-block;
+}
+.tag.ok,.pill.ok{ background:var(--ok-soft); color:var(--ok); }
+.tag.open,.pill.warn{ background:var(--warn-soft); color:var(--warn); }
+.tag.let,.pill.crit{ background:var(--crit-soft); color:var(--crit); }
+
+.status.ok{ color:var(--ok); }
+.status.err{ color:var(--crit); }
+
+dialog{
+  border:1px solid var(--line); border-radius:var(--r-l);
+  background:var(--surface); color:var(--ink); box-shadow:var(--shadow);
+}
+dialog::backdrop{ background:rgba(36,30,25,.4); }
