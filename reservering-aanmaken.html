@@ -20,7 +20,7 @@
 <section class="card"><div class="head"><h2>2. Arrangementen en extra’s</h2></div><div class="body"><div class="fields"><div><label>Arrangement</label><select id="arr"></select></div><div><label>Eten en drinken</label><select id="menu"></select></div><div class="wide"><span class="label">Extra services en toeslagen</span><div id="extras" class="options"></div></div><div class="wide"><label>Andere extra / handmatige invoer</label><div class="fields"><input id="customNaam" placeholder="Omschrijving"><input id="customPrijs" type="number" min="0" step="0.01" placeholder="Bedrag"></div></div></div></div></section>
 <section class="card"><div class="head"><h2>3. Gastgegevens</h2></div><div class="body"><div class="fields"><div class="wide"><label>Bestaande klant koppelen</label><select id="klant"><option value="">Nieuwe klant handmatig invoeren</option></select></div><div><label>Voornaam</label><input id="voor"></div><div><label>Achternaam</label><input id="achter"></div><div><label>E-mail</label><input id="email" type="email"></div><div><label>Telefoon / WhatsApp</label><input id="tel" type="tel"></div><div><label>Woonplaats</label><input id="plaats"></div><div><label>Adres</label><input id="adres"></div><div><label>Hoe heeft u ons gevonden?</label><select id="bron"><option></option><option>Google</option><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>Via vrienden/familie</option><option>Booking.com</option><option>Origineel Overnachten</option><option>Anders</option></select></div><div><label>Member</label><select id="member"><option value="nee">Nee</option><option value="ja">Ja</option></select></div><div class="wide"><label>Notitie / bijzondere wensen</label><textarea id="notitie"></textarea></div></div></div></section>
 <section class="card"><div class="head"><h2>4. Betaling en factuur</h2></div><div class="body"><div class="fields"><div><label>Reeds betaald</label><input id="betaald" type="number" min="0" step="0.01" value="0"></div><div><label>Betaalwijze</label><select id="wijze"><option value="mollie">Mollie-betaallink</option><option>Pin op locatie</option><option>Contant</option><option>Bankoverschrijving</option><option>Anders</option></select></div><div><label>Factuurnummer</label><input id="factuurnr"></div><div><label>Factuuromschrijving</label><input id="factuuromschrijving" value="Wellnessreservering"></div><div class="wide"><label><input id="factuurMee" type="checkbox" style="width:auto"> Factuur maken voor de bevestiging</label></div><div class="wide company"><b>Factuurgegevens leverancier</b></div><div><label>Bedrijfsnaam</label><input id="bedrijf" value="Bed & Wellness Flevoland (Angies Enterprises)"></div><div><label>KvK</label><input id="kvk" value="62752049"></div><div><label>Volledig adres</label><input id="bedrijfAdres"></div><div><label>BTW-nummer</label><input id="btw"></div><div><label>IBAN</label><input id="iban"></div><div><label>E-mail</label><input id="bedrijfEmail" value="info@bedenwellnessflevoland.nl"></div></div></div></section>
-</div><aside><section class="card sum"><div class="head"><h2>Reservering</h2></div><div class="body"><div id="regels"></div><div class="line total"><span>Totaal</span><span id="totaal">€ 0,00</span></div><div class="line"><span>Betaald</span><span id="betaaldTekst">€ 0,00</span></div><div class="line remain"><span>Nog te betalen</span><span id="rest">€ 0,00</span></div><p class="hint">Prijzen zijn gebaseerd op de actuele tarievenlijst. Een handmatig basistarief vervangt alleen het gekozen verblijfstarief.</p><div id="gastLinkStatus" class="msg" style="display:none"><b>Persoonlijke gastenlink gereed</b><div class="actions"><a id="openGastLink" class="btn primary" target="_blank" rel="noopener">Open gastenlink</a><button id="kopieerGastLink" type="button" class="btn">Link kopiëren</button></div></div><div id="betaalStatus" class="msg" style="display:none"><b id="betaalStatusTekst"></b><div class="actions"><a id="betaalLink" class="btn primary" target="_blank" rel="noopener">Open Mollie-betaallink</a><button id="kopieerBetaling" type="button" class="btn">Link kopiëren</button><button id="controleerBetaling" type="button" class="btn">Controleer betaling</button></div></div><div class="actions"><button id="opslaan" class="btn primary">Reservering aanmaken</button><button id="factuur" class="btn">Factuur bekijken</button></div><div style="margin-top:16px"><label>E-mailsjabloon</label><select id="mailType"><option value="confirmation">Reserveringsbevestiging</option><option value="payment">Betaalverzoek</option><option value="change">Reserveringswijziging</option><option value="cancellation">Annuleringsbevestiging</option><option value="checkin">Incheckinformatie</option><option value="invoice">Factuur</option><option value="review">Reviewverzoek</option></select></div><div class="actions"><button id="mail" class="btn primary">Opgemaakte e-mail verzenden</button><button id="whatsapp" class="btn">Bevestiging WhatsApp</button></div></div></section></aside></div></main>
+</div><aside><section class="card sum"><div class="head"><h2>Reservering</h2></div><div class="body"><div id="regels"></div><div class="line total"><span>Totaal</span><span id="totaal">€ 0,00</span></div><div class="line"><span>Betaald</span><span id="betaaldTekst">€ 0,00</span></div><div class="line remain"><span>Nog te betalen</span><span id="rest">€ 0,00</span></div><p class="hint">Prijzen zijn gebaseerd op de actuele tarievenlijst. Een handmatig basistarief vervangt alleen het gekozen verblijfstarief.</p><div id="gastLinkStatus" class="msg" style="display:none"><b>Persoonlijke gastenlink gereed</b><div class="actions"><a id="openGastLink" class="btn primary" target="_blank" rel="noopener">Open gastenlink</a><button id="kopieerGastLink" type="button" class="btn">Link kopiëren</button></div></div><div id="betaalStatus" class="msg" style="display:none"><b id="betaalStatusTekst"></b><div class="actions"><a id="betaalLink" class="btn primary" target="_blank" rel="noopener">Open Mollie-betaallink</a><button id="kopieerBetaling" type="button" class="btn">Link kopiëren</button><button id="controleerBetaling" type="button" class="btn">Controleer betaling</button></div></div><div class="actions"><button id="opslaanEigen" class="btn" type="button">Alleen in mijn overzicht</button><button id="opslaan" class="btn primary">Reservering aanmaken</button><button id="factuur" class="btn">Factuur bekijken</button></div><div style="margin-top:16px"><label>E-mailsjabloon</label><select id="mailType"><option value="confirmation">Reserveringsbevestiging</option><option value="payment">Betaalverzoek</option><option value="change">Reserveringswijziging</option><option value="cancellation">Annuleringsbevestiging</option><option value="checkin">Incheckinformatie</option><option value="invoice">Factuur</option><option value="review">Reviewverzoek</option></select></div><div class="actions"><button id="mail" class="btn primary">Opgemaakte e-mail verzenden</button><button id="whatsapp" class="btn">Bevestiging WhatsApp</button></div></div></section></aside></div></main>
 <script src="bwf-planyo.js?v=10"></script><script src="bwf-gastlink.js?v=1"></script><script src="bwf-mail.js?v=1"></script><script>
 const SB='https://iuyjvtlauktnjprbmbjj.supabase.co', KEY='sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
 const suites={angie:{naam:'Angie Wellness Suite',zoek:'angie',extraDag:60,kindDag:25,extraNacht:100,kindNacht:50,dag:[['12:00','15:00',249],['12:30','15:30',249],['13:00','16:00',249],['12:00','16:00',269],['12:30','16:30',269],['13:00','17:00',269],['13:00','18:00',299]],nachtWeek:[['13:00','11:00',449,'Relax & Stay'],['20:00','11:00',399,'Late check-in'],['13:00','11:00',449,'Wellness Experience']],nachtWeekend:[['13:00','11:00',529,'Relax & Stay'],['20:00','11:00',449,'Late check-in'],['13:00','11:00',549,'Wellness Experience']]},jacuzzi:{naam:'Malina Jacuzzi Suite',zoek:'jacuzzi',extraDag:60,kindDag:25,extraNacht:100,kindNacht:50,dag:[['12:00','14:30',199],['14:30','17:00',199],['12:00','15:00',229],['14:00','17:00',229],['15:00','18:00',229],['12:00','16:00',259],['12:00','17:00',299]],nachtWeek:[['14:00','10:00',399,'Relax & Stay'],['20:00','10:00',379,'Late check-in']],nachtWeekend:[['14:00','10:00',449,'Relax & Stay'],['20:00','11:00',399,'Late check-in']]},zwembad:{naam:'Malina Zwembad Suite',zoek:'zwembad',extraDag:75,kindDag:50,extraNacht:125,kindNacht:75,dag:[['12:30','15:30',299],['13:00','16:00',299],['12:30','16:30',349],['13:00','17:00',349]],nachtWeek:[['13:00','11:00',749,'Early check-in'],['19:00','11:00',479,'Relax & Stay']],nachtWeekend:[['13:00','11:00',849,'Early check-in'],['19:00','11:00',529,'Relax & Stay']]}};
@@ -63,6 +63,74 @@ function basisVoorVerblijf(){if($('handprijs').value!=='')return +$('handprijs')
   let totaal=0,d=new Date($('datum').value+'T12:00:00'),n=aantalNachten();for(let i=0;i<n;i++){let datum=d.toISOString().slice(0,10),lijst=verblijfSlotsVoor(datum),keuze=lijst.find(x=>x[3]===slot[3]&&x[0]===slot[0])||lijst.find(x=>x[3]===slot[3])||lijst[slotIndex]||slot;totaal+=Number(keuze[2])||0;d.setDate(d.getDate()+1)}return totaal}
 function prijsregels(){let s=suites[$('suite').value],p=+$('personen').value||1,k=+$('kinderen').value||0,n=aantalNachten(),regels=[],basis=basisVoorVerblijf();regels.push([`${s.naam} · ${type==='dag'?'dagverblijf':n+' overnachting'+(n===1?'':'en')}`,basis]);let factor=type==='nacht'?n:1,extraVolw=Math.max(0,p-2);if(extraVolw)regels.push([`${extraVolw} extra volwassene(n)${factor>1?' × '+factor+' nachten':''}`,extraVolw*(type==='dag'?s.extraDag:s.extraNacht)*factor]);if(k)regels.push([`${k} kind(eren) 2–12${factor>1?' × '+factor+' nachten':''}`,k*(type==='dag'?s.kindDag:s.kindNacht)*factor]);let a=arrangementen[+$('arr').value];if(a&&a[1])regels.push([a[0],a[1]]);let m=menus[+$('menu').value];if(m&&m[1])regels.push([m[0],m[1]*(m[2]==='pp'?p:1)]);document.querySelectorAll('[data-extra]:checked').forEach(c=>{let i=+c.dataset.extra,n=+document.querySelector(`[data-aantal="${i}"]`).value||1;regels.push([extraLijst[i][0]+(n>1?' × '+n:''),extraLijst[i][1]*n])});if($('customNaam').value&&+$('customPrijs').value)regels.push([$('customNaam').value,+$('customPrijs').value]);return regels}
 function bereken(){let regels=prijsregels(),tot=regels.reduce((a,x)=>a+x[1],0),betaald=+$('betaald').value||0;$('regels').innerHTML=regels.map(x=>`<div class="line"><span>${x[0]}</span><b>${eur(x[1])}</b></div>`).join('');$('totaal').textContent=eur(tot);$('betaaldTekst').textContent=eur(betaald);$('rest').textContent=eur(Math.max(0,tot-betaald));return{regels,tot,betaald,rest:Math.max(0,tot-betaald)}}
+/* ------------------------------------------------------------------
+   Opslaan zonder Planyo: de reservering komt alleen in het eigen
+   overzicht. Handig als een suite nog niet aan een Planyo-accommodatie
+   is gekoppeld, of bij een boeking die daar niet thuishoort.
+   ------------------------------------------------------------------ */
+async function eigenNummer(){
+  let jaar=new Date().getFullYear(), hoogste=0;
+  try{
+    let r=await apiTabel('reservations?select=id&id=like.BWF-'+jaar+'-*&limit=2000')||[];
+    r.forEach(x=>{ let m=String(x.id).match(/BWF-\d{4}-(\d+)/); if(m&&+m[1]>hoogste) hoogste=+m[1]; });
+  }catch(e){}
+  return 'BWF-'+jaar+'-'+String(hoogste+1).padStart(4,'0');
+}
+
+async function bewaarEigen(){
+  let b=bereken();
+  if(!$('datum').value){ msg('Vul een aankomstdatum in.'); return; }
+  if(!slot){ msg('Kies een tijdsblok, of kies Eigen tijd en vul begin- en eindtijd in.'); return; }
+  if(!$('achter').value){ msg('Vul in elk geval een achternaam in.'); return; }
+
+  let knop=$('opslaanEigen');
+  knop.disabled=true; knop.textContent='Bezig…';
+  try{
+    let nummer=await eigenNummer();
+    let suite=suites[$('suite').value];
+    let omschrijving=b.regels.map(x=>x[0]).join(' · ');
+
+    await apiTabel('reservations',{method:'POST',prefer:'return=minimal',body:{
+      id:nummer, locatie:$('suite').value,
+      voornaam:$('voor').value, achternaam:$('achter').value,
+      checkindatum:$('datum').value,
+      checkuitdatum:$('vertrek').value||$('datum').value,
+      checkintijd:slot[0], checkuittijd:slot[1],
+      arrangement:omschrijving,
+      totaal:b.tot, betaald:b.betaald,
+      telefoon:$('tel').value, email:$('email').value,
+      opmerkingen:[$('notitie').value,'Handmatig ingevoerd, niet in Planyo aangemaakt.',
+        'Betaalwijze: '+$('wijze').value].filter(Boolean).join('\n'),
+      status:1
+    }});
+
+    await apiTabel('res_koppeling?on_conflict=res_sleutel',{method:'POST',
+      prefer:'resolution=merge-duplicates,return=minimal',body:{
+        res_sleutel:'hm-'+nummer, bron:'handmatig',
+        gast:($('voor').value+' '+$('achter').value).trim(),
+        telefoon:$('tel').value, email:$('email').value,
+        personen:String($('personen').value||''),
+        arrangement:omschrijving, totaal:b.tot, betaald:b.betaald,
+        aankomst:$('datum').value, vertrek:$('vertrek').value||$('datum').value,
+        tijd_in:slot[0], tijd_uit:slot[1],
+        notitie:$('notitie').value,
+        bijgewerkt:new Date().toISOString()
+      }});
+
+    try{ let klant=await zorgVoorKlant(''); if(klant){
+      await apiTabel('wz_klantbeheer?id=eq.'+encodeURIComponent(klant.id),{method:'PATCH',
+        body:{ referentie:nummer, laatste_bezoek:$('datum').value }});
+    }}catch(e){ console.warn('klant koppelen:', e.message); }
+
+    msg('Opgeslagen als '+nummer+'. De reservering staat in je overzicht en bij Vandaag. '+
+        'Hij staat niet in Planyo en dus ook niet in de agenda.', true);
+    knop.textContent='Opgeslagen als '+nummer;
+  }catch(e){
+    msg('Opslaan lukte niet: '+e.message);
+    knop.disabled=false; knop.textContent='Alleen in mijn overzicht';
+  }
+}
+
 function msg(t,ok=false){$('msg').textContent=t;$('msg').className='msg show '+(ok?'ok':'err');scrollTo({top:0,behavior:'smooth'})}
 function toonBetaling(){if(!created||!created.checkout_url)return;$('betaalStatus').style.display='block';$('betaalStatus').className='msg show ok';$('betaalStatusTekst').textContent='Betaalstatus: '+(created.payment_status||'open')+(created.payment_reused?' · bestaande link hergebruikt':'');$('betaalLink').href=created.checkout_url}
 async function apiTabel(pad,opt={}){let r=await fetch(SB+'/rest/v1/'+pad,{method:opt.method||'GET',headers:{apikey:KEY,Authorization:'Bearer '+token(),'Content-Type':'application/json',Prefer:opt.prefer||'return=representation'},body:opt.body?JSON.stringify(opt.body):undefined});if(!r.ok)throw new Error((await r.text()).slice(0,180)||'Opslaan in Supabase mislukt.');let t=await r.text();return t?JSON.parse(t):null}
@@ -91,8 +159,9 @@ function toonPlanyoStatus(fout){
       'De boeking verschijnt daarna vanzelf in de agenda.';
   }else{
     vak.style.background='#F6EBD9'; vak.style.borderColor='#E7D3B0'; vak.style.color='#8F6420';
-    vak.textContent='Deze suite is nog niet aan een Planyo-accommodatie gekoppeld. '+
-      'Opslaan lukt dan niet \u2014 kies een andere suite of laat de koppeling instellen.';
+    vak.innerHTML='Deze suite is nog niet aan een Planyo-accommodatie gekoppeld. '+
+      'Je kunt de reservering wel opslaan met de knop <b>Alleen in mijn overzicht</b> \u2014 '+
+      'hij komt dan wel in je eigen lijst en bij Vandaag, maar niet in de agenda.';
   }
 }
 async function laadData(){try{let d=await BWFPlanyo.resources();resources=d.resources||[];toonPlanyoStatus(null)}catch(e){toonPlanyoStatus(e.message);msg('Planyo-accommodaties konden niet worden geladen: '+e.message)}try{customers=await apiTabel('wz_klantbeheer?select=id,voorletters,achternaam,email,telefoon,woonplaats,member,planyo_user_id&type=eq.klant')||[];customers.forEach(c=>$('klant').add(new Option([c.voorletters,c.achternaam,c.email].filter(Boolean).join(' · '),c.id)))}catch(e){}}
@@ -134,5 +203,6 @@ document.addEventListener('click',e=>{let t=e.target.closest('[data-type]');if(t
     if(e.target && e.target.id === id && slotIndex === -1){ slot = eigenSlot(); bereken(); }
   });
 });
-document.addEventListener('input',e=>{if(e.target.matches('input,select,textarea'))bereken()});$('suite').onchange=function(){renderSlots();toonPlanyoStatus(null)};$('datum').onchange=()=>{let a=new Date($('datum').value+'T12:00:00');if(type==='nacht')a.setDate(a.getDate()+1);$('vertrek').value=a.toISOString().slice(0,10);renderSlots()};$('vertrek').onchange=()=>{if(type==='nacht'&&$('vertrek').value<=$('datum').value){let a=new Date($('datum').value+'T12:00:00');a.setDate(a.getDate()+1);$('vertrek').value=a.toISOString().slice(0,10);msg('De vertrekdatum moet na de aankomstdatum liggen.')}bereken()};$('klant').onchange=()=>{let c=customers.find(x=>String(x.id)===$('klant').value);if(!c)return;$('voor').value=c.voorletters||'';$('achter').value=c.achternaam||'';$('email').value=c.email||'';$('tel').value=c.telefoon||'';$('plaats').value=c.woonplaats||'';$('member').value=c.member?'ja':'nee'};start();
+document.addEventListener('input',e=>{if(e.target.matches('input,select,textarea'))bereken()});$('suite').onchange=function(){renderSlots();toonPlanyoStatus(null)};
+$('opslaanEigen').onclick=bewaarEigen;$('datum').onchange=()=>{let a=new Date($('datum').value+'T12:00:00');if(type==='nacht')a.setDate(a.getDate()+1);$('vertrek').value=a.toISOString().slice(0,10);renderSlots()};$('vertrek').onchange=()=>{if(type==='nacht'&&$('vertrek').value<=$('datum').value){let a=new Date($('datum').value+'T12:00:00');a.setDate(a.getDate()+1);$('vertrek').value=a.toISOString().slice(0,10);msg('De vertrekdatum moet na de aankomstdatum liggen.')}bereken()};$('klant').onchange=()=>{let c=customers.find(x=>String(x.id)===$('klant').value);if(!c)return;$('voor').value=c.voorletters||'';$('achter').value=c.achternaam||'';$('email').value=c.email||'';$('tel').value=c.telefoon||'';$('plaats').value=c.woonplaats||'';$('member').value=c.member?'ja':'nee'};start();
 </script></body></html>
