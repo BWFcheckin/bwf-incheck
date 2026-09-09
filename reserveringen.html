@@ -853,6 +853,7 @@ sluitDialogen();
    Gegevens
    ========================================================= */
 var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [];
+var ONTDUBBELD = 0;
 var INSTELLINGEN = {};
 
 /* gedeelde instellingen — voor iedereen gelijk, met de browser als terugval */
@@ -917,8 +918,93 @@ function uitSupabase(r){
   };
 }
 
+/* =========================================================
+   Veilige ontdubbeling
+   Verwijdert niets uit Planyo of Supabase. Dubbele bronnen worden alleen
+   samengevoegd voor de lijst en kalender. Bij twijfel blijven beide staan.
+   ========================================================= */
+function vergelijkTekst(v){
+  return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]/g,'');
+}
+function vergelijkLocatie(v){
+  var s = vergelijkTekst(v);
+  if(/psmd|deluxe|zwembad|pool/.test(s)) return 'zwembad';
+  if(/psa|angie|almere|specerij/.test(s)) return 'angie';
+  if(/psm|jacuzzi|malina/.test(s)) return 'jacuzzi';
+  return s;
+}
+function vergelijkNaam(r){
+  return vergelijkTekst((r.voornaam||'')+' '+(r.achternaam||''));
+}
+function vergelijkTelefoon(v){ return String(v||'').replace(/\D/g,'').slice(-9); }
+function minuut(v){
+  var m=String(v||'').match(/(\d{1,2}):(\d{2})/);
+  return m ? Number(m[1])*60+Number(m[2]) : null;
+}
+function zelfdeBoeking(a,b){
+  if(a.nummer && b.nummer && vergelijkTekst(a.nummer)===vergelijkTekst(b.nummer)) return true;
+  if(!a.aankomst || a.aankomst!==b.aankomst) return false;
+  if(!vergelijkLocatie(a.locatie) || vergelijkLocatie(a.locatie)!==vergelijkLocatie(b.locatie)) return false;
+  if(a.vertrek && b.vertrek && a.vertrek!==b.vertrek) return false;
+
+  var mailA=String(a.email||'').trim().toLowerCase(), mailB=String(b.email||'').trim().toLowerCase();
+  var telA=vergelijkTelefoon(a.telefoon), telB=vergelijkTelefoon(b.telefoon);
+  var naamA=vergelijkNaam(a), naamB=vergelijkNaam(b);
+  var identiteit=(mailA && mailB && mailA===mailB) ||
+    (telA.length>=8 && telB.length>=8 && telA===telB) ||
+    (naamA.length>=5 && naamA===naamB);
+  if(!identiteit) return false;
+
+  var ta=minuut(a.tijdIn), tb=minuut(b.tijdIn);
+  return ta===null || tb===null || Math.abs(ta-tb)<=90;
+}
+function informatieScore(r){
+  var velden=['voornaam','achternaam','locatie','aankomst','vertrek','tijdIn','tijdUit',
+    'arrangement','opties','telefoon','email','nummer','personen','kanaal','omschrijving','toegewezen'];
+  var score=velden.reduce(function(n,k){ return n+(r[k]!==null&&r[k]!==undefined&&r[k]!=='' ? 1:0); },0);
+  if(Number(r.totaal)>0) score+=2;
+  if(Number(r.betaald)>0 || Number(r.reedsBetaald)>0) score+=2;
+  if(r.soort==='reservering') score+=8;
+  else if(r.soort==='extern') score+=5;
+  if(r.nummer) score+=4;
+  return score;
+}
+function combineerBoeking(a,b){
+  var hoofd=informatieScore(b)>informatieScore(a) ? b : a;
+  var aanvulling=hoofd===a ? b : a;
+  var samen=Object.assign({},hoofd);
+  Object.keys(aanvulling).forEach(function(k){
+    if((samen[k]===null || samen[k]===undefined || samen[k]==='' || samen[k]===0) &&
+       aanvulling[k]!==null && aanvulling[k]!==undefined && aanvulling[k]!=='') samen[k]=aanvulling[k];
+  });
+  samen.dubbelAantal=(a.dubbelAantal||1)+(b.dubbelAantal||1);
+  samen.samengevoegdeBronnen=(a.samengevoegdeBronnen||[a.bron]).concat(b.samengevoegdeBronnen||[b.bron]);
+  return samen;
+}
+function ontdubbelBoekingen(lijst){
+  var resultaat=[], bakken={};
+  lijst.forEach(function(r){
+    var bak=(r.aankomst||'geen-datum')+'|'+vergelijkLocatie(r.locatie);
+    var kandidaten=bakken[bak]||[];
+    var gevonden=-1;
+    for(var i=0;i<kandidaten.length;i++){
+      if(zelfdeBoeking(resultaat[kandidaten[i]],r)){ gevonden=kandidaten[i]; break; }
+    }
+    if(gevonden<0){
+      resultaat.push(r);
+      (bakken[bak]||(bakken[bak]=[])).push(resultaat.length-1);
+    }else{
+      resultaat[gevonden]=combineerBoeking(resultaat[gevonden],r);
+      ONTDUBBELD++;
+    }
+  });
+  return resultaat;
+}
+
 async function laden(){
   var fouten = [], agenda = [], eigen = [];
+  ONTDUBBELD = 0;
 
   try{
     var json = await BWFAgenda.events();
@@ -951,13 +1037,15 @@ async function laden(){
     (await sb('bwf_instellingen?select=*') || []).forEach(function(x){ INSTELLINGEN[x.sleutel] = x.waarde; });
   }catch(e){ INSTELLINGEN = {}; }
 
-  ALLES = agenda.concat(eigen).sort(function(a,b){
+  ALLES = ontdubbelBoekingen(agenda.concat(eigen)).sort(function(a,b){
     return String(b.aankomst).localeCompare(String(a.aankomst)); });
 
   if(fouten.length && fouten.join(' ').indexOf('401') > -1){
     meld('Je bent niet (meer) ingelogd bij Supabase. Open klantbeheer of het VR Dashboard, log daar in, en ververs deze pagina. De reserveringen uit de agenda zie je wel.');
   }else{
-    meld(fouten.length ? 'Niet alles kon worden opgehaald — '+fouten.join(' · ') : '');
+    meld(fouten.length ? 'Niet alles kon worden opgehaald — '+fouten.join(' · ') :
+      (ONTDUBBELD ? ONTDUBBELD+' dubbele reservering'+(ONTDUBBELD===1?'':'en')+' veilig samengevoegd in deze weergave.' : ''),
+      !fouten.length);
   }
   vulKeuzes(); tekenTegels(); teken();
   if(weergave === 'kalender') tekenKalender();
