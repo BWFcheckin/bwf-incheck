@@ -310,6 +310,7 @@ canvas{ display:block; touch-action:none; cursor:crosshair; max-width:100%; heig
 
 </div>
 
+<script src="bwf-gastlink.js?v=1"></script>
 <script>
 /* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
@@ -347,10 +348,11 @@ async function sb(path, options={}){
 
 /* ================= LINK-PARAMETERS ================= */
 const params   = new URLSearchParams(location.search);
-const resCode  = (params.get('r') || '').trim();
+let resCode  = (params.get('r') || '').trim();
 const linkLoc  = (params.get('loc') || '').trim();
 const linkDatum= (params.get('d') || '').trim();
 const conceptId= (params.get('c') || '').trim();   // koppelt aan een klaargezet formulier
+const veiligToken = (params.get('token') || '').trim();
 
 function initLink(){
   const sel = document.getElementById('g_locatie');
@@ -372,6 +374,25 @@ function initLink(){
     chip.textContent = stukjes.join(' · ');
     chip.style.display = 'inline-block';
   }
+}
+
+async function laadVeiligeLink(){
+  if(!veiligToken) return;
+  try{
+    const g = await BWFGastlink.resolve(veiligToken);
+    resCode = String(g.reservation_id||'');
+    const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
+    if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
+    if(g.arrival) document.getElementById('g_datum').value=g.arrival;
+    document.getElementById('g_voornaam').value=g.first_name||'';
+    document.getElementById('g_achternaam').value=g.last_name||'';
+    document.getElementById('g_email').value=g.email||'';
+    document.getElementById('g_telefoon').value=g.phone||'';
+    document.getElementById('verblijfWrap').style.display='none';
+    const chip=document.getElementById('resChip');
+    chip.textContent='Reservering '+g.reservation_id;
+    chip.style.display='inline-block';
+  }catch(e){ toon(e.message,'err'); }
 }
 
 /* ================= HUISREGELS & VOORWAARDEN ================= */
@@ -500,6 +521,7 @@ async function verstuur(){
 
 /* ================= START ================= */
 initLink();
+laadVeiligeLink();
 setupSignaturePad();
 loadDocumenten();
 </script>

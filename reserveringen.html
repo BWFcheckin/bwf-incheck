@@ -2213,9 +2213,11 @@ function gastlinkUrl(r){
   try{ basis = new URL('gast.html', window.location.href).href; }
   catch(e){ basis = 'gast.html'; }
   var p = [];
-  if(r.locatie) p.push('locatie='+encodeURIComponent(r.locatie));
-  if(r.nummer)  p.push('reservering='+encodeURIComponent(r.nummer));
-  if(r.aankomst) p.push('aankomst='+encodeURIComponent(r.aankomst));
+  var loc = LOCATIE_ID[r.locatie] || vergelijkLocatie(r.locatie);
+  if(loc === 'zwembad') loc = 'deluxe';
+  if(loc) p.push('loc='+encodeURIComponent(loc));
+  if(r.nummer) p.push('r='+encodeURIComponent(r.nummer));
+  if(r.aankomst) p.push('d='+encodeURIComponent(r.aankomst));
   return basis + (p.length ? '?'+p.join('&') : '');
 }
 function gastlinkTekst(r, link){
