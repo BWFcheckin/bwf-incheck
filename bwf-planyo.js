@@ -68,6 +68,8 @@
     resources: function () { return verzoek("resources", {}); },
     createReservation: function (gegevens) { return verstuur("create-reservation", gegevens); },
     createPayment: function (gegevens) { return verstuur("create-payment", gegevens); },
+    paymentStatus: function (paymentId) { return verstuur("payment-status", { payment_id: paymentId }); },
     functionUrl: FUNCTION_URL
   };
 })();
+
