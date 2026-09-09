@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" id="themaKleur" content="#F4F1ED">
+<title>Dagstart — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="bwf-stijl.css">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+
+/* ---------- menubalk ---------- */
+.menubalk{position:sticky;top:0;z-index:40;background:var(--accent);
+  box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
+.menuinner{max-width:1220px;margin:0 auto;display:flex;align-items:center;gap:8px;
+  padding:9px 18px;flex-wrap:wrap}
+.menuinner img{height:30px;width:auto;flex:none}
+.menuinner a{color:rgba(255,255,255,.84);text-decoration:none;font-size:13px;padding:6px 12px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.18);white-space:nowrap}
+.menuinner a:hover{background:rgba(255,255,255,.14);color:#fff}
+.menuinner a.hier{background:#fff;color:var(--accent);border-color:#fff;font-weight:600}
+.menuinner .rechts{margin-left:auto;display:flex;gap:8px;align-items:center}
+.menuinner .wie{color:rgba(255,255,255,.75);font-family:var(--f-mono);font-size:11.5px}
+.menuinner button{background:none;border:1px solid rgba(255,255,255,.28);color:#fff;
+  border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer}
+@media(max-width:760px){ .menuinner{flex-wrap:nowrap;overflow-x:auto} }
+
+.wrap{max-width:1220px;margin:0 auto;padding:20px 18px 60px}
+
+/* ---------- kop ---------- */
+.kop{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.kop h1{font-family:var(--f-display);font-size:28px;letter-spacing:-.02em;margin:0}
+.kop p{margin:0;color:var(--muted);font-size:13.5px}
+.kop .rechts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- blokken ---------- */
+section.blok{margin-bottom:26px}
+section.blok > h2{font-family:var(--f-display);font-size:18px;margin:0 0 10px;
+  display:flex;align-items:baseline;gap:10px}
+section.blok > h2 em{font-style:normal;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+section.blok > h2 a{margin-left:auto;font-size:13px;font-weight:400}
+
+.kaart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);
+  box-shadow:var(--shadow);padding:16px 18px}
+
+/* ---------- lijstjes ---------- */
+.lijst{display:flex;flex-direction:column}
+.lijst .rij{display:flex;gap:12px;align-items:baseline;justify-content:space-between;
+  padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:14px}
+.lijst .rij:last-child{border-bottom:0}
+.lijst .rij b{font-weight:600}
+.lijst .rij span{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.lijst .leeg{color:var(--muted);font-size:13.5px;padding:6px 0}
+.merk{font-family:var(--f-mono);font-size:11px;padding:2px 8px;border-radius:999px;
+  background:var(--accent-soft);color:var(--ink-2);white-space:nowrap}
+.merk.laat{background:var(--crit-soft);color:var(--crit)}
+.merk.bijna{background:var(--warn-soft);color:var(--warn)}
+
+/* ---------- kolommen ---------- */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){ .duo{grid-template-columns:1fr} }
+
+/* ---------- tegels ---------- */
+.tegels{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tegel{display:block;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-m);padding:14px 16px;text-decoration:none;color:var(--ink);
+  box-shadow:var(--shadow)}
+.tegel:hover{border-color:var(--accent);background:var(--surface-2)}
+.tegel b{display:block;font-family:var(--f-display);font-size:15px}
+.tegel span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.tegel.uit{opacity:.5;cursor:not-allowed}
+.groepkop{font-family:var(--f-mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--brass);margin:22px 0 8px;font-weight:500}
+
+/* ---------- inloggen ---------- */
+#slot{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;
+  align-items:center;justify-content:center;padding:20px}
+#slot.open{display:flex}
+#slot .doos{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);
+  padding:28px;max-width:390px;width:100%;box-shadow:var(--shadow)}
+#slot h2{font-family:var(--f-display);font-size:20px;margin:0 0 4px}
+#slot p{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+#slot label{display:block;font-size:12.5px;color:var(--ink-2);margin:10px 0 4px}
+#slot input{width:100%}
+#slot button{width:100%;margin-top:16px;padding:11px;background:var(--accent);color:#fff;
+  border:0;border-radius:var(--r-s);font:inherit;font-weight:600;cursor:pointer}
+#slot .fout{margin-top:12px;background:var(--crit-soft);color:var(--crit);
+  border-radius:var(--r-s);padding:10px 12px;font-size:13.5px;display:none}
+#slot .fout.open{display:block}
+body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
+.verborgen{display:none!important}
+</style>
+</head>
+<body class="dicht">
+
+<div id="slot" class="open">
+  <div class="doos">
+    <h2>Bed &amp; Wellness Flevoland</h2>
+    <p>Log in met je eigen e-mailadres.</p>
+    <label for="lgMail">E-mailadres</label>
+    <input id="lgMail" type="email" autocomplete="username" inputmode="email">
+    <label for="lgWw">Wachtwoord</label>
+    <input id="lgWw" type="password" autocomplete="current-password">
+    <button type="button" id="lgKnop">Inloggen</button>
+    <div class="fout" id="lgFout"></div>
+  </div>
+</div>
+
+<div class="menubalk">
+  <div class="menuinner">
+    <img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">
+    <a class="hier" href="dagstart.html">Dagstart</a>
+    <a href="vandaag.html">Vandaag</a>
+    <a href="reserveringen.html">Reserveringen</a>
+    <a href="incheckformulier.html">Incheck</a>
+    <a href="klantbeheer.html">Klanten</a>
+    <a href="vr2.html">VR</a>
+    <a href="dashboard.html">Personeel</a>
+    <div class="rechts">
+      <span class="wie" id="wieBen"></span>
+      <button type="button" id="knopUit">Uitloggen</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="kop">
+    <div>
+      <h1 id="groet">Dagstart</h1>
+      <p id="datumTekst"></p>
+    </div>
+    <div class="rechts">
+      <button class="btn secondary sm" type="button" id="knopVernieuw">Vernieuwen</button>
+    </div>
+  </div>
+
+  <!-- ============ 1. reserveringen ============ -->
+  <section class="blok">
+    <h2>Reserveringen vandaag <a href="reserveringen.html">Volledige agenda openen</a></h2>
+    <iframe id="resFrame" title="Reserveringen vandaag" src="vandaag.html" loading="lazy"
+      style="width:100%;height:70vh;min-height:440px;border:1px solid var(--line);
+             border-radius:var(--r-l);background:var(--surface)"></iframe>
+  </section>
+
+  <!-- ============ 2. taken en welkomstcalls ============ -->
+  <div class="duo">
+    <section class="blok">
+      <h2>Mijn taken <em id="takenTeller"></em>
+        <a href="vr2.html">Alle taken</a></h2>
+      <div class="kaart"><div class="lijst" id="takenLijst">
+        <div class="leeg">Bezig met laden…</div></div></div>
+    </section>
+
+    <section class="blok">
+      <h2>Welkomstcalls <em id="callsTeller"></em>
+        <a href="vr2.html">Naar het VR Dashboard</a></h2>
+      <div class="kaart"><div class="lijst" id="callsLijst">
+        <div class="leeg">Bezig met laden…</div></div></div>
+    </section>
+  </div>
+
+  <!-- ============ 3. bestellen en aanmeldingen ============ -->
+  <div class="duo">
+    <section class="blok">
+      <h2>Te bestellen <em id="voorraadTeller"></em>
+        <a href="dashboard.html">Voorraad beheren</a></h2>
+      <div class="kaart"><div class="lijst" id="voorraadLijst">
+        <div class="leeg">Bezig met laden…</div></div></div>
+    </section>
+
+    <section class="blok">
+      <h2>Aanmeldingen van gasten <em id="aanmeldTeller"></em>
+        <a href="incheckformulier.html">Naar het incheckformulier</a></h2>
+      <div class="kaart"><div class="lijst" id="aanmeldLijst">
+        <div class="leeg">Bezig met laden…</div></div></div>
+    </section>
+  </div>
+
+  <!-- ============ 4. tegels ============ -->
+  <section class="blok">
+    <h2>Alle onderdelen</h2>
+    <div id="tegelGroepen"></div>
+  </section>
+
+</div>
+
+<script src="bwf-agenda.js?v=1"></script>
+<script>
+/* =========================================================
+   Dagstart — Bed & Wellness Flevoland
+   Leest alleen; alle bewerkingen gebeuren op de eigen pagina's.
+   ========================================================= */
+const CFG = {
+  url: 'https://iuyjvtlauktnjprbmbjj.supabase.co',
+  key: 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U',
+  ls : 'sb-iuyjvtlauktnjprbmbjj-auth-token'
+};
+
+const TEGELS = [
+  { groep:'Dagelijks', items:[
+    { t:'Vandaag',          d:'Aankomsten en vertrekken',            u:'vandaag.html' },
+    { t:'Reserveringen',    d:'Agenda, lijst en kalender',           u:'reserveringen.html' },
+    { t:'Dagoverzicht',     d:'Kalender, taken en aanmeldingen',     u:'dagoverzicht.html' },
+    { t:'Incheckformulier', d:'Inchecken en afrekenen op locatie',   u:'incheckformulier.html' },
+    { t:'Gastenlink',       d:'De pagina die de gast invult',        u:'gast.html' },
+    { t:'Reservering aanmaken', d:'Nieuwe boeking invoeren',         u:'reservering-aanmaken.html' }
+  ]},
+  { groep:'Werken', items:[
+    { t:'VR Dashboard',        d:'Welkomstcalls, taken, belscripts', u:'vr2.html' },
+    { t:'Personeelsdashboard', d:'Planning, voorraad, overdracht',   u:'dashboard.html' },
+    { t:'Taken',               d:'Werkzaamheden en bellijsten',      u:'vrdashboard.html' },
+    { t:'Urenregistratie',     d:'Uren per medewerker',              u:'uren-ruth.html' }
+  ]},
+  { groep:'Administratie', items:[
+    { t:'Klantbeheer',        d:'Klanten, nachtregister, members',   u:'klantbeheer.html' },
+    { t:'Toeristenbelasting', d:'Aangifte per gemeente',             u:'klantbeheer.html?tab=aangifte' },
+    { t:'Financieel',         d:'Omzet, kosten en btw',              u:null },
+    { t:'Documenten',         d:'Huisregels en voorwaarden',         u:null }
+  ]},
+  { groep:'Hulp en partners', items:[
+    { t:'Controle',   d:'Werkt je login en de verbinding',           u:'controle.html' },
+    { t:'SMG',        d:'Het boekingssysteem',                       u:'https://www.smgdashboard.nl' },
+    { t:'Planyo',     d:'Reserveringssysteem',                       u:'https://www.planyo.com' },
+    { t:'Privésauna', d:'Partnerpagina',                             u:'https://www.privesauna.nl' }
+  ]}
+];
+
+let SESSIE = null, IK = null;
+
+/* ---------- hulpjes ---------- */
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function vandaagISO(){
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+function nlDatum(iso){
+  if(!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString('nl-NL', { weekday:'short', day:'numeric', month:'short' });
+}
+function groet(){
+  const u = new Date().getHours();
+  return u < 6 ? 'Goedenacht' : u < 12 ? 'Goedemorgen' : u < 18 ? 'Goedemiddag' : 'Goedenavond';
+}
+
+/* ---------- sessie ---------- */
+function leesSessie(){
+  try{
+    const v = JSON.parse(localStorage.getItem(CFG.ls) || 'null');
+    if(v && v.access_token){
+      const deel = JSON.parse(atob(v.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      if(!deel.exp || deel.exp * 1000 > Date.now()) return v;
+    }
+  }catch(e){}
+  return null;
+}
+async function inloggen(){
+  const fout = document.getElementById('lgFout');
+  const knop = document.getElementById('lgKnop');
+  fout.classList.remove('open');
+  knop.disabled = true; knop.textContent = 'Bezig…';
+  try{
+    const r = await fetch(CFG.url + '/auth/v1/token?grant_type=password', {
+      method:'POST', headers:{ apikey:CFG.key, 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('lgMail').value.trim().toLowerCase(),
+        password: document.getElementById('lgWw').value })
+    });
+    const d = await r.json();
+    if(!r.ok || !d.access_token) throw new Error(d.error_description || d.msg || 'Inloggen lukte niet.');
+    localStorage.setItem(CFG.ls, JSON.stringify(d));
+    location.reload();
+  }catch(e){
+    fout.textContent = e.message; fout.classList.add('open');
+  }
+  knop.disabled = false; knop.textContent = 'Inloggen';
+}
+
+/* ---------- database ---------- */
+async function haal(pad, naam){
+  try{
+    const r = await fetch(CFG.url + '/rest/v1/' + pad, {
+      headers:{ apikey:CFG.key, Authorization:'Bearer ' + SESSIE.access_token }
+    });
+    if(!r.ok) throw new Error(r.status + '');
+    const t = await r.text();
+    return t ? JSON.parse(t) : [];
+  }catch(e){
+    console.warn(naam + ' laden mislukte:', e.message);
+    return [];
+  }
+}
+
+/* ---------- de blokken vullen ---------- */
+async function laadTaken(){
+  const doel = document.getElementById('takenLijst');
+  const teller = document.getElementById('takenTeller');
+  const alles = await haal('wz_taken?select=*&afgerond_op=is.null&order=deadline.asc&limit=200', 'taken');
+  const mijnId = IK ? String(IK.id || '') : '';
+  const mijn = mijnId ? alles.filter(t => String(t.medewerker_id || '') === mijnId) : [];
+  const lijst = mijn.length ? mijn : alles;
+
+  teller.textContent = mijn.length
+    ? mijn.length + ' op jouw naam'
+    : alles.length + ' open, geen op jouw naam';
+
+  const vandaag = vandaagISO();
+  doel.innerHTML = lijst.length
+    ? lijst.slice(0, 8).map(t => {
+        const laat = t.deadline && t.deadline < vandaag;
+        return '<div class="rij"><b>' + esc(t.titel || 'zonder titel') + '</b>' +
+          '<span>' + (t.deadline
+            ? '<span class="merk' + (laat ? ' laat' : '') + '">' + esc(nlDatum(t.deadline)) + '</span>'
+            : '') + '</span></div>';
+      }).join('')
+    : '<div class="leeg">Geen open taken. Mooi.</div>';
+}
+
+async function laadCalls(){
+  const doel = document.getElementById('callsLijst');
+  const vandaag = vandaagISO();
+  const calls = await haal('wz_welkomstcalls?select=*&datum=gte.' + vandaag +
+    '&order=datum.asc&limit=60', 'welkomstcalls');
+  const open = calls.filter(c => !/voltooid|afgerond|gedaan/i.test(String(c.status || '')));
+  document.getElementById('callsTeller').textContent = open.length + ' te bellen';
+  doel.innerHTML = open.length
+    ? open.slice(0, 8).map(c => {
+        const spoed = c.datum && (new Date(c.datum) - new Date()) < 2 * 86400000;
+        return '<div class="rij"><b>' + esc(c.naam || 'zonder naam') + '</b>' +
+          '<span>' + (c.telefoon ? esc(c.telefoon) + ' · ' : '') +
+          '<span class="merk' + (spoed ? ' bijna' : '') + '">' + esc(nlDatum(c.datum)) +
+          '</span></span></div>';
+      }).join('')
+    : '<div class="leeg">Alle welkomstcalls zijn gedaan.</div>';
+}
+
+async function laadVoorraad(){
+  const doel = document.getElementById('voorraadLijst');
+  const alles = await haal('voorraad?select=*&order=naam.asc&limit=400', 'voorraad');
+  const tekort = alles.filter(v =>
+    v.min_aantal != null && Number(v.aantal) <= Number(v.min_aantal));
+  const onderweg = alles.filter(v => v.besteld);
+  document.getElementById('voorraadTeller').textContent =
+    tekort.length + ' onder het minimum' + (onderweg.length ? ' · ' + onderweg.length + ' onderweg' : '');
+  doel.innerHTML = tekort.length
+    ? tekort.slice(0, 8).map(v =>
+        '<div class="rij"><b>' + esc(v.naam) + '</b><span>' +
+        esc(v.aantal) + ' van ' + esc(v.min_aantal) +
+        (v.besteld ? ' <span class="merk">besteld</span>' : ' <span class="merk laat">bestellen</span>') +
+        '</span></div>').join('')
+    : '<div class="leeg">Niets onder het minimum.</div>';
+}
+
+async function laadAanmeldingen(){
+  const doel = document.getElementById('aanmeldLijst');
+  const rijen = await haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=40', 'aanmeldingen');
+  const nieuw = rijen.filter(a => !a.status || a.status === 'nieuw');
+  document.getElementById('aanmeldTeller').textContent = nieuw.length + ' wachten op koppeling';
+  doel.innerHTML = nieuw.length
+    ? nieuw.slice(0, 8).map(a =>
+        '<div class="rij"><b>' + esc(((a.voornaam || '') + ' ' + (a.achternaam || '')).trim() || 'zonder naam') +
+        '</b><span>' + esc(nlDatum(a.datum)) + (a.lid ? ' <span class="merk">member</span>' : '') +
+        '</span></div>').join('')
+    : '<div class="leeg">Geen openstaande aanmeldingen.</div>';
+}
+
+function tekenTegels(){
+  document.getElementById('tegelGroepen').innerHTML = TEGELS.map(g =>
+    '<div class="groepkop">' + esc(g.groep) + '</div><div class="tegels">' +
+    g.items.map(i => i.u
+      ? '<a class="tegel" href="' + esc(i.u) + '"' +
+        (/^https?:/.test(i.u) ? ' target="_blank" rel="noopener"' : '') + '>' +
+        '<b>' + esc(i.t) + '</b><span>' + esc(i.d) + '</span></a>'
+      : '<span class="tegel uit"><b>' + esc(i.t) + '</b><span>' + esc(i.d) +
+        ' — nog niet klaar</span></span>'
+    ).join('') + '</div>').join('');
+}
+
+/* ---------- opstarten ---------- */
+async function start(){
+  document.body.classList.remove('dicht');
+  document.getElementById('slot').classList.remove('open');
+
+  const rijen = await haal('wz_medewerkers?select=id,naam,rol,email&limit=50', 'medewerkers');
+  let mail = '';
+  try{ mail = JSON.parse(atob(SESSIE.access_token.split('.')[1])).email || ''; }catch(e){}
+  IK = rijen.find(m => String(m.email || '').toLowerCase() === mail.toLowerCase()) || null;
+
+  document.getElementById('wieBen').textContent = IK ? IK.naam + ' · ' + (IK.rol || '') : mail;
+  document.getElementById('groet').textContent =
+    groet() + (IK && IK.naam ? ', ' + IK.naam.split(' ')[0] : '');
+  document.getElementById('datumTekst').textContent =
+    new Date().toLocaleDateString('nl-NL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  tekenTegels();
+  laadTaken(); laadCalls(); laadVoorraad(); laadAanmeldingen();
+}
+
+document.getElementById('lgKnop').addEventListener('click', inloggen);
+document.getElementById('lgWw').addEventListener('keydown', e => { if(e.key === 'Enter') inloggen(); });
+document.getElementById('knopUit').addEventListener('click', () => {
+  if(!confirm('Uitloggen?')) return;
+  localStorage.removeItem(CFG.ls);
+  location.reload();
+});
+document.getElementById('knopVernieuw').addEventListener('click', () => {
+  laadTaken(); laadCalls(); laadVoorraad(); laadAanmeldingen();
+  const f = document.getElementById('resFrame');
+  if(f) f.src = f.src;
+});
+
+SESSIE = leesSessie();
+if(SESSIE) start();
+else setTimeout(() => document.getElementById('lgMail').focus(), 80);
+</script>
+</body>
+</html>
