@@ -11,6 +11,9 @@
 
   var SB_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
   var SB_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
+  /* Bestaande gezamenlijke agenda met Booking.com, Privésauna en andere kanalen. */
+  var KANALEN_PROXY = "https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec";
+  var KANALEN_SLEUTEL = "bwf7k2mxq9tvr20264nphs8wjc3";
 
   var SUITES = ["Malina Jacuzzi", "Malina Zwembad", "Suite Angie Almere"];
   var KLEUR = { "Malina Jacuzzi": "#1C6FD0", "Malina Zwembad": "#D63A2A", "Suite Angie Almere": "#0F7B5A" };
@@ -184,31 +187,52 @@
     var vd = vandaag();
     var taken = [
       window.BWFPlanyo
-        ? window.BWFPlanyo.reservations(datumPlus(-730), datumPlus(1095))
-        : Promise.reject(new Error("De Planyo-client ontbreekt.")),
+        ? window.BWFPlanyo.reservations(datumPlus(-730), datumPlus(1095)).catch(function (e) { return { events:[], fout:e.message }; })
+        : Promise.resolve({ events:[], fout:"De Planyo-client ontbreekt." }),
+      fetch(KANALEN_PROXY + "?k=" + encodeURIComponent(KANALEN_SLEUTEL))
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .catch(function (e) { return { events:[], fout:e.message }; }),
       haal("reservations?select=*&order=checkindatum.desc&limit=3000"),
       haal("planning?select=*&order=datum.asc&limit=4000"),
       haal("medewerkers?select=*")
     ];
     return Promise.all(taken).then(function (uit) {
-      BRON = (uit[0] && uit[0].source) || "Planyo";
+      var planyoAantal = ((uit[0] && uit[0].events) || []).length;
+      var kanalenAantal = ((uit[1] && uit[1].events) || []).length;
+      BRON = planyoAantal && kanalenAantal ? "Planyo + boekingskanalen"
+        : planyoAantal ? "Planyo" : kanalenAantal ? "Boekingskanalen" : "Geen boekingen ontvangen";
       RES = [];
-      ((uit[0] && uit[0].events) || []).forEach(function (ev) {
+      var gezien = {};
+      function voegEventToe(ev, standaardBron) {
         if (ev.soort !== "reservering" && ev.soort !== "extern") return;
+        var locatie = suiteNaam(ev.suite || ev.locatie);
+        var naam = ev.gast || ev.naam || ev.titel || "";
+        var ref = ev.nummer || ev.referentie || "";
+        var sleutel = ref ? "ref-" + String(ref).toLowerCase()
+          : [locatie, String(ev.start || "").slice(0, 16), String(naam).toLowerCase()].join("|");
+        if (gezien[sleutel]) return;
+        gezien[sleutel] = true;
         RES.push({
-          locatie: suiteNaam(ev.suite || ev.locatie),
-          naam: ev.gast || ev.naam || ev.titel || "",
+          locatie: locatie,
+          naam: naam,
           start: ev.start, eind: ev.eind,
-          ref: ev.nummer || ev.referentie || "",
-          bron: ev.bron || "Planyo", status: ev.statusLabel || "",
+          ref: ref,
+          bron: ev.bron || standaardBron, status: ev.statusLabel || "Bevestigd",
           email: ev.email || "", telefoon: ev.telefoon || "",
           totaal: ev.totaal || 0, betaald: ev.betaald || 0,
-          id: ev.id || ev.nummer || (ev.suite + "-" + ev.start)
+          id: (standaardBron === "Planyo" ? "planyo-" : "kanaal-") +
+            (ev.id || ev.nummer || (ev.suite + "-" + ev.start))
         });
-      });
-      (uit[1] || []).forEach(function (r) {
+      }
+      ((uit[0] && uit[0].events) || []).forEach(function (ev) { voegEventToe(ev, "Planyo"); });
+      ((uit[1] && uit[1].events) || []).forEach(function (ev) { voegEventToe(ev, "Boekingskanaal"); });
+      (uit[2] || []).forEach(function (r) {
         var s = String(r.checkindatum || "").slice(0, 10);
         if (!s) return;
+        var sleutel = r.referentie ? "ref-" + String(r.referentie).toLowerCase()
+          : [suiteNaam(r.locatie), String(r.checkindatum || "").slice(0, 16), String(r.voornaam || "").toLowerCase()].join("|");
+        if (gezien[sleutel]) return;
+        gezien[sleutel] = true;
         RES.push({
           locatie: suiteNaam(r.locatie),
           naam: [r.voornaam, r.achternaam].filter(Boolean).join(" ") || r.naam || "",
@@ -218,12 +242,16 @@
           betaald: r.betaald || 0, id: "eigen-" + r.id
         });
       });
-      DIENSTEN = uit[2] || [];
-      TEAM = uit[3] || [];
+      DIENSTEN = uit[3] || [];
+      TEAM = uit[4] || [];
       TEAM.forEach(function (m, i) { KLEURVAN[m.id] = PALET[i % PALET.length]; });
       maand = vd.slice(0, 7); dag = vd;
       var s = document.getElementById("kStatus");
-      if (s) { s.className = "kstatus"; s.innerHTML = "<i></i>" + esc(BRON) + " bijgewerkt"; }
+      if (s) {
+        var waarschuwing = uit[0].fout && uit[1].fout;
+        s.className = "kstatus" + (waarschuwing ? " fout" : "");
+        s.innerHTML = "<i></i>" + esc(BRON) + " bijgewerkt";
+      }
       teken();
     }).catch(function (fout) {
       var s = document.getElementById("kStatus");
