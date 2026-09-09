@@ -90,7 +90,9 @@ input[type=date],select{background:var(--surface);border:1px solid var(--line);b
 .rij[data-actief="1"]{border-color:var(--accent);border-left-color:var(--accent);box-shadow:var(--shadow)}
 .rij .tijd{font-family:var(--f-mono);font-size:17px;font-weight:500}
 .rij .naam{font-weight:600}
-.rij .meta{grid-column:2;font-size:13px;color:var(--muted)}
+.rij .meta{grid-column:2;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:1px}
+.rij .meta .regel2{color:var(--ink-2)}
+.rij .meta .regel3{font-family:var(--f-mono);font-size:11.5px}
 .rij .rechts{grid-row:1 / span 2;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .tag{font-family:var(--f-mono);font-size:11px;padding:3px 7px;border-radius:999px;
   background:var(--accent-soft);color:var(--ink-2);white-space:nowrap}
@@ -717,6 +719,7 @@ function teken(){
 }
 
 function rijHtml(x, veld){
+  const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   const tags = [];
   tags.push(`<span class="tag">${esc(locNaam(x.locatie))}</span>`);
   tags.push(`<span class="tag">${isOvernachting(x) ? 'overnachting' : 'dagverblijf'}</span>`);
@@ -734,14 +737,20 @@ function rijHtml(x, veld){
   if(x.koppeling && x.koppeling.notitie) tags.push('<span class="tag let">notitie</span>');
   else if(x.call && (x.call.bijzonderheden || x.call.allergieen))
     tags.push('<span class="tag let">bijzonderheden</span>');
-  const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   if(open > 0) tags.push(`<span class="tag let">${euro(open)} op locatie</span>`);
+
 
   return `<div class="rij" role="button" tabindex="0" data-sleutel="${esc(x.sleutel)}"
       ${ACTIEF === x.sleutel ? 'data-actief="1"' : ''}>
     <div class="tijd">${esc(x[veld] || '—')}</div>
     <div class="naam">${esc(x.naam || 'Naam onbekend')}</div>
-    <div class="meta">${esc(x.resnr || 'geen nummer')} · ${esc(x.bron || '')}</div>
+    <div class="meta">
+      <span class="regel1">${esc(locNaam(x.locatie))} · in ${esc(x.tijdIn || '—')} · uit ${esc(x.tijdUit || '—')}${
+        x.personen ? ' · ' + esc(x.personen) + ' pers.' : ''}</span>
+      ${x.arrangement ? `<span class="regel2">${esc(x.arrangement)}</span>` : ''}
+      <span class="regel3">${esc(x.resnr || 'geen nummer')} · ${esc(x.bron || '')}${
+        open > 0 ? ' · nog te betalen op locatie ' + euro(open) : ''}</span>
+    </div>
     <div class="rechts">${tags.join('')}</div>
   </div>`;
 }
