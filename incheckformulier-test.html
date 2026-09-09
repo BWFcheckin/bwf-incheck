@@ -289,23 +289,23 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 2 · AANMELDINGEN VAN GASTEN ================= -->
   <div class="card">
-    <h2>2 &middot; Reserveringsgegevens</h2>
+    <h3>Aanmeldingen en gastgegevens</h3>
     <p class="desc">Deze gegevens komen uit de koppeling in blok 1. Klopt er iets niet, dan pas je het hier aan; handmatig invullen kan altijd.</p>
-    <h3>2.1 Aanmeldingen van gasten</h3>
+    <h3>Aanmeldingen van gasten</h3>
     <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken &mdash; de klantgegevens en handtekening staan er dan al in.</p>
     <div class="aanmeld-lijst" id="aanmeldLijst"></div>
   </div>
 
   <!-- ================= 3 · KLAARGEZETTE FORMULIEREN ================= -->
   <div class="card" id="concepten">
-    <h3>2.2 Klaargezette formulieren</h3>
+    <h3>Klaargezette formulieren</h3>
     <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
     <div class="aanmeld-lijst" id="conceptLijst"></div>
   </div>
 
   <!-- ================= 4 · FORMULIER VOOR DE GAST ================= -->
   <div class="card">
-    <h3>2.3 Gastgegevens en akkoord</h3>
+    <h3>Gastgegevens en akkoord</h3>
     <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn &mdash; niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
     <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
     <button type="button" class="btn" onclick="openGuestModal()">&#9998; Formulier voor de gast openen</button>
@@ -326,7 +326,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 5 · BOEKINGSGEGEVENS ================= -->
   <div class="card">
-    <h3>2.4 Boekingsgegevens</h3>
+    <h3>Boekingsgegevens</h3>
     <div class="formgrid3">
       <div><label>Boeking via</label>
         <select id="c_boekingvia">
@@ -364,7 +364,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 6 · EERDER IN- OF LATER UITCHECKEN ================= -->
   <div class="card">
-    <h3>2.5 Eerder in- of later uitchecken</h3>
+    <h3>Eerder in- of later uitchecken</h3>
     <p class="desc">Extra uren naast wat vooraf gereserveerd is. Maximaal 8 uur, &euro; 50 per uur. Een half uur kost &euro; 30.</p>
     <div class="formgrid3">
       <div><label>Type</label>
@@ -391,7 +391,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 7 · ARRANGEMENTEN ================= -->
   <div class="card">
-    <h3>2.6 Arrangementen</h3>
+    <h3>Arrangementen</h3>
     <p class="desc">Is er een reservering gekoppeld, dan staan alleen de arrangementen van die reservering in de lijst. Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
     <div class="order-add">
       <div><label>Arrangement</label><select id="arrSelect"></select></div>
@@ -403,7 +403,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 8 · VOORAF GERESERVEERD ================= -->
   <div class="card">
-    <h3>2.7 Arrangementen vooraf geboekt</h3>
+    <h3>Vooraf geboekte extra’s</h3>
     <p class="desc">Wat de gast al vooraf heeft geboekt. Dit zit in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat ter plekke wordt besteld zet je bij &quot;Bestellingen op locatie&quot;.</p>
     <div class="order-add">
       <div><label>Onderdeel</label><select id="voorSelect"></select></div>
@@ -415,7 +415,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 3 &middot; NIEUWE RESERVERING AANMAKEN ================= -->
   <div class="card" id="blok3">
-    <h2>3 &middot; Nieuwe reservering aanmaken</h2>
+    <h2>Nieuwe reservering aanmaken</h2>
     <p class="desc">Voor een boeking die nog niet in de planning staat. De reservering komt in het
       reserveringsoverzicht, de klant in het klantenbestand.</p>
 
@@ -535,9 +535,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 4 &middot; LOCATIEMANAGER ================= -->
   <div class="card">
-    <h2>4 &middot; In te vullen door de locatiemanager</h2>
+    <h3>Bijgeboekt op locatie</h3>
     <p class="desc">Wat er tijdens het verblijf is bijgeboekt, en de afrekening op locatie.</p>
-    <h3>4.1 Bestellingen op locatie</h3>
+    <h3>Bestellingen op locatie</h3>
 
     <h3>Eten &amp; drinken</h3>
     <div class="order-add">
@@ -581,7 +581,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 10 · EINDAFREKENING ================= -->
   <div class="card">
-    <h3>4.2 Eindafrekening</h3>
+    <h3>Eindafrekening</h3>
     <p class="desc">De hele reservering op een rij, met alles wat op locatie is bijgeboekt.</p>
 
     <div class="formgrid3">
@@ -685,7 +685,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 11 · OPSLAAN & VERSTUREN ================= -->
   <div class="card">
-    <h3>4.3 Opslaan en versturen</h3>
+    <h3>Opslaan en versturen</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
       <button class="btn" type="button" onclick="saveCheckin(false)">Opslaan</button>
       <button class="btn secondary" type="button" onclick="saveCheckin(true)">Opslaan als concept</button>
@@ -4044,9 +4044,16 @@ body{background:#f4f7fb!important}
 
 <script id="bwf-incheck-indeling-js">
 /* =========================================================
-   Het incheckformulier opnieuw indelen: chronologisch,
-   alles ingeklapt, in dezelfde stijl als het dashboard.
-   De formulieren zelf blijven ongewijzigd.
+   Het incheckformulier indelen in vier blokken:
+     1  Reservering koppelen
+     2  Reserveringsgegevens
+     3  Nieuwe reservering aanmaken
+     4  In te vullen door de locatiemanager
+     5  Definitieve incheckformulieren
+
+   De kaarten worden herkend aan een veld dat er zeker in
+   staat, niet aan het nummer in de kop. Hernoem je een kop,
+   dan blijft de indeling dus gewoon werken.
    ========================================================= */
 (function(){
   var STAND = "bwf-incheck-open";
@@ -4055,44 +4062,46 @@ body{background:#f4f7fb!important}
     var kaarten = Array.prototype.slice.call(document.querySelectorAll(".card"));
     if(!kaarten.length || document.querySelector(".bwf-secties")) return;
 
-    function kop(c){ var h = c.querySelector("h2"); return h ? h.textContent.replace(/\s+/g," ").trim() : ""; }
-    function nr(n){
-      for(var i=0;i<kaarten.length;i++){
-        var t = kop(kaarten[i]);
-        if(t.indexOf(n + " ") === 0 || t.indexOf(n + "\u00b7") === 0 ||
-           new RegExp("^" + n + "\\s*[·.\u00b7]").test(t)) return kaarten[i];
-      }
-      return null;
+    /* een kaart zoeken aan de hand van een veld dat erin staat */
+    function viaVeld(id){
+      var el = document.getElementById(id);
+      return el ? el.closest(".card") : null;
     }
-    function opTekst(zoek){
-      for(var i=0;i<kaarten.length;i++) if(kop(kaarten[i]).toLowerCase().indexOf(zoek) > -1) return kaarten[i];
-      return null;
+    function viaId(id){
+      var el = document.getElementById(id);
+      return el && el.classList.contains("card") ? el : (el ? el.closest(".card") : null);
     }
 
     var K = {
-      koppel:   nr("1"), aanmeld: nr("2"), concept: nr("3"), gastform: nr("4"),
-      boeking:  nr("5"), tijden:  nr("6"), arr:     nr("7"), vooraf:   nr("8"),
-      besteld:  nr("9"), afreken: nr("10"), opslaan: nr("11"),
-      titel:    opTekst("incheckformulier") , definitief: opTekst("definitieve")
+      koppel:     viaVeld("k_bron"),
+      aanmeld:    viaVeld("aanmeldLijst"),
+      concept:    viaId("concepten"),
+      gastform:   viaVeld("guestStatus"),
+      boeking:    viaVeld("c_boekingvia"),
+      tijden:     viaVeld("c_checkoutType"),
+      arr:        viaVeld("arrSelect"),
+      vooraf:     viaVeld("voorSelect"),
+      blok3:      viaId("blok3"),
+      besteld:    viaVeld("ordItem"),
+      afreken:    viaVeld("rekenLijst"),
+      opslaan:    viaVeld("c_sendto"),
+      definitief: viaId("definitief")
     };
-    if(K.titel === K.koppel) K.titel = null;
-
-    /* het veld Locatiemanager hoort bij stap 1 */
-    var mgr = document.getElementById("c_manager");
-    var mgrVak = mgr ? mgr.closest("div") : null;
-    var raster = K.koppel ? K.koppel.querySelector(".formgrid3") : null;
-    if(mgrVak && raster) raster.appendChild(mgrVak);
 
     var houder = document.createElement("div");
     houder.className = "bwf-secties";
-    (K.koppel || kaarten[0]).parentNode.insertBefore(houder, K.koppel || kaarten[0]);
+    var eerste = K.koppel || kaarten[0];
+    eerste.parentNode.insertBefore(houder, eerste);
 
-    function sectie(nummer, titel, sub, delen, open){
+    /* data-titel wordt gebruikt om open/dicht te onthouden en door de
+       aanvullende scripts (overnemen, bevestiging en factuur). Die namen
+       blijven daarom staan, ook al staat er een andere kop boven. */
+    function sectie(nummer, titel, sub, sleutel, delen, open){
       delen = delen.filter(Boolean);
       if(!delen.length) return null;
       var s = document.createElement("section");
       s.className = "bwf-sec";
-      s.setAttribute("data-titel", titel);
+      s.setAttribute("data-titel", sleutel || titel);
       s.setAttribute("data-open", open ? "1" : "0");
       s.innerHTML = '<div class="bwf-kop" role="button" tabindex="0">' +
         '<span class="nr">' + nummer + "</span>" +
@@ -4100,7 +4109,7 @@ body{background:#f4f7fb!important}
         (sub ? '<span class="sub">' + sub + "</span>" : "") +
         '<span class="pijl">\u25BC</span></div><div class="bwf-body"></div>';
       var body = s.querySelector(".bwf-body");
-      delen.forEach(function(c, i){
+      delen.forEach(function(c){
         if(delen.length === 1) c.classList.add("zonderkop");
         body.appendChild(c);
       });
@@ -4108,43 +4117,30 @@ body{background:#f4f7fb!important}
       return s;
     }
 
-    /* ---- chronologische volgorde ---- */
-    sectie(1, "Reservering koppelen", "en wie er op locatie staat", [K.koppel], true);
-    sectie(2, "Boekingsgegevens", "datum, tijden, personen en wat vooraf geboekt is",
-      [K.boeking, K.vooraf, K.arr], true);
-    sectie(3, "Op locatie bijgeboekt", "extra's, bestellingen en aangepaste tijden",
-      [K.tijden, K.besteld], false);
-    sectie(4, "Eindafrekening", "totaal, betaald en betaalwijze", [K.afreken], false);
-    sectie(5, "Opslaan &amp; versturen", "", [K.opslaan], false);
+    sectie(1, "Reservering koppelen",
+      "kies de bron en neem de gegevens over",
+      "Reservering koppelen", [K.koppel], true);
 
-    /* 2, 3 en 4 samen onder \u00e9\u00e9n noemer, met knoppen ertussen */
-    var gasten = sectie(6, "Gasten &amp; klaargezette formulieren",
-      "aanmeldingen, concepten en het gastformulier",
-      [K.aanmeld, K.concept, K.gastform], false);
-    if(gasten){
-      var body = gasten.querySelector(".bwf-body");
-      var stukken = [
-        { el:K.aanmeld,  naam:"Aanmeldingen van gasten" },
-        { el:K.concept,  naam:"Klaargezette formulieren" },
-        { el:K.gastform, naam:"Formulier van de gast" }
-      ].filter(function(x){ return x.el; });
-      var keuze = document.createElement("div");
-      keuze.className = "bwf-keuze";
-      keuze.innerHTML = stukken.map(function(x, i){
-        return '<button type="button" data-stuk="' + i + '" aria-pressed="' + (i === 0) + '">' + x.naam + "</button>";
-      }).join("");
-      body.insertBefore(keuze, body.firstChild);
-      stukken.forEach(function(x, i){ x.el.classList.add("bwf-stuk", "zonderkop"); x.el.hidden = i !== 0; });
-      keuze.addEventListener("click", function(e){
-        var b = e.target.closest("[data-stuk]"); if(!b) return;
-        var k = +b.getAttribute("data-stuk");
-        stukken.forEach(function(x, i){ x.el.hidden = i !== k; });
-        keuze.querySelectorAll("[data-stuk]").forEach(function(x){
-          x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
-      });
-    }
+    /* Sleutel blijft "Boekingsgegevens": daar haken het overnemen-blok
+       en het overzichtje bovenin op aan. */
+    sectie(2, "Reserveringsgegevens",
+      "wat uit de koppeling komt \u2014 aanpassen kan altijd",
+      "Boekingsgegevens",
+      [K.aanmeld, K.concept, K.gastform, K.boeking, K.tijden, K.arr, K.vooraf], true);
 
-    sectie(7, "Definitieve incheckformulieren", "terugzoeken, openen en afronden", [K.definitief], false);
+    sectie(3, "Nieuwe reservering aanmaken",
+      "voor een boeking die nog niet in de planning staat",
+      "Nieuwe reservering", [K.blok3], false);
+
+    /* Sleutel blijft "Eindafrekening": daar komt het blok met
+       bevestiging en factuur in te staan. */
+    sectie(4, "In te vullen door de locatiemanager",
+      "bijgeboekt op locatie, afrekening en versturen",
+      "Eindafrekening", [K.besteld, K.afreken, K.opslaan], false);
+
+    sectie(5, "Definitieve incheckformulieren",
+      "terugzoeken, openen en afronden",
+      "Definitieve formulieren", [K.definitief], false);
 
     /* ---- open of dicht onthouden ---- */
     var stand = {};
@@ -4175,8 +4171,7 @@ body{background:#f4f7fb!important}
     balk.innerHTML = '<button type="button" id="bwfAllesOpen">Alles uitklappen</button>';
     houder.parentNode.insertBefore(balk, houder);
     document.getElementById("bwfAllesOpen").addEventListener("click", function(){
-      var dicht = houder.querySelectorAll('.bwf-sec[data-open="0"]').length;
-      var open = dicht > 0;
+      var open = houder.querySelectorAll('.bwf-sec[data-open="0"]').length > 0;
       houder.querySelectorAll(".bwf-sec").forEach(function(s){
         s.setAttribute("data-open", open ? "1" : "0");
         stand[s.getAttribute("data-titel")] = open;
@@ -4188,7 +4183,8 @@ body{background:#f4f7fb!important}
     /* een sectie vanzelf openen als er binnenin iets gebeurt */
     window.bwfOpenSectie = function(titel){
       houder.querySelectorAll(".bwf-sec").forEach(function(s){
-        if((s.getAttribute("data-titel")||"").toLowerCase().indexOf(String(titel).toLowerCase()) > -1){
+        var t = (s.getAttribute("data-titel") || "") + " " + (s.querySelector("h2").textContent || "");
+        if(t.toLowerCase().indexOf(String(titel).toLowerCase()) > -1){
           s.setAttribute("data-open", "1");
           s.scrollIntoView({ behavior:"smooth", block:"start" });
         }
