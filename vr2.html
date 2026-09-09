@@ -1484,6 +1484,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       <div class="card-head"><h2>Klantenbestand</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <div class="field" style="min-width:190px"><input type="text" id="klZoek" placeholder="zoek op naam, telefoon of e-mail"></div>
+          <button class="btn small" id="klBeheer" type="button" title="Bestaande klant bewerken, reserveringen en formulieren bekijken">Openen in Klantbeheer</button>
           <button class="btn ghost small" id="klImportBtn" type="button">Excel importeren</button>
         </div>
       </div>
@@ -2334,6 +2335,58 @@ function maakKlantbeheerPaneel(){
 }
 document.addEventListener('DOMContentLoaded', maakKlantbeheerPaneel);
 maakKlantbeheerPaneel();
+
+/* ---------------- Reserveringen als eigen tabblad ----------------
+   reserveringen.html wordt hier ingeladen in plaats van nagebouwd, zodat er
+   één plek is waar reserveringen beheerd worden. De pagina laadt pas zodra je
+   het tabblad opent, anders wordt dit dashboard onnodig traag. */
+function maakReserveringenPaneel(){
+  if(document.getElementById('panel-respagina')) return;
+  const tabs = document.getElementById('tabs'); if(!tabs) return;
+
+  const paneel = document.createElement('section');
+  paneel.className = 'panel'; paneel.id = 'panel-respagina';
+  paneel.setAttribute('role','tabpanel'); paneel.hidden = true;
+  paneel.innerHTML = `<div class="page-head">
+      <span class="eyebrow">Reserveringen</span>
+      <h1>Reserveringen</h1>
+      <p>De reserveringenpagina, hier ingeladen. In een eigen venster openen kan ook.</p>
+    </div>
+    <div class="card"><div class="card-head"><h2>Reserveringen</h2>
+      <a class="btn ghost small" href="reserveringen.html" target="_blank" rel="noopener">In eigen venster openen</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      <iframe id="resPaginaFrame" data-src="reserveringen.html" title="Reserveringen"
+        style="width:100%;height:78vh;min-height:520px;border:0;border-radius:0 0 12px 12px;background:#fff"></iframe>
+    </div></div>`;
+  const naast = document.getElementById('panel-klanten');
+  if(naast && naast.parentNode) naast.parentNode.insertBefore(paneel, naast);
+  else document.body.appendChild(paneel);
+
+  const knop = document.createElement('button');
+  knop.className = 'tab'; knop.setAttribute('role','tab');
+  knop.id = 'tab-respagina'; knop.dataset.tab = 'respagina';
+  knop.setAttribute('aria-selected','false');
+  knop.setAttribute('aria-controls','panel-respagina');
+  knop.textContent = 'Reserveringen';
+  tabs.insertBefore(knop, tabs.firstChild);
+
+  if(typeof GROEPEN !== 'undefined' && GROEPEN.reserveringen &&
+     GROEPEN.reserveringen.indexOf('respagina') < 0){
+    GROEPEN.reserveringen = ['respagina'].concat(GROEPEN.reserveringen);
+  }
+}
+maakReserveringenPaneel();
+document.addEventListener('DOMContentLoaded', maakReserveringenPaneel);
+
+/* de pagina pas ophalen wanneer het tabblad echt zichtbaar is */
+function laadResFrameIndienZichtbaar(){
+  const f = document.getElementById('resPaginaFrame');
+  const p = document.getElementById('panel-respagina');
+  if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src;
+}
+document.addEventListener('click', function(){ setTimeout(laadResFrameIndienZichtbaar, 60); });
+setTimeout(laadResFrameIndienZichtbaar, 1500);
 
 const GROEP_VAN = {};                       /* onderdeel -> groep */
 Object.keys(GROEPEN).forEach(g=>GROEPEN[g].forEach(t=>{ if(!GROEP_VAN[t]) GROEP_VAN[t] = g; }));
@@ -7996,6 +8049,19 @@ $('#whoBtn').addEventListener('click', ()=>{
   function start(){ balk(); probeer(); }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
+})();
+
+/* Bewerken van een bestaande klant, en het bekijken van zijn reserveringen en
+   formulieren, gebeurt in Klantbeheer. Die pagina opent hier met dezelfde
+   zoekterm, zodat je niet opnieuw hoeft te zoeken. */
+(function(){
+  var k = document.getElementById('klBeheer');
+  if(!k) return;
+  k.addEventListener('click', function(){
+    var z = document.getElementById('klZoek');
+    var term = z && z.value.trim() ? '?zoek=' + encodeURIComponent(z.value.trim()) : '';
+    window.open('klantbeheer.html' + term, '_blank', 'noopener');
+  });
 })();
 </script>
 </body>
