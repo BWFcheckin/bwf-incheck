@@ -896,7 +896,9 @@ async function loadDocumenten(){ documenten = await sb('documenten?select=*') ||
 async function loadCheckins(){ checkins = await sb('checkins?select=*&order=created_at.desc') || []; }
 async function loadAanmeldingen(){
   try{
-    aanmeldingen = await sb('gast_aanmeldingen?select=*&status=eq.nieuw&order=created_at.desc') || [];
+    /* Ook de al verwerkte aanmeldingen ophalen: die bleven anders onvindbaar
+       zodra je een formulier definitief had opgeslagen. */
+    aanmeldingen = await sb('gast_aanmeldingen?select=*&order=created_at.desc&limit=300') || [];
   }catch(e){
     console.error('Gastaanmeldingen laden mislukt:', e);
     aanmeldingen = [];
@@ -1560,19 +1562,22 @@ function kopieerGastLink(){
 function renderAanmeldingen(){
   const lijst = document.getElementById('aanmeldLijst');
   const banner = document.getElementById('aanmeldBanner');
+  const nieuwe = aanmeldingen.filter(function(a){ return !a.status || a.status === 'nieuw'; });
   if(!aanmeldingen.length){
     lijst.innerHTML = '<div class="aanmeld-leeg">Er staan nu geen nieuwe aanmeldingen open. Zodra een gast zijn link invult, verschijnt hij hier.</div>';
     banner.style.display = 'none';
     return;
   }
   lijst.innerHTML = aanmeldingen.map(a=>{
+    const verwerkt = a.status && a.status !== 'nieuw';
     const details = [
       a.datum ? new Date(a.datum).toLocaleDateString('nl-NL') : '',
       locName(a.locatie),
       a.code ? 'res. ' + escapeHtml(a.code) : '',
-      a.lid ? 'wil lid worden' : ''
+      a.lid ? 'wil lid worden' : '',
+      verwerkt ? 'al gekoppeld aan een formulier' : ''
     ].filter(Boolean).join(' · ');
-    return `<div class="aanmeld">
+    return `<div class="aanmeld"${verwerkt ? ' style="border-color:var(--line);background:var(--surface);opacity:.78"' : ''}>
       <div class="info">
         <strong>${escapeHtml(a.voornaam)} ${escapeHtml(a.achternaam)}</strong>
         <small>${escapeHtml(details)}</small>
@@ -1583,10 +1588,12 @@ function renderAanmeldingen(){
       </div>
     </div>`;
   }).join('');
-  banner.style.display = 'flex';
-  document.getElementById('aanmeldBannerTekst').innerHTML =
-    `<strong>${aanmeldingen.length} ${aanmeldingen.length===1?'gast heeft':'gasten hebben'} zich aangemeld</strong>
-     <small>${escapeHtml(aanmeldingen.map(a=>a.voornaam + ' ' + a.achternaam).join(', '))}</small>`;
+  banner.style.display = nieuwe.length ? 'flex' : 'none';
+  if(nieuwe.length){
+    document.getElementById('aanmeldBannerTekst').innerHTML =
+      `<strong>${nieuwe.length} ${nieuwe.length===1?'gast heeft':'gasten hebben'} zich aangemeld</strong>
+       <small>${escapeHtml(nieuwe.map(a=>a.voornaam + ' ' + a.achternaam).join(', '))}</small>`;
+  }
 }
 
 function gebruikAanmelding(id){
@@ -3600,8 +3607,8 @@ body{background:#f4f7fb!important}
 
       /* Eén keuzelijst in plaats van drie lijsten onder elkaar. */
       var stukken = [
-        { el:K.concept,  naam:"Klaargezette formulieren" },
         { el:K.aanmeld,  naam:"Aanmeldingen van gasten" },
+        { el:K.concept,  naam:"Klaargezette formulieren" },
         { el:K.gastform, naam:"Gastgegevens en akkoord" }
       ].filter(function(x){ return x.el; });
 
@@ -3625,8 +3632,10 @@ body{background:#f4f7fb!important}
         if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
       };
       document.getElementById("bwfConceptForm").onclick = function(){
-        document.getElementById("bwfStartKeuze").value = "0";
-        toon(0);
+        var i = stukken.map(function(x){ return x.el; }).indexOf(K.concept);
+        if(i < 0) i = 0;
+        document.getElementById("bwfStartKeuze").value = String(i);
+        toon(i);
         var l = document.getElementById("conceptLijst");
         if(l) l.scrollIntoView({ behavior:"smooth", block:"center" });
       };
