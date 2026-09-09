@@ -289,21 +289,23 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 2 · AANMELDINGEN VAN GASTEN ================= -->
   <div class="card">
-    <h2>2 &middot; Aanmeldingen van gasten</h2>
-    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken &mdash; de klantgegevens en handtekening staan er dan al in.</p>
+    <h3>Aanmeldingen van gasten</h3>
+    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Koppel er een aanmelding aan
+      een reservering: naam, contactgegevens en handtekening komen dan meteen in dit incheckformulier
+      te staan, onder Gastgegevens.</p>
     <div class="aanmeld-lijst" id="aanmeldLijst"></div>
   </div>
 
   <!-- ================= 3 · KLAARGEZETTE FORMULIEREN ================= -->
   <div class="card" id="concepten">
-    <h2>3 &middot; Klaargezette formulieren</h2>
+    <h3>Klaargezette formulieren</h3>
     <p class="desc">Concepten die nog niet zijn afgerond. Klik erop om verder te gaan waar je was.</p>
     <div class="aanmeld-lijst" id="conceptLijst"></div>
   </div>
 
   <!-- ================= 4 · FORMULIER VOOR DE GAST ================= -->
   <div class="card">
-    <h2>4 &middot; Formulier voor de gast &mdash; klantgegevens &amp; akkoord</h2>
+    <h3>Gastgegevens en akkoord</h3>
     <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn &mdash; niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
     <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
     <button type="button" class="btn" onclick="openGuestModal()">&#9998; Formulier voor de gast openen</button>
@@ -324,7 +326,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 5 · BOEKINGSGEGEVENS ================= -->
   <div class="card">
-    <h2>5 &middot; Boekingsgegevens</h2>
+    <h3>Boekingsgegevens</h3>
     <div class="formgrid3">
       <div><label>Boeking via</label>
         <select id="c_boekingvia">
@@ -346,7 +348,6 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="formgrid3">
       <div><label id="datumLabel">Datum</label><input type="date" id="c_datum"></div>
       <div id="checkuitdatumWrap" style="display:none;"><label>Check-uit datum</label><input type="date" id="c_checkuitdatum"></div>
-      <div><label>Locatiemanager</label><select id="c_manager"></select></div>
     </div>
     <div class="formgrid3">
       <div><label>Aantal personen</label><input type="number" id="c_personen" min="1" value="2"></div>
@@ -362,7 +363,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 6 · EERDER IN- OF LATER UITCHECKEN ================= -->
   <div class="card">
-    <h2>6 &middot; Eerder in- of later uitchecken</h2>
+    <h3>Eerder in- of later uitchecken</h3>
     <p class="desc">Extra uren naast wat vooraf gereserveerd is. Maximaal 8 uur, &euro; 50 per uur. Een half uur kost &euro; 30.</p>
     <div class="formgrid3">
       <div><label>Type</label>
@@ -389,7 +390,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 7 · ARRANGEMENTEN ================= -->
   <div class="card">
-    <h2>7 &middot; Arrangementen</h2>
+    <h3>Arrangementen</h3>
     <p class="desc">Is er een reservering gekoppeld, dan staan alleen de arrangementen van die reservering in de lijst. Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
     <div class="order-add">
       <div><label>Arrangement</label><select id="arrSelect"></select></div>
@@ -401,7 +402,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 8 · VOORAF GERESERVEERD ================= -->
   <div class="card">
-    <h2>8 &middot; Arrangementen vooraf geboekt</h2>
+    <h3>Vooraf geboekte extra’s</h3>
     <p class="desc">Wat de gast al vooraf heeft geboekt. Dit zit in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat ter plekke wordt besteld zet je bij &quot;Bestellingen op locatie&quot;.</p>
     <div class="order-add">
       <div><label>Onderdeel</label><select id="voorSelect"></select></div>
@@ -411,9 +412,13 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="order-list" id="voorList"></div>
   </div>
 
-  <!-- ================= 9 · BESTELLINGEN OP LOCATIE ================= -->
+  <!-- Nieuwe reservering aanmaken is verhuisd naar reserveringen.html -->
+
+  <!-- ================= 4 &middot; LOCATIEMANAGER ================= -->
   <div class="card">
-    <h2>9 &middot; Bestellingen op locatie</h2>
+    <h3>Bijgeboekt op locatie</h3>
+    <p class="desc">Wat er tijdens het verblijf is bijgeboekt, en de afrekening op locatie.</p>
+    <h3>Bestellingen op locatie</h3>
 
     <h3>Eten &amp; drinken</h3>
     <div class="order-add">
@@ -457,12 +462,20 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 10 · EINDAFREKENING ================= -->
   <div class="card">
-    <h2>10 &middot; Eindafrekening</h2>
+    <h3>Eindafrekening</h3>
     <p class="desc">De hele reservering op een rij, met alles wat op locatie is bijgeboekt.</p>
+    <div class="formgrid3">
+      <div><label for="c_manager">Ingevuld door (locatiemanager)</label><select id="c_manager"></select></div>
+      <div><label for="c_ingevulddatum">Datum invullen</label><input type="date" id="c_ingevulddatum"></div>
+      <div></div>
+    </div>
 
     <div class="formgrid3">
+      <div><label for="c_pakket">Tijdblok of pakket</label>
+        <select id="c_pakket" onchange="kiesPakket()"><option value="">&mdash; kies eerst suite en verblijf &mdash;</option></select>
+        <div id="tariefHint" class="desc" style="margin-top:5px"></div></div>
       <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
-        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="tariefHandmatig=true; herberekenAlles()"></div>
       <div><label>Totaal online betaald (&euro;)</label>
         <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
       <div><label>Nog te betalen (&euro;)</label>
@@ -499,8 +512,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       </div>
     </div>
 
-    <h3>Betalingen</h3>
-    <p class="desc">Voeg elke betaling apart toe, ook als de gast later nog iets betaalt.</p>
+    <h3>Restant betalen bij uitchecken</h3>
+    <p class="desc">Voeg elke betaling apart toe: pin, contant of via een betaallink. Ook een betaling
+      achteraf hoort hier, dan blijft de afrekening kloppen.</p>
     <div class="order-add">
       <div class="qty" style="max-width:120px;"><label>Bedrag (&euro;)</label><input type="number" id="betBedrag" step="0.01" min="0"></div>
       <div><label>Betaalwijze</label>
@@ -558,7 +572,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- ================= 11 · OPSLAAN & VERSTUREN ================= -->
   <div class="card">
-    <h2>11 &middot; Opslaan &amp; versturen</h2>
+    <h3>Opslaan en versturen</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
       <button class="btn" type="button" onclick="saveCheckin(false)">Opslaan</button>
       <button class="btn secondary" type="button" onclick="saveCheckin(true)">Opslaan als concept</button>
@@ -677,32 +691,45 @@ const ARRANGEMENT_SECTIONS = [
     { key:'romantisch', naam:'Romantisch arrangement', prijs:75 },
   ]},
   { title:'Romantiek & Luxe', items:[
-    { key:'valentine', naam:'365 Valentine arrangement', prijs:299 },
+    { key:'valentine', naam:'356 Days of Valentine', prijs:300 },
     { key:'vip', naam:'VIP arrangement', prijs:250 },
+  ]},
+  { title:'Groepen (Almere)', items:[
+    { key:'kidspool', naam:'Kids Pool Party (vanaf)', prijs:850, note:'Themaversiering +50 euro, mag mee naar huis' },
+    { key:'bridal', naam:'Bridal / Babyshower (vanaf)', prijs:1000 },
   ]},
   { title:'Verblijf', items:[
     { key:'overnachting_arr', naam:'Honeymoon overnachting', prijs:null },
-    { key:'verrassing', naam:'Verrassingsarrangement', prijs:2.50, note:'🕶️ Oogmasker meegeven bij inchecken' },
+    { key:'bruidsnacht', naam:'Bruidsnacht arrangement', prijs:null, note:'Prijs verschilt per suite - zie het tijdblok' },
+    { key:'verrassing', naam:'Verrassingsarrangement', prijs:2.50, note:'Oogmasker meegeven bij inchecken' },
+    { key:'reset', naam:'Reset Retreat (op aanvraag)', prijs:null },
   ]},
 ];
 const ORDER_ITEMS = [
-  { naam:'Burgermenu Crispy Chicken', prijs:39 },
-  { naam:'Chickenwingsarrangement', prijs:35 },
+  /* Menukaart Lelystad - bedenwellnessflevoland.nl/tarieven, 9-9-2026 */
+  { naam:'Ontbijt / Lunch', prijs:39 },
   { naam:'Borrelplank', prijs:30 },
-  { naam:'Sushi', prijs:75 },
-  { naam:'Ontbijt/Lunch', prijs:39 },
-  { naam:'Mocktail karaf', prijs:30 },
+  { naam:'Chicken Wings Menu', prijs:35 },
+  { naam:'Chicken Burger Menu', prijs:39 },
+  { naam:'Luxe Sushi Schaal', prijs:75 },
   { naam:'Fles Prosecco', prijs:30 },
   { naam:'Fles Chardonnay', prijs:30 },
-  { naam:'Fles Zoete Wit', prijs:30 },
-  { naam:'Fles Moët & Chandon', prijs:125 },
   { naam:'Fles Champagne', prijs:50 },
+  { naam:'Moet & Chandon Ice Edition', prijs:125 },
+  { naam:'Mocktail Karaf', prijs:30 },
+  { naam:'Juice of the Day', prijs:8.50 },
 ];
 const ALMERE_ORDER_ITEMS = [
-  { naam:'Black Angus Burger menu', prijs:39 },
-  { naam:'Black Angus Burger menu + upgrade (milkshakes & chickenwings)', prijs:46 },
-  { naam:'Tapas plank', prijs:49 },
-  { naam:'Champagne ontbijt', prijs:79 },
+  /* Menukaart Almere - alleen bij de Angie Wellness Suite */
+  { naam:'Luxe Ontbijt / Lunch', prijs:39 },
+  { naam:'Warme Borrelplank', prijs:30 },
+  { naam:'Charcuterie Board', prijs:49 },
+  { naam:'Chicken Platter', prijs:39 },
+  { naam:'Premium Burger Menu', prijs:39 },
+  { naam:'Sushi Experience', prijs:75 },
+  { naam:'High Tea (p.p., vanaf 4 personen)', prijs:24.50 },
+  { naam:'Tasting Tree Experience', prijs:69 },
+  { naam:'Champagne Ontbijt', prijs:79 },
 ];
 // Extra personen bijboeken op locatie — tarief per locatie
 const EXTRA_PERSONEN = {
@@ -718,8 +745,19 @@ const EXTRA_PERSONEN = {
   },
 };
 const SERVICE_ITEMS = [
-  { naam:'Shisha', prijs:30 },
-  { naam:'Huur massagetafel', prijs:30 },
+  /* Extra's en behandelingen - zelfde bron */
+  { naam:'Waterpijp', prijs:30 },
+  { naam:'Huur massagetafel', prijs:25 },
+  { naam:'Rozenbeer', prijs:25 },
+  { naam:'Rozenhart', prijs:25 },
+  { naam:'Zeeprozenboeketje', prijs:35 },
+  { naam:'Verrassing blinddoek', prijs:2.50 },
+  { naam:'Ontspanningsmassage 30 min relax', prijs:50 },
+  { naam:'Ontspanningsmassage 45 min relax', prijs:75 },
+  { naam:'Deep tissue massage 30 min', prijs:60 },
+  { naam:'Deep tissue massage 45 min', prijs:80 },
+  { naam:'Klankschalen therapie', prijs:null },
+  { naam:'Reiki behandeling', prijs:null },
 ];
 // Alles wat vooraf gereserveerd kan worden — voor de aanvink-checklist
 const VOORAF_ITEMS = [...ORDER_ITEMS, ...ALMERE_ORDER_ITEMS, ...SERVICE_ITEMS];
@@ -858,7 +896,9 @@ async function loadDocumenten(){ documenten = await sb('documenten?select=*') ||
 async function loadCheckins(){ checkins = await sb('checkins?select=*&order=created_at.desc') || []; }
 async function loadAanmeldingen(){
   try{
-    aanmeldingen = await sb('gast_aanmeldingen?select=*&status=eq.nieuw&order=created_at.desc') || [];
+    /* Ook de al verwerkte aanmeldingen ophalen: die bleven anders onvindbaar
+       zodra je een formulier definitief had opgeslagen. */
+    aanmeldingen = await sb('gast_aanmeldingen?select=*&order=created_at.desc&limit=300') || [];
   }catch(e){
     console.error('Gastaanmeldingen laden mislukt:', e);
     aanmeldingen = [];
@@ -1028,6 +1068,211 @@ function toggleSplitBetaling(){
 /* ================= REKENMACHINE ================= */
 /* Reserveringsbedrag = alles wat vooraf is geboekt en betaald (arrangement + vooraf
    gereserveerde extra's). Daar bovenop komt alles wat op locatie is bijgeboekt. */
+/* =================== TARIEVEN ===================
+   Overgenomen van bedenwellnessflevoland.nl/tarieven op 9-9-2026.
+   Wijzig je de prijzen op de website, pas ze dan hier ook aan: dit is een
+   kopie, geen koppeling. Weekendtarief geldt donderdag tot en met zondag. */
+var SUITES = {
+  angie: {
+    naam: "B&W Angie - Almere",
+    foto: "https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/almere%20bed%20en%20wellness%20angie/Bed%20en%20wellness%20Flevoland_%20B&W%20Angie%20Locatie%20Almere%20Zwembad.webp",
+    dag: [
+      /* Het 2-uursblok staat op de suiteposter, niet op de website.
+         Tijden afgeleid van de bestaande starttijden. */
+      {naam:"2 uur", van:"12:00", tot:"14:00", prijs:159},
+      {naam:"2 uur", van:"12:30", tot:"14:30", prijs:159},
+      {naam:"2 uur", van:"13:00", tot:"15:00", prijs:159},
+      {naam:"3 uur", van:"12:00", tot:"15:00", prijs:249},
+      {naam:"3 uur", van:"12:30", tot:"15:30", prijs:249},
+      {naam:"3 uur", van:"13:00", tot:"16:00", prijs:249},
+      {naam:"4 uur", van:"12:00", tot:"16:00", prijs:269},
+      {naam:"4 uur", van:"12:30", tot:"16:30", prijs:269},
+      {naam:"4 uur", van:"13:00", tot:"17:00", prijs:269},
+      {naam:"5 uur", van:"13:00", tot:"18:00", prijs:299}
+    ],
+    nacht: [
+      {naam:"Relax & Stay", van:"13:00", tot:"11:00", mawo:449, dozo:529},
+      {naam:"Relax & Stay late check-in", van:"20:00", tot:"11:00", mawo:399, dozo:449},
+      {naam:"Wellness Experience (incl. ontbijt)", van:"13:00", tot:"11:00", mawo:449, dozo:549},
+      {naam:"Bruidsnacht", van:"01:00", tot:"15:00", mawo:849, dozo:849}
+    ],
+    toeslag: {dagVolw:60, dagKind:25, nachtVolw:100, nachtKind:50}
+  },
+  jacuzzi: {
+    naam: "B&W Malina Jacuzzi - Lelystad",
+    foto: "https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/lelystad%20bed%20en%20wellness%20malina%20jacuzzi%20suite/bed%20en%20wellness%20malina%20overzicht%20jacuzzi%20suite%20.webp",
+    dag: [
+      {naam:"2,5 uur", van:"12:00", tot:"14:30", prijs:199},
+      {naam:"2,5 uur", van:"14:30", tot:"17:00", prijs:199},
+      {naam:"3 uur", van:"12:00", tot:"15:00", prijs:229},
+      {naam:"3 uur", van:"14:00", tot:"17:00", prijs:229},
+      {naam:"3 uur", van:"15:00", tot:"18:00", prijs:229},
+      {naam:"4 uur", van:"12:00", tot:"16:00", prijs:259},
+      {naam:"5 uur", van:"12:00", tot:"17:00", prijs:299}
+    ],
+    nacht: [
+      {naam:"Relax & Stay", van:"14:00", tot:"10:00", mawo:399, dozo:449},
+      {naam:"Relax & Stay late check-in", van:"20:00", tot:"10:00", mawo:379, dozo:399},
+      {naam:"Bruidsnacht", van:"01:00", tot:"15:00", mawo:699, dozo:699}
+    ],
+    toeslag: {dagVolw:60, dagKind:25, nachtVolw:100, nachtKind:50}
+  },
+  deluxe: {
+    naam: "B&W Malina Zwembad - Lelystad",
+    foto: "https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/Lelystad%20bed%20en%20wellness%20malina%20deluxe%20%20zwembad%20suite/bed%20en%20wellness%20mlaina%20deluxe%20zwembad%20suite.webp",
+    dag: [
+      {naam:"3 uur", van:"12:30", tot:"15:30", prijs:299},
+      {naam:"3 uur", van:"13:00", tot:"16:00", prijs:299},
+      {naam:"4 uur", van:"12:30", tot:"16:30", prijs:349},
+      {naam:"4 uur", van:"13:00", tot:"17:00", prijs:349}
+    ],
+    nacht: [
+      {naam:"Relax & Stay early check-in", van:"13:00", tot:"11:00", mawo:749, dozo:849},
+      {naam:"Relax & Stay", van:"19:00", tot:"11:00", mawo:479, dozo:529},
+      {naam:"Bruidsnacht", van:"01:00", tot:"15:00", mawo:999, dozo:999}
+    ],
+    toeslag: {dagVolw:75, dagKind:50, nachtVolw:125, nachtKind:75}
+  }
+};
+var tariefHandmatig = false;
+
+function isOvernachtingGekozen(){
+  var el = document.querySelector('input[name="verblijftype"]:checked');
+  return !!(el && el.value === "overnachting");
+}
+function isWeekendtarief(datum){
+  var d = new Date(String(datum || "") + "T12:00:00");
+  if(isNaN(d)) return false;
+  var dag = d.getDay();
+  return dag === 0 || dag >= 4;
+}
+function euroTekst(n){ return "\u20ac" + Number(n).toFixed(0); }
+
+function vulPakketten(){
+  var sel = document.getElementById("c_pakket");
+  if(!sel) return;
+  var loc = (document.getElementById("c_locatie") || {}).value;
+  var S = SUITES[loc];
+  var was = sel.value;
+  if(!S){ sel.innerHTML = '<option value="">- kies eerst een suite -</option>'; return; }
+  var overnachting = isOvernachtingGekozen();
+  var weekend = isWeekendtarief((document.getElementById("c_datum") || {}).value);
+  var lijst = overnachting ? S.nacht : S.dag;
+  var opts = ['<option value="">- kies een ' + (overnachting ? "pakket" : "tijdblok") + ' -</option>'];
+  lijst.forEach(function(p, i){
+    var prijs = overnachting ? (weekend ? p.dozo : p.mawo) : p.prijs;
+    opts.push('<option value="' + i + '">' + p.naam + "  \u00b7  " + p.van + "-" + p.tot +
+      "  \u00b7  " + euroTekst(prijs) + "</option>");
+  });
+  opts.push('<option value="maatwerk">Maatwerk - bedrag zelf invullen</option>');
+  sel.innerHTML = opts.join("");
+  if(was) sel.value = was;
+  toonSuiteFoto();
+  toonTariefHint();
+}
+
+function toonSuiteFoto(){
+  var hint = document.getElementById("tariefHint");
+  if(!hint) return;
+  var S = SUITES[(document.getElementById("c_locatie") || {}).value];
+  var oud = document.getElementById("suiteFoto");
+  if(oud) oud.remove();
+  if(!S) return;
+  var wrap = document.createElement("div");
+  wrap.id = "suiteFoto";
+  wrap.style.cssText = "margin-top:8px;display:flex;gap:10px;align-items:center";
+  wrap.innerHTML = '<img src="' + S.foto + '" alt="' + S.naam + '" loading="lazy" ' +
+    'style="width:86px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e3dad0">' +
+    '<span style="font-size:13px">' + S.naam + "</span>";
+  hint.parentNode.insertBefore(wrap, hint);
+}
+
+function kiesPakket(){
+  var sel = document.getElementById("c_pakket");
+  var S = SUITES[(document.getElementById("c_locatie") || {}).value];
+  if(!S || !sel) return;
+  if(sel.value === "maatwerk"){ tariefHandmatig = true; toonTariefHint(); return; }
+  var i = parseInt(sel.value, 10);
+  if(isNaN(i)) return;
+  var overnachting = isOvernachtingGekozen();
+  var p = (overnachting ? S.nacht : S.dag)[i];
+  if(!p) return;
+  var vIn = document.getElementById("c_checkin"), vUit = document.getElementById("c_checkuit");
+  if(vIn) vIn.value = p.van;
+  if(vUit) vUit.value = p.tot;
+  if(overnachting){
+    var dIn = (document.getElementById("c_datum") || {}).value;
+    var dUit = document.getElementById("c_checkuitdatum");
+    if(dIn && dUit && !dUit.value){
+      var d = new Date(dIn + "T12:00:00");
+      d.setDate(d.getDate() + 1);
+      dUit.value = d.toISOString().slice(0,10);
+    }
+  }
+  tariefHandmatig = false;
+  pasTariefToe();
+}
+
+function berekenTarief(){
+  var S = SUITES[(document.getElementById("c_locatie") || {}).value];
+  var sel = document.getElementById("c_pakket");
+  if(!S || !sel || sel.value === "" || sel.value === "maatwerk") return null;
+  var i = parseInt(sel.value, 10);
+  if(isNaN(i)) return null;
+  var overnachting = isOvernachtingGekozen();
+  var p = (overnachting ? S.nacht : S.dag)[i];
+  if(!p) return null;
+  var basis = overnachting
+    ? (isWeekendtarief((document.getElementById("c_datum") || {}).value) ? p.dozo : p.mawo)
+    : p.prijs;
+  var personen = parseInt((document.getElementById("c_personen") || {}).value, 10) || 2;
+  var kinderen = parseInt((document.getElementById("c_kinderen") || {}).value, 10) || 0;
+  var extraVolw = Math.max(0, personen - 2 - kinderen);
+  var tsVolw = overnachting ? S.toeslag.nachtVolw : S.toeslag.dagVolw;
+  var tsKind = overnachting ? S.toeslag.nachtKind : S.toeslag.dagKind;
+  var delen = [p.naam + " " + euroTekst(basis)];
+  if(extraVolw) delen.push(extraVolw + "x extra volwassene " + euroTekst(tsVolw));
+  if(kinderen) delen.push(kinderen + "x kind " + euroTekst(tsKind));
+  return { bedrag: basis + extraVolw * tsVolw + kinderen * tsKind, uitleg: delen.join(" + ") };
+}
+
+function toonTariefHint(){
+  var hint = document.getElementById("tariefHint");
+  if(!hint) return;
+  var veld = document.getElementById("c_resbedrag");
+  var sel = document.getElementById("c_pakket");
+  if(sel && sel.value === "maatwerk"){ hint.textContent = "Maatwerk - vul het bedrag zelf in."; return; }
+  var t = berekenTarief();
+  if(!t){ hint.textContent = "Kies een tijdblok of pakket, dan wordt het bedrag ingevuld."; return; }
+  var huidig = parseFloat(veld.value || 0) || 0;
+  if(Math.abs(huidig - t.bedrag) < 0.01){ hint.textContent = "Volgens tarief: " + t.uitleg; return; }
+  hint.innerHTML = "Volgens tarief " + euroTekst(t.bedrag) + " (" + t.uitleg + ") " +
+    '<button type="button" class="btn secondary sm" onclick="pasTariefToe()">Overnemen</button>';
+}
+function pasTariefToe(){
+  var t = berekenTarief();
+  if(!t) return;
+  document.getElementById("c_resbedrag").value = t.bedrag.toFixed(2);
+  tariefHandmatig = false;
+  if(typeof herberekenAlles === "function") herberekenAlles();
+  toonTariefHint();
+}
+
+document.addEventListener("change", function(e){
+  if(!e.target) return;
+  var id = e.target.id;
+  if(id === "c_locatie" || id === "c_datum" || e.target.name === "verblijftype"){
+    setTimeout(vulPakketten, 30);
+  } else if(id === "c_personen" || id === "c_kinderen"){
+    setTimeout(function(){ if(!tariefHandmatig) pasTariefToe(); else toonTariefHint(); }, 30);
+  }
+});
+document.addEventListener("DOMContentLoaded", function(){ setTimeout(vulPakketten, 400); });
+setTimeout(vulPakketten, 900);
+
+/* Het aanmaken van een nieuwe reservering staat nu op reserveringen.html. */
+
+
 function reserveringsBedrag(){
   return parseFloat(document.getElementById('c_resbedrag')?.value || 0) || 0;
 }
@@ -1317,33 +1562,38 @@ function kopieerGastLink(){
 function renderAanmeldingen(){
   const lijst = document.getElementById('aanmeldLijst');
   const banner = document.getElementById('aanmeldBanner');
+  const nieuwe = aanmeldingen.filter(function(a){ return !a.status || a.status === 'nieuw'; });
   if(!aanmeldingen.length){
     lijst.innerHTML = '<div class="aanmeld-leeg">Er staan nu geen nieuwe aanmeldingen open. Zodra een gast zijn link invult, verschijnt hij hier.</div>';
     banner.style.display = 'none';
     return;
   }
   lijst.innerHTML = aanmeldingen.map(a=>{
+    const verwerkt = a.status && a.status !== 'nieuw';
     const details = [
       a.datum ? new Date(a.datum).toLocaleDateString('nl-NL') : '',
       locName(a.locatie),
       a.code ? 'res. ' + escapeHtml(a.code) : '',
-      a.lid ? 'wil lid worden' : ''
+      a.lid ? 'wil lid worden' : '',
+      verwerkt ? 'al gekoppeld aan een formulier' : ''
     ].filter(Boolean).join(' · ');
-    return `<div class="aanmeld">
+    return `<div class="aanmeld"${verwerkt ? ' style="border-color:var(--line);background:var(--surface);opacity:.78"' : ''}>
       <div class="info">
         <strong>${escapeHtml(a.voornaam)} ${escapeHtml(a.achternaam)}</strong>
         <small>${escapeHtml(details)}</small>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Formulier openen</button>
+        <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Koppelen aan reservering</button>
         <button class="btn secondary sm" type="button" onclick="verwijderAanmelding('${a.id}')">Verwijderen</button>
       </div>
     </div>`;
   }).join('');
-  banner.style.display = 'flex';
-  document.getElementById('aanmeldBannerTekst').innerHTML =
-    `<strong>${aanmeldingen.length} ${aanmeldingen.length===1?'gast heeft':'gasten hebben'} zich aangemeld</strong>
-     <small>${escapeHtml(aanmeldingen.map(a=>a.voornaam + ' ' + a.achternaam).join(', '))}</small>`;
+  banner.style.display = nieuwe.length ? 'flex' : 'none';
+  if(nieuwe.length){
+    document.getElementById('aanmeldBannerTekst').innerHTML =
+      `<strong>${nieuwe.length} ${nieuwe.length===1?'gast heeft':'gasten hebben'} zich aangemeld</strong>
+       <small>${escapeHtml(nieuwe.map(a=>a.voornaam + ' ' + a.achternaam).join(', '))}</small>`;
+  }
 }
 
 function gebruikAanmelding(id){
@@ -1368,7 +1618,15 @@ function gebruikAanmelding(id){
   };
   renderGuestStatus();
   herberekenAlles();
-  document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
+  if(window.bwfToonGastgegevens) window.bwfToonGastgegevens();
+  else document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
+  var st = document.getElementById('k_status');
+  if(st){
+    st.className = 'status ok';
+    st.textContent = '\u2713 Gastgegevens van ' + (a.voornaam || '') + ' ' + (a.achternaam || '') +
+      ' overgenomen. Koppel hierboven de bijbehorende reservering, dan staat alles bij elkaar.';
+  }
+  if(window.bwfOpenSectie) window.bwfOpenSectie('Boekingsgegevens');
 }
 
 async function verwerkteAanmeldingWegstrepen(checkinId){
@@ -1421,59 +1679,7 @@ function collectArrangementen(){
 function collectVoorafGereserveerd(){
   return VOORAF_ITEMS.filter((it,i)=> document.getElementById(`voor_${i}`)?.checked).map(it=>it.naam);
 }
-function collectCheckinData(){
-  const totaal = actueelTotaal();
-  const aanbetaald = parseFloat(document.getElementById('c_aanbetaald').value || 0);
-  const existingId = document.getElementById('c_id').value;
-  const verblijftypeEl = document.querySelector('input[name="verblijftype"]:checked');
-  const split = document.getElementById('c_splitToggle').checked;
-  return {
-    id: existingId || ('c'+Date.now()),
-    locatie: document.getElementById('c_locatie').value,
-    boeking_via: document.getElementById('c_boekingvia').value,
-    verblijftype: verblijftypeEl ? verblijftypeEl.value : 'dagverblijf',
-    datum: document.getElementById('c_datum').value,
-    checkuitdatum: verblijftypeEl && verblijftypeEl.value==='overnachting' ? (document.getElementById('c_checkuitdatum').value || null) : null,
-    resnr: document.getElementById('c_resnr').value.trim(),
-    manager: document.getElementById('c_manager').value || null,
-    personen: document.getElementById('c_personen').value,
-    aantal_kinderen: document.getElementById('c_kinderen').value || 0,
-    incheck: document.getElementById('c_checkin').value,
-    uitcheck: document.getElementById('c_checkuit').value,
-    arrangementen: collectArrangementen(),
-    vooraf_gereserveerd: collectVoorafGereserveerd(),
-    bestellingen: orderedItems,
-    cadeau: document.getElementById('c_cadeau').value,
-    cadeau_prijs: parseFloat(document.getElementById('c_cadeauprijs').value || 0),
-    service_items: collectServiceItems(),
-    checkout_extra_type: document.getElementById('c_checkoutType').value,
-    checkout_extra_duur: document.getElementById('c_checkoutType').value ? document.getElementById('c_checkoutDuur').value : '',
-    checkout_extra_prijs: checkoutPrijs(),
-    checkout_extra_betaalwijze: document.getElementById('c_checkoutBetaalwijze').value,
-    reservering_bedrag: reserveringsBedrag(),
-    extras_totaal: extrasTotaal(),
-    extras_betaalwijze: document.getElementById('c_extrasBetaalwijze').value,
-    totaal, aanbetaald, restant: Math.max(0, totaal-aanbetaald),
-    betaalwijze: split ? 'Gesplitst' : document.getElementById('c_betaalwijze').value,
-    split_betaling: split,
-    split_bedrag1: split ? parseFloat(document.getElementById('c_split1bedrag').value || 0) : null,
-    split_wijze1: split ? document.getElementById('c_split1wijze').value : null,
-    split_bedrag2: split ? parseFloat(document.getElementById('c_split2bedrag').value || 0) : null,
-    split_wijze2: split ? document.getElementById('c_split2wijze').value : null,
-    extra_omzet: parseFloat(document.getElementById('c_extraomzet').value || 0),
-    opmerkingen: document.getElementById('c_opmerking').value.trim(),
-    voornaam: guestData ? guestData.voornaam : '',
-    achternaam: guestData ? guestData.achternaam : '',
-    woonplaats: guestData ? guestData.woonplaats : '',
-    nationaliteit: guestData ? guestData.nationaliteit : '',
-    telefoon: guestData ? guestData.telefoon : '',
-    email: guestData ? guestData.email : '',
-    lid: guestData ? guestData.lid : false,
-    akkoord: guestData ? guestData.akkoord : false,
-    akkoord_voorwaarden: guestData ? guestData.akkoord_voorwaarden : false,
-    handtekening: guestData ? guestData.handtekening : null,
-  };
-}
+/* Dode kopie van collectCheckinData verwijderd; verderop staat de versie die telt. */
 async function saveCheckin(alsConcept){
   const statusEl = document.getElementById('checkinStatus');
   if(!alsConcept && !guestData){
@@ -1504,7 +1710,13 @@ async function saveCheckin(alsConcept){
     return data;
   }catch(err){
     console.error('Fout bij opslaan incheckformulier:', err);
-    statusEl.textContent = '✕ Opslaan mislukt: ' + err.message + ' (heb je de databasemigratie al gedraaid?)';
+    /* "Failed to fetch" betekent dat het verzoek niet is aangekomen: geen
+       verbinding, een geblokkeerd verzoek, of een sessie die net verliep.
+       Dat is iets anders dan een fout uit de database zelf. */
+    var geenVerbinding = /failed to fetch|networkerror|load failed/i.test(err.message || '');
+    statusEl.textContent = geenVerbinding
+      ? '\u2715 Geen verbinding met de database \u2014 er is niets opgeslagen. Ververs de pagina, log opnieuw in en probeer het nog een keer. Blijft het misgaan, probeer dan een ander browser of zet je adblocker uit.'
+      : '\u2715 Opslaan mislukt: ' + err.message;
     statusEl.className = 'status err';
     throw err;
   }
@@ -2037,8 +2249,7 @@ async function laadKoppelBronnen(){
   await laadAgenda();
   try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=3000') || []; }
   catch(e){ KLANTEN = []; }
-  try{ await sb('checkins?select=betalingen&limit=1'); }
-  catch(e){ NIEUWE_KOLOMMEN = false; }
+
   vulKoppelKeuze();
   koppelUitAdres();
 }
@@ -2192,7 +2403,52 @@ function neemKoppelOver(){
   toonKoppelVoorbeeld();
   st.className = 'status ok';
   st.textContent = '✓ Overgenomen: ' + x.label + '. Controleer de boekingsgegevens hieronder.';
+  if(bron === 'reservering') zoekGastformulier(d);
 }
+/* Heeft de gast zelf al een gastformulier ingevuld? Zoek dat op naam (en datum)
+   en bied aan om de gegevens over te nemen, zodat je niets dubbel intypt. */
+function naamVan(o){
+  return String((o && (o.naam || o.gast)) ||
+    (((o && o.voornaam) || '') + ' ' + ((o && o.achternaam) || ''))).toLowerCase()
+    .replace(/\s+/g,' ').trim();
+}
+function zoekGastformulier(res){
+  var st = document.getElementById('k_status');
+  var naam = naamVan(res), dag = String(res.checkindatum || res.datum || '').slice(0,10);
+  if(!naam || naam.length < 4 || !aanmeldingen || !aanmeldingen.length) return;
+  var beste = null;
+  for(var i=0;i<aanmeldingen.length;i++){
+    var a = aanmeldingen[i], an = naamVan(a);
+    if(!an) continue;
+    var zelfdeNaam = an === naam || an.indexOf(naam) > -1 || naam.indexOf(an) > -1;
+    if(!zelfdeNaam) continue;
+    var ad = String(a.aankomst || a.checkindatum || '').slice(0,10);
+    if(dag && ad && ad !== dag) continue;      /* zelfde naam maar andere datum: overslaan */
+    beste = a; break;
+  }
+  if(!beste) return;
+  var vraag = document.createElement('div');
+  vraag.className = 'status ok';
+  vraag.style.marginTop = '8px';
+  vraag.innerHTML = 'Er is een gastformulier van <b>' + (beste.voornaam || '') + ' ' +
+    (beste.achternaam || '') + '</b> gevonden. ' +
+    '<button type="button" class="knop klein" id="gfOvernemen" style="margin-left:8px">Gegevens overnemen</button>';
+  if(st && st.parentNode){
+    var oud = document.getElementById('gfVraag');
+    if(oud) oud.remove();
+    vraag.id = 'gfVraag';
+    st.parentNode.insertBefore(vraag, st.nextSibling);
+    document.getElementById('gfOvernemen').addEventListener('click', function(){
+      document.getElementById('k_bron').value = 'aanmelding';
+      vulKoppelKeuze();
+      document.getElementById('k_keuze').value = beste.id;
+      if(typeof toonKoppelVoorbeeld === 'function') toonKoppelVoorbeeld();
+      neemKoppelOver();
+      vraag.remove();
+    });
+  }
+}
+
 function wisKoppeling(){
   gekoppeld = null; resArrangementen = [];
   buildArrangementSelect();
@@ -2918,23 +3174,26 @@ function collectCheckinData(){
     split_bedrag2: split ? parseFloat(document.getElementById('c_split2bedrag').value || 0) : null,
     split_wijze2: split ? document.getElementById('c_split2wijze').value : null,
     extra_omzet: parseFloat(document.getElementById('c_extraomzet').value || 0),
-    opmerkingen: document.getElementById('c_opmerking').value.trim(),
-    voornaam: guestData ? guestData.voornaam : '',
-    achternaam: guestData ? guestData.achternaam : '',
-    woonplaats: guestData ? guestData.woonplaats : '',
-    nationaliteit: guestData ? guestData.nationaliteit : '',
-    telefoon: guestData ? guestData.telefoon : '',
-    email: guestData ? guestData.email : '',
-    lid: guestData ? guestData.lid : false,
-    akkoord: guestData ? guestData.akkoord : false,
-    akkoord_voorwaarden: guestData ? guestData.akkoord_voorwaarden : false,
-    handtekening: guestData ? guestData.handtekening : null
+    opmerkingen: document.getElementById('c_opmerking').value.trim()
   };
-  if(NIEUWE_KOLOMMEN){
-    data.betalingen = betalingen;
-    data.cadeau_code = (document.getElementById('c_cadeaucode') || {}).value || '';
-    data.gekoppelde_reservering = gekoppeld ? (gekoppeld.bron + ':' + gekoppeld.id) : '';
+  /* Gastgegevens alleen meesturen wanneer ze er ook echt zijn. Deden we dat niet,
+     dan overschreef een volgende keer opslaan de eerder ontvangen naam,
+     contactgegevens en handtekening met lege waarden. */
+  if(guestData){
+    data.voornaam = guestData.voornaam || '';
+    data.achternaam = guestData.achternaam || '';
+    data.woonplaats = guestData.woonplaats || '';
+    data.nationaliteit = guestData.nationaliteit || '';
+    data.telefoon = guestData.telefoon || '';
+    data.email = guestData.email || '';
+    data.lid = !!guestData.lid;
+    data.akkoord = !!guestData.akkoord;
+    data.akkoord_voorwaarden = !!guestData.akkoord_voorwaarden;
+    if(guestData.handtekening) data.handtekening = guestData.handtekening;
   }
+  data.betalingen = betalingen;
+  data.cadeau_code = (document.getElementById('c_cadeaucode') || {}).value || '';
+  data.gekoppelde_reservering = gekoppeld ? (gekoppeld.bron + ':' + gekoppeld.id) : '';
   return data;
 }
 
@@ -3066,6 +3325,7 @@ function editCheckinFromDetail(){
 /* ================= INIT ================= */
 fillLocationSelect(document.getElementById('c_locatie'));
 document.getElementById('c_datum').value = todayStr();
+if(document.getElementById('c_ingevulddatum')) document.getElementById('c_ingevulddatum').value = todayStr();
 buildOrderSelect();
 buildArrangementSelect();
 buildPersoonSelects();
@@ -3269,9 +3529,14 @@ body{background:#f4f7fb!important}
 
 <script id="bwf-incheck-indeling-js">
 /* =========================================================
-   Het incheckformulier opnieuw indelen: chronologisch,
-   alles ingeklapt, in dezelfde stijl als het dashboard.
-   De formulieren zelf blijven ongewijzigd.
+   Het incheckformulier in vier blokken:
+     1  Beginnen — nieuw formulier of een concept openen
+     2  Reserveringsgegevens — koppelen en controleren
+     3  In te vullen door de locatiemanager
+     4  Definitieve incheckformulieren
+
+   De kaarten worden herkend aan een veld dat er zeker in staat,
+   niet aan het nummer in de kop. Koppen hernoemen mag dus.
    ========================================================= */
 (function(){
   var STAND = "bwf-incheck-open";
@@ -3280,96 +3545,128 @@ body{background:#f4f7fb!important}
     var kaarten = Array.prototype.slice.call(document.querySelectorAll(".card"));
     if(!kaarten.length || document.querySelector(".bwf-secties")) return;
 
-    function kop(c){ var h = c.querySelector("h2"); return h ? h.textContent.replace(/\s+/g," ").trim() : ""; }
-    function nr(n){
-      for(var i=0;i<kaarten.length;i++){
-        var t = kop(kaarten[i]);
-        if(t.indexOf(n + " ") === 0 || t.indexOf(n + "\u00b7") === 0 ||
-           new RegExp("^" + n + "\\s*[·.\u00b7]").test(t)) return kaarten[i];
-      }
-      return null;
-    }
-    function opTekst(zoek){
-      for(var i=0;i<kaarten.length;i++) if(kop(kaarten[i]).toLowerCase().indexOf(zoek) > -1) return kaarten[i];
-      return null;
+    function viaVeld(id){ var el = document.getElementById(id); return el ? el.closest(".card") : null; }
+    function viaId(id){
+      var el = document.getElementById(id);
+      return el && el.classList.contains("card") ? el : (el ? el.closest(".card") : null);
     }
 
     var K = {
-      koppel:   nr("1"), aanmeld: nr("2"), concept: nr("3"), gastform: nr("4"),
-      boeking:  nr("5"), tijden:  nr("6"), arr:     nr("7"), vooraf:   nr("8"),
-      besteld:  nr("9"), afreken: nr("10"), opslaan: nr("11"),
-      titel:    opTekst("incheckformulier") , definitief: opTekst("definitieve")
+      koppel:     viaVeld("k_bron"),
+      aanmeld:    viaVeld("aanmeldLijst"),
+      concept:    viaId("concepten"),
+      gastform:   viaVeld("guestStatus"),
+      boeking:    viaVeld("c_boekingvia"),
+      tijden:     viaVeld("c_checkoutType"),
+      arr:        viaVeld("arrSelect"),
+      vooraf:     viaVeld("voorSelect"),
+      besteld:    viaVeld("ordItem"),
+      afreken:    viaVeld("rekenLijst"),
+      opslaan:    viaVeld("c_sendto"),
+      definitief: viaId("definitief")
     };
-    if(K.titel === K.koppel) K.titel = null;
-
-    /* het veld Locatiemanager hoort bij stap 1 */
-    var mgr = document.getElementById("c_manager");
-    var mgrVak = mgr ? mgr.closest("div") : null;
-    var raster = K.koppel ? K.koppel.querySelector(".formgrid3") : null;
-    if(mgrVak && raster) raster.appendChild(mgrVak);
 
     var houder = document.createElement("div");
     houder.className = "bwf-secties";
-    (K.koppel || kaarten[0]).parentNode.insertBefore(houder, K.koppel || kaarten[0]);
+    var eerste = K.aanmeld || K.koppel || kaarten[0];
+    eerste.parentNode.insertBefore(houder, eerste);
 
-    function sectie(nummer, titel, sub, delen, open){
+    /* data-titel bepaalt waar de aanvullende scripts op aanhaken en waar
+       open/dicht wordt onthouden. Die namen blijven staan, ook al staat er
+       een andere kop boven de sectie. */
+    function sectie(nummer, titel, sub, sleutel, delen, open){
       delen = delen.filter(Boolean);
       if(!delen.length) return null;
       var s = document.createElement("section");
       s.className = "bwf-sec";
-      s.setAttribute("data-titel", titel);
+      s.setAttribute("data-titel", sleutel || titel);
       s.setAttribute("data-open", open ? "1" : "0");
       s.innerHTML = '<div class="bwf-kop" role="button" tabindex="0">' +
-        '<span class="nr">' + nummer + "</span>" +
-        "<h2>" + titel + "</h2>" +
+        '<span class="nr">' + nummer + "</span><h2>" + titel + "</h2>" +
         (sub ? '<span class="sub">' + sub + "</span>" : "") +
         '<span class="pijl">\u25BC</span></div><div class="bwf-body"></div>';
       var body = s.querySelector(".bwf-body");
-      delen.forEach(function(c, i){
-        if(delen.length === 1) c.classList.add("zonderkop");
-        body.appendChild(c);
-      });
+      delen.forEach(function(c){ if(delen.length === 1) c.classList.add("zonderkop"); body.appendChild(c); });
       houder.appendChild(s);
       return s;
     }
 
-    /* ---- chronologische volgorde ---- */
-    sectie(1, "Reservering koppelen", "en wie er op locatie staat", [K.koppel], true);
-    sectie(2, "Boekingsgegevens", "datum, tijden, personen en wat vooraf geboekt is",
-      [K.boeking, K.vooraf, K.arr], true);
-    sectie(3, "Op locatie bijgeboekt", "extra's, bestellingen en aangepaste tijden",
-      [K.tijden, K.besteld], false);
-    sectie(4, "Eindafrekening", "totaal, betaald en betaalwijze", [K.afreken], false);
-    sectie(5, "Opslaan &amp; versturen", "", [K.opslaan], false);
+    /* ---- 1. Beginnen ---- */
+    var start = sectie(1, "Beginnen", "nieuw formulier of verder met een concept",
+      "Start", [K.aanmeld, K.concept, K.gastform], true);
+    if(start){
+      var body = start.querySelector(".bwf-body");
 
-    /* 2, 3 en 4 samen onder \u00e9\u00e9n noemer, met knoppen ertussen */
-    var gasten = sectie(6, "Gasten &amp; klaargezette formulieren",
-      "aanmeldingen, concepten en het gastformulier",
-      [K.aanmeld, K.concept, K.gastform], false);
-    if(gasten){
-      var body = gasten.querySelector(".bwf-body");
+      var knoppen = document.createElement("div");
+      knoppen.className = "linkbox";
+      knoppen.style.marginBottom = "12px";
+      knoppen.innerHTML =
+        '<button class="btn" type="button" id="bwfNieuwForm">Nieuw formulier beginnen</button>' +
+        '<button class="btn secondary" type="button" id="bwfConceptForm">Concept openen</button>';
+      body.insertBefore(knoppen, body.firstChild);
+
+      /* Eén keuzelijst in plaats van drie lijsten onder elkaar. */
       var stukken = [
         { el:K.aanmeld,  naam:"Aanmeldingen van gasten" },
         { el:K.concept,  naam:"Klaargezette formulieren" },
-        { el:K.gastform, naam:"Formulier van de gast" }
+        { el:K.gastform, naam:"Gastgegevens en akkoord" }
       ].filter(function(x){ return x.el; });
-      var keuze = document.createElement("div");
-      keuze.className = "bwf-keuze";
-      keuze.innerHTML = stukken.map(function(x, i){
-        return '<button type="button" data-stuk="' + i + '" aria-pressed="' + (i === 0) + '">' + x.naam + "</button>";
-      }).join("");
-      body.insertBefore(keuze, body.firstChild);
-      stukken.forEach(function(x, i){ x.el.classList.add("bwf-stuk", "zonderkop"); x.el.hidden = i !== 0; });
-      keuze.addEventListener("click", function(e){
-        var b = e.target.closest("[data-stuk]"); if(!b) return;
-        var k = +b.getAttribute("data-stuk");
-        stukken.forEach(function(x, i){ x.el.hidden = i !== k; });
-        keuze.querySelectorAll("[data-stuk]").forEach(function(x){
-          x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
-      });
+
+      var kiesVak = document.createElement("div");
+      kiesVak.style.marginBottom = "14px";
+      kiesVak.innerHTML =
+        '<label for="bwfStartKeuze" style="display:block;font-size:12px;margin-bottom:4px">Wat wil je zien</label>' +
+        '<select id="bwfStartKeuze" style="max-width:340px">' +
+        stukken.map(function(x, i){ return '<option value="' + i + '">' + x.naam + "</option>"; }).join("") +
+        "</select>";
+      body.insertBefore(kiesVak, knoppen.nextSibling);
+
+      function toon(k){
+        stukken.forEach(function(x, i){ x.el.hidden = i !== k; x.el.classList.add("zonderkop"); });
+      }
+      toon(0);
+      document.getElementById("bwfStartKeuze").onchange = function(){ toon(+this.value); };
+
+      document.getElementById("bwfNieuwForm").onclick = function(){
+        if(typeof clearCheckinForm === "function") clearCheckinForm();
+        if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
+      };
+      document.getElementById("bwfConceptForm").onclick = function(){
+        var i = stukken.map(function(x){ return x.el; }).indexOf(K.concept);
+        if(i < 0) i = 0;
+        document.getElementById("bwfStartKeuze").value = String(i);
+        toon(i);
+        var l = document.getElementById("conceptLijst");
+        if(l) l.scrollIntoView({ behavior:"smooth", block:"center" });
+      };
+
+      /* Zodra er gastgegevens zijn overgenomen, springt de keuzelijst
+         daarheen zodat je meteen ziet wat er is opgeslagen. */
+      window.bwfToonGastgegevens = function(){
+        var i = stukken.map(function(x){ return x.el; }).indexOf(K.gastform);
+        if(i < 0) return;
+        document.getElementById("bwfStartKeuze").value = String(i);
+        toon(i);
+        start.setAttribute("data-open", "1");
+        K.gastform.scrollIntoView({ behavior:"smooth", block:"center" });
+      };
     }
 
-    sectie(7, "Definitieve incheckformulieren", "terugzoeken, openen en afronden", [K.definitief], false);
+    /* ---- 2. Reserveringsgegevens (sleutel blijft Boekingsgegevens) ---- */
+    sectie(2, "Reserveringsgegevens",
+      "koppelen, controleren en de gast erbij zoeken",
+      "Boekingsgegevens",
+      [K.koppel, K.boeking, K.arr, K.vooraf], true);
+
+    /* ---- 3. Locatiemanager (sleutel blijft Eindafrekening) ---- */
+    sectie(3, "In te vullen door de locatiemanager",
+      "bijgeboekt op locatie, afrekening en versturen",
+      "Eindafrekening",
+      [K.besteld, K.tijden, K.afreken, K.opslaan], false);
+
+    /* ---- 4. Archief ---- */
+    sectie(4, "Definitieve incheckformulieren", "terugzoeken, openen en afdrukken",
+      "Definitieve formulieren", [K.definitief], false);
 
     /* ---- open of dicht onthouden ---- */
     var stand = {};
@@ -3394,14 +3691,12 @@ body{background:#f4f7fb!important}
       if(k){ e.preventDefault(); wissel(k.parentElement); }
     });
 
-    /* ---- balk met alles open of dicht ---- */
     var balk = document.createElement("div");
     balk.className = "bwf-balk";
     balk.innerHTML = '<button type="button" id="bwfAllesOpen">Alles uitklappen</button>';
     houder.parentNode.insertBefore(balk, houder);
     document.getElementById("bwfAllesOpen").addEventListener("click", function(){
-      var dicht = houder.querySelectorAll('.bwf-sec[data-open="0"]').length;
-      var open = dicht > 0;
+      var open = houder.querySelectorAll('.bwf-sec[data-open="0"]').length > 0;
       houder.querySelectorAll(".bwf-sec").forEach(function(s){
         s.setAttribute("data-open", open ? "1" : "0");
         stand[s.getAttribute("data-titel")] = open;
@@ -3410,10 +3705,10 @@ body{background:#f4f7fb!important}
       this.textContent = open ? "Alles inklappen" : "Alles uitklappen";
     });
 
-    /* een sectie vanzelf openen als er binnenin iets gebeurt */
     window.bwfOpenSectie = function(titel){
       houder.querySelectorAll(".bwf-sec").forEach(function(s){
-        if((s.getAttribute("data-titel")||"").toLowerCase().indexOf(String(titel).toLowerCase()) > -1){
+        var t = (s.getAttribute("data-titel") || "") + " " + (s.querySelector("h2").textContent || "");
+        if(t.toLowerCase().indexOf(String(titel).toLowerCase()) > -1){
           s.setAttribute("data-open", "1");
           s.scrollIntoView({ behavior:"smooth", block:"start" });
         }
