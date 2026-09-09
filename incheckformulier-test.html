@@ -3607,7 +3607,8 @@ body{background:#f4f7fb!important}
       knoppen.style.marginBottom = "12px";
       knoppen.innerHTML =
         '<button class="btn" type="button" id="bwfNieuwForm">Nieuw formulier beginnen</button>' +
-        '<button class="btn secondary" type="button" id="bwfConceptForm">Concept openen</button>';
+        '<button class="btn secondary" type="button" id="bwfConceptForm">Concept openen</button>' +
+        '<button class="btn secondary" type="button" id="bwfArchiefForm">Definitieve incheckformulieren</button>';
       body.insertBefore(knoppen, body.firstChild);
 
       /* Eén keuzelijst in plaats van drie lijsten onder elkaar. */
@@ -3631,6 +3632,13 @@ body{background:#f4f7fb!important}
       }
       toon(0);
       document.getElementById("bwfStartKeuze").onchange = function(){ toon(+this.value); };
+
+      /* rechtstreeks naar het archief onderaan de pagina */
+      document.getElementById("bwfArchiefForm").onclick = function(){
+        if(window.bwfOpenSectie) window.bwfOpenSectie("Definitieve formulieren");
+        var t = document.getElementById("defTabel") || document.getElementById("checkinTableBody");
+        if(t) setTimeout(function(){ t.scrollIntoView({ behavior:"smooth", block:"center" }); }, 250);
+      };
 
       document.getElementById("bwfNieuwForm").onclick = function(){
         if(typeof clearCheckinForm === "function") clearCheckinForm();
@@ -4106,6 +4114,13 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
    ========================================================= */
 (function(){
 
+  /* De formulieren staan in een variabele die met let is gedeclareerd; die komt
+     niet op window terecht. Vandaar deze omweg, anders bleef de lijst leeg. */
+  function alleCheckins(){
+    try { if(typeof checkins !== "undefined" && Array.isArray(checkins)) return checkins; } catch(e){}
+    return window.checkins || [];
+  }
+
   function eur(n){ return "\u20ac " + (Math.round((Number(n)||0)*100)/100).toFixed(2).replace(".", ","); }
   function veilig(s){ return String(s == null ? "" : s)
     .replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
@@ -4184,7 +4199,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     var kl  = (document.getElementById("defKlant")||{}).value || "";
     zk = zk.toLowerCase().trim();
 
-    return (window.checkins || []).filter(function(c){
+    return (alleCheckins()).filter(function(c){
       if(c.status === "concept") return false;
       if(loc && c.locatie !== loc) return false;
       var d = String(c.datum||"").slice(0,10);
@@ -4242,7 +4257,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
   /* ---------- afdrukken of opslaan als pdf ---------- */
   function afdrukken(id){
-    var c = (window.checkins || []).find(function(x){ return x.id === id; });
+    var c = (alleCheckins()).find(function(x){ return x.id === id; });
     if(!c) return;
     var overnacht = c.verblijftype === "overnachting";
     function rij(l, w){
@@ -4341,7 +4356,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
   async function bulk(){
     var vandaag = new Date().toISOString().slice(0,10);
-    var open = (window.checkins || []).filter(function(c){
+    var open = (alleCheckins()).filter(function(c){
       return c.status !== "concept" && c.achternaam &&
              String(c.datum||"") <= vandaag && !isKlant(c);
     });
@@ -4372,7 +4387,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     var k = e.target.closest("[data-klant]");
     if(k){
       e.stopPropagation();
-      var c = (window.checkins || []).find(function(x){ return x.id === k.getAttribute("data-klant"); });
+      var c = (alleCheckins()).find(function(x){ return x.id === k.getAttribute("data-klant"); });
       if(!c) return;
       if(!c.achternaam){ alert("Er staat nog geen achternaam bij dit formulier."); return; }
       k.disabled = true; k.textContent = "\u2026";
