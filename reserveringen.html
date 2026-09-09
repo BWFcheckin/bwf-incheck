@@ -760,14 +760,11 @@ window.BWF = window.BWF || {};
 </div></dialog>
 
 <script src="bwf-planyo.js?v=10"></script>
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* =========================================================
    INSTELLINGEN
    ========================================================= */
-var AGENDA = {
-  PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
-  SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
-};
 var SUPABASE_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
 var SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
@@ -924,8 +921,7 @@ async function laden(){
   var fouten = [], agenda = [], eigen = [];
 
   try{
-    var url = AGENDA.PROXY+'?k='+encodeURIComponent(AGENDA.SLEUTEL);
-    var json = await (await fetch(url)).json();
+    var json = await BWFAgenda.events();
     if(json.fout) throw new Error(json.fout);
     agenda = (json.events||[]).map(uitAgenda);
   }catch(e){ fouten.push('agenda: '+e.message); }

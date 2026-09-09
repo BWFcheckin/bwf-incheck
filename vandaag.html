@@ -196,6 +196,7 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
   <div class="detail-body" id="d_body"></div>
 </aside>
 
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* ==========================================================================
    Vandaag — Bed & Wellness Flevoland
@@ -212,12 +213,7 @@ const CFG = {
   ls  : 'bwf_vandaag_sessie'
 };
 
-/* De boekingen van Booking.com, Origineel Overnachten en Privésauna komen niet
-   uit Supabase maar live uit de agenda, via dezelfde proxy als het VR-dashboard. */
-const AGENDA = {
-  proxy: 'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
-  key  : 'bwf7k2mxq9tvr20264nphs8wjc3'
-};
+/* Boekingskanalen lopen via de beveiligde Supabase agenda-bridge. */
 
 const LOCATIES = {
   angie   : { naam:'Suite Angie',      plaats:'Almere',   groep:'almere'   },
@@ -368,9 +364,7 @@ function agendaSleutel(ev){
 }
 async function haalAgenda(){
   try{
-    const r = await fetch(AGENDA.proxy + '?k=' + encodeURIComponent(AGENDA.key));
-    if(!r.ok) throw new Error('agenda antwoordde met ' + r.status);
-    const j = await r.json();
+    const j = await BWFAgenda.events();
     return (j.events || []).filter(ev => ev.soort === 'reservering' || ev.soort === 'extern');
   }catch(e){
     FOUTEN.push('agenda: ' + e.message + ' — boekingen van Booking.com, Origineel Overnachten en Privésauna ontbreken nu');

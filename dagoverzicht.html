@@ -231,6 +231,7 @@ body.bwf-vergrendeld > *:not(#bwfSlot){filter:blur(6px);pointer-events:none;user
 </div>
 <button id="bwfUit" type="button">Uitloggen</button>
 
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* =========================================================
    Toegang — één login voor alle BWF-pagina's
@@ -529,11 +530,6 @@ window.BWF = window.BWF || {};
    INSTELLINGEN — vul deze twee in met dezelfde waarden
    die in je bestaande agendapagina staan
    ========================================================= */
-var AGENDA = {
-  PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',   /* eindigt op /exec */
-  SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
-};
-
 /* Supabase — zelfde project als je andere pagina's */
 var SUPABASE_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
 var SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
@@ -586,12 +582,7 @@ var uit = { suites:new Set(), soorten:new Set() };
 async function haalAgenda(vers){
   var lijst = document.getElementById('dagInhoud');
   try{
-    if(AGENDA.PROXY.indexOf('PLAK_HIER') === 0){
-      throw new Error('de koppeling is nog niet ingevuld bovenaan dit bestand');
-    }
-    var url = AGENDA.PROXY+'?k='+encodeURIComponent(AGENDA.SLEUTEL)+(vers?'&vers=1':'');
-    var antwoord = await fetch(url);
-    var json = await antwoord.json();
+    var json = await BWFAgenda.events(!!vers);
     if(json.fout) throw new Error(json.fout);
     agenda = json;
     toonVerversing();

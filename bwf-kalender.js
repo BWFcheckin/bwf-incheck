@@ -11,9 +11,6 @@
 
   var SB_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
   var SB_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
-  /* Bestaande gezamenlijke agenda met Booking.com, Privésauna en andere kanalen. */
-  var KANALEN_PROXY = "https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec";
-  var KANALEN_SLEUTEL = "bwf7k2mxq9tvr20264nphs8wjc3";
 
   var SUITES = ["Malina Jacuzzi", "Malina Zwembad", "Suite Angie Almere"];
   var KLEUR = { "Malina Jacuzzi": "#1C6FD0", "Malina Zwembad": "#D63A2A", "Suite Angie Almere": "#0F7B5A" };
@@ -189,9 +186,9 @@
       window.BWFPlanyo
         ? window.BWFPlanyo.reservations(datumPlus(-730), datumPlus(1095)).catch(function (e) { return { events:[], fout:e.message }; })
         : Promise.resolve({ events:[], fout:"De Planyo-client ontbreekt." }),
-      fetch(KANALEN_PROXY + "?k=" + encodeURIComponent(KANALEN_SLEUTEL))
-        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-        .catch(function (e) { return { events:[], fout:e.message }; }),
+      window.BWFAgenda
+        ? window.BWFAgenda.events().catch(function (e) { return { events:[], fout:e.message }; })
+        : Promise.resolve({ events:[], fout:"De beveiligde agenda-client ontbreekt." }),
       haal("reservations?select=*&order=checkindatum.desc&limit=3000"),
       haal("planning?select=*&order=datum.asc&limit=4000"),
       haal("medewerkers?select=*")

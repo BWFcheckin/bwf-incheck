@@ -839,6 +839,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 <meta name="apple-mobile-web-app-title" content="B&amp;W Lelystad">
 </head>
 <body>
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* ============================================================
    VUL HIER JE SUPABASE-GEGEVENS IN
@@ -2885,10 +2886,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   var SB_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
   var SB_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
-  var AGENDA = {
-    PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
-    SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
-  };
   var VR_URL      = 'https://bwfcheckin.github.io/bwf-incheck/vr2.html';
   var FORM_LM_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
   var FORM_GAST   = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
@@ -3465,7 +3462,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   async function laden(){
     var fouten = [], agenda = [], eigen = [];
     try{
-      var json = await (await fetch(AGENDA.PROXY+'?k='+encodeURIComponent(AGENDA.SLEUTEL))).json();
+      var json = await BWFAgenda.events();
       if(json.fout) throw new Error(json.fout);
       agenda = (json.events||[]).map(uitAgenda);
     }catch(e){ fouten.push('agenda'); }

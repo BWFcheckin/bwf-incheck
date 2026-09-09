@@ -1970,6 +1970,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -3903,8 +3904,6 @@ async function zorgVoorExtras(){
 
 /* ---------------- STARTTEGELS ---------------- */
 /* tellingen die niet uit S komen: reserveringen, gastaanmeldingen en planning */
-const AGENDA_PROXY = 'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec';
-const AGENDA_KEY   = 'bwf7k2mxq9tvr20264nphs8wjc3';
 const OV = {res:'\u00b7', resSub:'vanaf vandaag', gast:'\u00b7', gastSub:'laatste 7 dagen',
             planning:'\u00b7', planningSub:'deze week'};
 
@@ -6123,7 +6122,7 @@ async function laadOverzicht(){
   let n = 0, vandaagIn = 0;
   ovLocLeeg(); RES.length = 0;
   try{
-    const j = await (await fetch(AGENDA_PROXY+'?k='+encodeURIComponent(AGENDA_KEY))).json();
+    const j = await BWFAgenda.events();
     (j.events||[]).forEach(ev=>{
       if(ev.soort !== 'reservering' && ev.soort !== 'extern') return;
       const s = String(ev.start||'').slice(0,10), e = String(ev.eind||'').slice(0,10) || s;
