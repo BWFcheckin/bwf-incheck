@@ -290,7 +290,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   <!-- ================= 2 · AANMELDINGEN VAN GASTEN ================= -->
   <div class="card">
     <h3>Aanmeldingen van gasten</h3>
-    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Klik op een aanmelding om er een incheckformulier van te maken &mdash; de klantgegevens en handtekening staan er dan al in.</p>
+    <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Koppel er een aanmelding aan
+      een reservering: naam, contactgegevens en handtekening komen dan meteen in dit incheckformulier
+      te staan, onder Gastgegevens.</p>
     <div class="aanmeld-lijst" id="aanmeldLijst"></div>
   </div>
 
@@ -1576,7 +1578,7 @@ function renderAanmeldingen(){
         <small>${escapeHtml(details)}</small>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Formulier openen</button>
+        <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Koppelen aan reservering</button>
         <button class="btn secondary sm" type="button" onclick="verwijderAanmelding('${a.id}')">Verwijderen</button>
       </div>
     </div>`;
@@ -1611,6 +1613,13 @@ function gebruikAanmelding(id){
   herberekenAlles();
   if(window.bwfToonGastgegevens) window.bwfToonGastgegevens();
   else document.getElementById('checkinForm').scrollIntoView({ behavior:'smooth', block:'start' });
+  var st = document.getElementById('k_status');
+  if(st){
+    st.className = 'status ok';
+    st.textContent = '\u2713 Gastgegevens van ' + (a.voornaam || '') + ' ' + (a.achternaam || '') +
+      ' overgenomen. Koppel hierboven de bijbehorende reservering, dan staat alles bij elkaar.';
+  }
+  if(window.bwfOpenSectie) window.bwfOpenSectie('Boekingsgegevens');
 }
 
 async function verwerkteAanmeldingWegstrepen(checkinId){
