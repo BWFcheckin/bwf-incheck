@@ -525,10 +525,15 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <h3>Restant betalen bij uitchecken</h3>
     <p class="desc">Voeg elke betaling apart toe: pin, contant of via een betaallink. Ook een betaling
       achteraf hoort hier, dan blijft de afrekening kloppen.</p>
-    <div class="linkbox" id="betKnoppen" style="margin-bottom:12px">
-      <button class="btn" type="button" data-bet="restant">Restbedrag afrekenen</button>
-      <button class="btn" type="button" data-bet="extras">Extra&#39;s op locatie afrekenen</button>
-      <button class="btn secondary" type="button" data-bet="split">Gesplitst betalen</button>
+    <div id="betKnoppen" style="margin-bottom:12px;max-width:460px">
+      <label for="betSoort">Betaling op locatie verwerken</label>
+      <select id="betSoort">
+        <option value="">&mdash; kies wat de gast nu betaalt &mdash;</option>
+        <option value="restant" data-bet="restant">Restbedrag afrekenen</option>
+        <option value="extras" data-bet="extras">Extra&#39;s op locatie afrekenen</option>
+        <option value="split" data-bet="split">Gesplitst betalen</option>
+        <option value="anders">Ander bedrag &mdash; zelf invullen</option>
+      </select>
     </div>
     <div class="order-add">
       <div class="qty" style="max-width:120px;"><label>Bedrag (&euro;)</label><input type="number" id="betBedrag" step="0.01" min="0"></div>
@@ -2085,21 +2090,13 @@ function betOpenstaand(){
   return Math.max(0, actueelTotaal() - (onlineBetaald() + betalingenTotaal()));
 }
 function betKnoppenBijwerken(){
-  var rij = document.getElementById('betKnoppen');
-  if(!rij) return;
+  var sel = document.getElementById('betSoort');
+  if(!sel) return;
   var open = betOpenstaand(), ex = extrasTotaal();
-  var kR = rij.querySelector('[data-bet="restant"]');
-  var kE = rij.querySelector('[data-bet="extras"]');
-  if(kR){
-    kR.textContent = 'Restbedrag afrekenen \u2014 ' + euro(open);
-    kR.disabled = open <= 0.004;
-  }
-  if(kE){
-    kE.textContent = "Extra's op locatie afrekenen \u2014 " + euro(ex);
-    kE.disabled = ex <= 0.004;
-  }
-  var kS = rij.querySelector('[data-bet="split"]');
-  if(kS) kS.className = document.getElementById('c_splitToggle').checked ? 'btn' : 'btn secondary';
+  var oR = sel.querySelector('[value="restant"]');
+  var oE = sel.querySelector('[value="extras"]');
+  if(oR){ oR.textContent = 'Restbedrag afrekenen \u2014 ' + euro(open); oR.disabled = open <= 0.004; }
+  if(oE){ oE.textContent = "Extra's op locatie afrekenen \u2014 " + euro(ex); oE.disabled = ex <= 0.004; }
 }
 function betKlaarzetten(soort){
   var bedrag = document.getElementById('betBedrag');
@@ -2118,13 +2115,18 @@ function betKlaarzetten(soort){
     st.textContent = 'Kies de betaalwijze en druk op Toevoegen om deze betaling vast te leggen.';
   }
 }
-document.addEventListener('click', function(e){
-  var b = e.target.closest('#betKnoppen [data-bet]');
-  if(!b) return;
-  var soort = b.getAttribute('data-bet');
+document.addEventListener('change', function(e){
+  if(!e.target || e.target.id !== 'betSoort') return;
+  var soort = e.target.value;
+  if(!soort) return;
+  if(soort === 'anders'){
+    document.getElementById('betBedrag').focus();
+    e.target.value = '';
+    return;
+  }
   if(soort === 'split'){
     var vink = document.getElementById('c_splitToggle');
-    vink.checked = !vink.checked;
+    vink.checked = true;
     toggleSplitBetaling();
     if(vink.checked){
       /* de twee delen alvast vullen met het openstaande bedrag */
@@ -2136,9 +2138,11 @@ document.addEventListener('click', function(e){
       document.getElementById('betaalwijzeSplit').scrollIntoView({ behavior:'smooth', block:'center' });
     }
     betKnoppenBijwerken();
+    e.target.value = '';
     return;
   }
   betKlaarzetten(soort);
+  e.target.value = '';
 });
 setInterval(betKnoppenBijwerken, 1200);
 
@@ -5386,6 +5390,118 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1100); });
   else setTimeout(start, 1100);
+})();
+</script>
+
+
+<script id="bwf-opruimen-js">
+/* =========================================================
+   Overzichtelijk houden voor de locatiemanager.
+   - dubbele betaalwijzen weg (de betaalwijze staat per betaling)
+   - bijboeken op locatie achter één knop
+   - reservering koppelen opent pas als je erom vraagt
+   ========================================================= */
+(function(){
+
+  function verberg(el){ if(el) el.style.display = "none"; }
+  function toon(el){ if(el) el.style.display = ""; }
+
+  /* een vouwknop boven een reeks elementen zetten */
+  function vouw(naEl, tekst, elementen, opslagnaam){
+    if(!naEl || !elementen.length) return null;
+    var knop = document.createElement("button");
+    knop.type = "button";
+    knop.className = "btn secondary";
+    knop.style.margin = "4px 0 10px";
+    knop.textContent = tekst;
+    naEl.parentNode.insertBefore(knop, naEl);
+
+    var open = false;
+    try { open = localStorage.getItem(opslagnaam) === "1"; } catch(e){}
+    function zet(o){
+      open = o;
+      elementen.forEach(function(x){ o ? toon(x) : verberg(x); });
+      knop.textContent = (o ? "\u2715 " : "+ ") + tekst;
+      try { localStorage.setItem(opslagnaam, o ? "1" : "0"); } catch(e){}
+    }
+    knop.addEventListener("click", function(){ zet(!open); });
+    zet(open);
+    return { knop: knop, open: function(){ zet(true); } };
+  }
+
+  function start(){
+    /* ---------- 1. dubbele betaalwijzen ---------- */
+    var bw = document.getElementById("c_betaalwijze");
+    if(bw) verberg(document.getElementById("betaalwijzeNormaal"));
+    var ex = document.getElementById("c_extrasBetaalwijze");
+    if(ex && ex.parentElement) verberg(ex.parentElement);
+
+    /* ---------- 2. bijboeken op locatie achter één knop ---------- */
+    var bestKaart = document.getElementById("ordItem") ? document.getElementById("ordItem").closest(".card") : null;
+    if(bestKaart && !bestKaart.dataset.gevouwen){
+      bestKaart.dataset.gevouwen = "1";
+      var kinderen = Array.prototype.slice.call(bestKaart.children);
+      /* de eerste kop laten staan, de rest vouwen */
+      var eersteKop = kinderen.filter(function(x){ return /^H[23]$/.test(x.tagName); })[0];
+      var rest = kinderen.filter(function(x){ return x !== eersteKop; });
+      var extraOmzet = document.getElementById("c_extraomzet");
+      if(extraOmzet){
+        var vak = extraOmzet.previousElementSibling;
+        if(vak) rest.push(vak);
+        rest.push(extraOmzet);
+      }
+      vouw(rest[0], "Extra\u2019s bijboeken op locatie", rest, "bwf-vouw-bijboeken");
+    }
+
+    /* ---------- 3. reservering koppelen pas op verzoek ---------- */
+    var kBron = document.getElementById("k_bron");
+    var kKaart = kBron ? kBron.closest(".card") : null;
+    if(kKaart && !kKaart.dataset.gevouwen){
+      kKaart.dataset.gevouwen = "1";
+
+      var koppelVelden = [];
+      var raster = kBron.closest(".formgrid3");
+      if(raster) koppelVelden.push(raster);
+      Array.prototype.slice.call(kKaart.querySelectorAll(".linkbox")).forEach(function(x){
+        if(x.querySelector("[onclick*='neemKoppelOver'], [onclick*='herlaadKoppelBronnen'], [onclick*='wisKoppeling']"))
+          koppelVelden.push(x);
+      });
+      var st = document.getElementById("k_status");
+      if(st) koppelVelden.push(st);
+
+      var tekstVelden = [];
+      var plak = document.getElementById("k_plak");
+      if(plak){
+        var kop = plak.previousElementSibling, desc = null;
+        if(kop && kop.tagName === "P"){ desc = kop; kop = kop.previousElementSibling; }
+        if(kop) tekstVelden.push(kop);
+        if(desc) tekstVelden.push(desc);
+        tekstVelden.push(plak);
+        var rij = plak.nextElementSibling;
+        if(rij) tekstVelden.push(rij);
+      }
+
+      koppelVelden.forEach(verberg);
+      tekstVelden.forEach(verberg);
+
+      /* de drie knoppen bovenin openen elk hun eigen stuk */
+      document.addEventListener("click", function(e){
+        var b = e.target.closest("#bwfOvernemen [data-ovknop]");
+        if(!b) return;
+        var w = b.getAttribute("data-ovknop");
+        koppelVelden.forEach(w === "reservering" ? toon : verberg);
+        tekstVelden.forEach(w === "tekst" || w === "bestand" ? toon : verberg);
+      });
+    }
+  }
+
+  function herhaal(){
+    start();
+    if(!document.querySelector("[data-gevouwen]")) setTimeout(herhaal, 600);
+  }
+  if(document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", function(){ setTimeout(herhaal, 1400); });
+  else setTimeout(herhaal, 1400);
 })();
 </script>
 
