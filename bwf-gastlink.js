@@ -58,9 +58,61 @@
       throw new Error(
         data.error ||
         "Gastenlink-opdracht mislukte (" +
-gang>
-ibele
         response.status +
         ")."
- fra?
-     BEL
+      );
+    }
+
+    return data;
+  }
+
+  window.BWFGastlink = {
+    create: async function (gegevens) {
+      var token = tokenUitOpslag();
+
+      if (!token) {
+        throw new Error(
+          "Log eerst opnieuw in."
+        );
+      }
+
+      var response = await fetch(
+        FUNCTION_URL,
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              "Bearer " + token,
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body: JSON.stringify(
+            gegevens || {}
+          )
+        }
+      );
+
+      return verwerkAntwoord(response);
+    },
+
+    resolve: async function (token) {
+      var response = await fetch(
+        FUNCTION_URL +
+        "?token=" +
+        encodeURIComponent(token),
+        {
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+      return verwerkAntwoord(response);
+    },
+
+    functionUrl: FUNCTION_URL
+  };
+})();
