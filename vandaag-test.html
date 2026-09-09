@@ -267,11 +267,56 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
 function locId(v){
   const t = String(v || '').toLowerCase();
   if(!t) return '';
+  /* De agenda gebruikt korte codes: PSA, PSM en PSMD. Let op de volgorde,
+     psmd moet vóór psm worden herkend. */
+  if(/\bpsmd\b|\bpsd\b/.test(t)) return 'deluxe';
+  if(/\bpsm\b/.test(t))            return 'jacuzzi';
+  if(/\bpsa\b/.test(t))            return 'angie';
   if(t.includes('angie') || t.includes('almere') || t.includes('specerij')) return 'angie';
   if(t.includes('zwembad') || t.includes('deluxe') || t.includes('pool'))   return 'deluxe';
   if(t.includes('jacuzzi') || t.includes('malina'))                          return 'jacuzzi';
   if(LOCATIES[t]) return t;
   return '';
+}
+
+/* Uit een agendatitel de gastnaam vissen. De titels bevatten van alles:
+   pakketnamen, bedragen, telefoonnummers. Woorden met een hoofdletter die
+   geen bekend sleutelwoord zijn, vormen samen meestal de naam. */
+const NAAM_RUIS = new RegExp('^(booking|bookingcom|com|relax|stay|all|inclusive|incl|late|check|checkin|' +
+  'checkout|overnachting|overnachten|origineel|orgineel|middag|deals|deal|geniet|uur|van|exclusieve|' +
+  'wellness|suite|jacuzzi|zwembad|luxe|deluxe|malina|angie|prive|priv\u00e9|sauna|whatsapp|wa|boeking|' +
+  'inclusief|exclusief|bad|bedlinnen|minibar|early|middagdeal|deel|voucher|omboeking|extra|' +
+  'reservering|telefonisch|planyo|secret|rooms|arrangement|romantisch|verjaardag|ontbijt|diner|honeymoon|' +
+  'bruidsnacht|niet|beschikbaar|bezet|agenda|dicht|schoonmaken|prachtige|deze|met|een|heerlijk|chips|' +
+  'snackpakket|handdoeken|badjassen|slippers|frisdranken|inbegrepen|pakket|drankjes|betaald|betalen|' +
+  'totaal|nog|contant|volledig|personen|pers|volwassenen|kind|kinderen|nachten|nacht|tot|in|out|' +
+  'aanmaken|genieten)$', 'i');
+
+/* Geen naam te vinden? Dan een leesbaar begin van de titel, zodat de
+   locatiemanager toch ziet om welke boeking het gaat. */
+function kortTitel(t){
+  var s = String(t || '').replace(/\s+/g, ' ').trim();
+  return s.length > 44 ? s.slice(0, 44) + '\u2026' : s;
+}
+
+function naamUit(titel){
+  var ruw = String(titel || '');
+  var s = ruw.replace(/\S+@\S+/g, ' ')
+             .replace(/\u20ac\s*[\d.,]+/g, ' ')
+             .replace(/[+\d][\d\s.\/-]{5,}/g, ' | ')
+             .replace(/[#!,;:()]/g, ' ');
+  var beste = [], rij = [];
+  s.split('|')[0].split(/\s+/).filter(Boolean).forEach(function(w){
+    var schoon = w.replace(/[^A-Za-z\u00C0-\u017F'-]/g, '');
+    var tussen = /^(van|de|der|den|te|ter|el|al|bin)$/i.test(schoon);
+    var hoofd = /^[A-Z\u00C0-\u017F]/.test(schoon) && schoon.length > 1 &&
+                !schoon.split('-').some(function(x){ return NAAM_RUIS.test(x); });
+    var na = rij.length && /^(van|de|der|den|te|ter)$/i.test(rij[rij.length - 1]) && schoon.length > 1;
+    if(hoofd || (tussen && rij.length) || na) rij.push(schoon);
+    else { if(rij.length > beste.length) beste = rij; rij = []; }
+  });
+  if(rij.length > beste.length) beste = rij;
+  return beste.length ? beste.slice(0, 3).join(' ') : '';
 }
 function locNaam(id){ return LOCATIES[id] ? LOCATIES[id].naam : (id || 'Onbekende locatie'); }
 
@@ -438,7 +483,8 @@ async function laadDag(){
     zet(agendaSleutel(ev), {
       id      : agendaSleutel(ev),
       resnr   : ev.nummer || ev.referentie || ev.reservering || '',
-      naam    : ev.gast || ev.naam || ev.titel || '',
+      naam    : ev.gast || ev.naam || naamUit(ev.titel) || kortTitel(ev.titel),
+      titelRuw: ev.titel || '',
       locatie : locId(ev.suite || ev.locatie),
       aankomst: van, vertrek: tot,
       tijdIn  : tijd(ev.start), tijdUit: tijd(ev.eind),
@@ -541,7 +587,16 @@ async function laadDag(){
     });
   });
 
-  ITEMS = Object.values(perSleutel);
+  /* Dezelfde boeking kan twee keer voorkomen, bijvoorbeeld met en zonder
+     het voorvoegsel planyo-. Zelfde locatie, datum en naam telt als één. */
+  var gezien = {};
+  ITEMS = Object.values(perSleutel).filter(function(x){
+    var sleutel = [x.locatie, x.aankomst, x.vertrek,
+                   String(x.naam || '').toLowerCase().replace(/\s+/g, ' ').trim()].join('|');
+    if(gezien[sleutel]) return false;
+    gezien[sleutel] = true;
+    return true;
+  });
   toonFouten();
 }
 
@@ -576,6 +631,7 @@ function teken(){
   const vertrekken = lijst.filter(x => x.vertrek === DATUM && x.aankomst !== DATUM)
     .sort((a,b) => (a.tijdUit || '99:99').localeCompare(b.tijdUit || '99:99'));
 
+  const nogAanmaken = lijst.filter(x => /boeking nog aanmaken|nog aanmaken/i.test(x.titelRuw || x.naam || '')).length;
   const zonderIncheck = aankomsten.filter(x => !x.checkin).length;
   const zonderGast    = aankomsten.filter(x => !x.aanmelding).length;
   const teBetalen     = aankomsten.reduce((s,x) => s + Math.max(0, (x.totaal||0) - (x.betaald||0)), 0);
@@ -583,6 +639,7 @@ function teken(){
   document.getElementById('tellers').innerHTML =
     `<div class="teller"><b>${aankomsten.length}</b><span>aankomsten</span></div>` +
     `<div class="teller"><b>${vertrekken.length}</b><span>vertrekken</span></div>` +
+    (nogAanmaken ? `<div class="teller"><b>${nogAanmaken}</b><span>nog aan te maken</span></div>` : '') +
     `<div class="teller"><b>${zonderIncheck}</b><span>zonder incheckformulier</span></div>` +
     `<div class="teller"><b>${zonderGast}</b><span>gast nog niet ingevuld</span></div>` +
     (teBetalen > 0 ? `<div class="teller"><b>${euro(teBetalen)}</b><span>nog te betalen op locatie</span></div>` : '');
@@ -611,6 +668,9 @@ function rijHtml(x, veld){
   const tags = [];
   tags.push(`<span class="tag">${esc(locNaam(x.locatie))}</span>`);
   tags.push(`<span class="tag">${isOvernachting(x) ? 'overnachting' : 'dagverblijf'}</span>`);
+  /* Boekingen die nog echt aangemaakt moeten worden, springen eruit. */
+  if(/boeking nog aanmaken|nog aanmaken/i.test(x.titelRuw || x.naam || ''))
+    tags.push('<span class="tag let">nog aanmaken</span>');
   tags.push(x.checkin
     ? '<span class="tag ok">incheck klaar</span>'
     : '<span class="tag open">incheck open</span>');
@@ -693,7 +753,7 @@ function openDetail(sleutel){
       <div class="knoprij"><button class="btn sm" id="d_bewaar">Notitie bewaren</button></div>
       <div class="melding" id="d_melding"></div>
     </div>
-    ${x.opmerkingen ? `<div class="blok"><h3>Uit de boeking</h3><p style="font-size:14px;margin:0">${esc(x.opmerkingen)}</p></div>` : ''}
+    ${(x.opmerkingen || x.titelRuw) ? `<div class="blok"><h3>Uit de boeking</h3><p style="font-size:14px;margin:0">${esc(x.opmerkingen || x.titelRuw)}</p></div>` : ''}
   `;
 
   const link = gastLink(x);
