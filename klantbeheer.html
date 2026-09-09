@@ -238,7 +238,6 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
         <h2>Klantenbestand</h2>
         <p id="kSub"></p>
         <div class="btn-row">
-          <button class="btn primary" id="kPlanyo" type="button">Planyo-klanten ophalen</button>
           <button class="btn" id="kCsv" type="button">Lijst uitdraaien (CSV)</button>
           <button class="btn" id="kPdf" type="button">PDF</button>
         </div>
@@ -458,7 +457,7 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
     <div class="modal-foot">
       <button class="btn" id="klantNacht" type="button">Toon in nachtregister</button>
       <button class="btn" id="klantCsv" type="button">Lijst van deze klant (CSV)</button>
-      <button class="btn" id="klantMail" type="button">Mail deze klant</button>
+      <button class="btn" id="klantMail" type="button">E-mail opstellen in Gmail</button>
       <button class="btn ghost" id="klantMember" type="button">Markeer als member</button>
     </div>
   </div>
@@ -524,7 +523,6 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="bwf-planyo.js?v=10"></script>
 <script>
 (function(){
 "use strict";
@@ -1028,54 +1026,6 @@ function opslaanKlant(){
   toonTab("klanten");
   toast(idx >= 0 ? "Klant bijgewerkt." : (rec.member ? "Klant opgeslagen en toegevoegd aan members." : "Klant opgeslagen."));
 }
-async function haalPlanyoKlanten(){
-  var knop = $("kPlanyo");
-  if(!window.BWFPlanyo){ toast("De Planyo-koppeling ontbreekt."); return; }
-  knop.disabled = true; knop.textContent = "Bezig met ophalen…";
-  try{
-    var gebruikers = [];
-    for(var pagina=0; pagina<20; pagina++){
-      var antwoord = await BWFPlanyo.customers(pagina);
-      var deel = antwoord.customers || [];
-      gebruikers = gebruikers.concat(deel);
-      if(deel.length < 1000) break;
-    }
-    var bestaand = {};
-    state.records.forEach(function(r){
-      var mail = String(r.email||"").trim().toLowerCase();
-      if(mail) bestaand["m:"+mail] = true;
-      var tel = String(r.telefoon||"").replace(/\D/g,"");
-      if(tel) bestaand["t:"+tel] = true;
-    });
-    var toegevoegd = 0, overgeslagen = 0;
-    gebruikers.forEach(function(u){
-      var email = String(u.email||"").trim();
-      var telefoon = String(u.mobile_number||u.phone||u.phone_number||"").trim();
-      var mk = email ? "m:"+email.toLowerCase() : "";
-      var tk = telefoon ? "t:"+telefoon.replace(/\D/g,"") : "";
-      if((mk && bestaand[mk]) || (tk && bestaand[tk])){ overgeslagen++; return; }
-      var achter = String(u.last_name||"").trim();
-      var voor = String(u.first_name||"").trim();
-      if(!achter && voor){ achter=voor; voor=""; }
-      if(!achter){ overgeslagen++; return; }
-      var rec = {
-        id:"planyo-"+String(u.id||Date.now()+"-"+toegevoegd), type:"klant", locatieId:"",
-        datumIn:"", datumUit:"", nachten:0, contactDatum:stempel(),
-        voorletters:voor, achternaam:achter, geboortedatum:"",
-        woonplaats:String(u.city||"").trim(), email:email, telefoon:telefoon,
-        nationaliteit:String(u.country||"").trim(), personen:0, kinderen:0,
-        kalePrijs:0, totaalBetaald:0, member:false, bron:"Planyo",
-        notitie:"Geïmporteerd uit Planyo (klant "+String(u.id||"")+")",
-        aangemaakt:new Date().toISOString()
-      };
-      state.records.push(rec); bewaarRecord(rec); toegevoegd++;
-      if(mk) bestaand[mk]=true; if(tk) bestaand[tk]=true;
-    });
-    herteken();
-    toast(toegevoegd+" Planyo-klant(en) toegevoegd; "+overgeslagen+" bestaande of onvolledige klant(en) overgeslagen.");
-  }catch(e){ toast("Planyo-klanten ophalen mislukt: "+e.message); }
-  knop.disabled = false; knop.textContent = "Planyo-klanten ophalen";
-}
 function nieuweRegistratie(){ leegForm(); tekenPreview(); openModal("mdReg"); setTimeout(function(){ $("fAchternaam").focus(); }, 60); }
 function bewerk(id){
   var rec = null, i;
@@ -1462,9 +1412,14 @@ function hoortBij(k, mail, tel, naam){
 function haalKoppelBronnen(){
   if(KOPPEL_CACHE) return Promise.resolve(KOPPEL_CACHE);
   return Promise.all([
-    sbGet("reservations?select=*&limit=3000")["catch"](function(){ return []; }),
-    sbGet("res_koppeling?select=*&limit=5000")["catch"](function(){ return []; }),
-    sbGet("checkins?select=id,resnr,locatie,datum,checkuitdatum,voornaam,achternaam,email,telefoon,totaal,status,gekoppelde_reservering&order=created_at.desc&limit=2000")["catch"](function(){ return []; })
+    /* Alleen de kolommen die deze kaart nodig heeft, en niet meer rijen dan
+       nodig. Alles ophalen liep op een telefoon vast met "Load failed". */
+    sbGet("reservations?select=id,voornaam,achternaam,locatie,checkindatum,checkuitdatum," +
+      "totaal,email,telefoon&order=checkindatum.desc&limit=800")["catch"](function(){ return []; }),
+    sbGet("res_koppeling?select=res_sleutel,gast,email,telefoon,aankomst,vertrek,locatie," +
+      "totaal,betaald,bron,geannuleerd,checkin_id&order=aankomst.desc&limit=1200")["catch"](function(){ return []; }),
+    sbGet("checkins?select=id,resnr,locatie,datum,checkuitdatum,voornaam,achternaam,email," +
+      "telefoon,totaal,status,gekoppelde_reservering&order=created_at.desc&limit=600")["catch"](function(){ return []; })
   ]).then(function(r){ KOPPEL_CACHE = {res:r[0]||[], kop:r[1]||[], chk:r[2]||[]}; return KOPPEL_CACHE; });
 }
 function koppelRij(datum, wat, locatie, bedrag, link, knop){
@@ -1515,7 +1470,14 @@ function laadKlantKoppelingen(k){
     doel.innerHTML = '<div class="card-head" style="padding:12px 14px"><h2 style="margin:0;font-size:15px">' +
       "Reserveringen en formulieren</h2></div>" + body;
   })["catch"](function(e){
-    doel.innerHTML = '<div class="card-body" style="padding:14px">Ophalen mislukte: ' + esc(e.message) + "</div>";
+    var uitleg = /load failed|failed to fetch|networkerror/i.test(e.message || '')
+      ? 'De verbinding viel weg tijdens het ophalen. Probeer het opnieuw, of ' +
+        'gebruik een wifiverbinding als je op mobiel internet zit.'
+      : e.message;
+    doel.innerHTML = '<div class="card-body" style="padding:14px">Reserveringen konden niet ' +
+      'worden opgehaald. ' + esc(uitleg) +
+      ' <button class="btn secondary sm" type="button" onclick="KOPPEL_CACHE=null;laadKlantKoppelingen(' +
+      'klantenMap()[state.klantOpen])">Opnieuw proberen</button></div>';
   });
 }
 
@@ -1648,6 +1610,30 @@ function tekenLocatieInstellingen(){
 }
 
 /* ---------- tabs ---------- */
+/* Vanuit een ander dashboard kun je hier binnenkomen met een zoekterm in de link,
+   bijvoorbeeld klantbeheer.html?zoek=Jansen. Dan staat de klant meteen gefilterd. */
+/* Rechtstreeks een tabblad openen: klantbeheer.html?tab=nacht of ?tab=members */
+function pasLinkTabToe(){
+  try{
+    var t = new URLSearchParams(location.search).get('tab');
+    if(!t) return;
+    var geldig = { klanten:1, nacht:1, members:1, reserveringen:1, aangifte:'nacht' };
+    if(geldig[t] === undefined) return;
+    toonTab(typeof geldig[t] === 'string' ? geldig[t] : t);
+  }catch(e){}
+}
+
+function pasLinkZoekToe(){
+  try{
+    var q = new URLSearchParams(location.search).get("zoek");
+    if(!q) return;
+    var veld = $("kZoek");
+    if(veld){ veld.value = q; }
+    toonTab("klanten");
+    if(veld) veld.dispatchEvent(new Event("input", {bubbles:true}));
+  }catch(e){}
+}
+
 function toonTab(naam){
   state.tab = naam;
   ["klanten", "nacht", "members", "reserveringen"].forEach(function(t){
@@ -1675,7 +1661,6 @@ document.querySelectorAll("nav.tabs button").forEach(function(b){
 });
 $("btnNieuw").addEventListener("click", nieuweRegistratie);
 $("btnNieuweKlant").addEventListener("click", nieuweKlant);
-$("kPlanyo").addEventListener("click", haalPlanyoKlanten);
 $("aanvulKnop").addEventListener("click", function(){
   var rijen = aanvulRijen();
   if(!rijen.length){ tekenAanvulBalk(); return; }
@@ -1835,13 +1820,7 @@ $("klantCsv").addEventListener("click", function(){
   bewaarBestand("klant-" + (k.naam||"klant").toLowerCase().replace(/[^a-z0-9]+/g,"-") + "-" + stempel() + ".csv",
     csvVan(CSV_KOP, k.records.slice().sort(function(a,b){ return (a.datumIn||"").localeCompare(b.datumIn||""); }).map(csvRij)), "Lijst");
 });
-$("klantMail").addEventListener("click", function(){
-  var map = klantenMap(), k = map[state.klantOpen];
-  if(!k) return;
-  if(!k.email){ toast("Van deze klant is geen e-mailadres bekend."); return; }
-  mailto(k.email, "Bericht van " + state.settings.bedrijf,
-    "Beste " + k.naam + ",\n\n\n\nMet vriendelijke groet,\n" + state.settings.bedrijf);
-});
+$("klantMail").addEventListener("click", function(){ klantActie("gmail"); });
 $("klantMember").addEventListener("click", function(){
   var map = klantenMap(), k = map[state.klantOpen];
   if(!k) return;
@@ -1899,6 +1878,11 @@ window.addEventListener("message", function(e){
     if(f) f.style.height = Math.max(300, Math.min(1400, e.data.hoogte + 20)) + "px";
   }
 });
+
+/* zoekterm uit de link toepassen zodra de gegevens geladen zijn */
+setTimeout(pasLinkTabToe, 700);
+setTimeout(pasLinkZoekToe, 800);
+setTimeout(pasLinkZoekToe, 2500);
 </script>
 
 <script>
