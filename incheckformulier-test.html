@@ -322,6 +322,12 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <a class="btn secondary sm" id="gastLinkWa" target="_blank" rel="noopener">WhatsApp</a>
     </div>
     <div class="status" id="gastLinkStatus"></div>
+
+    <h3>Klant in het klantenbestand</h3>
+    <p class="desc">Zet deze gast meteen in het klantenbestand. Bij een overnachting komt hij ook in
+      het nachtregister voor de toeristenbelasting. Bestaat de klant al, dan wordt hij bijgewerkt.</p>
+    <button class="btn secondary" type="button" onclick="klantUitGastgegevens()">Klant aanmaken of bijwerken</button>
+    <div class="status" id="gastKlantStatus"></div>
   </div>
 
   <!-- ================= 5 · BOEKINGSGEGEVENS ================= -->
@@ -499,6 +505,10 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="formgrid3" style="margin-top:6px;">
       <div><label>Totaalbedrag &mdash; handmatig aan te passen (&euro;)</label><input type="number" id="c_totaal" step="0.01" oninput="handmatigTotaal()"></div>
       <div><label>Totaal extra&#39;s op locatie (&euro;)</label><input type="text" id="c_extrasTotaal" readonly style="background:var(--cream);"></div>
+      <div><label for="c_mollielink">Mollie betaallink</label>
+        <input type="url" id="c_mollielink" placeholder="plak hier de link uit Mollie">
+        <a class="btn secondary sm" style="margin-top:6px" target="_blank" rel="noopener"
+           href="https://my.mollie.com/dashboard/payment-links">Mollie openen</a></div>
       <div><label>Hoe worden de extra&#39;s betaald</label>
         <select id="c_extrasBetaalwijze" onchange="herberekenAlles()">
           <option value="">&mdash; Nog niet betaald &mdash;</option>
@@ -1995,6 +2005,73 @@ async function deleteCheckinFromDetail(){
   }
 }
 
+/* ---------------------------------------------------------------
+   De gast nu al in het klantenbestand zetten, zonder te wachten tot
+   het formulier definitief is. Werkt bij op id, dus twee keer drukken
+   levert geen dubbele klant op.
+   --------------------------------------------------------------- */
+async function klantUitGastgegevens(){
+  var st = document.getElementById('gastKlantStatus');
+  var g = guestData || voorinvulling;
+  if(!g || !(g.achternaam || '').trim()){
+    st.className = 'status err';
+    st.textContent = '\u2715 Er zijn nog geen gastgegevens. Koppel eerst een aanmelding, of vul het gastformulier in.';
+    return;
+  }
+  st.className = 'status';
+  st.textContent = 'Bezig met opslaan in het klantenbestand\u2026';
+
+  var typeEl = document.querySelector('input[name="verblijftype"]:checked');
+  var overnacht = typeEl && typeEl.value === 'overnachting';
+  var dIn = document.getElementById('c_datum').value;
+  var dUit = document.getElementById('c_checkuitdatum').value;
+  var nachten = 0;
+  if(overnacht && dIn && dUit){
+    var v = (new Date(dUit + 'T12:00:00') - new Date(dIn + 'T12:00:00')) / 86400000;
+    nachten = v > 0 ? Math.round(v) : 0;
+  }
+  var eigenId = document.getElementById('c_id').value || ('los' + Date.now());
+  try{
+    await sb('wz_klantbeheer', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates,return=minimal',
+      body: JSON.stringify([{
+        id: 'ci-' + eigenId,
+        type: overnacht ? 'overnachting' : 'dagverblijf',
+        locatie_id: document.getElementById('c_locatie').value || null,
+        datum_in: dIn || null,
+        datum_uit: overnacht ? (dUit || null) : null,
+        nachten: nachten,
+        contact_datum: dIn || null,
+        voornaam: g.voornaam || '',
+        voorletters: g.voornaam ? g.voornaam.charAt(0).toUpperCase() + '.' : '',
+        achternaam: g.achternaam || '',
+        woonplaats: g.woonplaats || '',
+        nationaliteit: g.nationaliteit || '',
+        email: g.email || '',
+        telefoon: g.telefoon || '',
+        personen: Number(document.getElementById('c_personen').value) || 0,
+        kinderen: Number(document.getElementById('c_kinderen').value) || 0,
+        kale_prijs: reserveringsBedrag(),
+        totaal_betaald: actueelTotaal(),
+        member: !!g.lid,
+        bron: 'Incheckformulier',
+        referentie: document.getElementById('c_resnr').value || '',
+        laatste_bezoek: dIn || null,
+        notitie: 'Aangemaakt vanuit het incheckformulier. Kale kamerprijs controleren.',
+        aangemaakt: new Date().toISOString()
+      }])
+    });
+    st.className = 'status ok';
+    st.textContent = '\u2713 ' + (g.voornaam || '') + ' ' + (g.achternaam || '') +
+      ' staat in het klantenbestand' +
+      (overnacht ? ' \u2014 en in het nachtregister voor de toeristenbelasting.' : '.');
+  }catch(e){
+    st.className = 'status err';
+    st.textContent = '\u2715 Niet gelukt: ' + e.message;
+  }
+}
+
 /* ================= RENDER ALL ================= */
 function renderAll(){
   updateCheckinManagerOptions();
@@ -2922,6 +2999,7 @@ function buildPersoonSelects(){
   var tarief = (EXTRA_PERSONEN[type] || {})[loc] || { volwassene:0, kind:0 };
   var sel = document.getElementById('persWie');
   if(sel) sel.innerHTML =
+    '<option value="">— Geen —</option>' +
     '<option value="volwassene">Volwassene — ' + euro(tarief.volwassene) + '</option>' +
     '<option value="kind">Kind — ' + euro(tarief.kind) + '</option>';
   var wrap = document.getElementById('persTijdWrap');
@@ -2930,6 +3008,7 @@ function buildPersoonSelects(){
 function voegPersoonToe(){
   var type = document.getElementById('persType').value;
   var soort = document.getElementById('persWie').value;
+  if(!soort) return;                     /* op "Geen" laten staan doet niets */
   var loc = document.getElementById('c_locatie').value;
   var prijs = ((EXTRA_PERSONEN[type] || {})[loc] || {})[soort];
   if(prijs == null) return;
@@ -3179,7 +3258,11 @@ function collectCheckinData(){
     split_bedrag2: split ? parseFloat(document.getElementById('c_split2bedrag').value || 0) : null,
     split_wijze2: split ? document.getElementById('c_split2wijze').value : null,
     extra_omzet: parseFloat(document.getElementById('c_extraomzet').value || 0),
-    opmerkingen: document.getElementById('c_opmerking').value.trim()
+    opmerkingen: [
+      document.getElementById('c_opmerking').value.trim(),
+      (document.getElementById('c_mollielink') || {}).value
+        ? 'Betaallink: ' + document.getElementById('c_mollielink').value : ''
+    ].filter(Boolean).join('\n')
   };
   /* Gastgegevens alleen meesturen wanneer ze er ook echt zijn. Deden we dat niet,
      dan overschreef een volgende keer opslaan de eerder ontvangen naam,
@@ -4466,31 +4549,45 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
 
   function bouw(){
-    var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"] .bwf-body');
+    /* Dit blok hoort bij het koppelen, dus het staat in diezelfde kaart. */
+    var kaart = document.getElementById("k_bron") ? document.getElementById("k_bron").closest(".card") : null;
+    var sec = kaart || document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"] .bwf-body');
     if(!sec || document.getElementById("bwfOvernemen")) return;
 
     var d = document.createElement("div");
     d.id = "bwfOvernemen";
     d.innerHTML =
-      '<div class="rij">' +
-        '<div><label for="bwfOvBron">Gegevens overnemen uit</label>' +
-        '<select id="bwfOvBron">' +
-          '<option value="">Kies een bron\u2026</option>' +
-          '<option value="reservering">De planning (agenda + systeem)</option>' +
-          '<option value="aanmelding">Aanmelding van de gast</option>' +
-          '<option value="klant">Klantenbestand</option>' +
-          '<option value="smg">Priv\u00e9 sauna / SMG \u2014 tekst plakken</option>' +
-          '<option value="booking">Booking.com \u2014 tekst plakken</option>' +
-          '<option value="tekst">Ander bericht \u2014 tekst plakken</option>' +
-          '<option value="bestand">Bestand uploaden (pdf of txt)</option>' +
-        '</select></div>' +
-        '<div id="bwfOvKnopVak" style="display:none"><label>&nbsp;</label>' +
-        '<button class="btn sm" type="button" id="bwfOvLees">Gegevens overnemen</button></div>' +
+      '<label style="display:block;font-size:12px;margin-bottom:6px">Waar komen de gegevens vandaan</label>' +
+      '<div class="linkbox" style="margin:0 0 10px">' +
+        '<button class="btn" type="button" data-ovknop="reservering">Reservering koppelen</button>' +
+        '<button class="btn secondary" type="button" data-ovknop="bestand">Bestand uploaden</button>' +
+        '<button class="btn secondary" type="button" data-ovknop="tekst">Vrije tekst invoeren</button>' +
       '</div>' +
+      '<select id="bwfOvBron" style="display:none">' +
+        '<option value=""></option><option value="reservering"></option>' +
+        '<option value="aanmelding"></option><option value="klant"></option>' +
+        '<option value="smg"></option><option value="booking"></option>' +
+        '<option value="tekst"></option><option value="bestand"></option>' +
+      '</select>' +
+      '<div id="bwfOvKnopVak" style="display:none">' +
+        '<button class="btn sm" type="button" id="bwfOvLees">Gegevens overnemen uit deze tekst</button></div>' +
       '<textarea id="bwfOvTekst" style="display:none" ' +
       'placeholder="Plak hier de bevestiging of het bericht. Naam, datum, tijden, aantal personen, arrangementen en bedragen worden er zelf uitgehaald."></textarea>' +
       '<span id="bwfOvStatus"></span>';
     sec.insertBefore(d, sec.firstChild);
+
+    /* de knoppen zetten de verborgen keuzelijst, zodat alle bestaande
+       afhandeling ongewijzigd blijft werken */
+    d.addEventListener("click", function(e){
+      var b = e.target.closest("[data-ovknop]");
+      if(!b) return;
+      d.querySelectorAll("[data-ovknop]").forEach(function(x){
+        x.className = x === b ? "btn" : "btn secondary";
+      });
+      var bron = document.getElementById("bwfOvBron");
+      bron.value = b.getAttribute("data-ovknop");
+      bron.dispatchEvent(new Event("change"));
+    });
 
     var bron = document.getElementById("bwfOvBron");
     var vak  = document.getElementById("bwfOvTekst");
@@ -4652,6 +4749,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     /* de keuzelijst van de bron overnemen zonder naar stap 1 te springen */
     var bron = document.getElementById("bwfOvBron");
     var oud = bron.onchange;
+    bron.addEventListener("change", function(){ if(bron.onchange) bron.onchange(); });
     bron.onchange = function(){
       var w = this.value;
       var keuzeVak = document.getElementById("bwfOvKeuzeVak");
