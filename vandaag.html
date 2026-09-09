@@ -557,20 +557,24 @@ async function laadDag(){
       koppeling: k,
       id       : b.id || k.res_sleutel,
       resnr    : b.resnr || k.res_sleutel.replace(/^hm-/, ''),
-      naam     : b.naam || k.gast || '',
-      locatie  : b.locatie || locId(k.locatie) || locId(k.res_sleutel),
-      aankomst : b.aankomst || k.aankomst,
-      vertrek  : b.vertrek  || k.vertrek,
-      tijdIn   : b.tijdIn   || tijd(k.tijd_in),
-      tijdUit  : b.tijdUit  || tijd(k.tijd_uit),
-      arrangement: b.arrangement || k.arrangement,
-      totaal   : b.totaal  || getal(k.totaal),
-      betaald  : b.betaald || getal(k.betaald),
-      telefoon : b.telefoon || k.telefoon,
-      email    : b.email || k.email,
-      personen : b.personen || k.personen,
-      bron     : b.bron || k.bron || 'Uit de agenda',
-      eigen    : !!b.eigen
+      /* Wat in res_koppeling staat is een bewuste correctie van iemand van het
+         team en gaat daarom vóór de tekst uit de agenda. Zo tonen deze pagina
+         en het reserveringenoverzicht hetzelfde. */
+      naam     : k.gast || b.naam || '',
+      locatie  : locId(k.locatie) || b.locatie || locId(k.res_sleutel),
+      aankomst : k.aankomst || b.aankomst,
+      vertrek  : k.vertrek  || b.vertrek,
+      tijdIn   : tijd(k.tijd_in)  || b.tijdIn,
+      tijdUit  : tijd(k.tijd_uit) || b.tijdUit,
+      arrangement: k.arrangement || b.arrangement,
+      totaal   : getal(k.totaal)  || b.totaal,
+      betaald  : getal(k.betaald) || b.betaald,
+      telefoon : k.telefoon || b.telefoon,
+      email    : k.email || b.email,
+      personen : k.personen || b.personen,
+      bron     : k.bron || b.bron || 'Uit de agenda',
+      eigen    : !!b.eigen,
+      aangepast: !!(k.aankomst || k.vertrek || k.tijd_in || k.tijd_uit || k.gast)
     });
   });
 
@@ -739,6 +743,7 @@ function rijHtml(x, veld){
   const wcs = x.koppeling && x.koppeling.wc_status;
   if(wcs === 'gebeld en geregeld') tags.push('<span class="tag ok">welkomstcall gedaan</span>');
   else if(wcs && wcs !== 'nog niet gebeld') tags.push('<span class="tag open">' + esc(wcs) + '</span>');
+  if(x.aangepast) tags.push('<span class="tag">handmatig aangepast</span>');
   if(x.koppeling && x.koppeling.notitie) tags.push('<span class="tag let">notitie</span>');
   else if(x.call && (x.call.bijzonderheden || x.call.allergieen))
     tags.push('<span class="tag let">bijzonderheden</span>');
