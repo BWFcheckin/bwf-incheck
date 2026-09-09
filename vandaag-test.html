@@ -461,12 +461,13 @@ async function laadDag(){
   /* De tabellen zijn klein (tientallen tot honderden rijen), dus we halen ze
      in hun geheel op. Dat is betrouwbaarder dan filteren op datum: een
      koppeling of incheckformulier heeft niet altijd een datum ingevuld. */
-  const [agenda, res, kop, chk, aanm] = await Promise.all([
+  const [agenda, res, kop, chk, aanm, calls] = await Promise.all([
     haalAgenda(),
     haal('reservations?select=*&limit=3000', 'reservations'),
     haal('res_koppeling?select=*&limit=5000', 'res_koppeling'),
     haal('checkins?select=*&order=created_at.desc&limit=2000', 'checkins'),
-    haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500', 'gast_aanmeldingen')
+    haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500', 'gast_aanmeldingen'),
+    haal('wz_welkomstcalls?select=*&order=datum.desc&limit=1500', 'wz_welkomstcalls')
   ]);
 
   const perSleutel = {};
@@ -587,6 +588,20 @@ async function laadDag(){
     });
   });
 
+  /* 6. de welkomstcall erbij zoeken: op referentie, anders op naam en datum */
+  const telSchoon = t => String(t || '').replace(/\D/g, '').slice(-9);
+  Object.values(perSleutel).forEach(x => {
+    const nx = String(x.naam || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    x.call = calls.find(c => {
+      if(c.referentie && x.resnr && String(c.referentie) === String(x.resnr)) return true;
+      if(c.telefoon && x.telefoon && telSchoon(c.telefoon) && telSchoon(c.telefoon) === telSchoon(x.telefoon)) return true;
+      const nc = String(c.naam || ((c.voornaam || '') + ' ' + (c.achternaam || ''))).toLowerCase().trim();
+      if(!nc || nc.length < 4 || !nx) return false;
+      const zelfdeDag = !c.datum || !x.aankomst || String(c.datum).slice(0,10) === x.aankomst;
+      return zelfdeDag && (nc === nx || nx.indexOf(nc) > -1 || nc.indexOf(nx) > -1);
+    }) || null;
+  });
+
   /* Dezelfde boeking kan twee keer voorkomen, bijvoorbeeld met en zonder
      het voorvoegsel planyo-. Zelfde locatie, datum en naam telt als één. */
   var gezien = {};
@@ -622,6 +637,17 @@ function zichtbaar(){
     return true;
   });
 }
+/* De status uit de welkomstcall vertalen naar onze eigen lijst. */
+function callStatus(c){
+  if(!c) return '';
+  const s = String(c.status || c.uitkomst || '').toLowerCase();
+  if(/voltooid|gedaan|afgerond|gebeld|ok/.test(s) && !/geen/.test(s)) return 'gebeld en geregeld';
+  if(/geen gehoor|niet bereikt/.test(s)) return 'geen gehoor';
+  if(/terugbellen|later/.test(s))        return 'terugbellen';
+  if(/nummer|onjuist|klopt niet/.test(s)) return 'nummer klopt niet';
+  return '';
+}
+
 function isOvernachting(x){ return !!(x.vertrek && x.vertrek !== x.aankomst); }
 
 function teken(){
@@ -680,6 +706,8 @@ function rijHtml(x, veld){
   if(wcs === 'gebeld en geregeld') tags.push('<span class="tag ok">welkomstcall gedaan</span>');
   else if(wcs && wcs !== 'nog niet gebeld') tags.push('<span class="tag open">' + esc(wcs) + '</span>');
   if(x.koppeling && x.koppeling.notitie) tags.push('<span class="tag let">notitie</span>');
+  else if(x.call && (x.call.bijzonderheden || x.call.allergieen))
+    tags.push('<span class="tag let">bijzonderheden</span>');
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   if(open > 0) tags.push(`<span class="tag let">${euro(open)} op locatie</span>`);
 
@@ -704,11 +732,20 @@ function openDetail(sleutel){
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   const g = x.aanmelding;
   const notitie = x.koppeling ? (x.koppeling.notitie || '') : '';
+  /* Is er nog niets ingevuld, dan nemen we over wat er in de welkomstcall staat. */
+  const uitCall = callStatus(x.call);
   const wc = {
-    status : x.koppeling ? (x.koppeling.wc_status || 'nog niet gebeld') : 'nog niet gebeld',
-    bedrag : x.koppeling ? (x.koppeling.wc_extra_bedrag || '') : '',
-    betaald: x.koppeling ? (x.koppeling.wc_betaalwijze || 'nog niet betaald') : 'nog niet betaald'
+    status : (x.koppeling && x.koppeling.wc_status) || uitCall || 'nog niet gebeld',
+    bedrag : (x.koppeling && x.koppeling.wc_extra_bedrag) || (x.call && x.call.tijd_bedrag) || '',
+    betaald: (x.koppeling && x.koppeling.wc_betaalwijze) || (x.call && x.call.betaalwijze) || 'nog niet betaald'
   };
+  const callNotitie = x.call
+    ? [x.call.bijzonderheden, x.call.allergieen ? 'Allergie: ' + x.call.allergieen : '',
+       x.call.notitie, x.call.arrangementen ? 'Arrangementen: ' + x.call.arrangementen : '',
+       x.call.gelegenheid ? 'Gelegenheid: ' + x.call.gelegenheid : '']
+        .filter(Boolean).join('\n')
+    : '';
+  const notitieTonen = notitie || callNotitie;
 
   document.getElementById('d_body').innerHTML = `
     <div class="blok">
@@ -785,7 +822,9 @@ function openDetail(sleutel){
           </select></dd>
       </dl>
       <textarea id="d_notitie" style="margin-top:8px"
-        placeholder="Bijzonderheden voor de locatiemanager: late aankomst, allergie, taart om 20:00, welke extra's zijn bijgeboekt.">${esc(notitie)}</textarea>
+        placeholder="Bijzonderheden voor de locatiemanager: late aankomst, allergie, taart om 20:00, welke extra's zijn bijgeboekt.">${esc(notitieTonen)}</textarea>
+      ${x.call ? '<p class="sub" style="font-size:12px;color:var(--muted);margin:6px 0 0">Overgenomen uit de welkomstcall van ' +
+        esc(String(x.call.gebeld_op || x.call.datum || '').slice(0,10)) + '. Pas aan en bewaar om het vast te leggen.</p>' : ''}
       <div class="knoprij"><button class="btn sm" id="d_bewaar">Bewaren</button></div>
       <div class="melding" id="d_melding"></div>
     </div>
