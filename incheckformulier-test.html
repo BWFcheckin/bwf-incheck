@@ -333,6 +333,29 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   <!-- ================= 5 · BOEKINGSGEGEVENS ================= -->
   <div class="card">
     <h3>Boekingsgegevens</h3>
+    <p class="desc">Suite, datum en locatiemanager zijn verplicht. De rest vult zich vanzelf als je
+      een reservering koppelt; handmatig invullen kan altijd.</p>
+    <div class="formgrid3" id="verplichteVelden">
+      <div><label for="c_locatieTop">Suite <span class="req-mark">*</span></label>
+        <select id="c_locatieTop"></select></div>
+      <div><label for="c_datumTop">Datum <span class="req-mark">*</span></label>
+        <input type="date" id="c_datumTop"></div>
+      <div><label for="c_manager">Locatiemanager <span class="req-mark">*</span></label>
+        <select id="c_manager"></select></div>
+    </div>
+    <div class="formgrid3">
+      <div><label for="c_pakket">Tijdblok of pakket</label>
+        <select id="c_pakket" onchange="kiesPakket()"><option value="">&mdash; kies eerst suite en verblijf &mdash;</option></select>
+        <div id="tariefHint" class="desc" style="margin-top:5px"></div></div>
+      <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
+        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="tariefHandmatig=true; herberekenAlles()"></div>
+      <div><label>Totaal online betaald (&euro;)</label>
+        <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
+    </div>
+    <div class="formgrid3">
+      <div><label for="c_ingevulddatum">Formulier ingevuld op</label><input type="date" id="c_ingevulddatum"></div>
+      <div></div><div></div>
+    </div>
     <div class="formgrid3">
       <div><label>Boeking via</label>
         <select id="c_boekingvia">
@@ -471,21 +494,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <h3>Eindafrekening</h3>
     <p class="desc">De hele reservering op een rij, met alles wat op locatie is bijgeboekt.</p>
     <div class="formgrid3">
-      <div><label for="c_manager">Ingevuld door (locatiemanager)</label><select id="c_manager"></select></div>
-      <div><label for="c_ingevulddatum">Datum invullen</label><input type="date" id="c_ingevulddatum"></div>
-      <div></div>
-    </div>
-
-    <div class="formgrid3">
-      <div><label for="c_pakket">Tijdblok of pakket</label>
-        <select id="c_pakket" onchange="kiesPakket()"><option value="">&mdash; kies eerst suite en verblijf &mdash;</option></select>
-        <div id="tariefHint" class="desc" style="margin-top:5px"></div></div>
-      <div><label>Vooraf gereserveerd bedrag (&euro;)</label>
-        <input type="number" id="c_resbedrag" step="0.01" min="0" value="0" oninput="tariefHandmatig=true; herberekenAlles()"></div>
-      <div><label>Totaal online betaald (&euro;)</label>
-        <input type="number" id="c_aanbetaald" step="0.01" min="0" value="0" oninput="herberekenAlles()"></div>
       <div><label>Nog te betalen (&euro;)</label>
         <input type="text" id="c_nog" readonly style="background:var(--cream);font-weight:600;"></div>
+      <div></div><div></div>
     </div>
     <div class="somgrid">
       <div class="somvak"><span>Gereserveerd</span><b id="somReservering">&euro; 0,00</b></div>
@@ -5453,6 +5464,33 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
       vouw(rest[0], "Extra\u2019s bijboeken op locatie", rest, "bwf-vouw-bijboeken");
     }
 
+    /* ---------- 2b. eerder of later uitchecken ---------- */
+    var tijdKaart = document.getElementById("c_checkoutType") ? document.getElementById("c_checkoutType").closest(".card") : null;
+    if(tijdKaart && !tijdKaart.dataset.gevouwen){
+      tijdKaart.dataset.gevouwen = "1";
+      var tk = Array.prototype.slice.call(tijdKaart.children);
+      var kop2 = tk.filter(function(x){ return /^H[23]$/.test(x.tagName); })[0];
+      vouw(tk.filter(function(x){ return x !== kop2; })[0],
+        "Eerder inchecken of later uitchecken",
+        tk.filter(function(x){ return x !== kop2; }),
+        "bwf-vouw-uren");
+    }
+
+    /* ---------- 2c. de betaling ---------- */
+    var betKop = document.getElementById("betSoort");
+    if(betKop && !betKop.dataset.gevouwen){
+      betKop.dataset.gevouwen = "1";
+      var na = [];
+      var el = betKop.closest("#betKnoppen");
+      while(el && el.nextElementSibling){
+        el = el.nextElementSibling;
+        if(el.id === "betaalwijzeSplit" || el.id === "betList" ||
+           el.classList.contains("order-add") || el.classList.contains("split-toggle")) na.push(el);
+        else break;
+      }
+      /* de keuzelijst zelf blijft staan; alleen de invoervelden vouwen mee */
+    }
+
     /* ---------- 3. reservering koppelen pas op verzoek ---------- */
     var kBron = document.getElementById("k_bron");
     var kKaart = kBron ? kBron.closest(".card") : null;
@@ -5502,6 +5540,75 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   if(document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", function(){ setTimeout(herhaal, 1400); });
   else setTimeout(herhaal, 1400);
+})();
+</script>
+
+
+<script id="bwf-verplicht-js">
+/* De twee velden bovenin zijn spiegels van de bestaande velden verderop.
+   Zo staan suite en datum vooraan zonder dat de rest van de code verandert. */
+(function(){
+  function koppelSpiegel(topId, echtId){
+    var top = document.getElementById(topId), echt = document.getElementById(echtId);
+    if(!top || !echt) return;
+    if(top.tagName === "SELECT" && !top.options.length) top.innerHTML = echt.innerHTML;
+    top.value = echt.value;
+    top.addEventListener("change", function(){
+      echt.value = top.value;
+      echt.dispatchEvent(new Event("change", { bubbles:true }));
+      merk();
+    });
+    echt.addEventListener("change", function(){
+      if(top.tagName === "SELECT" && top.options.length !== echt.options.length) top.innerHTML = echt.innerHTML;
+      top.value = echt.value; merk();
+    });
+    setInterval(function(){
+      if(top.tagName === "SELECT" && top.options.length !== echt.options.length) top.innerHTML = echt.innerHTML;
+      if(top.value !== echt.value) top.value = echt.value;
+    }, 1500);
+  }
+
+  function merk(){
+    ["c_locatieTop","c_datumTop","c_manager"].forEach(function(id){
+      var el = document.getElementById(id); if(!el) return;
+      el.style.borderColor = el.value ? "" : "var(--crit)";
+    });
+  }
+
+  function start(){
+    if(!document.getElementById("c_locatieTop")) { setTimeout(start, 500); return; }
+    koppelSpiegel("c_locatieTop", "c_locatie");
+    koppelSpiegel("c_datumTop", "c_datum");
+    document.getElementById("c_manager").addEventListener("change", merk);
+    merk();
+
+    /* controleren bij definitief opslaan */
+    if(typeof window.saveCheckin === "function" && !window.saveCheckin.__verplicht){
+      var origineel = window.saveCheckin;
+      window.saveCheckin = function(alsConcept){
+        if(!alsConcept){
+          var mist = [];
+          if(!document.getElementById("c_locatie").value) mist.push("suite");
+          if(!document.getElementById("c_datum").value) mist.push("datum");
+          if(!document.getElementById("c_manager").value) mist.push("locatiemanager");
+          if(mist.length){
+            merk();
+            var st = document.getElementById("checkinStatus");
+            if(st){
+              st.className = "status err";
+              st.textContent = "\u2715 Vul eerst in: " + mist.join(", ") + ". Die velden staan bovenaan bij Boekingsgegevens.";
+            }
+            if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
+            return Promise.reject(new Error("verplichte velden"));
+          }
+        }
+        return origineel.apply(this, arguments);
+      };
+      window.saveCheckin.__verplicht = true;
+    }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1000); });
+  else setTimeout(start, 1000);
 })();
 </script>
 
