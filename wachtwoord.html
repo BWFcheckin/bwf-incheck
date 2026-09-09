@@ -3,215 +3,117 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wachtwoord — Bed &amp; Wellness Flevoland</title>
+<title>Wachtwoord instellen — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="bwf-stijl.css">
 <style>
-  :root{
-    --inkt:#1f2a2e;
-    --zacht:#5d6b6f;
-    --papier:#f7f5f2;
-    --kaart:#ffffff;
-    --lijn:#dfd9d2;
-    --water:#2f6f6b;
-    --waterdiep:#245551;
-    --alarm:#9c3b2e;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:24px 18px;
-    background:var(--papier);
-    color:var(--inkt);
-    font-family:"Georgia","Iowan Old Style",serif;
-  }
-  main{width:100%;max-width:420px}
-  .merk{
-    font-size:13px;
-    letter-spacing:.14em;
-    color:var(--zacht);
-    text-align:center;
-    margin-bottom:18px;
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  }
-  .kaart{
-    background:var(--kaart);
-    border:1px solid var(--lijn);
-    border-radius:14px;
-    padding:28px 24px 24px;
-  }
-  h1{
-    margin:0 0 6px;
-    font-size:26px;
-    font-weight:600;
-    line-height:1.25;
-  }
-  p.uitleg{
-    margin:0 0 22px;
-    font-size:15px;
-    line-height:1.55;
-    color:var(--zacht);
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  }
-  label{
-    display:block;
-    font-size:14px;
-    margin-bottom:6px;
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  }
-  input{
-    width:100%;
-    padding:12px 13px;
-    margin-bottom:16px;
-    font-size:16px;
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-    color:var(--inkt);
-    background:#fff;
-    border:1px solid var(--lijn);
-    border-radius:8px;
-  }
-  input:focus{outline:2px solid var(--water);outline-offset:1px;border-color:var(--water)}
-  button{
-    width:100%;
-    padding:13px;
-    font-size:16px;
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-    color:#fff;
-    background:var(--water);
-    border:0;
-    border-radius:8px;
-    cursor:pointer;
-  }
-  button:hover{background:var(--waterdiep)}
-  button:disabled{opacity:.6;cursor:default}
-  .melding{
-    margin-top:18px;
-    padding:12px 14px;
-    border-radius:8px;
-    font-size:14.5px;
-    line-height:1.5;
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-    display:none;
-  }
-  .melding.goed{display:block;background:#eaf2f1;color:var(--waterdiep)}
-  .melding.fout{display:block;background:#f7ebe8;color:var(--alarm)}
-  .terug{
-    display:block;
-    margin-top:20px;
-    text-align:center;
-    font-size:14px;
-    color:var(--zacht);
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  }
-  .verborgen{display:none}
+body{margin:0;display:grid;place-items:center;min-height:100vh;padding:20px}
+.doos{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);
+  padding:30px;max-width:420px;width:100%;box-shadow:var(--shadow)}
+h1{font-family:var(--f-display);font-size:22px;margin:0 0 4px}
+p.sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+label{display:block;font-size:12.5px;color:var(--ink-2);margin:12px 0 4px}
+input{width:100%}
+button{width:100%;margin-top:18px;background:var(--accent);color:#fff;border:0;
+  border-radius:var(--r-s);padding:12px;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+.melding{margin-top:14px;font-size:13.5px;padding:10px 12px;border-radius:var(--r-s);display:none}
+.melding.open{display:block}
+.melding.ok{background:var(--ok-soft);color:var(--ok)}
+.melding.err{background:var(--crit-soft);color:var(--crit)}
+.eisen{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+a{color:var(--brass)}
 </style>
 </head>
 <body>
-<main>
-  <div class="merk">Bed &amp; Wellness Flevoland</div>
 
-  <section class="kaart" id="stapAanvragen">
-    <h1>Wachtwoord vergeten</h1>
-    <p class="uitleg">Vul je e-mailadres in. Je krijgt een link waarmee je op deze pagina een nieuw wachtwoord instelt. De link is één uur geldig.</p>
-    <label for="email">E-mailadres</label>
-    <input id="email" type="email" autocomplete="email" placeholder="naam@voorbeeld.nl">
-    <button id="knopAanvragen">Stuur de link</button>
-    <div class="melding" id="meldingAanvragen"></div>
-  </section>
+<div class="doos">
+  <h1>Nieuw wachtwoord</h1>
+  <p class="sub" id="voorWie">Bed &amp; Wellness Flevoland</p>
 
-  <section class="kaart verborgen" id="stapInstellen">
-    <h1>Nieuw wachtwoord instellen</h1>
-    <p class="uitleg">Kies een wachtwoord van minimaal 8 tekens. Hiermee log je in op alle dashboards.</p>
+  <div id="vragen">
     <label for="ww1">Nieuw wachtwoord</label>
     <input id="ww1" type="password" autocomplete="new-password">
-    <label for="ww2">Herhaal wachtwoord</label>
+    <label for="ww2">Nog een keer ter controle</label>
     <input id="ww2" type="password" autocomplete="new-password">
-    <button id="knopOpslaan">Wachtwoord opslaan</button>
-    <div class="melding" id="meldingInstellen"></div>
-  </section>
+    <button type="button" id="bewaar">Wachtwoord instellen</button>
+    <p class="eisen">Minimaal acht tekens. Kies iets dat je nergens anders gebruikt —
+      dit geeft toegang tot gegevens van gasten.</p>
+  </div>
 
-  <a class="terug" href="./index.html">Terug naar het portaal</a>
-</main>
+  <div class="melding" id="melding"></div>
+</div>
 
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+<script>
+const PROJECT = 'iuyjvtlauktnjprbmbjj';
+const BASIS = 'https://' + PROJECT + '.supabase.co';
+const ANON  = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+const OPSLAG = 'sb-' + PROJECT + '-auth-token';
 
-// ---- Instellingen -------------------------------------------------------
-const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
-const SUPABASE_ANON_KEY = 'PLAK_HIER_JE_ANON_KEY';   // zelfde sleutel als in je andere dashboards
-const DEZE_PAGINA = window.location.origin + window.location.pathname;
-const NA_AFLOOP = './index.html';                     // waar de gebruiker heen gaat na het opslaan
-// -------------------------------------------------------------------------
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { detectSessionInUrl: true, flowType: 'pkce' }
-});
-
-const el = (id) => document.getElementById(id);
-const toon = (vak, tekst, soort) => { vak.textContent = tekst; vak.className = 'melding ' + soort; };
-
-// Stap 2 tonen zodra er een herstelsessie is
-function naarInstellen() {
-  el('stapAanvragen').classList.add('verborgen');
-  el('stapInstellen').classList.remove('verborgen');
-  el('ww1').focus();
+function meld(tekst, soort){
+  const el = document.getElementById('melding');
+  el.textContent = tekst;
+  el.className = 'melding open ' + (soort || '');
 }
 
-// De link uit de e-mail kan een ?code= (PKCE) of een #access_token bevatten
-const params = new URLSearchParams(window.location.search);
-const code = params.get('code');
-const hash = new URLSearchParams(window.location.hash.slice(1));
-
-if (code) {
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) {
-    toon(el('meldingAanvragen'), 'Deze link is verlopen of al gebruikt. Vraag hieronder een nieuwe aan.', 'fout');
-  } else {
-    naarInstellen();
-  }
-} else if (hash.get('type') === 'recovery' || hash.get('access_token')) {
-  naarInstellen();
-} else if (hash.get('error_description')) {
-  toon(el('meldingAanvragen'), decodeURIComponent(hash.get('error_description')), 'fout');
+/* Supabase zet het herstelbewijs achter een hekje in het adres. */
+function uitHash(){
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  return { token: h.get('access_token'), soort: h.get('type'), fout: h.get('error_description') };
 }
 
-supabase.auth.onAuthStateChange((event) => {
-  if (event === 'PASSWORD_RECOVERY') naarInstellen();
-});
+const uit = uitHash();
+let TOKEN = uit.token;
 
-// Stap 1: link aanvragen
-el('knopAanvragen').addEventListener('click', async () => {
-  const email = el('email').value.trim();
-  const vak = el('meldingAanvragen');
-  if (!email) { toon(vak, 'Vul eerst je e-mailadres in.', 'fout'); return; }
+/* al ingelogd? dan kun je hier ook gewoon je wachtwoord wijzigen */
+if(!TOKEN){
+  try{
+    const s = JSON.parse(localStorage.getItem(OPSLAG) || 'null');
+    if(s && s.access_token) TOKEN = s.access_token;
+  }catch(e){}
+}
 
-  el('knopAanvragen').disabled = true;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: DEZE_PAGINA });
-  el('knopAanvragen').disabled = false;
+if(uit.fout){
+  document.getElementById('vragen').style.display = 'none';
+  meld('Deze link werkt niet meer: ' + uit.fout + '. Vraag een nieuwe herstelmail aan op de inlogpagina.', 'err');
+}else if(!TOKEN){
+  document.getElementById('vragen').style.display = 'none';
+  meld('Open deze pagina via de link uit je herstelmail, of log eerst in om je wachtwoord te wijzigen.', 'err');
+}else{
+  try{
+    const deel = JSON.parse(atob(TOKEN.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(deel.email) document.getElementById('voorWie').textContent = 'Voor ' + deel.email;
+  }catch(e){}
+}
 
-  if (error) toon(vak, 'Versturen lukte niet: ' + error.message, 'fout');
-  else toon(vak, 'Verstuurd. Check je mailbox (ook de spam) en open de link op dit apparaat.', 'goed');
-});
+document.getElementById('bewaar').addEventListener('click', async function(){
+  const a = document.getElementById('ww1').value;
+  const b = document.getElementById('ww2').value;
+  if(a.length < 8){ meld('Kies een wachtwoord van minstens acht tekens.', 'err'); return; }
+  if(a !== b){ meld('De twee wachtwoorden zijn niet gelijk.', 'err'); return; }
 
-// Stap 2: nieuw wachtwoord opslaan
-el('knopOpslaan').addEventListener('click', async () => {
-  const ww1 = el('ww1').value, ww2 = el('ww2').value;
-  const vak = el('meldingInstellen');
-  if (ww1.length < 8) { toon(vak, 'Gebruik minimaal 8 tekens.', 'fout'); return; }
-  if (ww1 !== ww2) { toon(vak, 'De twee wachtwoorden zijn niet gelijk.', 'fout'); return; }
-
-  el('knopOpslaan').disabled = true;
-  const { error } = await supabase.auth.updateUser({ password: ww1 });
-
-  if (error) {
-    el('knopOpslaan').disabled = false;
-    toon(vak, 'Opslaan lukte niet: ' + error.message, 'fout');
-    return;
+  const knop = this;
+  knop.disabled = true; knop.textContent = 'Bezig…';
+  try{
+    const r = await fetch(BASIS + '/auth/v1/user', {
+      method:'PUT',
+      headers:{ apikey:ANON, Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json' },
+      body: JSON.stringify({ password: a })
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.msg || d.error_description || d.message || 'Instellen lukte niet.');
+    document.getElementById('vragen').style.display = 'none';
+    meld('Je wachtwoord is ingesteld. Je kunt nu inloggen.', 'ok');
+    setTimeout(function(){ location.href = 'index.html'; }, 2200);
+  }catch(e){
+    meld(e.message, 'err');
+    knop.disabled = false; knop.textContent = 'Wachtwoord instellen';
   }
-  toon(vak, 'Je wachtwoord is opgeslagen. Je gaat nu naar het portaal.', 'goed');
-  setTimeout(() => { window.location.href = NA_AFLOOP; }, 1800);
+});
+document.getElementById('ww2').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('bewaar').click();
 });
 </script>
 </body>

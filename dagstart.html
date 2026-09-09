@@ -109,6 +109,8 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
     <label for="lgWw">Wachtwoord</label>
     <input id="lgWw" type="password" autocomplete="current-password">
     <button type="button" id="lgKnop">Inloggen</button>
+    <p style="text-align:center;margin:12px 0 0;font-size:13px">
+      <a href="#" id="bwfVergeten">Wachtwoord vergeten of nog geen wachtwoord?</a></p>
     <div class="fout" id="lgFout"></div>
   </div>
 </div>
@@ -125,6 +127,7 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
     <a href="dashboard.html">Personeel</a>
     <div class="rechts">
       <span class="wie" id="wieBen"></span>
+      <a href="wachtwoord.html" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:12.5px">Wachtwoord</a>
       <button type="button" id="knopUit">Uitloggen</button>
     </div>
   </div>
@@ -154,14 +157,14 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
   <div class="duo">
     <section class="blok">
       <h2>Mijn taken <em id="takenTeller"></em>
-        <a href="vr2.html">Alle taken</a></h2>
+        <a href="#" id="nieuweTaak">+ Nieuwe taak</a></h2>
       <div class="kaart"><div class="lijst" id="takenLijst">
         <div class="leeg">Bezig met laden…</div></div></div>
     </section>
 
     <section class="blok">
       <h2>Welkomstcalls <em id="callsTeller"></em>
-        <a href="vr2.html">Naar het VR Dashboard</a></h2>
+        <a href="#" id="nieuweCall">+ Nieuwe call</a></h2>
       <div class="kaart"><div class="lijst" id="callsLijst">
         <div class="leeg">Bezig met laden…</div></div></div>
     </section>
@@ -184,7 +187,17 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
     </section>
   </div>
 
-  <!-- ============ 4. tegels ============ -->
+  <!-- ============ 4. gmail ============ -->
+  <section class="blok">
+    <h2>E-mail <em>de inbox van het VR Dashboard</em>
+      <a href="vr2.html" target="_blank" rel="noopener">In een eigen venster openen</a></h2>
+    <div class="kaart" style="padding:0;overflow:hidden">
+      <iframe id="mailFrame" title="E-mail" src="vr2.html#gmail" loading="lazy"
+        style="width:100%;height:60vh;min-height:420px;border:0;background:var(--surface)"></iframe>
+    </div>
+  </section>
+
+  <!-- ============ 5. tegels ============ -->
   <section class="blok">
     <h2>Alle onderdelen</h2>
     <div id="tegelGroepen"></div>
@@ -192,7 +205,21 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
 
 </div>
 
+<dialog id="bewerk">
+  <form method="dialog" style="padding:20px;min-width:min(460px,90vw)">
+    <h3 id="bwTitel" style="font-family:var(--f-display);font-size:18px;margin:0 0 12px">Taak</h3>
+    <div id="bwVelden"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
+      <button class="btn secondary sm" type="button" id="bwWeg" style="margin-right:auto">Verwijderen</button>
+      <button class="btn secondary sm" type="button" id="bwAnnuleer">Annuleren</button>
+      <button class="btn sm" type="button" id="bwBewaar">Opslaan</button>
+    </div>
+    <div id="bwMelding" style="font-size:13px;margin-top:8px"></div>
+  </form>
+</dialog>
+
 <script src="bwf-agenda.js?v=1"></script>
+<script src="bwf-account.js?v=1"></script>
 <script>
 /* =========================================================
    Dagstart — Bed & Wellness Flevoland
@@ -234,6 +261,7 @@ const TEGELS = [
 ];
 
 let SESSIE = null, IK = null;
+let TAKEN_RUW = [], CALLS_RUW = [];
 
 /* ---------- hulpjes ---------- */
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -305,6 +333,7 @@ async function laadTaken(){
   const doel = document.getElementById('takenLijst');
   const teller = document.getElementById('takenTeller');
   const alles = await haal('wz_taken?select=*&afgerond_op=is.null&order=deadline.asc&limit=200', 'taken');
+  TAKEN_RUW = alles;
   const mijnId = IK ? String(IK.id || '') : '';
   const mijn = mijnId ? alles.filter(t => String(t.medewerker_id || '') === mijnId) : [];
   const lijst = mijn.length ? mijn : alles;
@@ -317,7 +346,8 @@ async function laadTaken(){
   doel.innerHTML = lijst.length
     ? lijst.slice(0, 8).map(t => {
         const laat = t.deadline && t.deadline < vandaag;
-        return '<div class="rij"><b>' + esc(t.titel || 'zonder titel') + '</b>' +
+        return '<div class="rij" data-taak="' + esc(t.id) + '" style="cursor:pointer"><b>' +
+          esc(t.titel || 'zonder titel') + '</b>' +
           '<span>' + (t.deadline
             ? '<span class="merk' + (laat ? ' laat' : '') + '">' + esc(nlDatum(t.deadline)) + '</span>'
             : '') + '</span></div>';
@@ -330,13 +360,18 @@ async function laadCalls(){
   const vandaag = vandaagISO();
   const calls = await haal('wz_welkomstcalls?select=*&datum=gte.' + vandaag +
     '&order=datum.asc&limit=60', 'welkomstcalls');
+  CALLS_RUW = calls;
   const open = calls.filter(c => !/voltooid|afgerond|gedaan/i.test(String(c.status || '')));
   document.getElementById('callsTeller').textContent = open.length + ' te bellen';
   doel.innerHTML = open.length
     ? open.slice(0, 8).map(c => {
         const spoed = c.datum && (new Date(c.datum) - new Date()) < 2 * 86400000;
-        return '<div class="rij"><b>' + esc(c.naam || 'zonder naam') + '</b>' +
+        const teLaat = c.deadline && String(c.deadline).slice(0,10) < vandaagISO();
+        return '<div class="rij" data-call="' + esc(c.id) + '" style="cursor:pointer"><b>' +
+          esc(c.naam || 'zonder naam') + '</b>' +
           '<span>' + (c.telefoon ? esc(c.telefoon) + ' · ' : '') +
+          (c.deadline ? '<span class="merk' + (teLaat ? ' laat' : '') + '">bellen v\u00f3\u00f3r ' +
+            esc(nlDatum(String(c.deadline).slice(0,10))) + '</span> ' : '') +
           '<span class="merk' + (spoed ? ' bijna' : '') + '">' + esc(nlDatum(c.datum)) +
           '</span></span></div>';
       }).join('')
@@ -385,6 +420,289 @@ function tekenTegels(){
     ).join('') + '</div>').join('');
 }
 
+
+/* =========================================================
+   Bewerken: taken en welkomstcalls
+   Aanmaken, aanpassen, toewijzen, afronden en verwijderen.
+   ========================================================= */
+let MEDEWERKERS = [];
+let BEWERK = null;   /* { soort:'taak'|'call', rij:{...} } */
+
+async function schrijf(pad, methode, body){
+  const r = await fetch(CFG.url + '/rest/v1/' + pad, {
+    method: methode,
+    headers: {
+      apikey: CFG.key,
+      Authorization: 'Bearer ' + SESSIE.access_token,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!r.ok) throw new Error((await r.text()).slice(0, 200));
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+function veld(label, id, type, waarde, opties){
+  if(type === 'select'){
+    return '<label style="display:block;font-size:12.5px;color:var(--ink-2);margin:10px 0 4px">' +
+      esc(label) + '</label><select id="' + id + '" style="width:100%">' +
+      opties.map(function(o){
+        const w = typeof o === 'string' ? o : o.w, t = typeof o === 'string' ? o : o.t;
+        return '<option value="' + esc(w) + '"' + (String(waarde) === String(w) ? ' selected' : '') +
+          '>' + esc(t) + '</option>';
+      }).join('') + '</select>';
+  }
+  if(type === 'textarea'){
+    return '<label style="display:block;font-size:12.5px;color:var(--ink-2);margin:10px 0 4px">' +
+      esc(label) + '</label><textarea id="' + id + '" rows="3" style="width:100%">' +
+      esc(waarde || '') + '</textarea>';
+  }
+  return '<label style="display:block;font-size:12.5px;color:var(--ink-2);margin:10px 0 4px">' +
+    esc(label) + '</label><input id="' + id + '" type="' + type + '" value="' +
+    esc(waarde == null ? '' : waarde) + '" style="width:100%">';
+}
+
+function openTaak(rij){
+  BEWERK = { soort:'taak', rij: rij || {} };
+  const t = BEWERK.rij;
+  document.getElementById('bwTitel').textContent = t.id ? 'Taak aanpassen' : 'Nieuwe taak';
+  document.getElementById('bwWeg').style.display = t.id ? '' : 'none';
+  document.getElementById('bwVelden').innerHTML =
+    veld('Taak', 'f_titel', 'text', t.titel) +
+    veld('Toelichting', 'f_oms', 'textarea', t.omschrijving) +
+    veld('Toegewezen aan', 'f_wie', 'select',
+      t.medewerker_id || (t.id ? '' : (IK ? IK.id : '')),
+      [{w:'', t:'\u2014 niemand \u2014'}].concat(MEDEWERKERS.map(function(m){
+        return { w:m.id, t:m.naam }; }))) +
+    veld('Uiterlijk op', 'f_deadline', 'date', (t.deadline || '').slice(0,10)) +
+    veld('Prioriteit', 'f_prio', 'select', t.prioriteit || 'normaal', ['laag','normaal','hoog']) +
+    veld('Status', 'f_status_t', 'select', t.status || 'open',
+      ['open','mee bezig','wacht op iemand anders','afgerond']) +
+    veld('Afgerond op', 'f_klaar', 'date', (t.afgerond_op || '').slice(0,10)) +
+    '<p style="font-size:12px;color:var(--muted);margin:6px 0 0">Vul een datum in bij ' +
+    '\u201cAfgerond op\u201d om de taak af te vinken. Leeg laten houdt hem open.</p>';
+  document.getElementById('bwMelding').textContent = '';
+  document.getElementById('bewerk').showModal();
+}
+
+function openCall(rij){
+  BEWERK = { soort:'call', rij: rij || {} };
+  const c = BEWERK.rij;
+  document.getElementById('bwTitel').textContent = c.id ? 'Welkomstcall aanpassen' : 'Nieuwe welkomstcall';
+  document.getElementById('bwWeg').style.display = c.id ? '' : 'none';
+  document.getElementById('bwVelden').innerHTML =
+    veld('Naam van de gast', 'f_naam', 'text', c.naam) +
+    veld('Telefoon', 'f_tel', 'text', c.telefoon) +
+    veld('Aankomst', 'f_datum', 'date', (c.datum || '').slice(0,10)) +
+    veld('Locatie', 'f_loc', 'select', c.locatie || '',
+      ['', 'angie', 'jacuzzi', 'deluxe']) +
+    veld('Status', 'f_status', 'select', c.status || 'te bellen',
+      ['te bellen','gebeld en geregeld','geen gehoor','terugbellen','nummer klopt niet','voltooid']) +
+    veld('Gebeld op', 'f_gebeld', 'date', String(c.gebeld_op || '').slice(0,10)) +
+    veld('Uiterlijk bellen op', 'f_deadlineC', 'date', String(c.deadline || '').slice(0,10)) +
+    veld('Toegewezen aan', 'f_wieC', 'select', c.medewerker_id || (c.id ? '' : (IK ? IK.id : '')),
+      [{w:'', t:'\u2014 niemand \u2014'}].concat(MEDEWERKERS.map(function(m){
+        return { w:m.id, t:m.naam }; }))) +
+    veld('Bijzonderheden', 'f_bijz', 'textarea', c.bijzonderheden || c.notitie) +
+    '<div style="border-top:1px solid var(--line-soft);margin-top:14px;padding-top:12px">' +
+      '<label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:4px">' +
+      'Koppelen aan een reservering</label>' +
+      '<input id="f_zoek" type="search" placeholder="zoek op naam of datum" style="width:100%">' +
+      '<div id="f_treffers" style="margin-top:8px"></div>' +
+      (c.gekoppeldAan ? '<p style="font-size:12.5px;color:var(--ok);margin:6px 0 0">Gekoppeld aan ' +
+        esc(c.gekoppeldAan) + '</p>' : '') +
+    '</div>' +
+    '<div class="knoprij" style="margin-top:12px">' +
+      '<a class="btn secondary sm" target="_blank" rel="noopener" href="' + vrLink(c) + '">' +
+      'Volledige checklist en belscript openen</a></div>' +
+    '<p style="font-size:12px;color:var(--muted);margin:6px 0 0">Daar staan het belscript, ' +
+    'de gastenlink en het bijboeken van extra\u2019s.</p>';
+  document.getElementById('bwMelding').textContent = '';
+  koppelZoeken();
+  document.getElementById('bewerk').showModal();
+}
+
+function w(id){ const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+
+async function bewaren(){
+  const m = document.getElementById('bwMelding');
+  m.style.color = ''; m.textContent = 'Bezig met opslaan\u2026';
+  try{
+    if(BEWERK.soort === 'taak'){
+      if(!w('f_titel')) throw new Error('Vul een taak in.');
+      const obj = {
+        titel: w('f_titel'), omschrijving: w('f_oms'),
+        medewerker_id: w('f_wie') || null,
+        deadline: w('f_deadline') || null,
+        prioriteit: w('f_prio'),
+        afgerond_op: w('f_klaar') ? w('f_klaar') + 'T12:00:00' : null,
+        status: w('f_klaar') ? 'afgerond' : (w('f_status_t') || 'open')
+      };
+      /* status afgerond zonder datum: dan zetten we die op vandaag */
+      if(obj.status === 'afgerond' && !obj.afgerond_op) obj.afgerond_op = new Date().toISOString();
+      if(BEWERK.rij.id) await schrijf('wz_taken?id=eq.' + BEWERK.rij.id, 'PATCH', obj);
+      else { obj.aangemaakt = new Date().toISOString(); await schrijf('wz_taken', 'POST', obj); }
+      await laadTaken();
+    }else{
+      if(!w('f_naam')) throw new Error('Vul een naam in.');
+      const obj = {
+        naam: w('f_naam'), telefoon: w('f_tel'),
+        datum: w('f_datum') || null, locatie: w('f_loc') || null,
+        status: w('f_status'),
+        gebeld_op: w('f_gebeld') ? w('f_gebeld') + 'T12:00:00' : null,
+        deadline: w('f_deadlineC') || null,
+        medewerker_id: w('f_wieC') || null,
+        bijzonderheden: w('f_bijz')
+      };
+      /* geen eigen deadline ingevuld? dan twee dagen voor aankomst bellen */
+      if(!obj.deadline && obj.datum){
+        const dd = new Date(obj.datum + 'T12:00:00');
+        dd.setDate(dd.getDate() - 2);
+        obj.deadline = dd.toISOString().slice(0,10);
+      }
+      if(BEWERK.rij.id) await schrijf('wz_welkomstcalls?id=eq.' + BEWERK.rij.id, 'PATCH', obj);
+      else { obj.aangemaakt = new Date().toISOString(); await schrijf('wz_welkomstcalls', 'POST', obj); }
+      await laadCalls();
+    }
+    document.getElementById('bewerk').close();
+  }catch(e){
+    m.style.color = 'var(--crit)';
+    m.textContent = 'Opslaan lukte niet: ' + e.message;
+  }
+}
+
+async function verwijderen(){
+  if(!BEWERK.rij.id) return;
+  const wat = BEWERK.soort === 'taak' ? 'deze taak' : 'deze welkomstcall';
+  if(!confirm('Weet je zeker dat je ' + wat + ' wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+  const m = document.getElementById('bwMelding');
+  try{
+    const tabel = BEWERK.soort === 'taak' ? 'wz_taken' : 'wz_welkomstcalls';
+    await schrijf(tabel + '?id=eq.' + BEWERK.rij.id, 'DELETE');
+    document.getElementById('bewerk').close();
+    if(BEWERK.soort === 'taak') await laadTaken(); else await laadCalls();
+  }catch(e){
+    m.style.color = 'var(--crit)';
+    m.textContent = 'Verwijderen lukte niet: ' + e.message;
+  }
+}
+
+document.getElementById('bwBewaar').addEventListener('click', bewaren);
+document.getElementById('bwWeg').addEventListener('click', verwijderen);
+document.getElementById('bwAnnuleer').addEventListener('click', function(){
+  document.getElementById('bewerk').close();
+});
+document.getElementById('nieuweTaak').addEventListener('click', function(e){
+  e.preventDefault(); openTaak(null);
+});
+document.getElementById('nieuweCall').addEventListener('click', function(e){
+  e.preventDefault(); openCall(null);
+});
+
+/* klikken in de lijsten opent het bewerkvenster */
+document.addEventListener('click', function(e){
+  const rij = e.target.closest('[data-taak], [data-call]');
+  if(!rij) return;
+  const id = rij.getAttribute('data-taak') || rij.getAttribute('data-call');
+  const lijst = rij.hasAttribute('data-taak') ? TAKEN_RUW : CALLS_RUW;
+  const gevonden = lijst.find(function(x){ return String(x.id) === String(id); });
+  if(!gevonden) return;
+  rij.hasAttribute('data-taak') ? openTaak(gevonden) : openCall(gevonden);
+});
+
+
+/* ---------- de volledige checklist in het VR Dashboard ---------- */
+function vrLink(c){
+  const p = new URLSearchParams();
+  p.set('open', 'welkomstcall');
+  if(c.naam)     p.set('gast', c.naam);
+  if(c.voornaam) p.set('voornaam', c.voornaam);
+  if(c.achternaam) p.set('achternaam', c.achternaam);
+  if(c.telefoon) p.set('telefoon', c.telefoon);
+  if(c.email)    p.set('email', c.email);
+  if(c.referentie) p.set('nummer', c.referentie);
+  if(c.datum)    p.set('aankomst', String(c.datum).slice(0,10));
+  if(c.datum_eind) p.set('vertrek', String(c.datum_eind).slice(0,10));
+  if(c.tijd)     p.set('tijdin', c.tijd);
+  if(c.verblijftype) p.set('type', c.verblijftype);
+  if(c.bron)     p.set('bron', c.bron);
+  return 'vr2.html?' + p.toString();
+}
+
+/* ---------- een welkomstcall aan een reservering koppelen ----------
+   Er wordt gezocht in de eigen reserveringen en in de koppelingen. Bij het
+   koppelen wordt het nummer van de call in res_koppeling gezet, waardoor de
+   gegevens ook bij de reservering zichtbaar worden. */
+let RESERVERINGEN = [], KOPPELINGEN = [];
+
+async function laadKoppelbronnen(){
+  if(RESERVERINGEN.length || KOPPELINGEN.length) return;
+  RESERVERINGEN = await haal('reservations?select=id,voornaam,achternaam,locatie,checkindatum&limit=2000', 'reserveringen');
+  KOPPELINGEN = await haal('res_koppeling?select=res_sleutel,gast,aankomst,locatie,welkomstcall_id&limit=5000', 'koppelingen');
+}
+
+async function koppelZoeken(){
+  const veldEl = document.getElementById('f_zoek');
+  const doel = document.getElementById('f_treffers');
+  if(!veldEl || !doel) return;
+  await laadKoppelbronnen();
+
+  const toon = function(){
+    const q = veldEl.value.trim().toLowerCase();
+    if(q.length < 2){ doel.innerHTML = '<span style="font-size:12.5px;color:var(--muted)">' +
+      'Typ een naam of datum om te zoeken.</span>'; return; }
+
+    const uitRes = RESERVERINGEN.map(function(r){
+      return { sleutel:'hm-' + r.id,
+        naam: ((r.voornaam || '') + ' ' + (r.achternaam || '')).trim(),
+        datum: r.checkindatum, locatie: r.locatie };
+    });
+    const uitKop = KOPPELINGEN.map(function(k){
+      return { sleutel:k.res_sleutel, naam:k.gast || '', datum:k.aankomst,
+        locatie:k.locatie, alGekoppeld: !!k.welkomstcall_id };
+    });
+    const alles = uitRes.concat(uitKop).filter(function(x){
+      return ((x.naam || '') + ' ' + (x.datum || '')).toLowerCase().indexOf(q) > -1;
+    }).slice(0, 6);
+
+    doel.innerHTML = alles.length
+      ? alles.map(function(x){
+          return '<div class="rij" style="padding:6px 0"><b>' + esc(x.naam || 'zonder naam') +
+            '</b><span>' + esc(nlDatum(x.datum)) + ' ' + esc(x.locatie || '') +
+            ' <button class="btn sm" type="button" data-koppel="' + esc(x.sleutel) +
+            '" style="margin-left:8px">Koppelen</button></span></div>';
+        }).join('')
+      : '<span style="font-size:12.5px;color:var(--muted)">Niets gevonden.</span>';
+  };
+
+  veldEl.oninput = toon;
+  toon();
+
+  doel.onclick = async function(e){
+    const b = e.target.closest('[data-koppel]');
+    if(!b) return;
+    const m = document.getElementById('bwMelding');
+    try{
+      m.style.color = ''; m.textContent = 'Bezig met koppelen\u2026';
+      let id = BEWERK.rij.id;
+      if(!id){ await bewaren(); return; }   /* eerst opslaan, dan koppelen */
+      await schrijf('res_koppeling?on_conflict=res_sleutel', 'POST', {
+        res_sleutel: b.getAttribute('data-koppel'),
+        bron: 'welkomstcall',
+        welkomstcall_id: String(id),
+        bijgewerkt: new Date().toISOString()
+      });
+      m.style.color = 'var(--ok)';
+      m.textContent = '\u2713 Gekoppeld. De gegevens staan nu ook bij de reservering.';
+    }catch(err){
+      m.style.color = 'var(--crit)';
+      m.textContent = 'Koppelen lukte niet: ' + err.message;
+    }
+  };
+}
+
 /* ---------- opstarten ---------- */
 async function start(){
   document.body.classList.remove('dicht');
@@ -393,6 +711,7 @@ async function start(){
   const rijen = await haal('wz_medewerkers?select=id,naam,rol,email&limit=50', 'medewerkers');
   let mail = '';
   try{ mail = JSON.parse(atob(SESSIE.access_token.split('.')[1])).email || ''; }catch(e){}
+  MEDEWERKERS = rijen;
   IK = rijen.find(m => String(m.email || '').toLowerCase() === mail.toLowerCase()) || null;
 
   document.getElementById('wieBen').textContent = IK ? IK.naam + ' · ' + (IK.rol || '') : mail;
