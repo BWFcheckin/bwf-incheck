@@ -537,6 +537,17 @@ window.BWF = window.BWF || {};
     <div class="veld"><span>Al betaald</span><input id="v_betaald" type="number" step="0.01" min="0"></div>
     <div class="veld breed"><span>Toegewezen aan</span><input id="v_toegewezen" type="text"></div>
     <div class="veld breed"><span>Opmerkingen</span><textarea id="v_opmerkingen"></textarea></div>
+    <div class="veld breed" id="planyoVelden">
+      <span>Planyo-accommodatie</span>
+      <select id="v_planyo_resource"><option value="">Accommodaties laden…</option></select>
+      <label style="display:flex;gap:9px;align-items:center;margin-top:10px;font-weight:600">
+        <input id="v_planyo" type="checkbox" checked style="width:auto"> Ook als echte reservering in Planyo aanmaken
+      </label>
+      <label style="display:flex;gap:9px;align-items:center;margin-top:8px;font-weight:400">
+        <input id="v_planyo_mail" type="checkbox" checked style="width:auto"> Bevestiging vanuit Planyo naar de gast sturen
+      </label>
+      <small class="sub">Bij een nieuwe reservering is Planyo de hoofdopslag; de boeking verschijnt daarna automatisch in deze agenda.</small>
+    </div>
   </div>
   <div class="voet">
     <button class="knop gevaar links" type="button" id="btnVerwijder" hidden>Verwijderen</button>
@@ -748,6 +759,7 @@ window.BWF = window.BWF || {};
   </div>
 </div></dialog>
 
+<script src="bwf-planyo.js?v=3"></script>
 <script>
 /* =========================================================
    INSTELLINGEN
@@ -1803,7 +1815,30 @@ document.getElementById('grBewaar').onclick = async function(){
    ========================================================= */
 var dlg = document.getElementById('resDialog');
 var bewerkId = null;
+var planyoResourcesGeladen = false;
 function zet(id,w){ document.getElementById(id).value = w==null?'':w; }
+async function laadPlanyoResources(naam){
+  var select = document.getElementById('v_planyo_resource');
+  if(!window.BWFPlanyo){ select.innerHTML = '<option value="">Planyo-koppeling ontbreekt</option>'; return; }
+  if(!planyoResourcesGeladen){
+    select.innerHTML = '<option value="">Accommodaties laden…</option>';
+    try{
+      var data = await BWFPlanyo.resources();
+      var lijst = (data.resources || []).filter(function(r){ return r && r.id && r.name; });
+      select.innerHTML = '<option value="">Kies een accommodatie</option>' + lijst.map(function(r){
+        return '<option value="'+String(r.id).replace(/"/g,'&quot;')+'">'+esc(String(r.name))+'</option>';
+      }).join('');
+      planyoResourcesGeladen = true;
+    }catch(e){ select.innerHTML = '<option value="">Laden mislukt</option>'; meld(e.message); return; }
+  }
+  if(naam){
+    var zoek = naam.toLowerCase();
+    Array.prototype.some.call(select.options, function(o){
+      if(o.text.toLowerCase() === zoek || o.text.toLowerCase().indexOf(zoek) >= 0){ select.value=o.value; return true; }
+      return false;
+    });
+  }
+}
 function openDialoog(r){
   bewerkId = (r && r.bewerkbaar) ? r.id : null;
   document.getElementById('dlgTitel').textContent = bewerkId ? 'Reservering bewerken' : 'Reservering toevoegen';
@@ -1815,6 +1850,9 @@ function openDialoog(r){
   zet('v_telefoon', r&&r.telefoon); zet('v_email', r&&r.email);
   zet('v_totaal', r&&r.totaal); zet('v_betaald', r&&r.betaald);
   zet('v_toegewezen', r&&r.toegewezen); zet('v_opmerkingen', r&&r.omschrijving);
+  document.getElementById('planyoVelden').hidden = !!bewerkId;
+  document.getElementById('v_planyo').checked = !bewerkId;
+  if(!bewerkId) laadPlanyoResources(r&&r.locatie);
   dlg.showModal();
 }
 document.getElementById('btnNieuw').onclick = function(){ openDialoog(null); };
@@ -1826,6 +1864,9 @@ document.getElementById('btnBewaar').onclick = async function(){
   if(!w('v_voornaam')) ontbreekt.push('Voornaam');
   if(!w('v_checkindatum')) ontbreekt.push('Aankomst');
   if(!w('v_checkuitdatum')) ontbreekt.push('Vertrek');
+  var naarPlanyo = !bewerkId && document.getElementById('v_planyo').checked;
+  if(naarPlanyo && !w('v_planyo_resource')) ontbreekt.push('Planyo-accommodatie');
+  if(naarPlanyo && !w('v_email')) ontbreekt.push('E-mail');
   if(ontbreekt.length){ alert('Vul nog in:\n— '+ontbreekt.join('\n— ')); return; }
   if(w('v_checkuitdatum') < w('v_checkindatum')){ alert('De vertrekdatum ligt vóór de aankomstdatum.'); return; }
   var obj = {
@@ -1839,9 +1880,22 @@ document.getElementById('btnBewaar').onclick = async function(){
   };
   var knop = this; knop.disabled = true; knop.textContent = 'Bezig…';
   try{
-    if(bewerkId) await sb('reservations?id=eq.'+encodeURIComponent(bewerkId), { method:'PATCH', body:JSON.stringify(obj) });
-    else { obj.id = 'r'+Date.now(); await sb('reservations', { method:'POST', body:JSON.stringify(obj) }); }
-    dlg.close(); await laden();
+    if(naarPlanyo){
+      var resultaat = await BWFPlanyo.createReservation({
+        resource_id:w('v_planyo_resource'),
+        start_time:w('v_checkindatum')+(w('v_checkintijd')?' '+w('v_checkintijd'):''),
+        end_time:w('v_checkuitdatum')+(w('v_checkuittijd')?' '+w('v_checkuittijd'):''),
+        quantity:1, email:obj.email, first_name:obj.voornaam, last_name:obj.achternaam,
+        phone:obj.telefoon, notes:[obj.arrangement,obj.opmerkingen].filter(Boolean).join(' · '),
+        custom_price:obj.totaal, send_notifications:document.getElementById('v_planyo_mail').checked
+      });
+      dlg.close(); await laden();
+      meld('Reservering '+(resultaat.reservation_id ? '#'+resultaat.reservation_id+' ' : '')+'is aangemaakt in Planyo.', true);
+    }else{
+      if(bewerkId) await sb('reservations?id=eq.'+encodeURIComponent(bewerkId), { method:'PATCH', body:JSON.stringify(obj) });
+      else { obj.id = 'r'+Date.now(); await sb('reservations', { method:'POST', body:JSON.stringify(obj) }); }
+      dlg.close(); await laden();
+    }
   }catch(e){ meld('Opslaan lukte niet: '+e.message); }
   knop.disabled = false; knop.textContent = 'Opslaan';
 };
