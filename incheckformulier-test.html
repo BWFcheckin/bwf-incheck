@@ -414,6 +414,13 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
         </select>
       </div>
     </div>
+    <div class="order-add" style="margin-top:10px">
+      <div class="qty" style="max-width:150px"><label for="c_checkoutVrij">Eigen bedrag (&euro;)</label>
+        <input type="number" id="c_checkoutVrij" step="0.01" min="0" placeholder="afwijkend bedrag"
+               oninput="updateCheckoutPrijs()"></div>
+      <div style="flex:0"><label>&nbsp;</label>
+        <button type="button" class="btn sm" onclick="voegExtraTijdToe()">+ Toevoegen</button></div>
+    </div>
     <div class="hint" id="checkoutPrijsHint"></div>
   </div>
 
@@ -3159,18 +3166,50 @@ function buildCheckoutDuur(){
 function checkoutPrijs(){
   var type = document.getElementById('c_checkoutType').value;
   if(!type) return 0;
+  var vrij = parseFloat((document.getElementById('c_checkoutVrij') || {}).value || 0) || 0;
+  if(vrij) return vrij;                       /* een eigen bedrag gaat voor het tarief */
   var duur = parseFloat(document.getElementById('c_checkoutDuur').value) || 0;
   if(duur === 0.5) return HALFUUR_TARIEF;
   return Math.min(duur, EXTRA_UUR_MAX) * EXTRA_UUR_TARIEF;
+}
+/* Staat er "Al inbegrepen in totaal", dan is het al betaald in de reservering
+   en mag het niet nog eens bij het te betalen bedrag worden opgeteld. */
+function checkoutTeltMee(){
+  var w = (document.getElementById('c_checkoutBetaalwijze') || {}).value || '';
+  return w !== 'Al inbegrepen in totaal';
+}
+
+/* De extra tijd als losse regel bijboeken, net als eten en drinken. */
+function voegExtraTijdToe(){
+  var type = document.getElementById('c_checkoutType').value;
+  if(!type){
+    var h = document.getElementById('checkoutPrijsHint');
+    if(h) h.textContent = 'Kies eerst of het eerder inchecken of later uitchecken is.';
+    return;
+  }
+  var prijs = checkoutPrijs();
+  var duur = document.getElementById('c_checkoutDuur').value;
+  var vrij = parseFloat((document.getElementById('c_checkoutVrij') || {}).value || 0) || 0;
+  var naam = (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ' \u2014 ' +
+    (vrij ? 'eigen bedrag' : (duur === '0.5' ? 'een half uur' : duur + ' uur'));
+  if(!checkoutTeltMee()){ naam += ' (al inbegrepen)'; prijs = 0; }
+  orderedItems.push({ naam: naam, aantal: 1, prijs: prijs });
+  /* terugzetten, anders zou hetzelfde bedrag er nog een keer bij komen */
+  document.getElementById('c_checkoutType').value = '';
+  if(document.getElementById('c_checkoutVrij')) document.getElementById('c_checkoutVrij').value = '';
+  updateCheckoutPrijs();
+  renderOrderList();
+  herberekenAlles();
 }
 function updateCheckoutPrijs(){
   var type = document.getElementById('c_checkoutType').value;
   var duur = document.getElementById('c_checkoutDuur').value;
   var hint = document.getElementById('checkoutPrijsHint');
-  hint.textContent = type
-    ? (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ': ' +
-      (duur === '0.5' ? 'een half uur' : duur + ' uur') + ' — ' + euro(checkoutPrijs())
-    : '';
+  hint.textContent = !type ? '' :
+    (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ': ' +
+    (duur === '0.5' ? 'een half uur' : duur + ' uur') + ' — ' + euro(checkoutPrijs()) +
+    (checkoutTeltMee() ? ' — komt bij het te betalen bedrag'
+                       : ' — al inbegrepen, telt niet extra mee');
   herberekenAlles();
 }
 
@@ -3218,7 +3257,10 @@ function extrasRegels(){
   if(co){
     var type = document.getElementById('c_checkoutType').value;
     var duur = document.getElementById('c_checkoutDuur').value;
-    regels.push({ naam: (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ' — ' + (duur === '0.5' ? 'half uur' : duur + ' uur'), bedrag: co });
+    var naamCo = (type === 'eerder' ? 'Eerder inchecken' : 'Later uitchecken') + ' — ' +
+      (duur === '0.5' ? 'half uur' : duur + ' uur');
+    if(checkoutTeltMee()) regels.push({ naam: naamCo, bedrag: co });
+    else regels.push({ naam: naamCo + ' (al inbegrepen in de reservering)', bedrag: 0 });
   }
   var extra = parseFloat(document.getElementById('c_extraomzet') ? document.getElementById('c_extraomzet').value : 0) || 0;
   if(extra) regels.push({ naam: 'Overige extra omzet', bedrag: extra });
