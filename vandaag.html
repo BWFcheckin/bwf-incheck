@@ -196,7 +196,6 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
   <div class="detail-body" id="d_body"></div>
 </aside>
 
-<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* ==========================================================================
    Vandaag — Bed & Wellness Flevoland
@@ -213,7 +212,12 @@ const CFG = {
   ls  : 'bwf_vandaag_sessie'
 };
 
-/* Boekingskanalen lopen via de beveiligde Supabase agenda-bridge. */
+/* De boekingen van Booking.com, Origineel Overnachten en Privésauna komen niet
+   uit Supabase maar live uit de agenda, via dezelfde proxy als het VR-dashboard. */
+const AGENDA = {
+  proxy: 'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
+  key  : 'bwf7k2mxq9tvr20264nphs8wjc3'
+};
 
 const LOCATIES = {
   angie   : { naam:'Suite Angie',      plaats:'Almere',   groep:'almere'   },
@@ -263,16 +267,82 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
 function locId(v){
   const t = String(v || '').toLowerCase();
   if(!t) return '';
+  /* De agenda gebruikt korte codes: PSA, PSM en PSMD. Let op de volgorde,
+     psmd moet vóór psm worden herkend. */
+  if(/\bpsmd\b|\bpsd\b/.test(t)) return 'deluxe';
+  if(/\bpsm\b/.test(t))            return 'jacuzzi';
+  if(/\bpsa\b/.test(t))            return 'angie';
   if(t.includes('angie') || t.includes('almere') || t.includes('specerij')) return 'angie';
   if(t.includes('zwembad') || t.includes('deluxe') || t.includes('pool'))   return 'deluxe';
   if(t.includes('jacuzzi') || t.includes('malina'))                          return 'jacuzzi';
   if(LOCATIES[t]) return t;
   return '';
 }
+
+/* Uit een agendatitel de gastnaam vissen. De titels bevatten van alles:
+   pakketnamen, bedragen, telefoonnummers. Woorden met een hoofdletter die
+   geen bekend sleutelwoord zijn, vormen samen meestal de naam. */
+const NAAM_RUIS = new RegExp('^(booking|bookingcom|com|relax|stay|all|inclusive|incl|late|check|checkin|' +
+  'checkout|overnachting|overnachten|origineel|orgineel|middag|deals|deal|geniet|uur|van|exclusieve|' +
+  'wellness|suite|jacuzzi|zwembad|luxe|deluxe|malina|angie|prive|priv\u00e9|sauna|whatsapp|wa|boeking|' +
+  'inclusief|exclusief|bad|bedlinnen|minibar|early|middagdeal|deel|voucher|omboeking|extra|' +
+  'reservering|telefonisch|planyo|secret|rooms|arrangement|romantisch|verjaardag|ontbijt|diner|honeymoon|' +
+  'bruidsnacht|niet|beschikbaar|bezet|agenda|dicht|schoonmaken|prachtige|deze|met|een|heerlijk|chips|' +
+  'snackpakket|handdoeken|badjassen|slippers|frisdranken|inbegrepen|pakket|drankjes|betaald|betalen|' +
+  'totaal|nog|contant|volledig|personen|pers|volwassenen|kind|kinderen|nachten|nacht|tot|in|out|' +
+  'aanmaken|genieten)$', 'i');
+
+/* Geen naam te vinden? Dan een leesbaar begin van de titel, zodat de
+   locatiemanager toch ziet om welke boeking het gaat. */
+function kortTitel(t){
+  var s = String(t || '').replace(/\s+/g, ' ').trim();
+  return s.length > 44 ? s.slice(0, 44) + '\u2026' : s;
+}
+
+function naamUit(titel){
+  var ruw = String(titel || '');
+  var s = ruw.replace(/\S+@\S+/g, ' ')
+             .replace(/\u20ac\s*[\d.,]+/g, ' ')
+             .replace(/[+\d][\d\s.\/-]{5,}/g, ' | ')
+             .replace(/[#!,;:()]/g, ' ');
+  var beste = [], rij = [];
+  s.split('|')[0].split(/\s+/).filter(Boolean).forEach(function(w){
+    var schoon = w.replace(/[^A-Za-z\u00C0-\u017F'-]/g, '');
+    var tussen = /^(van|de|der|den|te|ter|el|al|bin)$/i.test(schoon);
+    var hoofd = /^[A-Z\u00C0-\u017F]/.test(schoon) && schoon.length > 1 &&
+                !schoon.split('-').some(function(x){ return NAAM_RUIS.test(x); });
+    var na = rij.length && /^(van|de|der|den|te|ter)$/i.test(rij[rij.length - 1]) && schoon.length > 1;
+    if(hoofd || (tussen && rij.length) || na) rij.push(schoon);
+    else { if(rij.length > beste.length) beste = rij; rij = []; }
+  });
+  if(rij.length > beste.length) beste = rij;
+  return beste.length ? beste.slice(0, 3).join(' ') : '';
+}
 function locNaam(id){ return LOCATIES[id] ? LOCATIES[id].naam : (id || 'Onbekende locatie'); }
 
 /* ============ sessie ============ */
+/* De sessie van het portaal gebruiken als die er is, zodat je maar één keer
+   hoeft in te loggen. Supabase bewaart hem onder sb-<project>-auth-token. */
+function portaalSessie(){
+  try{
+    for(var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > -1){
+        var v = JSON.parse(localStorage.getItem(k));
+        if(v && v.access_token){
+          var deel = JSON.parse(atob(v.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+          if(!deel.exp || deel.exp * 1000 > Date.now()){
+            return { token:v.access_token, refresh:v.refresh_token, verloopt:(deel.exp||0) * 1000 - 60000 };
+          }
+        }
+      }
+    }
+  }catch(e){}
+  return null;
+}
 function laadSessie(){
+  SESSIE = portaalSessie();
+  if(SESSIE) return SESSIE;
   try{ SESSIE = JSON.parse(localStorage.getItem(CFG.ls) || 'null'); }catch(e){ SESSIE = null; }
   return SESSIE;
 }
@@ -281,6 +351,16 @@ function zetSessie(d){
   SESSIE = { token:d.access_token, refresh:d.refresh_token,
              verloopt: Date.now() + ((d.expires_in || 3600) - 60) * 1000 };
   localStorage.setItem(CFG.ls, JSON.stringify(SESSIE));
+  /* ook wegschrijven in het formaat dat de andere pagina's lezen, zodat je
+     na inloggen hier ook in het dashboard en het incheckformulier binnen bent */
+  try{
+    localStorage.setItem('sb-iuyjvtlauktnjprbmbjj-auth-token', JSON.stringify({
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      token_type: 'bearer', expires_in: d.expires_in || 3600,
+      expires_at: Math.floor(Date.now()/1000) + (d.expires_in || 3600),
+      user: d.user || null
+    }));
+  }catch(e){}
   return SESSIE;
 }
 function uid(){
@@ -364,7 +444,9 @@ function agendaSleutel(ev){
 }
 async function haalAgenda(){
   try{
-    const j = await BWFAgenda.events();
+    const r = await fetch(AGENDA.proxy + '?k=' + encodeURIComponent(AGENDA.key));
+    if(!r.ok) throw new Error('agenda antwoordde met ' + r.status);
+    const j = await r.json();
     return (j.events || []).filter(ev => ev.soort === 'reservering' || ev.soort === 'extern');
   }catch(e){
     FOUTEN.push('agenda: ' + e.message + ' — boekingen van Booking.com, Origineel Overnachten en Privésauna ontbreken nu');
@@ -379,12 +461,13 @@ async function laadDag(){
   /* De tabellen zijn klein (tientallen tot honderden rijen), dus we halen ze
      in hun geheel op. Dat is betrouwbaarder dan filteren op datum: een
      koppeling of incheckformulier heeft niet altijd een datum ingevuld. */
-  const [agenda, res, kop, chk, aanm] = await Promise.all([
+  const [agenda, res, kop, chk, aanm, calls] = await Promise.all([
     haalAgenda(),
     haal('reservations?select=*&limit=3000', 'reservations'),
     haal('res_koppeling?select=*&limit=5000', 'res_koppeling'),
     haal('checkins?select=*&order=created_at.desc&limit=2000', 'checkins'),
-    haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500', 'gast_aanmeldingen')
+    haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500', 'gast_aanmeldingen'),
+    haal('wz_welkomstcalls?select=*&order=datum.desc&limit=1500', 'wz_welkomstcalls')
   ]);
 
   const perSleutel = {};
@@ -401,7 +484,8 @@ async function laadDag(){
     zet(agendaSleutel(ev), {
       id      : agendaSleutel(ev),
       resnr   : ev.nummer || ev.referentie || ev.reservering || '',
-      naam    : ev.gast || ev.naam || ev.titel || '',
+      naam    : ev.gast || ev.naam || naamUit(ev.titel) || kortTitel(ev.titel),
+      titelRuw: ev.titel || '',
       locatie : locId(ev.suite || ev.locatie),
       aankomst: van, vertrek: tot,
       tijdIn  : tijd(ev.start), tijdUit: tijd(ev.eind),
@@ -504,7 +588,30 @@ async function laadDag(){
     });
   });
 
-  ITEMS = Object.values(perSleutel);
+  /* 6. de welkomstcall erbij zoeken: op referentie, anders op naam en datum */
+  const telSchoon = t => String(t || '').replace(/\D/g, '').slice(-9);
+  Object.values(perSleutel).forEach(x => {
+    const nx = String(x.naam || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    x.call = calls.find(c => {
+      if(c.referentie && x.resnr && String(c.referentie) === String(x.resnr)) return true;
+      if(c.telefoon && x.telefoon && telSchoon(c.telefoon) && telSchoon(c.telefoon) === telSchoon(x.telefoon)) return true;
+      const nc = String(c.naam || ((c.voornaam || '') + ' ' + (c.achternaam || ''))).toLowerCase().trim();
+      if(!nc || nc.length < 4 || !nx) return false;
+      const zelfdeDag = !c.datum || !x.aankomst || String(c.datum).slice(0,10) === x.aankomst;
+      return zelfdeDag && (nc === nx || nx.indexOf(nc) > -1 || nc.indexOf(nx) > -1);
+    }) || null;
+  });
+
+  /* Dezelfde boeking kan twee keer voorkomen, bijvoorbeeld met en zonder
+     het voorvoegsel planyo-. Zelfde locatie, datum en naam telt als één. */
+  var gezien = {};
+  ITEMS = Object.values(perSleutel).filter(function(x){
+    var sleutel = [x.locatie, x.aankomst, x.vertrek,
+                   String(x.naam || '').toLowerCase().replace(/\s+/g, ' ').trim()].join('|');
+    if(gezien[sleutel]) return false;
+    gezien[sleutel] = true;
+    return true;
+  });
   toonFouten();
 }
 
@@ -530,6 +637,17 @@ function zichtbaar(){
     return true;
   });
 }
+/* De status uit de welkomstcall vertalen naar onze eigen lijst. */
+function callStatus(c){
+  if(!c) return '';
+  const s = String(c.status || c.uitkomst || '').toLowerCase();
+  if(/voltooid|gedaan|afgerond|gebeld|ok/.test(s) && !/geen/.test(s)) return 'gebeld en geregeld';
+  if(/geen gehoor|niet bereikt/.test(s)) return 'geen gehoor';
+  if(/terugbellen|later/.test(s))        return 'terugbellen';
+  if(/nummer|onjuist|klopt niet/.test(s)) return 'nummer klopt niet';
+  return '';
+}
+
 function isOvernachting(x){ return !!(x.vertrek && x.vertrek !== x.aankomst); }
 
 function teken(){
@@ -539,6 +657,7 @@ function teken(){
   const vertrekken = lijst.filter(x => x.vertrek === DATUM && x.aankomst !== DATUM)
     .sort((a,b) => (a.tijdUit || '99:99').localeCompare(b.tijdUit || '99:99'));
 
+  const nogAanmaken = lijst.filter(x => /boeking nog aanmaken|nog aanmaken/i.test(x.titelRuw || x.naam || '')).length;
   const zonderIncheck = aankomsten.filter(x => !x.checkin).length;
   const zonderGast    = aankomsten.filter(x => !x.aanmelding).length;
   const teBetalen     = aankomsten.reduce((s,x) => s + Math.max(0, (x.totaal||0) - (x.betaald||0)), 0);
@@ -546,6 +665,7 @@ function teken(){
   document.getElementById('tellers').innerHTML =
     `<div class="teller"><b>${aankomsten.length}</b><span>aankomsten</span></div>` +
     `<div class="teller"><b>${vertrekken.length}</b><span>vertrekken</span></div>` +
+    (nogAanmaken ? `<div class="teller"><b>${nogAanmaken}</b><span>nog aan te maken</span></div>` : '') +
     `<div class="teller"><b>${zonderIncheck}</b><span>zonder incheckformulier</span></div>` +
     `<div class="teller"><b>${zonderGast}</b><span>gast nog niet ingevuld</span></div>` +
     (teBetalen > 0 ? `<div class="teller"><b>${euro(teBetalen)}</b><span>nog te betalen op locatie</span></div>` : '');
@@ -574,10 +694,20 @@ function rijHtml(x, veld){
   const tags = [];
   tags.push(`<span class="tag">${esc(locNaam(x.locatie))}</span>`);
   tags.push(`<span class="tag">${isOvernachting(x) ? 'overnachting' : 'dagverblijf'}</span>`);
+  /* Boekingen die nog echt aangemaakt moeten worden, springen eruit. */
+  if(/boeking nog aanmaken|nog aanmaken/i.test(x.titelRuw || x.naam || ''))
+    tags.push('<span class="tag let">nog aanmaken</span>');
   tags.push(x.checkin
     ? '<span class="tag ok">incheck klaar</span>'
     : '<span class="tag open">incheck open</span>');
   if(x.aanmelding) tags.push('<span class="tag ok">gast ingevuld</span>');
+  /* de welkomstcall en bijzonderheden meteen zichtbaar in de lijst */
+  const wcs = x.koppeling && x.koppeling.wc_status;
+  if(wcs === 'gebeld en geregeld') tags.push('<span class="tag ok">welkomstcall gedaan</span>');
+  else if(wcs && wcs !== 'nog niet gebeld') tags.push('<span class="tag open">' + esc(wcs) + '</span>');
+  if(x.koppeling && x.koppeling.notitie) tags.push('<span class="tag let">notitie</span>');
+  else if(x.call && (x.call.bijzonderheden || x.call.allergieen))
+    tags.push('<span class="tag let">bijzonderheden</span>');
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   if(open > 0) tags.push(`<span class="tag let">${euro(open)} op locatie</span>`);
 
@@ -602,6 +732,20 @@ function openDetail(sleutel){
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   const g = x.aanmelding;
   const notitie = x.koppeling ? (x.koppeling.notitie || '') : '';
+  /* Is er nog niets ingevuld, dan nemen we over wat er in de welkomstcall staat. */
+  const uitCall = callStatus(x.call);
+  const wc = {
+    status : (x.koppeling && x.koppeling.wc_status) || uitCall || 'nog niet gebeld',
+    bedrag : (x.koppeling && x.koppeling.wc_extra_bedrag) || (x.call && x.call.tijd_bedrag) || '',
+    betaald: (x.koppeling && x.koppeling.wc_betaalwijze) || (x.call && x.call.betaalwijze) || 'nog niet betaald'
+  };
+  const callNotitie = x.call
+    ? [x.call.bijzonderheden, x.call.allergieen ? 'Allergie: ' + x.call.allergieen : '',
+       x.call.notitie, x.call.arrangementen ? 'Arrangementen: ' + x.call.arrangementen : '',
+       x.call.gelegenheid ? 'Gelegenheid: ' + x.call.gelegenheid : '']
+        .filter(Boolean).join('\n')
+    : '';
+  const notitieTonen = notitie || callNotitie;
 
   document.getElementById('d_body').innerHTML = `
     <div class="blok">
@@ -651,12 +795,40 @@ function openDetail(sleutel){
       </div>
     </div>
     <div class="blok">
-      <h3>Notitie voor het team</h3>
-      <textarea id="d_notitie" placeholder="Bijvoorbeeld: late aankomst afgesproken, taart om 20:00.">${esc(notitie)}</textarea>
-      <div class="knoprij"><button class="btn sm" id="d_bewaar">Notitie bewaren</button></div>
+      <h3>Snel naar</h3>
+      <div class="knoprij">
+        <a class="btn sec sm" href="${boekingLink(x)}" target="_blank" rel="noopener">Boeking aanmaken</a>
+        <a class="btn sec sm" href="${klantLink(x)}" target="_blank" rel="noopener">Klantgegevens</a>
+        <a class="btn sec sm" href="${gastLink(x)}" target="_blank" rel="noopener">Gastenformulier invullen</a>
+      </div>
+    </div>
+    <div class="blok">
+      <h3>Welkomstcall en bijzonderheden</h3>
+      <dl class="paar">
+        <dt>Status</dt><dd>
+          <select id="d_wcstatus" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px">
+            ${['nog niet gebeld','gebeld en geregeld','geen gehoor','terugbellen','nummer klopt niet',
+               'wil niet gebeld worden'].map(function(s){
+                 return '<option' + (wc.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('')}
+          </select></dd>
+        <dt>Bijgeboekt</dt><dd>
+          <input type="number" id="d_wcbedrag" step="0.01" min="0" value="${wc.bedrag || ''}"
+                 placeholder="bedrag extra's" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px"></dd>
+        <dt>Hoe betaald</dt><dd>
+          <select id="d_wcbetaald" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px">
+            ${['nog niet betaald','vooraf via betaallink','op locatie pin','op locatie contant',
+               'bij de reservering inbegrepen'].map(function(s){
+                 return '<option' + (wc.betaald === s ? ' selected' : '') + '>' + s + '</option>'; }).join('')}
+          </select></dd>
+      </dl>
+      <textarea id="d_notitie" style="margin-top:8px"
+        placeholder="Bijzonderheden voor de locatiemanager: late aankomst, allergie, taart om 20:00, welke extra's zijn bijgeboekt.">${esc(notitieTonen)}</textarea>
+      ${x.call ? '<p class="sub" style="font-size:12px;color:var(--muted);margin:6px 0 0">Overgenomen uit de welkomstcall van ' +
+        esc(String(x.call.gebeld_op || x.call.datum || '').slice(0,10)) + '. Pas aan en bewaar om het vast te leggen.</p>' : ''}
+      <div class="knoprij"><button class="btn sm" id="d_bewaar">Bewaren</button></div>
       <div class="melding" id="d_melding"></div>
     </div>
-    ${x.opmerkingen ? `<div class="blok"><h3>Uit de boeking</h3><p style="font-size:14px;margin:0">${esc(x.opmerkingen)}</p></div>` : ''}
+    ${(x.opmerkingen || x.titelRuw) ? `<div class="blok"><h3>Uit de boeking</h3><p style="font-size:14px;margin:0">${esc(x.opmerkingen || x.titelRuw)}</p></div>` : ''}
   `;
 
   const link = gastLink(x);
@@ -704,6 +876,27 @@ function incheckLink(x){
   if(x.opmerkingen) p.set('opmerking', x.opmerkingen);
   return 'incheckformulier.html?' + p.toString();
 }
+/* Een boeking aanmaken op de reserveringenpagina, met wat we al weten. */
+function boekingLink(x){
+  const p = new URLSearchParams();
+  p.set('nieuw', '1');
+  if(x.locatie)  p.set('locatie', x.locatie);
+  if(x.aankomst) p.set('datum', x.aankomst);
+  if(x.vertrek && x.vertrek !== x.aankomst) p.set('tot', x.vertrek);
+  if(x.tijdIn)   p.set('tijdin', x.tijdIn);
+  if(x.tijdUit)  p.set('tijduit', x.tijdUit);
+  if(x.naam)     p.set('naam', x.naam);
+  if(x.telefoon) p.set('telefoon', x.telefoon);
+  if(x.email)    p.set('email', x.email);
+  if(x.resnr)    p.set('referentie', x.resnr);
+  return 'reserveringen.html?' + p.toString();
+}
+/* De klantkaart opzoeken in klantbeheer. */
+function klantLink(x){
+  const zoek = x.email || x.telefoon || String(x.naam || '').split(' ').slice(-1)[0] || '';
+  return 'klantbeheer.html' + (zoek ? '?zoek=' + encodeURIComponent(zoek) : '');
+}
+
 function gastLink(x){
   const p = new URLSearchParams();
   if(x.resnr)    p.set('r', x.resnr);
@@ -715,6 +908,9 @@ function gastLink(x){
 
 async function bewaarNotitie(x){
   const tekst = document.getElementById('d_notitie').value;
+  const wcStatus = (document.getElementById('d_wcstatus') || {}).value || null;
+  const wcBedrag = parseFloat((document.getElementById('d_wcbedrag') || {}).value || 0) || null;
+  const wcBetaald = (document.getElementById('d_wcbetaald') || {}).value || null;
   melding('Bezig met bewaren…', '');
   try{
     await api('res_koppeling?on_conflict=res_sleutel', {
@@ -724,12 +920,19 @@ async function bewaarNotitie(x){
         res_sleutel: x.sleutel,
         bron: x.eigen ? 'handmatig' : (x.bron || 'agenda'),
         notitie: tekst,
+        wc_status: wcStatus,
+        wc_extra_bedrag: wcBedrag,
+        wc_betaalwijze: wcBetaald,
         bijgewerkt: new Date().toISOString()
       })
     });
     if(!x.koppeling) x.koppeling = {};
     x.koppeling.notitie = tekst;
-    melding('Notitie bewaard.', 'ok');
+    x.koppeling.wc_status = wcStatus;
+    x.koppeling.wc_extra_bedrag = wcBedrag;
+    x.koppeling.wc_betaalwijze = wcBetaald;
+    melding('Bewaard \u2014 de locatiemanager ziet dit ook.', 'ok');
+    teken();
   }catch(e){
     melding('Bewaren lukte niet: ' + e.message, 'err');
   }
@@ -773,6 +976,22 @@ document.getElementById('datumKies').addEventListener('change', e => zetDatum(e.
 document.getElementById('locFilter').addEventListener('change', teken);
 document.getElementById('d_sluit').addEventListener('click', sluitDetail);
 document.addEventListener('keydown', e => { if(e.key === 'Escape') sluitDetail(); });
+
+/* Wordt deze pagina in een dashboard ingeladen, dan is de eigen kopbalk
+   dubbelop \u2014 die verbergen we dan. */
+if(window.self !== window.top){
+  document.documentElement.style.background = 'transparent';
+  document.body.style.background = 'transparent';
+  var kop = document.querySelector('.topbar');
+  if(kop) kop.style.display = 'none';
+  var w = document.querySelector('.wrap');
+  if(w) w.style.padding = '4px 0 12px';
+  /* de hoogte doorgeven zodat het kader meegroeit */
+  setInterval(function(){
+    try{ parent.postMessage({ bwf:'hoogte', bron:'vandaag',
+      hoogte: document.documentElement.scrollHeight }, '*'); }catch(e){}
+  }, 1200);
+}
 
 if(laadSessie()) start().catch(e => {
   zetSessie(null);
