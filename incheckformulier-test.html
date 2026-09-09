@@ -525,6 +525,11 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <h3>Restant betalen bij uitchecken</h3>
     <p class="desc">Voeg elke betaling apart toe: pin, contant of via een betaallink. Ook een betaling
       achteraf hoort hier, dan blijft de afrekening kloppen.</p>
+    <div class="linkbox" id="betKnoppen" style="margin-bottom:12px">
+      <button class="btn" type="button" data-bet="restant">Restbedrag afrekenen</button>
+      <button class="btn" type="button" data-bet="extras">Extra&#39;s op locatie afrekenen</button>
+      <button class="btn secondary" type="button" data-bet="split">Gesplitst betalen</button>
+    </div>
     <div class="order-add">
       <div class="qty" style="max-width:120px;"><label>Bedrag (&euro;)</label><input type="number" id="betBedrag" step="0.01" min="0"></div>
       <div><label>Betaalwijze</label>
@@ -542,9 +547,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     </div>
     <div class="order-list" id="betList"></div>
 
-    <div class="split-toggle">
+    <div class="split-toggle" style="display:none">
       <input type="checkbox" id="c_splitToggle" onchange="toggleSplitBetaling()">
-      <label for="c_splitToggle" style="margin:0;">Klant betaalt gesplitst (deels contant, deels Flatpay/Mollie)</label>
+      <label for="c_splitToggle" style="margin:0;">Klant betaalt gesplitst</label>
     </div>
 
     <div id="betaalwijzeNormaal">
@@ -2071,6 +2076,71 @@ async function klantUitGastgegevens(){
     st.textContent = '\u2715 Niet gelukt: ' + e.message;
   }
 }
+
+/* ---------------------------------------------------------------
+   Afrekenen met drie knoppen. Elke knop vult het bedrag alvast in,
+   zodat er niets hoeft te worden uitgerekend of overgetypt.
+   --------------------------------------------------------------- */
+function betOpenstaand(){
+  return Math.max(0, actueelTotaal() - (onlineBetaald() + betalingenTotaal()));
+}
+function betKnoppenBijwerken(){
+  var rij = document.getElementById('betKnoppen');
+  if(!rij) return;
+  var open = betOpenstaand(), ex = extrasTotaal();
+  var kR = rij.querySelector('[data-bet="restant"]');
+  var kE = rij.querySelector('[data-bet="extras"]');
+  if(kR){
+    kR.textContent = 'Restbedrag afrekenen \u2014 ' + euro(open);
+    kR.disabled = open <= 0.004;
+  }
+  if(kE){
+    kE.textContent = "Extra's op locatie afrekenen \u2014 " + euro(ex);
+    kE.disabled = ex <= 0.004;
+  }
+  var kS = rij.querySelector('[data-bet="split"]');
+  if(kS) kS.className = document.getElementById('c_splitToggle').checked ? 'btn' : 'btn secondary';
+}
+function betKlaarzetten(soort){
+  var bedrag = document.getElementById('betBedrag');
+  var oms = document.getElementById('betOms');
+  if(soort === 'restant'){
+    bedrag.value = betOpenstaand().toFixed(2);
+    oms.value = 'Restbedrag bij uitchecken';
+  } else if(soort === 'extras'){
+    bedrag.value = extrasTotaal().toFixed(2);
+    oms.value = "Extra's op locatie";
+  }
+  bedrag.focus();
+  var st = document.getElementById('checkinStatus');
+  if(st){
+    st.className = 'status';
+    st.textContent = 'Kies de betaalwijze en druk op Toevoegen om deze betaling vast te leggen.';
+  }
+}
+document.addEventListener('click', function(e){
+  var b = e.target.closest('#betKnoppen [data-bet]');
+  if(!b) return;
+  var soort = b.getAttribute('data-bet');
+  if(soort === 'split'){
+    var vink = document.getElementById('c_splitToggle');
+    vink.checked = !vink.checked;
+    toggleSplitBetaling();
+    if(vink.checked){
+      /* de twee delen alvast vullen met het openstaande bedrag */
+      var open = betOpenstaand();
+      var d1 = document.getElementById('c_split1bedrag');
+      if(d1 && !d1.value) d1.value = (open / 2).toFixed(2);
+      var d2 = document.getElementById('c_split2bedrag');
+      if(d2 && !d2.value) d2.value = (open - (parseFloat(d1.value) || 0)).toFixed(2);
+      document.getElementById('betaalwijzeSplit').scrollIntoView({ behavior:'smooth', block:'center' });
+    }
+    betKnoppenBijwerken();
+    return;
+  }
+  betKlaarzetten(soort);
+});
+setInterval(betKnoppenBijwerken, 1200);
 
 /* ================= RENDER ALL ================= */
 function renderAll(){
