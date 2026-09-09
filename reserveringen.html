@@ -759,7 +759,7 @@ window.BWF = window.BWF || {};
   </div>
 </div></dialog>
 
-<script src="bwf-planyo.js?v=3"></script>
+<script src="bwf-planyo.js?v=10"></script>
 <script>
 /* =========================================================
    INSTELLINGEN
@@ -1384,6 +1384,20 @@ async function bewaarKoppeling(r, wijziging){
   }
   tekenTegels(); teken();
   if(weergave === 'kalender') tekenKalender();
+  if(wijziging && wijziging.klant_id){
+    var reserveringId = String(r.nummer || r.id || sleutel);
+    var bronNaam = String(r.bron || 'dashboard');
+    await sb('wz_reservering_klanten?on_conflict=bron,reservering_id', {
+      method:'POST', prefer:'resolution=merge-duplicates,return=representation',
+      body:JSON.stringify({ bron:bronNaam, reservering_id:reserveringId,
+        klant_id:String(wijziging.klant_id), bijgewerkt:new Date().toISOString() })
+    });
+    if(r.bewerkbaar && r.id){
+      await sb('reservations?id=eq.'+encodeURIComponent(r.id), {
+        method:'PATCH', body:JSON.stringify({ klant_id:String(wijziging.klant_id) })
+      });
+    }
+  }
   return KOPPEL[sleutel];
 }
 
@@ -1855,7 +1869,7 @@ function openDialoog(r){
   if(!bewerkId) laadPlanyoResources(r&&r.locatie);
   dlg.showModal();
 }
-document.getElementById('btnNieuw').onclick = function(){ openDialoog(null); };
+document.getElementById('btnNieuw').onclick = function(){ window.location.href='reservering-aanmaken.html'; };
 document.getElementById('btnAnnuleer').onclick = function(){ dlg.close(); };
 document.getElementById('btnBewaar').onclick = async function(){
   var w = function(id){ return document.getElementById(id).value.trim(); };
