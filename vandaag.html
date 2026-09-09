@@ -201,7 +201,7 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
       <a class="snel" href="reserveringen.html" target="_blank" rel="noopener">
         <b>Volledige agenda</b><span>alle reserveringen, lijst en kalender</span></a>
       <button class="snel" type="button" id="knopDiensten">
-        <b>Mijn diensten</b><span id="dienstSub">wanneer sta jij ingeroosterd</span></button>
+        <b>Diensten</b><span id="dienstSub">wie er wanneer werkt</span></button>
       <a class="snel" href="https://www.smgdashboard.nl" target="_blank" rel="noopener">
         <b>SMG-dashboard</b><span>ter controle openen</span></a>
     </div>
@@ -980,31 +980,50 @@ async function toonDiensten(){
   const vanaf = DATUM;
   const rijen = await haal('planning?select=*&datum=gte.' + vanaf + '&order=datum.asc&limit=200', 'planning');
 
+  /* In de planning staat een korte code als mw-ruth of mw-michel: het
+     voorvoegsel mw- met de voornaam. Daar vergelijken we op, en voor de
+     zekerheid ook op het volledige nummer en de hele naam. */
   const mijnId = IK ? String(IK.id || '').toLowerCase() : '';
   const mijnNaam = IK ? String(IK.naam || '').toLowerCase().trim() : '';
-  const mijn = rijen.filter(function(p){
-    const m = String(p.medewerker_id || '').toLowerCase();
+  const mijnVoornaam = mijnNaam.split(/\s+/)[0] || '';
+  /* Als eigenaar zie je de hele planning, niet alleen je eigen diensten. */
+  const alles = IK && /eigenaar|owner|administratie/i.test(String(IK.rol || ''));
+  const mijn = alles ? rijen : rijen.filter(function(p){
+    const m = String(p.medewerker_id || '').toLowerCase().trim();
+    if(!m) return false;
+    const kaal = m.replace(/^mw[-_]?/, '');
     return (mijnId && m === mijnId) ||
-           (mijnNaam && m === mijnNaam) ||
-           (mijnNaam && String(p.dienst || '').toLowerCase().indexOf(mijnNaam) > -1);
+           (mijnNaam && (m === mijnNaam || kaal === mijnNaam)) ||
+           (mijnVoornaam && kaal === mijnVoornaam) ||
+           (mijnVoornaam && mijnVoornaam.length > 2 && kaal.indexOf(mijnVoornaam) === 0);
   });
 
-  vak.innerHTML = '<div class="dienstlijst"><h3>Mijn diensten' +
-    (IK && IK.naam ? ' \u2014 ' + esc(IK.naam) : '') + '</h3>' +
+  /* mw-ruth wordt Ruth */
+  const wieNaam = function(code){
+    const kaal = String(code || '').replace(/^mw[-_]?/, '').replace(/[-_]/g, ' ').trim();
+    return kaal ? kaal.charAt(0).toUpperCase() + kaal.slice(1) : 'niet toegewezen';
+  };
+
+  vak.innerHTML = '<div class="dienstlijst"><h3>' +
+    (alles ? 'Planning \u2014 alle medewerkers' : 'Mijn diensten' + (IK && IK.naam ? ' \u2014 ' + esc(IK.naam) : '')) +
+    '</h3>' +
     (mijn.length
-      ? mijn.slice(0, 20).map(function(p){
+      ? mijn.slice(0, 40).map(function(p){
           return '<div class="dienstrij"><span class="dag">' +
             esc(nlDatum(String(p.datum).slice(0, 10))) + '</span><span>' +
+            (alles ? '<strong>' + esc(wieNaam(p.medewerker_id)) + '</strong> \u00b7 ' : '') +
             esc(locNaam(locId(p.locatie)) || p.locatie || '') +
             (p.dienst ? ' \u00b7 ' + esc(p.dienst) : '') +
             (p.notitie ? ' \u00b7 ' + esc(p.notitie) : '') + '</span></div>';
         }).join('')
       : '<p style="margin:0;color:var(--muted);font-size:14px">Vanaf ' + esc(nlDatum(vanaf)) +
-        ' staan er geen diensten op jouw naam in de planning.</p>') + '</div>';
+        (alles ? ' staat er niemand ingeroosterd.' : ' staan er geen diensten op jouw naam in de planning.') +
+        '</p>') + '</div>';
 
   const sub = document.getElementById('dienstSub');
   if(sub) sub.textContent = mijn.length
-    ? mijn.length + ' dienst' + (mijn.length === 1 ? '' : 'en') + ' vanaf vandaag'
+    ? mijn.length + ' dienst' + (mijn.length === 1 ? '' : 'en') + ' vanaf vandaag' +
+      (alles ? ' (alle medewerkers)' : '')
     : 'niets ingeroosterd gevonden';
 }
 
