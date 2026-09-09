@@ -1703,7 +1703,13 @@ async function saveCheckin(alsConcept){
     return data;
   }catch(err){
     console.error('Fout bij opslaan incheckformulier:', err);
-    statusEl.textContent = '✕ Opslaan mislukt: ' + err.message + ' (heb je de databasemigratie al gedraaid?)';
+    /* "Failed to fetch" betekent dat het verzoek niet is aangekomen: geen
+       verbinding, een geblokkeerd verzoek, of een sessie die net verliep.
+       Dat is iets anders dan een fout uit de database zelf. */
+    var geenVerbinding = /failed to fetch|networkerror|load failed/i.test(err.message || '');
+    statusEl.textContent = geenVerbinding
+      ? '\u2715 Geen verbinding met de database \u2014 er is niets opgeslagen. Ververs de pagina, log opnieuw in en probeer het nog een keer. Blijft het misgaan, probeer dan een ander browser of zet je adblocker uit.'
+      : '\u2715 Opslaan mislukt: ' + err.message;
     statusEl.className = 'status err';
     throw err;
   }
