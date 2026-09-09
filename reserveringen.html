@@ -199,6 +199,11 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kalitem:hover{filter:brightness(.95)}
 .kalitem .kt{font-family:var(--f-mono);color:var(--muted);margin-right:3px}
+.kalitem.meerdaags{position:relative;z-index:1;border-radius:0;margin-left:-5px;margin-right:-5px;width:calc(100% + 10px)}
+.kalitem.meerdaags.kal-start{margin-left:0;width:calc(100% + 5px);border-radius:4px 0 0 4px}
+.kalitem.meerdaags.kal-eind{margin-right:0;width:calc(100% + 5px);border-left:0;border-radius:0 4px 4px 0}
+.kalitem.meerdaags.kal-start.kal-eind{width:100%;margin-left:0;margin-right:0;border-left:3px solid var(--kleur);border-radius:4px}
+.kalitem.meerdaags:not(.kal-start){border-left:0;padding-left:7px}
 .kalleeg{color:var(--muted);font-size:13.5px;padding:24px;text-align:center}
 @media(max-width:760px){
   .kalcel{min-height:74px;padding:3px}
@@ -1422,12 +1427,21 @@ function tekenKalender(){
       var s = SOORTEN[r.soort] || SOORTEN.handmatig;
       var naam = gastVan(r) || 'Zonder naam';
       var start = (aankomstVan(r) === ds);
-      var tijdje = start && tijdInVan(r) ? '<span class="kt">'+esc(tijdInVan(r))+'</span>' : '';
+      var bezetteDagen = dagenVan(r);
+      var meerdaags = bezetteDagen.length > 1;
+      var weekdag = (new Date(ds+'T12:00:00').getDay()+6)%7;
+      /* Aan het begin/einde van een kalenderweek wordt de balk netjes afgerond
+         en op maandag opnieuw gestart. Zo loopt hij ook over meerdere weken door. */
+      var segmentStart = meerdaags && (ds===bezetteDagen[0] || weekdag===0);
+      var segmentEind = meerdaags && (ds===bezetteDagen[bezetteDagen.length-1] || weekdag===6);
+      var klassen = meerdaags ? ' meerdaags'+(segmentStart?' kal-start':'')+(segmentEind?' kal-eind':'') : '';
+      var toonTekst = !meerdaags || segmentStart;
+      var tijdje = toonTekst && start && tijdInVan(r) ? '<span class="kt">'+esc(tijdInVan(r))+'</span>' : '';
       var titel = naam+' — '+r.locatie+' · '+aankomstVan(r)+
                   (vertrekVan(r)?' t/m '+vertrekVan(r):'')+' · '+s.naam;
-      html += '<button class="kalitem" type="button" data-kal="'+i+'" title="'+esc(titel)+'" '+
+      html += '<button class="kalitem'+klassen+'" type="button" data-kal="'+i+'" title="'+esc(titel)+'" '+
               'style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+
-              tijdje+(r.locatie?esc(r.locatie)+' · ':'')+esc(naam)+'</button>';
+              (toonTekst ? tijdje+(r.locatie?esc(r.locatie)+' · ':'')+esc(naam) : '&nbsp;')+'</button>';
     });
     html += '</div>';
     loop.setDate(loop.getDate()+1);
