@@ -837,8 +837,27 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="B&amp;W Lelystad">
+<style>
+/* menubalk bovenaan, in plaats van de knop rechtsonder */
+.bwf-topmenu{position:sticky;top:0;z-index:8500;background:#483C34;
+  box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
+.bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;
+  align-items:center;padding:8px 16px}
+.bwf-topmenu img{height:26px;width:auto;flex:none;margin-right:4px}
+.bwf-topmenu a{color:rgba(255,255,255,.84);text-decoration:none;font-size:13px;padding:5px 11px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.18);white-space:nowrap;
+  font-family:"Public Sans",Arial,sans-serif}
+.bwf-topmenu a:hover{background:rgba(255,255,255,.14);color:#fff}
+.bwf-topmenu a.hier{background:#fff;color:#483C34;border-color:#fff;font-weight:600}
+.bwf-topmenu .wie{margin-left:auto;color:rgba(255,255,255,.72);font-size:11.5px;
+  font-family:"IBM Plex Mono",monospace}
+#bwfMenuKnop{display:none!important}
+@media(max-width:760px){ .bwf-topmenu .binnen{flex-wrap:nowrap;overflow-x:auto} }
+@media print{ .bwf-topmenu{display:none} }
+</style>
 </head>
 <body>
+<div class="bwf-topmenu" id="bwfTop"></div>
 <script>
 /* ============================================================
    VUL HIER JE SUPABASE-GEGEVENS IN
@@ -1102,6 +1121,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="kaart">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
         <h2 style="font-size:17px">Openstaand</h2>
+        <span id="tkTeller" style="font-size:13px;opacity:.7"></span>
         <select id="tkFilter" style="margin-left:auto"><option value="">Iedereen</option></select>
       </div>
       <div id="tkLijst"></div>
@@ -3897,7 +3917,21 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var a = document.getElementById('tkWie'), b = document.getElementById('tkFilter');
     var ha=a.value, hb=b.value;
     a.innerHTML = '<option value="">Nog niet toegewezen</option>'+opts; a.value=ha;
-    b.innerHTML = '<option value="">Iedereen</option>'+opts; b.value=hb;
+    /* Een locatiemanager ziet alleen zijn eigen taken \u2014 die van collega's
+       gaan hem niet aan. Alleen de eigenaar kan alles zien. */
+    var mij = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
+    var alles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
+    if(alles){
+      b.innerHTML = '<option value="">Iedereen</option>' + opts;
+      if(hb) b.value = hb;
+      else if(mij && namen.indexOf(mij) > -1) b.value = mij;
+    }else{
+      b.innerHTML = mij ? '<option>' + esc(mij) + '</option>'
+                        : '<option value="">Nog niet toegewezen</option>';
+      b.value = mij;
+      b.disabled = true;
+      b.title = 'Je ziet de taken die op jouw naam staan.';
+    }
   }
 
   /* ---------- tegels ---------- */
@@ -5361,10 +5395,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* ---------- taken ---------- */
   function tekenTaken(){
     var wie = document.getElementById('tkFilter').value;
+    /* voor de zekerheid ook hier: geen eigenaar, dan altijd de eigen naam */
+    var magAlles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
+    if(!magAlles) wie = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : wie;
     var open = TAKEN.filter(function(t){ return (t.status||'open')==='open'; })
       .filter(function(t){ return !wie || String(t.toegewezen||'')===wie; });
     var el = document.getElementById('tkLijst');
-    if(!open.length){ el.innerHTML = '<p style="opacity:.55;font-size:14px">Geen openstaande taken.</p>'; return; }
+    var teller = document.getElementById('tkTeller');
+    if(teller){
+      var mij = window.BWF && window.BWF.medewerker ? window.BWF.medewerker : '';
+      var opMijnNaam = TAKEN.filter(function(t){
+        return (t.status||'open')==='open' && String(t.toegewezen||'')===mij; }).length;
+      teller.textContent = wie
+        ? open.length + ' op naam van ' + wie
+        : open.length + ' in totaal' + (mij ? ' \u00b7 ' + opMijnNaam + ' op jouw naam' : '');
+    }
+    if(!open.length){
+      el.innerHTML = '<p style="opacity:.55;font-size:14px">' +
+        (wie ? 'Geen openstaande taken voor ' + esc(wie) + '. Zet het filter op Iedereen om alles te zien.'
+             : 'Geen openstaande taken.') + '</p>';
+      return;
+    }
     el.innerHTML = open.map(function(t){
       return '<div class="taak"><input type="checkbox" data-taak="'+esc(t.id)+'" style="margin-top:4px">'+
         '<div class="op"><b>'+esc(t.titel||'Zonder titel')+'</b>'+
@@ -5677,6 +5728,36 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 })();
 </script>
 <!-- ================= einde Home-knop ================= -->
+<script>
+/* De menubalk bovenaan vullen. De zwevende knop rechtsonder is verborgen. */
+(function(){
+  if(window.self !== window.top){ var t=document.getElementById('bwfTop'); if(t) t.remove(); return; }
+  var PAGINAS = [
+    ['Dagstart','dagstart.html'], ['Vandaag','vandaag.html'],
+    ['Reserveringen','reserveringen.html'], ['Incheck','incheckformulier.html'],
+    ['Klanten','klantbeheer.html'], ['VR','vr2.html'],
+    ['Personeel','dashboard.html'], ['Hulp','controle.html']
+  ];
+  var hier = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  var vak = document.getElementById('bwfTop');
+  if(!vak) return;
+  vak.innerHTML = '<div class="binnen">' +
+    '<img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">' +
+    PAGINAS.map(function(p){
+      return '<a href="' + p[1] + '"' + (p[1].toLowerCase() === hier ? ' class="hier"' : '') +
+        '>' + p[0] + '</a>';
+    }).join('') +
+    '<span class="wie" id="bwfTopWie"></span></div>';
+  function wie(){
+    var el = document.getElementById('bwfTopWie');
+    if(el && window.BWF && (window.BWF.medewerker || window.BWF.email))
+      el.textContent = (window.BWF.medewerker || window.BWF.email) +
+        (window.BWF.rol ? ' \u00b7 ' + window.BWF.rol : '');
+  }
+  window.addEventListener('bwf-ingelogd', wie);
+  setTimeout(wie, 800); setInterval(wie, 4000);
+})();
+</script>
 <script src="bwf-shell.js"></script>
 </body>
 </html>
