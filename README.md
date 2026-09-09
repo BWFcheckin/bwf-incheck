@@ -1,5 +1,9 @@
 # Administratie Michel
 
+## Planyo-agenda
+
+De startpagina bevat een beveiligde Planyo-agenda. De browser vraagt reserveringen op via de Supabase Edge Function `planyo-bridge`; de geheime Planyo API-sleutel staat daardoor nooit in GitHub. Zie `PLANYO-INSTALLATIE.md` voor het eenmalig activeren van de koppeling.
+
 Administratiepagina van Bed & Wellness Flevoland met twee tabbladen:
 
 - **Boekingen BWF 2026** — boekingen per suite (PSA, PSM, PSMD) met omzet, wat er op locatie is afgerekend en de vergoeding voor Michel. Plus facturen en uitbetalingen, een openstaand saldo en per maand een vinkje "maand betaald". Een boeking kun je inlezen door de pdf of tekst van een incheckformulier erin te slepen.

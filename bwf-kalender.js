@@ -11,8 +11,6 @@
 
   var SB_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
   var SB_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
-  var AGENDA_PROXY = "https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec";
-  var AGENDA_KEY = "bwf7k2mxq9tvr20264nphs8wjc3";
 
   var SUITES = ["Malina Jacuzzi", "Malina Zwembad", "Suite Angie Almere"];
   var KLEUR = { "Malina Jacuzzi": "#1C6FD0", "Malina Zwembad": "#D63A2A", "Suite Angie Almere": "#0F7B5A" };
@@ -21,6 +19,7 @@
   var DAGEN = ["ma","di","wo","do","vr","za","zo"];
 
   var RES = [], DIENSTEN = [], TEAM = [], KLEURVAN = {};
+  var BRON = "Planyo", BEZIG = false;
   var weergave = "maand", dag = "", maand = "", zoek = "", suite = "";
 
   /* ---------- hulpjes ---------- */
@@ -88,6 +87,9 @@
     "  padding:9px 11px;font:inherit;font-size:14px;background:var(--k-vlak2);color:inherit;min-height:40px}",
     "#bwfKalender input[type=search]{flex:1;min-width:170px}",
     "#bwfKalender .knu{border:1px solid var(--k-line);background:var(--k-vlak);border-radius:10px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer}",
+    "#bwfKalender .kstatus{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--k-muted);margin-left:auto}",
+    "#bwfKalender .kstatus i{width:8px;height:8px;border-radius:50%;background:var(--ok,#3f7a55)}",
+    "#bwfKalender .kstatus.fout i{background:var(--crit,#a34434)}",
     "#bwfKalender .krooster{border:1px solid var(--k-line);border-radius:16px;overflow:hidden;background:var(--k-vlak)}",
     "#bwfKalender .kkoppen{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--k-vlak2);border-bottom:1px solid var(--k-line)}",
     "#bwfKalender .kkoppen div{padding:9px 6px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--k-muted)}",
@@ -122,6 +124,12 @@
     "#bwfKalender .kleg{display:inline-flex;align-items:center;gap:6px}",
     "#bwfKalender .kdot{width:9px;height:9px;border-radius:50%;display:inline-block}",
     "#bwfKalender .kleeg{padding:26px 14px;text-align:center;color:var(--k-muted);font-size:13.5px}",
+    "#bwfKalender .kdetail{margin-top:12px;border:1px solid var(--k-line);border-radius:16px;background:var(--k-vlak);padding:16px;box-shadow:0 10px 28px -24px rgba(20,32,51,.7)}",
+    "#bwfKalender .kdetailkop{display:flex;gap:12px;align-items:start;margin-bottom:12px}",
+    "#bwfKalender .kdetailkop strong{font-size:16px}#bwfKalender .kdetailkop button{margin-left:auto;border:0;background:none;font-size:20px;color:var(--k-muted);cursor:pointer}",
+    "#bwfKalender .kdetailgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px}",
+    "#bwfKalender .kdetailgrid span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--k-muted)}",
+    "#bwfKalender .kdetailgrid b{display:block;font-size:13.5px;margin-top:2px;overflow-wrap:anywhere}",
     /* tablet */
     "@media(max-width:900px){#bwfKalender .kcel{min-height:104px}#bwfKalender .kjaar{grid-template-columns:repeat(3,minmax(0,1fr))}}",
     /* telefoon: dagen onder elkaar, lege dagen weg */
@@ -135,6 +143,7 @@
     "  #bwfKalender .knr{display:none}",
     "  #bwfKalender .kdagnaam{display:block}",
     "  #bwfKalender .kjaar{grid-template-columns:repeat(2,minmax(0,1fr))}",
+    "  #bwfKalender .kdetailgrid{grid-template-columns:1fr 1fr}",
     "}"
   ].join("\n");
   document.head.appendChild(css);
@@ -157,20 +166,32 @@
         SUITES.map(function (s) { return '<option>' + esc(s) + "</option>"; }).join("") +
       "</select>" +
       '<input type="search" id="kZoek" placeholder="Zoek op naam, nummer of platform">' +
+      '<button class="knu" type="button" data-k="ververs">Verversen</button>' +
     "</div>" +
     '<div class="krooster" id="kRooster"><div class="kleeg">Bezig met laden…</div></div>' +
+    '<div class="kdetail" id="kDetail" hidden></div>' +
     '<div class="kvoet" id="kVoet"></div>';
 
   /* ---------- gegevens ---------- */
+  function datumPlus(dagen) {
+    var d = new Date(); d.setDate(d.getDate() + dagen); return iso(d);
+  }
   function laden() {
+    if (BEZIG) return Promise.resolve();
+    BEZIG = true;
+    var status = document.getElementById("kStatus");
+    if (status) status.innerHTML = '<i></i>Planyo laden…';
     var vd = vandaag();
     var taken = [
-      fetch(AGENDA_PROXY + "?k=" + encodeURIComponent(AGENDA_KEY)).then(function (r) { return r.json(); }).catch(function () { return {}; }),
+      window.BWFPlanyo
+        ? window.BWFPlanyo.reservations(datumPlus(-730), datumPlus(1095))
+        : Promise.reject(new Error("De Planyo-client ontbreekt.")),
       haal("reservations?select=*&order=checkindatum.desc&limit=3000"),
       haal("planning?select=*&order=datum.asc&limit=4000"),
       haal("medewerkers?select=*")
     ];
     return Promise.all(taken).then(function (uit) {
+      BRON = (uit[0] && uit[0].source) || "Planyo";
       RES = [];
       ((uit[0] && uit[0].events) || []).forEach(function (ev) {
         if (ev.soort !== "reservering" && ev.soort !== "extern") return;
@@ -179,7 +200,10 @@
           naam: ev.gast || ev.naam || ev.titel || "",
           start: ev.start, eind: ev.eind,
           ref: ev.nummer || ev.referentie || "",
-          bron: ev.bron || (ev.soort === "extern" ? "extern" : "agenda")
+          bron: ev.bron || "Planyo", status: ev.statusLabel || "",
+          email: ev.email || "", telefoon: ev.telefoon || "",
+          totaal: ev.totaal || 0, betaald: ev.betaald || 0,
+          id: ev.id || ev.nummer || (ev.suite + "-" + ev.start)
         });
       });
       (uit[1] || []).forEach(function (r) {
@@ -189,14 +213,24 @@
           locatie: suiteNaam(r.locatie),
           naam: [r.voornaam, r.achternaam].filter(Boolean).join(" ") || r.naam || "",
           start: r.checkindatum, eind: r.checkuitdatum,
-          ref: r.referentie || "", bron: r.bron || "eigen"
+          ref: r.referentie || "", bron: r.bron || "eigen", status: "Handmatig",
+          email: r.email || "", telefoon: r.telefoon || "", totaal: r.totaal || 0,
+          betaald: r.betaald || 0, id: "eigen-" + r.id
         });
       });
       DIENSTEN = uit[2] || [];
       TEAM = uit[3] || [];
       TEAM.forEach(function (m, i) { KLEURVAN[m.id] = PALET[i % PALET.length]; });
       maand = vd.slice(0, 7); dag = vd;
+      var s = document.getElementById("kStatus");
+      if (s) { s.className = "kstatus"; s.innerHTML = "<i></i>" + esc(BRON) + " bijgewerkt"; }
       teken();
+    }).catch(function (fout) {
+      var s = document.getElementById("kStatus");
+      if (s) { s.className = "kstatus fout"; s.innerHTML = "<i></i>" + esc(fout.message || "Planyo niet bereikbaar"); }
+      document.getElementById("kRooster").innerHTML = '<div class="kleeg"><strong>Agenda nog niet verbonden</strong><br>' + esc(fout.message || "Controleer de Planyo-koppeling.") + "</div>";
+    }).finally(function () {
+      BEZIG = false;
     });
   }
 
@@ -235,10 +269,29 @@
   /* ---------- bouwstenen ---------- */
   function evHtml(r) {
     var t = tijd(r.start);
-    return '<span class="kev" style="background:' + (KLEUR[r.locatie] || "#9A7B4F") + '" title="' +
+    return '<span class="kev" role="button" tabindex="0" data-event="' + esc(r.id) + '" style="background:' + (KLEUR[r.locatie] || "#9A7B4F") + '" title="' +
       esc((r.locatie || "onbekend") + " · " + (r.naam || "gast") + (r.bron ? " · " + r.bron : "")) + '">' +
       esc(kort(r.locatie) || "?") + " " + (t ? '<span class="t">' + esc(t) + "</span>" : "") +
       esc((overnachting(r) ? "Overnachting" : "Dagverblijf") + " · " + (r.naam || "gast")) + "</span>";
+  }
+  function euro(n) { return "€ " + (Number(n || 0)).toFixed(2).replace(".", ","); }
+  function toonDetail(id) {
+    var r = RES.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!r) return;
+    var detail = document.getElementById("kDetail");
+    detail.innerHTML = '<div class="kdetailkop"><div><strong>' + esc(r.naam || "Gast") + '</strong><div>' + esc(r.locatie || "Locatie onbekend") + '</div></div><button type="button" data-detail-sluit aria-label="Sluiten">×</button></div>' +
+      '<div class="kdetailgrid">' +
+      '<div><span>Aankomst</span><b>' + esc(dmy(r.start)) + (tijd(r.start) ? " · " + esc(tijd(r.start)) : "") + '</b></div>' +
+      '<div><span>Vertrek</span><b>' + esc(dmy(r.eind)) + (tijd(r.eind) ? " · " + esc(tijd(r.eind)) : "") + '</b></div>' +
+      '<div><span>Status</span><b>' + esc(r.status || "Onbekend") + '</b></div>' +
+      '<div><span>Reservering</span><b>' + esc(r.ref || "—") + '</b></div>' +
+      '<div><span>Telefoon</span><b>' + esc(r.telefoon || "—") + '</b></div>' +
+      '<div><span>E-mail</span><b>' + esc(r.email || "—") + '</b></div>' +
+      '<div><span>Totaal</span><b>' + euro(r.totaal) + '</b></div>' +
+      '<div><span>Betaald</span><b>' + euro(r.betaald) + '</b></div>' +
+      '<div><span>Bron</span><b>' + esc(r.bron || "Planyo") + '</b></div></div>';
+    detail.hidden = false;
+    detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
   function dienstHtml(p) {
     var afw = p.dienst === "afwezig";
@@ -339,7 +392,8 @@
       SUITES.map(function (s) {
         return '<span class="kleg"><span class="kdot" style="background:' + KLEUR[s] + '"></span>' + esc(s) + "</span>";
       }).join("") +
-      '<span class="kleg">\u263d nacht \u00b7 \u2726 schoonmaak</span>';
+      '<span class="kleg">\u263d nacht \u00b7 \u2726 schoonmaak</span>' +
+      '<span class="kstatus" id="kStatus"><i></i>' + esc(BRON) + '</span>';
   }
 
   /* ---------- bediening ---------- */
@@ -358,10 +412,15 @@
     teken();
   }
   DOEL.addEventListener("click", function (e) {
+    var sluit = e.target.closest("[data-detail-sluit]");
+    if (sluit) { document.getElementById("kDetail").hidden = true; return; }
+    var event = e.target.closest("[data-event]");
+    if (event) { toonDetail(event.getAttribute("data-event")); return; }
     var k = e.target.closest("[data-k]");
     if (k) {
       if (k.getAttribute("data-k") === "vorige") schuif(-1);
       else if (k.getAttribute("data-k") === "volgende") schuif(1);
+      else if (k.getAttribute("data-k") === "ververs") laden();
       else { dag = vandaag(); maand = dag.slice(0, 7); teken(); }
       return;
     }
@@ -397,7 +456,12 @@
   DOEL.addEventListener("input", function (e) {
     if (e.target.id === "kZoek") { zoek = e.target.value.toLowerCase().trim(); teken(); }
   });
+  DOEL.addEventListener("keydown", function (e) {
+    var event = e.target.closest && e.target.closest("[data-event]");
+    if (event && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toonDetail(event.getAttribute("data-event")); }
+  });
 
-  laden();
+  window.addEventListener("bwf:session", function (e) { if (e.detail && e.detail.ingelogd) laden(); });
+  if (window.BWFPlanyo && window.BWFPlanyo.setAccessToken && document.getElementById("portaal") && !document.getElementById("portaal").classList.contains("hidden")) laden();
   setInterval(function () { if (!document.hidden) laden(); }, 300000);
 })();

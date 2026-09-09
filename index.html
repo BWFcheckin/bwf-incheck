@@ -520,6 +520,8 @@ $('#knopUit2').addEventListener('click', uitloggen);
 
 sb.auth.onAuthStateChange((_e, sessie) => {
   if(sessie){
+    if(window.BWFPlanyo) window.BWFPlanyo.setAccessToken(sessie.access_token);
+    window.dispatchEvent(new CustomEvent('bwf:session', { detail:{ ingelogd:true } }));
     $('#login').classList.add('hidden');
     $('#portaal').classList.remove('hidden');
     $('#wieben').textContent = sessie.user.email;
@@ -529,6 +531,8 @@ sb.auth.onAuthStateChange((_e, sessie) => {
     HUIDIGE_ID = sessie.user.id;
     haalRol(sessie.user.id).then(startPortaal);
   }else{
+    if(window.BWFPlanyo) window.BWFPlanyo.setAccessToken('');
+    window.dispatchEvent(new CustomEvent('bwf:session', { detail:{ ingelogd:false } }));
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');
   }
@@ -683,6 +687,7 @@ async function laadCalls(){
       }).join('');
 }
 </script>
+<script src="bwf-planyo.js"></script>
 <script src="bwf-kalender.js"></script>
 <script src="bwf-shell.js"></script>
 </body>
