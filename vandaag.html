@@ -83,17 +83,21 @@ input[type=date],select{background:var(--surface);border:1px solid var(--line);b
 .groepkop{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;
   font-family:var(--f-display);font-size:15px;font-weight:600}
 .groepkop em{font-style:normal;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
-.rij{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);
+.rij{width:100%;max-width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);
   border-left:4px solid var(--brass);border-radius:var(--r-m);padding:11px 14px;margin-bottom:7px;
-  display:grid;grid-template-columns:66px 1fr auto;gap:4px 14px;align-items:center;cursor:pointer}
+  display:grid;grid-template-columns:66px minmax(0,1fr) minmax(0,auto);gap:4px 14px;
+  align-items:start;cursor:pointer;overflow:hidden}
+.rij > *{min-width:0}
 .rij:hover{background:var(--surface-2)}
 .rij[data-actief="1"]{border-color:var(--accent);border-left-color:var(--accent);box-shadow:var(--shadow)}
 .rij .tijd{font-family:var(--f-mono);font-size:17px;font-weight:500}
-.rij .naam{font-weight:600}
-.rij .meta{grid-column:2;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:1px}
+.rij .naam{font-weight:600;overflow-wrap:anywhere;line-height:1.35}
+.rij .meta{grid-column:2;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:1px;
+  overflow-wrap:anywhere}
 .rij .meta .regel2{color:var(--ink-2)}
 .rij .meta .regel3{font-family:var(--f-mono);font-size:11.5px}
-.rij .rechts{grid-row:1 / span 2;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.rij .rechts{grid-row:1 / span 2;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;
+  align-content:flex-start;max-width:280px}
 .tag{font-family:var(--f-mono);font-size:11px;padding:3px 7px;border-radius:999px;
   background:var(--accent-soft);color:var(--ink-2);white-space:nowrap}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
@@ -145,7 +149,8 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
 @media (max-width:640px){
   .wrap{padding:12px}
   .datumbalk h1{font-size:20px}
-  .rij{grid-template-columns:58px 1fr;padding:10px 12px}
+  .rij{grid-template-columns:52px minmax(0,1fr);padding:10px 12px}
+  .rij .rechts{max-width:100%}
   .rij .rechts{grid-row:auto;grid-column:1 / -1;justify-content:flex-start;margin-top:3px}
   .detail{width:100%;border-left:0}
   .paar{grid-template-columns:96px 1fr}
