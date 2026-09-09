@@ -149,6 +149,7 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
   .paar{grid-template-columns:96px 1fr}
 }
 </style>
+<script src="bwf-agenda.js?v=1"></script>
 </head>
 <body>
 
@@ -240,11 +241,9 @@ const CFG = {
 };
 
 /* De boekingen van Booking.com, Origineel Overnachten en Privésauna komen niet
-   uit Supabase maar live uit de agenda, via dezelfde proxy als het VR-dashboard. */
-const AGENDA = {
-  proxy: 'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
-  key  : 'bwf7k2mxq9tvr20264nphs8wjc3'
-};
+   uit Supabase maar uit de gedeelde agenda. Die wordt opgehaald via
+   bwf-agenda.js, dat via een functie op Supabase loopt \u2014 zo staat de
+   Google-sleutel niet in deze pagina. */
 
 const LOCATIES = {
   angie   : { naam:'Suite Angie',      plaats:'Almere',   groep:'almere'   },
@@ -471,12 +470,12 @@ function agendaSleutel(ev){
 }
 async function haalAgenda(){
   try{
-    const r = await fetch(AGENDA.proxy + '?k=' + encodeURIComponent(AGENDA.key));
-    if(!r.ok) throw new Error('agenda antwoordde met ' + r.status);
-    const j = await r.json();
+    if(!window.BWFAgenda) throw new Error('bwf-agenda.js is niet geladen');
+    const j = await window.BWFAgenda.events();
     return (j.events || []).filter(ev => ev.soort === 'reservering' || ev.soort === 'extern');
   }catch(e){
-    FOUTEN.push('agenda: ' + e.message + ' — boekingen van Booking.com, Origineel Overnachten en Privésauna ontbreken nu');
+    FOUTEN.push('agenda: ' + e.message +
+      ' \u2014 boekingen van Booking.com, Origineel Overnachten en Priv\u00e9sauna ontbreken nu');
     return [];
   }
 }
@@ -1042,6 +1041,7 @@ function zetDatum(iso){
   ververs();
 }
 async function start(){
+  if(window.BWFAgenda && SESSIE) window.BWFAgenda.setAccessToken(SESSIE.token);
   document.getElementById('loginScherm').classList.add('verborgen');
   document.getElementById('app').classList.remove('verborgen');
   IK = await wieBenIk();
