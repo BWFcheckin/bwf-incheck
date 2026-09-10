@@ -206,6 +206,47 @@
     return data;
   }
 
+  /*
+   * BWFSync — gedeelde verversing.
+   * Na een opslag roept een pagina BWFSync.melden() aan; alle andere
+   * open pagina's en tabbladen (reserveringen, kalender, dashboard
+   * Lelystad, VR-dashboard) laden dan opnieuw. Werkt via
+   * BroadcastChannel, met localStorage als terugval.
+   */
+  if (!window.BWFSync) {
+    (function () {
+      var KANAAL = "bwf-sync";
+      var luisteraars = [];
+      var kanaal = null;
+      try {
+        kanaal = "BroadcastChannel" in window ? new BroadcastChannel(KANAAL) : null;
+      } catch (e) { kanaal = null; }
+
+      function verspreid(bericht) {
+        luisteraars.forEach(function (cb) {
+          try { cb(bericht); } catch (e) { console.warn("BWFSync-luisteraar faalde", e); }
+        });
+      }
+      if (kanaal) kanaal.onmessage = function (e) { if (e.data && e.data.bwf) verspreid(e.data); };
+      window.addEventListener("storage", function (e) {
+        if (e.key !== KANAAL || !e.newValue) return;
+        try { var b = JSON.parse(e.newValue); if (b && b.bwf) verspreid(b); } catch (err) {}
+      });
+
+      window.BWFSync = {
+        melden: function (soort, extra) {
+          var bericht = Object.assign({ bwf: true, soort: soort || "reservering", tijd: Date.now() }, extra || {});
+          if (kanaal) { try { kanaal.postMessage(bericht); } catch (e) {} }
+          try { localStorage.setItem(KANAAL, JSON.stringify(bericht)); } catch (e) {}
+          window.dispatchEvent(new CustomEvent("bwf:gewijzigd", { detail: bericht }));
+        },
+        bijWijziging: function (cb) {
+          if (typeof cb === "function") luisteraars.push(cb);
+        }
+      };
+    })();
+  }
+
   window.BWFPlanyo = {
     setAccessToken: function (token) {
       accessToken = token || "";
@@ -301,6 +342,31 @@
         "create-reservation",
         gegevens
       );
+    },
+
+    /*
+     * Eén wijziging centraal doorvoeren in Planyo.
+     * Alle agenda's en overzichten lezen daarna
+     * dezelfde actuele gegevens.
+     */
+    updateReservation: function (
+      gegevens
+    ) {
+      return verstuur(
+        "update-reservation",
+        gegevens
+      ).then(function (uit) {
+        if (window.BWFSync) {
+          window.BWFSync.melden(
+            "reservering",
+            {
+              id: gegevens &&
+                gegevens.reservation_id
+            }
+          );
+        }
+        return uit;
+      });
     },
 
     createBlock: function (

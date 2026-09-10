@@ -482,6 +482,7 @@ window.BWF = window.BWF || {};
         <button class="themaknop" id="themaKnop" type="button">Donkere modus</button>
         <button class="knop" type="button" id="btnBlacklist">Zwarte lijst</button>
         <button class="knop" type="button" id="btnReview">Reviewtaken</button>
+        <button class="knop" type="button" id="btnCalls">Welkomstcalls <span class="gekoppeld" id="btnCallsTel" style="background:var(--warn-soft);color:var(--warn)">0</span></button>
         <button class="knop" type="button" id="btnCsv">CSV</button>
         <button class="knop vol" type="button" id="btnNieuw">Reservering toevoegen</button>
       </div>
@@ -674,8 +675,38 @@ window.BWF = window.BWF || {};
     </select></div>
     <div class="veld breed"><span>Extra services</span><input id="wz_extra" type="text" placeholder="Massagetafel, shisha, borrelplank…"></div>
     <div class="veld breed"><span>Notitie</span><textarea id="wz_notitie"></textarea></div>
+    <div class="veld breed" id="wzPlanyoRij" hidden>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="wz_planyo" checked style="width:auto">
+        Ook doorvoeren in Planyo (datum, tijd, personen, telefoon, e-mail en notitie)
+      </label>
+    </div>
   </div>
-  <p class="sub" style="margin-top:14px">De agenda van SMG blijft ongewijzigd. Wat je hier invult wordt hier bewaard en gaat voor op de tekst uit de agenda.</p>
+
+  <h3 style="margin-top:18px;font-size:15px">Welkomstcall</h3>
+  <div class="velden">
+    <div class="veld breed">
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="wc_nodig" style="width:auto"> Welkomstcall nodig
+      </label>
+    </div>
+    <div class="veld"><span>Gepland op</span><input id="wc_gepland" type="datetime-local"></div>
+    <div class="veld"><span>Medewerker</span><select id="wc_medewerker"><option value="">Nog niet toegewezen</option></select></div>
+    <div class="veld"><span>Status</span><select id="wc_status">
+      <option value="te bellen">Nog te bellen</option>
+      <option value="ingepland">Ingepland</option>
+      <option value="afgerond">Afgerond</option>
+      <option value="niet bereikbaar">Niet bereikbaar</option>
+    </select></div>
+    <div class="veld"><span>Terugbelafspraak</span><input id="wc_terugbel" type="datetime-local"></div>
+    <div class="veld breed"><span>Interne notities</span><textarea id="wc_notities" placeholder="Wat is besproken, bijgeboekte extra's, bijzonderheden…"></textarea></div>
+    <div class="veld breed" style="flex-direction:row;gap:8px;flex-wrap:wrap">
+      <a class="knop" id="wcBel" href="#" target="_blank" rel="noopener">Bel gast</a>
+      <button class="knop" type="button" id="wcKlaar">Call afgerond</button>
+      <span class="sub" id="wcInfo" style="margin:auto 0 auto auto"></span>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:14px" id="wzUitleg">Wat je hier opslaat wordt centraal bewaard en is daarna direct zichtbaar in de lijst, de kalender, het dagoverzicht, het dashboard Lelystad en het VR-dashboard.</p>
   <div class="voet">
     <button class="knop links" type="button" id="wzLeeg">Aanpassingen wissen</button>
     <button class="knop" type="button" data-sluit="wijzigDialog">Annuleren</button>
@@ -697,6 +728,22 @@ window.BWF = window.BWF || {};
     <button class="knop" type="button" data-sluit="blDialog">Annuleren</button>
     <button class="knop vol gevaar" type="button" id="blBewaar">Op de lijst zetten</button>
   </div>
+</div></dialog>
+
+<!-- openstaande welkomstcalls -->
+<dialog id="callsDialog"><div class="binnen">
+  <h3>Welkomstcalls</h3>
+  <div class="sub">Alle reserveringen waarvoor nog gebeld moet worden, op volgorde van aankomst. Klik op een regel om de call te openen.</div>
+  <div class="balk" style="margin-bottom:10px">
+    <select id="clFilter">
+      <option value="open">Nog te doen</option>
+      <option value="vandaag">Vandaag bellen</option>
+      <option value="alles">Alles (ook afgerond)</option>
+    </select>
+    <select id="clMedewerker"><option value="">Alle medewerkers</option></select>
+  </div>
+  <div id="callsLijst"></div>
+  <div class="voet"><button class="knop vol" type="button" data-sluit="callsDialog">Sluiten</button></div>
 </div></dialog>
 
 <dialog id="blLijstDialog"><div class="binnen">
@@ -866,7 +913,7 @@ sluitDialogen();
 /* =========================================================
    Gegevens
    ========================================================= */
-var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [];
+var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [], CALLS = [];
 var ONTDUBBELD = 0;
 var INSTELLINGEN = {};
 
@@ -1046,6 +1093,9 @@ async function laden(){
   try{ BLACKLIST = await sb('gast_blacklist?select=*&limit=500') || []; }
   catch(e){ BLACKLIST = []; }
 
+  try{ CALLS = await sb('wz_welkomstcalls?select=*&order=datum.asc&limit=1500') || []; }
+  catch(e){ CALLS = []; }
+
   try{
     INSTELLINGEN = {};
     (await sb('bwf_instellingen?select=*') || []).forEach(function(x){ INSTELLINGEN[x.sleutel] = x.waarde; });
@@ -1061,7 +1111,7 @@ async function laden(){
       (ONTDUBBELD ? ONTDUBBELD+' dubbele reservering'+(ONTDUBBELD===1?'':'en')+' veilig samengevoegd in deze weergave.' : ''),
       !fouten.length);
   }
-  vulKeuzes(); tekenTegels(); teken();
+  vulKeuzes(); tekenTegels(); teken(); telCalls();
   if(weergave === 'kalender') tekenKalender();
 }
 
@@ -1092,6 +1142,10 @@ function vulKeuzes(){
 
   var tk = document.getElementById('tk_wie');
   tk.innerHTML = '<option value="">Niet toegewezen</option>'+
+    namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
+  document.getElementById('wc_medewerker').innerHTML = '<option value="">Nog niet toegewezen</option>'+
+    namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
+  document.getElementById('clMedewerker').innerHTML = '<option value="">Alle medewerkers</option>'+
     namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
 
   document.getElementById('legenda').innerHTML = Object.keys(SOORTEN).map(function(k){
@@ -1361,8 +1415,7 @@ function teken(){
       rr('Bij aankomst', esc(r.bijAankomst));
       rr('Extra services', esc(k.extra));
       rr('Betaalwijze', esc(k.betaalwijze));
-      rr('Welkomstcall', k.welkomstcall_gedaan ? 'afgerond op '+esc(k.welkomstcall_gedaan)
-          : (k.welkomstcall_id ? 'ingepland, nog te doen' : 'nog niet ingepland'));
+      rr('Welkomstcall', esc(callSamenvatting(r)));
       rr('Gastenlink', k.gastlink_verstuurd ? 'verstuurd op '+esc(k.gastlink_verstuurd) : 'nog niet verstuurd');
       rr('Review', k.review_verstuurd ? 'verstuurd op '+esc(k.review_verstuurd)
           : (k.review_taak_id ? 'als taak ingepland' : '—'));
@@ -1935,21 +1988,167 @@ document.getElementById('tkBewaar').onclick = async function(){
 };
 
 /* --- welkomstcall --- */
+/* De welkomstcall hangt aan de reservering (res_sleutel / nummer) en aan de
+   klant. Kolomnamen volgen de tabel wz_welkomstcalls: naam, telefoon, email,
+   locatie, datum, referentie, status, medewerker_id, plus de nieuwe velden
+   gepland_op, terugbel_op, afgerond_op, notities, nodig, klant_id, res_sleutel. */
+function callVan(r){
+  var k = KOPPEL[resSleutel(r)] || {};
+  var sl = resSleutel(r);
+  for(var i=0;i<CALLS.length;i++){
+    var c = CALLS[i];
+    if(k.welkomstcall_id && String(c.id) === String(k.welkomstcall_id)) return c;
+    if(c.res_sleutel && String(c.res_sleutel) === String(sl)) return c;
+    if(r.nummer && c.referentie && String(c.referentie) === String(r.nummer)) return c;
+  }
+  return null;
+}
+function callStatus(r){
+  var k = KOPPEL[resSleutel(r)] || {}, c = callVan(r);
+  if(k.welkomstcall_gedaan) return 'afgerond';
+  if(c && c.status) return String(c.status);
+  if(c) return 'te bellen';
+  return '';
+}
+function callStatusNaam(st){
+  return st === 'afgerond' ? 'Afgerond' : st === 'ingepland' ? 'Ingepland'
+    : st === 'niet bereikbaar' ? 'Niet bereikbaar' : st === 'te bellen' || st === 'open' ? 'Nog te bellen'
+    : st ? st : 'Nog niet aangemaakt';
+}
+function dtKort(v){
+  if(!v) return '';
+  var s = String(v).replace('T',' ').slice(0,16);
+  return dmyStr(s.slice(0,10)) + (s.length > 10 ? ' '+s.slice(11,16) : '');
+}
+function dmyStr(d){ var p = String(d||'').slice(0,10).split('-'); return p.length===3 ? Number(p[2])+'-'+Number(p[1])+'-'+p[0] : String(d||''); }
+function callSamenvatting(r){
+  var c = callVan(r), k = KOPPEL[resSleutel(r)] || {};
+  var st = callStatus(r);
+  if(!c && !k.welkomstcall_id) return 'nog niet aangemaakt';
+  if(c && c.nodig === false) return 'niet nodig';
+  var delen = [callStatusNaam(st)];
+  if(k.welkomstcall_gedaan) delen.push('op '+dmyStr(k.welkomstcall_gedaan));
+  else if(c && c.afgerond_op) delen.push('op '+dtKort(c.afgerond_op));
+  if(c && c.gepland_op && st !== 'afgerond') delen.push('gepland '+dtKort(c.gepland_op));
+  if(c && c.terugbel_op && st !== 'afgerond') delen.push('terugbellen '+dtKort(c.terugbel_op));
+  if(c && c.medewerker_id) delen.push('door '+c.medewerker_id);
+  return delen.join(' · ');
+}
+function callTelefoon(r){
+  var c = callVan(r), k = KOPPEL[resSleutel(r)] || {};
+  var kl = klantVan(r);
+  return (c && c.telefoon) || k.telefoon || r.telefoon || (kl && kl.telefoon) || '';
+}
+function dtLocal(v){
+  if(!v) return '';
+  var d = new Date(v); if(isNaN(d)) return String(v).slice(0,16);
+  return dstr(d)+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+async function bewaarCall(r, velden){
+  var k = KOPPEL[resSleutel(r)] || {}, c = callVan(r);
+  var kl = klantVan(r);
+  var obj = Object.assign({
+    naam: gastVan(r) || (r.voornaam+' '+r.achternaam).trim() || 'Gast',
+    telefoon: callTelefoon(r),
+    email: mailVan(r),
+    locatie: r.locatie,
+    datum: aankomstVan(r) || null,
+    referentie: r.nummer || resSleutel(r),
+    res_sleutel: resSleutel(r),
+    klant_id: k.klant_id ? String(k.klant_id) : (kl && kl.id ? String(kl.id) : null),
+    bron: 'reserveringen',
+    bijgewerkt: new Date().toISOString()
+  }, velden || {});
+  if(!c) obj.aangemaakt = new Date().toISOString();
+  if(!obj.status) obj.status = 'te bellen';
+  var res;
+  if(c && c.id){
+    res = await sb('wz_welkomstcalls?id=eq.'+encodeURIComponent(c.id), { method:'PATCH', body:JSON.stringify(obj) });
+  }else{
+    res = await sb('wz_welkomstcalls?on_conflict=naam,datum', { method:'POST',
+      prefer:'resolution=merge-duplicates,return=representation', body:JSON.stringify(obj) });
+  }
+  var rij = (res && res[0]) ? res[0] : Object.assign({}, c || {}, obj);
+  var gevonden = false;
+  CALLS = CALLS.map(function(x){ if(String(x.id)===String(rij.id)){ gevonden = true; return rij; } return x; });
+  if(!gevonden) CALLS.push(rij);
+  var kop = { welkomstcall_id: String(rij.id || ''), welkomstcall_gedaan: obj.status === 'afgerond' ? dstr(new Date()) : null };
+  if(obj.medewerker_id) kop.medewerker = obj.medewerker_id;
+  await bewaarKoppeling(r, kop);
+  telCalls();
+  if(window.BWFSync) window.BWFSync.melden('welkomstcall', { res: resSleutel(r) });
+  return rij;
+}
 async function maakWelkomstcall(r){
-  var obj = {
-    gast: (r.voornaam+' '+r.achternaam).trim(),
-    telefoon: r.telefoon||'', email: r.email||'',
-    locatie: r.locatie, aankomst: r.aankomst || null,
-    reservering: r.nummer || resSleutel(r),
-    status: 'open'
-  };
   try{
-    var res = await sb('wz_welkomstcalls', { method:'POST', body:JSON.stringify(obj) });
-    var id = (res && res[0] && res[0].id) ? res[0].id : '';
-    await bewaarKoppeling(r, { welkomstcall_id: String(id) });
-    meld('Welkomstcall aangemaakt — af te ronden in het VR Dashboard.', true);
+    await bewaarCall(r, { status:'te bellen', nodig:true });
+    meld('Welkomstcall aangemaakt — af te ronden hier of in het VR Dashboard.', true);
   }catch(e){ meld('Welkomstcall aanmaken lukte niet: '+e.message); }
 }
+
+/* --- overzicht met openstaande calls --- */
+function callsLijst(filter, wie){
+  var vandaag = dstr(new Date());
+  return ALLES.filter(function(r){
+    if(r.soort!=='reservering' && r.soort!=='extern' && r.soort!=='handmatig') return false;
+    var k = KOPPEL[resSleutel(r)] || {};
+    if(k.geannuleerd) return false;
+    var c = callVan(r), st = callStatus(r);
+    if(c && c.nodig === false) return false;
+    if(wie && !(c && String(c.medewerker_id||'') === wie)) return false;
+    if(filter === 'alles') return !!c || !!k.welkomstcall_id;
+    if(st === 'afgerond') return false;
+    if(filter === 'vandaag'){
+      var g = c && (c.terugbel_op || c.gepland_op) ? String(c.terugbel_op || c.gepland_op).slice(0,10) : '';
+      return g === vandaag || (!g && aankomstVan(r) === vandaag);
+    }
+    return aankomstVan(r) >= vandaag;
+  }).sort(function(a,b){
+    var ca = callVan(a), cb = callVan(b);
+    var da = (ca && (ca.terugbel_op || ca.gepland_op)) || aankomstVan(a);
+    var db = (cb && (cb.terugbel_op || cb.gepland_op)) || aankomstVan(b);
+    return String(da).localeCompare(String(db));
+  });
+}
+function telCalls(){
+  var el = document.getElementById('btnCallsTel');
+  if(el) el.textContent = callsLijst('open','').length;
+}
+function tekenCalls(){
+  var filter = document.getElementById('clFilter').value;
+  var wie = document.getElementById('clMedewerker').value;
+  var lijst = callsLijst(filter, wie);
+  if(!lijst.length){ document.getElementById('callsLijst').innerHTML = '<p class="sub">Geen welkomstcalls in deze selectie.</p>'; return; }
+  document.getElementById('callsLijst').innerHTML = '<div class="tabelwrap"><table><thead><tr>'+
+    '<th>Aankomst</th><th>Gast</th><th>Locatie</th><th>Telefoon</th><th>Status</th><th>Gepland / terugbellen</th><th>Wie</th><th></th></tr></thead><tbody>'+
+    lijst.map(function(r){
+      var c = callVan(r) || {}, st = callStatus(r), i = ALLES.indexOf(r), tel = callTelefoon(r);
+      var wanneer = c.terugbel_op ? 'terugbellen '+dtKort(c.terugbel_op) : (c.gepland_op ? dtKort(c.gepland_op) : '—');
+      return '<tr>'+
+        '<td class="nowrap">'+esc(dmyStr(aankomstVan(r)))+(tijdInVan(r)?' '+esc(tijdInVan(r)):'')+'</td>'+
+        '<td>'+esc(gastVan(r))+'</td><td>'+esc(r.locatie)+'</td>'+
+        '<td class="nowrap">'+(tel ? '<a href="tel:'+esc(tel.replace(/\s/g,''))+'">'+esc(tel)+'</a>' : '—')+'</td>'+
+        '<td><span class="gekoppeld" style="'+(st==='afgerond'?'':'background:var(--warn-soft);color:var(--warn)')+'">'+esc(callStatusNaam(st))+'</span></td>'+
+        '<td class="nowrap">'+esc(wanneer)+'</td><td>'+esc(c.medewerker_id||'—')+'</td>'+
+        '<td class="nowrap"><button type="button" class="knop" data-call-open="'+i+'">Openen</button> '+
+        (st==='afgerond' ? '' : '<button type="button" class="knop" data-call-klaar="'+i+'">Afgerond</button>')+'</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table></div>';
+}
+document.getElementById('btnCalls').onclick = function(){ tekenCalls(); document.getElementById('callsDialog').showModal(); };
+document.getElementById('clFilter').onchange = tekenCalls;
+document.getElementById('clMedewerker').onchange = tekenCalls;
+document.getElementById('callsLijst').addEventListener('click', async function(e){
+  var o = e.target.closest('[data-call-open]');
+  if(o){ var r = ALLES[Number(o.getAttribute('data-call-open'))]; document.getElementById('callsDialog').close(); if(r){ actieRes = r; openWijzig(r); } return; }
+  var kl = e.target.closest('[data-call-klaar]');
+  if(kl){
+    var r2 = ALLES[Number(kl.getAttribute('data-call-klaar'))];
+    if(!r2) return;
+    try{ await bewaarCall(r2, { status:'afgerond', afgerond_op:new Date().toISOString() }); tekenCalls(); meld('Welkomstcall afgerond.', true); }
+    catch(err){ meld('Lukte niet: '+err.message); }
+  }
+});
 
 /* --- gastenregister --- */
 function openRegister(r){
@@ -2125,11 +2324,89 @@ function openWijzig(r){
   document.getElementById('wz_verblijf').value = k.verblijf || '';
   document.getElementById('wz_extra').value = k.extra || '';
   document.getElementById('wz_notitie').value = k.notitie || '';
+
+  /* Planyo-reservering? Dan kan de wijziging ook centraal in Planyo. */
+  var isPlanyo = isPlanyoRes(r);
+  document.getElementById('wzPlanyoRij').hidden = !isPlanyo;
+  document.getElementById('wz_planyo').checked = isPlanyo;
+
+  /* welkomstcall */
+  var c = callVan(r) || {};
+  document.getElementById('wc_nodig').checked = c.id ? c.nodig !== false : false;
+  document.getElementById('wc_gepland').value = dtLocal(c.gepland_op);
+  document.getElementById('wc_terugbel').value = dtLocal(c.terugbel_op);
+  document.getElementById('wc_status').value = callStatus(r) === 'open' ? 'te bellen' : (callStatus(r) || 'te bellen');
+  var wm = document.getElementById('wc_medewerker');
+  wm.value = c.medewerker_id || k.medewerker || '';
+  if((c.medewerker_id || k.medewerker) && wm.value === '') wm.insertAdjacentHTML('beforeend','<option selected>'+esc(c.medewerker_id || k.medewerker)+'</option>');
+  document.getElementById('wc_notities').value = c.notities || c.notitie || '';
+  var tel = callTelefoon(r);
+  var bel = document.getElementById('wcBel');
+  bel.href = tel ? 'tel:'+tel.replace(/\s/g,'') : '#';
+  bel.textContent = tel ? 'Bel gast · '+tel : 'Geen telefoonnummer bekend';
+  document.getElementById('wcInfo').textContent = c.id ? callSamenvatting(r) : 'Nog geen welkomstcall aangemaakt';
   document.getElementById('wijzigDialog').showModal();
 }
+function isPlanyoRes(r){
+  return r.bron === 'agenda' && /^\d+$/.test(String(r.nummer||'')) && /planyo/i.test(String(r.kanaal||''));
+}
+function planyoTijd(datum, tijd){
+  if(!datum) return '';
+  var t = String(tijd||'').slice(0,5);
+  return datum+' '+(t || '00:00');
+}
+async function bewaarCallUitFormulier(r, extra){
+  var velden = Object.assign({
+    nodig: document.getElementById('wc_nodig').checked,
+    gepland_op: document.getElementById('wc_gepland').value ? new Date(document.getElementById('wc_gepland').value).toISOString() : null,
+    terugbel_op: document.getElementById('wc_terugbel').value ? new Date(document.getElementById('wc_terugbel').value).toISOString() : null,
+    medewerker_id: document.getElementById('wc_medewerker').value || null,
+    status: document.getElementById('wc_status').value,
+    notities: document.getElementById('wc_notities').value.trim()
+  }, extra || {});
+  if(velden.status === 'afgerond' && !velden.afgerond_op) velden.afgerond_op = new Date().toISOString();
+  if(velden.status !== 'afgerond') velden.afgerond_op = null;
+  return bewaarCall(r, velden);
+}
+document.getElementById('wcKlaar').onclick = async function(){
+  document.getElementById('wc_status').value = 'afgerond';
+  document.getElementById('wc_nodig').checked = true;
+  try{ await bewaarCallUitFormulier(actieRes); document.getElementById('wcInfo').textContent = callSamenvatting(actieRes); meld('Welkomstcall afgerond.', true); }
+  catch(e){ meld('Lukte niet: '+e.message); }
+};
 document.getElementById('wzBewaar').onclick = async function(){
+  var knop = this; knop.disabled = true;
+  var r = actieRes, waarschuwing = '';
   try{
-    await bewaarKoppeling(actieRes, {
+    /* 1. Hoofdbron: Planyo. Datum, tijd, personen en contactgegevens gaan
+          eerst daarheen; alle agenda's lezen daarna dezelfde gegevens. */
+    if(isPlanyoRes(r) && document.getElementById('wz_planyo').checked && window.BWFPlanyo && BWFPlanyo.updateReservation){
+      var nA = document.getElementById('wz_aankomst').value, nV = document.getElementById('wz_vertrek').value;
+      var nTI = document.getElementById('wz_tijdin').value, nTU = document.getElementById('wz_tijduit').value;
+      var oudStart = planyoTijd(r.aankomst, r.tijdIn), oudEind = planyoTijd(r.vertrek || r.aankomst, r.tijdUit);
+      var nieuwStart = planyoTijd(nA || r.aankomst, nTI || r.tijdIn), nieuwEind = planyoTijd(nV || r.vertrek || nA || r.aankomst, nTU || r.tijdUit);
+      var naam = document.getElementById('wz_gast').value.trim().split(' ');
+      var oudNaam = (r.voornaam+' '+r.achternaam).trim();
+      var opdracht = { reservation_id: r.nummer };
+      if(nieuwStart !== oudStart || nieuwEind !== oudEind){ opdracht.start_time = nieuwStart; opdracht.end_time = nieuwEind; }
+      var pers = parseInt(document.getElementById('wz_personen').value, 10);
+      if(pers > 0 && String(pers) !== String(r.personen||'')) opdracht.quantity = pers;
+      var tel = document.getElementById('wz_telefoon').value.trim(), mail = document.getElementById('wz_email').value.trim();
+      if(tel && tel !== (r.telefoon||'')) opdracht.phone = tel;
+      if(mail && mail !== (r.email||'')) opdracht.email = mail;
+      if(naam.join(' ') && naam.join(' ') !== oudNaam){ opdracht.first_name = naam[0]; opdracht.last_name = naam.slice(1).join(' '); }
+      var not = document.getElementById('wz_notitie').value.trim();
+      if(not && not !== (r.omschrijving||'')) opdracht.admin_notes = not;
+      if(Object.keys(opdracht).length > 1){
+        try{
+          var uit = await BWFPlanyo.updateReservation(opdracht);
+          if(uit && uit.warnings && uit.warnings.length) waarschuwing = ' Planyo: '+uit.warnings.join('; ');
+        }catch(pe){ waarschuwing = ' Niet doorgevoerd in Planyo: '+pe.message+' (wel hier bewaard).'; }
+      }
+    }
+
+    /* 2. Aanvullende gegevens centraal in Supabase (res_koppeling). */
+    await bewaarKoppeling(r, {
       gast: document.getElementById('wz_gast').value.trim(),
       aankomst: document.getElementById('wz_aankomst').value || null,
       vertrek: document.getElementById('wz_vertrek').value || null,
@@ -2144,9 +2421,21 @@ document.getElementById('wzBewaar').onclick = async function(){
       extra: document.getElementById('wz_extra').value.trim(),
       notitie: document.getElementById('wz_notitie').value.trim()
     });
+
+    /* 3. Welkomstcall, gekoppeld aan reservering en klant. */
+    var callBestaat = !!callVan(r);
+    if(document.getElementById('wc_nodig').checked || callBestaat){
+      try{ await bewaarCallUitFormulier(r); }
+      catch(ce){ waarschuwing += ' Welkomstcall: '+ce.message; }
+    }
+
+    /* 4. Alle andere open pagina's en tabbladen verversen. */
+    if(window.BWFSync) window.BWFSync.melden('reservering', { res: resSleutel(r) });
     document.getElementById('wijzigDialog').close();
-    meld('Gegevens bijgewerkt.', true);
+    meld('Gegevens bijgewerkt en overal doorgevoerd.'+waarschuwing, !waarschuwing);
+    if(waarschuwing.indexOf('Planyo:') === -1 && isPlanyoRes(r) && document.getElementById('wz_planyo').checked) setTimeout(laden, 1500);
   }catch(e){ meld('Opslaan lukte niet: '+e.message); }
+  finally{ knop.disabled = false; }
 };
 document.getElementById('wzLeeg').onclick = async function(){
   if(!confirm('De aangepaste gegevens wissen? Daarna staat de tekst uit de agenda er weer.')) return;
@@ -2264,9 +2553,11 @@ document.getElementById('btnBlacklist').onclick = function(){
 /* --- welkomstcall afronden --- */
 async function welkomstcallKlaar(r){
   var k = KOPPEL[resSleutel(r)] || {};
+  var weerOpen = !!k.welkomstcall_gedaan;
   try{
-    await bewaarKoppeling(r, { welkomstcall_gedaan: k.welkomstcall_gedaan ? null : dstr(new Date()) });
-    meld(k.welkomstcall_gedaan ? 'Welkomstcall weer op open gezet.' : 'Welkomstcall afgerond.', true);
+    await bewaarCall(r, weerOpen ? { status:'te bellen', afgerond_op:null, nodig:true }
+                                 : { status:'afgerond', afgerond_op:new Date().toISOString(), nodig:true });
+    meld(weerOpen ? 'Welkomstcall weer op open gezet.' : 'Welkomstcall afgerond.', true);
   }catch(e){ meld('Lukte niet: '+e.message); }
 }
 
@@ -2690,6 +2981,16 @@ window.addEventListener('resize', meldHoogte);
   window.addEventListener('bwf-ingelogd', pasRolToe);
   pasRolToe();
   laden();
+
+  /* Wijzigingen uit andere pagina's of tabbladen direct overnemen. */
+  var laadTimer = null;
+  function bijWijziging(){
+    var el = document.activeElement, tag = el ? el.tagName : '';
+    if(document.querySelector('dialog[open]') || tag === 'INPUT' || tag === 'TEXTAREA') return;
+    clearTimeout(laadTimer); laadTimer = setTimeout(laden, 800);
+  }
+  if(window.BWFSync) BWFSync.bijWijziging(bijWijziging);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) bijWijziging(); });
 })();
 </script>
 <script>

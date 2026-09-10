@@ -63,8 +63,13 @@
     for (var i = 0; i < TEAM.length; i++) if (String(TEAM[i].id) === String(id)) return TEAM[i].naam || "";
     return "Onbekend";
   }
+  function sbToken() {
+    var t = "";
+    try { if (window.BWF && typeof window.BWF.token === "function") t = window.BWF.token() || ""; } catch (e) {}
+    return t || SB_KEY;
+  }
   function haal(pad) {
-    return fetch(SB_URL + "/rest/v1/" + pad, { headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY } })
+    return fetch(SB_URL + "/rest/v1/" + pad, { headers: { apikey: SB_KEY, Authorization: "Bearer " + sbToken() } })
       .then(function (r) { return r.ok ? r.json() : []; })
       .catch(function () { return []; });
   }
@@ -191,7 +196,9 @@
         : Promise.resolve({ events:[], fout:"De beveiligde agenda-client ontbreekt." }),
       haal("reservations?select=*&order=checkindatum.desc&limit=3000"),
       haal("planning?select=*&order=datum.asc&limit=4000"),
-      haal("medewerkers?select=*")
+      haal("medewerkers?select=*"),
+      /* centrale aanpassingen uit het reserveringenoverzicht (res_koppeling) */
+      haal("res_koppeling?select=*&limit=5000")
     ];
     return Promise.all(taken).then(function (uit) {
       var planyoAantal = ((uit[0] && uit[0].events) || []).length;
@@ -238,6 +245,26 @@
           email: r.email || "", telefoon: r.telefoon || "", totaal: r.totaal || 0,
           betaald: r.betaald || 0, id: "eigen-" + r.id
         });
+      });
+      /* Aanpassingen die in het reserveringenoverzicht zijn opgeslagen gaan
+         voor op de agenda-tekst, zodat één wijziging overal hetzelfde is. */
+      var KOPPEL = {};
+      (uit[5] || []).forEach(function (k) { if (k && k.res_sleutel) KOPPEL[k.res_sleutel] = k; });
+      RES = RES.filter(function (r) {
+        var k = KOPPEL[r.ref || (r.id.indexOf("eigen-") === 0 ? "hm-" + r.id.slice(6) : "")];
+        if (!k) return true;
+        if (k.geannuleerd) return false;
+        if (k.gast) r.naam = k.gast;
+        if (k.telefoon) r.telefoon = k.telefoon;
+        if (k.email) r.email = k.email;
+        var a = k.aankomst ? String(k.aankomst).slice(0, 10) : String(r.start || "").slice(0, 10);
+        var v = k.vertrek ? String(k.vertrek).slice(0, 10) : String(r.eind || "").slice(0, 10);
+        var ti = k.tijd_in ? String(k.tijd_in).slice(0, 5) : tijd(r.start);
+        var tu = k.tijd_uit ? String(k.tijd_uit).slice(0, 5) : tijd(r.eind);
+        if (k.aankomst || k.tijd_in) r.start = a + (ti ? "T" + ti + ":00" : "");
+        if (k.vertrek || k.tijd_uit) r.eind = (v || a) + (tu ? "T" + tu + ":00" : "");
+        r.aangepast = true;
+        return true;
       });
       DIENSTEN = uit[3] || [];
       TEAM = uit[4] || [];
@@ -489,4 +516,13 @@
   window.addEventListener("bwf:session", function (e) { if (e.detail && e.detail.ingelogd) laden(); });
   if (window.BWFPlanyo && window.BWFPlanyo.setAccessToken && document.getElementById("portaal") && !document.getElementById("portaal").classList.contains("hidden")) laden();
   setInterval(function () { if (!document.hidden) laden(); }, 300000);
+
+  /* Direct verversen zodra een reservering ergens anders is gewijzigd
+     (ander tabblad of andere pagina), zonder te wachten op de timer. */
+  function bijWijziging() { if (!BEZIG) laden(); }
+  if (window.BWFSync) window.BWFSync.bijWijziging(bijWijziging);
+  window.addEventListener("bwf:gewijzigd", bijWijziging);
+  window.addEventListener("storage", function (e) {
+    if (e.key === "bwf-sync" && !window.BWFSync) bijWijziging();
+  });
 })();
