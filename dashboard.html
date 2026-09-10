@@ -850,6 +850,53 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   #panel-overzicht .ov-res-frame{padding:8px 6px 0}
 }
 
+/* ---------- start: alleen de reserveringen van vandaag ---------- */
+#panel-start .ds{max-width:780px;margin:0 auto}
+#panel-start .ds-kop{margin-bottom:24px}
+#panel-start .ds-kop h1{font-family:var(--f-display);font-size:clamp(32px,5vw,46px);font-weight:700;
+  letter-spacing:-.035em;line-height:1.05;color:var(--ink);margin-top:2px}
+#panel-start .ds-kop h1::first-letter{text-transform:uppercase}
+#panel-start .ds-kop p{margin-top:8px;font-size:16px;color:var(--ink-2)}
+#panel-start .ds-groep{margin:0 0 24px}
+#panel-start .ds-groep h2{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--muted);
+  margin:0 0 10px;display:flex;align-items:baseline;gap:8px}
+#panel-start .ds-groep h2 span{font-variant-numeric:tabular-nums}
+#panel-start .ds-kaart{display:grid;grid-template-columns:86px 1fr auto;gap:16px;align-items:center;width:100%;
+  text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--surface);
+  border:1px solid var(--line);border-left:5px solid var(--s,var(--accent));border-radius:16px;
+  padding:14px 18px 14px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+#panel-start .ds-kaart:hover{border-color:var(--accent);border-left-color:var(--s,var(--accent))}
+#panel-start .ds-tijd{display:flex;flex-direction:column;line-height:1.15}
+#panel-start .ds-tijd b{font-family:var(--f-display);font-size:24px;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+#panel-start .ds-tijd small{font-size:12.5px;color:var(--muted);margin-top:3px}
+#panel-start .ds-tijd b.woord{font-size:16px;letter-spacing:0;white-space:nowrap}
+#panel-start .ds-info{min-width:0;display:flex;flex-direction:column;gap:3px}
+#panel-start .ds-info strong{font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#panel-start .ds-regel{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13.5px;color:var(--ink-2)}
+#panel-start .ds-regel .ds-suite{font-weight:600;color:var(--ink)}
+#panel-start .ds-regel.stil{color:var(--muted)}
+#panel-start .ds-status{display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right}
+#panel-start .ds-pil{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap}
+#panel-start .ds-pil.ok{background:var(--ok-soft);color:var(--ok)}
+#panel-start .ds-pil.let{background:var(--warn-soft);color:var(--warn)}
+#panel-start .ds-open{font-size:13px;font-weight:700;color:var(--crit);font-variant-numeric:tabular-nums}
+#panel-start .ds-leeg{background:var(--surface);border:1px dashed var(--line);border-radius:16px;
+  padding:26px 22px;color:var(--ink-2);font-size:15px;margin-bottom:24px}
+#panel-start .ds-leeg strong{display:block;font-size:17px;color:var(--ink);margin-bottom:4px}
+#panel-start .ds-knop{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin-top:6px;
+  text-align:left;font:inherit;cursor:pointer;padding:18px 22px;border-radius:16px;
+  background:var(--accent);color:#fff;border:1px solid var(--accent);box-shadow:0 10px 24px rgba(var(--accent-rgb),.22)}
+#panel-start .ds-knop strong{font-size:17px;font-weight:700}
+#panel-start .ds-knop small{font-size:13.5px;color:rgba(255,255,255,.82)}
+#panel-start .ds-knop:hover{filter:brightness(1.06)}
+@media(max-width:620px){
+  #panel-start .ds-kaart{grid-template-columns:64px 1fr;gap:12px;padding:12px 14px 12px 12px}
+  #panel-start .ds-tijd b{font-size:20px}
+  #panel-start .ds-status{grid-column:2;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap}
+  #panel-start .ds-info strong{white-space:normal}
+}
+
 /* ---------- planning: medewerker kiezen en dagen terugzoeken ---------- */
 .pz-kaart{overflow:visible!important}
 .pz-kaart > .card-head{border-radius:var(--r-l) var(--r-l) 0 0}
@@ -957,6 +1004,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   </header>
 
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
+    <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Start</button>
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
     <button class="tab" role="tab" id="tab-formulieren" data-tab="formulieren" aria-selected="false" aria-controls="panel-formulieren">Reserveringsformulieren</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
@@ -1264,13 +1312,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   <!-- ============ START ============ -->
   <section class="panel" id="panel-start" role="tabpanel" aria-labelledby="tab-start" hidden>
-    <div class="page-head">
-      <span class="eyebrow">Overzicht</span>
-      <h1>Start</h1>
-      <p>Alles wat je dagelijks nodig hebt op &eacute;&eacute;n scherm. Klik een tegel om te openen. Met het potloodje pas je het webadres van een tegel aan.</p>
+    <div class="ds">
+      <div class="ds-kop">
+        <span class="eyebrow">Locatie Lelystad</span>
+        <h1 id="dsDatum">Vandaag</h1>
+        <p id="dsSamenvatting">Reserveringen van vandaag ophalen&hellip;</p>
+      </div>
+
+      <div id="dsLijst" aria-live="polite"></div>
+
+      <button class="ds-knop" type="button" data-naar-tab="overzicht">
+        <strong>Bekijk de volledige agenda</strong>
+        <small>Alle reserveringen van Malina Jacuzzi en Malina Deluxe in de kalender</small>
+      </button>
     </div>
-    <div class="stats mobieltegels" id="mobTegels"></div>
-    <div class="tegels" id="tegels"></div>
   </section>
 
     <!-- ============ KLANTBEHEER ============ -->
@@ -1345,7 +1400,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <form class="grid-form" id="planForm">
           <div class="field"><label for="p-datum">Datum</label><input type="date" id="p-datum" required></div>
           <div class="field"><label for="p-mw">Medewerker</label><select id="p-mw" required></select></div>
-          <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option><option value="Almere">Almere</option></select></div>
+          <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option></select></div>
           <div class="field"><label for="p-dienst">Soort</label><select id="p-dienst"><option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option><option value="schoonmaak">Alleen schoonmaak</option></select></div>
           <div class="field" style="grid-column:span 2"><label for="p-notitie">Notitie</label><input type="text" id="p-notitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
           <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Inplannen</button></div>
@@ -1498,7 +1553,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <div class="grid-form">
             <div class="field"><label for="o-van">Van</label><select id="o-van"></select></div>
             <div class="field"><label for="o-aan">Overdragen aan</label><select id="o-aan"></select></div>
-            <div class="field"><label for="o-loc">Locatie</label><select id="o-loc"><option value="Malina Jacuzzi">Malina Jacuzzi</option><option value="Malina Zwembad">Malina Zwembad</option><option value="Almere">Almere</option></select></div>
+            <div class="field"><label for="o-loc">Locatie</label><select id="o-loc"><option value="Malina Jacuzzi">Malina Jacuzzi</option><option value="Malina Zwembad">Malina Zwembad</option></select></div>
             <div class="field"><label for="o-cat">Soort</label><select id="o-cat"><option value="info">Informatie</option><option value="storing">Storing</option><option value="defect">Defect</option><option value="klacht">Klacht</option></select></div>
             <div class="field"><label for="o-datum">Datum</label><input type="date" id="o-datum"></div>
           </div>
@@ -1514,7 +1569,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     </div>
   </section>
 
-  <datalist id="locaties"><option value="Lelystad Malina"></option><option value="Almere"></option></datalist>
+  <datalist id="locaties"><option value="Lelystad Malina"></option></datalist>
   <datalist id="categorieen"><option value="Linnen"></option><option value="Bar"></option><option value="Schoonmaak"></option><option value="Suite"></option><option value="Keuken"></option></datalist>
   <datalist id="leveranciers"><option value="Sushi Nippon"></option><option value="Sushi Eiland"></option><option value="Buurvrouw (mocktails)"></option></datalist>
 </div>
@@ -1634,6 +1689,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function readOnly(){ setChip("readonly", "Geen verbinding"); }
   function kopie(o){ return JSON.parse(JSON.stringify(o)); }
 
+  /* Dit dashboard is alleen voor locatie Lelystad. Regels die duidelijk bij Almere horen
+     worden niet getoond; ze blijven gewoon bestaan in de database. */
+  function isAlmere(loc){ return /almere|angie|specerij|\bpsa\b/i.test(String(loc || "")); }
+  function isLelystadNaam(loc){ return /lelystad|malina|jacuzzi|zwembad|deluxe|birdie/i.test(String(loc || "")); }
+
   var TABELLEN = {
     medewerkers: ["naam", "rol", "locatie"],
     planning: ["datum", "medewerker_id", "locatie", "dienst", "notitie"],
@@ -1716,10 +1776,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       api("overdracht?select=*&order=ts.desc"),
       api("instellingen?select=*")
     ]).then(function(res){
-      state.medewerkers = res[0].map(function(r){ return vanDb("medewerkers", r); });
-      state.planning = res[1].map(function(r){ return vanDb("planning", r); });
-      state.voorraad = res[2].map(function(r){ return vanDb("voorraad", r); });
-      state.overdracht = res[3].map(function(r){ return vanDb("overdracht", r); });
+      state.planning = res[1].filter(function(r){ return !isAlmere(r.locatie); }).map(function(r){ return vanDb("planning", r); });
+      state.medewerkers = res[0].filter(function(r){
+        if (!isAlmere(r.locatie) || isLelystadNaam(r.locatie)) return true;
+        /* alleen-Almere collega's verbergen, tenzij ze toch in Lelystad staan ingepland */
+        return state.planning.some(function(p){ return p.medewerkerId === r.id; });
+      }).map(function(r){ return vanDb("medewerkers", r); });
+      state.voorraad = res[2].filter(function(r){ return !isAlmere(r.locatie); }).map(function(r){ return vanDb("voorraad", r); });
+      state.overdracht = res[3].filter(function(r){ return !isAlmere(r.locatie); }).map(function(r){ return vanDb("overdracht", r); });
       var inst = {};
       res[4].forEach(function(r){ inst[r.sleutel] = r.waarde; });
       state.incheckUrl = inst.incheck_url || "";
@@ -1882,11 +1946,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function vindIdx(arr, id){ for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return i; return -1; }
 
   /* ---------------- tabs ---------------- */
-  var active = "overzicht";
-  try { var s0 = sessionStorage.getItem("bw-tab"); if (s0 && document.getElementById("tab-" + s0) && document.getElementById("panel-" + s0)) active = s0; } catch (e) {}
+  var active = "start";
+  try {
+    var s0 = sessionStorage.getItem("bw-tab");
+    if (s0 && sessionStorage.getItem("bw-tab-dag") === today() && document.getElementById("tab-" + s0) && document.getElementById("panel-" + s0)) active = s0;
+  } catch (e) {}
   function showTab(name){
     active = name;
-    try { sessionStorage.setItem("bw-tab", name); } catch (e) {}
+    try { sessionStorage.setItem("bw-tab", name); sessionStorage.setItem("bw-tab-dag", today()); } catch (e) {}
     var tabs = document.querySelectorAll(".tab");
     for (var i = 0; i < tabs.length; i++) {
       var on = tabs[i].getAttribute("data-tab") === name;
@@ -3407,7 +3474,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   var ALLES=[], KOPPEL={}, KLANTEN=[], MEDEWERKERS=[], CHECKINS=[], CALLS=[], TAKEN=[];
   var DIENSTEN=[], TEAM=[], DIENSTKLEUR={}, VOORRAAD=[], AANMELDINGEN=[], SCHADE=[], PLANFOUT='';
   /* De kalender zelf staat nu in reserveringen.html; de lijst hieronder toont altijd vandaag. */
-  var kalWeergave='dag', anker=new Date(), geladen=false;
+  var kalWeergave='dag', anker=new Date(), geladen=false, LAADFOUTEN=[];
 
   function uitAgenda(ev){
     return { bron:'agenda', bewerkbaar:false,
@@ -3749,11 +3816,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     try{ SCHADE = await sb('schade?select=*&order=datum.desc&limit=500') || []; }catch(e){ SCHADE=[]; }
 
+    /* alleen Lelystad: wat duidelijk bij Almere hoort, blijft buiten beeld */
+    function almere(x){ var l = veld(x,['locatie','suite'],''); return !!l && hoofdnaam(l) === 'Suite Angie'; }
+    function lelystadOnly(lijst){ return (lijst||[]).filter(function(x){ return !almere(x); }); }
+    CHECKINS = lelystadOnly(CHECKINS); AANMELDINGEN = lelystadOnly(AANMELDINGEN); SCHADE = lelystadOnly(SCHADE);
+    TAKEN = lelystadOnly(TAKEN); CALLS = lelystadOnly(CALLS); VOORRAAD = lelystadOnly(VOORRAAD);
+    DIENSTEN = lelystadOnly(DIENSTEN);
+    TEAM = TEAM.filter(function(m){
+      if(!almere(m) || /lelystad|malina/i.test(String(m.locatie||''))) return true;
+      return DIENSTEN.some(function(p){ return String(p.medewerker_id) === String(m.id); });
+    });
+
     geladen = true;
+    LAADFOUTEN = fouten.slice();
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulMedewerkers(); tekenLM(); tekenVoorraadTegels(); tekenVandaag(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulMedewerkers(); tekenStart(); tekenLM(); tekenVoorraadTegels(); tekenVandaag(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -4349,6 +4428,80 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var d = String(iso||'').split('-');
     return d.length === 3 ? (Number(d[2]) + '-' + Number(d[1]) + '-' + d[0]) : String(iso||'');
   }
+
+  /* ---------- start: alleen de reserveringen van vandaag ---------- */
+  var DS_DAG = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  function isBoeking(r){ return r.soort==='reservering' || r.soort==='extern' || r.soort==='handmatig'; }
+  function dsKaart(r, soort){
+    var b = bedragen(r), ci = checkinVan(r);
+    var tijd, onder;
+    if(soort === 'vertrek'){ tijd = r.tijdUit || '\u2014'; onder = 'vertrek'; }
+    else if(soort === 'verblijf'){ tijd = 'Hele dag'; onder = 'tot ' + dmyKort(r.vertrek); }
+    else { tijd = r.tijdIn || '\u2014'; onder = r.tijdUit ? 'tot ' + r.tijdUit : 'aankomst'; }
+    var regel = [
+      '<span class="ds-suite">' + esc(hoofdnaam(r.locatie)) + '</span>',
+      verblijfType(r) ? '<span>' + esc(verblijfType(r)) + '</span>' : '',
+      r.personen ? '<span>' + esc(r.personen) + ' pers.</span>' : '',
+      (soort !== 'aankomst' && r.aankomst) ? '<span>aangekomen ' + esc(dmyKort(r.aankomst)) + '</span>' : ''
+    ].join('');
+    var status = soort === 'aankomst'
+      ? (ci ? '<span class="ds-pil ok">Incheckformulier ingevuld</span>' : '<span class="ds-pil let">Nog inchecken</span>')
+      : '';
+    return '<button class="ds-kaart" type="button" data-sleutel="' + esc(sleutel(r)) + '" style="--s:' + suiteKleur(r.locatie) + '">' +
+      '<span class="ds-tijd"><b' + (/^\d/.test(tijd) ? '' : ' class="woord"') + '>' + esc(tijd) + '</b><small>' + esc(onder) + '</small></span>' +
+      '<span class="ds-info"><strong>' + esc(gastnaam(r)) + '</strong>' +
+        '<span class="ds-regel">' + regel + '</span>' +
+        (r.arrangement ? '<span class="ds-regel stil">' + esc(r.arrangement) + '</span>' : '') + '</span>' +
+      '<span class="ds-status">' + status +
+        (b.open > 0 ? '<span class="ds-open">' + esc(euro(b.open)) + ' open</span>' : '') + '</span>' +
+    '</button>';
+  }
+  function tekenStart(){
+    var lijstEl = document.getElementById('dsLijst'); if(!lijstEl) return;
+    var nu = new Date(), vandaag = dstr(nu);
+    document.getElementById('dsDatum').textContent = DS_DAG[nu.getDay()] + ' ' + nu.getDate() + ' ' + MAANDEN[nu.getMonth()];
+    var sam = document.getElementById('dsSamenvatting');
+    if(!geladen){ sam.textContent = 'Reserveringen van vandaag ophalen\u2026'; lijstEl.innerHTML = ''; return; }
+
+    var boekingen = ALLES.filter(function(r){ return isBoeking(r) && isLelystad(r.locatie) && r.aankomst; });
+    var opTijd = function(v){ return function(a,b){ return String(a[v]||'99').localeCompare(String(b[v]||'99')); }; };
+    var aankomst = boekingen.filter(function(r){ return r.aankomst === vandaag; }).sort(opTijd('tijdIn'));
+    var vertrek  = boekingen.filter(function(r){ return r.aankomst < vandaag && r.vertrek === vandaag; }).sort(opTijd('tijdUit'));
+    var verblijf = boekingen.filter(function(r){ return r.aankomst < vandaag && r.vertrek > vandaag; });
+    var totaal = aankomst.length + vertrek.length + verblijf.length;
+
+    if(LAADFOUTEN.indexOf('agenda') > -1 && LAADFOUTEN.indexOf('reserveringen') > -1 && !ALLES.length){
+      sam.textContent = 'De reserveringen konden niet worden opgehaald.';
+      lijstEl.innerHTML = '<div class="ds-leeg"><strong>Geen verbinding met de agenda</strong>' +
+        'Log opnieuw in via de startpagina en ververs daarna dit scherm.</div>';
+      return;
+    }
+    var delen = [];
+    if(aankomst.length) delen.push(aankomst.length + (aankomst.length === 1 ? ' aankomst' : ' aankomsten'));
+    if(vertrek.length)  delen.push(vertrek.length + ' vertrek');
+    if(verblijf.length) delen.push(verblijf.length + ' blijft vandaag');
+    sam.textContent = totaal
+      ? totaal + (totaal === 1 ? ' reservering' : ' reserveringen') + ' vandaag: ' +
+        (delen.length > 1 ? delen.slice(0,-1).join(', ') + ' en ' + delen[delen.length-1] : delen[0]) + '.'
+      : 'Vandaag geen reserveringen in Lelystad.';
+
+    function groep(titel, lijst, soort){
+      if(!lijst.length) return '';
+      return '<section class="ds-groep"><h2>' + titel + ' <span>' + lijst.length + '</span></h2>' +
+        lijst.map(function(r){ return dsKaart(r, soort); }).join('') + '</section>';
+    }
+    lijstEl.innerHTML = totaal
+      ? groep('Aankomst', aankomst, 'aankomst') + groep('Vertrek', vertrek, 'vertrek') + groep('Verblijft nog', verblijf, 'verblijf')
+      : '<div class="ds-leeg"><strong>Niemand verwacht vandaag</strong>In de volledige agenda zie je de komende dagen.</div>';
+  }
+  document.getElementById('dsLijst').addEventListener('click', function(e){
+    var k = e.target.closest('.ds-kaart'); if(k) openKaart(k.getAttribute('data-sleutel'));
+  });
+  document.getElementById('panel-start').addEventListener('click', function(e){
+    var k = e.target.closest('[data-naar-tab]'); if(!k) return;
+    var tab = document.getElementById('tab-' + k.getAttribute('data-naar-tab'));
+    if(tab){ tab.click(); window.scrollTo({ top:0, behavior:'smooth' }); }
+  });
 
   function tekenVandaag(){
     tekenMobTegels();
@@ -5279,7 +5432,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   /* ---------- bindingen ---------- */
-  function herteken(){ tekenVandaag(); tekenLM(); }
+  function herteken(){ tekenStart(); tekenVandaag(); tekenLM(); }
 
   document.getElementById('ovVrij').onchange = herteken;
   document.getElementById('ovVernieuw').onclick = function(){
