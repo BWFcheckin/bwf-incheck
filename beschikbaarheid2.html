@@ -75,6 +75,11 @@ a{color:var(--groen-2)}
 .dagje[data-nu="1"] small{color:rgba(255,255,255,.7)}
 .dagje[data-nu="1"] .stip{background:var(--goud)}
 
+.filterrij{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.filt{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
+  padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.filt:hover{border-color:var(--groen-2)}
+.filt.aan{background:var(--groen);border-color:var(--groen);color:#fff}
 .legenda{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);
   border-top:1px solid var(--line-soft);margin-top:12px;padding-top:11px}
 .legenda span{display:flex;align-items:center;gap:7px}
@@ -178,6 +183,11 @@ a{color:var(--groen-2)}
       <button class="nu" id="knopNu">Vandaag</button>
     </div>
     <div class="strook" id="strook"></div>
+    <div class="filterrij">
+      <button type="button" class="filt aan" data-filter="alles">Alles</button>
+      <button type="button" class="filt" data-filter="vrij">Alleen vrij</button>
+      <button type="button" class="filt" data-filter="bezet">Alleen geboekt</button>
+    </div>
     <div class="legenda">
       <span><i style="background:var(--vrij)"></i> Vrij</span>
       <span><i style="background:var(--deels)"></i> Deels bezet</span>
@@ -224,7 +234,7 @@ const VAST = {
           nacht:[['13:00','11:00',749,'Early check-in'],['19:00','11:00',479,'Relax & Stay']] }
 };
 
-let SESSIE=null, DATUM=vandaagISO(), BLOKKEN=null, BEZET=[], FOUT='';
+let SESSIE=null, DATUM=vandaagISO(), BLOKKEN=null, BEZET=[], FOUT='', FILTER='alles';
 
 /* ---------- hulpjes ---------- */
 function vandaagISO(){ const d=new Date();
@@ -398,11 +408,15 @@ async function teken(){
       (B.nacht||[]).map(x=>({van:x[0],tot:x[1],prijs:x[2],naam:x[3]||'Overnachting',soort:'nacht'}))
     ).sort((a,b)=>min(a.van)-min(b.van));
 
-    let vrij=0;
+    let vrij=0, getoond=0;
     const rijen=alle.map(function(b){
       const raak=overlap(sleutel,b.van,b.tot);
       const status = !raak ? 'vrij' : (raak.some(r=>r.volledig) ? 'bezet' : 'deels');
       if(status==='vrij') vrij++;
+      /* alleen tonen wat bij de gekozen weergave past */
+      if(FILTER==='vrij'  && status!=='vrij') return '';
+      if(FILTER==='bezet' && status==='vrij') return '';
+      getoond++;
       const wie = raak ? raak.map(r=>r.wie).filter(Boolean).slice(0,2).join(', ') : '';
       const label = status==='vrij' ? 'Vrij' : status==='deels' ? 'Deels' : 'Bezet';
       return '<button class="blok" data-vrij="'+(status==='vrij'?1:status==='bezet'?0:'deels')+'"'+
@@ -421,7 +435,10 @@ async function teken(){
       '<h3>'+esc(deel[0])+'</h3>'+
       (deel[1] ? '<span class="plaats">'+esc(deel[1])+'</span>' : '')+
       '<em>'+vrij+' van '+alle.length+' vrij</em></div>'+
-      (rijen || '<div class="leeg">Geen tijdsblokken bekend voor deze suite.</div>')+
+      (getoond ? rijen : '<div class="leeg">' +
+        (FILTER==='vrij'  ? 'Alles is geboekt op deze dag.' :
+         FILTER==='bezet' ? 'Nog geen boekingen op deze dag.' :
+         'Geen tijdsblokken bekend voor deze suite.') + '</div>')+
       '</section>';
   }).join('');
 }
@@ -447,6 +464,13 @@ document.addEventListener('click', function(e){
     if(status==='deels' && !confirm('Dit blok overlapt met een bestaande boeking. Toch doorgaan?')) return;
     location.href='reservering-aanmaken.html?'+p.toString();
   }
+});
+document.addEventListener('click', function(e){
+  const f=e.target.closest('[data-filter]');
+  if(!f) return;
+  FILTER=f.getAttribute('data-filter');
+  document.querySelectorAll('.filt').forEach(x=>x.classList.toggle('aan',x===f));
+  teken();
 });
 document.getElementById('terug').onclick   = ()=>{ DATUM=schuif(DATUM,-1); tekenStrook(); teken(); };
 document.getElementById('vooruit').onclick = ()=>{ DATUM=schuif(DATUM, 1); tekenStrook(); teken(); };
