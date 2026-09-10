@@ -408,26 +408,49 @@ async function teken(){
       (B.nacht||[]).map(x=>({van:x[0],tot:x[1],prijs:x[2],naam:x[3]||'Overnachting',soort:'nacht'}))
     ).sort((a,b)=>min(a.van)-min(b.van));
 
-    let vrij=0, getoond=0;
-    const rijen=alle.map(function(b){
-      const raak=overlap(sleutel,b.van,b.tot);
-      const status = !raak ? 'vrij' : (raak.some(r=>r.volledig) ? 'bezet' : 'deels');
-      if(status==='vrij') vrij++;
-      /* alleen tonen wat bij de gekozen weergave past */
-      if(FILTER==='vrij'  && status!=='vrij') return '';
-      if(FILTER==='bezet' && status==='vrij') return '';
-      getoond++;
-      const wie = raak ? raak.map(r=>r.wie).filter(Boolean).slice(0,2).join(', ') : '';
-      const label = status==='vrij' ? 'Vrij' : status==='deels' ? 'Deels' : 'Bezet';
-      return '<button class="blok" data-vrij="'+(status==='vrij'?1:status==='bezet'?0:'deels')+'"'+
-        ' data-suite="'+sleutel+'" data-van="'+b.van+'" data-tot="'+b.tot+'"'+
-        ' data-status="'+status+'" data-wie="'+esc(wie)+'">'+
-        '<span class="tijd"><b>'+b.van+' \u2013 '+b.tot+'</b>'+
-        '<span>'+esc(b.naam)+(b.prijs?' \u00b7 '+eur(b.prijs):'')+
-        (wie ? '<br>'+esc(wie) : '')+'</span></span>'+
-        '<span class="merk2">'+label+'</span>'+
-        '<span class="chev">\u203a</span></button>';
-    }).join('');
+    /* Eén regel per boeking, niet per tijdsblok. Een gast die van 13:00 tot
+       18:00 zit, overlapt met meerdere blokken \u2014 die zou je anders vier
+       keer terugzien. */
+    const boekingen = [];
+    BEZET.forEach(function(x){
+      if(x.suite !== sleutel) return;
+      if(x.datum !== DATUM && x.datum !== schuif(DATUM,-1)) return;
+      const sleutelRij = (x.wie||'') + '|' + x.van + '|' + x.tot + '|' + x.datum;
+      if(boekingen.some(function(b){ return b.sleutelRij === sleutelRij; })) return;
+      boekingen.push({ sleutelRij:sleutelRij, wie:x.wie||'geboekt', van:x.van, tot:x.tot,
+        bron:x.bron, gisteren:x.datum !== DATUM });
+    });
+    boekingen.sort(function(a,b){ return (min(a.van)||0) - (min(b.van)||0); });
+
+    let vrij=0;
+    const vrijeBlokken = alle.filter(function(b){
+      const raak = overlap(sleutel, b.van, b.tot);
+      if(!raak){ vrij++; return true; }
+      return false;
+    });
+
+    let rijen = '';
+    if(FILTER !== 'vrij'){
+      rijen += boekingen.map(function(x){
+        return '<button class="blok" data-vrij="0" data-status="bezet" data-wie="'+esc(x.wie)+'">'+
+          '<span class="tijd"><b>'+esc(x.van)+' \u2013 '+esc(x.tot)+'</b>'+
+          '<span>'+esc(x.wie)+' \u00b7 '+esc(x.bron)+
+          (x.gisteren ? ' \u00b7 loopt door van gisteren' : '')+'</span></span>'+
+          '<span class="merk2">Geboekt</span><span class="chev">\u203a</span></button>';
+      }).join('');
+    }
+    if(FILTER !== 'bezet'){
+      rijen += vrijeBlokken.map(function(b){
+        return '<button class="blok" data-vrij="1" data-status="vrij"'+
+          ' data-suite="'+sleutel+'" data-van="'+b.van+'" data-tot="'+b.tot+'">'+
+          '<span class="tijd"><b>'+b.van+' \u2013 '+b.tot+'</b>'+
+          '<span>'+esc(b.naam)+(b.prijs?' \u00b7 '+eur(b.prijs):'')+'</span></span>'+
+          '<span class="merk2">Vrij</span><span class="chev">\u203a</span></button>';
+      }).join('');
+    }
+    const getoond = (FILTER==='vrij' ? vrijeBlokken.length
+                   : FILTER==='bezet' ? boekingen.length
+                   : boekingen.length + vrijeBlokken.length);
 
     const deel = String(S.naam).split(' \u00b7 ');
     return '<section class="suite"><div class="suitekop">'+
@@ -436,7 +459,7 @@ async function teken(){
       (deel[1] ? '<span class="plaats">'+esc(deel[1])+'</span>' : '')+
       '<em>'+vrij+' van '+alle.length+' vrij</em></div>'+
       (getoond ? rijen : '<div class="leeg">' +
-        (FILTER==='vrij'  ? 'Alles is geboekt op deze dag.' :
+        (FILTER==='vrij'  ? 'Alle tijdsblokken zijn bezet op deze dag.' :
          FILTER==='bezet' ? 'Nog geen boekingen op deze dag.' :
          'Geen tijdsblokken bekend voor deze suite.') + '</div>')+
       '</section>';
