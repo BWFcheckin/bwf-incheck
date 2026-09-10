@@ -7,16 +7,22 @@
 <title>Reserveringen — Bed &amp; Wellness Flevoland</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
-  --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
-  --accent:#483C34; --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2;
-  --warn:#8F6420; --warn-soft:#F6EBD9; --crit:#A34434; --crit-soft:#F7E2DC;
-  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
-  --r-s:6px; --r-m:10px; --r-l:16px;
-  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1;
+  /* de oude namen blijven bestaan, zodat alle scripts gewoon werken */
+  --accent:var(--groen); --accent-soft:var(--groen-zacht); --brass:var(--goud);
+  --ok:#2E7D53; --ok-soft:#E6F2EA;
+  --warn:#B8860B; --warn-soft:#FBF1DA;
+  --crit:#B3453A; --crit-soft:#FBEAE7;
+  --shadow:none;
+  --r-s:8px; --r-m:12px; --r-l:12px;
+  --f-titel:"Cormorant Garamond",Georgia,serif;
+  --f-display:var(--f-titel);
   --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   /* kleuren van SMG */
@@ -29,13 +35,13 @@
   --smg-gesloten:#EF8FBE;    --smg-gesloten-vlak:#FCEAF3;
 }
 :root[data-theme="dark"]{
-  --bg:#1A1613; --surface:#221D19; --surface-2:#2A241F;
-  --line:#3A322B; --line-soft:#312A24;
-  --ink:#F0EAE3; --ink-2:#D5CABF; --muted:#9C8E80;
-  --accent:#7A6248; --brass:#C79A63;
-  --ok:#6FA783; --ok-soft:#25352B; --warn:#C79A63; --warn-soft:#352C1F;
-  --crit:#D98B7D; --crit-soft:#3A2622;
-  --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 24px -14px rgba(0,0,0,.6);
+  --bg:#0F1A16; --surface:#15231D; --surface-2:#1B2B24;
+  --line:#2A3C33; --line-soft:#22322A;
+  --ink:#EDF1EC; --ink-2:#C9D3CC; --muted:#8FA096;
+  --groen:#2F6B55; --groen-2:#3B7D65; --groen-zacht:#1E3A30;
+  --goud:#C9A96E; --goud-zacht:#342C1E;
+  --ok:#6FB38A; --ok-soft:#1F3529; --warn:#D2A54A; --warn-soft:#352C1B;
+  --crit:#DB8A7E; --crit-soft:#3A2522;
   --smg-blok-vlak:#28321F; --smg-vrij-vlak:#2C3A1D; --smg-potentieel-vlak:#372C1D;
   --smg-definitief-vlak:#3A2723; --smg-schoonmaak-vlak:#242A36;
   --smg-bezet-vlak:#33232F; --smg-gesloten-vlak:#36242B;
@@ -205,6 +211,20 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 .kalitem.meerdaags.kal-start.kal-eind{width:100%;margin-left:0;margin-right:0;border-left:3px solid var(--kleur);border-radius:4px}
 .kalitem.meerdaags:not(.kal-start){border-left:0;padding-left:7px}
 .kalleeg{color:var(--muted);font-size:13.5px;padding:24px;text-align:center}
+/* wie werkt er — bovenaan elke dag (alleen met ?planning=1) */
+.kaldagrij{display:flex;align-items:center;gap:5px;min-width:0;height:18px}
+.kaldagrij .dagnr{flex:none}
+.kalwerk{display:flex;gap:3px;min-width:0;overflow:hidden;flex:1}
+.kalwerk .wk{display:inline-flex;align-items:center;gap:4px;flex:none;max-width:100%;
+  font-size:10.5px;font-weight:600;line-height:16px;padding:0 6px 0 5px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--line-soft);color:var(--ink-2);white-space:nowrap}
+.kalwerk .wk i{width:7px;height:7px;border-radius:50%;background:var(--wk);flex:none}
+.kalwerk .wk b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.kalcel.buiten .kalwerk{opacity:.5}
+@media(max-width:760px){
+  .kalwerk .wk{font-size:9.5px;padding:0 4px}
+  .kalwerk .wk i{display:none}
+}
 @media(max-width:760px){
   .kalcel{min-height:74px;padding:3px}
   .kalitem{font-size:9.5px;padding:1px 3px}
@@ -214,64 +234,264 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 #berichtDialog[data-soort="annulering"] .wijzigveld{display:none}
 .vinkje{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--ink-2)}
 .vinkje input{width:17px;height:17px}
+
+/* =========================================================
+   Huisstijl — gelijk aan Beschikbaarheid
+   ========================================================= */
+a{color:var(--groen-2)}
+h1,h2,h3{font-family:var(--f-titel);font-weight:500;letter-spacing:.01em}
+:focus-visible{outline:2px solid var(--goud);outline-offset:2px;border-radius:6px}
+
+.merkbalk{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:60}
+.merkbalk .binnen{max-width:1320px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 18px}
+.merk{font-family:var(--f-titel);font-size:17px;letter-spacing:.16em;text-transform:uppercase;
+  line-height:1.1;color:var(--groen)}
+:root[data-theme="dark"] .merk{color:var(--ink)}
+.merk small{display:block;font-size:9.5px;letter-spacing:.34em;color:var(--goud);margin-top:2px}
+.merkbalk nav{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.merkbalk nav a{display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;
+  color:var(--ink-2);padding:7px 12px;border-radius:999px;white-space:nowrap}
+.merkbalk nav a:hover{background:var(--surface-2)}
+.merkbalk nav a.hier{color:var(--groen);border-bottom:2px solid var(--goud);border-radius:0}
+:root[data-theme="dark"] .merkbalk nav a.hier{color:var(--ink)}
+.merkbalk .wie{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+body.ingebed .merkbalk,body.ingebed .hero{display:none}
+
+.hero{position:relative;min-height:190px;display:flex;align-items:flex-end;margin-bottom:18px;
+  background:#14342A center/cover no-repeat}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(
+  to right, rgba(20,52,42,.92) 0%, rgba(20,52,42,.72) 45%, rgba(20,52,42,.25) 100%)}
+.hero .tekst{position:relative;z-index:1;max-width:1320px;margin:0 auto;width:100%;padding:26px 18px 24px;color:#fff}
+.hero h1{font-size:34px;margin:0 0 4px;color:#fff}
+.hero p{margin:0;font-size:14px;color:rgba(255,255,255,.82);max-width:52ch}
+
+/* tegels, paneel en knoppen */
+.tegel{border-radius:var(--r-m);box-shadow:none;cursor:pointer}
+.tegel:hover{border-color:var(--groen-2)}
+.tegel .aantal{font-family:var(--f-titel);font-size:30px;font-weight:500;line-height:1.05}
+.tegel[aria-pressed="true"]{background:var(--groen);border-color:var(--groen)}
+.tegel[aria-pressed="true"] .aantal{color:#fff}
+.paneel{border-radius:var(--r-m);box-shadow:none}
+.balk{border-radius:var(--r-m) var(--r-m) 0 0;padding:14px 16px}
+.voetregel{border-radius:0 0 var(--r-m) var(--r-m)}
+input,select{border-radius:8px;background:var(--surface-2);padding:7px 11px}
+input:focus,select:focus{outline:2px solid var(--groen-2);outline-offset:-1px;background:var(--surface)}
+.knop,.themaknop{border-radius:999px;background:var(--surface-2);padding:7px 14px;font-size:13px;color:var(--ink-2)}
+.knop:hover,.themaknop:hover{border-color:var(--groen-2);background:var(--surface-2)}
+.knop.vol{background:var(--groen);border-color:var(--groen);color:#fff}
+.knop.vol:hover{background:var(--groen-2);border-color:var(--groen-2)}
+.knop.klein{padding:4px 11px;font-size:12.5px}
+.wissel{border-radius:999px;background:var(--surface-2)}
+.wissel button{background:transparent;padding:7px 15px;font-size:13px}
+.wissel button[aria-pressed="true"]{background:var(--groen);color:#fff}
+.menuknop{border-radius:999px;background:var(--surface-2)}
+.menuknop:hover{border-color:var(--groen-2)}
+.legenda{font-size:12.5px;padding:10px 16px}
+.legenda i{border-radius:999px;width:14px}
+.fout{color:var(--crit);background:var(--crit-soft);border:1px solid #EFCFC8;border-radius:var(--r-m)}
+.gelukt{color:var(--ok);background:var(--ok-soft);border-radius:var(--r-m)}
+:root[data-theme="dark"] .fout{border-color:transparent}
+
+/* tabel */
+th{font-size:11px;letter-spacing:.04em;color:var(--muted)}
+td.naam .gastnaam{font-weight:500}
+tbody tr:hover{background:var(--surface-2)}
+.soort{font-size:10.5px;padding:2px 9px;border-radius:999px}
+.gekoppeld{padding:1px 8px}
+
+/* kalender */
+.kalkop{padding:12px 16px}
+.kalkop b{font-family:var(--f-titel);font-size:22px;font-weight:500}
+.kaldagkop{font-family:var(--f-mono);font-weight:500;font-size:10px;letter-spacing:.1em}
+.kalcel .dagnr{font-family:var(--f-titel);font-size:15px;color:var(--ink-2)}
+.kalcel.weekend .dagnr{color:var(--goud)}
+.kalcel.vandaag{box-shadow:inset 0 0 0 2px var(--goud)}
+.kalitem{border-radius:6px}
+
+/* vensters en klantkaart */
+dialog{border-radius:14px;box-shadow:0 24px 60px -30px rgba(20,52,42,.6)}
+dialog::backdrop{background:rgba(20,52,42,.45)}
+dialog .binnen{padding:22px}
+dialog h3{font-size:24px;margin-bottom:2px}
+.veld span{font-size:12.5px}
+.veld input,.veld select,.veld textarea{border-radius:8px;background:var(--surface-2)}
+.veld input:focus,.veld select:focus,.veld textarea:focus{outline:2px solid var(--groen-2);outline-offset:-1px;background:var(--surface)}
+.kkvak{border-radius:var(--r-m)}
+.kkvak h4{font-family:var(--f-titel);font-size:18px;font-weight:500;letter-spacing:.01em;text-transform:none;color:var(--groen)}
+:root[data-theme="dark"] .kkvak h4{color:var(--ink)}
+.treffer{border-radius:var(--r-m)}
+.actiemenu{border-radius:var(--r-m);box-shadow:0 24px 60px -30px rgba(20,52,42,.6)}
+.actiemenu .kop{font-family:var(--f-titel);font-size:15px;letter-spacing:.01em;text-transform:none;font-weight:500;color:var(--groen)}
+:root[data-theme="dark"] .actiemenu .kop{color:var(--ink)}
+
+/* =========================================================
+   Meebewegen: desktop, tablet en telefoon
+   ========================================================= */
+.merk{white-space:nowrap}
+.tabelwrap{-webkit-overflow-scrolling:touch}
+dialog{max-width:min(760px,calc(100vw - 20px));max-height:calc(100dvh - 24px);overflow:auto}
+html{scroll-padding-top:80px}
+
+/* ---- tablet en kleiner: menu naast het logo, navigatie eronder ---- */
+@media(max-width:1000px){
+  .merkbalk .binnen{flex-wrap:wrap;gap:6px 14px;padding:10px 16px 0}
+  .merkbalk #bwfMenuPlek{margin-left:auto;order:2}
+  .merkbalk .wie{order:2}
+  .merkbalk nav{order:3;margin:0 -16px;width:calc(100% + 32px);padding:0 10px;
+    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--line-soft)}
+  .merkbalk nav::-webkit-scrollbar{display:none}
+  .merkbalk nav a{padding:11px 12px}
+  .hero{min-height:160px}
+  .wrap{padding:0 16px 40px}
+}
+
+/* ---- filterbalk als raster ---- */
+@media(max-width:1180px){
+  .balk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+  .balk label{display:flex;align-items:center;gap:8px;min-width:0}
+  .balk label input{flex:1;min-width:0;width:100%}
+  .balk > select,.balk > input{width:100%;min-width:0}
+  .balk input[type=search]{min-width:0}
+  .rechts{grid-column:1/-1;margin-left:0;display:grid;gap:8px;
+    grid-template-columns:repeat(4,minmax(0,1fr))}
+  .rechts > *{min-width:0;width:100%}
+  .rechts > .knop,.rechts > .themaknop{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #btnNieuw{order:-2;grid-column:span 2}
+  .rechts > .wissel{order:-1;grid-column:span 2;display:flex}
+  .rechts > .wissel button{flex:1}
+}
+
+/* ---- reserveringen als kaarten op tablet en telefoon ---- */
+@media(max-width:900px){
+  .tabelwrap{overflow:visible}
+  .tabelwrap table{min-width:0!important;font-size:13.5px}
+  .tabelwrap thead{display:none}
+  .tabelwrap tbody{display:block}
+  .tabelwrap tbody tr{display:block}
+  .tabelwrap td{display:block;border:0!important;padding:0}
+  .tabelwrap td[colspan]{padding:22px 16px}
+  .tabelwrap tbody tr:hover{background:transparent}
+
+  .tabelwrap tr.rij{display:grid;position:relative;gap:10px 14px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-areas:"naam naam naam" "aank vert n" "loc soort mw" "contact tot open";
+    padding:14px 16px 14px 18px;border-bottom:1px solid var(--line)!important;
+    border-left:4px solid var(--kleur)!important;background:var(--surface)}
+  .tabelwrap tr.rij > td:nth-child(1){position:absolute;top:10px;right:12px;width:auto;padding:0}
+  .tabelwrap tr.rij > td:nth-child(2){grid-area:aank}
+  .tabelwrap tr.rij > td:nth-child(3){grid-area:vert}
+  .tabelwrap tr.rij > td:nth-child(4){grid-area:n}
+  .tabelwrap tr.rij > td:nth-child(5){grid-area:naam;padding-right:52px;max-width:none}
+  .tabelwrap tr.rij > td:nth-child(6){grid-area:loc}
+  .tabelwrap tr.rij > td:nth-child(7){grid-area:soort}
+  .tabelwrap tr.rij > td:nth-child(8){grid-area:mw}
+  .tabelwrap tr.rij > td:nth-child(9){grid-area:contact;font-size:12.5px!important;overflow-wrap:anywhere}
+  .tabelwrap tr.rij > td:nth-child(10){grid-area:tot}
+  .tabelwrap tr.rij > td:nth-child(11){grid-area:open}
+  .tabelwrap tr.rij > td:nth-child(n+2)::before{display:block;font-size:11px;color:var(--muted);
+    font-weight:400;margin-bottom:1px;font-family:var(--f-body)}
+  .tabelwrap tr.rij > td:nth-child(2)::before{content:"Aankomst"}
+  .tabelwrap tr.rij > td:nth-child(3)::before{content:"Vertrek"}
+  .tabelwrap tr.rij > td:nth-child(4)::before{content:"Nachten"}
+  .tabelwrap tr.rij > td:nth-child(5)::before{content:none}
+  .tabelwrap tr.rij > td:nth-child(6)::before{content:"Locatie"}
+  .tabelwrap tr.rij > td:nth-child(7)::before{content:"Soort"}
+  .tabelwrap tr.rij > td:nth-child(8)::before{content:"Medewerker"}
+  .tabelwrap tr.rij > td:nth-child(9)::before{content:"Contact"}
+  .tabelwrap tr.rij > td:nth-child(10)::before{content:"Totaal"}
+  .tabelwrap tr.rij > td:nth-child(11)::before{content:"Open"}
+  .tabelwrap td.geld{text-align:left}
+  .tabelwrap td.nowrap{white-space:normal}
+  .tabelwrap .datum{max-width:none;white-space:normal}
+  .tabelwrap .gastnaam{max-width:none;white-space:normal;font-size:16px}
+  .tabelwrap .subregel{max-width:none;white-space:normal}
+  .tabelwrap select.kies{width:100%;font-size:13px!important;padding:6px 8px!important}
+  .tabelwrap .menuknop{padding:4px 12px;font-size:17px}
+  .tabelwrap .actiemenu{left:auto;right:0;max-width:calc(100vw - 40px)}
+  .tabelwrap .actiemenu button,.tabelwrap .actiemenu a{font-weight:400}
+  .tabelwrap tr.detail{display:block}
+  .tabelwrap tr.detail td{display:block;padding:14px 16px;border-bottom:1px solid var(--line)!important}
+  .detailblok{grid-template-columns:minmax(90px,auto) 1fr}
+  .voetregel{gap:6px 14px}
+}
+
+/* ---- telefoon ---- */
+@media(max-width:640px){
+  .hero{min-height:132px}
+  .hero .tekst{padding:20px 16px 18px}
+  .hero h1{font-size:28px}
+  .merkbalk .wie{display:none}
+  .wrap{padding:0 12px 80px}
+  input,select,textarea{font-size:16px!important}
+  .knop,.themaknop,.wissel button{min-height:40px}
+  .tegels{gap:8px}
+  .tegel{padding:11px 13px}
+  .tegel .aantal{font-size:26px}
+  .balk{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}
+  .balk label{flex-direction:column;align-items:stretch;gap:3px}
+  #fMedewerker,#fZoek{grid-column:1/-1}
+  .rechts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .legenda{gap:6px 12px;padding:10px 12px}
+  .tabelwrap tr.rij{grid-template-columns:repeat(2,minmax(0,1fr));padding:13px 14px 13px 14px;
+    grid-template-areas:"naam naam" "aank vert" "loc n" "soort mw" "contact contact" "tot open"}
+  .fout,.gelukt{margin:12px}
+  .velden{grid-template-columns:1fr}
+  .kalkop{gap:6px}
+  .kalkop b{min-width:0;flex:1;font-size:19px}
+  .kalkop .telling{width:100%;margin-left:0}
+  .kalcel{min-height:64px}
+  .kalitem .kt{display:none}
+  dialog .binnen{padding:18px 16px}
+  #bwfUit{bottom:12px;right:12px;padding:6px 12px;font-size:12px}
+}
 </style>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="bwf-icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#14342A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Lelystad">
-<link rel="stylesheet" href="bwf-agenda-stijl.css">
 </head>
 <body>
 <!-- ================= BWF-toegang ================= -->
 <style>
-#bwfSlot{position:fixed;inset:0;z-index:10000;background:#F4F1ED;display:none;
+#bwfSlot{position:fixed;inset:0;z-index:10000;background:#14342A center/cover no-repeat;display:none;
   align-items:center;justify-content:center;padding:20px;
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif}
+#bwfSlot::before{content:"";position:absolute;inset:0;background:rgba(20,52,42,.72)}
 #bwfSlot.open{display:flex}
-:root[data-theme="dark"] #bwfSlot{background:#1A1613}
-#bwfSlot .kaart{background:#fff;border:1px solid #E3DAD0;border-radius:16px;padding:28px;
-  width:100%;max-width:380px;box-shadow:0 18px 50px -18px rgba(36,30,25,.4)}
-:root[data-theme="dark"] #bwfSlot .kaart{background:#221D19;border-color:#3A322B;color:#F0EAE3}
-#bwfSlot .merk{display:flex;align-items:center;gap:11px;margin-bottom:18px}
-#bwfSlot .mark{width:40px;height:40px;border-radius:10px;background:#9A7B4F;color:#fff;
-  display:grid;place-items:center;font-weight:700;font-size:14px}
-#bwfSlot h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:19px;margin:0}
-#bwfSlot .onder{font-size:12.5px;color:#7B6E62;margin:2px 0 0}
-#bwfSlot label{display:block;font-size:12.5px;color:#4B4239;margin:12px 0 4px}
-:root[data-theme="dark"] #bwfSlot label{color:#D5CABF}
-#bwfSlot input{width:100%;border:1px solid #E3DAD0;border-radius:6px;padding:10px 12px;
-  font:inherit;font-size:15px;background:#FAF7F3;color:#241E19}
-:root[data-theme="dark"] #bwfSlot input{background:#2A241F;border-color:#3A322B;color:#F0EAE3}
-#bwfSlot button{width:100%;margin-top:18px;background:#483C34;color:#fff;border:0;
-  border-radius:8px;padding:11px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+#bwfSlot .kaart{position:relative;background:#fff;border-radius:16px;padding:30px 26px;color:#1D2420;
+  width:100%;max-width:380px;text-align:center;box-shadow:0 24px 60px -30px rgba(20,52,42,.7)}
+#bwfSlot .merk{margin-bottom:6px}
+#bwfSlot .spreuk{font-family:"Cormorant Garamond",Georgia,serif;font-size:15px;color:#7E8A82;margin:0 0 20px}
+#bwfSlot label{display:block;text-align:left;font-size:12.5px;color:#46514A;margin:12px 0 4px}
+#bwfSlot input{width:100%;border:1px solid #E6E1D7;border-radius:8px;padding:11px 12px;
+  font:inherit;font-size:15px;background:#FBF9F5;color:#1D2420}
+#bwfSlot input:focus{outline:2px solid #1F4D3D;outline-offset:-1px;background:#fff}
+#bwfSlot button{width:100%;margin-top:18px;background:#14342A;color:#fff;border:0;
+  border-radius:8px;padding:12px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+#bwfSlot button:hover{background:#1F4D3D}
 #bwfSlot button:disabled{opacity:.6;cursor:wait}
-#bwfSlot .fout{margin-top:14px;background:#F7E2DC;color:#A34434;border-radius:6px;
-  padding:10px 12px;font-size:13.5px;display:none}
+#bwfSlot .fout{margin-top:14px;background:#FBEAE7;color:#B3453A;border-radius:8px;
+  padding:10px 12px;font-size:13.5px;display:none;text-align:left}
 #bwfSlot .fout.open{display:block}
-#bwfSlot .voetnoot{margin-top:16px;font-size:12px;color:#7B6E62;line-height:1.45}
-#bwfUit{position:fixed;right:16px;bottom:16px;z-index:8980;border:1px solid #E3DAD0;
-  background:#fff;color:#4B4239;border-radius:999px;padding:7px 14px;font-size:12.5px;
+#bwfSlot .voetnoot{margin-top:16px;font-size:12px;color:#7E8A82;line-height:1.45}
+#bwfUit{position:fixed;right:16px;bottom:16px;z-index:8980;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);border-radius:999px;padding:8px 15px;font-size:12.5px;
   font-family:"Public Sans",Arial,sans-serif;cursor:pointer;display:none;
-  box-shadow:0 4px 14px rgba(36,30,25,.2)}
+  box-shadow:0 10px 30px -18px rgba(20,52,42,.6)}
+#bwfUit:hover{border-color:var(--groen-2)}
 #bwfUit.open{display:block}
-:root[data-theme="dark"] #bwfUit{background:#221D19;border-color:#3A322B;color:#D5CABF}
 body.bwf-vergrendeld > *:not(#bwfSlot){filter:blur(6px);pointer-events:none;user-select:none}
 </style>
 
 <div id="bwfSlot">
   <div class="kaart">
-    <div class="merk">
-      <div class="mark">B&amp;W</div>
-      <div>
-        <h2>Inloggen</h2>
-        <p class="onder">Bed &amp; Wellness Flevoland</p>
-      </div>
-    </div>
+    <div class="merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <p class="spreuk">Ontspan. Geniet. Beleef.</p>
     <label for="bwfMail">E-mailadres</label>
     <input id="bwfMail" type="email" autocomplete="username" inputmode="email">
     <label for="bwfWw">Wachtwoord</label>
@@ -442,16 +662,26 @@ window.BWF = window.BWF || {};
 
 
 
-<div class="topbalk">
-  <nav class="kopmenu wrap" id="bwfBalk" aria-label="Navigatie"></nav>
+<div class="merkbalk">
+  <div class="binnen">
+    <div class="merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <nav aria-label="Navigatie">
+      <a href="beschikbaarheid2.html">Beschikbaarheid</a>
+      <a href="vandaag.html">Vandaag</a>
+      <a class="hier" href="reserveringen.html" aria-current="page">Reserveringen</a>
+      <a href="dagstart.html">Dagstart</a>
+    </nav>
+    <span id="bwfMenuPlek"></span>
+    <span class="wie" id="wieBen"></span>
+  </div>
 </div>
 
-<header class="paginakop">
-  <div class="wrap">
-    <div class="mark">B&amp;W</div>
-    <div><b>Reserveringen</b><span>Bed &amp; Wellness Flevoland</span></div>
+<div class="hero" id="hero">
+  <div class="tekst">
+    <h1>Reserveringen</h1>
+    <p>Alle boekingen van de drie suites, als lijst of in de kalender.</p>
   </div>
-</header>
+</div>
 
 <div class="wrap">
 
@@ -470,7 +700,6 @@ window.BWF = window.BWF || {};
           <button type="button" id="btnLijst" aria-pressed="true">Lijst</button>
           <button type="button" id="btnKalender" aria-pressed="false">Kalender</button>
         </div>
-        <span id="bwfMenuPlek"></span>
         <button class="themaknop" id="themaKnop" type="button">Donkere modus</button>
         <button class="knop" type="button" id="btnBlacklist">Zwarte lijst</button>
         <button class="knop" type="button" id="btnReview">Reviewtaken</button>
@@ -841,7 +1070,17 @@ async function sb(pad, opties){
     method: opties.method||"GET", headers: kop, body: opties.body||undefined });
   if(!r.ok) throw new Error("HTTP "+r.status+" — "+(await r.text()).slice(0,160));
   var t = await r.text();
+  if((opties.method||"GET") !== "GET" && /^(res_koppeling|reservations|checkins|wz_welkomstcalls|wz_klantbeheer)/.test(pad)) meldWijziging();
   return t ? JSON.parse(t) : null;
+}
+/* Ingeladen in een dashboard? Dan laat dat dashboard weten dat er iets is opgeslagen. */
+var wijzigTimer = null;
+function meldWijziging(){
+  if(window.self === window.top) return;
+  clearTimeout(wijzigTimer);
+  wijzigTimer = setTimeout(function(){
+    try{ parent.postMessage({ bwf:'gewijzigd', bron:'reserveringen' }, location.origin); }catch(e){}
+  }, 1200);
 }
 var meldEl = document.getElementById('melding');
 function meld(tekst, goed){
@@ -859,6 +1098,17 @@ sluitDialogen();
    Gegevens
    ========================================================= */
 var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [];
+/* Instellingen via het webadres, zodat andere pagina's deze pagina kunnen inladen:
+   ?weergave=kalender  opent meteen de kalender in plaats van de lijst
+   ?regio=lelystad     toont alleen Malina Jacuzzi en Malina Deluxe
+   ?planning=1         zet bovenaan elke dag wie er werkt
+   Zonder deze toevoegingen werkt de pagina precies zoals altijd. */
+var PARAM = new URLSearchParams(location.search);
+var START_WEERGAVE = PARAM.get('weergave') === 'kalender' ? 'kalender' : 'lijst';
+var REGIO = String(PARAM.get('regio') || '').toLowerCase();
+var MET_PLANNING = PARAM.get('planning') === '1';
+var PLANNING = [], PLANTEAM = [], GELADEN = false;
+var WERKKLEUR = ['#165dff','#b5842c','#14805e','#c15a3e','#8a5bc4','#2da2bb'];
 var ONTDUBBELD = 0;
 var INSTELLINGEN = {};
 
@@ -1043,8 +1293,22 @@ async function laden(){
     (await sb('bwf_instellingen?select=*') || []).forEach(function(x){ INSTELLINGEN[x.sleutel] = x.waarde; });
   }catch(e){ INSTELLINGEN = {}; }
 
+  if(MET_PLANNING){
+    try{ PLANTEAM = await sb('medewerkers?select=id,naam&order=aangemaakt.asc') || []; }
+    catch(e){ try{ PLANTEAM = await sb('medewerkers?select=id,naam') || []; }catch(e2){ PLANTEAM = []; } }
+    try{ PLANNING = await sb('planning?select=datum,medewerker_id,locatie,dienst,notitie&order=datum.asc&limit=4000') || []; }
+    catch(e){ PLANNING = []; fouten.push('planning: '+e.message); }
+  }
+
   ALLES = ontdubbelBoekingen(agenda.concat(eigen)).sort(function(a,b){
     return String(b.aankomst).localeCompare(String(a.aankomst)); });
+  if(REGIO === 'lelystad'){
+    ALLES = ALLES.filter(function(r){
+      var l = vergelijkLocatie(r.locatie);
+      return l === 'jacuzzi' || l === 'zwembad';
+    });
+  }
+  GELADEN = true;
 
   if(fouten.length && fouten.join(' ').indexOf('401') > -1){
     meld('Je bent niet (meer) ingelogd bij Supabase. Open klantbeheer of het VR Dashboard, log daar in, en ververs deze pagina. De reserveringen uit de agenda zie je wel.');
@@ -1087,7 +1351,8 @@ function vulKeuzes(){
     namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
 
   document.getElementById('legenda').innerHTML = Object.keys(SOORTEN).map(function(k){
-    return '<span><i style="background:'+SOORTEN[k].kleur+'"></i>'+SOORTEN[k].naam+'</span>'; }).join('');
+    return '<span><i style="background:'+SOORTEN[k].kleur+'"></i>'+SOORTEN[k].naam+'</span>'; }).join('') +
+    (MET_PLANNING ? '<span style="margin-left:auto">Namen bovenaan een dag: wie er werkt (\u263d nacht, \u2726 schoonmaak)</span>' : '');
 }
 
 /* =========================================================
@@ -1379,6 +1644,36 @@ function dagenVan(r){
   return uit;
 }
 
+/* wie er op een dag werkt, uit de planning van het personeelsdashboard */
+function werkKleur(id){
+  for(var i=0;i<PLANTEAM.length;i++) if(String(PLANTEAM[i].id) === String(id)) return WERKKLEUR[i % WERKKLEUR.length];
+  return 'var(--muted)';
+}
+function werkNaam(id){
+  for(var i=0;i<PLANTEAM.length;i++) if(String(PLANTEAM[i].id) === String(id)) return PLANTEAM[i].naam || '';
+  return '';
+}
+function werkStrook(ds){
+  if(!MET_PLANNING) return '';
+  var rijen = PLANNING.filter(function(p){
+    if(String(p.datum||'').slice(0,10) !== ds || p.dienst === 'afwezig') return false;
+    if(REGIO !== 'lelystad') return true;
+    var l = String(p.locatie||'').toLowerCase();
+    return !l || l.indexOf('lelystad') > -1 || l.indexOf('malina') > -1;
+  });
+  if(!rijen.length) return '<span class="kalwerk"></span>';
+  var uitleg = rijen.map(function(p){
+    var soort = p.dienst === 'nacht' ? 'nachtverblijf' : p.dienst === 'schoonmaak' ? 'schoonmaak' : 'dagverblijf';
+    return (werkNaam(p.medewerker_id) || 'Onbekend') + ' \u2013 ' + soort + (p.notitie ? ' (' + p.notitie + ')' : '');
+  }).join('\n');
+  return '<span class="kalwerk" title="' + esc('Werkt op deze dag:\n' + uitleg) + '">' + rijen.map(function(p){
+    var vol = werkNaam(p.medewerker_id) || 'Onbekend';
+    var teken = p.dienst === 'nacht' ? ' \u263d' : p.dienst === 'schoonmaak' ? ' \u2726' : '';
+    return '<span class="wk" style="--wk:' + werkKleur(p.medewerker_id) + '"><i></i><b>' +
+      esc(vol.split(' ')[0]) + teken + '</b></span>';
+  }).join('') + '</span>';
+}
+
 function tekenKalender(){
   var jaar = kalMaand.getFullYear(), maand = kalMaand.getMonth();
   document.getElementById('kalTitel').textContent = MAANDEN[maand]+' '+jaar;
@@ -1422,7 +1717,9 @@ function tekenKalender(){
     var wknd = ((loop.getDay()+6)%7) > 4;
     html += '<div class="kalcel'+(buiten?' buiten':'')+(wknd?' weekend':'')+
             (ds===vandaag?' vandaag':'')+'">'+
-            '<span class="dagnr">'+loop.getDate()+'</span>';
+            (MET_PLANNING
+              ? '<div class="kaldagrij"><span class="dagnr">'+loop.getDate()+'</span>'+werkStrook(ds)+'</div>'
+              : '<span class="dagnr">'+loop.getDate()+'</span>');
     (perDag[ds]||[]).forEach(function(i){
       var r = lijst[i];
       var s = SOORTEN[r.soort] || SOORTEN.handmatig;
@@ -1448,7 +1745,7 @@ function tekenKalender(){
     loop.setDate(loop.getDate()+1);
   }
   html += '</div>';
-  if(!lijst.length) html += '<div class="kalleeg">Geen reserveringen in deze maand met de huidige filters.</div>';
+  if(!lijst.length) html += '<div class="kalleeg">'+(GELADEN ? 'Geen reserveringen in deze maand met de huidige filters.' : 'Bezig met laden\u2026')+'</div>';
 
   var vak = document.getElementById('kalInhoud');
   vak.innerHTML = html;
@@ -2617,6 +2914,12 @@ window.addEventListener('resize', meldHoogte);
   document.getElementById('fZoek').oninput = verversen;
   window.addEventListener('bwf-ingelogd', pasRolToe);
   pasRolToe();
+  if(START_WEERGAVE === 'kalender') zetWeergave('kalender');
+  /* het dashboard waarin deze pagina zit kan om nieuwe gegevens vragen */
+  window.addEventListener('message', function(e){
+    if(e.origin !== location.origin || !e.data || e.data.bwf !== 'verversen') return;
+    laden();
+  });
   laden();
 })();
 </script>
@@ -2665,45 +2968,39 @@ window.addEventListener('resize', meldHoogte);
 <!-- ================= BWF-menu ================= -->
 <style>
 #bwfMenuKnop{position:fixed;right:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
-  background:#483C34;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
+  background:#14342A;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer;
   box-shadow:0 4px 14px rgba(36,30,25,.32)}
-#bwfMenuKnop:hover{background:#5A4B41}
+#bwfMenuKnop:hover{background:#1F4D3D}
 /* in de bovenbalk van de pagina */
-#bwfMenuKnop.inbalk{position:static;border-radius:6px;padding:6px 12px;font-size:13.5px;font-weight:500;
-  box-shadow:none;background:#483C34}
-#bwfMenuKnop.inbalk:hover{background:#5A4B41}
-:root[data-theme="dark"] #bwfMenuKnop.inbalk{background:#7A6248}
+#bwfMenuKnop.inbalk{position:static;border-radius:999px;padding:7px 13px;font-size:13px;font-weight:500;
+  box-shadow:none;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+#bwfMenuKnop.inbalk:hover{background:var(--surface-2);border-color:var(--groen-2)}
 #bwfMenuKnop .streep{display:inline-block;width:15px;height:11px;position:relative}
 #bwfMenuKnop .streep i,#bwfMenuKnop .streep i:before,#bwfMenuKnop .streep i:after{
-  position:absolute;left:0;width:15px;height:2px;background:#fff;border-radius:2px;content:""}
+  position:absolute;left:0;width:15px;height:2px;background:currentColor;border-radius:2px;content:""}
 #bwfMenuKnop .streep i{top:4px}
 #bwfMenuKnop .streep i:before{top:-4px}
 #bwfMenuKnop .streep i:after{top:4px}
-#bwfMenuLaag{position:fixed;inset:0;z-index:8990;background:rgba(36,30,25,.35);display:none}
+#bwfMenuLaag{position:fixed;inset:0;z-index:8990;background:rgba(20,52,42,.35);display:none}
 #bwfMenuLaag.open{display:block}
 #bwfMenu{position:fixed;right:16px;bottom:70px;z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
-  background:#fff;color:#241E19;border:1px solid #E3DAD0;border-radius:14px;display:none;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;display:none;
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:14px;
-  box-shadow:0 18px 50px -18px rgba(36,30,25,.5)}
+  box-shadow:0 24px 60px -30px rgba(20,52,42,.6)}
 #bwfMenu.open{display:block}
-#bwfMenu .kop{padding:12px 16px 7px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-  color:#7B6E62;font-weight:700}
-#bwfMenu a,#bwfMenu button.tabknop{display:flex;align-items:center;gap:10px;padding:9px 16px;color:#241E19;
+#bwfMenu .kop{padding:12px 16px 5px;font-family:"Cormorant Garamond",Georgia,serif;font-size:16px;
+  color:var(--groen);font-weight:500}
+:root[data-theme="dark"] #bwfMenu .kop{color:var(--goud)}
+#bwfMenu a,#bwfMenu button.tabknop{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--ink);
   text-decoration:none;border:0;background:none;width:100%;text-align:left;cursor:pointer;font:inherit}
-#bwfMenu a:hover,#bwfMenu button.tabknop:hover{background:#FAF7F3}
-#bwfMenu a.hier{background:#E8DFD5;font-weight:600}
-#bwfMenu a.hier:after{content:"nu";margin-left:auto;font-size:11px;color:#7B6E62;font-weight:400}
-#bwfMenu .scheiding{height:1px;background:#EFE8E1;margin:7px 0}
-#bwfMenu .thuis{margin:6px 10px 10px;padding:10px 14px;background:#483C34;color:#fff;border-radius:9px;
+#bwfMenu a:hover,#bwfMenu button.tabknop:hover{background:var(--surface-2)}
+#bwfMenu a.hier{background:var(--groen-zacht);font-weight:600}
+#bwfMenu a.hier:after{content:"nu";margin-left:auto;font-size:11px;color:var(--muted);font-weight:400}
+#bwfMenu .scheiding{height:1px;background:var(--line-soft);margin:7px 0}
+#bwfMenu .thuis{margin:8px 10px 6px;padding:10px 14px;background:var(--groen);color:#fff;border-radius:8px;
   justify-content:center;font-weight:600}
-#bwfMenu .thuis:hover{background:#5A4B41}
-:root[data-theme="dark"] #bwfMenu{background:#221D19;color:#F0EAE3;border-color:#3A322B}
-:root[data-theme="dark"] #bwfMenu a,:root[data-theme="dark"] #bwfMenu button.tabknop{color:#F0EAE3}
-:root[data-theme="dark"] #bwfMenu a:hover,:root[data-theme="dark"] #bwfMenu button.tabknop:hover{background:#2A241F}
-:root[data-theme="dark"] #bwfMenu a.hier{background:#332A21}
-:root[data-theme="dark"] #bwfMenu .scheiding{background:#312A24}
-:root[data-theme="dark"] #bwfMenuKnop{background:#7A6248}
+#bwfMenu .thuis:hover{background:var(--groen-2)}
 @media print{#bwfMenuKnop,#bwfMenu,#bwfMenuLaag{display:none!important}}
 </style>
 <script>
@@ -2832,51 +3129,70 @@ window.addEventListener('resize', meldHoogte);
 })();
 </script>
 <!-- ================= einde BWF-menu ================= -->
-<script src="bwf-shell.js"></script>
-<script id="bwf-zoek-uit-link">
-/* Vanuit een ander scherm hierheen komen met een naam erbij:
-   reserveringen.html?zoek=Bussolati zet die meteen in het zoekveld. */
+
+<script>
+/* ---------- huisstijl: sfeerbeeld en wie is ingelogd ---------- */
 (function(){
-  function vul(){
+  var foto = 'https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/almere%20bed%20en%20wellness%20angie/Bed%20en%20wellness%20Flevoland_%20B&W%20Angie%20Locatie%20Almere%20Zwembad.webp';
+  ['hero','bwfSlot'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.backgroundImage = 'url("' + foto + '")';
+  });
+  function toonWie(){
     try{
-      var q = new URLSearchParams(location.search).get('zoek');
-      if(!q) return;
-      var veld = document.getElementById('fZoek');
-      if(!veld){ setTimeout(vul, 400); return; }
-      veld.value = q;
-      veld.dispatchEvent(new Event('input', { bubbles:true }));
-      veld.dispatchEvent(new Event('change', { bubbles:true }));
-      veld.scrollIntoView({ behavior:'smooth', block:'center' });
-
-      /* Met &kaart=1 wordt de reserveringskaart meteen geopend. Er is even
-         tijd nodig: de lijst moet eerst opnieuw gefilterd zijn. */
-      var p = new URLSearchParams(location.search);
-      if(p.get('kaart') !== '1') return;
-      var nummer = (p.get('res') || '').trim();
-      var pogingen = 0;
-
-      (function open(){
-        var rijen = document.querySelectorAll('[data-kaart]');
-        if(!rijen.length){ if(++pogingen < 14) setTimeout(open, 400); return; }
-
-        /* Eerst de rij met dit reserveringsnummer. Heeft een gast meerdere
-           boekingen, dan kom je zo op de juiste uit en niet op de eerste. */
-        var doel = null;
-        if(nummer){
-          for(var i = 0; i < rijen.length; i++){
-            var tekst = (rijen[i].closest('tr') || rijen[i]).textContent || '';
-            if(tekst.indexOf(nummer) > -1){ doel = rijen[i]; break; }
-          }
-          /* nog niet gevonden en de lijst is misschien nog aan het laden */
-          if(!doel && ++pogingen < 14){ setTimeout(open, 400); return; }
-        }
-        (doel || rijen[0]).click();
-      })();
+      var v = JSON.parse(localStorage.getItem('sb-iuyjvtlauktnjprbmbjj-auth-token') || 'null');
+      var d = JSON.parse(atob(v.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      var w = document.getElementById('wieBen');
+      if(w && d.email) w.textContent = d.email;
     }catch(e){}
   }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(vul, 900); });
-  else setTimeout(vul, 900);
-  setTimeout(vul, 2200);
+  toonWie();
+  window.addEventListener('bwf-ingelogd', toonWie);
+})();
+
+/* ---------- binnenkomen vanuit Beschikbaarheid ----------
+   reserveringen.html?zoek=Jansen&res=19862135&kaart=1
+   zoek  vult het zoekveld en haalt het datumfilter weg, zodat de boeking
+         ook in een andere maand gevonden wordt
+   res   het nummer van de boeking
+   kaart opent meteen de klantkaart van die boeking */
+(function(){
+  var p = new URLSearchParams(location.search);
+  var zoek = (p.get('zoek') || '').trim();
+  var nummer = (p.get('res') || '').trim();
+  if(!zoek && !nummer) return;
+
+  function kaal(x){ return String(x == null ? '' : x).toLowerCase().trim()
+    .replace(/^(hm-|planyo-|smg-)/, ''); }
+
+  var pogingen = 0;
+  (function wacht(){
+    if(typeof GELADEN === 'undefined' || !GELADEN){
+      if(++pogingen < 60) setTimeout(wacht, 250);
+      return;
+    }
+    var zv = document.getElementById('fZoek');
+    if(zoek && zv){
+      zv.value = zoek;
+      document.getElementById('fVan').value = '';
+      document.getElementById('fTot').value = '';
+      if(typeof weergave !== 'undefined' && weergave === 'kalender') tekenKalender(); else teken();
+    }
+    if(p.get('kaart') !== '1') return;
+
+    /* eerst op nummer, dan pas op naam */
+    var doel = null, n = kaal(nummer);
+    if(n){
+      doel = ALLES.filter(function(r){
+        return kaal(r.id) === n || kaal(r.nummer) === n || kaal(resSleutel(r)) === n;
+      })[0] || null;
+    }
+    if(!doel && zoek){
+      var lijst = gefilterd();
+      if(lijst.length === 1) doel = lijst[0];   /* bij meerdere treffers laten we je zelf kiezen */
+    }
+    if(doel) openKlantkaart(doel);
+  })();
 })();
 </script>
 </body>
