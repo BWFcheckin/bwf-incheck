@@ -5654,5 +5654,904 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 })();
 </script>
 
+
+<style id="bwf-berichten-css">
+/* ---------- gastgegevens handmatig invoeren (bij Waar komen de gegevens vandaan) ---------- */
+#bwfHandVak{display:none;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+#bwfHandVak .raster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px}
+#bwfHandVak label{margin-top:8px}
+@media(max-width:700px){#bwfHandVak .raster{grid-template-columns:1fr 1fr}}
+@media(max-width:460px){#bwfHandVak .raster{grid-template-columns:1fr}}
+
+/* ---------- berichten naar de gast ---------- */
+#bwfBericht{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}
+#bwfBericht > h3{margin:0 0 4px;font-size:16px}
+#bwfBericht .uitleg{font-size:13px;color:var(--muted);margin:0 0 14px;max-width:66ch}
+#bwfBericht .keuzes{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+#bwfBericht .keuzes .bwf-keuze{margin-bottom:0}
+#bwfBericht .raster2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-top:4px}
+@media(max-width:620px){#bwfBericht .raster2{grid-template-columns:1fr}}
+#bwfBericht .vak{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+#bwfBericht .vak .kopje{font-size:13px;font-weight:700;color:var(--ink);margin:0 0 6px}
+#bwfBericht .vak .klein{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+#bwfBericht .regel{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#bwfBericht .regel input[type="text"]{flex:1;min-width:220px;font-family:var(--f-mono);font-size:12px}
+#bwfBerPdfNaam{font-size:13.5px;font-weight:600;color:var(--ink);word-break:break-all}
+#bwfBerTekst{min-height:250px!important;line-height:1.5}
+#bwfBerKnoppen{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#bwfBerEditor{display:none;margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px}
+#bwfBerEditor textarea{min-height:260px!important;font-family:var(--f-mono);font-size:12.5px;line-height:1.5}
+#bwfBerVelden{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.9}
+#bwfBerVelden code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+  margin-right:4px;display:inline-block;cursor:pointer;font-size:11.5px}
+#bwfBerStatus{display:block;font-size:13px;margin-top:10px;color:var(--muted)}
+</style>
+
+<script id="bwf-berichten-js">
+/* =========================================================
+   1. Gastgegevens ophalen: uit het klantenbestand of handmatig
+   2. Berichten naar de gast, zoals bij de welkomstcall:
+        - Incheckinformatie (reservering + gastenlink + pdf)
+        - Gastenlink
+        - Reserveringsbevestiging
+      via WhatsApp of e-mail, met eigen sjablonen in Supabase
+   3. Reserveringsbevestiging ook via WhatsApp bij Bevestiging & factuur
+   4. Snelknop "Gastenlink versturen" bij Beginnen
+   ========================================================= */
+(function(){
+
+  var BEDRIJF = "Bed & Wellness Flevoland";
+  var CONTACT = "info@bedenwellnessflevoland.nl";
+  var BUCKET  = "documenten";
+  var SLEUTEL_PDF = "incheckinfo_pdf";
+  var SLEUTEL_SJ = {
+    incheckinfo: "bericht_incheckinfo",
+    gastenlink:  "bericht_gastenlink",
+    bevestiging: "bericht_bevestiging"
+  };
+  var NAAM = {
+    incheckinfo: "Incheckinformatie",
+    gastenlink:  "Gastenlink",
+    bevestiging: "Reserveringsbevestiging"
+  };
+
+  var STANDAARD = {
+    incheckinfo:
+'{aanhef}\n\n' +
+'Wat leuk dat je bij ons komt! Hieronder staat alles voor je verblijf op een rij.\n\n' +
+'*Je reservering*\n' +
+'Suite: {suite}\n' +
+'Aankomst: {aankomst}\n' +
+'Vertrek: {vertrek}\n' +
+'Aantal personen: {personen}\n' +
+'Reserveringsnummer: {resnr}\n' +
+'Arrangementen: {arrangementen}\n' +
+'Nog te betalen bij aankomst: {openstaand}\n\n' +
+'*Alvast online inchecken*\n' +
+'Vul je gegevens vooraf in, dan ben je bij aankomst zo binnen:\n' +
+'{gastenlink}\n\n' +
+'*Incheckinformatie*\n' +
+'Alles over het inchecken lees je in deze pdf:\n' +
+'{incheckinfo}\n\n' +
+'Heb je nog vragen, stuur ons gerust een bericht.\n\n' +
+'Tot snel!\n' +
+'{bedrijf}',
+
+    gastenlink:
+'{aanhef}\n\n' +
+'Wat leuk dat je bij ons komt!\n' +
+'Suite: {suite}\n' +
+'Aankomst: {aankomst}\n\n' +
+'Wil je alvast je gegevens invullen? Dan ben je bij aankomst zo binnen:\n' +
+'{gastenlink}\n\n' +
+'Tot snel!\n' +
+'{bedrijf}',
+
+    bevestiging:
+'{aanhef}\n\n' +
+'Hierbij de bevestiging van je reservering bij {bedrijf}.\n\n' +
+'*Reserveringsbevestiging*\n' +
+'Reserveringsnummer: {resnr}\n' +
+'Suite: {suite}\n' +
+'Aankomst: {aankomst}\n' +
+'Vertrek: {vertrek}\n' +
+'Aantal personen: {personen}\n' +
+'Arrangementen: {arrangementen}\n\n' +
+'Totaal: {totaal}\n' +
+'Al betaald: {betaald}\n' +
+'Nog te betalen bij aankomst: {openstaand}\n\n' +
+'Heb je vragen of wensen, laat het gerust weten.\n\n' +
+'Hartelijke groet,\n' +
+'{bedrijf}'
+  };
+
+  var ONDERWERP = {
+    incheckinfo: "Incheckinformatie voor je verblijf \u2014 {suite}",
+    gastenlink:  "Alvast inchecken \u2014 " + BEDRIJF,
+    bevestiging: "Reserveringsbevestiging {resnr} \u2014 {suite}"
+  };
+
+  var SJ = {};                 /* opgeslagen sjablonen uit Supabase */
+  var PDF = {};                /* { angie:{url,naam}, jacuzzi:{...}, deluxe:{...} } */
+  var stand = { soort: "incheckinfo", kanaal: "whatsapp" };
+  var laatsteTekst = "";
+  var pdfBestand = null, pdfBestandUrl = "", pdfFout = false;
+
+  /* ---------------- hulpjes ---------------- */
+  function $(id){ return document.getElementById(id); }
+  function w(id){ var e = $(id); return e ? String(e.value || "").trim() : ""; }
+  function getal(id){
+    var e = $(id); if(!e) return 0;
+    var s = String(e.value || "").replace(/[^\d,.\-]/g, "");
+    if(s.indexOf(",") > -1) s = s.replace(/\./g, "").replace(",", ".");
+    return parseFloat(s) || 0;
+  }
+  function eur(x){ return "\u20ac " + (Math.round((Number(x) || 0) * 100) / 100).toFixed(2).replace(".", ","); }
+  function datumNl(iso){
+    if(!iso) return "";
+    var d = new Date(iso + "T12:00:00");
+    if(isNaN(d)) return iso;
+    return d.toLocaleDateString("nl-NL", { weekday:"long", day:"numeric", month:"long" });
+  }
+  function status(t, fout){
+    var el = $("bwfBerStatus"); if(!el) return;
+    el.textContent = t || "";
+    el.style.color = fout ? "var(--crit)" : "var(--muted)";
+  }
+  function suiteId(){ return w("c_locatie"); }
+  function suiteNaam(id){
+    id = id || suiteId();
+    if(!id) return "";
+    return (typeof locName === "function") ? locName(id) : id;
+  }
+
+  /* gastgegevens: getekend formulier, klaargezette gegevens of de gekoppelde regel */
+  function gast(){
+    var g = null;
+    try{ if(typeof guestData !== "undefined" && guestData) g = guestData; }catch(e){}
+    if(!g){ try{ if(typeof voorinvulling !== "undefined" && voorinvulling) g = voorinvulling; }catch(e){} }
+    g = Object.assign({ voornaam:"", achternaam:"", telefoon:"", email:"", woonplaats:"", nationaliteit:"" }, g || {});
+    if(!g.telefoon || !g.email){
+      try{
+        var x = (typeof koppelHuidige === "function") ? koppelHuidige() : null;
+        var d = x && x.data ? x.data : {};
+        if(!g.telefoon) g.telefoon = d.telefoon || d.phone || "";
+        if(!g.email) g.email = d.email || "";
+        if(!g.voornaam && d.voornaam) g.voornaam = d.voornaam;
+      }catch(e){}
+    }
+    return g;
+  }
+
+  function waNummer(t){
+    var s = String(t || "").replace(/[^\d+]/g, "");
+    if(!s) return "";
+    if(s.charAt(0) === "+") s = s.slice(1);
+    else if(s.slice(0, 2) === "00") s = s.slice(2);
+    else if(s.charAt(0) === "0") s = "31" + s.slice(1);
+    else if(/^6\d{8}$/.test(s)) s = "31" + s;
+    return s.replace(/\D/g, "");
+  }
+
+  /* ---------------- gastenlink ---------------- */
+  function gastenlink(){
+    var basis = location.href.replace(/[#?].*$/, "").replace(/[^/]*$/, "") + "gast.html";
+    var p = new URLSearchParams();
+    var c = w("c_id");
+    if(c) p.set("c", c);
+    if(w("c_resnr")) p.set("r", w("c_resnr"));
+    if(suiteId()) p.set("loc", suiteId());
+    if(w("c_datum")) p.set("d", w("c_datum"));
+    return basis + (p.toString() ? "?" + p.toString() : "");
+  }
+
+  /* ---------------- incheckinformatie-pdf ---------------- */
+  function pdfVoorSuite(id){
+    id = id || suiteId();
+    if(id && PDF[id] && PDF[id].url) return PDF[id];
+    if(PDF.algemeen && PDF.algemeen.url) return PDF.algemeen;
+    /* dezelfde link als in het VR-dashboard, als die daar is ingesteld */
+    try{
+      var l = localStorage.getItem("bwf_incheckinfo");
+      if(l && /^https?:\/\//.test(l)) return { url:l, naam:"Incheckinformatie", uitVr:true };
+    }catch(e){}
+    return null;
+  }
+
+  async function laadPdfs(){
+    try{
+      var r = await sb("instellingen?select=waarde&sleutel=eq." + SLEUTEL_PDF);
+      if(r && r[0] && r[0].waarde) PDF = JSON.parse(r[0].waarde) || {};
+    }catch(e){}
+  }
+  async function bewaarPdfs(){
+    await sb("instellingen", { method:"POST",
+      body: JSON.stringify({ sleutel: SLEUTEL_PDF, waarde: JSON.stringify(PDF) }),
+      prefer: "resolution=merge-duplicates,return=minimal" });
+  }
+
+  async function uploadPdf(bestand, opnieuw){
+    if(bestand.size > 20 * 1024 * 1024) throw new Error("Dit bestand is groter dan 20 MB.");
+    var veilig = bestand.name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-");
+    var pad = "incheckinfo-" + (suiteId() || "algemeen") + "-" + Date.now() + "-" + veilig;
+    var kop = { "apikey": SUPABASE_KEY, "Content-Type": bestand.type || "application/pdf", "x-upsert": "true" };
+    try{ if(typeof auth !== "undefined" && auth && auth.access_token) kop.Authorization = "Bearer " + auth.access_token; }catch(e){}
+    var r = await fetch(SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + encodeURIComponent(pad),
+      { method:"POST", headers:kop, body:bestand });
+    if(!r.ok && !opnieuw && typeof vernieuwToken === "function" && await vernieuwToken()){
+      return uploadPdf(bestand, true);
+    }
+    if(!r.ok){
+      var detail = ""; try{ detail = (await r.json()).message || ""; }catch(e){}
+      throw new Error("Uploaden lukte niet (" + r.status + (detail ? ": " + detail : "") +
+        "). Plak anders een link naar de pdf, bijvoorbeeld uit Google Drive.");
+    }
+    return SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + encodeURIComponent(pad);
+  }
+
+  /* de pdf alvast ophalen, zodat Delen met pdf meteen reageert */
+  async function haalPdfVooraf(){
+    var info = pdfVoorSuite();
+    if(!info || !info.url){ pdfBestand = null; pdfBestandUrl = ""; pdfFout = false; toonDeelKnop(); return; }
+    if(pdfBestandUrl === info.url) return;
+    pdfBestandUrl = info.url; pdfBestand = null; pdfFout = false;
+    try{
+      var r = await fetch(info.url);
+      if(!r.ok) throw new Error();
+      var blob = await r.blob();
+      var type = blob.type || "application/pdf";
+      var naam = info.naam && !/\(link\)/.test(info.naam) ? info.naam : "Incheckinformatie";
+      if(/pdf/.test(type) && !/\.pdf$/i.test(naam)) naam += ".pdf";
+      pdfBestand = new File([blob], naam, { type: type });
+    }catch(e){ pdfBestand = null; pdfFout = true; }
+    toonDeelKnop();
+  }
+
+  function toonPdfVak(){
+    var naamEl = $("bwfBerPdfNaam"); if(!naamEl) return;
+    var info = pdfVoorSuite();
+    var id = suiteId();
+    var voor = id ? suiteNaam(id) : "alle suites (kies een suite bij Boekingsgegevens voor een eigen pdf)";
+    $("bwfBerPdfVoor").textContent = "Pdf voor " + voor;
+    if(info){
+      naamEl.textContent = info.naam || "Incheckinformatie";
+      $("bwfBerPdfOpen").style.display = "";
+      $("bwfBerPdfWeg").style.display = (id && PDF[id]) || (!id && PDF.algemeen) ? "" : "none";
+      $("bwfBerPdfUitleg").textContent = info.uitVr
+        ? "Dit is de link die in het VR-dashboard is ingesteld. Upload hier een pdf om hem voor deze suite vast te leggen."
+        : (id && !PDF[id] ? "Er is nog geen eigen pdf voor deze suite; de algemene pdf gaat mee." : "Deze pdf gaat als link mee in het bericht.");
+    } else {
+      naamEl.textContent = "Nog geen pdf ingesteld";
+      $("bwfBerPdfOpen").style.display = "none";
+      $("bwfBerPdfWeg").style.display = "none";
+      $("bwfBerPdfUitleg").textContent = "Upload de pdf met de incheckinformatie. Hij wordt bewaard, dus dit hoeft maar \u00e9\u00e9n keer per suite.";
+    }
+  }
+
+  async function zetPdf(info){
+    var sleutel = suiteId() || "algemeen";
+    if(info) PDF[sleutel] = info; else delete PDF[sleutel];
+    await bewaarPdfs();
+    toonPdfVak(); bouwTekst(true); haalPdfVooraf();
+  }
+
+  /* ---------------- gegevens voor de sjablonen ---------------- */
+  function velden(){
+    var g = gast();
+    var mail = stand.kanaal === "email";
+    var overnacht = (document.querySelector('input[name="verblijftype"]:checked') || {}).value === "overnachting";
+
+    var aankomst = datumNl(w("c_datum"));
+    if(w("c_checkin")) aankomst = (aankomst ? aankomst + " vanaf " : "vanaf ") + w("c_checkin") + " uur";
+
+    var vertrekDatum = overnacht ? datumNl(w("c_checkuitdatum")) : "";
+    var vertrek = vertrekDatum;
+    if(w("c_checkuit")) vertrek = (vertrek ? vertrek + " om " : "om ") + w("c_checkuit") + " uur";
+
+    var arr = [];
+    try{
+      if(typeof gekozenArrangementen !== "undefined" && gekozenArrangementen)
+        gekozenArrangementen.forEach(function(a){ if(a && a.naam && arr.indexOf(a.naam) < 0) arr.push(a.naam); });
+    }catch(e){}
+
+    var totaal = 0;
+    try{ if(typeof actueelTotaal === "function") totaal = Number(actueelTotaal()) || 0; }catch(e){}
+    if(!totaal) totaal = getal("c_totaal") || getal("c_resbedrag") + getal("c_extrasTotaal");
+    var betaald = getal("c_aanbetaald");
+    var open = Math.max(0, totaal - betaald);
+
+    var pdf = pdfVoorSuite();
+    var voor = (g.voornaam || "").trim();
+
+    return {
+      aanhef: mail ? "Beste " + (voor || "gast") + "," : "Hallo" + (voor ? " " + voor : "") + ",",
+      voornaam: voor,
+      achternaam: g.achternaam || "",
+      naam: ((g.voornaam || "") + " " + (g.achternaam || "")).trim(),
+      suite: suiteNaam(),
+      aankomst: aankomst,
+      vertrek: vertrek,
+      personen: w("c_personen"),
+      resnr: w("c_resnr"),
+      boekingvia: w("c_boekingvia"),
+      arrangementen: arr.join(", "),
+      totaal: totaal > 0.004 ? eur(totaal) : "",
+      betaald: betaald > 0.004 ? eur(betaald) : "",
+      openstaand: open > 0.004 ? eur(open) : "",
+      gastenlink: gastenlink(),
+      incheckinfo: pdf ? pdf.url : "",
+      bedrijf: BEDRIJF,
+      contact: CONTACT
+    };
+  }
+
+  /* Vult het sjabloon. Is een regel of alinea helemaal leeg omdat de gegevens
+     ontbreken, dan valt die weg: geen "Reserveringsnummer:" zonder nummer. */
+  function vul(sjabloon, v){
+    function leeg(stuk){
+      var ph = (stuk.match(/\{(\w+)\}/g) || []).filter(function(p){ return v.hasOwnProperty(p.slice(1, -1)); });
+      return ph.length > 0 && ph.every(function(p){ return !v[p.slice(1, -1)]; });
+    }
+    return String(sjabloon || "").replace(/\r/g, "").split(/\n\s*\n/).map(function(alinea){
+      if(leeg(alinea)) return "";
+      return alinea.split("\n").filter(function(r){ return !leeg(r); }).join("\n")
+        .replace(/\{(\w+)\}/g, function(h, k){ return v.hasOwnProperty(k) ? v[k] : h; });
+    }).filter(function(x){ return x.trim(); }).join("\n\n");
+  }
+
+  function sjabloon(soort){ return SJ[soort] || STANDAARD[soort]; }
+
+  function tekstVoor(soort, kanaal){
+    var oud = stand.kanaal; stand.kanaal = kanaal || stand.kanaal;
+    var v = velden();
+    var t = vul(sjabloon(soort), v);
+    if(stand.kanaal === "email") t = t.replace(/\*([^*\n]+)\*/g, "$1");
+    var o = vul(ONDERWERP[soort], v);
+    stand.kanaal = oud;
+    return { tekst: t, onderwerp: o, v: v };
+  }
+
+  /* ---------------- tekst in het venster ---------------- */
+  function bouwTekst(forceer){
+    var vak = $("bwfBerTekst"); if(!vak) return;
+    var r = tekstVoor(stand.soort, stand.kanaal);
+    if(forceer || vak.value === laatsteTekst || !vak.value.trim()){
+      vak.value = r.tekst;
+      laatsteTekst = r.tekst;
+    }
+    var ond = $("bwfBerOnderwerp");
+    if(ond && (forceer || !ond.dataset.eigen)) ond.value = r.onderwerp;
+    var link = $("bwfBerLink");
+    if(link) link.value = r.v.gastenlink;
+    var tip = $("bwfBerLinkTip");
+    if(tip){
+      tip.textContent = w("c_id")
+        ? "Persoonlijke link: wat de gast invult, komt meteen bij dit formulier te staan."
+        : "Dit formulier is nog niet opgeslagen. Sla het op als concept, dan wordt de link persoonlijk en komt wat de gast invult direct hier te staan.";
+      $("bwfBerConcept").style.display = w("c_id") ? "none" : "";
+    }
+  }
+
+  function vulContact(forceer){
+    var g = gast();
+    [["bwfBerTel", g.telefoon], ["bwfBerMail", g.email]].forEach(function(p){
+      var el = $(p[0]); if(!el) return;
+      if(forceer || !el.dataset.eigen) el.value = p[1] || "";
+    });
+  }
+
+  function toonDeelKnop(){
+    var k = $("bwfBerDeel"); if(!k) return;
+    var kan = !!(navigator.share && navigator.canShare);
+    k.style.display = kan && !pdfFout && stand.soort === "incheckinfo" && pdfVoorSuite() ? "" : "none";
+  }
+
+  function zetSoort(soort){
+    stand.soort = soort;
+    document.querySelectorAll("#bwfBerSoort button").forEach(function(b){
+      b.setAttribute("aria-pressed", String(b.dataset.soort === soort));
+    });
+    $("bwfBerLinkVak").style.display = soort === "bevestiging" ? "none" : "";
+    $("bwfBerPdfVak").style.display = soort === "incheckinfo" ? "" : "none";
+    var ed = $("bwfBerEditor");
+    if(ed && ed.style.display === "block") $("bwfBerSjTekst").value = sjabloon(soort);
+    if(ed) $("bwfBerSjTitel").textContent = "Sjabloon: " + NAAM[soort];
+    var o = $("bwfBerOnderwerp"); if(o) delete o.dataset.eigen;
+    toonDeelKnop();
+    bouwTekst(true);
+    status("");
+  }
+
+  function zetKanaal(k){
+    stand.kanaal = k;
+    document.querySelectorAll("#bwfBerKanaal button").forEach(function(b){
+      b.setAttribute("aria-pressed", String(b.dataset.kanaal === k));
+    });
+    $("bwfBerOnderwerpVak").style.display = k === "email" ? "" : "none";
+    $("bwfBerVerstuur").textContent = k === "email" ? "E-mail opstellen" : "Versturen via WhatsApp";
+    bouwTekst(true);
+    status("");
+  }
+
+  /* ---------------- versturen ---------------- */
+  function openWhatsApp(nummer, tekst){
+    var nr = waNummer(nummer);
+    window.open("https://wa.me/" + nr + "?text=" + encodeURIComponent(tekst), "_blank", "noopener");
+    return nr;
+  }
+
+  function versturen(){
+    var tekst = $("bwfBerTekst").value;
+    if(!tekst.trim()){ status("Er staat nog geen tekst in het bericht.", true); return; }
+    if(stand.kanaal === "email"){
+      var mail = w("bwfBerMail");
+      if(!mail || mail.indexOf("@") < 0){ status("Vul eerst het e-mailadres van de gast in.", true); $("bwfBerMail").focus(); return; }
+      window.open("https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(mail) +
+        "&su=" + encodeURIComponent(w("bwfBerOnderwerp")) + "&body=" + encodeURIComponent(tekst), "_blank", "noopener");
+      status("Gmail is geopend met het bericht klaar. De pdf staat als link in de mail" +
+        (stand.soort === "incheckinfo" ? "; wil je hem als echte bijlage, download hem dan via Bekijken en sleep hem in de mail." : "."));
+      return;
+    }
+    var nr = openWhatsApp(w("bwfBerTel"), tekst);
+    status(nr ? "WhatsApp is geopend met het bericht klaar voor +" + nr + "."
+              : "Geen telefoonnummer ingevuld. WhatsApp is geopend zonder ontvanger; kies daar zelf de gast.");
+  }
+
+  async function delenMetPdf(){
+    var tekst = $("bwfBerTekst").value;
+    if(!pdfBestand){
+      status("De pdf wordt nog opgehaald. Probeer het over een paar tellen opnieuw.", true);
+      haalPdfVooraf(); return;
+    }
+    var pakket = { files:[pdfBestand], text: tekst, title: "Incheckinformatie" };
+    if(!navigator.canShare(pakket)){
+      status("Delen met een bijlage kan niet op dit apparaat. Gebruik Versturen via WhatsApp; de pdf gaat dan als link mee.", true);
+      return;
+    }
+    try{
+      try{ await navigator.clipboard.writeText(tekst); }catch(e){}
+      await navigator.share(pakket);
+      status("Gedeeld. Kies WhatsApp en de gast. De tekst staat ook op je klembord, voor als WhatsApp hem niet overneemt.");
+    }catch(e){
+      if(e && e.name === "AbortError") return;
+      status("Delen lukte niet: " + (e.message || e) + ". Gebruik Versturen via WhatsApp.", true);
+    }
+  }
+
+  async function kopieer(){
+    var tekst = $("bwfBerTekst").value;
+    try{ await navigator.clipboard.writeText(tekst); status("\u2713 Bericht gekopieerd."); }
+    catch(e){ $("bwfBerTekst").select(); document.execCommand("copy"); status("\u2713 Bericht gekopieerd."); }
+  }
+
+  /* ---------------- sjablonen bewaren ---------------- */
+  async function laadSjablonen(){
+    try{
+      var r = await sb("instellingen?select=sleutel,waarde&sleutel=in.(" +
+        Object.keys(SLEUTEL_SJ).map(function(k){ return SLEUTEL_SJ[k]; }).join(",") + ")") || [];
+      r.forEach(function(x){
+        Object.keys(SLEUTEL_SJ).forEach(function(k){ if(SLEUTEL_SJ[k] === x.sleutel && x.waarde) SJ[k] = x.waarde; });
+      });
+    }catch(e){}
+  }
+  async function bewaarSjabloon(){
+    var tekst = $("bwfBerSjTekst").value;
+    try{
+      await sb("instellingen", { method:"POST",
+        body: JSON.stringify({ sleutel: SLEUTEL_SJ[stand.soort], waarde: tekst }),
+        prefer: "resolution=merge-duplicates,return=minimal" });
+      SJ[stand.soort] = tekst;
+      bouwTekst(true);
+      status("\u2713 Sjabloon " + NAAM[stand.soort] + " opgeslagen. Iedereen gebruikt nu deze versie.");
+    }catch(e){ status("Opslaan lukte niet: " + e.message, true); }
+  }
+
+  /* =========================================================
+     1. Knoppen bij "Waar komen de gegevens vandaan"
+     ========================================================= */
+  function bouwBronKnoppen(){
+    var d = $("bwfOvernemen");
+    if(!d || $("bwfOvKlant")) return !!$("bwfOvKlant");
+    var rij = d.querySelector(".linkbox");
+    var bron = $("bwfOvBron");
+    if(!rij || !bron) return false;
+
+    if(!bron.querySelector('option[value="handmatig"]')){
+      var o = document.createElement("option"); o.value = "handmatig"; bron.appendChild(o);
+    }
+
+    var k1 = document.createElement("button");
+    k1.type = "button"; k1.className = "btn secondary"; k1.id = "bwfOvKlant";
+    k1.setAttribute("data-ovknop", "klant"); k1.textContent = "Uit klantenbestand";
+    var k2 = document.createElement("button");
+    k2.type = "button"; k2.className = "btn secondary"; k2.id = "bwfOvHand";
+    k2.setAttribute("data-ovknop", "handmatig"); k2.textContent = "Handmatig invoeren";
+    rij.appendChild(k1); rij.appendChild(k2);
+
+    var vak = document.createElement("div");
+    vak.id = "bwfHandVak";
+    vak.innerHTML =
+      '<div style="font-size:13px;font-weight:700">Gastgegevens handmatig invoeren</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-top:2px">Deze gegevens staan daarna klaar in het gastformulier. ' +
+        'De gast hoeft alleen nog na te lopen en te tekenen.</div>' +
+      '<div class="raster">' +
+        '<div><label for="bwfHVoornaam">Voornaam</label><input type="text" id="bwfHVoornaam" autocomplete="off"></div>' +
+        '<div><label for="bwfHAchternaam">Achternaam</label><input type="text" id="bwfHAchternaam" autocomplete="off"></div>' +
+        '<div><label for="bwfHTelefoon">Telefoon</label><input type="tel" id="bwfHTelefoon" autocomplete="off" placeholder="06 12345678"></div>' +
+        '<div><label for="bwfHEmail">E-mail</label><input type="email" id="bwfHEmail" autocomplete="off"></div>' +
+        '<div><label for="bwfHWoonplaats">Woonplaats</label><input type="text" id="bwfHWoonplaats" autocomplete="off"></div>' +
+        '<div><label for="bwfHNationaliteit">Nationaliteit</label><input type="text" id="bwfHNationaliteit" autocomplete="off"></div>' +
+      '</div>' +
+      '<div class="linkbox" style="margin-top:12px">' +
+        '<button class="btn sm" type="button" id="bwfHOpslaan">Gastgegevens overnemen</button>' +
+        '<button class="btn secondary sm" type="button" id="bwfHKlant">Ook in klantenbestand zetten</button>' +
+      '</div>';
+    var st = $("bwfOvStatus");
+    d.insertBefore(vak, st || null);
+
+    function leesVak(){
+      return {
+        voornaam: w("bwfHVoornaam"), achternaam: w("bwfHAchternaam"),
+        telefoon: w("bwfHTelefoon"), email: w("bwfHEmail"),
+        woonplaats: w("bwfHWoonplaats"), nationaliteit: w("bwfHNationaliteit")
+      };
+    }
+    function vulVak(){
+      var g = gast();
+      $("bwfHVoornaam").value = g.voornaam || "";
+      $("bwfHAchternaam").value = g.achternaam || "";
+      $("bwfHTelefoon").value = g.telefoon || "";
+      $("bwfHEmail").value = g.email || "";
+      $("bwfHWoonplaats").value = g.woonplaats || "";
+      $("bwfHNationaliteit").value = g.nationaliteit || "";
+    }
+    function melding(t, fout){
+      var el = $("bwfOvStatus"); if(!el) return;
+      el.textContent = t; el.style.color = fout ? "var(--crit)" : "var(--muted)";
+    }
+    function overnemen(){
+      var g = leesVak();
+      if(!g.voornaam && !g.achternaam){ melding("Vul minimaal de voor- of achternaam in.", true); return false; }
+      if(typeof zetVoorinvulling === "function") zetVoorinvulling(g);
+      try{
+        if(typeof guestData !== "undefined" && guestData){
+          Object.keys(g).forEach(function(k){ if(g[k]) guestData[k] = g[k]; });
+          if(typeof renderGuestStatus === "function") renderGuestStatus();
+        }
+      }catch(e){}
+      vulContact(true); bouwTekst();
+      melding("\u2713 Gastgegevens van " + (g.voornaam + " " + g.achternaam).trim() + " staan klaar in het formulier.");
+      return true;
+    }
+    $("bwfHOpslaan").onclick = overnemen;
+    $("bwfHKlant").onclick = function(){
+      if(!overnemen()) return;
+      if(typeof klantUitGastgegevens === "function"){
+        klantUitGastgegevens();
+        melding("Bezig met opslaan in het klantenbestand\u2026 De uitkomst zie je bij Gastgegevens en akkoord.");
+        setTimeout(function(){
+          var s = $("gastKlantStatus");
+          if(s && s.textContent) melding(s.textContent, /\u2715/.test(s.textContent));
+        }, 1800);
+      }
+    };
+
+    /* Gegevens overnemen uit klantenbestand of aanmelding: eerst de lijst van
+       stap 1 op dezelfde bron zetten, anders bestaat de gekozen regel daar niet
+       en wordt er niets overgenomen. Capture-fase, dus dit gaat vooraf. */
+    document.addEventListener("click", function(e){
+      if(!e.target.closest || !e.target.closest("#bwfOvNeem")) return;
+      var b = ($("bwfOvBron") || {}).value, kb = $("k_bron");
+      if(!kb || ["klant", "aanmelding", "reservering"].indexOf(b) < 0) return;
+      kb.value = b;
+      var z = $("k_zoek"); if(z) z.value = "";
+      if(typeof vulKoppelKeuze === "function") try{ vulKoppelKeuze(); }catch(err){}
+    }, true);
+
+    /* zichtbaarheid: alleen bij Handmatig invoeren */
+    d.addEventListener("click", function(e){
+      var b = e.target.closest("[data-ovknop]"); if(!b) return;
+      var hand = b.getAttribute("data-ovknop") === "handmatig";
+      vak.style.display = hand ? "block" : "none";
+      if(hand){
+        vulVak();
+        melding("Vul de gastgegevens in en klik op Gastgegevens overnemen. Suite, datum en tijden vul je hieronder bij de boeking in.");
+        setTimeout(function(){ $("bwfHVoornaam").focus(); }, 50);
+      } else if(b.getAttribute("data-ovknop") === "klant"){
+        setTimeout(function(){
+          var z = $("bwfOvZoek");
+          if(z){ z.placeholder = "naam of e-mail"; z.focus(); }
+        }, 80);
+      }
+    });
+    return true;
+  }
+
+  /* =========================================================
+     2. Het blok Berichten naar de gast
+     ========================================================= */
+  function bouwBerichten(){
+    if($("bwfBericht")) return true;
+    var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"] .bwf-body');
+    if(!sec) return false;
+
+    var d = document.createElement("div");
+    d.id = "bwfBericht";
+    d.innerHTML =
+      '<h3>Berichten naar de gast</h3>' +
+      '<p class="uitleg">Kies een bericht en controleer de tekst. Die vult zich met de gegevens uit dit formulier; ' +
+        'je kunt hem aanpassen voor je verstuurt.</p>' +
+
+      '<div class="keuzes">' +
+        '<div class="bwf-keuze" id="bwfBerSoort" role="group" aria-label="Bericht">' +
+          '<button type="button" data-soort="incheckinfo" aria-pressed="true">Incheckinformatie</button>' +
+          '<button type="button" data-soort="gastenlink" aria-pressed="false">Gastenlink</button>' +
+          '<button type="button" data-soort="bevestiging" aria-pressed="false">Reserveringsbevestiging</button>' +
+        '</div>' +
+        '<div class="bwf-keuze" id="bwfBerKanaal" role="group" aria-label="Versturen via">' +
+          '<button type="button" data-kanaal="whatsapp" aria-pressed="true">WhatsApp</button>' +
+          '<button type="button" data-kanaal="email" aria-pressed="false">E-mail</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="raster2">' +
+        '<div><label for="bwfBerTel">Telefoon gast</label><input type="tel" id="bwfBerTel" placeholder="06 12345678"></div>' +
+        '<div><label for="bwfBerMail">E-mail gast</label><input type="email" id="bwfBerMail"></div>' +
+      '</div>' +
+
+      '<div class="vak" id="bwfBerLinkVak">' +
+        '<p class="kopje">Gastenlink</p>' +
+        '<div class="regel">' +
+          '<input type="text" id="bwfBerLink" readonly onclick="this.select()" aria-label="Gastenlink">' +
+          '<button class="btn secondary sm" type="button" id="bwfBerLinkKopie">Link kopi\u00ebren</button>' +
+          '<button class="btn sm" type="button" id="bwfBerConcept">Opslaan als concept</button>' +
+        '</div>' +
+        '<p class="klein" id="bwfBerLinkTip"></p>' +
+      '</div>' +
+
+      '<div class="vak" id="bwfBerPdfVak">' +
+        '<p class="kopje" id="bwfBerPdfVoor">Pdf met incheckinformatie</p>' +
+        '<div class="regel">' +
+          '<span id="bwfBerPdfNaam"></span>' +
+          '<a class="btn secondary sm" id="bwfBerPdfOpen" target="_blank" rel="noopener">Bekijken</a>' +
+          '<button class="btn secondary sm" type="button" id="bwfBerPdfKies">Pdf uploaden</button>' +
+          '<button class="btn secondary sm" type="button" id="bwfBerPdfLink">Link plakken</button>' +
+          '<button class="btn secondary sm" type="button" id="bwfBerPdfWeg">Verwijderen</button>' +
+          '<input type="file" id="bwfBerPdfFile" accept="application/pdf,.pdf,image/*" style="display:none">' +
+        '</div>' +
+        '<p class="klein" id="bwfBerPdfUitleg"></p>' +
+      '</div>' +
+
+      '<div id="bwfBerOnderwerpVak" style="display:none"><label for="bwfBerOnderwerp">Onderwerp</label>' +
+        '<input type="text" id="bwfBerOnderwerp"></div>' +
+      '<label for="bwfBerTekst">Tekst</label>' +
+      '<textarea id="bwfBerTekst" spellcheck="true"></textarea>' +
+
+      '<div id="bwfBerKnoppen">' +
+        '<button class="btn" type="button" id="bwfBerVerstuur">Versturen via WhatsApp</button>' +
+        '<button class="btn secondary" type="button" id="bwfBerDeel" style="display:none">Delen met pdf als bijlage</button>' +
+        '<button class="btn secondary" type="button" id="bwfBerKopie">Bericht kopi\u00ebren</button>' +
+        '<button class="btn secondary" type="button" id="bwfBerHerstel">Tekst opnieuw opbouwen</button>' +
+        '<button class="btn secondary" type="button" id="bwfBerSjKnop">Sjabloon aanpassen</button>' +
+      '</div>' +
+
+      '<div id="bwfBerEditor">' +
+        '<p class="kopje" id="bwfBerSjTitel" style="font-size:13px;font-weight:700;margin:0 0 6px">Sjabloon</p>' +
+        '<textarea id="bwfBerSjTekst" spellcheck="false" aria-label="Sjabloon"></textarea>' +
+        '<p id="bwfBerVelden"></p>' +
+        '<p class="klein" style="font-size:12.5px;color:var(--muted);margin:4px 0 0">Een regel waarvan het veld leeg is, valt vanzelf weg. ' +
+          'Tekst tussen *sterretjes* wordt vet in WhatsApp; in een e-mail vallen de sterretjes weg.</p>' +
+        '<div class="linkbox">' +
+          '<button class="btn sm" type="button" id="bwfBerSjBewaar">Sjabloon opslaan</button>' +
+          '<button class="btn secondary sm" type="button" id="bwfBerSjStandaard">Terug naar standaard</button>' +
+          '<button class="btn secondary sm" type="button" id="bwfBerSjSluit">Klaar</button>' +
+        '</div>' +
+      '</div>' +
+      '<span id="bwfBerStatus" role="status"></span>';
+    sec.appendChild(d);
+
+    /* keuzes */
+    $("bwfBerSoort").addEventListener("click", function(e){
+      var b = e.target.closest("button[data-soort]"); if(b) zetSoort(b.dataset.soort);
+    });
+    $("bwfBerKanaal").addEventListener("click", function(e){
+      var b = e.target.closest("button[data-kanaal]"); if(b) zetKanaal(b.dataset.kanaal);
+    });
+
+    /* contactvelden: wat je zelf typt blijft staan */
+    ["bwfBerTel", "bwfBerMail"].forEach(function(id){
+      $(id).addEventListener("input", function(){
+        if(this.value) this.dataset.eigen = "1"; else delete this.dataset.eigen;
+      });
+    });
+    $("bwfBerOnderwerp").addEventListener("input", function(){ this.dataset.eigen = "1"; });
+
+    /* gastenlink */
+    $("bwfBerLinkKopie").onclick = async function(){
+      var l = $("bwfBerLink").value;
+      try{ await navigator.clipboard.writeText(l); }catch(e){ $("bwfBerLink").select(); document.execCommand("copy"); }
+      status("\u2713 Gastenlink gekopieerd.");
+    };
+    $("bwfBerConcept").onclick = async function(){
+      if(!w("c_locatie") || !w("c_datum")){
+        status("Kies eerst de suite en de datum bij Boekingsgegevens, dan kan het concept worden opgeslagen.", true); return;
+      }
+      var knop = this; knop.disabled = true;
+      status("Bezig met opslaan als concept\u2026");
+      try{
+        await window.saveCheckin(true);
+        bouwTekst(true);
+        if(w("c_id")) status("\u2713 Opgeslagen als concept. De gastenlink is nu persoonlijk.");
+        else status("Opslaan lukte niet. De reden staat bij de knop Tussentijds opslaan als concept.", true);
+      }catch(e){ status("Opslaan lukte niet: " + (e.message || e), true); }
+      knop.disabled = false;
+    };
+
+    /* pdf */
+    $("bwfBerPdfKies").onclick = function(){ $("bwfBerPdfFile").click(); };
+    $("bwfBerPdfFile").onchange = async function(e){
+      var f = e.target.files && e.target.files[0]; e.target.value = "";
+      if(!f) return;
+      status("Bezig met uploaden van " + f.name + "\u2026");
+      try{
+        var url = await uploadPdf(f);
+        await zetPdf({ url:url, naam:f.name });
+        status("\u2713 " + f.name + " is bewaard voor " + (suiteNaam() || "alle suites") + ".");
+      }catch(err){ status(err.message, true); }
+    };
+    $("bwfBerPdfLink").onclick = async function(){
+      var nu = (pdfVoorSuite() || {}).url || "https://";
+      var l = prompt("Plak de link naar de pdf met incheckinformatie" +
+        (suiteNaam() ? " voor " + suiteNaam() : "") + ".\nBij Google Drive: zet delen op Iedereen met de link.", nu);
+      if(l === null) return;
+      l = l.trim();
+      if(!/^https?:\/\/\S+$/.test(l)){ status("Dat is geen geldige link. Die begint met https://", true); return; }
+      try{ await zetPdf({ url:l, naam:"Incheckinformatie (link)" }); status("\u2713 Link bewaard."); }
+      catch(err){ status("Bewaren lukte niet: " + err.message, true); }
+    };
+    $("bwfBerPdfWeg").onclick = async function(){
+      if(!confirm("De pdf voor " + (suiteNaam() || "alle suites") + " verwijderen uit de berichten?")) return;
+      try{ await zetPdf(null); status("Pdf verwijderd."); }catch(err){ status("Verwijderen lukte niet: " + err.message, true); }
+    };
+    $("bwfBerPdfOpen").onclick = function(e){
+      var info = pdfVoorSuite();
+      if(!info){ e.preventDefault(); return; }
+      this.href = info.url;
+    };
+
+    /* versturen */
+    $("bwfBerVerstuur").onclick = versturen;
+    $("bwfBerDeel").onclick = delenMetPdf;
+    $("bwfBerKopie").onclick = kopieer;
+    $("bwfBerHerstel").onclick = function(){
+      vulContact(true); bouwTekst(true);
+      status("De tekst is opnieuw opgebouwd uit de gegevens in het formulier.");
+    };
+
+    /* sjabloon */
+    var namen = ["aanhef","voornaam","achternaam","naam","suite","aankomst","vertrek","personen","resnr",
+      "boekingvia","arrangementen","totaal","betaald","openstaand","gastenlink","incheckinfo","bedrijf","contact"];
+    $("bwfBerVelden").innerHTML = "Klik een veld om het in te voegen: " +
+      namen.map(function(x){ return "<code>{" + x + "}</code>"; }).join("");
+    $("bwfBerVelden").addEventListener("click", function(e){
+      if(e.target.tagName !== "CODE") return;
+      var ta = $("bwfBerSjTekst"), p = ta.selectionStart || 0;
+      ta.value = ta.value.slice(0, p) + e.target.textContent + ta.value.slice(ta.selectionEnd || p);
+      ta.focus(); ta.selectionStart = ta.selectionEnd = p + e.target.textContent.length;
+    });
+    $("bwfBerSjKnop").onclick = function(){
+      var ed = $("bwfBerEditor");
+      var open = ed.style.display === "block";
+      ed.style.display = open ? "none" : "block";
+      if(!open){
+        $("bwfBerSjTitel").textContent = "Sjabloon: " + NAAM[stand.soort];
+        $("bwfBerSjTekst").value = sjabloon(stand.soort);
+        $("bwfBerSjTekst").focus();
+      }
+    };
+    $("bwfBerSjTekst").oninput = function(){
+      var t = vul(this.value, velden());
+      $("bwfBerTekst").value = t; laatsteTekst = t;
+    };
+    $("bwfBerSjBewaar").onclick = bewaarSjabloon;
+    $("bwfBerSjStandaard").onclick = function(){
+      $("bwfBerSjTekst").value = STANDAARD[stand.soort];
+      $("bwfBerSjTekst").oninput();
+      status("Standaardtekst teruggezet. Klik op Sjabloon opslaan om hem te bewaren.");
+    };
+    $("bwfBerSjSluit").onclick = function(){ $("bwfBerEditor").style.display = "none"; bouwTekst(true); };
+
+    zetKanaal("whatsapp");
+    zetSoort("incheckinfo");
+    vulContact(true);
+    toonPdfVak();
+
+    Promise.all([laadSjablonen(), laadPdfs()]).then(function(){
+      toonPdfVak(); bouwTekst(true); haalPdfVooraf();
+    });
+
+    /* gegevens in het formulier veranderen: de tekst loopt mee zolang je hem niet zelf hebt aangepast */
+    var vorigeSuite = suiteId();
+    setInterval(function(){
+      if(!$("bwfBericht")) return;
+      vulContact(false);
+      if($("bwfBerEditor").style.display !== "block") bouwTekst(false);
+      if(suiteId() !== vorigeSuite){ vorigeSuite = suiteId(); toonPdfVak(); haalPdfVooraf(); }
+    }, 2000);
+
+    return true;
+  }
+
+  /* =========================================================
+     3. WhatsApp bij Bevestiging & factuur
+     ========================================================= */
+  function bouwDocWhatsApp(){
+    if($("bwfDocWa")) return true;
+    var mail = $("bwfDocMail");
+    if(!mail) return false;
+    var houder = document.createElement("div");
+    houder.innerHTML = '<label>&nbsp;</label><button class="btn secondary sm" type="button" id="bwfDocWa">Versturen via WhatsApp</button>';
+    mail.parentElement.parentElement.insertBefore(houder, mail.parentElement.nextSibling);
+
+    $("bwfDocWa").onclick = function(){
+      var soort = ($("bwfDocSoort") || {}).value || "bevestiging";
+      var tekst;
+      if(soort === "factuur"){
+        var vb = $("bwfDocVoorbeeld");
+        tekst = vb ? String(vb.innerText || "").replace(/\t+/g, ": ").replace(/[ \u00a0]+\n/g, "\n")
+                      .replace(/\n{3,}/g, "\n\n").trim() : "";
+      } else {
+        tekst = tekstVoor("bevestiging", "whatsapp").tekst;
+      }
+      var tel = w("bwfBerTel") || gast().telefoon;
+      var nr = openWhatsApp(tel, tekst);
+      var st = $("bwfDocStatus");
+      if(st){
+        st.style.color = "var(--muted)";
+        st.textContent = (nr ? "WhatsApp is geopend met de " + (soort === "factuur" ? "factuur" : "reserveringsbevestiging") + " voor +" + nr + "."
+                             : "Geen telefoonnummer bekend. WhatsApp is geopend zonder ontvanger; kies daar zelf de gast.") +
+          (soort === "factuur" ? "" : " De WhatsApp-tekst pas je aan bij Berichten naar de gast \u203a Reserveringsbevestiging.");
+      }
+    };
+    return true;
+  }
+
+  /* =========================================================
+     4. Snelknop bij Beginnen
+     ========================================================= */
+  function naarBericht(soort){
+    if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
+    setTimeout(function(){
+      if(!$("bwfBericht")) return;
+      zetSoort(soort);
+      $("bwfBericht").scrollIntoView({ behavior:"smooth", block:"start" });
+    }, 350);
+  }
+  window.bwfNaarBericht = naarBericht;
+
+  function bouwStartKnop(){
+    if($("bwfGastlinkKnop")) return true;
+    var nieuw = $("bwfNieuwForm");
+    if(!nieuw) return false;
+    var k = document.createElement("button");
+    k.type = "button"; k.className = "btn secondary"; k.id = "bwfGastlinkKnop";
+    k.textContent = "Gastenlink versturen";
+    k.onclick = function(){ naarBericht("gastenlink"); };
+    nieuw.parentNode.insertBefore(k, nieuw.nextSibling);
+    return true;
+  }
+
+  /* ---------------- opstarten ---------------- */
+  var pogingen = 0;
+  function start(){
+    var a = bouwBronKnoppen(), b = bouwBerichten(), c = bouwDocWhatsApp(), s = bouwStartKnop();
+    if(!(a && b && c && s) && ++pogingen < 40) setTimeout(start, 600);
+  }
+  if(document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1600); });
+  else setTimeout(start, 1600);
+})();
+</script>
+
 </body>
 </html>
