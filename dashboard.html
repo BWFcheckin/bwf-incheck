@@ -837,27 +837,9 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="B&amp;W Lelystad">
-<style>
-/* menubalk bovenaan, in plaats van de knop rechtsonder */
-.bwf-topmenu{position:sticky;top:0;z-index:8500;background:#483C34;
-  box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
-.bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;
-  align-items:center;padding:8px 16px}
-.bwf-topmenu img{height:26px;width:auto;flex:none;margin-right:4px}
-.bwf-topmenu a{color:rgba(255,255,255,.84);text-decoration:none;font-size:13px;padding:5px 11px;
-  border-radius:999px;border:1px solid rgba(255,255,255,.18);white-space:nowrap;
-  font-family:"Public Sans",Arial,sans-serif}
-.bwf-topmenu a:hover{background:rgba(255,255,255,.14);color:#fff}
-.bwf-topmenu a.hier{background:#fff;color:#483C34;border-color:#fff;font-weight:600}
-.bwf-topmenu .wie{margin-left:auto;color:rgba(255,255,255,.72);font-size:11.5px;
-  font-family:"IBM Plex Mono",monospace}
-#bwfMenuKnop{display:none!important}
-@media(max-width:760px){ .bwf-topmenu .binnen{flex-wrap:nowrap;overflow-x:auto} }
-@media print{ .bwf-topmenu{display:none} }
-</style>
 </head>
 <body>
-<div class="bwf-topmenu" id="bwfTop"></div>
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* ============================================================
    VUL HIER JE SUPABASE-GEGEVENS IN
@@ -904,7 +886,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
-    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad" hidden style="display:none">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
+    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Vragen &amp; taken</button>
   </nav>
@@ -914,21 +896,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   <section class="panel" id="panel-overzicht" role="tabpanel" aria-labelledby="tab-overzicht" hidden>
     <div class="page-head">
       <span class="eyebrow">Locatie Lelystad</span>
-      <h1>Vandaag</h1>
-      <p>Aankomsten en vertrekken van vandaag, met de welkomstcall en de bijzonderheden erbij.</p>
+      <h1>Overzicht</h1>
+      <p>Alle reserveringen van Malina Jacuzzi en Malina Deluxe. Klik een reservering aan voor de kaart.</p>
     </div>
 
-    <!-- De dagweergave komt uit vandaag.html, zodat er maar één plek is waar
-         die logica staat. Het oude overzicht staat eronder, ingeklapt. -->
-    <iframe id="vandaagFrame" title="Vandaag" src="vandaag.html?loc=lelystad" loading="lazy"
-      style="width:100%;height:78vh;min-height:520px;border:1px solid var(--line);
-             border-radius:12px;background:var(--surface)"></iframe>
-
-    <div style="margin:16px 0 10px">
-      <button class="btn secondary" type="button" id="oudOverzichtKnop">+ Het oude overzicht tonen</button>
-    </div>
-
-    <div id="oudOverzicht" hidden>
     <div class="lm-balk" id="lmBalk" hidden></div>
 
     <div class="ov-tegels" id="ovTegels"></div>
@@ -1076,7 +1047,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <span>Scan om een review achter te laten</span>
       </div>
     </div>
-    </div><!-- einde oudOverzicht -->
   </section>
 
   <!-- ============ VRAGEN &amp; TAKEN ============ -->
@@ -1121,7 +1091,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="kaart">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
         <h2 style="font-size:17px">Openstaand</h2>
-        <span id="tkTeller" style="font-size:13px;opacity:.7"></span>
         <select id="tkFilter" style="margin-left:auto"><option value="">Iedereen</option></select>
       </div>
       <div id="tkLijst"></div>
@@ -2917,10 +2886,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   var SB_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
   var SB_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
-  var AGENDA = {
-    PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
-    SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
-  };
   var VR_URL      = 'https://bwfcheckin.github.io/bwf-incheck/vr2.html';
   var FORM_LM_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
   var FORM_GAST   = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
@@ -2979,25 +2944,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var t = await r.text();
     return t ? JSON.parse(t) : null;
   }
-  /* Het oude overzicht staat ingeklapt onder de dagweergave. */
-  (function(){
-    var knop = document.getElementById("oudOverzichtKnop");
-    var vak = document.getElementById("oudOverzicht");
-    if(!knop || !vak) return;
-    knop.addEventListener("click", function(){
-      var open = !vak.hidden;
-      vak.hidden = open;
-      knop.textContent = open ? "+ Het oude overzicht tonen" : "\u2715 Het oude overzicht verbergen";
-    });
-  })();
-
-  /* het kader met de dagweergave laten meegroeien */
-  window.addEventListener("message", function(e){
-    if(!e.data || e.data.bwf !== "hoogte" || e.data.bron !== "vandaag") return;
-    var f = document.getElementById("vandaagFrame");
-    if(f) f.style.height = Math.max(420, Math.min(2200, e.data.hoogte + 24)) + "px";
-  });
-
   function melding(t, goed){
     var el = document.getElementById('ovMelding'); if(!el) return;
     el.textContent = t || ''; el.style.color = goed ? '#2E8B57' : '';
@@ -3516,7 +3462,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   async function laden(){
     var fouten = [], agenda = [], eigen = [];
     try{
-      var json = await (await fetch(AGENDA.PROXY+'?k='+encodeURIComponent(AGENDA.SLEUTEL))).json();
+      var json = await BWFAgenda.events();
       if(json.fout) throw new Error(json.fout);
       agenda = (json.events||[]).map(uitAgenda);
     }catch(e){ fouten.push('agenda'); }
@@ -3598,28 +3544,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   async function maakCall(r, medewerker){
     var n = naw(r);
-    /* De kolomnamen hieronder moeten kloppen met de tabel wz_welkomstcalls.
-       Eerder stond hier gast, aankomst en reservering; die kolommen bestaan
-       niet, waardoor het aanmaken altijd mislukte.
-       Met on_conflict wordt een bestaande call bijgewerkt in plaats van
-       gedupliceerd \u2014 dat sluit aan op het slot op naam en datum. */
     var basis = {
-      naam: gastnaam(r),
+      gast: gastnaam(r),
       telefoon: kop(r).telefoon || n.telefoon || '',
       email: kop(r).email || n.email || '',
       locatie: hoofdnaam(r.locatie),
-      datum: r.aankomst || null,
-      referentie: n.nummer || sleutel(r),
-      status: 'te bellen',
-      bron: 'dashboard',
-      aangemaakt: new Date().toISOString()
+      aankomst: r.aankomst || null,
+      reservering: n.nummer || sleutel(r),
+      status: 'open'
     };
-    if(medewerker) basis.medewerker_id = medewerker;
-    var res = await sb('wz_welkomstcalls?on_conflict=naam,datum', {
-      method: 'POST',
-      prefer: 'resolution=merge-duplicates,return=representation',
-      body: JSON.stringify(basis)
-    });
+    var res;
+    try{
+      res = await sb('wz_welkomstcalls', { method:'POST',
+        body: JSON.stringify(Object.assign({ medewerker: medewerker }, basis)) });
+    }catch(e){
+      /* kent de tabel geen medewerker-kolom? dan zonder */
+      res = await sb('wz_welkomstcalls', { method:'POST', body: JSON.stringify(basis) });
+    }
     var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
     await bewaarKoppeling(r, { welkomstcall_id: id, medewerker: medewerker });
     return id;
@@ -3917,21 +3858,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var a = document.getElementById('tkWie'), b = document.getElementById('tkFilter');
     var ha=a.value, hb=b.value;
     a.innerHTML = '<option value="">Nog niet toegewezen</option>'+opts; a.value=ha;
-    /* Een locatiemanager ziet alleen zijn eigen taken \u2014 die van collega's
-       gaan hem niet aan. Alleen de eigenaar kan alles zien. */
-    var mij = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
-    var alles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
-    if(alles){
-      b.innerHTML = '<option value="">Iedereen</option>' + opts;
-      if(hb) b.value = hb;
-      else if(mij && namen.indexOf(mij) > -1) b.value = mij;
-    }else{
-      b.innerHTML = mij ? '<option>' + esc(mij) + '</option>'
-                        : '<option value="">Nog niet toegewezen</option>';
-      b.value = mij;
-      b.disabled = true;
-      b.title = 'Je ziet de taken die op jouw naam staan.';
-    }
+    b.innerHTML = '<option value="">Iedereen</option>'+opts; b.value=hb;
   }
 
   /* ---------- tegels ---------- */
@@ -4359,9 +4286,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function naarVoorraad(){
     var tab = document.getElementById('tab-voorraad');
     if(!tab) return;
-    tab.hidden = false; tab.style.display = '';
     tab.click();
-    tab.hidden = true; tab.style.display = 'none';
     window.scrollTo({ top:0, behavior:'smooth' });
   }
   if((location.hash || '').toLowerCase() === '#voorraad') setTimeout(naarVoorraad, 400);
@@ -4369,14 +4294,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if((location.hash || '').toLowerCase() === '#voorraad') naarVoorraad();
   });
 
-  /* Voorraad staat niet meer in de tabbalk maar onderaan bij Contact */
+  /* De snelkoppeling onder Contact opent hetzelfde zichtbare voorraadtabblad. */
   (function(){
     var knop = document.getElementById('ovVoorraadKnop'); if(!knop) return;
     knop.addEventListener('click', function(e){
       e.preventDefault();
       var tab = document.getElementById('tab-voorraad');
-      if(tab){ tab.hidden = false; tab.style.display = ''; tab.click();
-               tab.hidden = true; tab.style.display = 'none'; }
+      if(tab) tab.click();
     });
     var bron = document.getElementById('badge-voorraad'),
         doel = document.getElementById('badge-voorraad-onder');
@@ -5395,27 +5319,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* ---------- taken ---------- */
   function tekenTaken(){
     var wie = document.getElementById('tkFilter').value;
-    /* voor de zekerheid ook hier: geen eigenaar, dan altijd de eigen naam */
-    var magAlles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
-    if(!magAlles) wie = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : wie;
     var open = TAKEN.filter(function(t){ return (t.status||'open')==='open'; })
       .filter(function(t){ return !wie || String(t.toegewezen||'')===wie; });
     var el = document.getElementById('tkLijst');
-    var teller = document.getElementById('tkTeller');
-    if(teller){
-      var mij = window.BWF && window.BWF.medewerker ? window.BWF.medewerker : '';
-      var opMijnNaam = TAKEN.filter(function(t){
-        return (t.status||'open')==='open' && String(t.toegewezen||'')===mij; }).length;
-      teller.textContent = wie
-        ? open.length + ' op naam van ' + wie
-        : open.length + ' in totaal' + (mij ? ' \u00b7 ' + opMijnNaam + ' op jouw naam' : '');
-    }
-    if(!open.length){
-      el.innerHTML = '<p style="opacity:.55;font-size:14px">' +
-        (wie ? 'Geen openstaande taken voor ' + esc(wie) + '. Zet het filter op Iedereen om alles te zien.'
-             : 'Geen openstaande taken.') + '</p>';
-      return;
-    }
+    if(!open.length){ el.innerHTML = '<p style="opacity:.55;font-size:14px">Geen openstaande taken.</p>'; return; }
     el.innerHTML = open.map(function(t){
       return '<div class="taak"><input type="checkbox" data-taak="'+esc(t.id)+'" style="margin-top:4px">'+
         '<div class="op"><b>'+esc(t.titel||'Zonder titel')+'</b>'+
@@ -5728,36 +5635,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 })();
 </script>
 <!-- ================= einde Home-knop ================= -->
-<script>
-/* De menubalk bovenaan vullen. De zwevende knop rechtsonder is verborgen. */
-(function(){
-  if(window.self !== window.top){ var t=document.getElementById('bwfTop'); if(t) t.remove(); return; }
-  var PAGINAS = [
-    ['Dagstart','dagstart.html'], ['Vandaag','vandaag.html'],
-    ['Reserveringen','reserveringen.html'], ['Incheck','incheckformulier.html'],
-    ['Klanten','klantbeheer.html'], ['VR','vr2.html'],
-    ['Personeel','dashboard.html'], ['Hulp','controle.html']
-  ];
-  var hier = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-  var vak = document.getElementById('bwfTop');
-  if(!vak) return;
-  vak.innerHTML = '<div class="binnen">' +
-    '<img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">' +
-    PAGINAS.map(function(p){
-      return '<a href="' + p[1] + '"' + (p[1].toLowerCase() === hier ? ' class="hier"' : '') +
-        '>' + p[0] + '</a>';
-    }).join('') +
-    '<span class="wie" id="bwfTopWie"></span></div>';
-  function wie(){
-    var el = document.getElementById('bwfTopWie');
-    if(el && window.BWF && (window.BWF.medewerker || window.BWF.email))
-      el.textContent = (window.BWF.medewerker || window.BWF.email) +
-        (window.BWF.rol ? ' \u00b7 ' + window.BWF.rol : '');
-  }
-  window.addEventListener('bwf-ingelogd', wie);
-  setTimeout(wie, 800); setInterval(wie, 4000);
-})();
-</script>
 <script src="bwf-shell.js"></script>
 </body>
 </html>
