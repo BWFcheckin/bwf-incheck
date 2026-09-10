@@ -820,7 +820,7 @@ window.BWF = window.BWF || {};
   </div>
 </div></dialog>
 
-<script src="bwf-planyo.js?v=10"></script>
+<script src="bwf-planyo.js?v=11"></script>
 <script src="bwf-agenda.js?v=1"></script>
 <script>
 /* =========================================================
@@ -934,6 +934,7 @@ async function bewaarInst(sleutel, waarde){
 }
 var periode = 'maand';
 
+function datumPlusDagen(n){ var d = new Date(); d.setDate(d.getDate()+n); return dstr(d); }
 function resSleutel(r){
   return r.bron === 'handmatig' ? 'hm-'+r.id : (r.nummer || (r.locatie+'-'+r.aankomst+'-'+r.tijdIn));
 }
@@ -1072,6 +1073,20 @@ async function laden(){
     if(json.fout) throw new Error(json.fout);
     agenda = (json.events||[]).map(uitAgenda);
   }catch(e){ fouten.push('agenda: '+e.message); }
+
+  /* Planyo is de hoofdbron: ook live uit Planyo lezen, zodat een nieuwe of
+     gewijzigde reservering direct zichtbaar is en niet hoeft te wachten op
+     de agenda-sync. Dubbelen met de agenda worden hieronder samengevoegd. */
+  try{
+    if(window.BWFPlanyo){
+      var pj = await BWFPlanyo.reservations(datumPlusDagen(-730), datumPlusDagen(1095));
+      (pj.events||[]).forEach(function(ev){
+        if(ev.soort === 'geannuleerd') return;
+        ev.bron = 'Planyo';
+        agenda.push(uitAgenda(ev));
+      });
+    }
+  }catch(e){ fouten.push('planyo: '+e.message); }
 
   try{ eigen = (await sb('reservations?select=*&order=checkindatum.desc&limit=3000')||[]).map(uitSupabase); }
   catch(e){ fouten.push('handmatige reserveringen: '+e.message); }

@@ -2912,6 +2912,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 <!-- ================= einde starttegels ================= -->
 
 <!-- ================= einde BWF-menu ================= -->
+<script src="bwf-planyo.js?v=11"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
 (function(){
@@ -3525,6 +3526,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       agenda = (json.events||[]).map(uitAgenda);
     }catch(e){ fouten.push('agenda'); }
 
+    /* Planyo is de hoofdbron: ook live uit Planyo lezen (zie reserveringen.html) */
+    try{
+      if(window.BWFPlanyo){
+        var d1 = new Date(); d1.setDate(d1.getDate()-730);
+        var d2 = new Date(); d2.setDate(d2.getDate()+1095);
+        var pj = await BWFPlanyo.reservations(dstr(d1), dstr(d2));
+        (pj.events||[]).forEach(function(ev){
+          if(ev.soort === 'geannuleerd') return;
+          ev.bron = 'Planyo';
+          agenda.push(uitAgenda(ev));
+        });
+      }
+    }catch(e){ fouten.push('planyo'); }
+
     try{ eigen = (await sb('reservations?select=*&order=checkindatum.desc&limit=3000')||[]).map(uitSupabase); }
     catch(e){ fouten.push('reserveringen'); }
 
@@ -3559,6 +3574,22 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var h = hoofdnaam(r.locatie);
       return h === 'Malina Jacuzzi' || h === 'Malina Deluxe' || h === 'Suite Angie';
     }).sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
+
+    /* Zelfde boeking uit Planyo én uit de Google-agenda? Planyo wint; de
+       agendaregel valt weg als suite, dag en (ongeveer) inchecktijd gelijk zijn. */
+    function minuten(t){ var m = String(t||'').match(/(\d{1,2}):(\d{2})/); return m ? Number(m[1])*60+Number(m[2]) : null; }
+    var planyoRijen = ALLES.filter(function(r){ return r.kanaal === 'Planyo'; });
+    if(planyoRijen.length){
+      ALLES = ALLES.filter(function(r){
+        if(r.kanaal === 'Planyo' || r.bron === 'handmatig') return true;
+        return !planyoRijen.some(function(p){
+          if(hoofdnaam(p.locatie) !== hoofdnaam(r.locatie) || p.aankomst !== r.aankomst) return false;
+          if(p.vertrek && r.vertrek && p.vertrek !== r.vertrek) return false;
+          var a = minuten(p.tijdIn), b = minuten(r.tijdIn);
+          return a === null || b === null || Math.abs(a-b) <= 90;
+        });
+      });
+    }
 
     /* precies dezelfde regel twee keer in de agenda? \u00e9\u00e9n keer tonen */
     var gezien = {}, uniek = [];
