@@ -1,0 +1,135 @@
+/* =========================================================
+   bwf-agenda-stijl.css — alleen de uitstraling
+
+   Legt de vormgeving van de agenda over een bestaande pagina heen:
+   donkergroen accent, serif koppen, rondere kaarten en pillen.
+   De pagina blijft precies doen wat hij deed.
+
+   Gebruik: zet deze regel ná de eigen stijl van de pagina,
+   vlak vóór </head>:
+
+     <link rel="stylesheet" href="bwf-agenda-stijl.css">
+
+   Bevalt het niet, haal die ene regel weg en alles is terug.
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap');
+
+:root{
+  /* ---- basis ---- */
+  --bg:#F7F5F1;
+  --surface:#FFFFFF;
+  --surface-2:#FBF9F5;
+  --line:#E6E1D7;
+  --line-soft:#F0ECE4;
+
+  --ink:#1D2420;
+  --ink-2:#46514A;
+  --muted:#7E8A82;
+
+  /* ---- accent: donkergroen met goud ---- */
+  --accent:#14342A;
+  --accent-2:#1F4D3D;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#E7EFEA;
+  --brass:#B9975B;
+
+  /* ---- statussen ---- */
+  --ok:#2E7D53;    --ok-soft:#E6F2EA;
+  --warn:#B8860B;  --warn-soft:#FBF1DA;
+  --crit:#B3453A;  --crit-soft:#FBEAE7;
+
+  /* ---- vorm ---- */
+  --shadow:0 1px 2px rgba(20,52,42,.05), 0 10px 30px -20px rgba(20,52,42,.35);
+  --r-s:8px; --r-m:12px; --r-l:16px;
+
+  /* ---- letters: serif voor koppen, de rest blijft ---- */
+  --f-display:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+}
+
+/* koppen in serif, iets ruimer */
+h1,h2,h3,
+.page-head h1,.card-head h2,.kalkop b{
+  font-family:var(--f-display);
+  font-weight:500;
+  letter-spacing:.01em;
+}
+h1{font-size:1.9em}
+h2{font-size:1.35em}
+
+/* kaarten en panelen */
+.card,.kaart,.paneel,.blok,dialog{
+  border-radius:var(--r-l);
+  border-color:var(--line);
+}
+
+/* knoppen: gevulde knop wordt donkergroen */
+.btn,.knop,button.primary,.knop.vol{
+  border-radius:999px;
+}
+.btn:not(.secondary):not(.ghost):not(.sec),
+.knop.vol,
+button.primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:var(--accent-ink);
+}
+.btn:not(.secondary):not(.ghost):not(.sec):hover,
+.knop.vol:hover,
+button.primary:hover{ background:var(--accent-2); border-color:var(--accent-2); }
+
+.btn.secondary,.btn.ghost,.btn.sec,.knop:not(.vol):not(.gevaar){
+  border-radius:999px;
+  border-color:var(--line);
+  background:var(--surface-2);
+}
+.btn.secondary:hover,.btn.ghost:hover,.btn.sec:hover,
+.knop:not(.vol):not(.gevaar):hover{ border-color:var(--accent-2); color:var(--accent); }
+
+/* invoervelden */
+input,select,textarea{
+  border-radius:var(--r-s);
+  border-color:var(--line);
+  background:var(--surface-2);
+}
+input:focus,select:focus,textarea:focus{
+  outline:2px solid var(--accent-2);
+  outline-offset:-1px;
+  background:var(--surface);
+}
+
+/* labels en merkjes als pil met stip, net als in de agenda */
+.tag,.pill,.merk,.merkje,.telling,.soort{
+  border-radius:999px;
+}
+.tag.ok,.pill.ok,.merk.ok{ background:var(--ok-soft); color:var(--ok); }
+.tag.open,.pill.warn,.merk.open{ background:var(--warn-soft); color:var(--warn); }
+.tag.let,.pill.crit,.merk.let{ background:var(--crit-soft); color:var(--crit); }
+
+/* tabelkoppen rustiger */
+th{
+  color:var(--muted);
+  letter-spacing:.09em;
+  border-bottom-color:var(--line);
+}
+
+/* de kalenderkop van reserveringen.html */
+.kalkop b{ font-size:1.2em; }
+
+/* menubalken en tabbladen */
+.tab[aria-selected="true"],.tab.on,.tab.actief{
+  border-bottom-color:var(--brass);
+  color:var(--accent);
+}
+.bwf-topmenu{ background:var(--accent); }
+.bwf-topmenu a.hier{ color:var(--accent); }
+
+/* donkere modus laten kloppen */
+:root[data-theme="dark"]{
+  --bg:#12201B; --surface:#18291F; --surface-2:#1E3126;
+  --line:#2C4034; --line-soft:#24352B;
+  --ink:#EAF0EA; --ink-2:#CBD8CE; --muted:#90A296;
+  --accent:#1F4D3D; --accent-2:#2A6650; --accent-soft:#1B3B2F; --brass:#D3B276;
+  --ok:#6FB48A; --ok-soft:#1E3A2B; --warn:#D6AC5C; --warn-soft:#3A3120;
+  --crit:#D98B7D; --crit-soft:#3A2622;
+}
