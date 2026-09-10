@@ -8,11 +8,12 @@ Opgesteld 11-09-2026. Dit bestand is de opdracht voor Claude Code op de MacBook 
 
 1. **Eerst lezen, dan bouwen.** Begin elke sessie met `git pull` en lees dit plan plus `README.md` en `LEESMIJ-wijzigingen.md`.
 2. **Niets weggooien zonder export.** Vóór elke `drop`/`truncate`/`delete` op Supabase eerst een export naar `exports/YYYY-MM-DD/<tabel>.csv` (via `supabase db dump` of `psql \copy`). Exports worden **niet** gecommit (`exports/` in `.gitignore`).
-3. **Geen geheimen in de repo.** Service-role key, Google-agendasleutel, Make-webhooks en ICS-URL's staan alleen in Supabase (secrets / tabel `bwf_instellingen`) of in een lokale `.env` die in `.gitignore` staat. In HTML/JS alleen de publieke anon key.
+3. **Geen geheimen in de repo.** Service-role key, Google-agendasleutel en ICS-URL's staan alleen in Supabase (Edge Function-secrets, Vault of de tabel `kanaal_instellingen` die alleen de eigenaar kan lezen) of in een lokale `.env` die in `.gitignore` staat. In HTML/JS alleen de publieke anon key.
 4. **Eén stap per commit**, korte Nederlandse commit-berichten. Na elke fase: `git push` → controleren op `https://bwfcheckin.github.io/bwf-incheck/`.
 5. **Privésauna blijft leidend tot begin oktober 2026.** Tot dan is de nieuwe agenda een leesspiegel van de kanalen. Bouw alles zo dat de bron later Planyo wordt zonder de agenda te herbouwen (zie fase 6).
 6. **Huisstijl**: kleuren en lettertypes uit `agenda.html` / `bwf-agenda-stijl.css` (Cormorant Garamond + Public Sans, groen `#14342A`, goud `#B9975B`). Nieuwe pagina's gebruiken `bwf-shell.js` en `bwf-account.js` voor login en menu.
 7. Bij twijfel: **vraag Angela**, bouw geen aannames in.
+8. **Geen Make-scenario's.** Automatische taken (zoals de ICS-import) draaien in Supabase: Edge Function + `pg_cron`.
 
 ---
 
@@ -31,6 +32,8 @@ Opgesteld 11-09-2026. Dit bestand is de opdracht voor Claude Code op de MacBook 
 **Supabase-tabellen die in de code voorkomen**
 `res_koppeling`, `checkins`, `gast_aanmeldingen`, `wz_klantbeheer`, `wz_klantbeheer_instellingen`, `wz_medewerkers`, `bwf_rollen`, `wz_taken`, `wz_welkomstcalls`, `wz_werkzaamheden`, `wz_tarieven`, `uren_registratie`, `psm_administratie`, `bwf_instellingen`.
 
+→ **Na fase 0:** de database telt 50 tabellen. Volledige lijst, kolommen en welke pagina wat gebruikt: `docs/INVENTARIS.md`. `bwf_instellingen` bestaat niet; de tabel heet `instellingen`.
+
 **Eerste opdracht voor Claude Code (fase 0):** maak `docs/INVENTARIS.md` met per tabel de kolommen (`\d tabel`) en per pagina welke tabellen ze lezen/schrijven. Dan weten we zeker wat we samenvoegen.
 
 ---
@@ -39,7 +42,7 @@ Opgesteld 11-09-2026. Dit bestand is de opdracht voor Claude Code op de MacBook 
 
 Eén gedeelde agenda en één reserveringstabel in Supabase waar alle kanalen in samenkomen, zichtbaar per suite voor locatiemanagers, VR-assistent en eigenaar — met de juiste rechten, incheckformulieren, welkomstcalls, taken, voorraad, gastenregister en werkzaamhedenlog eraan gekoppeld.
 
-**Kanalen**
+**Kanalen** (commissie alleen ter informatie — die wordt niet in het reserveringsmodel berekend)
 | Kanaal | Levert | Betaling | Commissie | Uitbetaling |
 |---|---|---|---|---|
 | Privésauna (SMG) | volledige gastgegevens (bevestigingsmail), beschikbaarheid via ICS | bij aankomst of vooraf via SMG | 10% + servicekosten | de 7e van de volgende maand |
@@ -55,7 +58,7 @@ Eén gedeelde agenda en één reserveringstabel in Supabase waar alle kanalen in
 ```sql
 create table if not exists public.reserveringen (
   id                uuid primary key default gen_random_uuid(),
-  suite             text not null check (suite in ('angie','malina_jacuzzi','malina_deluxe')),
+  suite             text not null check (suite in ('angie','malina_jacuzzi','malina_deluxe')), -- malina_deluxe = Malina Zwembad
   kanaal            text not null check (kanaal in ('smg','oo','booking','planyo','eigen','handmatig')),
   kanaal_ref        text,                 -- SMG-reserveringsnummer, Booking.com R-nummer, OO-nummer
   status            text not null default 'bevestigd', -- bevestigd | optie | geannuleerd | no_show
@@ -73,11 +76,8 @@ create table if not exists public.reserveringen (
   arrangementen     jsonb default '[]',   -- [{naam, aantal, prijs}]
   extras            jsonb default '[]',
   omschrijving      text,
-  -- geld
-  bedrag_bruto      numeric,
-  commissie_pct     numeric,
-  commissie_bedrag  numeric,
-  bedrag_netto      numeric generated always as (coalesce(bedrag_bruto,0) - coalesce(commissie_bedrag,0)) stored,
+  -- geld (geen commissieberekening)
+  bedrag_totaal     numeric,              -- wat de gast in totaal betaalt
   betaald_via       text,                 -- kanaal | mollie | locatie | paypal
   betaalstatus      text default 'open',  -- open | deels | betaald
   restant_bedrag    numeric,
@@ -101,6 +101,16 @@ create index on public.reserveringen (suite, aankomst);
 ```
 Migratie: bestaande `res_koppeling`/`checkins`-gegevens **niet** verwijderen maar via een migratiescript (`scripts/migreer-reserveringen.sql`) overzetten. Pas na controle door Angela de oude tabellen hernoemen naar `oud_*`.
 
+**Suitenamen (besloten 11-09-2026):** overal `angie`, `malina_jacuzzi`, `malina_deluxe`. Malina Deluxe en Malina Zwembad zijn dezelfde suite. Omzetting van de waarden die nu in de database staan (zie `docs/INVENTARIS.md` §1.6):
+
+| Nu in de database | Wordt |
+|---|---|
+| `angie`, `Angie`, `Suite Angie Almere`, `PSA` | `angie` |
+| `jacuzzi`, `Jacuzzi`, `Malina Jacuzzi`, `PSM`\* | `malina_jacuzzi` |
+| `deluxe`, `zwembad`, `Malina Zwembad`, `PSMD` | `malina_deluxe` |
+
+\* `PSM` = Malina Jacuzzi is nog een aanname (zie §6). Bestaande tabellen en pagina's houden hun huidige waarden tot de migratie in fase 1; nieuwe code gebruikt alleen de drie nieuwe namen.
+
 ### 3.2 `blokkades` — beschikbaarheid / gesloten
 ```sql
 create table if not exists public.blokkades (
@@ -115,7 +125,7 @@ create table if not exists public.blokkades (
 ```
 
 ### 3.3 `kanaal_instellingen`
-Per kanaal: commissie-%, servicekosten, uitbetaalregel, standaard in-/uitchecktijden per type, ICS-URL (alleen leesbaar voor eigenaar). Vervangt losse constanten in de code.
+Per kanaal: uitbetaalregel, standaard in-/uitchecktijden per type, ICS-URL (alleen leesbaar voor eigenaar). Geen commissie of servicekosten. Vervangt losse constanten in de code.
 
 Standaardtijden (te bevestigen door Angela):
 | Type | Incheck | Uitcheck |
@@ -130,7 +140,7 @@ Standaardtijden (te bevestigen door Angela):
 Kolom `rol text check (rol in ('eigenaar','vr','locatiemanager'))` en per medewerker `suites text[]` (welke suites hij/zij mag zien). Row Level Security op `reserveringen`, `blokkades`, `wz_taken`, `checkins`, `voorraad`, `wz_werkzaamheden` volgens de matrix in §5.
 
 ### 3.5 `voorraad` en `voorraad_mutaties`
-Artikel, locatie, aantal, minimum, bestellijst-vinkje; mutaties met wie/wanneer.
+`voorraad` bestaat al (88 rijen) — uitbreiden, niet opnieuw aanmaken. Artikel, locatie, aantal, minimum, bestellijst-vinkje; mutaties met wie/wanneer.
 
 ### 3.6 `wz_werkzaamheden` uitbreiden
 Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reservering hangt; maandoverzicht per medewerker × tarief → factuurbasis.
@@ -140,21 +150,23 @@ Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reser
 ## 4. Fases
 
 ### Fase 0 — Inventaris en veiligheid (½ dag)
-- [ ] `docs/INVENTARIS.md` (tabellen + kolommen + welke pagina wat gebruikt)
-- [ ] `exports/` + `.gitignore`; volledige dump van Supabase
+- [x] `docs/INVENTARIS.md` (tabellen + kolommen + welke pagina wat gebruikt)
+- [x] `exports/` + `.gitignore`; volledige dump van Supabase (CSV/JSON per tabel + schema-snapshot; zie logboek)
 - [ ] Repo opschonen: `archief/`, `*.zip`, `files (5).zip`, map `~` en `*-test.html` beoordelen; verwijderen wat dubbel is (lijst eerst aan Angela laten zien)
 
 ### Fase 1 — Datamodel (1 dag)
 - [ ] `supabase/migrations/2026xxxx_reserveringen.sql` met §3.1–3.6
-- [ ] Migratiescript oude tabellen → `reserveringen`
+- [ ] Migratiescript oude tabellen → `reserveringen` (incl. omzetting suitenamen, §3.1)
 - [ ] Storage bucket `reservering-bijlagen` (privé, alleen ingelogd)
 - [ ] RLS-policies + testaccounts per rol
+- [ ] Extensies `pg_cron` en `pg_net` aanzetten (staan nu uit)
 
 ### Fase 2 — Import van de kanalen (1–2 dagen)
-- [ ] Edge function `kanalen-sync` (Deno, elke 15 min via `pg_cron` of Make): haalt ICS van Privésauna, Booking.com en OO op, schrijft/updatet `reserveringen` op `(kanaal, kanaal_ref)`; verwijderde ICS-items → status `geannuleerd`
-- [ ] Bestaande Make-scenario "Reserveringen SMG" (bevestigingsmails) laten schrijven naar `reserveringen` i.p.v. Planyo → verrijkt de ICS-rijen met gastgegevens
-- [ ] Booking.com-mails (`@guest.booking.com`) via Make parsen: naam, e-mail, telefoon, prijs, commissie, R-nummer
-- [ ] Commissie en `uitbetaling_verwacht` automatisch berekenen uit `kanaal_instellingen`
+Geen Make-scenario's: de import draait volledig in Supabase.
+- [ ] Edge function `kanalen-sync` (Deno): haalt ICS van Privésauna, Booking.com en OO op (URL's uit `kanaal_instellingen`), schrijft/updatet `reserveringen` op `(kanaal, kanaal_ref)`; verwijderde ICS-items → status `geannuleerd`
+- [ ] `pg_cron`-job die `kanalen-sync` elke 15 minuten aanroept via `pg_net`; de sleutel voor die aanroep staat in Vault, niet in de SQL
+- [ ] Gastgegevens die niet in de ICS staan (SMG-bevestiging, Booking.com-pdf/mail) aanvullen via het plak-/uploadveld uit fase 4
+- [ ] `uitbetaling_verwacht` invullen uit de uitbetaalregel in `kanaal_instellingen` (zie §6 vraag 7)
 - [ ] `agenda-bridge` (Google Agenda) mag blijven als extra bron, maar wordt niet meer de basis
 
 ### Fase 3 — Agenda en dagoverzicht (1–2 dagen)
@@ -183,7 +195,7 @@ Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reser
 ### Fase 6 — Overstapdag Planyo (begin oktober)
 - [ ] `planyo-bridge` weer aanzetten; Planyo schrijft naar `reserveringen` met `kanaal='planyo'`
 - [ ] Booking.com aan Planyo-XML, OO aan Planyo-ICS
-- [ ] ICS-import van Privésauna uitzetten, historie blijft staan
+- [ ] ICS-import van Privésauna uitzetten (`pg_cron`-job aanpassen), historie blijft staan
 
 ### Fase 7 — Testen als klant en opnieuw opbouwen
 - [ ] Testreserveringen via `gast.html`, `boeking`-flow, Booking.com-pdf en SMG-plak
@@ -216,10 +228,12 @@ Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reser
 ## 6. Open beslissingen voor Angela
 1. Oude tabellen (`res_koppeling`, `checkins`) na migratie hernoemen naar `oud_*` of direct verwijderen?
 2. Standaard in-/uitchecktijden per type (§3.3) kloppen?
-3. ICS-URL's van Booking.com en Origineel Overnachten aanleveren (of staan ze in Make?)
-4. Welke locatiemanager mag welke suite(s) zien — Lelystad = Malina Jacuzzi + Malina Deluxe, Almere = Angie?
-5. Import elke 15 minuten: via Supabase `pg_cron` (geen Make nodig) of via Make (bestaand)?
+3. ICS-URL's van Booking.com en Origineel Overnachten aanleveren.
+4. Welke locatiemanager mag welke suite(s) zien — Lelystad = `malina_jacuzzi` + `malina_deluxe`, Almere = `angie`?
+5. ~~Import elke 15 minuten: via `pg_cron` of via Make?~~ **Besloten 11-09-2026:** via `pg_cron` in Supabase, geen Make.
 6. Gmail in het dashboard: knop naar Gmail (nu) of later echte Gmail-API-koppeling (apart project)?
+7. `uitbetaling_verwacht` (en de uitbetaalregel per kanaal) behouden nu de commissie vervalt, of ook weg?
+8. Is `PSM` in `psm_administratie` de Malina Jacuzzi (en `PSMD` de Malina Deluxe)?
 
 ---
 
@@ -233,3 +247,5 @@ cd ~/bwf-incheck && git pull
 
 ## Logboek
 - 11-09-2026 — plan opgesteld.
+- 11-09-2026 — fase 0: `docs/INVENTARIS.md` gemaakt uit de live database en de code. Export in `exports/2026-09-11/` (50 tabellen, aantallen gecontroleerd, plus storage-bestanden, broncode edge functions, policies/functies/views). Afwijking: geen `pg_dump` (geen Docker/psql op de Mac); export via `supabase db query --linked`. De database telt 50 tabellen i.p.v. de 14 uit §1 — zie INVENTARIS §1 voor besluiten vóór fase 1. Er is nog niets verwijderd.
+- 11-09-2026 — besluiten Angela: (a) suitenamen overal `angie`, `malina_jacuzzi`, `malina_deluxe` (Malina Zwembad = Malina Deluxe); (b) geen Make-scenario's, ICS-import via Supabase-functie + `pg_cron` (spelregel 8, fase 2); (c) geen commissieberekening in het reserveringsmodel: `commissie_pct`, `commissie_bedrag` en `bedrag_netto` vervallen, `bedrag_bruto` heet nu `bedrag_totaal`, commissie/servicekosten uit `kanaal_instellingen`. `vr2.html` lokaal hersteld (was 0 bytes), leeg bestand `main` verwijderd.

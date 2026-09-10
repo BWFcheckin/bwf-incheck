@@ -1,0 +1,8 @@
+# Exports van Supabase (bevatten persoonsgegevens) — nooit committen
+exports/
+
+# Lokale geheimen
+.env
+.env.*
+
+.DS_Store
