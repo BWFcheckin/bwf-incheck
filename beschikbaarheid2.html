@@ -75,6 +75,9 @@ a{color:var(--groen-2)}
 .dagje[data-nu="1"] small{color:rgba(255,255,255,.7)}
 .dagje[data-nu="1"] .stip{background:var(--goud)}
 
+.dienst{margin-top:12px;background:var(--groen-zacht);border-radius:10px;padding:9px 13px;
+  font-size:13.5px;color:var(--groen)}
+.dienst b{font-weight:600}
 .filterrij{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
 .filt{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
   padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink-2)}
@@ -183,6 +186,7 @@ a{color:var(--groen-2)}
       <button class="nu" id="knopNu">Vandaag</button>
     </div>
     <div class="strook" id="strook"></div>
+    <div id="dienstRegel" class="dienst" style="display:none"></div>
     <div class="filterrij">
       <button type="button" class="filt aan" data-filter="alles">Alles</button>
       <button type="button" class="filt" data-filter="vrij">Alleen vrij</button>
@@ -234,7 +238,7 @@ const VAST = {
           nacht:[['13:00','11:00',749,'Early check-in'],['19:00','11:00',479,'Relax & Stay']] }
 };
 
-let SESSIE=null, DATUM=vandaagISO(), BLOKKEN=null, BEZET=[], FOUT='', FILTER='alles';
+let SESSIE=null, DATUM=vandaagISO(), BLOKKEN=null, BEZET=[], FOUT='', FILTER='alles', DIENST='';
 
 /* ---------- hulpjes ---------- */
 function vandaagISO(){ const d=new Date();
@@ -352,6 +356,18 @@ async function laadBezet(){
       wie:k.gast||'geboekt', bron:'koppeling' });
   });
   BEZET = uit.filter(x=>x.suite);
+
+  /* Wie staat er die dag ingepland in Lelystad. Alleen de naam \u2014
+     de volledige planning staat in het personeelsdashboard. */
+  try{
+    const p = await haal('planning?select=medewerker_id,locatie,dienst&datum=eq.'+d+'&limit=20','planning');
+    const namen = p.filter(x=>/lelystad|malina/i.test(String(x.locatie||'')))
+      .map(x=>{
+        const kaal = String(x.medewerker_id||'').replace(/^mw[-_]?/,'').replace(/[-_]/g,' ').trim();
+        return kaal ? kaal.charAt(0).toUpperCase()+kaal.slice(1) : '';
+      }).filter(Boolean);
+    DIENST = namen.length ? namen.filter((v,i,a)=>a.indexOf(v)===i).join(', ') : '';
+  }catch(e){ DIENST=''; }
 }
 
 /* overlapt het blok met iets dat al geboekt is */
@@ -400,6 +416,14 @@ async function teken(){
     DATUM===vandaagISO() ? 'Vandaag' : nlLang(DATUM).replace(/^\w/,c=>c.toUpperCase());
   document.getElementById('datumSub').textContent = nlLang(DATUM);
 
+  const dr = document.getElementById('dienstRegel');
+  if(dr){
+    if(DIENST){ dr.style.display='block';
+      dr.innerHTML = 'Lelystad: <b>'+esc(DIENST)+'</b> staat ingepland.'; }
+    else { dr.style.display='block';
+      dr.innerHTML = 'Lelystad: niemand ingepland op deze dag.'; }
+  }
+
   const doel=document.getElementById('lijst');
   doel.innerHTML = Object.keys(SUITES).map(function(sleutel){
     const S=SUITES[sleutel], B=blokken[sleutel]||{dag:[],nacht:[]};
@@ -432,7 +456,8 @@ async function teken(){
     let rijen = '';
     if(FILTER !== 'vrij'){
       rijen += boekingen.map(function(x){
-        return '<button class="blok" data-vrij="0" data-status="bezet" data-wie="'+esc(x.wie)+'">'+
+        return '<button class="blok" data-vrij="0" data-status="bezet" data-wie="'+esc(x.wie)+'"'+
+          ' data-open="'+esc(x.wie)+'">'+
           '<span class="tijd"><b>'+esc(x.van)+' \u2013 '+esc(x.tot)+'</b>'+
           '<span>'+esc(x.wie)+' \u00b7 '+esc(x.bron)+
           (x.gisteren ? ' \u00b7 loopt door van gisteren' : '')+'</span></span>'+
@@ -475,8 +500,10 @@ document.addEventListener('click', function(e){
   if(b){
     const status=b.getAttribute('data-status');
     if(status==='bezet'){
-      alert('Dit blok is bezet: ' + (b.getAttribute('data-wie')||'geboekt') +
-        '.\nOpen Reserveringen voor de gegevens van deze boeking.');
+      /* naar de reserveringenpagina, met de naam als zoekterm */
+      const naam = b.getAttribute('data-open') || b.getAttribute('data-wie') || '';
+      const zoek = naam.split(/\s+/).filter(w=>w.length>2).slice(-1)[0] || naam;
+      location.href = 'reserveringen.html' + (zoek ? '?zoek='+encodeURIComponent(zoek) : '');
       return;
     }
     const p=new URLSearchParams();
