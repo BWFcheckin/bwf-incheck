@@ -191,7 +191,8 @@
         : Promise.resolve({ events:[], fout:"De beveiligde agenda-client ontbreekt." }),
       haal("reservations?select=*&order=checkindatum.desc&limit=3000"),
       haal("planning?select=*&order=datum.asc&limit=4000"),
-      haal("medewerkers?select=*")
+      haal("medewerkers?select=*"),
+      haal("res_koppeling?select=*&limit=5000")
     ];
     return Promise.all(taken).then(function (uit) {
       var planyoAantal = ((uit[0] && uit[0].events) || []).length;
@@ -238,6 +239,23 @@
           email: r.email || "", telefoon: r.telefoon || "", totaal: r.totaal || 0,
           betaald: r.betaald || 0, id: "eigen-" + r.id
         });
+      });
+      /* Centrale aanpassingen uit reserveringen.html ook in deze kalender tonen. */
+      var koppelingen = {};
+      (uit[5] || []).forEach(function (k) { koppelingen[String(k.res_sleutel || "")] = k; });
+      RES.forEach(function (r) {
+        var sleutel = r.ref ? String(r.ref) : (String(r.id || "").indexOf("eigen-") === 0 ? "hm-" + String(r.id).slice(6) : "");
+        var k = koppelingen[sleutel];
+        if (!k) return;
+        if (k.gast) r.naam = k.gast;
+        if (k.aankomst) r.start = k.aankomst + (k.tijd_in ? "T" + String(k.tijd_in).slice(0,5) : "");
+        else if (k.tijd_in) r.start = String(r.start || "").slice(0,10) + "T" + String(k.tijd_in).slice(0,5);
+        if (k.vertrek) r.eind = k.vertrek + (k.tijd_uit ? "T" + String(k.tijd_uit).slice(0,5) : "");
+        else if (k.tijd_uit) r.eind = String(r.eind || "").slice(0,10) + "T" + String(k.tijd_uit).slice(0,5);
+        if (k.telefoon) r.telefoon = k.telefoon;
+        if (k.email) r.email = k.email;
+        if (k.totaal !== null && k.totaal !== undefined) r.totaal = k.totaal;
+        if (k.betaald !== null && k.betaald !== undefined) r.betaald = k.betaald;
       });
       DIENSTEN = uit[3] || [];
       TEAM = uit[4] || [];
