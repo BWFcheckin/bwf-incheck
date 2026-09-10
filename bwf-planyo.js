@@ -303,6 +303,15 @@
       );
     },
 
+    updateReservation: function (
+      gegevens
+    ) {
+      return verstuur(
+        "update-reservation",
+        gegevens
+      );
+    },
+
     createBlock: function (
       gegevens
     ) {
