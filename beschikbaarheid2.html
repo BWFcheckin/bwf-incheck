@@ -83,6 +83,17 @@ a{color:var(--groen-2)}
   padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink-2)}
 .filt:hover{border-color:var(--groen-2)}
 .filt.aan{background:var(--groen);border-color:var(--groen);color:#fff}
+.filt.blok-knop{margin-left:auto;border-style:dashed}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);
+  box-shadow:0 24px 60px -30px rgba(20,52,42,.6);padding:0}
+dialog::backdrop{background:rgba(20,52,42,.45)}
+dialog label{display:block;font-size:12.5px;color:var(--ink-2);margin:12px 0 4px}
+dialog input,dialog select{width:100%;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:8px;padding:9px 11px;font:inherit}
+.blokkade{background:#EFEDE7 !important;border-color:#DAD5C9 !important}
+.blokkade .merk2{background:var(--surface);color:#5B5548}
+.meerdaags{display:inline-block;font-family:var(--f-mono);font-size:10px;padding:2px 7px;
+  border-radius:999px;background:var(--goud-zacht);color:#7A5A1E;margin-left:6px}
 .legenda{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);
   border-top:1px solid var(--line-soft);margin-top:12px;padding-top:11px}
 .legenda span{display:flex;align-items:center;gap:7px}
@@ -177,6 +188,29 @@ a{color:var(--groen-2)}
   </div>
 </div>
 
+<dialog id="blokVenster">
+  <form method="dialog" style="padding:22px;min-width:min(420px,92vw)">
+    <h3 style="font-family:var(--f-titel);font-size:21px;font-weight:500;margin:0 0 4px">Suite blokkeren</h3>
+    <p style="margin:0 0 14px;font-size:13.5px;color:var(--muted)">De suite is dan niet beschikbaar.
+      Bijvoorbeeld voor onderhoud, schoonmaak of eigen gebruik.</p>
+    <label for="bkSuite">Suite</label>
+    <select id="bkSuite"></select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label for="bkVanD">Van datum</label><input id="bkVanD" type="date"></div>
+      <div><label for="bkVanT">Vanaf</label><input id="bkVanT" type="time" value="00:00"></div>
+      <div><label for="bkTotD">Tot datum</label><input id="bkTotD" type="date"></div>
+      <div><label for="bkTotT">Tot</label><input id="bkTotT" type="time" value="23:59"></div>
+    </div>
+    <label for="bkReden">Reden</label>
+    <input id="bkReden" type="text" placeholder="onderhoud, schoonmaak, eigen gebruik">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
+      <button type="button" class="filt" id="bkAnnuleer">Annuleren</button>
+      <button type="button" class="filt aan" id="bkBewaar">Blokkeren</button>
+    </div>
+    <div id="bkMelding" style="font-size:13px;margin-top:10px"></div>
+  </form>
+</dialog>
+
 <div class="wrap">
   <div class="dagkaart">
     <div class="dagrij">
@@ -191,6 +225,7 @@ a{color:var(--groen-2)}
       <button type="button" class="filt aan" data-filter="alles">Alles</button>
       <button type="button" class="filt" data-filter="vrij">Alleen vrij</button>
       <button type="button" class="filt" data-filter="bezet">Alleen geboekt</button>
+      <button type="button" class="filt blok-knop" id="knopBlok">Suite blokkeren</button>
     </div>
     <div class="legenda">
       <span><i style="background:var(--vrij)"></i> Vrij</span>
@@ -245,6 +280,15 @@ function vandaagISO(){ const d=new Date();
   return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function schuif(iso,n){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
   return d.toISOString().slice(0,10); }
+/* Uit een veld met van alles erin toch een tijd of datum vissen. */
+function tijdUit(v){
+  const m=String(v==null?'':v).match(/(\d{1,2}):(\d{2})/);
+  return m ? String(m[1]).padStart(2,'0')+':'+m[2] : '';
+}
+function datumUit(v){
+  const m=String(v==null?'':v).match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : '';
+}
 function nlKort(iso){ try{ return new Date(iso+'T12:00:00')
   .toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }catch(e){ return iso; } }
 function nlLang(iso){ return new Date(iso+'T12:00:00')
@@ -333,16 +377,25 @@ async function laadBezet(){
     /* Alles wat op deze dag loopt, ook als het eerder begon of later eindigt.
        Eerder keken we alleen naar de aankomstdag, waardoor een verblijf van
        twee nachten op de tussenliggende dag onzichtbaar was. */
+    /* Niet op de server filteren: die kolommen zijn niet overal een echte
+       datum, waardoor het verzoek werd geweigerd. We halen een venster op en
+       filteren hier. */
     haal('reservations?select=id,locatie,voornaam,achternaam,checkindatum,checkuitdatum,' +
-      'checkintijd,checkuittijd&checkindatum=lte.'+d+'&checkuitdatum=gte.'+d+'&limit=400','reserveringen'),
-    haal('res_koppeling?select=res_sleutel,gast,locatie,aankomst,vertrek,tijd_in,tijd_uit,' +
-      'geannuleerd&aankomst=lte.'+d+'&vertrek=gte.'+d+'&limit=600','koppelingen')
+      'checkintijd,checkuittijd&order=checkindatum.desc&limit=800','reserveringen'),
+    haal('res_koppeling?select=*&order=aankomst.desc&limit=1200','koppelingen')
   ]);
 
   /* Een verblijf omrekenen naar de tijden die het op déze dag bezet houdt. */
   function opDeze(vanDatum, totDatum, vanTijd, totTijd){
-    const a=String(vanDatum||'').slice(0,10), b=String(totDatum||vanDatum||'').slice(0,10);
+    const a=String(vanDatum||'').slice(0,10);
+    let b=String(totDatum||vanDatum||'').slice(0,10);
     if(!a) return null;
+    /* Staat er geen vertrekdatum maar eindigt het verblijf eerder op de klok
+       dan het begint, dan is het een overnachting die de volgende dag eindigt. */
+    if(b===a && vanTijd && totTijd && min(totTijd) <= min(vanTijd)){
+      const n=new Date(a+'T12:00:00'); n.setDate(n.getDate()+1);
+      b=n.toISOString().slice(0,10);
+    }
     if(a>d || (b && b<d)) return null;
     const begint = a===d, eindigt = (b||a)===d;
     if(begint && eindigt) return { van:vanTijd||'00:00', tot:totTijd||'23:59', doorlopend:false };
@@ -373,10 +426,10 @@ async function laadBezet(){
       : (e.suite||e.locatie||'') + '-' + String(e.start||'').slice(0,16);
     zet(sleutel, {
       suite: locId(e.suite||e.locatie),
-      vanD: String(e.start||'').slice(0,10),
-      totD: String(e.eind||'').slice(0,10) || String(e.start||'').slice(0,10),
-      vanT: (String(e.start||'').match(/(\d{2}:\d{2})/)||[])[1],
-      totT: (String(e.eind||'').match(/(\d{2}:\d{2})/)||[])[1],
+      vanD: datumUit(e.start),
+      totD: datumUit(e.eind) || datumUit(e.start),
+      vanT: tijdUit(e.start),
+      totT: tijdUit(e.eind),
       wie: e.gast||e.naam||e.titel||'geboekt',
       bron: e.bron||'agenda'
     }, false);
@@ -385,10 +438,10 @@ async function laadBezet(){
   res.forEach(r=>{
     zet('hm-'+r.id, {
       suite: locId(r.locatie),
-      vanD: String(r.checkindatum||'').slice(0,10),
-      totD: String(r.checkuitdatum||r.checkindatum||'').slice(0,10),
-      vanT: String(r.checkintijd||'').slice(0,5),
-      totT: String(r.checkuittijd||'').slice(0,5),
+      vanD: datumUit(r.checkindatum),
+      totD: datumUit(r.checkuitdatum) || datumUit(r.checkindatum),
+      vanT: tijdUit(r.checkintijd),
+      totT: tijdUit(r.checkuittijd),
       wie: ((r.voornaam||'')+' '+(r.achternaam||'')).trim()||'geboekt',
       bron: 'eigen boeking'
     }, false);
@@ -397,20 +450,30 @@ async function laadBezet(){
   kop.forEach(k=>{
     if(k.geannuleerd){ delete perSleutel[k.res_sleutel]; return; }
     zet(k.res_sleutel, {
-      suite: locId(k.locatie||k.res_sleutel),
-      vanD: String(k.aankomst||'').slice(0,10),
-      totD: String(k.vertrek||k.aankomst||'').slice(0,10),
-      vanT: String(k.tijd_in||'').slice(0,5),
-      totT: String(k.tijd_uit||'').slice(0,5),
+      /* Geen locatiekolom in deze tabel: de suite komt uit de bijbehorende
+         reservering of uit de agenda, en bij een blokkade uit de sleutel. */
+      suite: locId(k.res_sleutel),
+      vanD: datumUit(k.aankomst),
+      totD: datumUit(k.vertrek) || datumUit(k.aankomst),
+      vanT: tijdUit(k.tijd_in),
+      totT: tijdUit(k.tijd_uit),
       wie: k.gast, bron: k.bron
     }, true);   /* de correctie wint */
   });
 
+  /* Dezelfde boeking kan onder meerdere sleutels binnenkomen, bijvoorbeeld
+     19862135 en planyo-19862135, plus een keer uit de agenda. Zelfde suite,
+     zelfde gast en dezelfde periode telt als één. */
+  const gezien = {};
   const uit=[];
   Object.keys(perSleutel).forEach(sleutel=>{
     const x=perSleutel[sleutel];
     const t=opDeze(x.vanD, x.totD, x.vanT, x.totT);
     if(!t || !x.suite) return;
+    const merk = [x.suite, String(x.wie||'').toLowerCase().replace(/\s+/g,' ').trim(),
+                  x.vanD, x.totD].join('|');
+    if(gezien[merk]) return;
+    gezien[merk] = true;
     uit.push({ sleutel:sleutel, suite:x.suite, van:t.van, tot:t.tot, doorlopend:t.doorlopend,
       echtVan:x.vanD, echtTot:x.totD, echtVanT:x.vanT||'', echtTotT:x.totT||'',
       wie:x.wie||'geboekt', bron:x.bron||'boeking' });
@@ -515,19 +578,25 @@ async function teken(){
     let rijen = '';
     if(FILTER !== 'vrij'){
       rijen += boekingen.map(function(x){
-        return '<button class="blok" data-vrij="0" data-status="bezet" data-wie="'+esc(x.wie)+'"'+
-          ' data-open="'+esc(x.wie)+'">'+
+        const isBlok = /blokkade/i.test(String(x.bron||'')) ||
+                       String(x.sleutelRij||'').indexOf('blok-')===0;
+        const meerdaags = x.echtVan && x.echtTot && x.echtVan !== x.echtTot;
+        return '<button class="blok'+(isBlok?' blokkade':'')+'" data-vrij="0" data-status="'+
+          (isBlok?'blokkade':'bezet')+'" data-wie="'+esc(x.wie)+'"'+
+          ' data-open="'+esc(x.wie)+'" data-nummer="'+esc(String(x.sleutelRij||'').replace(/^hm-/,''))+'">'+
           '<span class="tijd"><b>'+ (x.doorlopend
             ? esc(nlKort(x.echtVan)) + ' ' + esc(x.echtVanT||'') + ' \u2192 ' +
               esc(nlKort(x.echtTot)) + ' ' + esc(x.echtTotT||'')
-            : esc(x.van)+' \u2013 '+esc(x.tot)) + '</b>'+
+            : esc(x.van)+' \u2013 '+esc(x.tot)) +
+          (meerdaags ? '<span class="meerdaags">meerdaags</span>' : '') + '</b>'+
           '<span>'+esc(x.wie)+' \u00b7 '+esc(x.bron)+
           (x.doorlopend
             ? ' \u00b7 ' + (x.van==='00:00' && x.tot==='23:59' ? 'deze dag volledig bezet'
                 : x.van==='00:00' ? 'tot ' + esc(x.tot) + ' bezet'
                 : 'vanaf ' + esc(x.van) + ' bezet')
             : '')+'</span></span>'+
-          '<span class="merk2">Geboekt</span><span class="chev">\u203a</span></button>';
+          '<span class="merk2">'+(isBlok?'Geblokkeerd':'Geboekt')+'</span>'+
+          '<span class="chev">\u203a</span></button>';
       }).join('');
     }
     if(FILTER !== 'bezet'){
@@ -557,6 +626,63 @@ async function teken(){
   }).join('');
 }
 
+/* ---------- een suite blokkeren ----------
+   Een blokkade wordt bewaard als koppelregel met bron 'blokkade'. Daardoor
+   telt hij overal mee als bezet, ook in het reserveringenoverzicht. */
+function openBlokVenster(){
+  const v=document.getElementById('blokVenster');
+  document.getElementById('bkSuite').innerHTML =
+    Object.keys(SUITES).map(k=>'<option value="'+k+'">'+esc(SUITES[k].naam)+'</option>').join('');
+  document.getElementById('bkVanD').value = DATUM;
+  document.getElementById('bkTotD').value = DATUM;
+  document.getElementById('bkMelding').textContent = '';
+  v.showModal();
+}
+
+async function bewaarBlokkade(){
+  const m=document.getElementById('bkMelding');
+  const suite=document.getElementById('bkSuite').value;
+  const vanD=document.getElementById('bkVanD').value;
+  const totD=document.getElementById('bkTotD').value || vanD;
+  const vanT=document.getElementById('bkVanT').value || '00:00';
+  const totT=document.getElementById('bkTotT').value || '23:59';
+  const reden=document.getElementById('bkReden').value.trim() || 'Niet beschikbaar';
+  if(!vanD){ m.style.color='var(--bezet)'; m.textContent='Vul een begindatum in.'; return; }
+  if(totD < vanD){ m.style.color='var(--bezet)'; m.textContent='De einddatum ligt voor de begindatum.'; return; }
+
+  m.style.color=''; m.textContent='Bezig met opslaan…';
+  try{
+    const r=await fetch(CFG.url+'/rest/v1/res_koppeling?on_conflict=res_sleutel',{
+      method:'POST',
+      headers:{ apikey:CFG.key, Authorization:'Bearer '+SESSIE.access_token,
+        'Content-Type':'application/json',
+        Prefer:'resolution=merge-duplicates,return=minimal' },
+      /* res_koppeling heeft geen kolom locatie. De suite zit daarom in de
+         sleutel: blok-angie-1789... Daar wordt hij ook weer uit gelezen. */
+      body: JSON.stringify({
+        res_sleutel:'blok-'+suite+'-'+Date.now(),
+        bron:'blokkade',
+        gast:reden,
+        aankomst:vanD, vertrek:totD,
+        tijd_in:vanT, tijd_uit:totT,
+        notitie:'Blokkade aangemaakt via het beschikbaarheidsscherm.',
+        bijgewerkt:new Date().toISOString()
+      })
+    });
+    if(!r.ok) throw new Error((await r.text()).slice(0,160));
+    document.getElementById('blokVenster').close();
+    document.getElementById('bkReden').value='';
+    teken();
+  }catch(e){
+    m.style.color='var(--bezet)';
+    m.textContent='Opslaan lukte niet: '+e.message;
+  }
+}
+
+document.getElementById('knopBlok').onclick   = openBlokVenster;
+document.getElementById('bkBewaar').onclick   = bewaarBlokkade;
+document.getElementById('bkAnnuleer').onclick = ()=>document.getElementById('blokVenster').close();
+
 /* ---------- klikken ---------- */
 document.addEventListener('click', function(e){
   const d=e.target.closest('[data-dag]');
@@ -565,11 +691,26 @@ document.addEventListener('click', function(e){
   const b=e.target.closest('.blok');
   if(b){
     const status=b.getAttribute('data-status');
+    if(status==='blokkade'){
+      if(confirm('Deze blokkade opheffen?\n' + (b.getAttribute('data-wie')||''))){
+        const nr=b.getAttribute('data-nummer');
+        fetch(CFG.url+'/rest/v1/res_koppeling?res_sleutel=eq.'+encodeURIComponent(nr),
+          { method:'DELETE', headers:{ apikey:CFG.key,
+            Authorization:'Bearer '+SESSIE.access_token } })
+          .then(()=>teken());
+      }
+      return;
+    }
     if(status==='bezet'){
       /* naar de reserveringenpagina, met de naam als zoekterm */
       const naam = b.getAttribute('data-open') || b.getAttribute('data-wie') || '';
+      const nummer = b.getAttribute('data-nummer') || '';
       const zoek = naam.split(/\s+/).filter(w=>w.length>2).slice(-1)[0] || naam;
-      location.href = 'reserveringen.html' + (zoek ? '?zoek='+encodeURIComponent(zoek) : '');
+      const p = new URLSearchParams();
+      if(zoek) p.set('zoek', zoek);
+      if(nummer) p.set('res', nummer);
+      p.set('kaart','1');
+      location.href = 'reserveringen.html?' + p.toString();
       return;
     }
     const p=new URLSearchParams();
