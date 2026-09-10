@@ -232,10 +232,13 @@ footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color
 <link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" id="themaKleur" content="#F4F1ED">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Lelystad">
+<link rel="stylesheet" href="bwf-stijl.css">
+<link rel="stylesheet" href="bwf-agenda-stijl.css">
+<script src="bwf-start.js?v=1"></script>
 </head>
 <body>
 
@@ -301,15 +304,28 @@ footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color
     <hr class="regel">
 
     <div class="kolommen">
+
+    <section aria-label="Reserveringen" style="grid-column:1/-1">
+      <h2>Reserveringen vandaag</h2>
+      <p class="subkop" style="margin-top:0">Aankomsten en vertrekken. Klik een regel aan voor de gegevens.</p>
+      <iframe id="resFrame" title="Reserveringen vandaag" src="vandaag.html" loading="lazy"
+        style="width:100%;height:70vh;min-height:460px;border:1px solid var(--line,#E3DAD0);
+               border-radius:14px;background:var(--surface,#fff)"></iframe>
+      <p class="subkop"><a href="reserveringen.html">De volledige agenda openen</a></p>
+    </section>
+    <hr class="regel scheiding">
+
     <section aria-labelledby="vandaag">
-      <h2 id="vandaag">Vandaag</h2>
+      <h2 id="vandaag">Mijn taken</h2>
       <div class="tellers">
         <div class="teller"><b id="cVandaag">–</b><span>taken vandaag</span></div>
         <div class="teller"><b id="cOpen">–</b><span>open taken</span></div>
         <div class="teller"><b id="cCalls">–</b><span>welkomstcalls</span></div>
       </div>
 
-      <p class="subkop">Taken</p>
+      <p class="subkop">Taken
+        <label id="allenVak" style="display:none;float:right;font-weight:400;font-size:12.5px">
+          <input type="checkbox" id="takenAllen"> ook van anderen</label></p>
       <div id="lijstTaken"><p class="leeg">Bezig met laden…</p></div>
 
       <p class="subkop">Welkomstcalls</p>
@@ -317,16 +333,16 @@ footer{border-top:1px solid var(--line);margin-top:8px;padding:16px 0 40px;color
     </section>
     <hr class="regel scheiding">
 
-    <section aria-label="Kalender" style="grid-column:1/-1">
-      <h2>Kalender</h2>
-      <div id="bwfKalender"></div>
-    </section>
-    <hr class="regel scheiding">
-
     <section aria-label="Onderdelen">
       <div id="groepen"></div>
       <h2>Boekingskanalen</h2>
       <div class="extern" id="extern"></div>
+    </section>
+    <hr class="regel scheiding">
+
+    <section aria-label="Kalender" style="grid-column:1/-1">
+      <h2>Kalender</h2>
+      <div id="bwfKalender"></div>
     </section>
     </div>
 
@@ -387,32 +403,24 @@ const GROEPEN = [
   {
     kop:'Dagelijks',
     tegels:[
-      { t:'Dagoverzicht',    d:'Reserveringen en aankomsten',        url:'dashboard-prototype.html' },
-      { t:'Incheckformulier',d:'Formulier voor gasten',              url:'incheckformulier.html' },
-      { t:'Incheck-app',     d:'Online inchecken door de gast',      url:'bwf-incheck-app-licht.html' },
-      { t:'Gastenlink',      d:'Aparte link voor de gast',           url:'gast.html' },
-      { t:'Gastenapp',       d:'App voor gasten per suite',          url:null }
+      { t:'Vandaag',          d:'Aankomsten en vertrekken van vandaag', url:'vandaag.html' },
+      { t:'Agenda',           d:'Vrij en geboekt per suite',            url:'agenda.html' },
+      { t:'Reserveringen',    d:'Lijst en kalender',                    url:'reserveringen.html' },
+      { t:'Dagoverzicht',     d:'Kalender, taken en aanmeldingen',      url:'dagoverzicht.html' },
+      { t:'Incheckformulier', d:'Inchecken en afrekenen op locatie',    url:'incheckformulier.html' },
+      { t:'Gastenlink',       d:'De pagina die de gast zelf invult',    url:'gast.html' }
     ]
   },
   {
-    kop:'Taken',
+    kop:'Werken',
     tegels:[
-      { t:'Taken',        d:'Werkzaamheden, bellijsten en overdracht',
+      { t:'VR Dashboard',        d:'Welkomstcalls, taken en belscripts',
+        url:'vr2.html', rollen:['eigenaar','medewerker'] },
+      { t:'Personeelsdashboard', d:'Planning, voorraad en overdracht',   url:'dashboard.html' },
+      { t:'Taken',               d:'Werkzaamheden en bellijsten',
         url:'vrdashboard.html', rollen:['eigenaar','medewerker'] },
-      { t:'VR Dashboard', d:'Registratie werkzaamheden op tarief',
-        url:'vr2.html', rollen:['eigenaar','medewerker'] }
-    ]
-  },
-  {
-    kop:'Personeel',
-    tegels:[
-      { t:'Personeelsdashboard', d:'Handboek, planning en overdracht', url:'dashboard.html' },
       { t:'Urenregistratie',     d:'Uren per medewerker',
-        url:'uren-ruth.html', rollen:['eigenaar','medewerker'] },
-      { t:'Voorraad',            d:'Voorraad en bestellingen',
-        url:'dashboard.html#voorraad', rollen:['eigenaar','medewerker'] },
-      { t:'Planning',            d:'Maandkalender per medewerker',    url:null },
-      { t:'Contracten',          d:'Overeenkomsten en tarieven',      url:null }
+        url:'uren-ruth.html', rollen:['eigenaar','medewerker'] }
     ]
   },
   {
@@ -420,10 +428,19 @@ const GROEPEN = [
     tegels:[
       { t:'Klantbeheer',        d:'Klantenbestand, nachtregister en members',
         url:'klantbeheer.html', rollen:['eigenaar','medewerker'] },
-      { t:'Toeristenbelasting', d:'Aangifte per gemeente',  url:'klantbeheer.html?tab=aangifte' },
-      { t:'Financieel',         d:'Omzet, kosten en btw',   url:null },
-      { t:'Documenten',         d:'Huisregels en voorwaarden', url:null },
-      { t:'Leveranciers',       d:'Vaste afspraken en bestellingen', url:null }
+      { t:'Toeristenbelasting', d:'Aangifte per gemeente',    url:'klantbeheer.html?tab=aangifte' },
+      { t:'Reservering aanmaken', d:'Nieuwe boeking invoeren', url:'reservering-aanmaken.html' },
+      { t:'Financieel',         d:'Omzet, kosten en btw',      url:null },
+      { t:'Documenten',         d:'Huisregels en voorwaarden', url:null }
+    ]
+  },
+  {
+    kop:'Hulp',
+    tegels:[
+      { t:'Controle',    d:'Werkt de verbinding en je login',  url:'controle.html' },
+      { t:'SMG',         d:'Het boekingssysteem openen',       url:'https://www.smgdashboard.nl' },
+      { t:'Planyo',      d:'Reserveringssysteem',              url:'https://www.planyo.com' },
+      { t:'Privésauna',  d:'Partnerpagina',                    url:'https://www.privesauna.nl' }
     ]
   },
   {
@@ -432,14 +449,6 @@ const GROEPEN = [
       { t:'Contentplanning', d:'Social media en berichten', url:null },
       { t:'Advertenties',    d:'Campagnes en budget',       url:null },
       { t:'Events',          d:'Retreats en arrangementen', url:null }
-    ]
-  },
-  {
-    kop:'Assistent',
-    tegels:[
-      { t:'Claude Cowork',      d:'Werksessie voor bouwen en administratie',
-        url:'https://claude.ai/cowork/cse_01JzWXnAo3DjUGtDVmaLawdy', extern:true },
-      { t:'Virtuele assistent', d:'Vragen stellen over je eigen gegevens', url:null }
     ]
   }
 ];
@@ -466,7 +475,7 @@ const ACHTERGROND = { espresso:'#F4F1ED', salie:'#F3F6F2', leisteen:'#F2F5F7' };
 function zetThema(naam){
   if(!ACHTERGROND[naam]) naam = 'espresso';
   document.documentElement.dataset.thema = naam;
-  const mk = $('#themaKleur'); if(mk) mk.setAttribute('content', ACHTERGROND[naam]);
+  $('#themaKleur').setAttribute('content', ACHTERGROND[naam]);
   $$('.staal').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.kies === naam)));
   try{ localStorage.setItem('bwf-thema', naam); }catch(e){}
 }
@@ -520,8 +529,6 @@ $('#knopUit2').addEventListener('click', uitloggen);
 
 sb.auth.onAuthStateChange((_e, sessie) => {
   if(sessie){
-    if(window.BWFPlanyo) window.BWFPlanyo.setAccessToken(sessie.access_token);
-    window.dispatchEvent(new CustomEvent('bwf:session', { detail:{ ingelogd:true } }));
     $('#login').classList.add('hidden');
     $('#portaal').classList.remove('hidden');
     $('#wieben').textContent = sessie.user.email;
@@ -531,8 +538,6 @@ sb.auth.onAuthStateChange((_e, sessie) => {
     HUIDIGE_ID = sessie.user.id;
     haalRol(sessie.user.id).then(startPortaal);
   }else{
-    if(window.BWFPlanyo) window.BWFPlanyo.setAccessToken('');
-    window.dispatchEvent(new CustomEvent('bwf:session', { detail:{ ingelogd:false } }));
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');
   }
@@ -620,6 +625,11 @@ function fout(waar, tabel, melding){
     `<p class="fout">Kon niet laden uit <code>${tabel}</code>. ${melding}</p>`;
 }
 
+/* de eigenaar kan wisselen tussen eigen taken en alle taken */
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id === 'takenAllen') laadTaken();
+});
+
 async function laadDag(){
   laadTaken();
   laadCalls();
@@ -633,7 +643,11 @@ async function laadTaken(){
     .is(T.afgerond, null)
     .order(T.deadline, { ascending:true, nullsFirst:false });
 
-  if(ROL !== 'eigenaar' && HUIDIGE_ID) vraag = vraag.eq(T.medewerker, HUIDIGE_ID);
+  /* Standaard alleen je eigen taken. De eigenaar kan de rest erbij zetten. */
+  const allen = document.getElementById('takenAllen');
+  if(allen && ROL === 'eigenaar') document.getElementById('allenVak').style.display = 'inline';
+  const toonAlles = ROL === 'eigenaar' && allen && allen.checked;
+  if(HUIDIGE_ID && !toonAlles) vraag = vraag.eq(T.medewerker, HUIDIGE_ID);
 
   const { data, error } = await vraag;
   if(error){ fout('lijstTaken', T.tabel, error.message); return; }
@@ -687,9 +701,7 @@ async function laadCalls(){
       }).join('');
 }
 </script>
-<script src="bwf-planyo.js?v=10"></script>
-<script src="bwf-agenda.js?v=1"></script>
-<script src="bwf-kalender.js?v=3"></script>
+<script src="bwf-kalender.js"></script>
 <script src="bwf-shell.js"></script>
 </body>
 </html>
