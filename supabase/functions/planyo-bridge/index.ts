@@ -197,7 +197,28 @@ Deno.serve(async (request) => {
       if (userId) params.user_id = userId;
       const price = Number(body.custom_price || 0);
       if (price > 0) params.custom_price = String(price);
-      const data = await planyo("make_reservation", params);
+      /* Bestaat er in Planyo al een klant met dit e-mailadres, dan weigert Planyo
+         een nieuwe klant. We zoeken dan de bestaande klant op en hangen de
+         reservering daaraan. */
+      let data: Record<string, unknown>;
+      try {
+        data = await planyo("make_reservation", params);
+      } catch (e) {
+        const tekst = e instanceof Error ? e.message : String(e);
+        if (!/another user with this email|email address exists/i.test(tekst) || !email || params.user_id) throw e;
+        const gevonden = await planyo("list_users", { email, page_size: "10", detail_level: "1" });
+        const users = lijstUit(gevonden, ["users", "results"]) as Record<string, unknown>[];
+        const bestaand = users.find((u) => String(u.email || "").toLowerCase() === email.toLowerCase()) || users[0];
+        if (!bestaand || !bestaand.user_id) {
+          throw new Error("Dit e-mailadres is al bekend in Planyo, maar de klant kon niet worden opgezocht. " +
+            "Koppel de reservering in het formulier aan de bestaande klant, of gebruik een ander e-mailadres.");
+        }
+        const opnieuw: Record<string, string> = { ...params, user_id: String(bestaand.user_id) };
+        delete opnieuw.email; delete opnieuw.first_name; delete opnieuw.last_name;
+        delete opnieuw.phone; delete opnieuw.address; delete opnieuw.city;
+        data = await planyo("make_reservation", opnieuw);
+        data.user_id = data.user_id || bestaand.user_id;
+      }
       if (!data.reservation_id) {
         throw new Error("Planyo gaf geen reserveringsnummer terug: " +
           String(data.response_message || JSON.stringify(data).slice(0, 200)));
