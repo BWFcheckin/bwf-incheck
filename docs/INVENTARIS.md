@@ -229,6 +229,8 @@ Alleen de actieve pagina's in de root (archief en testpagina's: zie §5).
 
 Alles hieronder staat in de git-historie, dus is na verwijderen terug te halen.
 
+**Uitgevoerd 11-09-2026** in de commit "Opschonen repo" (alle punten in de eerste tabel; de Supabase-punten volgen in fase 1). `archief/boeking.html` is bewaard en staat nu als `boeking.html` in de hoofdmap; de afbeeldingen uit `files (5).zip` staan in `afbeeldingen/`; de drie functies uit `dashboard-test.html` staan als wens in fase 4 van het plan.
+
 | Item | Wat het is | Voorstel |
 |---|---|---|
 | `archief/Uren-ruth2026.html` | byte-identiek aan `uren-ruth.html` | verwijderen |

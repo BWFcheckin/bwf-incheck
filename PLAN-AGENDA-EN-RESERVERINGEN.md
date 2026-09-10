@@ -81,7 +81,7 @@ create table if not exists public.reserveringen (
   betaald_via       text,                 -- kanaal | mollie | locatie | paypal
   betaalstatus      text default 'open',  -- open | deels | betaald
   restant_bedrag    numeric,
-  uitbetaling_verwacht date,
+  uitbetaling_verwacht date,              -- alleen de datum, geen bedragen
   -- bronmateriaal
   brongegevens      text,                 -- geplakte/uitgelezen tekst uit pdf/mail/SMG
   bron_bestanden    jsonb default '[]',   -- paden in Supabase Storage bucket 'reservering-bijlagen'
@@ -106,10 +106,10 @@ Migratie: bestaande `res_koppeling`/`checkins`-gegevens **niet** verwijderen maa
 | Nu in de database | Wordt |
 |---|---|
 | `angie`, `Angie`, `Suite Angie Almere`, `PSA` | `angie` |
-| `jacuzzi`, `Jacuzzi`, `Malina Jacuzzi`, `PSM`\* | `malina_jacuzzi` |
+| `jacuzzi`, `Jacuzzi`, `Malina Jacuzzi`, `PSM` | `malina_jacuzzi` |
 | `deluxe`, `zwembad`, `Malina Zwembad`, `PSMD` | `malina_deluxe` |
 
-\* `PSM` = Malina Jacuzzi is nog een aanname (zie §6). Bestaande tabellen en pagina's houden hun huidige waarden tot de migratie in fase 1; nieuwe code gebruikt alleen de drie nieuwe namen.
+Bestaande tabellen en pagina's houden hun huidige waarden tot de migratie in fase 1; nieuwe code gebruikt alleen de drie nieuwe namen.
 
 ### 3.2 `blokkades` — beschikbaarheid / gesloten
 ```sql
@@ -152,7 +152,7 @@ Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reser
 ### Fase 0 — Inventaris en veiligheid (½ dag)
 - [x] `docs/INVENTARIS.md` (tabellen + kolommen + welke pagina wat gebruikt)
 - [x] `exports/` + `.gitignore`; volledige dump van Supabase (CSV/JSON per tabel + schema-snapshot; zie logboek)
-- [ ] Repo opschonen: `archief/`, `*.zip`, `files (5).zip`, map `~` en `*-test.html` beoordelen; verwijderen wat dubbel is (lijst eerst aan Angela laten zien)
+- [x] Repo opschonen: `archief/`, `*.zip`, `files (5).zip`, map `~` en `*-test.html` beoordelen; verwijderen wat dubbel is (lijst eerst aan Angela laten zien)
 
 ### Fase 1 — Datamodel (1 dag)
 - [ ] `supabase/migrations/2026xxxx_reserveringen.sql` met §3.1–3.6
@@ -166,7 +166,7 @@ Geen Make-scenario's: de import draait volledig in Supabase.
 - [ ] Edge function `kanalen-sync` (Deno): haalt ICS van Privésauna, Booking.com en OO op (URL's uit `kanaal_instellingen`), schrijft/updatet `reserveringen` op `(kanaal, kanaal_ref)`; verwijderde ICS-items → status `geannuleerd`
 - [ ] `pg_cron`-job die `kanalen-sync` elke 15 minuten aanroept via `pg_net`; de sleutel voor die aanroep staat in Vault, niet in de SQL
 - [ ] Gastgegevens die niet in de ICS staan (SMG-bevestiging, Booking.com-pdf/mail) aanvullen via het plak-/uploadveld uit fase 4
-- [ ] `uitbetaling_verwacht` invullen uit de uitbetaalregel in `kanaal_instellingen` (zie §6 vraag 7)
+- [ ] `uitbetaling_verwacht` invullen uit de uitbetaalregel in `kanaal_instellingen` — alleen de datum, geen bedragen
 - [ ] `agenda-bridge` (Google Agenda) mag blijven als extra bron, maar wordt niet meer de basis
 
 ### Fase 3 — Agenda en dagoverzicht (1–2 dagen)
@@ -184,6 +184,7 @@ Geen Make-scenario's: de import draait volledig in Supabase.
 - [ ] Welkomstcall: reservering kiezen → extra's bijboeken → WhatsApp/e-mail → Mollie-link voor restant/extra's
 - [ ] Automatisch klant aanmaken/samenvoegen in `wz_klantbeheer`; overnachting doorzetten naar nachtregister
 - [ ] Bekende bugs meenemen: arrangementen/betaling niet opgeslagen, gastformulier leegt velden en handtekening, geen bedrag bij aanmaken
+- [ ] Gewenste functies uit het verwijderde `archief/dashboard-test.html` terugbrengen in `dashboard.html`: (1) handmatige in-/uitchecktijd (`tijd_in`/`tijd_uit`, gaat vóór de tijd uit de agenda), (2) welkomstcall-status op de reserveringskaart, (3) "Besproken" op de reserveringskaart. Oude code: `git show 5d26838:archief/dashboard-test.html`
 
 ### Fase 5 — Rollen, taken, voorraad, werkzaamheden (1–2 dagen)
 - [ ] Menu en knoppen per rol (matrix §5); alles wat niet mag is ook niet zichtbaar
@@ -232,8 +233,8 @@ Geen Make-scenario's: de import draait volledig in Supabase.
 4. Welke locatiemanager mag welke suite(s) zien — Lelystad = `malina_jacuzzi` + `malina_deluxe`, Almere = `angie`?
 5. ~~Import elke 15 minuten: via `pg_cron` of via Make?~~ **Besloten 11-09-2026:** via `pg_cron` in Supabase, geen Make.
 6. Gmail in het dashboard: knop naar Gmail (nu) of later echte Gmail-API-koppeling (apart project)?
-7. `uitbetaling_verwacht` (en de uitbetaalregel per kanaal) behouden nu de commissie vervalt, of ook weg?
-8. Is `PSM` in `psm_administratie` de Malina Jacuzzi (en `PSMD` de Malina Deluxe)?
+7. ~~`uitbetaling_verwacht` behouden nu de commissie vervalt?~~ **Besloten 11-09-2026:** blijft, alleen de datum (geen bedragen).
+8. ~~Is `PSM` de Malina Jacuzzi?~~ **Besloten 11-09-2026:** `PSM` = `malina_jacuzzi`, `PSMD` = `malina_deluxe`, `PSA` = `angie`.
 
 ---
 
@@ -249,3 +250,6 @@ cd ~/bwf-incheck && git pull
 - 11-09-2026 — plan opgesteld.
 - 11-09-2026 — fase 0: `docs/INVENTARIS.md` gemaakt uit de live database en de code. Export in `exports/2026-09-11/` (50 tabellen, aantallen gecontroleerd, plus storage-bestanden, broncode edge functions, policies/functies/views). Afwijking: geen `pg_dump` (geen Docker/psql op de Mac); export via `supabase db query --linked`. De database telt 50 tabellen i.p.v. de 14 uit §1 — zie INVENTARIS §1 voor besluiten vóór fase 1. Er is nog niets verwijderd.
 - 11-09-2026 — besluiten Angela: (a) suitenamen overal `angie`, `malina_jacuzzi`, `malina_deluxe` (Malina Zwembad = Malina Deluxe); (b) geen Make-scenario's, ICS-import via Supabase-functie + `pg_cron` (spelregel 8, fase 2); (c) geen commissieberekening in het reserveringsmodel: `commissie_pct`, `commissie_bedrag` en `bedrag_netto` vervallen, `bedrag_bruto` heet nu `bedrag_totaal`, commissie/servicekosten uit `kanaal_instellingen`. `vr2.html` lokaal hersteld (was 0 bytes), leeg bestand `main` verwijderd.
+- 11-09-2026 — agendasleutel uit de HTML gehaald; `dashboard`, `dagoverzicht` en `incheckformulier` laden de agenda via `bwf-agenda.js` / `agenda-bridge` (commit `5d26838`). Sleutel vervangen: `docs/SLEUTEL-ROTATIE.md`.
+- 11-09-2026 — besluiten Angela: `uitbetaling_verwacht` blijft (alleen datum); `PSM` = `malina_jacuzzi`, `PSMD` = `malina_deluxe`, `PSA` = `angie`.
+- 11-09-2026 — repo opgeschoond (commit "Opschonen repo"): archief, testpagina's, `vrdashboard.html`, `bwf-reservering-extra.js`, beide zips en map `~` verwijderd; `archief/boeking.html` → `boeking.html` (boeking-flow fase 7); afbeeldingen uit `files (5).zip` → `afbeeldingen/`; links naar `beschikbaarheid2.html` → `agenda.html` en naar `vrdashboard.html` → `vr2.html`; `supabase/.temp/` uit git. Fase 0 afgerond.

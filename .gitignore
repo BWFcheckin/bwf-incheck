@@ -6,3 +6,6 @@ exports/
 .env.*
 
 .DS_Store
+
+# Lokale status van de Supabase-CLI
+supabase/.temp/
