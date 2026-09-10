@@ -9,6 +9,11 @@
     PROJECT +
     ".supabase.co/functions/v1/planyo-bridge";
 
+  var UPDATE_URL =
+    "https://" +
+    PROJECT +
+    ".supabase.co/functions/v1/planyo-update";
+
   var accessToken = "";
 
   /*
@@ -155,7 +160,8 @@
 
   async function verstuur(
     actie,
-    gegevens
+    gegevens,
+    functionUrl
   ) {
     var token = tokenUitOpslag();
 
@@ -166,7 +172,7 @@
     }
 
     var antwoord = await fetch(
-      FUNCTION_URL,
+      functionUrl || FUNCTION_URL,
       {
         method: "POST",
         headers: {
@@ -300,6 +306,16 @@
       return verstuur(
         "create-reservation",
         gegevens
+      );
+    },
+
+    updateReservation: function (
+      gegevens
+    ) {
+      return verstuur(
+        "update-reservation",
+        gegevens,
+        UPDATE_URL
       );
     },
 

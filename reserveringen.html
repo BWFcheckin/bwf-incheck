@@ -667,15 +667,32 @@ window.BWF = window.BWF || {};
     <div class="veld"><span>Telefoon</span><input id="wz_telefoon" type="tel"></div>
     <div class="veld"><span>E-mail</span><input id="wz_email" type="email"></div>
     <div class="veld"><span>Aantal personen</span><input id="wz_personen" type="text"></div>
-    <div class="veld"><span>Arrangement</span><input id="wz_arrangement" type="text"></div>
+    <div class="veld"><span>Suite in Planyo</span><select id="wz_resource">
+      <option value="">Huidige suite behouden</option>
+      <option value="254072">B&amp;W Angie Wellness Suite</option>
+      <option value="254073">B&amp;W Malina Jacuzzi Suite</option>
+      <option value="254076">B&amp;W Malina Zwembad Suite</option>
+    </select></div>
+    <div class="veld"><span>Totaalbedrag</span><input id="wz_totaal" type="number" min="0" step="0.01"></div>
+    <div class="veld"><span>Al betaald</span><input id="wz_betaald" type="number" min="0" step="0.01"></div>
+    <div class="veld breed"><span>Arrangementen</span><input id="wz_arrangement" type="text" placeholder="Scheid meerdere arrangementen met een komma"></div>
     <div class="veld"><span>Platform</span><select id="wz_kanaal"></select></div>
     <div class="veld"><span>Soort verblijf</span><select id="wz_verblijf">
       <option value="">Automatisch</option><option>Overnachting</option><option>Dagverblijf</option>
     </select></div>
     <div class="veld breed"><span>Extra services</span><input id="wz_extra" type="text" placeholder="Massagetafel, shisha, borrelplank…"></div>
     <div class="veld breed"><span>Notitie</span><textarea id="wz_notitie"></textarea></div>
+    <div class="veld breed"><label class="vinkje"><input id="wz_call" type="checkbox"> Welkomstcall aan deze reservering koppelen</label></div>
+    <div class="veld"><span>Datum welkomstcall</span><input id="wz_call_datum" type="date"></div>
+    <div class="veld"><span>Tijd welkomstcall</span><input id="wz_call_tijd" type="time"></div>
+    <div class="veld"><span>Medewerker</span><select id="wz_call_medewerker"></select></div>
+    <div class="veld"><span>Status</span><select id="wz_call_status">
+      <option value="open">Nog te bellen</option><option value="ingepland">Ingepland</option>
+      <option value="afgerond">Afgerond</option><option value="niet_bereikbaar">Niet bereikbaar</option>
+    </select></div>
+    <div class="veld breed"><span>Notitie welkomstcall</span><textarea id="wz_call_notitie"></textarea></div>
   </div>
-  <p class="sub" style="margin-top:14px">De agenda van SMG blijft ongewijzigd. Wat je hier invult wordt hier bewaard en gaat voor op de tekst uit de agenda.</p>
+  <p class="sub" style="margin-top:14px">Bij een Planyo-reservering worden suite, datum, tijd, bedrag, arrangementen en notities ook in Planyo bijgewerkt. Alle BWF-overzichten gebruiken daarna dezelfde gegevens.</p>
   <div class="voet">
     <button class="knop links" type="button" id="wzLeeg">Aanpassingen wissen</button>
     <button class="knop" type="button" data-sluit="wijzigDialog">Annuleren</button>
@@ -773,7 +790,7 @@ window.BWF = window.BWF || {};
   </div>
 </div></dialog>
 
-<script src="bwf-planyo.js?v=10"></script>
+<script src="bwf-planyo.js?v=13"></script>
 <script src="bwf-agenda.js?v=1"></script>
 <script>
 /* =========================================================
@@ -2104,6 +2121,13 @@ function datumGewijzigd(r){ var k = KOPPEL[resSleutel(r)]||{}; return !!(k.aanko
 function telVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.telefoon || r.telefoon || ''; }
 function mailVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.email || r.email || ''; }
 
+function resourceVoorLocatie(locatie){
+  var l = vergelijkLocatie(locatie);
+  return l === 'angie' ? '254072' : l === 'jacuzzi' ? '254073' : l === 'zwembad' ? '254076' : '';
+}
+function datumTijd(datum, klok){
+  return datum + (klok ? ' ' + klok : '');
+}
 function openWijzig(r){
   var k = KOPPEL[resSleutel(r)] || {};
   document.getElementById('wzSub').textContent = r.locatie+' · '+r.aankomst+
@@ -2116,6 +2140,9 @@ function openWijzig(r){
   document.getElementById('wz_telefoon').value = telVan(r);
   document.getElementById('wz_email').value = mailVan(r);
   document.getElementById('wz_personen').value = k.personen || r.personen || '';
+  document.getElementById('wz_resource').value = k.resource_id || resourceVoorLocatie(r.locatie);
+  document.getElementById('wz_totaal').value = k.totaal!=null ? k.totaal : (r.totaal!=null?r.totaal:'');
+  document.getElementById('wz_betaald').value = k.betaald!=null ? k.betaald : (r.betaald!=null?r.betaald:'');
   document.getElementById('wz_arrangement').value = k.arrangement || r.arrangement || '';
   var ks = document.getElementById('wz_kanaal');
   var huidig = k.kanaal || kanaalVan(r);
@@ -2125,28 +2152,90 @@ function openWijzig(r){
   document.getElementById('wz_verblijf').value = k.verblijf || '';
   document.getElementById('wz_extra').value = k.extra || '';
   document.getElementById('wz_notitie').value = k.notitie || '';
+  document.getElementById('wz_call').checked = !!k.welkomstcall_id;
+  document.getElementById('wz_call_datum').value = k.welkomstcall_datum || '';
+  document.getElementById('wz_call_tijd').value = tijd(k.welkomstcall_tijd) || '';
+  document.getElementById('wz_call_status').value = k.welkomstcall_status || 'open';
+  document.getElementById('wz_call_notitie').value = k.welkomstcall_notitie || '';
+  var cm = document.getElementById('wz_call_medewerker');
+  cm.innerHTML = '<option value="">Nog niet toegewezen</option>'+
+    MEDEWERKERS.map(function(m){ var n=medewerkerNaam(m); return '<option'+(n===(k.welkomstcall_medewerker||k.medewerker)?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
   document.getElementById('wijzigDialog').showModal();
 }
 document.getElementById('wzBewaar').onclick = async function(){
+  var knop=this, r=actieRes, k=KOPPEL[resSleutel(r)]||{};
+  var aankomst=document.getElementById('wz_aankomst').value;
+  var vertrek=document.getElementById('wz_vertrek').value;
+  var tijdIn=document.getElementById('wz_tijdin').value;
+  var tijdUit=document.getElementById('wz_tijduit').value;
+  if(!aankomst || !vertrek || !tijdIn || !tijdUit){ meld('Vul aankomst, vertrek en beide tijden in.'); return; }
+  if(new Date(datumTijd(vertrek,tijdUit).replace(' ','T'))<=new Date(datumTijd(aankomst,tijdIn).replace(' ','T'))){
+    meld('Het vertrek moet na de aankomst liggen.'); return;
+  }
+  var wijziging={
+    gast:document.getElementById('wz_gast').value.trim(),
+    aankomst:aankomst, vertrek:vertrek, tijd_in:tijdIn, tijd_uit:tijdUit,
+    telefoon:document.getElementById('wz_telefoon').value.trim(),
+    email:document.getElementById('wz_email').value.trim(),
+    personen:document.getElementById('wz_personen').value.trim(),
+    resource_id:document.getElementById('wz_resource').value||null,
+    totaal:parseFloat(document.getElementById('wz_totaal').value)||0,
+    betaald:parseFloat(document.getElementById('wz_betaald').value)||0,
+    arrangement:document.getElementById('wz_arrangement').value.trim(),
+    kanaal:document.getElementById('wz_kanaal').value,
+    verblijf:document.getElementById('wz_verblijf').value,
+    extra:document.getElementById('wz_extra').value.trim(),
+    notitie:document.getElementById('wz_notitie').value.trim()
+  };
+  knop.disabled=true; knop.textContent='Bezig met opslaan…';
   try{
-    await bewaarKoppeling(actieRes, {
-      gast: document.getElementById('wz_gast').value.trim(),
-      aankomst: document.getElementById('wz_aankomst').value || null,
-      vertrek: document.getElementById('wz_vertrek').value || null,
-      tijd_in: document.getElementById('wz_tijdin').value || null,
-      tijd_uit: document.getElementById('wz_tijduit').value || null,
-      telefoon: document.getElementById('wz_telefoon').value.trim(),
-      email: document.getElementById('wz_email').value.trim(),
-      personen: document.getElementById('wz_personen').value.trim(),
-      arrangement: document.getElementById('wz_arrangement').value.trim(),
-      kanaal: document.getElementById('wz_kanaal').value,
-      verblijf: document.getElementById('wz_verblijf').value,
-      extra: document.getElementById('wz_extra').value.trim(),
-      notitie: document.getElementById('wz_notitie').value.trim()
-    });
+    var planyoId=String(r.nummer||'').trim();
+    if(/^\d+$/.test(planyoId)){
+      if(!window.BWFPlanyo || typeof BWFPlanyo.updateReservation!=='function')
+        throw new Error('De nieuwste bwf-planyo.js is nog niet geladen.');
+      await BWFPlanyo.updateReservation({
+        reservation_id:planyoId,
+        resource_id:wijziging.resource_id||resourceVoorLocatie(r.locatie),
+        start_time:datumTijd(aankomst,tijdIn),
+        end_time:datumTijd(vertrek,tijdUit),
+        custom_price:wijziging.totaal,
+        notes:[wijziging.arrangement,wijziging.extra,wijziging.notitie].filter(Boolean).join(' · '),
+        send_notifications:false
+      });
+    }
+    if(document.getElementById('wz_call').checked){
+      var call={
+        gast:wijziging.gast, telefoon:wijziging.telefoon, email:wijziging.email,
+        locatie:r.locatie, aankomst:aankomst, reservering:r.nummer||resSleutel(r),
+        gepland_datum:document.getElementById('wz_call_datum').value||null,
+        gepland_tijd:document.getElementById('wz_call_tijd').value||null,
+        medewerker:document.getElementById('wz_call_medewerker').value||null,
+        status:document.getElementById('wz_call_status').value||'open',
+        notitie:document.getElementById('wz_call_notitie').value.trim()
+      };
+      if(k.welkomstcall_id){
+        await sb('wz_welkomstcalls?id=eq.'+encodeURIComponent(k.welkomstcall_id),{method:'PATCH',body:JSON.stringify(call)});
+        wijziging.welkomstcall_id=k.welkomstcall_id;
+      }else{
+        var gemaakt=await sb('wz_welkomstcalls',{method:'POST',body:JSON.stringify(call)});
+        wijziging.welkomstcall_id=String(gemaakt&&gemaakt[0]&&gemaakt[0].id||'');
+      }
+      wijziging.welkomstcall_datum=call.gepland_datum;
+      wijziging.welkomstcall_tijd=call.gepland_tijd;
+      wijziging.welkomstcall_medewerker=call.medewerker;
+      wijziging.welkomstcall_status=call.status;
+      wijziging.welkomstcall_notitie=call.notitie;
+      wijziging.welkomstcall_gedaan=call.status==='afgerond'?new Date().toISOString():null;
+    }
+    await bewaarKoppeling(r,wijziging);
     document.getElementById('wijzigDialog').close();
-    meld('Gegevens bijgewerkt.', true);
-  }catch(e){ meld('Opslaan lukte niet: '+e.message); }
+    meld('Reservering bijgewerkt. De agenda’s tonen de wijziging na verversen.',true);
+    setTimeout(function(){ laden(); },700);
+  }catch(e){
+    meld('Opslaan lukte niet: '+e.message);
+  }finally{
+    knop.disabled=false; knop.textContent='Opslaan';
+  }
 };
 document.getElementById('wzLeeg').onclick = async function(){
   if(!confirm('De aangepaste gegevens wissen? Daarna staat de tekst uit de agenda er weer.')) return;
