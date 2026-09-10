@@ -206,9 +206,16 @@ Deno.serve(async (request) => {
       } catch (e) {
         const tekst = e instanceof Error ? e.message : String(e);
         if (!/another user with this email|email address exists/i.test(tekst) || !email || params.user_id) throw e;
-        const gevonden = await planyo("list_users", { email, page_size: "10", detail_level: "1" });
-        const users = lijstUit(gevonden, ["users", "results"]) as Record<string, unknown>[];
-        const bestaand = users.find((u) => String(u.email || "").toLowerCase() === email.toLowerCase()) || users[0];
+        /* Planyo filtert list_users niet betrouwbaar op e-mail; daarom de
+           klantenlijst zelf doorlopen tot het adres gevonden is. */
+        let bestaand: Record<string, unknown> | undefined;
+        const zoek = email.toLowerCase();
+        for (let page = 0; page < 20 && !bestaand; page++) {
+          const gevonden = await planyo("list_users", { page: String(page), page_size: "1000", detail_level: "1" });
+          const users = lijstUit(gevonden, ["users", "results"]) as Record<string, unknown>[];
+          bestaand = users.find((u) => String(u.email || "").trim().toLowerCase() === zoek);
+          if (users.length < 1000) break;
+        }
         if (!bestaand || !bestaand.user_id) {
           throw new Error("Dit e-mailadres is al bekend in Planyo, maar de klant kon niet worden opgezocht. " +
             "Koppel de reservering in het formulier aan de bestaande klant, of gebruik een ander e-mailadres.");
