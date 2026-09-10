@@ -205,6 +205,20 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 .kalitem.meerdaags.kal-start.kal-eind{width:100%;margin-left:0;margin-right:0;border-left:3px solid var(--kleur);border-radius:4px}
 .kalitem.meerdaags:not(.kal-start){border-left:0;padding-left:7px}
 .kalleeg{color:var(--muted);font-size:13.5px;padding:24px;text-align:center}
+/* wie werkt er — bovenaan elke dag (alleen met ?planning=1) */
+.kaldagrij{display:flex;align-items:center;gap:5px;min-width:0;height:18px}
+.kaldagrij .dagnr{flex:none}
+.kalwerk{display:flex;gap:3px;min-width:0;overflow:hidden;flex:1}
+.kalwerk .wk{display:inline-flex;align-items:center;gap:4px;flex:none;max-width:100%;
+  font-size:10.5px;font-weight:600;line-height:16px;padding:0 6px 0 5px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--line-soft);color:var(--ink-2);white-space:nowrap}
+.kalwerk .wk i{width:7px;height:7px;border-radius:50%;background:var(--wk);flex:none}
+.kalwerk .wk b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.kalcel.buiten .kalwerk{opacity:.5}
+@media(max-width:760px){
+  .kalwerk .wk{font-size:9.5px;padding:0 4px}
+  .kalwerk .wk i{display:none}
+}
 @media(max-width:760px){
   .kalcel{min-height:74px;padding:3px}
   .kalitem{font-size:9.5px;padding:1px 3px}
@@ -840,7 +854,17 @@ async function sb(pad, opties){
     method: opties.method||"GET", headers: kop, body: opties.body||undefined });
   if(!r.ok) throw new Error("HTTP "+r.status+" — "+(await r.text()).slice(0,160));
   var t = await r.text();
+  if((opties.method||"GET") !== "GET" && /^(res_koppeling|reservations|checkins|wz_welkomstcalls|wz_klantbeheer)/.test(pad)) meldWijziging();
   return t ? JSON.parse(t) : null;
+}
+/* Ingeladen in een dashboard? Dan laat dat dashboard weten dat er iets is opgeslagen. */
+var wijzigTimer = null;
+function meldWijziging(){
+  if(window.self === window.top) return;
+  clearTimeout(wijzigTimer);
+  wijzigTimer = setTimeout(function(){
+    try{ parent.postMessage({ bwf:'gewijzigd', bron:'reserveringen' }, location.origin); }catch(e){}
+  }, 1200);
 }
 var meldEl = document.getElementById('melding');
 function meld(tekst, goed){
@@ -858,6 +882,17 @@ sluitDialogen();
    Gegevens
    ========================================================= */
 var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [];
+/* Instellingen via het webadres, zodat andere pagina's deze pagina kunnen inladen:
+   ?weergave=kalender  opent meteen de kalender in plaats van de lijst
+   ?regio=lelystad     toont alleen Malina Jacuzzi en Malina Deluxe
+   ?planning=1         zet bovenaan elke dag wie er werkt
+   Zonder deze toevoegingen werkt de pagina precies zoals altijd. */
+var PARAM = new URLSearchParams(location.search);
+var START_WEERGAVE = PARAM.get('weergave') === 'kalender' ? 'kalender' : 'lijst';
+var REGIO = String(PARAM.get('regio') || '').toLowerCase();
+var MET_PLANNING = PARAM.get('planning') === '1';
+var PLANNING = [], PLANTEAM = [], GELADEN = false;
+var WERKKLEUR = ['#165dff','#b5842c','#14805e','#c15a3e','#8a5bc4','#2da2bb'];
 var ONTDUBBELD = 0;
 var INSTELLINGEN = {};
 
@@ -1042,8 +1077,22 @@ async function laden(){
     (await sb('bwf_instellingen?select=*') || []).forEach(function(x){ INSTELLINGEN[x.sleutel] = x.waarde; });
   }catch(e){ INSTELLINGEN = {}; }
 
+  if(MET_PLANNING){
+    try{ PLANTEAM = await sb('medewerkers?select=id,naam&order=aangemaakt.asc') || []; }
+    catch(e){ try{ PLANTEAM = await sb('medewerkers?select=id,naam') || []; }catch(e2){ PLANTEAM = []; } }
+    try{ PLANNING = await sb('planning?select=datum,medewerker_id,locatie,dienst,notitie&order=datum.asc&limit=4000') || []; }
+    catch(e){ PLANNING = []; fouten.push('planning: '+e.message); }
+  }
+
   ALLES = ontdubbelBoekingen(agenda.concat(eigen)).sort(function(a,b){
     return String(b.aankomst).localeCompare(String(a.aankomst)); });
+  if(REGIO === 'lelystad'){
+    ALLES = ALLES.filter(function(r){
+      var l = vergelijkLocatie(r.locatie);
+      return l === 'jacuzzi' || l === 'zwembad';
+    });
+  }
+  GELADEN = true;
 
   if(fouten.length && fouten.join(' ').indexOf('401') > -1){
     meld('Je bent niet (meer) ingelogd bij Supabase. Open klantbeheer of het VR Dashboard, log daar in, en ververs deze pagina. De reserveringen uit de agenda zie je wel.');
@@ -1086,7 +1135,8 @@ function vulKeuzes(){
     namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
 
   document.getElementById('legenda').innerHTML = Object.keys(SOORTEN).map(function(k){
-    return '<span><i style="background:'+SOORTEN[k].kleur+'"></i>'+SOORTEN[k].naam+'</span>'; }).join('');
+    return '<span><i style="background:'+SOORTEN[k].kleur+'"></i>'+SOORTEN[k].naam+'</span>'; }).join('') +
+    (MET_PLANNING ? '<span style="margin-left:auto">Namen bovenaan een dag: wie er werkt (\u263d nacht, \u2726 schoonmaak)</span>' : '');
 }
 
 /* =========================================================
@@ -1378,6 +1428,36 @@ function dagenVan(r){
   return uit;
 }
 
+/* wie er op een dag werkt, uit de planning van het personeelsdashboard */
+function werkKleur(id){
+  for(var i=0;i<PLANTEAM.length;i++) if(String(PLANTEAM[i].id) === String(id)) return WERKKLEUR[i % WERKKLEUR.length];
+  return 'var(--muted)';
+}
+function werkNaam(id){
+  for(var i=0;i<PLANTEAM.length;i++) if(String(PLANTEAM[i].id) === String(id)) return PLANTEAM[i].naam || '';
+  return '';
+}
+function werkStrook(ds){
+  if(!MET_PLANNING) return '';
+  var rijen = PLANNING.filter(function(p){
+    if(String(p.datum||'').slice(0,10) !== ds || p.dienst === 'afwezig') return false;
+    if(REGIO !== 'lelystad') return true;
+    var l = String(p.locatie||'').toLowerCase();
+    return !l || l.indexOf('lelystad') > -1 || l.indexOf('malina') > -1;
+  });
+  if(!rijen.length) return '<span class="kalwerk"></span>';
+  var uitleg = rijen.map(function(p){
+    var soort = p.dienst === 'nacht' ? 'nachtverblijf' : p.dienst === 'schoonmaak' ? 'schoonmaak' : 'dagverblijf';
+    return (werkNaam(p.medewerker_id) || 'Onbekend') + ' \u2013 ' + soort + (p.notitie ? ' (' + p.notitie + ')' : '');
+  }).join('\n');
+  return '<span class="kalwerk" title="' + esc('Werkt op deze dag:\n' + uitleg) + '">' + rijen.map(function(p){
+    var vol = werkNaam(p.medewerker_id) || 'Onbekend';
+    var teken = p.dienst === 'nacht' ? ' \u263d' : p.dienst === 'schoonmaak' ? ' \u2726' : '';
+    return '<span class="wk" style="--wk:' + werkKleur(p.medewerker_id) + '"><i></i><b>' +
+      esc(vol.split(' ')[0]) + teken + '</b></span>';
+  }).join('') + '</span>';
+}
+
 function tekenKalender(){
   var jaar = kalMaand.getFullYear(), maand = kalMaand.getMonth();
   document.getElementById('kalTitel').textContent = MAANDEN[maand]+' '+jaar;
@@ -1421,7 +1501,9 @@ function tekenKalender(){
     var wknd = ((loop.getDay()+6)%7) > 4;
     html += '<div class="kalcel'+(buiten?' buiten':'')+(wknd?' weekend':'')+
             (ds===vandaag?' vandaag':'')+'">'+
-            '<span class="dagnr">'+loop.getDate()+'</span>';
+            (MET_PLANNING
+              ? '<div class="kaldagrij"><span class="dagnr">'+loop.getDate()+'</span>'+werkStrook(ds)+'</div>'
+              : '<span class="dagnr">'+loop.getDate()+'</span>');
     (perDag[ds]||[]).forEach(function(i){
       var r = lijst[i];
       var s = SOORTEN[r.soort] || SOORTEN.handmatig;
@@ -1447,7 +1529,7 @@ function tekenKalender(){
     loop.setDate(loop.getDate()+1);
   }
   html += '</div>';
-  if(!lijst.length) html += '<div class="kalleeg">Geen reserveringen in deze maand met de huidige filters.</div>';
+  if(!lijst.length) html += '<div class="kalleeg">'+(GELADEN ? 'Geen reserveringen in deze maand met de huidige filters.' : 'Bezig met laden\u2026')+'</div>';
 
   var vak = document.getElementById('kalInhoud');
   vak.innerHTML = html;
@@ -2616,6 +2698,12 @@ window.addEventListener('resize', meldHoogte);
   document.getElementById('fZoek').oninput = verversen;
   window.addEventListener('bwf-ingelogd', pasRolToe);
   pasRolToe();
+  if(START_WEERGAVE === 'kalender') zetWeergave('kalender');
+  /* het dashboard waarin deze pagina zit kan om nieuwe gegevens vragen */
+  window.addEventListener('message', function(e){
+    if(e.origin !== location.origin || !e.data || e.data.bwf !== 'verversen') return;
+    laden();
+  });
   laden();
 })();
 </script>
