@@ -245,6 +245,8 @@ function vandaagISO(){ const d=new Date();
   return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function schuif(iso,n){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
   return d.toISOString().slice(0,10); }
+function nlKort(iso){ try{ return new Date(iso+'T12:00:00')
+  .toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }catch(e){ return iso; } }
 function nlLang(iso){ return new Date(iso+'T12:00:00')
   .toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'}); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>
@@ -321,40 +323,99 @@ async function laadBlokken(){
 /* ---------- wat is er bezet ---------- */
 async function laadBezet(){
   FOUT='';
-  const d=DATUM, vorige=schuif(d,-1);
+  const d=DATUM;
   const [agenda,res,kop] = await Promise.all([
     (async()=>{ try{
         if(!window.BWFAgenda) throw new Error('agenda niet geladen');
         const j=await window.BWFAgenda.events();
         return (j.events||[]).filter(e=>e.soort==='reservering'||e.soort==='extern');
-      }catch(e){ FOUT += (FOUT?' · ':'')+'agenda ('+e.message+')'; return []; } })(),
+      }catch(e){ FOUT += (FOUT?' \u00b7 ':'')+'agenda ('+e.message+')'; return []; } })(),
+    /* Alles wat op deze dag loopt, ook als het eerder begon of later eindigt.
+       Eerder keken we alleen naar de aankomstdag, waardoor een verblijf van
+       twee nachten op de tussenliggende dag onzichtbaar was. */
     haal('reservations?select=id,locatie,voornaam,achternaam,checkindatum,checkuitdatum,' +
-      'checkintijd,checkuittijd&or=(checkindatum.eq.'+d+',checkindatum.eq.'+vorige+
-      ',checkuitdatum.eq.'+d+')&limit=400','reserveringen'),
+      'checkintijd,checkuittijd&checkindatum=lte.'+d+'&checkuitdatum=gte.'+d+'&limit=400','reserveringen'),
     haal('res_koppeling?select=res_sleutel,gast,locatie,aankomst,vertrek,tijd_in,tijd_uit,' +
-      'geannuleerd&or=(aankomst.eq.'+d+',aankomst.eq.'+vorige+',vertrek.eq.'+d+')&limit=600','koppelingen')
+      'geannuleerd&aankomst=lte.'+d+'&vertrek=gte.'+d+'&limit=600','koppelingen')
   ]);
 
-  const uit=[];
+  /* Een verblijf omrekenen naar de tijden die het op déze dag bezet houdt. */
+  function opDeze(vanDatum, totDatum, vanTijd, totTijd){
+    const a=String(vanDatum||'').slice(0,10), b=String(totDatum||vanDatum||'').slice(0,10);
+    if(!a) return null;
+    if(a>d || (b && b<d)) return null;
+    const begint = a===d, eindigt = (b||a)===d;
+    if(begint && eindigt) return { van:vanTijd||'00:00', tot:totTijd||'23:59', doorlopend:false };
+    if(begint)            return { van:vanTijd||'00:00', tot:'23:59', doorlopend:true };
+    if(eindigt)           return { van:'00:00', tot:totTijd||'23:59', doorlopend:true };
+    return { van:'00:00', tot:'23:59', doorlopend:true };   /* hele dag bezet */
+  }
+
+  /* Eén boeking per verblijf. Een reservering en de correctie erop horen bij
+     elkaar: res_koppeling met sleutel hm-<id> hoort bij reservations met dat id.
+     Wat in de koppeling staat is een bewuste aanpassing en gaat dus voor. */
+  const perSleutel = {};
+  function zet(sleutel, waarden, voorrang){
+    if(!sleutel) return;
+    const bestaand = perSleutel[sleutel] || {};
+    perSleutel[sleutel] = voorrang
+      ? Object.assign({}, bestaand, schoon(waarden))
+      : Object.assign({}, schoon(waarden), bestaand);
+  }
+  function schoon(o){
+    const uit={}; Object.keys(o).forEach(k=>{ if(o[k]!==undefined && o[k]!=='' && o[k]!==null) uit[k]=o[k]; });
+    return uit;
+  }
+
   agenda.forEach(e=>{
-    const van=String(e.start||'').slice(0,10);
-    if(van!==d && van!==vorige) return;
-    uit.push({ suite:locId(e.suite||e.locatie), datum:van,
-      van:(String(e.start||'').match(/(\d{2}:\d{2})/)||[])[1]||'00:00',
-      tot:(String(e.eind||'').match(/(\d{2}:\d{2})/)||[])[1]||'23:59',
-      wie:e.gast||e.naam||e.titel||'geboekt', bron:e.bron||'agenda' });
+    const nummer = e.nummer || e.referentie || e.reservering;
+    const sleutel = nummer ? String(nummer)
+      : (e.suite||e.locatie||'') + '-' + String(e.start||'').slice(0,16);
+    zet(sleutel, {
+      suite: locId(e.suite||e.locatie),
+      vanD: String(e.start||'').slice(0,10),
+      totD: String(e.eind||'').slice(0,10) || String(e.start||'').slice(0,10),
+      vanT: (String(e.start||'').match(/(\d{2}:\d{2})/)||[])[1],
+      totT: (String(e.eind||'').match(/(\d{2}:\d{2})/)||[])[1],
+      wie: e.gast||e.naam||e.titel||'geboekt',
+      bron: e.bron||'agenda'
+    }, false);
   });
+
   res.forEach(r=>{
-    uit.push({ suite:locId(r.locatie), datum:String(r.checkindatum||'').slice(0,10),
-      van:String(r.checkintijd||'00:00').slice(0,5), tot:String(r.checkuittijd||'23:59').slice(0,5),
-      wie:((r.voornaam||'')+' '+(r.achternaam||'')).trim()||'geboekt', bron:'eigen' });
+    zet('hm-'+r.id, {
+      suite: locId(r.locatie),
+      vanD: String(r.checkindatum||'').slice(0,10),
+      totD: String(r.checkuitdatum||r.checkindatum||'').slice(0,10),
+      vanT: String(r.checkintijd||'').slice(0,5),
+      totT: String(r.checkuittijd||'').slice(0,5),
+      wie: ((r.voornaam||'')+' '+(r.achternaam||'')).trim()||'geboekt',
+      bron: 'eigen boeking'
+    }, false);
   });
+
   kop.forEach(k=>{
-    if(k.geannuleerd) return;
-    uit.push({ suite:locId(k.locatie||k.res_sleutel), datum:String(k.aankomst||'').slice(0,10),
-      van:String(k.tijd_in||'00:00').slice(0,5), tot:String(k.tijd_uit||'23:59').slice(0,5),
-      wie:k.gast||'geboekt', bron:'koppeling' });
+    if(k.geannuleerd){ delete perSleutel[k.res_sleutel]; return; }
+    zet(k.res_sleutel, {
+      suite: locId(k.locatie||k.res_sleutel),
+      vanD: String(k.aankomst||'').slice(0,10),
+      totD: String(k.vertrek||k.aankomst||'').slice(0,10),
+      vanT: String(k.tijd_in||'').slice(0,5),
+      totT: String(k.tijd_uit||'').slice(0,5),
+      wie: k.gast, bron: k.bron
+    }, true);   /* de correctie wint */
   });
+
+  const uit=[];
+  Object.keys(perSleutel).forEach(sleutel=>{
+    const x=perSleutel[sleutel];
+    const t=opDeze(x.vanD, x.totD, x.vanT, x.totT);
+    if(!t || !x.suite) return;
+    uit.push({ sleutel:sleutel, suite:x.suite, van:t.van, tot:t.tot, doorlopend:t.doorlopend,
+      echtVan:x.vanD, echtTot:x.totD, echtVanT:x.vanT||'', echtTotT:x.totT||'',
+      wie:x.wie||'geboekt', bron:x.bron||'boeking' });
+  });
+
   BEZET = uit.filter(x=>x.suite);
 
   /* Wie staat er die dag ingepland in Lelystad. Alleen de naam \u2014
@@ -378,10 +439,8 @@ function overlap(suite, van, tot){
   const raak=[];
   BEZET.forEach(x=>{
     if(x.suite!==suite) return;
-    let xa=min(x.van), xb=eindMin(x.van,x.tot);
+    const xa=min(x.van), xb=eindMin(x.van,x.tot);
     if(xa==null||xb==null) return;
-    if(x.datum===schuif(DATUM,-1)){ xa-=1440; xb-=1440; }
-    else if(x.datum!==DATUM) return;
     if(xa < b && xb > a) raak.push({ wie:x.wie, van:x.van, tot:x.tot, bron:x.bron,
       volledig: xa<=a && xb>=b });
   });
@@ -438,11 +497,11 @@ async function teken(){
     const boekingen = [];
     BEZET.forEach(function(x){
       if(x.suite !== sleutel) return;
-      if(x.datum !== DATUM && x.datum !== schuif(DATUM,-1)) return;
-      const sleutelRij = (x.wie||'') + '|' + x.van + '|' + x.tot + '|' + x.datum;
+      const sleutelRij = x.sleutel;
       if(boekingen.some(function(b){ return b.sleutelRij === sleutelRij; })) return;
       boekingen.push({ sleutelRij:sleutelRij, wie:x.wie||'geboekt', van:x.van, tot:x.tot,
-        bron:x.bron, gisteren:x.datum !== DATUM });
+        bron:x.bron, doorlopend:x.doorlopend, echtVan:x.echtVan, echtTot:x.echtTot,
+        echtVanT:x.echtVanT, echtTotT:x.echtTotT });
     });
     boekingen.sort(function(a,b){ return (min(a.van)||0) - (min(b.van)||0); });
 
@@ -458,9 +517,16 @@ async function teken(){
       rijen += boekingen.map(function(x){
         return '<button class="blok" data-vrij="0" data-status="bezet" data-wie="'+esc(x.wie)+'"'+
           ' data-open="'+esc(x.wie)+'">'+
-          '<span class="tijd"><b>'+esc(x.van)+' \u2013 '+esc(x.tot)+'</b>'+
+          '<span class="tijd"><b>'+ (x.doorlopend
+            ? esc(nlKort(x.echtVan)) + ' ' + esc(x.echtVanT||'') + ' \u2192 ' +
+              esc(nlKort(x.echtTot)) + ' ' + esc(x.echtTotT||'')
+            : esc(x.van)+' \u2013 '+esc(x.tot)) + '</b>'+
           '<span>'+esc(x.wie)+' \u00b7 '+esc(x.bron)+
-          (x.gisteren ? ' \u00b7 loopt door van gisteren' : '')+'</span></span>'+
+          (x.doorlopend
+            ? ' \u00b7 ' + (x.van==='00:00' && x.tot==='23:59' ? 'deze dag volledig bezet'
+                : x.van==='00:00' ? 'tot ' + esc(x.tot) + ' bezet'
+                : 'vanaf ' + esc(x.van) + ' bezet')
+            : '')+'</span></span>'+
           '<span class="merk2">Geboekt</span><span class="chev">\u203a</span></button>';
       }).join('');
     }
