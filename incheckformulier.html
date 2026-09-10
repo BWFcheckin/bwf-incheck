@@ -720,6 +720,7 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   </div>
 </div>
 
+<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* ================= CONFIG ================= */
 const LOCATIONS = [
@@ -2210,10 +2211,7 @@ var gekoppeld = null;            // {bron, id, label}
 var RESERVERINGEN = [], KLANTEN = [], AGENDA_RES = [], KOPPELING = {};
 
 /* ---------- reserveringen uit de agenda (dezelfde koppeling als het dashboard) ---------- */
-var AGENDA_CFG = {
-  PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
-  SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
-};
+/* De sleutel staat niet meer in deze pagina: zie agendaEvents() hieronder. */
 var AG_STOP = new RegExp('^(booking|bookingcom|com|relax|stay|all|inclusive|incl|late|check|checkin|checkout|'+
   'overnachting|overnachten|origineel|orgineel|middag|deals|deal|geniet|uur|van|exclusieve|wellness|suite|'+
   'jacuzzi|zwembad|luxe|deluxe|malina|angie|prive|priv\u00e9|sauna|whatsapp|wa|boeking|reservering|'+
@@ -2332,11 +2330,23 @@ function agBron(t){
   if(/telefonisch/.test(s))                       return 'Telefonisch';
   return '';
 }
+/* Agenda via bwf-agenda.js en Supabase (agenda-bridge); bij een verlopen sessie eenmaal verversen. */
+async function agendaEvents(){
+  if(!window.BWFAgenda) throw new Error('bwf-agenda.js is niet geladen');
+  window.BWFAgenda.setAccessToken(auth && auth.access_token);
+  try{
+    return await window.BWFAgenda.events();
+  }catch(e){
+    if(!/sessie|log eerst|401/i.test(e.message || '') || !(await vernieuwToken())) throw e;
+    window.BWFAgenda.setAccessToken(auth.access_token);
+    return await window.BWFAgenda.events();
+  }
+}
 var AGENDA_FOUT = '';
 async function laadAgenda(){
   AGENDA_FOUT = '';
   try{
-    var json = await (await fetch(AGENDA_CFG.PROXY + '?k=' + encodeURIComponent(AGENDA_CFG.SLEUTEL))).json();
+    var json = await agendaEvents();
     if(json.fout) throw new Error(json.fout);
     AGENDA_RES = (json.events||[])
       .filter(function(ev){ return ev.soort === 'reservering' || ev.soort === 'extern'; })
