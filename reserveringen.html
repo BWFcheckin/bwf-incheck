@@ -224,6 +224,7 @@ dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Lelystad">
+<link rel="stylesheet" href="bwf-agenda-stijl.css">
 </head>
 <body>
 <!-- ================= BWF-toegang ================= -->
@@ -2832,5 +2833,51 @@ window.addEventListener('resize', meldHoogte);
 </script>
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-shell.js"></script>
+<script id="bwf-zoek-uit-link">
+/* Vanuit een ander scherm hierheen komen met een naam erbij:
+   reserveringen.html?zoek=Bussolati zet die meteen in het zoekveld. */
+(function(){
+  function vul(){
+    try{
+      var q = new URLSearchParams(location.search).get('zoek');
+      if(!q) return;
+      var veld = document.getElementById('fZoek');
+      if(!veld){ setTimeout(vul, 400); return; }
+      veld.value = q;
+      veld.dispatchEvent(new Event('input', { bubbles:true }));
+      veld.dispatchEvent(new Event('change', { bubbles:true }));
+      veld.scrollIntoView({ behavior:'smooth', block:'center' });
+
+      /* Met &kaart=1 wordt de reserveringskaart meteen geopend. Er is even
+         tijd nodig: de lijst moet eerst opnieuw gefilterd zijn. */
+      var p = new URLSearchParams(location.search);
+      if(p.get('kaart') !== '1') return;
+      var nummer = (p.get('res') || '').trim();
+      var pogingen = 0;
+
+      (function open(){
+        var rijen = document.querySelectorAll('[data-kaart]');
+        if(!rijen.length){ if(++pogingen < 14) setTimeout(open, 400); return; }
+
+        /* Eerst de rij met dit reserveringsnummer. Heeft een gast meerdere
+           boekingen, dan kom je zo op de juiste uit en niet op de eerste. */
+        var doel = null;
+        if(nummer){
+          for(var i = 0; i < rijen.length; i++){
+            var tekst = (rijen[i].closest('tr') || rijen[i]).textContent || '';
+            if(tekst.indexOf(nummer) > -1){ doel = rijen[i]; break; }
+          }
+          /* nog niet gevonden en de lijst is misschien nog aan het laden */
+          if(!doel && ++pogingen < 14){ setTimeout(open, 400); return; }
+        }
+        (doel || rijen[0]).click();
+      })();
+    }catch(e){}
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(vul, 900); });
+  else setTimeout(vul, 900);
+  setTimeout(vul, 2200);
+})();
+</script>
 </body>
 </html>

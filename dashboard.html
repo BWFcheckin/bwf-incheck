@@ -368,121 +368,128 @@ body.gate-open{overflow:hidden}
   --smg-schoon:#C9D6EF;     --smg-schoon-rand:#9AA9CC;
   --smg-gesloten:#EF8FBE;
 }
-:is(#panel-overzicht,#panel-formulieren) .ov-tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;padding:16px 18px;text-align:left;cursor:pointer;transition:.15s}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel:hover{transform:translateY(-1px);box-shadow:0 8px 22px -16px rgba(0,0,0,.5)}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel[data-actief="1"]{background:#3B322B;border-color:#3B322B;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel b{display:block;font-size:30px;line-height:1.1;font-weight:700}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel span{display:block;font-size:14px;margin-top:2px}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel small{display:block;font-size:12.5px;opacity:.7;margin-top:6px;line-height:1.35}
-:is(#panel-overzicht,#panel-formulieren) .ov-kopje{font-size:13px;letter-spacing:.09em;text-transform:uppercase;opacity:.6;
+#panel-overzicht .ov-tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}
+#panel-overzicht .ov-tegel{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;padding:16px 18px;text-align:left;cursor:pointer;transition:.15s}
+#panel-overzicht .ov-tegel:hover{transform:translateY(-1px);box-shadow:0 8px 22px -16px rgba(0,0,0,.5)}
+#panel-overzicht .ov-tegel[data-actief="1"]{background:#3B322B;border-color:#3B322B;color:#fff}
+#panel-overzicht .ov-tegel b{display:block;font-size:30px;line-height:1.1;font-weight:700}
+#panel-overzicht .ov-tegel span{display:block;font-size:14px;margin-top:2px}
+#panel-overzicht .ov-tegel small{display:block;font-size:12.5px;opacity:.7;margin-top:6px;line-height:1.35}
+#panel-overzicht .ov-kopje{font-size:13px;letter-spacing:.09em;text-transform:uppercase;opacity:.6;
   font-weight:700;margin:4px 0 12px}
-:is(#panel-overzicht,#panel-formulieren) .lm-balk{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+#panel-overzicht .lm-balk{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-left:4px solid var(--accent,#165dff);
   border-radius:14px;padding:14px 18px;margin-bottom:18px;box-shadow:var(--shadow)}
-:is(#panel-overzicht,#panel-formulieren) .lm-balk .lm-kop{font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+#panel-overzicht .lm-balk .lm-kop{font-size:11px;letter-spacing:.11em;text-transform:uppercase;
   font-weight:700;color:var(--muted,#738097)}
-:is(#panel-overzicht,#panel-formulieren) .lm-balk .lm-namen{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-:is(#panel-overzicht,#panel-formulieren) .lm-naam{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:700;
+#panel-overzicht .lm-balk .lm-namen{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#panel-overzicht .lm-naam{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:700;
   background:var(--surface-2,#f7f9fc);border:1px solid var(--line,#e3dad0);border-radius:999px;padding:6px 14px}
-:is(#panel-overzicht,#panel-formulieren) .lm-naam i{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block}
-:is(#panel-overzicht,#panel-formulieren) .lm-naam small{font-weight:500;opacity:.65;font-size:12.5px}
-:is(#panel-overzicht,#panel-formulieren) .lm-naam.afw{opacity:.6;text-decoration:line-through}
-:is(#panel-overzicht,#panel-formulieren) .lm-leeg{font-size:14px;opacity:.6}
-:is(#panel-overzicht,#panel-formulieren) .lm-morgen{margin-left:auto;font-size:13px;opacity:.7}
-@media(max-width:620px){:is(#panel-overzicht,#panel-formulieren) .lm-morgen{margin-left:0;width:100%}}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel.vr{position:relative;overflow:hidden;padding-left:22px}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel.vr:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--s)}
+#panel-overzicht .lm-naam i{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block}
+#panel-overzicht .lm-naam small{font-weight:500;opacity:.65;font-size:12.5px}
+#panel-overzicht .lm-naam.afw{opacity:.6;text-decoration:line-through}
+#panel-overzicht .lm-leeg{font-size:14px;opacity:.6}
+#panel-overzicht .lm-morgen{margin-left:auto;font-size:13px;opacity:.7}
+@media(max-width:620px){#panel-overzicht .lm-morgen{margin-left:0;width:100%}}
+#panel-overzicht .ov-tegel.vr{position:relative;overflow:hidden;padding-left:22px}
+#panel-overzicht .ov-tegel.vr:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--s)}
 
-:is(#panel-overzicht,#panel-formulieren) .ov-bar{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;padding:14px 16px;margin-bottom:16px}
-:is(#panel-overzicht,#panel-formulieren) .ov-rij{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-:is(#panel-overzicht,#panel-formulieren) .ov-rij + .ov-rij{margin-top:10px}
-:is(#panel-overzicht,#panel-formulieren) .ov-bar label{font-size:13px;opacity:.7}
-:is(#panel-overzicht,#panel-formulieren) select,:is(#panel-overzicht,#panel-formulieren) input[type=date],:is(#panel-overzicht,#panel-formulieren) input[type=search],:is(#panel-overzicht,#panel-formulieren) input[type=text],:is(#panel-overzicht,#panel-formulieren) textarea,#panel-taken select,#panel-taken input,#panel-taken textarea{
+#panel-overzicht .ov-bar{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+#panel-overzicht .ov-rij{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#panel-overzicht .ov-rij + .ov-rij{margin-top:10px}
+#panel-overzicht .ov-bar label{font-size:13px;opacity:.7}
+#panel-overzicht select,#panel-overzicht input[type=date],#panel-overzicht input[type=search],#panel-overzicht input[type=text],#panel-overzicht textarea,#panel-taken select,#panel-taken input,#panel-taken textarea{
   font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line,#e3dad0);border-radius:9px;background:var(--surface,#fff);color:inherit}
-:is(#panel-overzicht,#panel-formulieren) .seg{display:inline-flex;border:1px solid var(--line,#e3dad0);border-radius:10px;overflow:hidden}
-:is(#panel-overzicht,#panel-formulieren) .seg button{border:0;background:transparent;padding:8px 16px;font-size:14px}
-:is(#panel-overzicht,#panel-formulieren) .seg button[aria-pressed="true"]{background:#3B322B;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .ov-legenda{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;align-items:center;margin-bottom:14px;opacity:.9}
-:is(#panel-overzicht,#panel-formulieren) .ov-legenda i{width:14px;height:14px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:6px}
+#panel-overzicht .seg{display:inline-flex;border:1px solid var(--line,#e3dad0);border-radius:10px;overflow:hidden}
+#panel-overzicht .seg button{border:0;background:transparent;padding:8px 16px;font-size:14px}
+#panel-overzicht .seg button[aria-pressed="true"]{background:#3B322B;color:#fff}
+#panel-overzicht .ov-legenda{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;align-items:center;margin-bottom:14px;opacity:.9}
+#panel-overzicht .ov-legenda i{width:14px;height:14px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:6px}
 
-:is(#panel-overzicht,#panel-formulieren) .ovk-balk{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
-:is(#panel-overzicht,#panel-formulieren) .ovk-balk h2{font-size:19px;text-transform:capitalize}
-:is(#panel-overzicht,#panel-formulieren) .ovk-pijl{border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);border-radius:9px;width:34px;height:34px}
-:is(#panel-overzicht,#panel-formulieren) .ovk-tel{margin-left:auto;font-size:13px;opacity:.65}
+#panel-overzicht .ovk-balk{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+#panel-overzicht .ovk-balk h2{font-size:19px;text-transform:capitalize}
+#panel-overzicht .ovk-pijl{border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);border-radius:9px;width:34px;height:34px}
+#panel-overzicht .ovk-tel{margin-left:auto;font-size:13px;opacity:.65}
 
-:is(#panel-overzicht,#panel-formulieren) .ovk{display:block;background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);
+#panel-overzicht .ovk{display:block;background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);
   border-radius:16px;overflow:hidden;min-width:0}
-:is(#panel-overzicht,#panel-formulieren) .ovk-dagen{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+#panel-overzicht .ovk-dagen{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
   background:var(--surface-2,#f7f9fc);border-bottom:1px solid var(--line,#e3dad0);position:sticky;top:0;z-index:2}
-:is(#panel-overzicht,#panel-formulieren) .ovk-dagen div{padding:10px 8px;font-size:11px;font-weight:700;letter-spacing:.1em;
+#panel-overzicht .ovk-dagen div{padding:10px 8px;font-size:11px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted,#738097);text-align:center}
-:is(#panel-overzicht,#panel-formulieren) .ovk-net{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel{position:relative;min-width:0;min-height:132px;padding:7px 7px 10px;
+#panel-overzicht .ovk-net{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+#panel-overzicht .ovk-cel{position:relative;min-width:0;min-height:132px;padding:7px 7px 10px;
   border-right:1px solid var(--line-soft,#edf1f6);border-bottom:1px solid var(--line-soft,#edf1f6)}
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel:nth-child(7n){border-right:0}
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel:nth-child(7n-1),
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel:nth-child(7n){background:color-mix(in srgb,var(--accent,#165dff) 3%,transparent)}
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel[data-buiten="1"]{opacity:.38}
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel[data-vandaag="1"]{box-shadow:inset 0 0 0 2px var(--accent,#165dff);border-radius:10px}
-:is(#panel-overzicht,#panel-formulieren) .ovk-nr{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;
+#panel-overzicht .ovk-cel:nth-child(7n){border-right:0}
+#panel-overzicht .ovk-cel:nth-child(7n-1),
+#panel-overzicht .ovk-cel:nth-child(7n){background:color-mix(in srgb,var(--accent,#165dff) 3%,transparent)}
+#panel-overzicht .ovk-cel[data-buiten="1"]{opacity:.38}
+#panel-overzicht .ovk-cel[data-vandaag="1"]{box-shadow:inset 0 0 0 2px var(--accent,#165dff);border-radius:10px}
+#panel-overzicht .ovk-nr{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;
   border-radius:8px;font-size:12.5px;font-weight:700;color:var(--muted,#738097);margin-bottom:6px}
-:is(#panel-overzicht,#panel-formulieren) .ovk-cel[data-vandaag="1"] .ovk-nr{background:var(--accent,#165dff);color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .ovk-dag{display:none}
+#panel-overzicht .ovk-cel[data-vandaag="1"] .ovk-nr{background:var(--accent,#165dff);color:#fff}
+#panel-overzicht .ovk-dag{display:none}
 @media(max-width:820px){
-  :is(#panel-overzicht,#panel-formulieren) .ovk-nr{display:none}
-  :is(#panel-overzicht,#panel-formulieren) .ovk-dag{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;
+  #panel-overzicht .ovk-nr{display:none}
+  #panel-overzicht .ovk-dag{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--muted,#738097);margin-bottom:6px}
-  :is(#panel-overzicht,#panel-formulieren) .ovk-cel[data-vandaag="1"] .ovk-dag{color:var(--accent,#165dff)}
+  #panel-overzicht .ovk-cel[data-vandaag="1"] .ovk-dag{color:var(--accent,#165dff)}
 }
-:is(#panel-overzicht,#panel-formulieren) .dienstrij{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
-:is(#panel-overzicht,#panel-formulieren) .dienst{font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:999px;
+#panel-overzicht .dienstrij{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+#panel-overzicht .dienst{font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:999px;
   background:var(--c);color:#fff;letter-spacing:.01em;white-space:nowrap}
-:is(#panel-overzicht,#panel-formulieren) .dienst.afw{text-decoration:line-through;opacity:.85}
+#panel-overzicht .dienst.afw{text-decoration:line-through;opacity:.85}
 
-:is(#panel-overzicht,#panel-formulieren) .ev{display:block;width:100%;text-align:left;border:0;border-radius:7px;
+#panel-overzicht .ev{display:block;width:100%;text-align:left;border:0;border-radius:7px;
   padding:6px 9px;margin-bottom:4px;font-size:13px;font-weight:600;line-height:1.3;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
   transition:filter .12s ease,transform .12s ease}
-:is(#panel-overzicht,#panel-formulieren) .ev:hover{filter:brightness(1.08);transform:translateX(1px)}
-:is(#panel-overzicht,#panel-formulieren) .ev .t{font-variant-numeric:tabular-nums;font-weight:700;margin-right:5px}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="jacuzzi"]{background:#1C6FD0;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="deluxe"]{background:#D63A2A;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="angie"]{background:#B5842C;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="vrij"]{background:#7DB63F;color:#17280c}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="dicht"]{background:#B9B2A8;color:#241e19}
-:is(#panel-overzicht,#panel-formulieren) .ev.vast{cursor:default}
-:is(#panel-overzicht,#panel-formulieren) a.ev.boekbaar{text-decoration:none}
-:is(#panel-overzicht,#panel-formulieren) a.ev.boekbaar:after{content:" \2197";opacity:.75;font-weight:700}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="schoon"]{background:#C9D6EF;color:#22293a}
-:is(#panel-overzicht,#panel-formulieren) .ev[data-k="gesloten"]{background:#EF8FBE;color:#3a1f2b}
-:is(#panel-overzicht,#panel-formulieren) .suitekop{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
+#panel-overzicht .ev:hover{filter:brightness(1.08);transform:translateX(1px)}
+#panel-overzicht .ev .t{font-variant-numeric:tabular-nums;font-weight:700;margin-right:5px}
+#panel-overzicht .ev[data-k="jacuzzi"]{background:#1C6FD0;color:#fff}
+#panel-overzicht .ev[data-k="deluxe"]{background:#D63A2A;color:#fff}
+#panel-overzicht .ev[data-k="angie"]{background:#B5842C;color:#fff}
+#panel-overzicht .ev[data-k="vrij"]{background:#7DB63F;color:#17280c}
+#panel-overzicht .ev[data-k="dicht"]{background:#B9B2A8;color:#241e19}
+#panel-overzicht .ev.vast{cursor:default}
+#panel-overzicht a.ev.boekbaar{text-decoration:none}
+#panel-overzicht a.ev.boekbaar:after{content:" \2197";opacity:.75;font-weight:700}
+#panel-overzicht .ev[data-k="schoon"]{background:#C9D6EF;color:#22293a}
+#panel-overzicht .ev[data-k="gesloten"]{background:#EF8FBE;color:#3a1f2b}
+#panel-overzicht .suitekop{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
   margin:7px 0 4px;padding-left:2px;border-left:3px solid var(--sk);padding-left:6px;opacity:.75}
-:is(#panel-overzicht,#panel-formulieren) .suitekop:first-child{margin-top:0}
-:is(#panel-overzicht,#panel-formulieren) .suitekop[data-k="jacuzzi"]{--sk:#1C6FD0}
-:is(#panel-overzicht,#panel-formulieren) .suitekop[data-k="deluxe"]{--sk:#D63A2A}
-:is(#panel-overzicht,#panel-formulieren) .suitekop[data-k="angie"]{--sk:#B5842C}
+#panel-overzicht .suitekop:first-child{margin-top:0}
+#panel-overzicht .suitekop[data-k="jacuzzi"]{--sk:#1C6FD0}
+#panel-overzicht .suitekop[data-k="deluxe"]{--sk:#D63A2A}
+#panel-overzicht .suitekop[data-k="angie"]{--sk:#B5842C}
 
-:is(#panel-overzicht,#panel-formulieren) .ovk-jaar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px}
-:is(#panel-overzicht,#panel-formulieren) .ovk-maandvak{border:1px solid var(--line,#e3dad0);border-radius:12px;padding:14px;
+#panel-overzicht .ovk-jaar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px}
+#panel-overzicht .ovk-maandvak{border:1px solid var(--line,#e3dad0);border-radius:12px;padding:14px;
   background:var(--surface-2,#faf7f3);cursor:pointer;text-align:left;font:inherit;color:inherit;
   display:flex;flex-direction:column;gap:5px}
-:is(#panel-overzicht,#panel-formulieren) .ovk-maandvak:hover{border-color:var(--accent)}
-:is(#panel-overzicht,#panel-formulieren) .ovk-maandvak strong{font-size:14.5px;text-transform:capitalize}
-:is(#panel-overzicht,#panel-formulieren) .ovk-maandvak span{font-size:12.5px;opacity:.7}
-:is(#panel-overzicht,#panel-formulieren) .ovk-balkje{display:flex;gap:3px;margin-top:4px}
-:is(#panel-overzicht,#panel-formulieren) .ovk-balkje i{height:6px;border-radius:3px;display:block}
-@media(max-width:900px){:is(#panel-overzicht,#panel-formulieren) .ovk-jaar{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:620px){:is(#panel-overzicht,#panel-formulieren) .ovk-jaar{grid-template-columns:repeat(2,minmax(0,1fr))}}
-:is(#panel-overzicht,#panel-formulieren) .weekbalk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0}
-:is(#panel-overzicht,#panel-formulieren) .dagkolom{border-right:1px solid var(--line-soft,#edf1f6);padding:10px;min-height:240px;min-width:0}
-:is(#panel-overzicht,#panel-formulieren) .dagkolom:last-child{border-right:0}
-:is(#panel-overzicht,#panel-formulieren) .dagkolom h3{font-size:13px;margin-bottom:8px;opacity:.75}
-:is(#panel-overzicht,#panel-formulieren) .dagblok{padding:14px 16px}
-:is(#panel-overzicht,#panel-formulieren) .dagblok h3{font-size:15px;margin:16px 0 8px}
-:is(#panel-overzicht,#panel-formulieren) .dagblok h3:first-child{margin-top:0}
+#panel-overzicht .ovk-maandvak:hover{border-color:var(--accent)}
+#panel-overzicht .ovk-maandvak strong{font-size:14.5px;text-transform:capitalize}
+#panel-overzicht .ovk-maandvak span{font-size:12.5px;opacity:.7}
+#panel-overzicht .ovk-balkje{display:flex;gap:3px;margin-top:4px}
+#panel-overzicht .ovk-balkje i{height:6px;border-radius:3px;display:block}
+@media(max-width:900px){#panel-overzicht .ovk-jaar{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){#panel-overzicht .ovk-jaar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#panel-overzicht .weekbalk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0}
+#panel-overzicht .dagkolom{border-right:1px solid var(--line-soft,#edf1f6);padding:10px;min-height:240px;min-width:0}
+#panel-overzicht .dagkolom:last-child{border-right:0}
+#panel-overzicht .dagkolom h3{font-size:13px;margin-bottom:8px;opacity:.75}
+#panel-overzicht .dagblok{padding:14px 16px}
+#panel-overzicht .dagblok h3{font-size:15px;margin:16px 0 8px}
+#panel-overzicht .dagblok h3:first-child{margin-top:0}
 
-:is(#panel-overzicht,#panel-formulieren) .lijstkop{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+#panel-overzicht .lijstkop{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+/* regels in Mijn diensten */
+.dienstregel{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:9px 12px;border-radius:10px;
+  border:1px solid var(--line,#dfe6ef);margin-bottom:7px;font-size:14px;background:#fff}
+.dienstregel[data-vandaag]{border-color:var(--accent,#165dff);box-shadow:inset 0 0 0 1px var(--accent,#165dff)}
+.dienstregel strong{min-width:86px}
+.dienstregel .pil{font-size:12px;padding:2px 9px;border-radius:999px;background:#eef2f8}
+.dienstregel em{opacity:.7;font-style:normal;font-size:13px}
 
 /* kleuren van de drie knoppen bij Reserveringsformulieren */
 .knop.vol.geel{background:#C9911E;border-color:#C9911E;color:#fff}
@@ -508,43 +515,43 @@ body.gate-open{overflow:hidden}
   .mobieltegels{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
   #tegels .tegel-wrap:nth-child(-n+2){display:none}
 }
-:is(#panel-overzicht,#panel-formulieren) .contactrij{display:flex;gap:10px;flex-wrap:wrap}
-:is(#panel-overzicht,#panel-formulieren) .contactrij a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+#panel-overzicht .contactrij{display:flex;gap:10px;flex-wrap:wrap}
+#panel-overzicht .contactrij a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;
   border:1px solid var(--line,#e3dad0);border-radius:12px;padding:11px 16px;font-weight:600;font-size:14px;
   background:var(--surface,#fff);color:inherit}
-:is(#panel-overzicht,#panel-formulieren) .contactrij a:hover{border-color:var(--accent);color:var(--accent)}
-:is(#panel-overzicht,#panel-formulieren) .contactrij a.wa{background:#167b5d;border-color:#167b5d;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .contactrij a.wa:hover{filter:brightness(1.08);color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .voet{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;
+#panel-overzicht .contactrij a:hover{border-color:var(--accent);color:var(--accent)}
+#panel-overzicht .contactrij a.wa{background:#167b5d;border-color:#167b5d;color:#fff}
+#panel-overzicht .contactrij a.wa:hover{filter:brightness(1.08);color:#fff}
+#panel-overzicht .voet{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;
   background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:16px;padding:18px 20px}
-:is(#panel-overzicht,#panel-formulieren) .voetlinks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;flex:1;min-width:240px}
-:is(#panel-overzicht,#panel-formulieren) .voetlinks a{display:block;text-decoration:none;border:1px solid var(--line,#e3dad0);
+#panel-overzicht .voetlinks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;flex:1;min-width:240px}
+#panel-overzicht .voetlinks a{display:block;text-decoration:none;border:1px solid var(--line,#e3dad0);
   border-radius:12px;padding:12px 14px;font-weight:600;font-size:14px;background:var(--surface-2,#faf7f3);color:inherit}
-:is(#panel-overzicht,#panel-formulieren) .voetlinks a:hover{border-color:var(--accent);color:var(--accent)}
-:is(#panel-overzicht,#panel-formulieren) .voetqr{text-align:center;font-size:12.5px;opacity:.75;min-width:170px}
-:is(#panel-overzicht,#panel-formulieren) .voetqr canvas,:is(#panel-overzicht,#panel-formulieren) .voetqr img{margin:0 auto 8px;border-radius:8px;display:block}
-:is(#panel-overzicht,#panel-formulieren) .voetqr span{display:block;max-width:170px;margin:0 auto}
-@media(max-width:620px){:is(#panel-overzicht,#panel-formulieren) .voet{flex-direction:column}:is(#panel-overzicht,#panel-formulieren) .voetqr{width:100%}}
-:is(#panel-overzicht,#panel-formulieren) .aanm{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;
+#panel-overzicht .voetlinks a:hover{border-color:var(--accent);color:var(--accent)}
+#panel-overzicht .voetqr{text-align:center;font-size:12.5px;opacity:.75;min-width:170px}
+#panel-overzicht .voetqr canvas,#panel-overzicht .voetqr img{margin:0 auto 8px;border-radius:8px;display:block}
+#panel-overzicht .voetqr span{display:block;max-width:170px;margin:0 auto}
+@media(max-width:620px){#panel-overzicht .voet{flex-direction:column}#panel-overzicht .voetqr{width:100%}}
+#panel-overzicht .aanm{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;
   padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-:is(#panel-overzicht,#panel-formulieren) .aanm b{font-size:15px}
-:is(#panel-overzicht,#panel-formulieren) .cf-leeg{background:var(--surface,#fff);border:1px dashed var(--line,#e3dad0);border-radius:14px;
+#panel-overzicht .aanm b{font-size:15px}
+#panel-overzicht .cf-leeg{background:var(--surface,#fff);border:1px dashed var(--line,#e3dad0);border-radius:14px;
   padding:22px;text-align:center}
-:is(#panel-overzicht,#panel-formulieren) .cf-leeg p{margin:0 0 14px;opacity:.7;font-size:14px}
-:is(#panel-overzicht,#panel-formulieren) .cf-knoppen{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-:is(#panel-overzicht,#panel-formulieren) .aanm .meta{font-size:13px;opacity:.7}
-:is(#panel-overzicht,#panel-formulieren) .aanm .rechts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-:is(#panel-overzicht,#panel-formulieren) .aanm select{max-width:320px}
-@media(max-width:620px){:is(#panel-overzicht,#panel-formulieren) .aanm .rechts{margin-left:0;width:100%}
-  :is(#panel-overzicht,#panel-formulieren) .aanm select,:is(#panel-overzicht,#panel-formulieren) .aanm .rechts .knop{width:100%}}
-:is(#panel-overzicht,#panel-formulieren) table.res{width:100%;border-collapse:collapse;background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;overflow:hidden}
-:is(#panel-overzicht,#panel-formulieren) table.res th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.6;padding:11px 12px;border-bottom:1px solid var(--line,#e3dad0);font-weight:600}
-:is(#panel-overzicht,#panel-formulieren) table.res td{padding:12px;border-bottom:1px solid var(--line-soft,#efe8e1);font-size:14px;vertical-align:middle}
-:is(#panel-overzicht,#panel-formulieren) table.res tr:last-child td{border-bottom:0}
-:is(#panel-overzicht,#panel-formulieren) table.res tbody tr{cursor:pointer}
-:is(#panel-overzicht,#panel-formulieren) table.res tbody tr:hover{background:var(--surface-2,#faf7f3)}
-:is(#panel-overzicht,#panel-formulieren) td.suite{font-weight:700}
-:is(#panel-overzicht,#panel-formulieren) td.suite i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:8px;vertical-align:0}
+#panel-overzicht .cf-leeg p{margin:0 0 14px;opacity:.7;font-size:14px}
+#panel-overzicht .cf-knoppen{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#panel-overzicht .aanm .meta{font-size:13px;opacity:.7}
+#panel-overzicht .aanm .rechts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#panel-overzicht .aanm select{max-width:320px}
+@media(max-width:620px){#panel-overzicht .aanm .rechts{margin-left:0;width:100%}
+  #panel-overzicht .aanm select,#panel-overzicht .aanm .rechts .knop{width:100%}}
+#panel-overzicht table.res{width:100%;border-collapse:collapse;background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;overflow:hidden}
+#panel-overzicht table.res th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.6;padding:11px 12px;border-bottom:1px solid var(--line,#e3dad0);font-weight:600}
+#panel-overzicht table.res td{padding:12px;border-bottom:1px solid var(--line-soft,#efe8e1);font-size:14px;vertical-align:middle}
+#panel-overzicht table.res tr:last-child td{border-bottom:0}
+#panel-overzicht table.res tbody tr{cursor:pointer}
+#panel-overzicht table.res tbody tr:hover{background:var(--surface-2,#faf7f3)}
+#panel-overzicht td.suite{font-weight:700}
+#panel-overzicht td.suite i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:8px;vertical-align:0}
 
 .vlag{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.02em}
 .vlag.nieuw{background:#2E8B57;color:#fff}
@@ -553,8 +560,8 @@ body.gate-open{overflow:hidden}
 .vlag.ja{background:#DFEDE2;color:#2b5a3c}
 .vlag.nee{background:#F7E2DC;color:#8d3323}
 .vlag.vrij-blok{background:#7DB63F;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) table.res tr[data-vrij="1"] td{background:rgba(125,182,63,.09)}
-:is(#panel-overzicht,#panel-formulieren) table.res tr.tussenkop td{background:var(--surface-2,#faf7f3);font-size:11.5px;
+#panel-overzicht table.res tr[data-vrij="1"] td{background:rgba(125,182,63,.09)}
+#panel-overzicht table.res tr.tussenkop td{background:var(--surface-2,#faf7f3);font-size:11.5px;
   letter-spacing:.08em;text-transform:uppercase;opacity:.65;font-weight:700;padding:9px 12px;cursor:default}
 
 dialog.bwfkaart{border:0;border-radius:16px;padding:0;width:min(980px,96vw);max-width:96vw;background:var(--surface,#fff);color:var(--ink,#241e19);box-shadow:0 24px 70px -30px rgba(0,0,0,.6)}
@@ -598,16 +605,16 @@ dialog.bwfkaart .actie .rechts{margin-left:auto;display:flex;gap:8px;align-items
 #panel-taken .taak b{display:block;font-size:14.5px}
 #panel-taken .taak small{opacity:.65;font-size:12.5px}
 @media(max-width:820px){
-  :is(#panel-overzicht,#panel-formulieren) .ovk-net{grid-template-columns:1fr}
-  :is(#panel-overzicht,#panel-formulieren) .ovk-dagen{display:none}
-  :is(#panel-overzicht,#panel-formulieren) .ovk-cel{min-height:0;border-right:0}
-  :is(#panel-overzicht,#panel-formulieren) .ovk-cel:empty{display:none}
-  :is(#panel-overzicht,#panel-formulieren) .ovk-cel[data-leeg="1"]{display:none}
-  :is(#panel-overzicht,#panel-formulieren) .weekbalk{grid-template-columns:1fr}
+  #panel-overzicht .ovk-net{grid-template-columns:1fr}
+  #panel-overzicht .ovk-dagen{display:none}
+  #panel-overzicht .ovk-cel{min-height:0;border-right:0}
+  #panel-overzicht .ovk-cel:empty{display:none}
+  #panel-overzicht .ovk-cel[data-leeg="1"]{display:none}
+  #panel-overzicht .weekbalk{grid-template-columns:1fr}
   dialog.bwfkaart dl{grid-template-columns:1fr}
-  :is(#panel-overzicht,#panel-formulieren) table.res thead{display:none}
-  :is(#panel-overzicht,#panel-formulieren) table.res td{display:block;border:0;padding:4px 12px}
-  :is(#panel-overzicht,#panel-formulieren) table.res tr{display:block;border-bottom:1px solid var(--line,#e3dad0);padding:10px 0}
+  #panel-overzicht table.res thead{display:none}
+  #panel-overzicht table.res td{display:block;border:0;padding:4px 12px}
+  #panel-overzicht table.res tr{display:block;border-bottom:1px solid var(--line,#e3dad0);padding:10px 0}
 }
 </style>
 
@@ -691,8 +698,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;background:line
 .stat::before,.tegel::before{width:4px}
 .stat .value{font-size:31px}
 .ov-tegel:hover,.tegel:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:#cbd8eb!important}
-:is(#panel-overzicht,#panel-formulieren) .ov-tegel[data-actief="1"]{background:var(--accent);border-color:var(--accent)!important;color:#fff}
-:is(#panel-overzicht,#panel-formulieren) .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+#panel-overzicht .ov-tegel[data-actief="1"]{background:var(--accent);border-color:var(--accent)!important;color:#fff}
+#panel-overzicht .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
 .knop.vol{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn,.knop{min-height:40px;border-radius:10px!important;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
 .btn:not(.ghost),.knop.vol{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important;box-shadow:0 7px 16px rgba(var(--accent-rgb),.18)}
@@ -764,7 +771,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .ovk-balk #ovNu,.ovk-balk .ovk-tel{grid-column:1/-1;text-align:center}
   .table-wrap,table.res{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{min-width:680px}
-  :is(#panel-overzicht,#panel-formulieren) table.res{min-width:0}
+  #panel-overzicht table.res{min-width:0}
   dialog{width:calc(100% - 20px);max-height:calc(100dvh - 20px)}
   .two-col{gap:14px}
   .kv{grid-template-columns:1fr;gap:2px}
@@ -830,136 +837,28 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="B&amp;W Lelystad">
-
-<style id="bwf-overzicht-planning">
-/* ---------- overzicht: reserveringenpagina ingeladen ---------- */
-#panel-overzicht .ov-res{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);
-  box-shadow:var(--shadow);overflow:hidden}
-#panel-overzicht .ov-res-kop{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:14px 18px;
-  border-bottom:1px solid var(--line-soft)}
-#panel-overzicht .ov-res-kop h2{font-family:var(--f-display);font-size:17px;font-weight:600;letter-spacing:-.01em}
-#panel-overzicht .ov-res-melding{font-size:13px;color:var(--muted)}
-#panel-overzicht .ov-res-melding:empty{display:none}
-#panel-overzicht .ov-res-acties{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-#panel-overzicht a.knop{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
-#panel-overzicht .ov-res-frame{display:block;width:100%;height:640px;border:0;background:transparent;
-  padding:14px 14px 0;box-sizing:border-box}
-#panel-overzicht .lm-balk + .ov-res{margin-top:0}
-@media(max-width:620px){
-  #panel-overzicht .ov-res-acties{margin-left:0;width:100%}
-  #panel-overzicht .ov-res-frame{padding:8px 6px 0}
-}
-
-/* ---------- start: alleen de reserveringen van vandaag ---------- */
-#panel-start .ds{max-width:780px;margin:0 auto}
-#panel-start .ds-kop{margin-bottom:24px}
-#panel-start .ds-kop h1{font-family:var(--f-display);font-size:clamp(32px,5vw,46px);font-weight:700;
-  letter-spacing:-.035em;line-height:1.05;color:var(--ink);margin-top:2px}
-#panel-start .ds-kop h1::first-letter{text-transform:uppercase}
-#panel-start .ds-kop p{margin-top:8px;font-size:16px;color:var(--ink-2)}
-#panel-start .ds-groep{margin:0 0 24px}
-#panel-start .ds-groep h2{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--muted);
-  margin:0 0 10px;display:flex;align-items:baseline;gap:8px}
-#panel-start .ds-groep h2 span{font-variant-numeric:tabular-nums}
-#panel-start .ds-kaart{display:grid;grid-template-columns:86px 1fr auto;gap:16px;align-items:center;width:100%;
-  text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--surface);
-  border:1px solid var(--line);border-left:5px solid var(--s,var(--accent));border-radius:16px;
-  padding:14px 18px 14px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
-#panel-start .ds-kaart:hover{border-color:var(--accent);border-left-color:var(--s,var(--accent))}
-#panel-start .ds-tijd{display:flex;flex-direction:column;line-height:1.15}
-#panel-start .ds-tijd b{font-family:var(--f-display);font-size:24px;font-weight:700;letter-spacing:-.02em;
-  font-variant-numeric:tabular-nums}
-#panel-start .ds-tijd small{font-size:12.5px;color:var(--muted);margin-top:3px}
-#panel-start .ds-tijd b.woord{font-size:16px;letter-spacing:0;white-space:nowrap}
-#panel-start .ds-info{min-width:0;display:flex;flex-direction:column;gap:3px}
-#panel-start .ds-info strong{font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#panel-start .ds-regel{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13.5px;color:var(--ink-2)}
-#panel-start .ds-regel .ds-suite{font-weight:600;color:var(--ink)}
-#panel-start .ds-regel.stil{color:var(--muted)}
-#panel-start .ds-status{display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right}
-#panel-start .ds-pil{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap}
-#panel-start .ds-pil.ok{background:var(--ok-soft);color:var(--ok)}
-#panel-start .ds-pil.let{background:var(--warn-soft);color:var(--warn)}
-#panel-start .ds-open{font-size:13px;font-weight:700;color:var(--crit);font-variant-numeric:tabular-nums}
-#panel-start .ds-leeg{background:var(--surface);border:1px dashed var(--line);border-radius:16px;
-  padding:26px 22px;color:var(--ink-2);font-size:15px;margin-bottom:24px}
-#panel-start .ds-leeg strong{display:block;font-size:17px;color:var(--ink);margin-bottom:4px}
-#panel-start .ds-knop{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin-top:6px;
-  text-align:left;font:inherit;cursor:pointer;padding:18px 22px;border-radius:16px;
-  background:var(--accent);color:#fff;border:1px solid var(--accent);box-shadow:0 10px 24px rgba(var(--accent-rgb),.22)}
-#panel-start .ds-knop strong{font-size:17px;font-weight:700}
-#panel-start .ds-knop small{font-size:13.5px;color:rgba(255,255,255,.82)}
-#panel-start .ds-knop:hover{filter:brightness(1.06)}
-@media(max-width:620px){
-  #panel-start .ds-kaart{grid-template-columns:64px 1fr;gap:12px;padding:12px 14px 12px 12px}
-  #panel-start .ds-tijd b{font-size:20px}
-  #panel-start .ds-status{grid-column:2;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap}
-  #panel-start .ds-info strong{white-space:normal}
-}
-
-/* ---------- planning: medewerker kiezen en dagen terugzoeken ---------- */
-.pz-kaart{overflow:visible!important}
-.pz-kaart > .card-head{border-radius:var(--r-l) var(--r-l) 0 0}
-.pz-balk{display:flex;align-items:flex-end;gap:12px 14px;flex-wrap:wrap;padding:16px 22px 0}
-.pz-veld,.pz-drop{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted)}
-.pz-veld select{font:inherit;font-size:14.5px;color:var(--ink);min-width:220px;height:42px;padding:0 12px;
-  border:1px solid var(--line);border-radius:12px;background:var(--surface)}
-.pz-drop{position:relative}
-.pz-knop{display:inline-flex;align-items:center;gap:10px;height:42px;padding:0 12px 0 14px;font:inherit;
-  font-size:14.5px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);
-  border-radius:12px;cursor:pointer;min-width:240px}
-.pz-knop:hover,.pz-knop[aria-expanded="true"]{border-color:var(--accent)}
-.pz-knop #pzKnopTekst{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pz-aantal{margin-left:auto;min-width:24px;height:22px;padding:0 7px;border-radius:999px;display:inline-grid;
-  place-items:center;background:var(--accent-soft);color:var(--accent);font-size:12.5px;font-variant-numeric:tabular-nums}
-.pz-pijl{width:16px;height:16px;color:var(--muted);transition:transform .15s ease}
-.pz-knop[aria-expanded="true"] .pz-pijl{transform:rotate(180deg)}
-.pz-paneel{position:absolute;z-index:45;top:calc(100% + 6px);left:0;width:min(440px,calc(100vw - 32px));
-  background:var(--surface);border:1px solid var(--line);border-radius:16px;
-  box-shadow:0 22px 50px -18px rgba(20,32,51,.35);padding:12px;color:var(--ink);font-size:14px}
-.pz-paneel[hidden]{display:none}
-.pz-paneel input[type=search]{width:100%;height:42px;padding:0 12px;font:inherit;font-size:14.5px;color:var(--ink);
-  border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
-.pz-paneel input[type=search]:focus{outline:none;border-color:var(--accent);background:var(--surface)}
-.pz-seg{display:flex;gap:4px;margin:10px 0 8px;flex-wrap:wrap}
-.pz-seg button{font:inherit;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;
-  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
-.pz-seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
-.pz-lijst{max-height:min(380px,55vh);overflow:auto;margin:0 -4px;padding:0 4px}
-.pz-maand{position:sticky;top:0;background:var(--surface);font-size:12px;font-weight:600;color:var(--muted);
-  padding:8px 4px 4px;text-transform:capitalize}
-.pz-item{display:grid;grid-template-columns:46px 1fr;gap:12px;align-items:center;width:100%;text-align:left;
-  font:inherit;color:inherit;background:transparent;border:0;border-radius:10px;padding:7px 8px;cursor:pointer}
-.pz-item:hover,.pz-item:focus-visible{background:var(--accent-soft);outline:none}
-.pz-item[data-vandaag="1"] .pz-dag{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pz-dag{display:grid;place-items:center;height:46px;border-radius:10px;border:1px solid var(--line);
-  background:var(--surface-2);line-height:1}
-.pz-dag b{font-size:17px;font-variant-numeric:tabular-nums}
-.pz-dag small{font-size:10.5px;margin-top:-6px;opacity:.75}
-.pz-info{min-width:0;display:flex;flex-direction:column;gap:2px}
-.pz-info strong{font-size:14px;font-weight:600}
-.pz-info span{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted)}
-.pz-info .kal-dot{width:7px;height:7px}
-.pz-info em{font-style:normal;font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pz-soort{padding:0 7px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line-soft);color:var(--ink-2)}
-.pz-leeg{padding:18px 8px;color:var(--muted);font-size:13.5px;line-height:1.5}
-.pz-hint{flex-basis:100%;margin:0;font-size:13px;color:var(--ink-2)}
-.pz-hint button{font:inherit;font-weight:600;color:var(--accent);background:none;border:0;padding:0;margin-left:6px;cursor:pointer;text-decoration:underline}
-.kal-cel.pz-raak{border-color:var(--accent);background:var(--surface)}
-.kal-cel.pz-flits{animation:pzFlits 1.2s ease 2}
-@keyframes pzFlits{50%{box-shadow:0 0 0 4px rgba(var(--accent-rgb),.35);border-color:var(--accent)}}
-.legend .leg[data-uit="1"]{opacity:.4}
-@media(prefers-reduced-motion:reduce){.kal-cel.pz-flits{animation:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb),.35)}}
-@media(max-width:620px){
-  .pz-balk{padding:14px 16px 0}
-  .pz-veld,.pz-drop{width:100%}
-  .pz-veld select,.pz-knop{width:100%;min-width:0}
-  .pz-paneel{width:100%}
-}
+<style>
+/* menubalk bovenaan, in plaats van de knop rechtsonder */
+.bwf-topmenu{position:sticky;top:0;z-index:8500;background:#483C34;
+  box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
+.bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;
+  align-items:center;padding:8px 16px}
+.bwf-topmenu img{height:26px;width:auto;flex:none;margin-right:4px}
+.bwf-topmenu a{color:rgba(255,255,255,.84);text-decoration:none;font-size:13px;padding:5px 11px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.18);white-space:nowrap;
+  font-family:"Public Sans",Arial,sans-serif}
+.bwf-topmenu a:hover{background:rgba(255,255,255,.14);color:#fff}
+.bwf-topmenu a.hier{background:#fff;color:#483C34;border-color:#fff;font-weight:600}
+.bwf-topmenu .wie{margin-left:auto;color:rgba(255,255,255,.72);font-size:11.5px;
+  font-family:"IBM Plex Mono",monospace}
+#bwfMenuKnop{display:none!important}
+@media(max-width:760px){ .bwf-topmenu .binnen{flex-wrap:nowrap;overflow-x:auto} }
+@media print{ .bwf-topmenu{display:none} }
 </style>
+<link rel="stylesheet" href="bwf-agenda-stijl.css">
 </head>
 <body>
-<script src="bwf-agenda.js?v=1"></script>
+<div class="bwf-topmenu" id="bwfTop"></div>
 <script>
 /* ============================================================
    VUL HIER JE SUPABASE-GEGEVENS IN
@@ -1004,11 +903,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   </header>
 
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
-    <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Start</button>
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
-    <button class="tab" role="tab" id="tab-formulieren" data-tab="formulieren" aria-selected="false" aria-controls="panel-formulieren">Reserveringsformulieren</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
-    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
+    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad" hidden style="display:none">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Vragen &amp; taken</button>
   </nav>
@@ -1018,25 +915,76 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   <section class="panel" id="panel-overzicht" role="tabpanel" aria-labelledby="tab-overzicht" hidden>
     <div class="page-head">
       <span class="eyebrow">Locatie Lelystad</span>
-      <h1>Overzicht</h1>
-      <p>De reserveringen van Malina Jacuzzi en Malina Deluxe, rechtstreeks uit de reserveringenpagina. Bovenaan elke dag in de kalender staat wie er werkt.</p>
+      <h1>Vandaag</h1>
+      <p>Aankomsten en vertrekken van vandaag, met de welkomstcall en de bijzonderheden erbij.</p>
     </div>
 
+    <!-- De dagweergave komt uit vandaag.html, zodat er maar één plek is waar
+         die logica staat. Het oude overzicht staat eronder, ingeklapt. -->
+    <iframe id="vandaagFrame" title="Vandaag" src="vandaag.html?loc=lelystad" loading="lazy"
+      style="width:100%;height:78vh;min-height:520px;border:1px solid var(--line);
+             border-radius:12px;background:var(--surface)"></iframe>
+
+    <div style="margin:16px 0 10px">
+      <button class="btn secondary" type="button" id="oudOverzichtKnop">+ Het oude overzicht tonen</button>
+    </div>
+
+    <div id="oudOverzicht" hidden>
     <div class="lm-balk" id="lmBalk" hidden></div>
 
-    <div class="ov-res">
-      <div class="ov-res-kop">
-        <h2>Reserveringskalender</h2>
-        <span class="ov-res-melding" id="ovMelding" role="status"></span>
-        <div class="ov-res-acties">
-          <button class="knop klein" type="button" id="ovCallsKlaar">Welkomstcalls klaarzetten</button>
-          <button class="knop klein" type="button" id="ovVernieuw">Vernieuwen</button>
-          <a class="knop klein" id="ovResLos" href="reserveringen.html?weergave=kalender&amp;regio=lelystad&amp;planning=1" target="_blank" rel="noopener">In eigen venster openen</a>
-        </div>
+    <div class="ov-tegels" id="ovTegels"></div>
+
+
+    <div class="ov-bar">
+      <div class="ov-rij">
+        <label for="ovVan">Van</label><input type="date" id="ovVan">
+        <label for="ovTot">Tot</label><input type="date" id="ovTot">
+        <select id="ovLocatie">
+          <option value="">Alle locaties</option>
+          <option value="Malina Jacuzzi">Malina Jacuzzi</option>
+          <option value="Malina Deluxe">Malina Deluxe</option>
+          <option value="Suite Angie">Suite Angie (Almere)</option>
+        </select>
+        <select id="ovSoort"><option value="">Alle soorten</option></select>
+        <input type="search" id="ovZoek" placeholder="Zoek op naam of nummer" style="min-width:200px">
+        <button class="knop vol" type="button" id="ovVandaagKnop">Boekingen vandaag<span id="ovVandaagAantal" style="margin-left:8px;opacity:.75"></span></button>
       </div>
-      <iframe id="ovResFrame" class="ov-res-frame" title="Reserveringskalender Lelystad"
-        data-src="reserveringen.html?weergave=kalender&amp;regio=lelystad&amp;planning=1"></iframe>
+      <div class="ov-rij">
+        <div class="seg" role="group" aria-label="Weergave">
+          <button type="button" data-kal="dag"   aria-pressed="false">Dag</button>
+          <button type="button" data-kal="week"  aria-pressed="false">Week</button>
+          <button type="button" data-kal="maand" aria-pressed="true">Maand</button>
+          <button type="button" data-kal="jaar"  aria-pressed="false">Jaar</button>
+        </div>
+        <label class="check" for="ovVrij" style="gap:8px"><input type="checkbox" id="ovVrij">Beschikbaarheid tonen</label>
+        <label class="check" for="ovPlanning" style="gap:8px"><input type="checkbox" id="ovPlanning" checked>Planning tonen</label>
+        <label class="check" for="ovAlmere" style="gap:8px"><input type="checkbox" id="ovAlmere">Almere erbij</label>
+        <button class="knop klein" type="button" id="ovCallsKlaar">Welkomstcalls klaarzetten</button>
+        <button class="knop klein" type="button" id="ovBlokken">Tijdsblokken beheren</button>
+        <button class="knop klein" type="button" id="ovVernieuw">Vernieuwen</button>
+        <span id="ovMelding" style="font-size:13px;opacity:.7"></span>
+      </div>
     </div>
+
+    <div class="ov-legenda">
+      <span><i style="background:#1C6FD0"></i>Malina Jacuzzi</span>
+      <span><i style="background:#D63A2A"></i>Malina Deluxe</span>
+      <span><i style="background:#B5842C"></i>Suite Angie</span>
+      <span><i style="background:#7DB63F"></i>Nog te boeken</span>
+      <span><i style="background:#B9B2A8"></i>Niet beschikbaar</span>
+      <span><i style="background:#C9D6EF"></i>Schoonmaak</span>
+      <span><i style="background:#EF8FBE"></i>Gesloten</span>
+    </div>
+
+    <div class="ovk-balk">
+      <button class="ovk-pijl" type="button" id="ovVorig" aria-label="Vorige">&lsaquo;</button>
+      <h2 id="ovPeriode">&nbsp;</h2>
+      <button class="ovk-pijl" type="button" id="ovVolgend" aria-label="Volgende">&rsaquo;</button>
+      <button class="knop klein" type="button" id="ovNu">Vandaag</button>
+      <span class="ovk-tel" id="ovTelling"></span>
+    </div>
+
+    <div class="ovk" id="ovKalender"></div>
 
     <div class="lijstkop uitklapkop" id="ovVandaagKop" role="button" tabindex="0" aria-expanded="false">
       <span class="uitklappijl">&rsaquo;</span>
@@ -1044,10 +992,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <span class="ovk-tel" id="ovVandaagTel"></span>
     </div>
     <div id="ovVandaagBlok" hidden>
-    <div class="ov-rij" style="margin:0 0 12px">
-      <label class="check" for="ovVrij" style="gap:8px"><input type="checkbox" id="ovVrij">Nog boekbare tijdsblokken tonen</label>
-      <button class="knop klein" type="button" id="ovBlokken">Tijdsblokken beheren</button>
-    </div>
     <table class="res">
       <thead><tr>
         <th>Suite</th><th>Datum</th><th>Incheck</th><th>Uitcheck</th>
@@ -1055,6 +999,59 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       </tr></thead>
       <tbody id="ovVandaag"></tbody>
     </table>
+    </div>
+
+    <div class="lijstkop"><h2 style="font-size:19px">Reserveringsformulieren</h2><span class="ovk-tel" id="sectieTel"></span></div>
+    <p style="margin:-4px 0 12px;font-size:14px;opacity:.7;max-width:70ch">Vul hier een nieuw formulier in,
+    pak een concept op dat al klaarstaat, of zoek een afgerond formulier terug. In dezelfde keuzelijst
+    vind je ook de aanmeldingen die gasten zelf hebben ingevuld en de schademeldingen.</p>
+    <div class="ov-bar" style="margin-bottom:14px">
+      <div class="ov-rij">
+        <select id="ovSectie" style="min-width:260px">
+          <option value="nieuw" selected>Nieuw formulier invullen</option>
+          <option value="concept">Concepten &mdash; alvast klaargezet</option>
+          <option value="definitief">Definitieve formulieren</option>
+          <option value="aanm">Aanmeldingen van gasten</option>
+          <option value="schade">Schademeldingen</option>
+        </select>
+        <input type="search" id="cfZoek" placeholder="Zoek op naam of reserveringsnummer" style="min-width:200px">
+        <select id="cfLoc">
+          <option value="">Alle locaties</option>
+          <option value="Malina Jacuzzi">Malina Jacuzzi</option>
+          <option value="Malina Deluxe">Malina Deluxe</option>
+        </select>
+        <input type="date" id="cfVan" aria-label="Vanaf datum">
+        <input type="date" id="cfTot" aria-label="Tot en met datum">
+      </div>
+    </div>
+    <div id="aanmLijst"></div>
+    <div id="cfLijst"></div>
+
+    <div class="lijstkop uitklapkop" id="fkKop" role="button" tabindex="0" aria-expanded="false">
+      <span class="uitklappijl">&rsaquo;</span>
+      <h2 style="font-size:19px">Formulier koppelen aan reservering</h2>
+      <span class="ovk-tel" id="fkTel"></span>
+    </div>
+    <div id="fkBlok" hidden>
+      <div class="ov-bar" style="margin-bottom:12px">
+        <div class="ov-rij">
+          <select id="fkForm" style="min-width:260px"></select>
+          <input type="search" id="fkZoek" placeholder="Zoek op naam of nummer" style="min-width:200px">
+          <input type="date" id="fkDatum" aria-label="Aankomstdatum">
+          <select id="fkSuite">
+            <option value="">Alle suites</option>
+            <option value="Malina Jacuzzi">Malina Jacuzzi</option>
+            <option value="Malina Deluxe">Malina Deluxe</option>
+            <option value="Suite Angie">Suite Angie</option>
+          </select>
+          <label class="check" for="fkLos" style="gap:8px"><input type="checkbox" id="fkLos" checked>Alleen nog niet gekoppelde</label>
+        </div>
+        <div class="ov-rij" style="margin-top:10px">
+          <select id="fkRes" style="min-width:340px;flex:1"></select>
+          <button class="knop vol" type="button" id="fkKoppel">Koppelen</button>
+        </div>
+        <p class="hint" id="fkNote" style="margin:8px 0 0"></p>
+      </div>
     </div>
 
     <div class="lijstkop"><h2 style="font-size:19px">Contact</h2>
@@ -1080,66 +1077,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <span>Scan om een review achter te laten</span>
       </div>
     </div>
-  </section>
-
-  <!-- ============ RESERVERINGSFORMULIEREN ============ -->
-  <section class="panel" id="panel-formulieren" role="tabpanel" aria-labelledby="tab-formulieren" hidden>
-    <div class="page-head">
-      <span class="eyebrow">Locatie Lelystad</span>
-      <h1>Reserveringsformulieren</h1>
-      <p>Vul een nieuw formulier in, pak een concept op dat al klaarstaat, of zoek een afgerond formulier terug.
-      In dezelfde keuzelijst staan ook de aanmeldingen die gasten zelf hebben ingevuld en de schademeldingen.</p>
-    </div>
-
-    <div class="ov-bar" style="margin-bottom:14px">
-      <div class="ov-rij">
-        <select id="ovSectie" style="min-width:260px">
-          <option value="nieuw" selected>Nieuw formulier invullen</option>
-          <option value="concept">Concepten &mdash; alvast klaargezet</option>
-          <option value="definitief">Definitieve formulieren</option>
-          <option value="aanm">Aanmeldingen van gasten</option>
-          <option value="schade">Schademeldingen</option>
-        </select>
-        <input type="search" id="cfZoek" placeholder="Zoek op naam of reserveringsnummer" style="min-width:200px">
-        <select id="cfLoc">
-          <option value="">Alle locaties</option>
-          <option value="Malina Jacuzzi">Malina Jacuzzi</option>
-          <option value="Malina Deluxe">Malina Deluxe</option>
-        </select>
-        <input type="date" id="cfVan" aria-label="Vanaf datum">
-        <input type="date" id="cfTot" aria-label="Tot en met datum">
-        <span class="ovk-tel" id="sectieTel"></span>
-      </div>
-    </div>
-    <div id="aanmLijst"></div>
-    <div id="cfLijst"></div>
-
-    <div class="lijstkop uitklapkop" id="fkKop" role="button" tabindex="0" aria-expanded="false">
-      <span class="uitklappijl">&rsaquo;</span>
-      <h2 style="font-size:19px">Formulier koppelen aan reservering</h2>
-      <span class="ovk-tel" id="fkTel"></span>
-    </div>
-    <div id="fkBlok" hidden>
-      <div class="ov-bar" style="margin-bottom:12px">
-        <div class="ov-rij">
-          <select id="fkForm" style="min-width:260px"></select>
-          <input type="search" id="fkZoek" placeholder="Zoek op naam of nummer" style="min-width:200px">
-          <input type="date" id="fkDatum" aria-label="Aankomstdatum">
-          <select id="fkSuite">
-            <option value="">Alle suites</option>
-            <option value="Malina Jacuzzi">Malina Jacuzzi</option>
-            <option value="Malina Deluxe">Malina Deluxe</option>
-          </select>
-          <label class="check" for="fkLos" style="gap:8px"><input type="checkbox" id="fkLos" checked>Alleen nog niet gekoppelde</label>
-        </div>
-        <div class="ov-rij" style="margin-top:10px">
-          <select id="fkRes" style="min-width:340px;flex:1"></select>
-          <button class="knop vol" type="button" id="fkKoppel">Koppelen</button>
-        </div>
-        <p class="hint" id="fkNote" style="margin:8px 0 0"></p>
-      </div>
-    </div>
-
+    </div><!-- einde oudOverzicht -->
   </section>
 
   <!-- ============ VRAGEN &amp; TAKEN ============ -->
@@ -1184,6 +1122,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <div class="kaart">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
         <h2 style="font-size:17px">Openstaand</h2>
+        <span id="tkTeller" style="font-size:13px;opacity:.7"></span>
         <select id="tkFilter" style="margin-left:auto"><option value="">Iedereen</option></select>
       </div>
       <div id="tkLijst"></div>
@@ -1312,20 +1251,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   <!-- ============ START ============ -->
   <section class="panel" id="panel-start" role="tabpanel" aria-labelledby="tab-start" hidden>
-    <div class="ds">
-      <div class="ds-kop">
-        <span class="eyebrow">Locatie Lelystad</span>
-        <h1 id="dsDatum">Vandaag</h1>
-        <p id="dsSamenvatting">Reserveringen van vandaag ophalen&hellip;</p>
-      </div>
-
-      <div id="dsLijst" aria-live="polite"></div>
-
-      <button class="ds-knop" type="button" data-naar-tab="overzicht">
-        <strong>Bekijk de volledige agenda</strong>
-        <small>Alle reserveringen van Malina Jacuzzi en Malina Deluxe in de kalender</small>
-      </button>
+    <div class="page-head">
+      <span class="eyebrow">Overzicht</span>
+      <h1>Start</h1>
+      <p>Alles wat je dagelijks nodig hebt op &eacute;&eacute;n scherm. Klik een tegel om te openen. Met het potloodje pas je het webadres van een tegel aan.</p>
     </div>
+    <div class="stats mobieltegels" id="mobTegels"></div>
+    <div class="tegels" id="tegels"></div>
   </section>
 
     <!-- ============ KLANTBEHEER ============ -->
@@ -1349,15 +1281,40 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   <!-- ============ PLANNING ============ -->
   <section class="panel" id="panel-planning" role="tabpanel" aria-labelledby="tab-planning" hidden>
+
     <div class="page-head">
       <span class="eyebrow">Locatiemanager</span>
       <h1>Planning</h1>
-      <p>Wie staat wanneer op welke locatie. Kies een medewerker om alleen diens dagen in de kalender te zien, of zoek een dag terug via Ingeplande dagen.</p>
+      <p>Wie staat wanneer op welke locatie. Klik een dag aan om die datum in het formulier te zetten.</p>
       <p class="hint" id="rolMelding" style="margin-top:6px"></p>
     </div>
     <div class="stats" id="planStats"></div>
 
-    <div class="card pz-kaart">
+    <div class="card">
+      <div class="card-head uitklapkop" id="mdKop" role="button" tabindex="0" aria-expanded="true">
+        <h2><span class="uitklappijl">&rsaquo;</span>Mijn diensten</h2>
+        <span class="hint" id="mdTel"></span>
+      </div>
+      <div class="card-body" id="mdBlok">
+        <div class="ov-rij" style="margin-bottom:12px">
+          <select id="mdWie" style="min-width:200px"></select>
+          <select id="mdPeriode">
+            <option value="komend">Vanaf vandaag</option>
+            <option value="maand">Deze maand</option>
+            <option value="alles">Alles</option>
+          </select>
+        </div>
+        <div id="mdLijst"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reserveringen &amp; links</h2>
+        <button class="btn ghost small" id="resSet" type="button">Links beheren</button></div>
+      <div class="card-body" id="resHouder"></div>
+    </div>
+
+    <div class="card">
       <div class="card-head">
         <h2 id="kalTitel">Maandoverzicht</h2>
         <span style="display:flex;gap:6px;align-items:center">
@@ -1365,28 +1322,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <button class="btn ghost small" type="button" id="kalNu">Deze maand</button>
           <button class="btn ghost small" type="button" id="kalNext" aria-label="Volgende maand">&rarr;</button>
         </span>
-      </div>
-      <div class="pz-balk">
-        <label class="pz-veld" for="pzWie"><span>Medewerker</span>
-          <select id="pzWie"><option value="">Iedereen</option></select></label>
-        <div class="pz-drop" id="pzDrop">
-          <span class="pz-veld-label" aria-hidden="true">Dagen terugzoeken</span>
-          <button type="button" class="pz-knop" id="pzKnop" aria-haspopup="true" aria-expanded="false" aria-controls="pzPaneel">
-            <span id="pzKnopTekst">Ingeplande dagen</span>
-            <span class="pz-aantal" id="pzAantal">0</span>
-            <svg class="pz-pijl" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div class="pz-paneel" id="pzPaneel" hidden>
-            <input type="search" id="pzZoek" placeholder="Zoek op naam, datum, dag of notitie" autocomplete="off" aria-label="Zoeken in ingeplande dagen">
-            <div class="pz-seg" role="group" aria-label="Welke dagen">
-              <button type="button" data-pz="komend" aria-pressed="true">Vanaf vandaag</button>
-              <button type="button" data-pz="maand" aria-pressed="false">Deze kalendermaand</button>
-              <button type="button" data-pz="alles" aria-pressed="false">Alles</button>
-            </div>
-            <div class="pz-lijst" id="pzLijst"></div>
-          </div>
-        </div>
-        <p class="pz-hint" id="pzHint" hidden></p>
       </div>
       <div class="card-body">
         <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
@@ -1400,7 +1335,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <form class="grid-form" id="planForm">
           <div class="field"><label for="p-datum">Datum</label><input type="date" id="p-datum" required></div>
           <div class="field"><label for="p-mw">Medewerker</label><select id="p-mw" required></select></div>
-          <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option></select></div>
+          <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option><option value="Almere">Almere</option></select></div>
           <div class="field"><label for="p-dienst">Soort</label><select id="p-dienst"><option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option><option value="schoonmaak">Alleen schoonmaak</option></select></div>
           <div class="field" style="grid-column:span 2"><label for="p-notitie">Notitie</label><input type="text" id="p-notitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
           <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Inplannen</button></div>
@@ -1426,13 +1361,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <div class="card-head"><h2>Diensten in deze maand</h2><span class="hint" id="planCount"></span></div>
       <div class="table-wrap" id="planTable"></div>
     </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Reserveringen &amp; links</h2>
-        <button class="btn ghost small" id="resSet" type="button">Links beheren</button></div>
-      <div class="card-body" id="resHouder"></div>
-    </div>
-
 
     <div class="card">
       <div class="card-head"><h2>Wie kun je inplannen</h2><span class="hint">Alleen namen &mdash; uren en loon staan hier niet in</span></div>
@@ -1553,7 +1481,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <div class="grid-form">
             <div class="field"><label for="o-van">Van</label><select id="o-van"></select></div>
             <div class="field"><label for="o-aan">Overdragen aan</label><select id="o-aan"></select></div>
-            <div class="field"><label for="o-loc">Locatie</label><select id="o-loc"><option value="Malina Jacuzzi">Malina Jacuzzi</option><option value="Malina Zwembad">Malina Zwembad</option></select></div>
+            <div class="field"><label for="o-loc">Locatie</label><select id="o-loc"><option value="Malina Jacuzzi">Malina Jacuzzi</option><option value="Malina Zwembad">Malina Zwembad</option><option value="Almere">Almere</option></select></div>
             <div class="field"><label for="o-cat">Soort</label><select id="o-cat"><option value="info">Informatie</option><option value="storing">Storing</option><option value="defect">Defect</option><option value="klacht">Klacht</option></select></div>
             <div class="field"><label for="o-datum">Datum</label><input type="date" id="o-datum"></div>
           </div>
@@ -1569,7 +1497,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     </div>
   </section>
 
-  <datalist id="locaties"><option value="Lelystad Malina"></option></datalist>
+  <datalist id="locaties"><option value="Lelystad Malina"></option><option value="Almere"></option></datalist>
   <datalist id="categorieen"><option value="Linnen"></option><option value="Bar"></option><option value="Schoonmaak"></option><option value="Suite"></option><option value="Keuken"></option></datalist>
   <datalist id="leveranciers"><option value="Sushi Nippon"></option><option value="Sushi Eiland"></option><option value="Buurvrouw (mocktails)"></option></datalist>
 </div>
@@ -1689,11 +1617,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function readOnly(){ setChip("readonly", "Geen verbinding"); }
   function kopie(o){ return JSON.parse(JSON.stringify(o)); }
 
-  /* Dit dashboard is alleen voor locatie Lelystad. Regels die duidelijk bij Almere horen
-     worden niet getoond; ze blijven gewoon bestaan in de database. */
-  function isAlmere(loc){ return /almere|angie|specerij|\bpsa\b/i.test(String(loc || "")); }
-  function isLelystadNaam(loc){ return /lelystad|malina|jacuzzi|zwembad|deluxe|birdie/i.test(String(loc || "")); }
-
   var TABELLEN = {
     medewerkers: ["naam", "rol", "locatie"],
     planning: ["datum", "medewerker_id", "locatie", "dienst", "notitie"],
@@ -1776,14 +1699,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       api("overdracht?select=*&order=ts.desc"),
       api("instellingen?select=*")
     ]).then(function(res){
-      state.planning = res[1].filter(function(r){ return !isAlmere(r.locatie); }).map(function(r){ return vanDb("planning", r); });
-      state.medewerkers = res[0].filter(function(r){
-        if (!isAlmere(r.locatie) || isLelystadNaam(r.locatie)) return true;
-        /* alleen-Almere collega's verbergen, tenzij ze toch in Lelystad staan ingepland */
-        return state.planning.some(function(p){ return p.medewerkerId === r.id; });
-      }).map(function(r){ return vanDb("medewerkers", r); });
-      state.voorraad = res[2].filter(function(r){ return !isAlmere(r.locatie); }).map(function(r){ return vanDb("voorraad", r); });
-      state.overdracht = res[3].filter(function(r){ return !isAlmere(r.locatie); }).map(function(r){ return vanDb("overdracht", r); });
+      state.medewerkers = res[0].map(function(r){ return vanDb("medewerkers", r); });
+      state.planning = res[1].map(function(r){ return vanDb("planning", r); });
+      state.voorraad = res[2].map(function(r){ return vanDb("voorraad", r); });
+      state.overdracht = res[3].map(function(r){ return vanDb("overdracht", r); });
       var inst = {};
       res[4].forEach(function(r){ inst[r.sleutel] = r.waarde; });
       state.incheckUrl = inst.incheck_url || "";
@@ -1946,14 +1865,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function vindIdx(arr, id){ for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return i; return -1; }
 
   /* ---------------- tabs ---------------- */
-  var active = "start";
-  try {
-    var s0 = sessionStorage.getItem("bw-tab");
-    if (s0 && sessionStorage.getItem("bw-tab-dag") === today() && document.getElementById("tab-" + s0) && document.getElementById("panel-" + s0)) active = s0;
-  } catch (e) {}
+  var active = "overzicht";
+  try { var s0 = sessionStorage.getItem("bw-tab"); if (s0 && document.getElementById("tab-" + s0) && document.getElementById("panel-" + s0)) active = s0; } catch (e) {}
   function showTab(name){
     active = name;
-    try { sessionStorage.setItem("bw-tab", name); sessionStorage.setItem("bw-tab-dag", today()); } catch (e) {}
+    try { sessionStorage.setItem("bw-tab", name); } catch (e) {}
     var tabs = document.querySelectorAll(".tab");
     for (var i = 0; i < tabs.length; i++) {
       var on = tabs[i].getAttribute("data-tab") === name;
@@ -2205,10 +2121,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var start = (new Date(jaar, maand, 1).getDay() + 6) % 7;
     var dagen = new Date(jaar, maand + 1, 0).getDate();
     var vandaag = today(), perDag = {};
-    state.planning.forEach(function(r){
-      if (pzWie && r.medewerkerId !== pzWie) return;
-      (perDag[r.datum] = perDag[r.datum] || []).push(r);
-    });
+    state.planning.forEach(function(r){ (perDag[r.datum] = perDag[r.datum] || []).push(r); });
 
     var html = ["ma", "di", "wo", "do", "vr", "za", "zo"].map(function(d){ return '<div class="kal-kop">' + d + "</div>"; }).join("");
     var i;
@@ -2216,9 +2129,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     for (i = 1; i <= dagen; i++) {
       var iso = jaar + "-" + String(maand + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
       var lijst = perDag[iso] || [];
-      var raak = pzWie && lijst.some(function(r){ return r.dienst !== "afwezig"; });
-      html += '<button type="button" class="kal-cel' + (iso === vandaag ? " vandaag" : "") + (raak ? " pz-raak" : "") +
-        (iso === pzFlits ? " pz-flits" : "") + '" data-dag="' + iso + '">' +
+      html += '<button type="button" class="kal-cel' + (iso === vandaag ? " vandaag" : "") + '" data-dag="' + iso + '">' +
         '<span class="kal-num">' + i + "</span>" +
         lijst.map(function(r){
           var m = mwById(r.medewerkerId);
@@ -2234,7 +2145,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var lbl = maandLabel(kalYm);
     document.getElementById("kalTitel").textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
     document.getElementById("kalLegend").innerHTML = state.medewerkers.map(function(m){
-      return '<span class="leg"' + (pzWie && pzWie !== m.id ? ' data-uit="1"' : "") + '><span class="kal-dot" style="--c:' + kleurVan(m.id) + '"></span>' + esc(m.naam) + "</span>";
+      return '<span class="leg"><span class="kal-dot" style="--c:' + kleurVan(m.id) + '"></span>' + esc(m.naam) + "</span>";
     }).join("") + '<span class="leg" style="color:var(--muted)">&#9789; = nachtverblijf</span>';
   }
   document.getElementById("kalender").addEventListener("click", function(e){
@@ -2247,7 +2158,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function renderPlanning(){
     renderKalender();
     var vandaag = today();
-    var rijen = state.planning.filter(function(r){ return r.datum.slice(0, 7) === kalYm && (!pzWie || r.medewerkerId === pzWie); })
+    var rijen = state.planning.filter(function(r){ return r.datum.slice(0, 7) === kalYm; })
       .sort(function(a, b){ return a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0; });
     var html = rijen.map(function(r){
       var m = mwById(r.medewerkerId);
@@ -2261,9 +2172,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }).join("");
     document.getElementById("planTable").innerHTML = rijen.length
       ? '<table><thead><tr><th>Datum</th><th>Medewerker</th><th>Locatie</th><th>Soort</th><th>Notitie</th><th class="num"></th></tr></thead><tbody>' + html + "</tbody></table>"
-      : '<div class="empty"><strong>Geen diensten in ' + esc(maandLabel(kalYm)) + (pzWie && mwById(pzWie) ? " voor " + esc(mwById(pzWie).naam) : "") + "</strong>Klik een dag in de kalender aan en plan hem hieronder in.</div>";
-    document.getElementById("planCount").textContent = rijen.length + " dienst" + (rijen.length === 1 ? "" : "en") +
-      (pzWie && mwById(pzWie) ? " van " + mwById(pzWie).naam : "");
+      : '<div class="empty"><strong>Geen diensten in ' + esc(maandLabel(kalYm)) + "</strong>Klik een dag in de kalender aan en plan hem hieronder in.</div>";
+    document.getElementById("planCount").textContent = rijen.length + " dienst" + (rijen.length === 1 ? "" : "en");
 
     var toekomst = state.planning.filter(function(r){ return r.datum >= vandaag && r.dienst !== "afwezig"; });
     var d7 = new Date(); d7.setDate(d7.getDate() + 7);
@@ -2272,169 +2182,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var bestel = state.voorraad.filter(function(v){ return v.aantal <= v.min; }).length;
     document.getElementById("planStats").innerHTML =
       stat("Diensten komende 7 dagen", String(week.length), "vanaf vandaag", "") +
-      stat("Diensten deze maand", String(state.planning.filter(function(r){ return r.datum.slice(0, 7) === kalYm; }).length), maandLabel(kalYm), "") +
+      stat("Diensten deze maand", String(rijen.length), maandLabel(kalYm), "") +
       stat("Openstaande overdracht", String(open), open === 0 ? "niets open" : "punten", open === 0 ? "ok" : "") +
       stat("Artikelen te bestellen", String(bestel), "onder minimum", "brass");
     var bp = document.getElementById("badge-planning"); if (bp) bp.textContent = toekomst.length;
-    pzBijwerken();
   }
-
-  /* ---------------- planning: medewerker kiezen en ingeplande dagen terugzoeken ---------------- */
-  var pzWie = "", pzPeriode = "komend", pzFlits = "";
-  try { pzWie = sessionStorage.getItem("bw-pz-wie") || ""; } catch (e) {}
-  var PZ_DAG = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
-  var PZ_MAAND = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
-
-  function pzDatum(iso){ var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
-  function pzHooi(r){
-    var m = mwById(r.medewerkerId), d = pzDatum(r.datum), p = r.datum.split("-");
-    return [m ? m.naam : "", r.datum, p[2] + "-" + p[1] + "-" + p[0], (+p[2]) + "-" + (+p[1]) + "-" + p[0],
-      (+p[2]) + "-" + (+p[1]), (+p[2]) + " " + PZ_MAAND[d.getMonth()], PZ_DAG[d.getDay()], PZ_MAAND[d.getMonth()],
-      soortLabel(r.dienst), r.locatie || "", r.notitie || ""].join(" ").toLowerCase();
-  }
-  function pzKiesWie(id){
-    pzWie = id || "";
-    try { sessionStorage.setItem("bw-pz-wie", pzWie); } catch (e) {}
-    renderPlanning();
-  }
-  function pzBijwerken(){
-    var sel = document.getElementById("pzWie"); if (!sel) return;
-    if (pzWie && state.medewerkers.length && !mwById(pzWie)) pzWie = "";
-    var vandaag = today();
-    sel.innerHTML = '<option value="">Iedereen</option>' + state.medewerkers.map(function(m){
-      var n = state.planning.filter(function(r){ return r.medewerkerId === m.id && r.dienst !== "afwezig" && r.datum >= vandaag; }).length;
-      return '<option value="' + esc(m.id) + '">' + esc(m.naam) + (n ? " \u2014 " + n + " komend" : "") + "</option>";
-    }).join("");
-    sel.value = pzWie;
-
-    var m = mwById(pzWie);
-    var komend = state.planning.filter(function(r){ return r.dienst !== "afwezig" && r.datum >= vandaag && (!pzWie || r.medewerkerId === pzWie); }).length;
-    document.getElementById("pzKnopTekst").textContent = m ? "Dagen van " + voornaam(m.naam) : "Ingeplande dagen";
-    document.getElementById("pzAantal").textContent = komend;
-    document.getElementById("pzAantal").title = komend + " komende dienst" + (komend === 1 ? "" : "en");
-
-    var hint = document.getElementById("pzHint");
-    if (m) {
-      hint.innerHTML = "De kalender en de tabel tonen nu alleen de dagen van " + esc(m.naam) + '.<button type="button" id="pzIedereen">Iedereen tonen</button>';
-      hint.hidden = false;
-    } else { hint.innerHTML = ""; hint.hidden = true; }
-
-    if (!document.getElementById("pzPaneel").hidden) pzTekenLijst();
-  }
-
-  function pzTekenLijst(){
-    var houder = document.getElementById("pzLijst"); if (!houder) return;
-    var vandaag = today();
-    var zoek = (document.getElementById("pzZoek").value || "").toLowerCase().trim();
-    var woorden = zoek ? zoek.split(/\s+/) : [];
-    var basis = state.planning.filter(function(r){ return r.dienst !== "afwezig" && (!pzWie || r.medewerkerId === pzWie); });
-    var inPeriode = basis.filter(function(r){
-      if (pzPeriode === "komend") return r.datum >= vandaag;
-      if (pzPeriode === "maand") return r.datum.slice(0, 7) === kalYm;
-      return true;
-    });
-    var rijen = inPeriode.filter(function(r){
-      if (!woorden.length) return true;
-      var hooi = pzHooi(r);
-      return woorden.every(function(w){ return hooi.indexOf(w) > -1; });
-    }).sort(function(a, b){
-      if (a.datum !== b.datum) return a.datum < b.datum ? -1 : 1;
-      var ma = mwById(a.medewerkerId), mb = mwById(b.medewerkerId);
-      return String(ma ? ma.naam : "").localeCompare(String(mb ? mb.naam : ""));
-    });
-
-    var wieNaam = mwById(pzWie) ? mwById(pzWie).naam : "";
-    if (!rijen.length) {
-      var t;
-      if (!basis.length) t = wieNaam ? "Voor " + esc(wieNaam) + " staat nog niets ingepland." : "Er staat nog niemand ingepland.";
-      else if (woorden.length) t = "Niets gevonden voor \u201c" + esc(zoek) + "\u201d. Zoek op een naam, een datum zoals 12-9, een dag zoals zaterdag of een woord uit de notitie.";
-      else if (pzPeriode === "komend") t = (wieNaam ? esc(wieNaam) + " heeft" : "Er zijn") + " geen komende diensten. Kies Alles om eerdere dagen te zien.";
-      else t = "Geen diensten in " + esc(maandLabel(kalYm)) + ".";
-      houder.innerHTML = '<p class="pz-leeg">' + t + "</p>";
-      return;
-    }
-
-    var html = "", maandNu = "", max = 250;
-    rijen.slice(0, max).forEach(function(r){
-      var ym = r.datum.slice(0, 7);
-      if (ym !== maandNu) { maandNu = ym; html += '<div class="pz-maand">' + esc(maandLabel(ym)) + "</div>"; }
-      var d = pzDatum(r.datum), m = mwById(r.medewerkerId);
-      html += '<button type="button" class="pz-item" data-pz-dag="' + r.datum + '"' + (r.datum === vandaag ? ' data-vandaag="1"' : "") + ">" +
-        '<span class="pz-dag"><b>' + d.getDate() + "</b><small>" + PZ_DAG[d.getDay()].slice(0, 2) + "</small></span>" +
-        '<span class="pz-info"><strong>' + esc(PZ_DAG[d.getDay()].charAt(0).toUpperCase() + PZ_DAG[d.getDay()].slice(1) + " " + d.getDate() + " " + PZ_MAAND[d.getMonth()] + (r.datum === vandaag ? " (vandaag)" : "")) + "</strong>" +
-        "<span>" + (pzWie ? "" : '<span class="kal-dot" style="--c:' + kleurVan(r.medewerkerId) + '"></span>' + esc(m ? m.naam : "Onbekend")) +
-        '<span class="pz-soort">' + esc(soortLabel(r.dienst)) + "</span>" + (r.locatie ? esc(r.locatie) : "") + "</span>" +
-        (r.notitie ? "<em>" + esc(r.notitie) + "</em>" : "") + "</span></button>";
-    });
-    if (rijen.length > max) html += '<p class="pz-leeg">En nog ' + (rijen.length - max) + " dagen. Verfijn je zoekopdracht.</p>";
-    houder.innerHTML = html;
-  }
-
-  function pzOpen(open){
-    var paneel = document.getElementById("pzPaneel"), knop = document.getElementById("pzKnop");
-    paneel.hidden = !open;
-    knop.setAttribute("aria-expanded", open ? "true" : "false");
-    if (open) { pzTekenLijst(); setTimeout(function(){ document.getElementById("pzZoek").focus(); }, 0); }
-  }
-  function pzGaNaar(iso){
-    kalYm = iso.slice(0, 7);
-    try { sessionStorage.setItem("bw-maand", kalYm); } catch (e) {}
-    pzFlits = iso;
-    pzOpen(false);
-    renderPlanning();
-    var pd = document.getElementById("p-datum"); if (pd) pd.value = iso;
-    var cel = document.querySelector('#kalender .kal-cel[data-dag="' + iso + '"]');
-    if (cel) {
-      cel.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-      try { cel.focus({ preventScroll: true }); } catch (e) {}
-    }
-    setTimeout(function(){
-      if (pzFlits !== iso) return;
-      pzFlits = "";
-      var c = document.querySelector("#kalender .kal-cel.pz-flits"); if (c) c.classList.remove("pz-flits");
-    }, 2600);
-  }
-
-  document.getElementById("pzWie").addEventListener("change", function(){ pzKiesWie(this.value); });
-  document.getElementById("pzHint").addEventListener("click", function(e){
-    if (e.target.closest("#pzIedereen")) pzKiesWie("");
-  });
-  document.getElementById("pzKnop").addEventListener("click", function(){
-    pzOpen(document.getElementById("pzPaneel").hidden);
-  });
-  document.getElementById("pzZoek").addEventListener("input", pzTekenLijst);
-  document.getElementById("pzZoek").addEventListener("keydown", function(e){
-    var eerste = document.querySelector("#pzLijst .pz-item");
-    if (e.key === "ArrowDown" && eerste) { e.preventDefault(); eerste.focus(); }
-    if (e.key === "Enter" && eerste) { e.preventDefault(); pzGaNaar(eerste.getAttribute("data-pz-dag")); }
-  });
-  document.getElementById("pzPaneel").addEventListener("click", function(e){
-    var seg = e.target.closest("[data-pz]");
-    if (seg) {
-      pzPeriode = seg.getAttribute("data-pz");
-      document.querySelectorAll("#pzPaneel [data-pz]").forEach(function(b){ b.setAttribute("aria-pressed", b === seg ? "true" : "false"); });
-      pzTekenLijst();
-      return;
-    }
-    var item = e.target.closest(".pz-item");
-    if (item) pzGaNaar(item.getAttribute("data-pz-dag"));
-  });
-  document.getElementById("pzLijst").addEventListener("keydown", function(e){
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    var items = Array.prototype.slice.call(document.querySelectorAll("#pzLijst .pz-item"));
-    var i = items.indexOf(document.activeElement); if (i < 0) return;
-    e.preventDefault();
-    if (e.key === "ArrowDown" && i < items.length - 1) items[i + 1].focus();
-    if (e.key === "ArrowUp") { if (i === 0) document.getElementById("pzZoek").focus(); else items[i - 1].focus(); }
-  });
-  document.getElementById("pzDrop").addEventListener("keydown", function(e){
-    if (e.key === "Escape" && !document.getElementById("pzPaneel").hidden) {
-      e.preventDefault(); e.stopPropagation(); pzOpen(false); document.getElementById("pzKnop").focus();
-    }
-  });
-  document.addEventListener("click", function(e){
-    if (!document.getElementById("pzPaneel").hidden && !e.target.closest("#pzDrop")) pzOpen(false);
-  });
 
   /* ---------------- render: team ---------------- */
   function renderTeam(){
@@ -3167,6 +2919,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   var SB_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
   var SB_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
+  var AGENDA = {
+    PROXY:   'https://script.google.com/macros/s/AKfycbwyOhWt48rEQP6sfGvT6NokYWmmuVTziy064gPez9rRXTPEvmJcAb_qPk6m0i4UCY1f4A/exec',
+    SLEUTEL: 'bwf7k2mxq9tvr20264nphs8wjc3'
+  };
   var VR_URL      = 'https://bwfcheckin.github.io/bwf-incheck/vr2.html';
   var FORM_LM_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
   var FORM_GAST   = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
@@ -3211,19 +2967,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       method: opties.method||'GET', headers:kop, body: opties.body||undefined });
     if(!r.ok) throw new Error('HTTP '+r.status+' \u2014 '+(await r.text()).slice(0,140));
     var t = await r.text();
-    if((opties.method||'GET') !== 'GET' && /^(res_koppeling|reservations|checkins|wz_welkomstcalls|wz_klantbeheer)/.test(pad)) ververFrame();
     return t ? JSON.parse(t) : null;
-  }
-  /* De reserveringskalender op het overzicht is reserveringen.html zelf.
-     Na een wijziging hier vragen we die pagina om de gegevens opnieuw op te halen. */
-  var frameTimer = null;
-  function ververFrame(){
-    var f = document.getElementById('ovResFrame');
-    if(!f || !f.getAttribute('src')) return;
-    clearTimeout(frameTimer);
-    frameTimer = setTimeout(function(){
-      try{ f.contentWindow.postMessage({ bwf:'verversen' }, location.origin); }catch(e){}
-    }, 900);
   }
   /* Gebruikte eerder de publieke sleutel. Dat maakte medewerkers en planning
      voor iedereen op internet leesbaar, dus gaat dit nu via de ingelogde sessie.
@@ -3237,6 +2981,25 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var t = await r.text();
     return t ? JSON.parse(t) : null;
   }
+  /* Het oude overzicht staat ingeklapt onder de dagweergave. */
+  (function(){
+    var knop = document.getElementById("oudOverzichtKnop");
+    var vak = document.getElementById("oudOverzicht");
+    if(!knop || !vak) return;
+    knop.addEventListener("click", function(){
+      var open = !vak.hidden;
+      vak.hidden = open;
+      knop.textContent = open ? "+ Het oude overzicht tonen" : "\u2715 Het oude overzicht verbergen";
+    });
+  })();
+
+  /* het kader met de dagweergave laten meegroeien */
+  window.addEventListener("message", function(e){
+    if(!e.data || e.data.bwf !== "hoogte") return;
+    var f = document.getElementById(e.data.bron === "agenda" ? "agendaFrame" : "vandaagFrame");
+    if(f) f.style.height = Math.max(420, Math.min(2200, e.data.hoogte + 24)) + "px";
+  });
+
   function melding(t, goed){
     var el = document.getElementById('ovMelding'); if(!el) return;
     el.textContent = t || ''; el.style.color = goed ? '#2E8B57' : '';
@@ -3451,8 +3214,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* vrije tijd = de vaste blokken die nog nergens mee botsen */
   function vrijeSlots(ds){
     if(ds < dstr(new Date())) return [];
-    var uit = [];
-    ['Malina Jacuzzi','Malina Deluxe'].forEach(function(suite){
+    var loc = document.getElementById('ovLocatie').value, uit = [];
+    var suites = ['Malina Jacuzzi','Malina Deluxe'];
+    if(document.getElementById('ovAlmere').checked || loc === 'Suite Angie') suites.push('Suite Angie');
+    suites.forEach(function(suite){
+      if(loc && suite !== loc) return;
       var bezet = bezetOp(suite, ds);
       BLOKKEN.forEach(function(b){
         if(b.suite !== 'beide' && b.suite !== suite) return;
@@ -3468,13 +3234,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
     return uit.sort(function(a,b){ return String(a.tijdIn).localeCompare(String(b.tijdIn)); });
   }
-  function vrijAan(){ var el = document.getElementById('ovVrij'); return !!(el && el.checked); }
+  function vrijAan(){ return document.getElementById('ovVrij').checked; }
+  function metVrij(ds, lijst){
+    return (lijst||[]).concat(vrijAan() ? vrijeSlots(ds) : []);
+  }
 
   /* ---------- gegevens ---------- */
   var ALLES=[], KOPPEL={}, KLANTEN=[], MEDEWERKERS=[], CHECKINS=[], CALLS=[], TAKEN=[];
   var DIENSTEN=[], TEAM=[], DIENSTKLEUR={}, VOORRAAD=[], AANMELDINGEN=[], SCHADE=[], PLANFOUT='';
-  /* De kalender zelf staat nu in reserveringen.html; de lijst hieronder toont altijd vandaag. */
-  var kalWeergave='dag', anker=new Date(), geladen=false, LAADFOUTEN=[];
+  var kalWeergave='maand', anker=new Date(), geladen=false;
 
   function uitAgenda(ev){
     return { bron:'agenda', bewerkbaar:false,
@@ -3750,11 +3518,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   async function laden(){
     var fouten = [], agenda = [], eigen = [];
     try{
-      /* Geef de agenda de ingelogde sessie mee. Zelf zoeken in de opslag van de browser
-         mislukt op dit dashboard zodra daar een gewone tekstwaarde staat (zoals de gekozen naam). */
-      var sessie = token();
-      if(sessie && sessie !== SB_KEY && BWFAgenda.setAccessToken) BWFAgenda.setAccessToken(sessie);
-      var json = await BWFAgenda.events();
+      var json = await (await fetch(AGENDA.PROXY+'?k='+encodeURIComponent(AGENDA.SLEUTEL))).json();
       if(json.fout) throw new Error(json.fout);
       agenda = (json.events||[]).map(uitAgenda);
     }catch(e){ fouten.push('agenda'); }
@@ -3789,9 +3553,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     await laadBlokken();
     await laadLinks();
 
-    /* dit dashboard is locatie Lelystad: Suite Angie (Almere) blijft buiten beeld */
     ALLES = agenda.concat(eigen).filter(function(r){
-      return isLelystad(r.locatie);
+      var h = hoofdnaam(r.locatie);
+      return h === 'Malina Jacuzzi' || h === 'Malina Deluxe' || h === 'Suite Angie';
     }).sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
 
     /* precies dezelfde regel twee keer in de agenda? \u00e9\u00e9n keer tonen */
@@ -3816,23 +3580,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     try{ SCHADE = await sb('schade?select=*&order=datum.desc&limit=500') || []; }catch(e){ SCHADE=[]; }
 
-    /* alleen Lelystad: wat duidelijk bij Almere hoort, blijft buiten beeld */
-    function almere(x){ var l = veld(x,['locatie','suite'],''); return !!l && hoofdnaam(l) === 'Suite Angie'; }
-    function lelystadOnly(lijst){ return (lijst||[]).filter(function(x){ return !almere(x); }); }
-    CHECKINS = lelystadOnly(CHECKINS); AANMELDINGEN = lelystadOnly(AANMELDINGEN); SCHADE = lelystadOnly(SCHADE);
-    TAKEN = lelystadOnly(TAKEN); CALLS = lelystadOnly(CALLS); VOORRAAD = lelystadOnly(VOORRAAD);
-    DIENSTEN = lelystadOnly(DIENSTEN);
-    TEAM = TEAM.filter(function(m){
-      if(!almere(m) || /lelystad|malina/i.test(String(m.locatie||''))) return true;
-      return DIENSTEN.some(function(p){ return String(p.medewerker_id) === String(m.id); });
-    });
-
     geladen = true;
-    LAADFOUTEN = fouten.slice();
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulMedewerkers(); tekenStart(); tekenLM(); tekenVoorraadTegels(); tekenVandaag(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulSoorten(); vulMedewerkers(); tekenLM(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -3848,23 +3600,28 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   async function maakCall(r, medewerker){
     var n = naw(r);
+    /* De kolomnamen hieronder moeten kloppen met de tabel wz_welkomstcalls.
+       Eerder stond hier gast, aankomst en reservering; die kolommen bestaan
+       niet, waardoor het aanmaken altijd mislukte.
+       Met on_conflict wordt een bestaande call bijgewerkt in plaats van
+       gedupliceerd \u2014 dat sluit aan op het slot op naam en datum. */
     var basis = {
-      gast: gastnaam(r),
+      naam: gastnaam(r),
       telefoon: kop(r).telefoon || n.telefoon || '',
       email: kop(r).email || n.email || '',
       locatie: hoofdnaam(r.locatie),
-      aankomst: r.aankomst || null,
-      reservering: n.nummer || sleutel(r),
-      status: 'open'
+      datum: r.aankomst || null,
+      referentie: n.nummer || sleutel(r),
+      status: 'te bellen',
+      bron: 'dashboard',
+      aangemaakt: new Date().toISOString()
     };
-    var res;
-    try{
-      res = await sb('wz_welkomstcalls', { method:'POST',
-        body: JSON.stringify(Object.assign({ medewerker: medewerker }, basis)) });
-    }catch(e){
-      /* kent de tabel geen medewerker-kolom? dan zonder */
-      res = await sb('wz_welkomstcalls', { method:'POST', body: JSON.stringify(basis) });
-    }
+    if(medewerker) basis.medewerker_id = medewerker;
+    var res = await sb('wz_welkomstcalls?on_conflict=naam,datum', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates,return=representation',
+      body: JSON.stringify(basis)
+    });
     var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
     await bewaarKoppeling(r, { welkomstcall_id: id, medewerker: medewerker });
     return id;
@@ -4126,12 +3883,34 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* ---------- filters ---------- */
   function gefilterd(){
-    var vrij = vrijAan();
+    var loc = document.getElementById('ovLocatie').value;
+    var srt = document.getElementById('ovSoort').value;
+    var zk  = document.getElementById('ovZoek').value.toLowerCase().trim();
+    var van = document.getElementById('ovVan').value;
+    var tot = document.getElementById('ovTot').value;
+    var vrijAan = document.getElementById('ovVrij').checked;
+    var almere  = document.getElementById('ovAlmere').checked;
     return ALLES.filter(function(r){
-      if(!isLelystad(r.locatie)) return false;
-      if(!vrij && (r.soort==='blok' || r.soort==='vrij')) return false;
+      var h = hoofdnaam(r.locatie);
+      if(!almere && !loc && h === 'Suite Angie') return false;
+      if(!vrijAan && (r.soort==='blok'||r.soort==='vrij')) return false;
+      if(loc && h !== loc) return false;
+      if(srt && r.soort!==srt) return false;
+      if(van && r.aankomst && r.aankomst < van) return false;
+      if(tot && r.aankomst && r.aankomst > tot) return false;
+      if(zk){
+        var h = (gastnaam(r)+' '+(r.nummer||'')+' '+(r.email||'')+' '+(r.telefoon||'')).toLowerCase();
+        if(h.indexOf(zk)<0) return false;
+      }
       return true;
     });
+  }
+  function vulSoorten(){
+    var s = {}; ALLES.forEach(function(r){ if(r.soort) s[r.soort]=1; });
+    var sel = document.getElementById('ovSoort'), h = sel.value;
+    sel.innerHTML = '<option value="">Alle soorten</option>' + Object.keys(s).sort().map(function(k){
+      return '<option value="'+esc(k)+'">'+esc(SOORTNAAM[k]||k)+'</option>'; }).join('');
+    sel.value = h;
   }
   function vulMedewerkers(){
     var namen = MEDEWERKERS.map(function(m){ return veld(m,['naam','voornaam','medewerker','email'],''); })
@@ -4140,7 +3919,50 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var a = document.getElementById('tkWie'), b = document.getElementById('tkFilter');
     var ha=a.value, hb=b.value;
     a.innerHTML = '<option value="">Nog niet toegewezen</option>'+opts; a.value=ha;
-    b.innerHTML = '<option value="">Iedereen</option>'+opts; b.value=hb;
+    /* Een locatiemanager ziet alleen zijn eigen taken \u2014 die van collega's
+       gaan hem niet aan. Alleen de eigenaar kan alles zien. */
+    var mij = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
+    var alles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
+    if(alles){
+      b.innerHTML = '<option value="">Iedereen</option>' + opts;
+      if(hb) b.value = hb;
+      else if(mij && namen.indexOf(mij) > -1) b.value = mij;
+    }else{
+      b.innerHTML = mij ? '<option>' + esc(mij) + '</option>'
+                        : '<option value="">Nog niet toegewezen</option>';
+      b.value = mij;
+      b.disabled = true;
+      b.title = 'Je ziet de taken die op jouw naam staan.';
+    }
+  }
+
+  /* ---------- tegels ---------- */
+  function tekenTegels(){
+    var vandaag = dstr(new Date());
+    var d = new Date(); var dag = (d.getDay()+6)%7;
+    var maStart = new Date(d); maStart.setDate(d.getDate()-dag);
+    var zoEind  = new Date(maStart); zoEind.setDate(maStart.getDate()+6);
+    var mStart = new Date(d.getFullYear(), d.getMonth(), 1);
+    var mEind  = new Date(d.getFullYear(), d.getMonth()+1, 0);
+    var almere = document.getElementById('ovAlmere').checked;
+    var boekingen = ALLES.filter(function(r){
+      if(!almere && hoofdnaam(r.locatie) === 'Suite Angie') return false;
+      return r.soort==='reservering'||r.soort==='extern'||r.soort==='handmatig'; });
+
+    function set(van,tot){ return boekingen.filter(function(r){
+      return r.aankomst && r.aankomst>=van && r.aankomst<=tot; }); }
+    var groepen = [
+      { id:'vandaag', label:'Vandaag',     lijst:set(vandaag,vandaag),                    van:vandaag, tot:vandaag },
+      { id:'week',    label:'Deze week',   lijst:set(dstr(maStart),dstr(zoEind)),         van:dstr(maStart), tot:dstr(zoEind) },
+      { id:'maand',   label:'Deze maand',  lijst:set(dstr(mStart),dstr(mEind)),           van:dstr(mStart),  tot:dstr(mEind) },
+      { id:'alles',   label:'Alle reserveringen', lijst:boekingen,                        van:'', tot:'' }
+    ];
+    document.getElementById('ovTegels').innerHTML = groepen.map(function(g){
+      var open = g.lijst.filter(function(r){ return !callGedaan(r); }).length;
+      return '<button class="ov-tegel" type="button" data-van="'+g.van+'" data-tot="'+g.tot+'">'+
+        '<b>'+g.lijst.length+'</b><span>'+esc(g.label)+'</span>'+
+        '<small>'+g.lijst.length+' aankomsten \u00b7 '+open+' zonder welkomstcall</small></button>';
+    }).join('');
   }
 
   /* ---------- wie staat er op de locatie ---------- */
@@ -4166,6 +3988,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   function tekenLM(){
     var balk = document.getElementById('lmBalk'); if(!balk) return;
+    if(!planningAan()){ balk.hidden = true; return; }
     var dag = (kalWeergave==='dag') ? dstr(anker) : dstr(new Date());
     var vandaag = dstr(new Date());
     var rijen = dienstenOp(dag).filter(function(p){ return p.dienst !== 'afwezig'; });
@@ -4314,8 +4137,174 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(window.BWFVoorraad) setTimeout(function(){ window.BWFVoorraad.toon(t.getAttribute('data-doel')); }, 120);
   });
 
+  /* ---------- kalender ---------- */
+  function evHtml(r){
+    var s = r.soort||'handmatig', k = evSoortSleutel(r);
+    var t = r.tijdIn || '';
+    var soortTekst = verblijfType(r);
+    var tekst = alleenTijden(s)
+      ? '<span class="t">'+esc(t + (r.tijdUit ? '\u2013'+r.tijdUit : ''))+'</span>'
+      : esc(suiteKort(r.locatie))+' '+'<span class="t">'+esc(t)+'</span>'+
+        esc((soortTekst ? soortTekst+' \u00b7 ' : '')+gastnaam(r));
+    if(r.virtueel){
+      var prijs = r.tarief ? ' <b>'+esc(euro(r.tarief))+'</b>' : '';
+      var tip = esc((r.blokNaam?r.blokNaam+' \u2014 ':'')+'nog te boeken \u2014 '+hoofdnaam(r.locatie));
+      if(r.link){
+        var u = r.link + (r.link.indexOf('?')>-1?'&':'?') +
+          'datum='+encodeURIComponent(r.aankomst)+'&suite='+encodeURIComponent(r.locatie)+
+          '&van='+encodeURIComponent(r.tijdIn)+'&tot='+encodeURIComponent(r.tijdUit);
+        return '<a class="ev boekbaar" data-k="vrij" href="'+esc(u)+'" target="_blank" rel="noopener" title="'+tip+'">'+
+          tekst+prijs+'</a>';
+      }
+      return '<span class="ev vast" data-k="vrij" title="'+tip+'">'+tekst+prijs+'</span>';
+    }
+    return '<button class="ev" type="button" data-k="'+k+'" data-sleutel="'+esc(sleutel(r))+'" '+
+      'title="'+esc((SOORTNAAM[s]||s)+' \u2014 '+hoofdnaam(r.locatie)+' \u2014 '+gastnaam(r))+'">'+tekst+'</button>';
+  }
+
+  /* per dag gegroepeerd onder de naam van de suite */
+  function dagHtml(lijst){
+    if(!lijst || !lijst.length) return '';
+    var orde = ['Malina Jacuzzi','Malina Deluxe','Suite Angie'], bak = {}, extra = [];
+    lijst.forEach(function(r){
+      var n = hoofdnaam(r.locatie);
+      if(orde.indexOf(n) < 0){ extra.push(r); return; }
+      (bak[n] = bak[n] || []).push(r);
+    });
+    var namen = orde.filter(function(n){ return bak[n]; });
+    var toonKop = namen.length > 1;
+    var h = namen.map(function(n){
+      var sk = n==='Malina Deluxe' ? 'deluxe' : n==='Suite Angie' ? 'angie' : 'jacuzzi';
+      return (toonKop ? '<div class="suitekop" data-k="'+sk+'">'+esc(n)+'</div>' : '')
+        + bak[n].map(evHtml).join('');
+    }).join('');
+    if(extra.length) h += extra.map(evHtml).join('');
+    return h;
+  }
+  function perDag(lijst){
+    var map = {};
+    lijst.forEach(function(r){ if(!r.aankomst) return;
+      (map[r.aankomst] = map[r.aankomst] || []).push(r); });
+    Object.keys(map).forEach(function(d){ map[d].sort(function(a,b){
+      return String(a.tijdIn).localeCompare(String(b.tijdIn)); }); });
+    return map;
+  }
+  function planningAan(){
+    var el = document.getElementById('ovPlanning');
+    return !el || el.checked;
+  }
+  function dienstStrip(ds){
+    if(!planningAan()) return '';
+    var rijen = DIENSTEN.filter(function(p){
+      if(String(p.datum||'').slice(0,10) !== ds) return false;
+      var l = String(p.locatie||'').toLowerCase();
+      return !l || l.indexOf('lelystad')>-1 || l.indexOf('malina')>-1;
+    });
+    if(!rijen.length) return '';
+    return '<div class="dienstrij">' + rijen.map(function(p){
+      var vol = teamNaam(p.medewerker_id);
+      var naam = vol ? String(vol).split(' ')[0] : 'Onbekend';
+      var afw  = p.dienst === 'afwezig';
+      var srt  = p.dienst === 'nacht' ? ' \u263d' : p.dienst === 'schoonmaak' ? ' \u2726' : '';
+      return '<span class="dienst'+(afw?' afw':'')+'" style="--c:'+(afw?'#B9AFA4':(DIENSTKLEUR[p.medewerker_id]||'#9A7B4F'))+'" '+
+        'title="'+esc(naam+' \u00b7 '+(afw?'niet beschikbaar':p.dienst||'dienst')+(p.notitie?' \u00b7 '+p.notitie:''))+'">'+
+        esc(naam)+srt+'</span>';
+    }).join('') + '</div>';
+  }
   var MAANDEN = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
   var DAGEN = ['maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag','zondag'];
+
+  function tekenKalender(){
+    var lijst = gefilterd(), map = perDag(lijst), houder = document.getElementById('ovKalender');
+    var vandaag = dstr(new Date()), h = '';
+
+    if(kalWeergave==='maand'){
+      var jaar = anker.getFullYear(), maand = anker.getMonth();
+      document.getElementById('ovPeriode').textContent = MAANDEN[maand]+' '+jaar;
+      var eerste = new Date(jaar, maand, 1);
+      var start = new Date(eerste); start.setDate(1-((eerste.getDay()+6)%7));
+      h += '<div class="ovk-dagen">'+DAGEN.map(function(d){
+        return '<div>'+d.slice(0,2).toUpperCase()+'</div>'; }).join('')+'</div><div class="ovk-net">';
+      for(var i=0;i<42;i++){
+        var d = new Date(start); d.setDate(start.getDate()+i);
+        var ds = dstr(d), buiten = d.getMonth()!==maand;
+        var leeg = !metVrij(ds, map[ds]).length && !dienstStrip(ds);
+        h += '<div class="ovk-cel" data-buiten="'+(buiten?1:0)+'" data-leeg="'+(leeg?1:0)+'" data-vandaag="'+(ds===vandaag?1:0)+'">'+
+          '<div class="ovk-nr" title="'+esc(ds)+'">'+d.getDate()+'</div>'+
+          '<span class="ovk-dag">'+esc(DAGEN[(d.getDay()+6)%7].slice(0,2))+' '+d.getDate()+' '+MAANDEN[d.getMonth()].slice(0,3)+'</span>'+
+          dienstStrip(ds) +
+          dagHtml(metVrij(ds, map[ds]))+'</div>';
+        if(i>=34 && new Date(start.getFullYear(),start.getMonth(),start.getDate()+i+1).getMonth()!==maand) break;
+      }
+      h += '</div>';
+      var inMaand = lijst.filter(function(r){ return r.aankomst && r.aankomst.slice(0,7)===dstr(eerste).slice(0,7); });
+      document.getElementById('ovTelling').textContent = inMaand.length+' regels in deze maand';
+
+    } else if(kalWeergave==='jaar'){
+      var jr = anker.getFullYear();
+      document.getElementById('ovPeriode').textContent = String(jr);
+      var perMaand = {};
+      lijst.forEach(function(r){
+        var mm = String(r.aankomst||'').slice(0,7);
+        if(mm) (perMaand[mm] = perMaand[mm] || []).push(r);
+      });
+      h += '<div class="ovk-jaar">';
+      for(var jm=1; jm<=12; jm++){
+        var sleutel = jr+'-'+String(jm).padStart(2,'0');
+        var inM = perMaand[sleutel] || [];
+        var totJ = inM.length || 1;
+        var suitesJ = ['Malina Jacuzzi','Malina Deluxe','Suite Angie'];
+        h += '<button type="button" class="ovk-maandvak" data-maand="'+sleutel+'">'+
+          '<strong>'+MAANDEN[jm-1]+'</strong>'+
+          '<span>'+inM.length+' reservering'+(inM.length===1?'':'en')+'</span>'+
+          '<span class="ovk-balkje">'+ suitesJ.map(function(sn){
+            var n = inM.filter(function(x){ return hoofdnaam(x.locatie)===sn; }).length;
+            return n ? '<i style="background:'+suiteKleur(sn)+';flex:'+(n/totJ)+'"></i>' : '';
+          }).join('') +'</span></button>';
+      }
+      h += '</div>';
+      document.getElementById('ovTelling').textContent =
+        lijst.filter(function(r){ return String(r.aankomst||'').slice(0,4)===String(jr); }).length+' regels dit jaar';
+
+    } else if(kalWeergave==='week'){
+      var dag = (anker.getDay()+6)%7;
+      var ma = new Date(anker); ma.setDate(anker.getDate()-dag);
+      var zo = new Date(ma); zo.setDate(ma.getDate()+6);
+      document.getElementById('ovPeriode').textContent =
+        ma.getDate()+' '+MAANDEN[ma.getMonth()]+' \u2013 '+zo.getDate()+' '+MAANDEN[zo.getMonth()]+' '+zo.getFullYear();
+      h += '<div class="weekbalk">';
+      var totaal = 0;
+      for(var w=0;w<7;w++){
+        var dw = new Date(ma); dw.setDate(ma.getDate()+w);
+        var dsw = dstr(dw); totaal += (map[dsw]||[]).length;
+        h += '<div class="dagkolom"'+(dsw===vandaag?' style="background:var(--surface-2,#faf7f3)"':'')+'>'+
+          '<h3>'+DAGEN[w].slice(0,2).toUpperCase()+' '+dw.getDate()+'</h3>'+ dienstStrip(dsw) +
+          dagHtml(metVrij(dsw, map[dsw]))+'</div>';
+      }
+      h += '</div>';
+      document.getElementById('ovTelling').textContent = totaal+' regels deze week';
+
+    } else {
+      var ds2 = dstr(anker);
+      document.getElementById('ovPeriode').textContent =
+        DAGEN[(anker.getDay()+6)%7]+' '+anker.getDate()+' '+MAANDEN[anker.getMonth()]+' '+anker.getFullYear();
+      var vd = metVrij(ds2, map[ds2]);
+      h += '<div class="dagblok">';
+      var strip = dienstStrip(ds2);
+      h += '<h3>Wie staat er vandaag</h3>' + (strip || '<p style="opacity:.55;font-size:14px;margin:0 0 6px">Niemand ingepland.</p>');
+      var dagSuites = ['Malina Jacuzzi','Malina Deluxe'];
+      if(document.getElementById('ovAlmere').checked) dagSuites.push('Suite Angie');
+      dagSuites.forEach(function(suite){
+        var s = vd.filter(function(r){ return hoofdnaam(r.locatie)===suite; });
+        h += '<h3>'+esc(suite)+'</h3>' + (s.length ? s.map(evHtml).join('')
+          : '<p style="opacity:.55;font-size:14px;margin:0 0 6px">Niets ingepland.</p>');
+      });
+      h += '</div>';
+      document.getElementById('ovTelling').textContent = vd.length+' regels vandaag';
+    }
+    houder.innerHTML = h;
+    tekenLM();
+  }
 
   /* ---------- lijst van vandaag ---------- */
   function isVrijBlok(r){ return r.soort==='blok' || r.soort==='vrij'; }
@@ -4372,7 +4361,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function naarVoorraad(){
     var tab = document.getElementById('tab-voorraad');
     if(!tab) return;
+    tab.hidden = false; tab.style.display = '';
     tab.click();
+    tab.hidden = true; tab.style.display = 'none';
     window.scrollTo({ top:0, behavior:'smooth' });
   }
   if((location.hash || '').toLowerCase() === '#voorraad') setTimeout(naarVoorraad, 400);
@@ -4380,13 +4371,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if((location.hash || '').toLowerCase() === '#voorraad') naarVoorraad();
   });
 
-  /* De snelkoppeling onder Contact opent hetzelfde zichtbare voorraadtabblad. */
+  /* Voorraad staat niet meer in de tabbalk maar onderaan bij Contact */
   (function(){
     var knop = document.getElementById('ovVoorraadKnop'); if(!knop) return;
     knop.addEventListener('click', function(e){
       e.preventDefault();
       var tab = document.getElementById('tab-voorraad');
-      if(tab) tab.click();
+      if(tab){ tab.hidden = false; tab.style.display = ''; tab.click();
+               tab.hidden = true; tab.style.display = 'none'; }
     });
     var bron = document.getElementById('badge-voorraad'),
         doel = document.getElementById('badge-voorraad-onder');
@@ -4429,79 +4421,67 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     return d.length === 3 ? (Number(d[2]) + '-' + Number(d[1]) + '-' + d[0]) : String(iso||'');
   }
 
-  /* ---------- start: alleen de reserveringen van vandaag ---------- */
-  var DS_DAG = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
-  function isBoeking(r){ return r.soort==='reservering' || r.soort==='extern' || r.soort==='handmatig'; }
-  function dsKaart(r, soort){
-    var b = bedragen(r), ci = checkinVan(r);
-    var tijd, onder;
-    if(soort === 'vertrek'){ tijd = r.tijdUit || '\u2014'; onder = 'vertrek'; }
-    else if(soort === 'verblijf'){ tijd = 'Hele dag'; onder = 'tot ' + dmyKort(r.vertrek); }
-    else { tijd = r.tijdIn || '\u2014'; onder = r.tijdUit ? 'tot ' + r.tijdUit : 'aankomst'; }
-    var regel = [
-      '<span class="ds-suite">' + esc(hoofdnaam(r.locatie)) + '</span>',
-      verblijfType(r) ? '<span>' + esc(verblijfType(r)) + '</span>' : '',
-      r.personen ? '<span>' + esc(r.personen) + ' pers.</span>' : '',
-      (soort !== 'aankomst' && r.aankomst) ? '<span>aangekomen ' + esc(dmyKort(r.aankomst)) + '</span>' : ''
-    ].join('');
-    var status = soort === 'aankomst'
-      ? (ci ? '<span class="ds-pil ok">Incheckformulier ingevuld</span>' : '<span class="ds-pil let">Nog inchecken</span>')
-      : '';
-    return '<button class="ds-kaart" type="button" data-sleutel="' + esc(sleutel(r)) + '" style="--s:' + suiteKleur(r.locatie) + '">' +
-      '<span class="ds-tijd"><b' + (/^\d/.test(tijd) ? '' : ' class="woord"') + '>' + esc(tijd) + '</b><small>' + esc(onder) + '</small></span>' +
-      '<span class="ds-info"><strong>' + esc(gastnaam(r)) + '</strong>' +
-        '<span class="ds-regel">' + regel + '</span>' +
-        (r.arrangement ? '<span class="ds-regel stil">' + esc(r.arrangement) + '</span>' : '') + '</span>' +
-      '<span class="ds-status">' + status +
-        (b.open > 0 ? '<span class="ds-open">' + esc(euro(b.open)) + ' open</span>' : '') + '</span>' +
-    '</button>';
+  /* Elke medewerker ziet hier de eigen diensten; de eigenaar kan wisselen. */
+  function mdNaamNu(){
+    try{ return (window.BWFPlanning && window.BWFPlanning.naam) || ''; }catch(e){ return ''; }
   }
-  function tekenStart(){
-    var lijstEl = document.getElementById('dsLijst'); if(!lijstEl) return;
-    var nu = new Date(), vandaag = dstr(nu);
-    document.getElementById('dsDatum').textContent = DS_DAG[nu.getDay()] + ' ' + nu.getDate() + ' ' + MAANDEN[nu.getMonth()];
-    var sam = document.getElementById('dsSamenvatting');
-    if(!geladen){ sam.textContent = 'Reserveringen van vandaag ophalen\u2026'; lijstEl.innerHTML = ''; return; }
-
-    var boekingen = ALLES.filter(function(r){ return isBoeking(r) && isLelystad(r.locatie) && r.aankomst; });
-    var opTijd = function(v){ return function(a,b){ return String(a[v]||'99').localeCompare(String(b[v]||'99')); }; };
-    var aankomst = boekingen.filter(function(r){ return r.aankomst === vandaag; }).sort(opTijd('tijdIn'));
-    var vertrek  = boekingen.filter(function(r){ return r.aankomst < vandaag && r.vertrek === vandaag; }).sort(opTijd('tijdUit'));
-    var verblijf = boekingen.filter(function(r){ return r.aankomst < vandaag && r.vertrek > vandaag; });
-    var totaal = aankomst.length + vertrek.length + verblijf.length;
-
-    if(LAADFOUTEN.indexOf('agenda') > -1 && LAADFOUTEN.indexOf('reserveringen') > -1 && !ALLES.length){
-      sam.textContent = 'De reserveringen konden niet worden opgehaald.';
-      lijstEl.innerHTML = '<div class="ds-leeg"><strong>Geen verbinding met de agenda</strong>' +
-        'Log opnieuw in via de startpagina en ververs daarna dit scherm.</div>';
-      return;
+  function tekenMijnDiensten(){
+    var lijst = document.getElementById('mdLijst'); if(!lijst) return;
+    var sel = document.getElementById('mdWie');
+    if(sel && !sel.options.length){
+      var eigenNaam = (document.getElementById('rolMelding')||{}).textContent || '';
+      sel.innerHTML = '<option value="">Iedereen</option>' + TEAM.map(function(m){
+        var mijn = eigenNaam.indexOf(m.naam) > -1;
+        return '<option value="'+m.id+'"'+(mijn?' selected':'')+'>'+esc(m.naam)+'</option>';
+      }).join('');
     }
-    var delen = [];
-    if(aankomst.length) delen.push(aankomst.length + (aankomst.length === 1 ? ' aankomst' : ' aankomsten'));
-    if(vertrek.length)  delen.push(vertrek.length + ' vertrek');
-    if(verblijf.length) delen.push(verblijf.length + ' blijft vandaag');
-    sam.textContent = totaal
-      ? totaal + (totaal === 1 ? ' reservering' : ' reserveringen') + ' vandaag: ' +
-        (delen.length > 1 ? delen.slice(0,-1).join(', ') + ' en ' + delen[delen.length-1] : delen[0]) + '.'
-      : 'Vandaag geen reserveringen in Lelystad.';
+    var wie = sel ? sel.value : '';
+    var per = (document.getElementById('mdPeriode')||{}).value || 'komend';
+    var vd = dstr(new Date());
+    var maand = vd.slice(0,7);
+    var rijen = DIENSTEN.filter(function(d){
+      if(wie && String(d.medewerker_id) !== String(wie)) return false;
+      var dag = String(d.datum||'').slice(0,10);
+      if(per === 'komend') return dag >= vd;
+      if(per === 'maand')  return dag.slice(0,7) === maand;
+      return true;
+    }).sort(function(a,b){ return String(a.datum).localeCompare(String(b.datum)); });
 
-    function groep(titel, lijst, soort){
-      if(!lijst.length) return '';
-      return '<section class="ds-groep"><h2>' + titel + ' <span>' + lijst.length + '</span></h2>' +
-        lijst.map(function(r){ return dsKaart(r, soort); }).join('') + '</section>';
-    }
-    lijstEl.innerHTML = totaal
-      ? groep('Aankomst', aankomst, 'aankomst') + groep('Vertrek', vertrek, 'vertrek') + groep('Verblijft nog', verblijf, 'verblijf')
-      : '<div class="ds-leeg"><strong>Niemand verwacht vandaag</strong>In de volledige agenda zie je de komende dagen.</div>';
+    document.getElementById('mdTel').textContent =
+      rijen.length + ' dienst' + (rijen.length===1?'':'en');
+    lijst.innerHTML = rijen.length ? rijen.slice(0,60).map(function(d){
+      var soort = d.dienst === 'nacht' ? 'Nachtverblijf' : d.dienst === 'schoonmaak' ? 'Schoonmaak'
+        : d.dienst === 'afwezig' ? 'Niet beschikbaar' : 'Dagverblijf';
+      var naam = (TEAM.filter(function(m){ return String(m.id)===String(d.medewerker_id); })[0]||{}).naam || '—';
+      return '<div class="dienstregel"'+(String(d.datum||'').slice(0,10)===vd?' data-vandaag="1"':'')+'>'+
+        '<strong>'+esc(dmyKort(String(d.datum||'').slice(0,10)))+'</strong>'+
+        '<span>'+esc(naam)+'</span>'+
+        '<span class="pil">'+esc(soort)+'</span>'+
+        (d.locatie?'<span>'+esc(d.locatie)+'</span>':'')+
+        (d.notitie?'<em>'+esc(d.notitie)+'</em>':'')+'</div>';
+    }).join('')
+      : '<p style="opacity:.55;font-size:14px;margin:0">Geen diensten binnen deze keuze.</p>';
   }
-  document.getElementById('dsLijst').addEventListener('click', function(e){
-    var k = e.target.closest('.ds-kaart'); if(k) openKaart(k.getAttribute('data-sleutel'));
-  });
-  document.getElementById('panel-start').addEventListener('click', function(e){
-    var k = e.target.closest('[data-naar-tab]'); if(!k) return;
-    var tab = document.getElementById('tab-' + k.getAttribute('data-naar-tab'));
-    if(tab){ tab.click(); window.scrollTo({ top:0, behavior:'smooth' }); }
-  });
+  (function(){
+    var kop = document.getElementById('mdKop'); if(!kop) return;
+    function wissel(){
+      var open = kop.getAttribute('aria-expanded') !== 'true';
+      kop.setAttribute('aria-expanded', String(open));
+      document.getElementById('mdBlok').hidden = !open;
+      try{ localStorage.setItem('bw-mijndiensten', open ? '1' : '0'); }catch(e){}
+    }
+    kop.addEventListener('click', wissel);
+    kop.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); wissel(); }
+    });
+    try{ if(localStorage.getItem('bw-mijndiensten') === '0'){
+      kop.setAttribute('aria-expanded','false');
+      document.getElementById('mdBlok').hidden = true; } }catch(e){}
+    ['mdWie','mdPeriode'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.addEventListener('change', tekenMijnDiensten);
+    });
+  })();
 
   function tekenVandaag(){
     tekenMobTegels();
@@ -5417,10 +5397,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* ---------- taken ---------- */
   function tekenTaken(){
     var wie = document.getElementById('tkFilter').value;
+    /* voor de zekerheid ook hier: geen eigenaar, dan altijd de eigen naam */
+    var magAlles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
+    if(!magAlles) wie = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : wie;
     var open = TAKEN.filter(function(t){ return (t.status||'open')==='open'; })
       .filter(function(t){ return !wie || String(t.toegewezen||'')===wie; });
     var el = document.getElementById('tkLijst');
-    if(!open.length){ el.innerHTML = '<p style="opacity:.55;font-size:14px">Geen openstaande taken.</p>'; return; }
+    var teller = document.getElementById('tkTeller');
+    if(teller){
+      var mij = window.BWF && window.BWF.medewerker ? window.BWF.medewerker : '';
+      var opMijnNaam = TAKEN.filter(function(t){
+        return (t.status||'open')==='open' && String(t.toegewezen||'')===mij; }).length;
+      teller.textContent = wie
+        ? open.length + ' op naam van ' + wie
+        : open.length + ' in totaal' + (mij ? ' \u00b7 ' + opMijnNaam + ' op jouw naam' : '');
+    }
+    if(!open.length){
+      el.innerHTML = '<p style="opacity:.55;font-size:14px">' +
+        (wie ? 'Geen openstaande taken voor ' + esc(wie) + '. Zet het filter op Iedereen om alles te zien.'
+             : 'Geen openstaande taken.') + '</p>';
+      return;
+    }
     el.innerHTML = open.map(function(t){
       return '<div class="taak"><input type="checkbox" data-taak="'+esc(t.id)+'" style="margin-top:4px">'+
         '<div class="op"><b>'+esc(t.titel||'Zonder titel')+'</b>'+
@@ -5432,41 +5429,72 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   /* ---------- bindingen ---------- */
-  function herteken(){ tekenStart(); tekenVandaag(); tekenLM(); }
+  function herteken(){ tekenKalender(); tekenVandaag(); tekenTegels(); }
 
-  document.getElementById('ovVrij').onchange = herteken;
-  document.getElementById('ovVernieuw').onclick = function(){
-    melding('Bezig\u2026'); laden();
-    var f = document.getElementById('ovResFrame');
-    if(f && f.getAttribute('src')){ try{ f.contentWindow.location.reload(); }catch(e){ f.setAttribute('src', f.dataset.src); } }
+  document.getElementById('ovLocatie').onchange = herteken;
+  document.getElementById('ovSoort').onchange   = herteken;
+  document.getElementById('ovVan').onchange     = herteken;
+  document.getElementById('ovTot').onchange     = herteken;
+  document.getElementById('ovZoek').oninput     = herteken;
+  document.getElementById('ovVrij').onchange    = herteken;
+  document.getElementById('ovPlanning').onchange = function(){ herteken(); tekenLM(); };
+  document.getElementById('ovAlmere').onchange   = herteken;
+  document.getElementById('ovVernieuw').onclick = function(){ melding('Bezig\u2026'); laden(); };
+
+  document.getElementById('ovVandaagKnop').onclick = function(){
+    var nu = dstr(new Date());
+    document.getElementById('ovVan').value = nu;
+    document.getElementById('ovTot').value = nu;
+    document.getElementById('ovZoek').value = '';
+    document.getElementById('ovSoort').value = '';
+    document.querySelectorAll('.ov-tegel').forEach(function(x){ x.setAttribute('data-actief', x.getAttribute('data-van')===nu && x.getAttribute('data-tot')===nu ? '1' : '0'); });
+    anker = new Date();
+    kalWeergave = 'dag';
+    document.querySelectorAll('#panel-overzicht .seg button').forEach(function(x){
+      x.setAttribute('aria-pressed', x.getAttribute('data-kal')==='dag' ? 'true' : 'false'); });
+    herteken();
+    var doel = document.getElementById('ovKalender');
+    if(doel && doel.scrollIntoView) doel.scrollIntoView({ behavior:'smooth', block:'start' });
   };
 
-  /* ---------- reserveringskalender (reserveringen.html) ---------- */
-  function laadResFrame(){
-    var f = document.getElementById('ovResFrame'), p = document.getElementById('panel-overzicht');
-    if(f && p && !p.hidden && !f.getAttribute('src') && f.dataset.src) f.setAttribute('src', f.dataset.src);
-  }
-  document.getElementById('tabs').addEventListener('click', function(){ setTimeout(laadResFrame, 0); });
-  laadResFrame();
-  setTimeout(laadResFrame, 1200);
-
-  var wijzigTimer = null;
-  window.addEventListener('message', function(e){
-    var f = document.getElementById('ovResFrame');
-    if(!f || e.origin !== location.origin || e.source !== f.contentWindow || !e.data) return;
-    if(e.data.bwf === 'hoogte'){
-      /* meegroeien met de pagina, maar nooit hoger dan het scherm: dan blijven
-         de vensters van de reserveringenpagina zichtbaar in beeld */
-      var max = Math.max(560, Math.round(window.innerHeight * 0.9));
-      var h = Math.min(Math.max(Number(e.data.hoogte) || 0, 560), max);
-      f.style.height = h + 'px';
-    }
-    if(e.data.bwf === 'gewijzigd'){
-      clearTimeout(wijzigTimer);
-      wijzigTimer = setTimeout(function(){ laden(); }, 400);
-    }
+  document.querySelectorAll('#panel-overzicht .seg button').forEach(function(b){
+    b.onclick = function(){
+      kalWeergave = b.getAttribute('data-kal');
+      document.querySelectorAll('#panel-overzicht .seg button').forEach(function(x){
+        x.setAttribute('aria-pressed', x===b ? 'true' : 'false'); });
+      tekenKalender(); tekenVandaag();
+    };
   });
-
+  document.getElementById('ovVorig').onclick = function(){ stap(-1); };
+  document.getElementById('ovVolgend').onclick = function(){ stap(1); };
+  document.getElementById('ovNu').onclick = function(){ anker = new Date(); tekenKalender(); tekenVandaag(); };
+  function stap(n){
+    if(kalWeergave==='jaar') anker = new Date(anker.getFullYear()+n, anker.getMonth(), 1);
+    else if(kalWeergave==='maand') anker = new Date(anker.getFullYear(), anker.getMonth()+n, 1);
+    else if(kalWeergave==='week'){ var d=new Date(anker); d.setDate(d.getDate()+7*n); anker=d; }
+    else { var e=new Date(anker); e.setDate(e.getDate()+n); anker=e; }
+    tekenKalender(); tekenVandaag();
+  }
+  document.getElementById('ovTegels').addEventListener('click', function(e){
+    var t = e.target.closest('.ov-tegel'); if(!t) return;
+    document.querySelectorAll('.ov-tegel').forEach(function(x){ x.setAttribute('data-actief', x===t?'1':'0'); });
+    document.getElementById('ovVan').value = t.getAttribute('data-van')||'';
+    document.getElementById('ovTot').value = t.getAttribute('data-tot')||'';
+    herteken();
+  });
+  document.getElementById('ovKalender').addEventListener('click', function(e){
+    var mv = e.target.closest('[data-maand]');
+    if(mv){
+      var d = mv.getAttribute('data-maand').split('-');
+      anker = new Date(Number(d[0]), Number(d[1])-1, 1);
+      kalWeergave = 'maand';
+      document.querySelectorAll('#panel-overzicht .seg button').forEach(function(x){
+        x.setAttribute('aria-pressed', x.getAttribute('data-kal')==='maand' ? 'true' : 'false'); });
+      tekenKalender(); tekenVandaag();
+      return;
+    }
+    var b = e.target.closest('.ev'); if(b) openKaart(b.getAttribute('data-sleutel'));
+  });
   document.getElementById('ovVandaag').addEventListener('click', function(e){
     var tr = e.target.closest('tr[data-sleutel]'); if(tr) openKaart(tr.getAttribute('data-sleutel'));
   });
@@ -5702,6 +5730,37 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 })();
 </script>
 <!-- ================= einde Home-knop ================= -->
+<script>
+/* De menubalk bovenaan vullen. De zwevende knop rechtsonder is verborgen. */
+(function(){
+  if(window.self !== window.top){ var t=document.getElementById('bwfTop'); if(t) t.remove(); return; }
+  var PAGINAS = [
+    ['Dagstart','dagstart.html'], ['Vandaag','vandaag.html'],
+    ['Agenda','agenda.html'],
+    ['Reserveringen','reserveringen.html'], ['Incheck','incheckformulier.html'],
+    ['Klanten','klantbeheer.html'], ['VR','vr2.html'],
+    ['Personeel','dashboard.html'], ['Hulp','controle.html']
+  ];
+  var hier = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  var vak = document.getElementById('bwfTop');
+  if(!vak) return;
+  vak.innerHTML = '<div class="binnen">' +
+    '<img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">' +
+    PAGINAS.map(function(p){
+      return '<a href="' + p[1] + '"' + (p[1].toLowerCase() === hier ? ' class="hier"' : '') +
+        '>' + p[0] + '</a>';
+    }).join('') +
+    '<span class="wie" id="bwfTopWie"></span></div>';
+  function wie(){
+    var el = document.getElementById('bwfTopWie');
+    if(el && window.BWF && (window.BWF.medewerker || window.BWF.email))
+      el.textContent = (window.BWF.medewerker || window.BWF.email) +
+        (window.BWF.rol ? ' \u00b7 ' + window.BWF.rol : '');
+  }
+  window.addEventListener('bwf-ingelogd', wie);
+  setTimeout(wie, 800); setInterval(wie, 4000);
+})();
+</script>
 <script src="bwf-shell.js"></script>
 </body>
 </html>

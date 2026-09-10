@@ -97,6 +97,7 @@ section.blok > h2 a{margin-left:auto;font-size:13px;font-weight:400}
 body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
 .verborgen{display:none!important}
 </style>
+<link rel="stylesheet" href="bwf-agenda-stijl.css">
 </head>
 <body class="dicht">
 
@@ -120,6 +121,7 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
     <img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">
     <a class="hier" href="dagstart.html">Dagstart</a>
     <a href="vandaag.html">Vandaag</a>
+    <a href="agenda.html">Agenda</a>
     <a href="reserveringen.html">Reserveringen</a>
     <a href="incheckformulier.html">Incheck</a>
     <a href="klantbeheer.html">Klanten</a>
@@ -234,7 +236,8 @@ const CFG = {
 const TEGELS = [
   { groep:'Dagelijks', items:[
     { t:'Vandaag',          d:'Aankomsten en vertrekken',            u:'vandaag.html' },
-    { t:'Reserveringen',    d:'Agenda, lijst en kalender',           u:'reserveringen.html' },
+    { t:'Agenda',           d:'Vrij en geboekt per suite en per dag', u:'agenda.html' },
+    { t:'Reserveringen',    d:'Lijst en kalender, gegevens aanpassen', u:'reserveringen.html' },
     { t:'Dagoverzicht',     d:'Kalender, taken en aanmeldingen',     u:'dagoverzicht.html' },
     { t:'Incheckformulier', d:'Inchecken en afrekenen op locatie',   u:'incheckformulier.html' },
     { t:'Gastenlink',       d:'De pagina die de gast invult',        u:'gast.html' },
