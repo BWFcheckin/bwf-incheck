@@ -14,8 +14,12 @@
   var PAGINAS = [
     { groep: "Dagelijks", items: [
       { naam: "Locatie Lelystad Dashboard", bestand: "dashboard.html" },
+      { naam: "Dagstart",           bestand: "dagstart.html" },
+      { naam: "Vandaag",            bestand: "vandaag.html" },
+      { naam: "Agenda",             bestand: "agenda.html" },
       { naam: "Dagoverzicht",       bestand: "dagoverzicht.html" },
       { naam: "Reserveringen",      bestand: "reserveringen.html" },
+      { naam: "Reservering aanmaken", bestand: "reservering-aanmaken.html" },
       { naam: "Incheckformulier",   bestand: "incheckformulier.html" },
       { naam: "Gastenlink",         bestand: "gast.html" }
     ]},
