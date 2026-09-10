@@ -6,7 +6,7 @@
 <title>Virtual Assistent Dashboard — Bed &amp; Wellness Flevoland</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -349,7 +349,7 @@ dialog h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin-bot
 <link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#14342A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Assistent">
@@ -693,14 +693,269 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @media(max-width:760px){.gmail-layout{grid-template-columns:1fr}.gmail-list{max-height:360px}.gmail-reader{min-height:300px}}
 </style>
+<!-- ===========================================================
+     BWF huisstijl — groen en goud, zelfde uitstraling als beschikbaarheid2.html
+     Dit blok staat als laatste in <head> en overschrijft alleen de vormgeving.
+     Terug naar de blauwe versie? Verwijder dit blok tot </style>.
+     =========================================================== -->
+<style id="bwf-huisstijl">
+/* :root driemaal, zodat het ook wint van de donkere modus van het toestel */
+:root:root:root{
+  color-scheme:light;
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1; --goud-ink:#7A5A1E;
+  --accent:#14342A; --accent-ink:#FFFFFF; --accent-soft:#E7EFEA; --accent-rgb:20,52,42;
+  --brass:#B9975B;
+  --ok:#2E7D53; --ok-soft:#E6F2EA;
+  --warn:#B8860B; --warn-soft:#FBF1DA;
+  --crit:#B3453A; --crit-soft:#FBEAE7;
+  --shadow:none; --shadow-hover:none;
+  --r-s:8px; --r-m:12px; --r-l:12px;
+  --f-titel:"Cormorant Garamond",Georgia,serif;
+  --f-display:"Cormorant Garamond",Georgia,serif;
+  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --zij:clamp(14px,2.4vw,32px);
+  --foto:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/almere%20bed%20en%20wellness%20angie/Bed%20en%20wellness%20Flevoland_%20B&W%20Angie%20Locatie%20Almere%20Zwembad.webp");
+}
+:focus-visible{outline:2px solid var(--goud);outline-offset:2px}
+
+/* ---------- pagina ---------- */
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px}
+body::before{display:none}
+#app.app{padding:0!important;max-width:none}
+.bwf-inhoud{padding:22px var(--zij) 90px}
+
+/* ---------- merkbalk met menu ---------- */
+.bwf-merkbalk{position:sticky;top:var(--bwfbalk,0px);z-index:40;background:var(--surface);
+  border-bottom:1px solid var(--line)}
+.bwf-merkrij{display:flex;align-items:center;gap:14px;padding:12px var(--zij) 2px;flex-wrap:wrap}
+.bwf-merk{font-family:var(--f-titel);font-size:17px;letter-spacing:.16em;text-transform:uppercase;
+  line-height:1.1;color:var(--groen)}
+.bwf-merk small{display:block;font-size:9.5px;letter-spacing:.34em;color:var(--goud);margin-top:2px}
+.bwf-appnaam{font-size:12.5px;color:var(--muted);padding-left:14px;border-left:1px solid var(--line)}
+.bwf-merkbalk .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.bwf-merkbalk .chip,.bwf-merkbalk .who{height:34px;background:var(--surface-2);border:1px solid var(--line);
+  box-shadow:none;border-radius:999px;color:var(--ink-2)}
+.bwf-merkbalk .chip{font-family:var(--f-mono);font-size:11px}
+.bwf-merkbalk .who{padding:0 13px 0 5px}
+.bwf-merkbalk .who:hover{border-color:var(--groen-2)}
+.bwf-merkbalk .who .avatar{width:24px;height:24px;background:var(--groen);color:#fff;font-size:10.5px}
+
+#groeptabs.tabs{position:static;display:flex;gap:2px;width:auto;max-width:none;margin:0;
+  padding:0 calc(var(--zij) - 12px);border:0;border-radius:0;background:none;box-shadow:none;
+  -webkit-backdrop-filter:none;backdrop-filter:none;overflow-x:auto;scrollbar-width:none}
+#groeptabs.tabs::-webkit-scrollbar{display:none}
+#groeptabs .tab{flex:none;display:inline-flex;align-items:center;gap:7px;padding:11px 12px 12px;
+  border-radius:0;background:none;box-shadow:none;color:var(--ink-2);font-size:13.5px;font-weight:500;
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s ease,border-color .15s ease}
+#groeptabs .tab:hover{background:none;color:var(--groen);border-bottom-color:var(--line)}
+#groeptabs .tab[aria-selected="true"]{background:none;color:var(--groen);font-weight:600;
+  border-bottom-color:var(--goud);box-shadow:none}
+#groeptabs .tab::after{display:none}
+#groeptabs .badge{margin:0;font-family:var(--f-mono);font-size:10px;font-weight:500;padding:1px 7px;
+  border-radius:999px;border:0;background:var(--goud-zacht);color:var(--goud-ink)}
+#groeptabs .tab[aria-selected="true"] .badge{background:var(--groen-zacht);color:var(--groen)}
+
+/* ---------- sfeerbeeld ---------- */
+.bwf-hero{position:relative;min-height:170px;display:flex;align-items:flex-end;
+  background:var(--groen) var(--foto) center/cover no-repeat}
+.bwf-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(
+  to right, rgba(20,52,42,.92) 0%, rgba(20,52,42,.72) 45%, rgba(20,52,42,.25) 100%)}
+.bwf-hero-tekst{position:relative;z-index:1;width:100%;padding:24px var(--zij) 22px;color:#fff}
+.bwf-hero h1{font-family:var(--f-titel);font-size:34px;font-weight:500;margin:0 0 4px;letter-spacing:.01em;
+  line-height:1.15;color:#fff}
+.bwf-hero p{margin:0;font-size:14px;color:rgba(255,255,255,.82);max-width:62ch}
+
+/* ---------- koppen in de panelen ---------- */
+.panel{animation:none}
+.page-head{margin:6px 0 18px;padding:0}
+.page-head .eyebrow{display:none}
+.page-head h1{font-family:var(--f-titel);font-size:28px;font-weight:500;letter-spacing:.01em;line-height:1.15;color:var(--ink)}
+.page-head p{font-size:14px;color:var(--muted);max-width:66ch;margin-top:4px;line-height:1.55}
+.panel.bwf-eerste > .page-head{display:none}
+.panel:not([hidden]) ~ .panel:not([hidden]){margin-top:30px}
+
+/* ---------- kaarten ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:none;overflow:hidden}
+.card + .card{margin-top:16px}
+.card-head{background:transparent}
+.card > .card-head{position:relative;background:var(--surface);padding:15px 18px 13px 22px;border-bottom:1px solid var(--line-soft)}
+.card > .card-head::before{content:"";position:absolute;left:0;top:17px;width:4px;height:20px;border-radius:0 2px 2px 0;background:var(--goud)}
+.card-head h2{font-family:var(--f-titel);font-size:21px;font-weight:500;letter-spacing:.01em;line-height:1.2;color:var(--ink)}
+.card-head .hint{font-size:12.5px;color:var(--muted)}
+.card-body{padding:18px}
+.card-foot{padding:13px 18px;background:var(--surface-2);border-top:1px solid var(--line-soft);border-radius:0}
+.card.inklap > .card-head:hover{background:var(--surface-2)}
+.card.inklap > .card-head h2::before,.wcsectie > h3::before,.reskopknop .pijl{background:var(--groen-zacht);color:var(--groen)}
+.wcsectie{border-color:var(--line);border-radius:var(--r-m)}
+.wcsectie > h3{font-size:14px}
+.reskop{background:var(--surface-2);border-top-color:var(--line-soft)}
+
+/* ---------- cijfers en tegels ---------- */
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);box-shadow:none;min-height:96px;padding:14px 16px}
+.stat::before{width:3px;background:var(--goud)}
+.stat.ok::before{background:var(--ok)} .stat.warn::before{background:var(--warn)}
+.stat .label{font-size:10px;letter-spacing:.1em;color:var(--muted)}
+.stat .value{font-family:var(--f-titel);font-size:34px;font-weight:500;letter-spacing:0;
+  font-variant-numeric:lining-nums tabular-nums;color:var(--groen)}
+.tegel{border:1px solid var(--line);border-radius:var(--r-m);box-shadow:none;transition:border-color .15s ease}
+.tegel:hover{transform:none;box-shadow:none;border-color:var(--groen-2)}
+.tegel .ttitel{font-family:var(--f-titel);font-size:20px;font-weight:500}
+.tegel .tgetal{font-family:var(--f-titel);font-weight:500;font-size:28px;font-variant-numeric:lining-nums tabular-nums}
+
+/* ---------- knoppen ---------- */
+.btn{min-height:38px;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;
+  background:var(--groen);border:1px solid var(--groen);color:#fff;box-shadow:none;transition:background .15s ease}
+.btn:hover{background:var(--groen-2);border-color:var(--groen-2);filter:none;transform:none}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
+.btn.ghost{background:var(--surface-2);color:var(--ink-2);border-color:var(--line);box-shadow:none}
+.btn.ghost:hover{background:var(--surface-2);border-color:var(--groen-2);color:var(--groen)}
+.btn.small{min-height:32px;padding:6px 13px;font-size:12.5px}
+.btn.groen{background:var(--ok);border-color:var(--ok);box-shadow:none}
+.btn.groen:hover{background:#246644;border-color:#246644}
+.btn.geel{background:#B8860B;border-color:#B8860B;box-shadow:none}
+.btn.geel:hover{background:#9C7209;border-color:#9C7209}
+.btn.rood{background:var(--crit);border-color:var(--crit);box-shadow:none}
+.btn.rood:hover{background:#983A30;border-color:#983A30}
+.icon-btn:hover{background:var(--surface-2);border-color:var(--line)}
+.segment{border-color:var(--line);background:var(--surface-2);border-radius:999px}
+.segment button{color:var(--ink-2)}
+.segment button[aria-pressed="true"]{background:var(--groen);color:#fff}
+.mw-knop{border-color:var(--line);background:var(--surface-2)}
+.mw-knop[aria-pressed="true"]{background:var(--groen);border-color:var(--groen);color:#fff}
+
+/* ---------- velden ---------- */
+.field label{font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.field input[type="text"],.field input[type="date"],.field input[type="number"],.field input[type="url"],
+.field input[type="tel"],.field input[type="email"],.field input[type="password"],.field input[type="month"],
+.field input[type="time"],.field select,.field textarea{
+  min-height:40px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--groen-2);outline-offset:-1px;
+  background:#fff;border-color:var(--line);box-shadow:none}
+td input:focus,td select:focus{border-color:var(--groen-2);background:#fff}
+.extrarij input[type="checkbox"],.scstap input{accent-color:var(--groen)}
+
+/* ---------- tabellen ---------- */
+th{background:var(--surface-2);color:var(--muted);font-size:10.5px;padding-block:11px;border-bottom-color:var(--line)}
+td{padding-block:12px;border-bottom-color:var(--line-soft)}
+tbody tr:hover,tr.resrij:hover{background:var(--surface-2)}
+tr.resdetail > td{background:var(--surface-2)}
+.pill{padding:3px 10px;font-weight:500;font-size:11.5px}
+.pill.accent{background:var(--groen-zacht);color:var(--groen)}
+.pill.neutral{background:var(--surface);border-color:var(--line);color:var(--ink-2)}
+
+/* ---------- kalender ---------- */
+.kal-kop{font-family:var(--f-mono);font-size:10px;color:var(--muted)}
+.kal-cel{border-color:var(--line);border-radius:10px;background:var(--surface-2)}
+.kal-cel:hover{border-color:var(--groen-2);background:var(--surface)}
+.kal-cel.vandaag{border-color:var(--groen);box-shadow:inset 0 0 0 1px var(--groen)}
+.kal-cel.vandaag .kal-num{color:var(--groen)}
+.kal-cel.gekozen{background:var(--groen-zacht);border-color:var(--groen-2)}
+.kal-num{font-family:var(--f-titel);font-size:15px;font-variant-numeric:lining-nums}
+.kal.jaar .maandvak{border-color:var(--line);border-radius:var(--r-m)}
+.kal.jaar .maandvak:hover{border-color:var(--groen-2)}
+.kal.jaar .maandvak strong{font-family:var(--f-titel);font-size:18px;font-weight:500}
+.dienstregel{border-color:var(--line)}
+.dienstregel[data-vandaag]{border-color:var(--groen);box-shadow:inset 0 0 0 1px var(--groen)}
+
+/* ---------- losse onderdelen ---------- */
+.sysbalk.boven{border-bottom-color:var(--line-soft)}
+.sysknop,.linkkaart{background:var(--surface);border:1px solid var(--line);box-shadow:none;border-radius:999px;transition:border-color .15s ease}
+.sysknop:hover,.linkkaart:hover{transform:none;box-shadow:none;border-color:var(--groen-2)}
+.sysnieuw{border-radius:999px;border-color:var(--line)}
+.sysnieuw:hover{border-color:var(--groen-2);color:var(--groen)}
+.syskop,.linkstrook-kop span,.extracat,.sckop{color:var(--goud-ink)}
+.linkkaart .ico{background:var(--groen-zacht);color:var(--groen)}
+.extrarij,.scstap,.preview,.wcbijlage,.dropzone{background:var(--surface-2);border-color:var(--line)}
+.extrarij{border-radius:10px}
+.extrarij:hover,.scstap:hover{border-color:var(--groen-2)}
+.extrasom{border-color:var(--line);border-radius:10px}
+.scstap{border-radius:10px}
+.scstap[data-aan="true"]{background:var(--ok-soft)}
+.sctip{border-radius:10px}
+.od,.doc{border-color:var(--line);box-shadow:none;border-radius:var(--r-m)}
+.od::before,.doc::before{background:var(--c,var(--goud))}
+.dropzone{border-radius:var(--r-m)}
+.dropzone:hover,.dropzone.over{border-color:var(--groen-2);color:var(--groen);background:var(--surface)}
+.preview strong,.empty strong,.dropzone strong{font-family:var(--f-titel);font-weight:500;font-size:19px;font-variant-numeric:lining-nums}
+.banner{border-radius:var(--r-m);border-color:#EBD9AE;background:var(--warn-soft);color:#7A5A0B}
+.banner.crit{border-color:#EFCFC8}
+.progress i{background:var(--ok)}
+.gmail-reader-head h2{font-family:var(--f-titel);font-weight:500;font-size:24px}
+.gmail-item[aria-current="true"],.gmail-item:hover{background:var(--surface-2)}
+
+/* ---------- vensters, melding en inlogscherm ---------- */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);
+  box-shadow:0 24px 60px -30px rgba(20,52,42,.6)}
+dialog::backdrop{background:rgba(20,52,42,.45);-webkit-backdrop-filter:none;backdrop-filter:none}
+dialog h2{font-family:var(--f-titel);font-size:22px;font-weight:500;letter-spacing:.01em}
+#aanbodKaart{border-radius:14px}
+#aanbodKaart::backdrop{background:rgba(20,52,42,.45)}
+.toast{background:var(--groen);color:#fff}
+
+.slot{background:var(--groen) var(--foto) center/cover no-repeat}
+.slot::before{content:"";position:absolute;inset:0;background:rgba(20,52,42,.72)}
+.slot-kaart{position:relative;border:0;border-radius:16px;padding:30px 26px;max-width:380px;
+  box-shadow:0 24px 60px -30px rgba(20,52,42,.7)}
+.slot-kaart .bwf-merk{margin-bottom:6px}
+.slot-kaart .bwf-spreuk{font-family:var(--f-titel);font-size:15px;color:var(--muted);margin:0 0 4px}
+.slot-kaart .bwf-slotuitleg{font-size:13px;color:var(--ink-2);margin:0 0 18px}
+.slot-kaart .field label{font-weight:500}
+.slot-kaart .btn#slotOk{border-radius:8px;min-height:44px;margin-top:4px}
+.slot-kaart .btn.ghost.small{background:none;border-color:transparent;color:var(--groen-2);text-decoration:underline;
+  text-underline-offset:3px;padding-inline:8px}
+.slot-kaart .btn.ghost.small:hover{color:var(--groen)}
+
+/* gedeelde knoppen van andere scripts */
+html #bwfHomeKnop{border-color:var(--line);color:var(--groen)}
+html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
+#bwfTerugBalk{background:var(--groen)!important}
+
+/* ---------- tablet ---------- */
+@media (max-width:900px){
+  .bwf-appnaam{display:none}
+}
+
+/* ---------- telefoon ---------- */
+@media (max-width:620px){
+  body{background:var(--bg)}
+  .bwf-merkbalk{position:relative;top:auto}
+  .bwf-merkrij{padding:10px 14px}
+  .bwf-merk{font-size:15px}
+  .bwf-merkbalk .who{width:38px;height:38px;padding:0;justify-content:center}
+  #groeptabs.tabs{position:fixed;top:auto;bottom:10px;left:10px;right:10px;z-index:45;
+    padding:6px;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 14px 40px -18px rgba(20,52,42,.55)}
+  #groeptabs .tab{padding:9px 12px;border-bottom:0;margin:0;border-radius:10px;font-size:12.5px}
+  #groeptabs .tab:hover{border-bottom:0}
+  #groeptabs .tab[aria-selected="true"]{background:var(--groen);color:#fff}
+  #groeptabs .tab[aria-selected="true"] .badge{background:rgba(255,255,255,.18);color:#fff}
+  .bwf-hero{min-height:130px}
+  .bwf-hero h1{font-size:27px}
+  .bwf-hero-tekst{padding:20px 14px 18px}
+  .bwf-inhoud{padding:16px 12px 100px}
+  .page-head h1{font-size:24px}
+  .card > .card-head{padding:13px 14px 12px 18px}
+  .card > .card-head::before{top:15px}
+  .card-body{padding:14px}
+}
+@media print{
+  .bwf-merkbalk,.bwf-hero{display:none!important}
+}
+</style>
+
 </head>
 <body>
 <!-- ============ TOEGANGSSCHERM ============ -->
 <div class="slot" id="slot">
   <div class="slot-kaart">
-    <span class="mark">B&amp;W</span>
-    <h1>Virtual Assistent Dashboard</h1>
-    <p>Log in met je e-mailadres en wachtwoord.</p>
+    <div class="bwf-merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <p class="bwf-spreuk">Ontspan. Geniet. Beleef.</p>
+    <p class="bwf-slotuitleg">Log in op het Virtual Assistent Dashboard.</p>
     <div class="field">
       <label for="slotMail">E-mailadres</label>
       <input type="text" id="slotMail" inputmode="email" autocomplete="username" placeholder="naam@bedenwellnessflevoland.nl">
@@ -721,36 +976,41 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 </div>
 
 <div class="app" id="app" hidden>
-  <header class="topbar">
-    <div class="brand">
-      <span class="mark">B&amp;W</span>
-      <span class="brand-txt">
-        <strong>Bed &amp; Wellness Flevoland</strong>
-        <span>Virtual Assistent Dashboard</span>
-      </span>
+  <header class="bwf-merkbalk">
+    <div class="bwf-merkrij">
+      <div class="bwf-merk">Bed &amp; Wellness<small>Flevoland</small></div>
+      <span class="bwf-appnaam">Virtual Assistent Dashboard</span>
+      <div class="topbar-right">
+        <span class="chip" id="saveChip" data-state="idle"><span class="dot"></span><span id="saveTxt">Klaar</span></span>
+        <button class="who" id="whoBtn" type="button"><span class="avatar" id="whoAvatar">?</span><span id="whoName">—</span></button>
+      </div>
     </div>
-    <div class="topbar-right">
-      <span class="chip" id="saveChip" data-state="idle"><span class="dot"></span><span id="saveTxt">Klaar</span></span>
-      <button class="who" id="whoBtn" type="button"><span class="avatar" id="whoAvatar">?</span><span id="whoName">—</span></button>
-    </div>
+    <nav class="tabs" id="groeptabs" role="tablist" aria-label="Dashboardonderdelen">
+      <button class="tab" role="tab" data-groep="overzicht" aria-selected="true">Dagstart</button>
+      <button class="tab" role="tab" data-groep="agenda">Agenda</button>
+      <button class="tab" role="tab" data-groep="calls">Welkomstcalls<span class="badge" id="badge-groep-calls">0</span></button>
+      <button class="tab" role="tab" data-groep="werk">Taken<span class="badge" id="badge-groep-werk">0</span></button>
+      <button class="tab" role="tab" data-groep="reserveringen">Reserveringen &amp; incheck<span class="badge" id="badge-groep-reserveringen">0</span></button>
+      <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
+      <button class="tab" role="tab" data-groep="bellen">Belscripts<span class="badge" id="badge-groep-bellen">0</span></button>
+      <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
+    </nav>
   </header>
 
-  <nav class="tabs" id="groeptabs" role="tablist" aria-label="Dashboardonderdelen">
-    <button class="tab" role="tab" data-groep="overzicht" aria-selected="true">Overzicht</button>
-    <button class="tab" role="tab" data-groep="werk">Taken<span class="badge" id="badge-groep-werk">0</span></button>
-    <button class="tab" role="tab" data-groep="calls">Welkomstcalls<span class="badge" id="badge-groep-calls">0</span></button>
-    <button class="tab" role="tab" data-groep="reserveringen">Reserveringen &amp; incheck<span class="badge" id="badge-groep-reserveringen">0</span></button>
-    <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
-    <button class="tab" role="tab" data-groep="bellen">Belscripts &amp; lijsten<span class="badge" id="badge-groep-bellen">0</span></button>
-    <button class="tab" role="tab" data-groep="entry">Data entry<span class="badge" id="badge-groep-entry">0</span></button>
-    <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
-  </nav>
+  <div class="bwf-hero" id="bwfHero">
+    <div class="bwf-hero-tekst">
+      <h1 id="heroTitel">Dagstart</h1>
+      <p id="heroTekst"></p>
+    </div>
+  </div>
 
+  <div class="bwf-inhoud" id="bwfInhoud">
   <div class="sysbalk boven" id="topbalk" aria-label="Reservering opzoeken bij"></div>
 
   <!-- de oude knoppen blijven bestaan zodat bestaande koppelingen blijven werken -->
   <nav class="tabs" id="tabs" role="tablist" aria-label="Onderdelen" hidden style="display:none">
-    <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Start</button>
+    <button class="tab" role="tab" id="tab-start" data-tab="start" aria-selected="false" aria-controls="panel-start">Dagstart</button>
+    <button class="tab" role="tab" id="tab-agenda" data-tab="agenda" aria-selected="false" aria-controls="panel-agenda">Agenda</button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Taken<span class="badge" id="badge-taken">0</span></button>
     <button class="tab" role="tab" id="tab-welkomstcall" data-tab="welkomstcall" aria-selected="false" aria-controls="panel-welkomstcall">Welkomstcalls<span class="badge" id="badge-welkomstcall">0</span></button>
     <button class="tab" role="tab" id="tab-klanten" data-tab="klanten" aria-selected="false" aria-controls="panel-klanten">Klanten &amp; gasten<span class="badge" id="badge-klanten">0</span></button>
@@ -769,7 +1029,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   <section class="panel" id="panel-start" role="tabpanel" aria-labelledby="tab-start" hidden>
     <div class="page-head">
       <span class="eyebrow">Waar wil je beginnen</span>
-      <h1 id="welkomKop">Overzicht</h1>
+      <h1 id="welkomKop">Dagstart</h1>
       <p id="startUitleg">Klik op een tegel om erheen te gaan. De aantallen lopen mee met wat er openstaat.</p>
     </div>
     <div class="linkstrook" data-linktab="start"></div>
@@ -784,90 +1044,6 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
       <button class="btn ghost small" id="ovAllesIn" type="button">Alles inklappen</button>
     </div>
 
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2 id="kalKop">Planning</h2>
-        <span style="display:flex;gap:6px;align-items:center">
-          <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">←</button>
-          <button class="btn ghost small" id="kalNu" type="button">Deze maand</button>
-          <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">→</button>
-          <span class="segment kalToon" id="kalToon" style="margin-left:6px">
-            <button type="button" data-t="kalender" aria-pressed="true">Kalender</button>
-            <button type="button" data-t="lijst" aria-pressed="false">Lijst</button>
-          </span>
-          <span class="segment" id="kalWeergave" style="margin-left:6px">
-            <button type="button" data-v="dag" aria-pressed="false">Dag</button>
-            <button type="button" data-v="week" aria-pressed="false">Week</button>
-            <button type="button" data-v="maand" aria-pressed="true">Maand</button>
-            <button type="button" data-v="jaar" aria-pressed="false">Jaar</button>
-          </span>
-          <span class="segment" id="kalWat" style="margin-left:6px">
-            <button type="button" data-w="alles" aria-pressed="true">Alles</button>
-            <button type="button" data-w="res" aria-pressed="false">Reserveringen</button>
-            <button type="button" data-w="dienst" aria-pressed="false">Diensten</button>
-          </span>
-        </span>
-      </div>
-      <div class="card-body">
-        <div class="filters" style="margin-bottom:14px">
-          <div class="field"><label for="kalNaar">Naar datum</label><input type="date" id="kalNaar"></div>
-          <div class="field"><label for="kalSuite">Suite</label><select id="kalSuite">
-            <option value="">Alle suites</option>
-            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
-            <option>Suite Angie Almere</option></select></div>
-          <div class="field"><label for="kalZoek">Zoeken op naam</label>
-            <input type="text" id="kalZoek" placeholder="gast, nummer of arrangement"></div>
-        </div>
-        <div id="kalBlok">
-          <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
-          <div class="legend" id="kalLegend"></div>
-        </div>
-      </div>
-
-      <div class="reskop" id="dienstKop">
-        <button class="reskopknop" type="button" id="dienstToggle" aria-expanded="false">
-          <span class="pijl">›</span><span>Diensten bekijken</span>
-          <span class="pill neutral" id="dienstAantal">0</span>
-        </button>
-        <div class="field" style="margin:0;min-width:190px">
-          <label for="dienstWie" class="visueel">Medewerker</label>
-          <select id="dienstWie"><option value="">Alle medewerkers</option></select>
-        </div>
-        <div class="field" style="margin:0;min-width:170px">
-          <label for="dienstPeriode" class="visueel">Periode</label>
-          <select id="dienstPeriode">
-            <option value="komend">Vanaf vandaag</option>
-            <option value="maand">Deze maand</option>
-            <option value="alles">Alles</option>
-          </select>
-        </div>
-      </div>
-      <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
-
-      <div class="reskop" id="resKop">
-        <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
-          <span class="pijl">›</span><span>Reserveringen inzien</span>
-          <span class="pill neutral" id="resAantal">0</span>
-        </button>
-        <div class="field" style="margin:0;min-width:200px">
-          <label for="resSort" class="visueel">Sorteren</label>
-          <select id="resSort">
-            <option value="datum">Aankomst — vroegste eerst</option>
-            <option value="datum-om">Aankomst — laatste eerst</option>
-            <option value="suite">Suite</option>
-            <option value="gast">Gast (A–Z)</option>
-            <option value="bron">Geboekt via</option>
-            <option value="bedrag">Bedrag — hoogste eerst</option>
-            <option value="open">Openstaand bedrag</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-wrap" id="resTabel" hidden><table>
-        <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
-        <tbody id="kalLijst"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="kalFoot"></span>
-        <button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button></div>
-    </div>
     <div class="card" style="margin-bottom:18px">
       <div class="card-head"><h2>Incheckformulieren</h2>
         <span class="hint" id="cfHint"></span></div>
@@ -1052,6 +1228,98 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
         <div class="card-foot"><span id="ovOdFoot"></span>
           <button class="btn" id="ovOdOpslaan" type="button">Op de overdracht zetten</button></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ AGENDA ============ -->
+  <section class="panel" id="panel-agenda" role="tabpanel" aria-labelledby="tab-agenda" hidden>
+    <div class="page-head">
+      <h1>Agenda</h1>
+      <p>Reserveringen en diensten per dag, week, maand of jaar.</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2 id="kalKop">Planning</h2>
+        <span style="display:flex;gap:6px;align-items:center">
+          <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">←</button>
+          <button class="btn ghost small" id="kalNu" type="button">Deze maand</button>
+          <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">→</button>
+          <span class="segment kalToon" id="kalToon" style="margin-left:6px">
+            <button type="button" data-t="kalender" aria-pressed="true">Kalender</button>
+            <button type="button" data-t="lijst" aria-pressed="false">Lijst</button>
+          </span>
+          <span class="segment" id="kalWeergave" style="margin-left:6px">
+            <button type="button" data-v="dag" aria-pressed="false">Dag</button>
+            <button type="button" data-v="week" aria-pressed="false">Week</button>
+            <button type="button" data-v="maand" aria-pressed="true">Maand</button>
+            <button type="button" data-v="jaar" aria-pressed="false">Jaar</button>
+          </span>
+          <span class="segment" id="kalWat" style="margin-left:6px">
+            <button type="button" data-w="alles" aria-pressed="true">Alles</button>
+            <button type="button" data-w="res" aria-pressed="false">Reserveringen</button>
+            <button type="button" data-w="dienst" aria-pressed="false">Diensten</button>
+          </span>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="filters" style="margin-bottom:14px">
+          <div class="field"><label for="kalNaar">Naar datum</label><input type="date" id="kalNaar"></div>
+          <div class="field"><label for="kalSuite">Suite</label><select id="kalSuite">
+            <option value="">Alle suites</option>
+            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+            <option>Suite Angie Almere</option></select></div>
+          <div class="field"><label for="kalZoek">Zoeken op naam</label>
+            <input type="text" id="kalZoek" placeholder="gast, nummer of arrangement"></div>
+        </div>
+        <div id="kalBlok">
+          <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
+          <div class="legend" id="kalLegend"></div>
+        </div>
+      </div>
+
+      <div class="reskop" id="dienstKop">
+        <button class="reskopknop" type="button" id="dienstToggle" aria-expanded="false">
+          <span class="pijl">›</span><span>Diensten bekijken</span>
+          <span class="pill neutral" id="dienstAantal">0</span>
+        </button>
+        <div class="field" style="margin:0;min-width:190px">
+          <label for="dienstWie" class="visueel">Medewerker</label>
+          <select id="dienstWie"><option value="">Alle medewerkers</option></select>
+        </div>
+        <div class="field" style="margin:0;min-width:170px">
+          <label for="dienstPeriode" class="visueel">Periode</label>
+          <select id="dienstPeriode">
+            <option value="komend">Vanaf vandaag</option>
+            <option value="maand">Deze maand</option>
+            <option value="alles">Alles</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
+
+      <div class="reskop" id="resKop">
+        <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
+          <span class="pijl">›</span><span>Reserveringen inzien</span>
+          <span class="pill neutral" id="resAantal">0</span>
+        </button>
+        <div class="field" style="margin:0;min-width:200px">
+          <label for="resSort" class="visueel">Sorteren</label>
+          <select id="resSort">
+            <option value="datum">Aankomst — vroegste eerst</option>
+            <option value="datum-om">Aankomst — laatste eerst</option>
+            <option value="suite">Suite</option>
+            <option value="gast">Gast (A–Z)</option>
+            <option value="bron">Geboekt via</option>
+            <option value="bedrag">Bedrag — hoogste eerst</option>
+            <option value="open">Openstaand bedrag</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap" id="resTabel" hidden><table>
+        <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
+        <tbody id="kalLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="kalFoot"></span>
+        <button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button></div>
     </div>
   </section>
 
@@ -1891,6 +2159,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 
   <div class="sysbalk" id="sysbalk" aria-label="Systemen en agenda's"></div>
   <div class="sysbalk" id="webbalk" aria-label="Website en documenten"></div>
+  </div><!-- /bwf-inhoud -->
 </div>
 
 <!-- ============ DIALOGEN ============ -->
@@ -2262,7 +2531,7 @@ async function start(){
   $('#slot').hidden = true; $('#app').hidden = false;
   $('#whoName').textContent = IK.naam;
   $('#whoAvatar').textContent = IK.naam.slice(0,1).toUpperCase();
-  $('#welkomKop').textContent = isEigenaar() ? 'Start' : 'Hallo '+IK.naam;
+  $('#welkomKop').textContent = isEigenaar() ? 'Dagstart' : 'Hallo '+IK.naam;
   $('#tab-klanten').hidden = !magGasten();
   const gb = $('#gastenBlok'); if(gb) gb.hidden = !magGasten();
   [$('#tarLijst'), $('#mwLijst')].forEach(el=>{ const k = el && el.closest('.card'); if(k) k.hidden = !isEigenaar(); });
@@ -2294,13 +2563,13 @@ async function start(){
    knoppen bestaan nog (verborgen), zodat sprongen als "open deze call"
    blijven werken. */
 const GROEPEN = {
-  overzicht:     ['start'],
-  werk:          ['taken'],
+  overzicht:     ['start'],              /* in het menu: Dagstart */
+  agenda:        ['agenda'],
   calls:         ['welkomstcall'],
-  reserveringen: ['klanten'],          /* reserveringen én incheckformulieren samen */
+  werk:          ['taken', 'entry'],     /* data entry staat onder de taken */
+  reserveringen: ['klanten'],            /* reserveringen én incheckformulieren samen */
   klantbeheer:   ['klantbeheer'],
-  bellen:        ['bellen'],
-  entry:         ['entry'],
+  bellen:        ['bellen'],             /* in het menu: Belscripts */
   gmail:         ['gmail']
 };
 /* Klantbeheer krijgt een eigen paneel: de kaarten Nieuwe klant en Klantenbestand
@@ -2393,6 +2662,45 @@ const GROEP_VAN = {};                       /* onderdeel -> groep */
 Object.keys(GROEPEN).forEach(g=>GROEPEN[g].forEach(t=>{ if(!GROEP_VAN[t]) GROEP_VAN[t] = g; }));
 let groepNu = 'overzicht';
 
+/* titel en uitleg in het sfeerbeeld bovenaan, per menuonderdeel */
+const GROEP_KOP = {
+  overzicht:     ['Dagstart', ''],
+  agenda:        ['Agenda', 'Reserveringen en diensten per dag, week, maand of jaar.'],
+  calls:         ['Welkomstcalls', 'Bel de gast, boek extra\u2019s bij en stuur de bevestiging met betaallink en incheckformulier.'],
+  werk:          ['Taken', 'Wat er openstaat, voor jezelf of voor een collega. De data-entrylijsten staan eronder.'],
+  reserveringen: ['Reserveringen & incheck', 'Reserveringen bekijken, incheckformulieren klaarzetten en koppelen, en het nachtregister bijhouden.'],
+  klantbeheer:   ['Klantbeheer', 'Klanten toevoegen, gegevens bijwerken en dubbelingen samenvoegen.'],
+  bellen:        ['Belscripts', 'Werk een bellijst af met het script ernaast en vink de stappen af.'],
+  gmail:         ['Gmail', 'Lees en verstuur e-mail vanuit het dashboard.']
+};
+function zetKop(groep){
+  const kop = GROEP_KOP[groep] || GROEP_KOP.overzicht;
+  const t = document.getElementById('heroTitel'), p = document.getElementById('heroTekst');
+  if(t) t.textContent = kop[0];
+  if(p){
+    if(groep === 'overzicht'){
+      const u = new Date().getHours();
+      const groet = u < 6 ? 'Goedenacht' : u < 12 ? 'Goedemorgen' : u < 18 ? 'Goedemiddag' : 'Goedenavond';
+      const naam = ((document.getElementById('whoName')||{}).textContent || '').trim();
+      const dag = new Date().toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'});
+      p.textContent = groet + (naam && naam !== '\u2014' ? ' ' + naam : '') + ', het is ' + dag + '.';
+    } else p.textContent = kop[1];
+  }
+  /* het eerste zichtbare paneel toont zijn eigen kop niet: die staat al in het sfeerbeeld */
+  let eerste = true;
+  document.querySelectorAll('#app .panel').forEach(pn=>{
+    pn.classList.remove('bwf-eerste');
+    if(!pn.hidden && eerste){ pn.classList.add('bwf-eerste'); eerste = false; }
+  });
+}
+/* staat een veld in een ander menuonderdeel, dan eerst daarheen */
+function naarPaneelVan(el){
+  const p = el && el.closest('.panel');
+  if(!p || !p.hidden) return;
+  const g = GROEP_VAN[p.id.replace(/^panel-/, '')];
+  if(g) kiesGroep(g);
+}
+
 function kiesGroep(groep){
   if(!GROEPEN[groep]) groep = 'overzicht';
   groepNu = groep;
@@ -2405,6 +2713,7 @@ function kiesGroep(groep){
   });
   $$('#groeptabs .tab').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.groep===groep)));
   try{ sessionStorage.setItem(LS.tab, groep); }catch(e){}
+  zetKop(groep);
   window.scrollTo({top:0, behavior:'instant'});
 }
 /* een oud tabblad aanroepen brengt je naar de groep waar het in zit */
@@ -4112,6 +4421,7 @@ $('#rzNaarDag').addEventListener('click', ()=>{
   const r = rzHuidig(); if(!r) return;
   const dag = String(r.start||'').slice(0,10);
   kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
+  naarPaneelVan($('#kalender'));
   $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
 });
 $('#rzNaarWijziging').addEventListener('click', ()=>{
@@ -4120,6 +4430,7 @@ $('#rzNaarWijziging').addEventListener('click', ()=>{
   $('#wjLoc').value   = r.locatie || '';
   $('#wjDatum').value = String(r.start||'').slice(0,10);
   wjTekstMaken();
+  naarPaneelVan($('#wjRef'));
   $('#wjRef').scrollIntoView({behavior:'smooth', block:'center'});
   $('#wjRef').focus();
 });
@@ -4385,6 +4696,7 @@ document.addEventListener('click', async e=>{
     wjTekstMaken();
     const kaart = $('#wjRef').closest('.card');
     if(kaart) kaart.classList.remove('dicht');
+    naarPaneelVan($('#wjRef'));
     $('#wjRef').scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
@@ -4446,6 +4758,7 @@ document.addEventListener('click', async e=>{
     kpVulFormulieren();
     const i = KP.res.findIndex(x=>resSleutel(x) === resSleutel(r));
     if(i > -1) $('#kpRes').value = i;
+    naarPaneelVan($('#kpForm'));
     $('#kpForm').scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
@@ -6180,7 +6493,7 @@ const TEGELS = [
    sub:'agenda en handmatige boekingen', getal:()=>OV.res, label:'vanaf vandaag', bij:()=>OV.resSub},
   {tab:'klanten',      titel:'Gastaanmeldingen',   ico:'\u270d', kleur:'#3F7A55', sub:'incheckformulieren die gasten hebben ingevuld',
    getal:()=>OV.gast, label:'nieuw', bij:()=>OV.gastSub, recht:()=>magGasten()},
-  {url:'dashboard.html', titel:'Planning', ico:'\ud83d\uddd3', kleur:'#9AA9CC',
+  {tab:'agenda', titel:'Planning', ico:'\ud83d\uddd3', kleur:'#9AA9CC',
    sub:'wie er wanneer staat ingepland', getal:()=>OV.planning, label:'deze week', bij:()=>OV.planningSub},
   {tab:'taken',        titel:'Taken',              ico:'\u2713', kleur:'#483C34', sub:'aanmaken voor jezelf of toewijzen aan een ander',
    getal:()=>mijnTaken().filter(t=>t.status!=='klaar').length, label:'open'},
