@@ -915,6 +915,103 @@ html #bwfHomeKnop{border-color:var(--line);color:var(--groen)}
 html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
 #bwfTerugBalk{background:var(--groen)!important}
 
+/* ---------- agenda: dagbalk en boekingen per suite ---------- */
+.ag-dagkaart{padding:14px 16px 12px;margin-bottom:16px}
+.ag-dagrij{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ag-datum{min-width:0}
+.ag-datum h2{font-family:var(--f-titel);font-size:26px;font-weight:500;letter-spacing:.01em;margin:0;line-height:1.15;color:var(--ink)}
+.ag-sub{display:block;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.ag-rond{width:36px;height:36px;border:1px solid var(--line);background:var(--surface-2);border-radius:50%;
+  cursor:pointer;font-size:15px;color:var(--ink-2);flex:none}
+.ag-rond:hover{border-color:var(--groen-2);color:var(--groen)}
+.ag-nu{margin-left:auto;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
+  padding:8px 15px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.ag-nu:hover{border-color:var(--groen-2)}
+.ag-strook{position:relative;display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
+.ag-strook::-webkit-scrollbar{display:none}
+.ag-dagje{flex:none;width:56px;text-align:center;border:1px solid var(--line);border-radius:10px;
+  padding:7px 0 8px;background:var(--surface-2);cursor:pointer;font:inherit;color:var(--ink)}
+.ag-dagje:hover{border-color:var(--groen-2)}
+.ag-dagje small{display:block;font-family:var(--f-mono);font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.ag-dagje b{display:block;font-family:var(--f-titel);font-size:19px;font-weight:500;line-height:1.3}
+.ag-stip{display:block;width:5px;height:5px;border-radius:50%;margin:2px auto 0;background:transparent}
+.ag-stip[data-vol]{background:var(--goud)}
+.ag-dagje[data-vandaag]{border-color:var(--goud)}
+.ag-dagje[data-nu]{background:var(--groen);border-color:var(--groen);color:#fff}
+.ag-dagje[data-nu] small{color:inherit;opacity:.75}
+.ag-dagje[data-nu] .ag-stip[data-vol]{background:var(--goud)}
+.ag-dienst{margin-top:12px;background:var(--groen-zacht);border-radius:10px;padding:9px 13px;font-size:13.5px;color:var(--groen)}
+.ag-dienst .kal-dot{margin:0 5px 0 2px;vertical-align:0}
+.ag-filterrij{display:flex;gap:8px 18px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.ag-pillen.segment{display:flex;gap:6px;border:0;background:none;border-radius:0;overflow:visible;flex-wrap:wrap}
+.ag-pillen.segment button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
+  padding:7px 14px;font-size:13px;color:var(--ink-2)}
+.ag-pillen.segment button:hover{border-color:var(--groen-2)}
+.ag-pillen.segment button[aria-pressed="true"]{background:var(--groen);border-color:var(--groen);color:#fff;font-weight:500}
+.ag-zoekrij.filters{margin:12px 0 0}
+.ag-legenda.legend{border-top:1px solid var(--line-soft);margin-top:12px;padding-top:11px;font-size:12.5px;color:var(--muted)}
+.ag-pillen.segment.kalToon{display:none}
+#kalBlok.ag-dagmodus .ag-rooster{display:none}
+#kalBlok:not(.ag-dagmodus) .ag-dag{display:none}
+.ag-rooster{margin-bottom:16px}
+.ag-suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;margin-bottom:24px}
+.ag-suitekop{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 2px 2px}
+.ag-vlek{width:4px;height:20px;border-radius:2px;flex:none;background:var(--c,var(--goud))}
+.ag-suitekop h3{font-family:var(--f-titel);font-size:21px;font-weight:500;letter-spacing:.01em;margin:0;color:var(--ink)}
+.ag-plaats{font-size:12.5px;color:var(--muted)}
+.ag-suitekop em{font-style:normal;margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.ag-blok{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;cursor:pointer}
+button.ag-blok:hover{border-color:var(--groen-2)}
+div.ag-blok{cursor:default}
+.ag-tijd{flex:1;min-width:0}
+.ag-tijd b{display:block;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.ag-tijd > span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.ag-merk{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 11px;border-radius:999px;
+  white-space:nowrap;flex:none;background:var(--ok-soft);color:var(--ok)}
+.ag-merk::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.ag-blok[data-soort="verblijft"]{background:var(--goud-zacht);border-color:#E9DDC4}
+.ag-blok[data-soort="verblijft"] .ag-merk{background:var(--surface);color:var(--goud-ink)}
+.ag-blok[data-soort="vertrek"] .ag-merk{background:var(--surface-2);color:var(--ink-2)}
+.ag-blok[data-soort="blokkade"]{background:var(--surface-2)}
+.ag-blok[data-soort="blokkade"] .ag-merk{background:var(--surface);color:var(--muted)}
+.ag-blok[data-soort="dienst"] .ag-merk{background:var(--groen-zacht);color:var(--groen)}
+.ag-chev{color:var(--muted);flex:none;font-size:15px}
+.ag-meerdaags{display:inline-block;font-family:var(--f-mono);font-size:10px;font-weight:500;padding:2px 7px;
+  border-radius:999px;background:var(--goud-zacht);color:var(--goud-ink);margin-left:6px;vertical-align:1px}
+.ag-leeg{grid-column:1/-1;color:var(--muted);font-size:13.5px;padding:2px 2px 0}
+.ag-lijsten > .reskop:first-child{border-top:0}
+
+/* ---------- Dagstart: tegels die open en dicht gaan ---------- */
+.dg-tegels{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:12px;align-items:stretch}
+.dg-tegels > .card{margin:0!important}
+.dg-tegels > .card.inklap:not(.dicht){grid-column:1/-1}
+.dg-tegels > .card.dicht{display:flex;flex-direction:column;transition:border-color .15s ease}
+.dg-tegels > .card.dicht:hover{border-color:var(--groen-2)}
+.dg-tegels > .card.inklap > .card-head:focus-visible{outline:2px solid var(--goud);outline-offset:-2px;border-radius:var(--r-l)}
+.dg-tegels > .card.dicht > .card-head{min-height:132px;display:flex;flex-direction:column;align-items:flex-start;
+  justify-content:flex-start;flex-wrap:nowrap;gap:6px;padding:16px 16px 14px 22px;flex:1}
+.dg-tegels > .card.dicht > .card-head:hover{background:var(--surface)}
+.dg-tegels > .card.dicht > .card-head h2{font-size:21px;line-height:1.2;align-items:flex-start}
+.dg-tegels > .card.dicht > .card-head h2::before{flex:none;margin-top:3px}
+.dg-tegels > .card.dicht > .card-head .hint{font-size:12.5px;color:var(--muted)}
+.dg-tegels > .card.dicht .dg-naar{margin-top:auto}
+.dg-tegels > .card:not(.dicht) > .card-head{align-items:center;justify-content:flex-start;gap:6px 14px}
+.dg-tegels > .card:not(.dicht) .dg-naar{margin-left:auto}
+.dg-naar{white-space:nowrap}
+/* de drie locaties als rustige regels in plaats van tegels */
+.dg-tegels #ovLocaties{display:block}
+.dg-tegels #ovLocaties .stat{display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px;
+  border:0;border-bottom:1px solid var(--line-soft);border-radius:0;min-height:0;padding:10px 2px;background:none}
+.dg-tegels #ovLocaties .stat:last-child{border-bottom:0}
+.dg-tegels #ovLocaties .stat::before{display:none}
+.dg-tegels #ovLocaties .stat .label{flex:1;font-family:var(--f-body);font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.dg-tegels #ovLocaties .stat .value{font-size:26px;order:2}
+.dg-tegels #ovLocaties .stat .sub{width:100%;order:3}
+
+/* ---------- taak overdragen ---------- */
+.tk-odr{color:var(--goud-ink)}
+
 /* ---------- tablet ---------- */
 @media (max-width:900px){
   .bwf-appnaam{display:none}
@@ -942,6 +1039,14 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
   .card > .card-head{padding:13px 14px 12px 18px}
   .card > .card-head::before{top:15px}
   .card-body{padding:14px}
+  .ag-datum{flex:1}
+  .ag-datum h2{font-size:22px}
+  .ag-nu{margin-left:0}
+  .ag-suite{grid-template-columns:1fr}
+  .ag-pillen.segment.kalToon{display:flex}
+  .dg-tegels > .card.dicht > .card-head{min-height:0;padding:14px 14px 12px 18px}
+  .dg-tegels > .card.dicht .dg-naar{margin-top:4px}
+  .dg-tegels > .card:not(.dicht) .dg-naar{margin-left:0}
 }
 @media print{
   .bwf-merkbalk,.bwf-hero{display:none!important}
@@ -1030,180 +1135,183 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
     <div class="page-head">
       <span class="eyebrow">Waar wil je beginnen</span>
       <h1 id="welkomKop">Dagstart</h1>
-      <p id="startUitleg">Klik op een tegel om erheen te gaan. De aantallen lopen mee met wat er openstaat.</p>
+      <p id="startUitleg">Klik op een tegel om hem te openen of te sluiten.</p>
     </div>
     <div class="linkstrook" data-linktab="start"></div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>De drie locaties</h2>
-        <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
-      <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
-    </div>
-    <div class="stats" id="ovStats" style="margin-bottom:18px"></div>
+    <!-- de oude cijfertegels zijn weg; het element blijft verborgen staan zodat het script niet vastloopt -->
+    <div class="stats" id="ovStats" hidden></div>
     <div class="inklapbalk">
       <button class="btn ghost small" id="ovAllesUit" type="button">Alles uitklappen</button>
       <button class="btn ghost small" id="ovAllesIn" type="button">Alles inklappen</button>
     </div>
 
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>Incheckformulieren</h2>
-        <span class="hint" id="cfHint"></span></div>
-      <div class="card-body">
-        <p class="note" style="margin-top:0">Start een leeg formulier, pak een concept op dat klaarstaat,
-          of bekijk wat al definitief is.</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button class="btn groen" id="cfNieuw" type="button">Nieuw incheckformulier</button>
-          <button class="btn geel" id="cfConcept" type="button">Concepten</button>
-          <button class="btn rood" id="cfDef" type="button">Definitieve formulieren</button>
-          <button class="btn ghost" id="cfGast" type="button">Gastversie openen</button>
-        </div>
-        <div id="cfLijst" style="margin-top:14px"></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>Formulier koppelen aan reservering</h2>
-        <span class="hint" id="kpHint">voor gasten die geen reserveringsnummer invulden</span></div>
-      <div class="card-body">
-        <div class="grid-form">
-          <div class="field"><label for="kpForm">Ingevuld gastformulier</label><select id="kpForm"></select></div>
-          <div class="field"><label for="kpHoe">Zoeken op</label><select id="kpHoe">
-            <option value="auto">Alles (voorstel)</option>
-            <option value="ref">Reserveringsnummer</option>
-            <option value="naam">Naam</option>
-            <option value="datum">Aankomstdatum</option>
-            <option value="locatie">Locatie</option></select></div>
-          <div class="field"><label class="check" for="kpAlleenLos"
-            style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer;margin-top:22px">
-            <input type="checkbox" id="kpAlleenLos" checked style="width:16px;height:16px;accent-color:var(--accent)">
-            <span>Alleen nog niet gekoppelde</span></label></div>
-          <div class="field"><label for="kpZoek">Zoeken op naam of nummer</label>
-            <input type="text" id="kpZoek" placeholder="gast, reserveringsnummer"></div>
-          <div class="field"><label for="kpDatum">Aankomstdatum</label><input type="date" id="kpDatum"></div>
-          <div class="field"><label for="kpSuite">Suite</label><select id="kpSuite">
-            <option value="">Alle suites</option>
-            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
-            <option>Suite Angie Almere</option></select></div>
-          <div class="field wide"><label for="kpRes">Bijbehorende reservering</label><select id="kpRes"></select></div>
-        </div>
-        <span class="note" id="kpNote"></span>
-      </div>
-      <div class="card-foot"><span id="kpFoot"></span>
-        <button class="btn" id="kpKoppel" type="button">Koppelen</button></div>
-    </div>
-
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>Reservering zoeken</h2>
-        <span class="hint" id="rzHint">uit de agenda en de eigen reserveringen</span></div>
-      <div class="card-body">
-        <div class="partnerrij"></div>
-        <div class="grid-form">
-          <div class="field"><label for="rzZoek">Zoeken</label>
-            <input type="text" id="rzZoek" placeholder="naam, locatie of datum"></div>
-          <div class="field wide"><label for="rzKeuze">Reservering</label>
-            <select id="rzKeuze" size="1"></select></div>
-        </div>
-        <div id="rzDetail" style="margin-top:14px"></div>
-      </div>
-      <div class="card-foot"><span id="rzFoot"></span>
-        <span><button class="btn ghost small" id="rzNaarDag" type="button">Toon dag in kalender</button>
-          <button class="btn ghost small" id="rzNaarWijziging" type="button">Wijziging doorgeven</button></span></div>
-    </div>
-
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>Welkomstcalls te doen</h2><span class="hint" id="wtHint"></span></div>
-      <div class="card-body" style="padding-bottom:0">
-        <div class="filters" style="margin-bottom:0">
-          <div class="field"><label for="wtLoc">Locatie</label><select id="wtLoc">
-            <option value="">Alle locaties</option>
-            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
-            <option>Suite Angie Almere</option></select></div>
-          <div class="field"><label for="wtStatus">Status</label><select id="wtStatus">
-            <option value="open">Alles wat nog open staat</option>
-            <option value="te bellen">Te bellen</option>
-            <option value="gebeld">Gebeld</option>
-            <option value="nog een keer proberen">Nog een keer proberen</option>
-            <option value="afgesloten + e-mail gestuurd">Afgesloten + e-mail gestuurd</option>
-            <option value="afgesloten + extra service verkocht">Afgesloten + extra service verkocht</option>
-            <option value="alles">Alles</option></select></div>
-          <div class="field"><label for="wtSpoed">Alleen spoed</label><select id="wtSpoed">
-            <option value="">Nee</option><option value="ja">Ja</option></select></div>
-        </div>
-      </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Gast</th><th>Locatie</th><th>Aankomst</th><th>Bellen vóór</th><th>Telefoon</th><th>Status</th><th class="num"></th></tr></thead>
-        <tbody id="wtLijst"></tbody>
-      </table></div>
-    </div>
-
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>Wijziging doorgeven</h2>
-        <span class="hint">naar de groepsapp of per e-mail</span></div>
-      <div class="card-body">
-        <div class="grid-form">
-          <div class="field"><label for="wjRef">Reserveringsnummer</label>
-            <input type="text" id="wjRef" placeholder="bijv. 776886"></div>
-          <div class="field"><label for="wjNaam">Naam van de gast</label>
-            <input type="text" id="wjNaam" placeholder="voor- en achternaam"></div>
-          <div class="field"><label for="wjLoc">Locatie</label><select id="wjLoc">
-            <option value="">— kies —</option>
-            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
-            <option>Suite Angie Almere</option></select></div>
-          <div class="field"><label for="wjDatum">Huidige aankomst</label>
-            <input type="date" id="wjDatum"></div>
-          <div class="field wide"><label for="wjWat">Wat moet er wijzigen</label>
-            <input type="text" id="wjWat" placeholder="bijv. verzetten naar 14 oktober, 20:00 tot 10:00"></div>
-          <div class="field wide"><label for="wjVw">Onder welke voorwaarden</label>
-            <input type="text" id="wjVw" placeholder="bijv. eenmalig kosteloos verzetten binnen 3 maanden"></div>
-        </div>
-        <div class="field" style="margin-top:12px"><label for="wjTekst">Bericht</label>
-          <textarea id="wjTekst" rows="9"></textarea></div>
-        <span class="note" id="wjNote"></span>
-      </div>
-      <div class="card-foot">
-        <span><button class="btn" id="wjApp" type="button">Naar de groepsapp</button>
-          <button class="btn ghost small" id="wjMail" type="button">Per e-mail</button>
-          <button class="btn ghost small" id="wjKopie" type="button">Kopiëren</button></span>
-        <button class="btn ghost small" id="wjGroep" type="button">Groepslink instellen</button>
+    <!-- elke kaart is een tegel: klik om te openen of te sluiten, de knop gaat naar de bijbehorende pagina -->
+    <div class="dg-tegels" id="dgTegels">
+      <div class="card">
+        <div class="card-head"><h2>De drie locaties</h2>
+          <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
+        <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
       </div>
 
-    </div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-head"><h2>Gesprekslog</h2><span class="hint" id="clHint"></span></div>
-      <div class="card-body">
-        <div class="grid-form">
-          <div class="field"><label for="clWie">Assistent</label><select id="clWie"></select></div>
-          <div class="field"><label for="clSoort">Soort gesprek</label><select id="clSoort">
-            <option value="inkomend">Inkomend telefoontje</option>
-            <option value="uitgaand">Uitgaand gesprek</option>
-            <option value="welkomstcall">Welkomstcall</option>
-            <option value="terugbel">Terugbelverzoek</option></select></div>
-          <div class="field"><label for="clStatus">Status</label><select id="clStatus">
-            <option value="afgehandeld">Afgehandeld</option>
-            <option value="geen gehoor">Geen gehoor</option>
-            <option value="terugbellen">Terugbellen</option>
-            <option value="doorgezet">Doorgezet</option></select></div>
-          <div class="field"><label for="clNaam">Gast of beller</label>
-            <input type="text" id="clNaam" placeholder="naam"></div>
-          <div class="field"><label for="clTel">Telefoon</label>
-            <input type="text" id="clTel" inputmode="tel" placeholder="06…"></div>
-          <div class="field"><label for="clLoc">Locatie</label><select id="clLoc">
-            <option value="">— geen —</option>
-            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
-            <option>Suite Angie Almere</option></select></div>
-          <div class="field wide"><label for="clNotitie">Waar ging het over</label>
-            <input type="text" id="clNotitie" placeholder="kort wat er is besproken of afgesproken"></div>
+      <div class="card">
+        <div class="card-head"><h2>Incheckformulieren</h2>
+          <span class="hint" id="cfHint"></span></div>
+        <div class="card-body">
+          <p class="note" style="margin-top:0">Start een leeg formulier, pak een concept op dat klaarstaat,
+            of bekijk wat al definitief is.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <button class="btn groen" id="cfNieuw" type="button">Nieuw incheckformulier</button>
+            <button class="btn geel" id="cfConcept" type="button">Concepten</button>
+            <button class="btn rood" id="cfDef" type="button">Definitieve formulieren</button>
+            <button class="btn ghost" id="cfGast" type="button">Gastversie openen</button>
+          </div>
+          <div id="cfLijst" style="margin-top:14px"></div>
         </div>
-        <span class="note" id="clNote"></span>
       </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Wanneer</th><th>Assistent</th><th>Soort</th><th>Gast</th><th>Status</th><th>Notitie</th></tr></thead>
-        <tbody id="clLijst"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="clFoot"></span>
-        <button class="btn" id="clOpslaan" type="button">Gesprek vastleggen</button></div>
-    </div>
 
-    <div class="two-col" style="margin-top:20px">
+      <div class="card">
+        <div class="card-head"><h2>Formulier koppelen aan reservering</h2>
+          <span class="hint" id="kpHint">voor gasten die geen reserveringsnummer invulden</span></div>
+        <div class="card-body">
+          <div class="grid-form">
+            <div class="field"><label for="kpForm">Ingevuld gastformulier</label><select id="kpForm"></select></div>
+            <div class="field"><label for="kpHoe">Zoeken op</label><select id="kpHoe">
+              <option value="auto">Alles (voorstel)</option>
+              <option value="ref">Reserveringsnummer</option>
+              <option value="naam">Naam</option>
+              <option value="datum">Aankomstdatum</option>
+              <option value="locatie">Locatie</option></select></div>
+            <div class="field"><label class="check" for="kpAlleenLos"
+              style="display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer;margin-top:22px">
+              <input type="checkbox" id="kpAlleenLos" checked style="width:16px;height:16px;accent-color:var(--accent)">
+              <span>Alleen nog niet gekoppelde</span></label></div>
+            <div class="field"><label for="kpZoek">Zoeken op naam of nummer</label>
+              <input type="text" id="kpZoek" placeholder="gast, reserveringsnummer"></div>
+            <div class="field"><label for="kpDatum">Aankomstdatum</label><input type="date" id="kpDatum"></div>
+            <div class="field"><label for="kpSuite">Suite</label><select id="kpSuite">
+              <option value="">Alle suites</option>
+              <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+              <option>Suite Angie Almere</option></select></div>
+            <div class="field wide"><label for="kpRes">Bijbehorende reservering</label><select id="kpRes"></select></div>
+          </div>
+          <span class="note" id="kpNote"></span>
+        </div>
+        <div class="card-foot"><span id="kpFoot"></span>
+          <button class="btn" id="kpKoppel" type="button">Koppelen</button></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Reservering zoeken</h2>
+          <span class="hint" id="rzHint">uit de agenda en de eigen reserveringen</span></div>
+        <div class="card-body">
+          <div class="partnerrij"></div>
+          <div class="grid-form">
+            <div class="field"><label for="rzZoek">Zoeken</label>
+              <input type="text" id="rzZoek" placeholder="naam, locatie of datum"></div>
+            <div class="field wide"><label for="rzKeuze">Reservering</label>
+              <select id="rzKeuze" size="1"></select></div>
+          </div>
+          <div id="rzDetail" style="margin-top:14px"></div>
+        </div>
+        <div class="card-foot"><span id="rzFoot"></span>
+          <span><button class="btn ghost small" id="rzNaarDag" type="button">Toon dag in kalender</button>
+            <button class="btn ghost small" id="rzNaarWijziging" type="button">Wijziging doorgeven</button></span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Welkomstcalls te doen</h2><span class="hint" id="wtHint"></span></div>
+        <div class="card-body" style="padding-bottom:0">
+          <div class="filters" style="margin-bottom:0">
+            <div class="field"><label for="wtLoc">Locatie</label><select id="wtLoc">
+              <option value="">Alle locaties</option>
+              <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+              <option>Suite Angie Almere</option></select></div>
+            <div class="field"><label for="wtStatus">Status</label><select id="wtStatus">
+              <option value="open">Alles wat nog open staat</option>
+              <option value="te bellen">Te bellen</option>
+              <option value="gebeld">Gebeld</option>
+              <option value="nog een keer proberen">Nog een keer proberen</option>
+              <option value="afgesloten + e-mail gestuurd">Afgesloten + e-mail gestuurd</option>
+              <option value="afgesloten + extra service verkocht">Afgesloten + extra service verkocht</option>
+              <option value="alles">Alles</option></select></div>
+            <div class="field"><label for="wtSpoed">Alleen spoed</label><select id="wtSpoed">
+              <option value="">Nee</option><option value="ja">Ja</option></select></div>
+          </div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Gast</th><th>Locatie</th><th>Aankomst</th><th>Bellen vóór</th><th>Telefoon</th><th>Status</th><th class="num"></th></tr></thead>
+          <tbody id="wtLijst"></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Wijziging doorgeven</h2>
+          <span class="hint">naar de groepsapp of per e-mail</span></div>
+        <div class="card-body">
+          <div class="grid-form">
+            <div class="field"><label for="wjRef">Reserveringsnummer</label>
+              <input type="text" id="wjRef" placeholder="bijv. 776886"></div>
+            <div class="field"><label for="wjNaam">Naam van de gast</label>
+              <input type="text" id="wjNaam" placeholder="voor- en achternaam"></div>
+            <div class="field"><label for="wjLoc">Locatie</label><select id="wjLoc">
+              <option value="">— kies —</option>
+              <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+              <option>Suite Angie Almere</option></select></div>
+            <div class="field"><label for="wjDatum">Huidige aankomst</label>
+              <input type="date" id="wjDatum"></div>
+            <div class="field wide"><label for="wjWat">Wat moet er wijzigen</label>
+              <input type="text" id="wjWat" placeholder="bijv. verzetten naar 14 oktober, 20:00 tot 10:00"></div>
+            <div class="field wide"><label for="wjVw">Onder welke voorwaarden</label>
+              <input type="text" id="wjVw" placeholder="bijv. eenmalig kosteloos verzetten binnen 3 maanden"></div>
+          </div>
+          <div class="field" style="margin-top:12px"><label for="wjTekst">Bericht</label>
+            <textarea id="wjTekst" rows="9"></textarea></div>
+          <span class="note" id="wjNote"></span>
+        </div>
+        <div class="card-foot">
+          <span><button class="btn" id="wjApp" type="button">Naar de groepsapp</button>
+            <button class="btn ghost small" id="wjMail" type="button">Per e-mail</button>
+            <button class="btn ghost small" id="wjKopie" type="button">Kopiëren</button></span>
+          <button class="btn ghost small" id="wjGroep" type="button">Groepslink instellen</button>
+        </div>
+
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Gesprekslog</h2><span class="hint" id="clHint"></span></div>
+        <div class="card-body">
+          <div class="grid-form">
+            <div class="field"><label for="clWie">Assistent</label><select id="clWie"></select></div>
+            <div class="field"><label for="clSoort">Soort gesprek</label><select id="clSoort">
+              <option value="inkomend">Inkomend telefoontje</option>
+              <option value="uitgaand">Uitgaand gesprek</option>
+              <option value="welkomstcall">Welkomstcall</option>
+              <option value="terugbel">Terugbelverzoek</option></select></div>
+            <div class="field"><label for="clStatus">Status</label><select id="clStatus">
+              <option value="afgehandeld">Afgehandeld</option>
+              <option value="geen gehoor">Geen gehoor</option>
+              <option value="terugbellen">Terugbellen</option>
+              <option value="doorgezet">Doorgezet</option></select></div>
+            <div class="field"><label for="clNaam">Gast of beller</label>
+              <input type="text" id="clNaam" placeholder="naam"></div>
+            <div class="field"><label for="clTel">Telefoon</label>
+              <input type="text" id="clTel" inputmode="tel" placeholder="06…"></div>
+            <div class="field"><label for="clLoc">Locatie</label><select id="clLoc">
+              <option value="">— geen —</option>
+              <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+              <option>Suite Angie Almere</option></select></div>
+            <div class="field wide"><label for="clNotitie">Waar ging het over</label>
+              <input type="text" id="clNotitie" placeholder="kort wat er is besproken of afgesproken"></div>
+          </div>
+          <span class="note" id="clNote"></span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Wanneer</th><th>Assistent</th><th>Soort</th><th>Gast</th><th>Status</th><th>Notitie</th></tr></thead>
+          <tbody id="clLijst"></tbody>
+        </table></div>
+        <div class="card-foot"><span id="clFoot"></span>
+          <button class="btn" id="clOpslaan" type="button">Gesprek vastleggen</button></div>
+      </div>
+
       <div class="card">
         <div class="card-head"><h2>Openstaande taken</h2><span class="hint" id="ovTakenHint"></span></div>
         <div class="table-wrap"><table>
@@ -1237,45 +1345,52 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
       <h1>Agenda</h1>
       <p>Reserveringen en diensten per dag, week, maand of jaar.</p>
     </div>
-    <div class="card">
-      <div class="card-head"><h2 id="kalKop">Planning</h2>
-        <span style="display:flex;gap:6px;align-items:center">
-          <button class="btn ghost small" id="kalVorige" type="button" aria-label="Vorige maand">←</button>
-          <button class="btn ghost small" id="kalNu" type="button">Deze maand</button>
-          <button class="btn ghost small" id="kalVolgende" type="button" aria-label="Volgende maand">→</button>
-          <span class="segment kalToon" id="kalToon" style="margin-left:6px">
-            <button type="button" data-t="kalender" aria-pressed="true">Kalender</button>
-            <button type="button" data-t="lijst" aria-pressed="false">Lijst</button>
-          </span>
-          <span class="segment" id="kalWeergave" style="margin-left:6px">
-            <button type="button" data-v="dag" aria-pressed="false">Dag</button>
-            <button type="button" data-v="week" aria-pressed="false">Week</button>
-            <button type="button" data-v="maand" aria-pressed="true">Maand</button>
-            <button type="button" data-v="jaar" aria-pressed="false">Jaar</button>
-          </span>
-          <span class="segment" id="kalWat" style="margin-left:6px">
-            <button type="button" data-w="alles" aria-pressed="true">Alles</button>
-            <button type="button" data-w="res" aria-pressed="false">Reserveringen</button>
-            <button type="button" data-w="dienst" aria-pressed="false">Diensten</button>
-          </span>
+    <div class="card ag-dagkaart">
+      <div class="ag-dagrij">
+        <button class="ag-rond" id="kalVorige" type="button" aria-label="Vorige">&larr;</button>
+        <div class="ag-datum"><h2 id="kalKop">Vandaag</h2><span class="ag-sub" id="agSub"></span></div>
+        <button class="ag-rond" id="kalVolgende" type="button" aria-label="Volgende">&rarr;</button>
+        <button class="ag-nu" id="kalNu" type="button">Vandaag</button>
+      </div>
+      <div class="ag-strook" id="agStrook"></div>
+      <div class="ag-dienst" id="agDienst" hidden></div>
+      <div class="ag-filterrij">
+        <span class="segment ag-pillen" id="kalWeergave" role="group" aria-label="Weergave">
+          <button type="button" data-v="dag" aria-pressed="true">Dag</button>
+          <button type="button" data-v="week" aria-pressed="false">Week</button>
+          <button type="button" data-v="maand" aria-pressed="false">Maand</button>
+          <button type="button" data-v="jaar" aria-pressed="false">Jaar</button>
+        </span>
+        <span class="segment ag-pillen" id="kalWat" role="group" aria-label="Wat tonen">
+          <button type="button" data-w="alles" aria-pressed="true">Alles</button>
+          <button type="button" data-w="res" aria-pressed="false">Reserveringen</button>
+          <button type="button" data-w="dienst" aria-pressed="false">Diensten</button>
+        </span>
+        <span class="segment kalToon ag-pillen" id="kalToon" role="group" aria-label="Kalender of lijst">
+          <button type="button" data-t="kalender" aria-pressed="true">Kalender</button>
+          <button type="button" data-t="lijst" aria-pressed="false">Lijst</button>
         </span>
       </div>
-      <div class="card-body">
-        <div class="filters" style="margin-bottom:14px">
-          <div class="field"><label for="kalNaar">Naar datum</label><input type="date" id="kalNaar"></div>
-          <div class="field"><label for="kalSuite">Suite</label><select id="kalSuite">
-            <option value="">Alle suites</option>
-            <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
-            <option>Suite Angie Almere</option></select></div>
-          <div class="field"><label for="kalZoek">Zoeken op naam</label>
-            <input type="text" id="kalZoek" placeholder="gast, nummer of arrangement"></div>
-        </div>
-        <div id="kalBlok">
-          <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
-          <div class="legend" id="kalLegend"></div>
-        </div>
+      <div class="filters ag-zoekrij">
+        <div class="field"><label for="kalNaar">Naar datum</label><input type="date" id="kalNaar"></div>
+        <div class="field"><label for="kalSuite">Suite</label><select id="kalSuite">
+          <option value="">Alle suites</option>
+          <option>Malina Jacuzzi</option><option>Malina Zwembad</option>
+          <option>Suite Angie Almere</option></select></div>
+        <div class="field"><label for="kalZoek">Zoeken op naam</label>
+          <input type="text" id="kalZoek" placeholder="gast, nummer of arrangement"></div>
       </div>
+      <div class="legend ag-legenda" id="kalLegend"></div>
+    </div>
 
+    <div id="kalBlok" class="ag-dagmodus">
+      <div class="ag-dag" id="agDag"></div>
+      <div class="card ag-rooster"><div class="card-body">
+        <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
+      </div></div>
+    </div>
+
+    <div class="card ag-lijsten">
       <div class="reskop" id="dienstKop">
         <button class="reskopknop" type="button" id="dienstToggle" aria-expanded="false">
           <span class="pijl">›</span><span>Diensten bekijken</span>
@@ -1387,7 +1502,6 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
             <option>Suite Angie Almere</option></select></div>
           <div class="field"><label for="tfType">Type</label><select id="tfType">
             <option value="">Alle types</option>
-            <option value="welkomstcall">Welkomstcall</option>
             <option value="email">E-mail</option>
             <option value="handmatig">Zelf aangemaakt</option></select></div>
           <div class="field"><label for="tfPrio">Prioriteit</label><select id="tfPrio">
@@ -1415,6 +1529,23 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
       <p>Loop het gesprek stap voor stap door, vink de extra's aan die de gast bijboekt, en stuur daarna in één klik een WhatsApp-bericht met de opsomming, de betaallink en het incheckformulier.</p>
     </div>
     <div class="linkstrook" data-linktab="welkomstcall"></div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-head"><h2>Welkomstcalls</h2>
+        <div class="segment" id="wcFilter">
+          <button type="button" data-f="open" aria-pressed="true">Open</button>
+          <button type="button" data-f="alles" aria-pressed="false">Alles</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Gast</th><th>Verblijf</th><th>Status</th><th class="num">Bijgeboekt</th><th>Notitie</th><th></th></tr></thead>
+        <tbody id="wcLijst"></tbody>
+      </table></div>
+      <div class="card-foot"><span id="wcFoot"></span>
+        <span><button class="btn ghost small" id="wcNaarTaken" type="button" hidden>Openstaande calls op de takenlijst</button>
+        <button class="btn ghost small" id="wcExport" type="button">Exporteer CSV</button></span></div>
+    </div>
+
 
     <div class="two-col">
       <div>
@@ -1654,22 +1785,6 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
         </div>
         <div class="note" id="wcNote"></div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Welkomstcalls</h2>
-        <div class="segment" id="wcFilter">
-          <button type="button" data-f="open" aria-pressed="true">Open</button>
-          <button type="button" data-f="alles" aria-pressed="false">Alles</button>
-        </div>
-      </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Gast</th><th>Verblijf</th><th>Status</th><th class="num">Bijgeboekt</th><th>Notitie</th><th></th></tr></thead>
-        <tbody id="wcLijst"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="wcFoot"></span>
-        <span><button class="btn ghost small" id="wcNaarTaken" type="button">Openstaande calls op de takenlijst</button>
-        <button class="btn ghost small" id="wcExport" type="button">Exporteer CSV</button></span></div>
     </div>
 
     <div class="card">
@@ -2238,6 +2353,16 @@ html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
     <button class="btn" value="ok" type="submit">Afmelden</button></div>
 </div></form></dialog>
 
+<dialog id="dlgOverdragen"><form method="dialog"><div class="card-body">
+  <h2>Taak overdragen</h2>
+  <p class="note" style="margin-top:0" id="odrTaak"></p>
+  <div class="field"><label for="odrWie">Aan wie</label><select id="odrWie"></select></div>
+  <div class="field" style="margin-top:10px"><label for="odrNotitie">Toelichting <span style="font-weight:400;color:var(--muted)">(mag leeg blijven)</span></label>
+    <input type="text" id="odrNotitie" placeholder="bv. ik ben morgen vrij, wil jij dit oppakken?"></div>
+  <div class="dlg-acties"><button class="btn ghost" value="annuleer" type="submit">Annuleren</button>
+    <button class="btn" value="ok" type="submit">Overdragen</button></div>
+</div></form></dialog>
+
 <div class="toast" id="toast"></div>
 <script src="bwf-agenda.js?v=1"></script>
 <script>
@@ -2454,9 +2579,10 @@ let IK = null;
 const isEigenaar = () => IK && IK.rol === 'eigenaar';
 const mwNaam = id => (S.medewerkers.find(m=>m.id===id)||{}).naam || '—';
 const mwKleur = id => (S.medewerkers.find(m=>m.id===id)||{}).kleur || 'var(--muted)';
-/* een medewerker ziet de taken die aan haar zijn toegewezen én de taken die zij zelf heeft uitgezet */
-const mijnTaken = () => isEigenaar() ? S.taken
-  : S.taken.filter(t => t.medewerker_id===IK.id || t.aangemaakt_door===IK.id);
+/* Iedereen ziet alle taken, ook die van een collega. Taken die bij een welkomstcall
+   horen tellen niet mee: welkomstcalls staan apart op hun eigen tabblad. */
+const isCallTaak = t => !!(t && (t.call_id || /^welkomstcall/i.test(String(t.titel||''))));
+const mijnTaken = () => (S.taken||[]).filter(t => !isCallTaak(t));
 const mijnWerk  = () => isEigenaar() ? S.werk  : S.werk.filter(w=>w.medewerker_id===IK.id);
 const mijnBel   = () => isEigenaar() ? S.bellijsten : S.bellijsten.filter(b=>!b.medewerker_id || b.medewerker_id===IK.id);
 
@@ -2566,7 +2692,7 @@ const GROEPEN = {
   overzicht:     ['start'],              /* in het menu: Dagstart */
   agenda:        ['agenda'],
   calls:         ['welkomstcall'],
-  werk:          ['taken', 'entry'],     /* data entry staat onder de taken */
+  werk:          ['taken', 'overdracht', 'entry'],   /* overdracht en data entry staan onder de taken */
   reserveringen: ['klanten'],            /* reserveringen én incheckformulieren samen */
   klantbeheer:   ['klantbeheer'],
   bellen:        ['bellen'],             /* in het menu: Belscripts */
@@ -2666,8 +2792,8 @@ let groepNu = 'overzicht';
 const GROEP_KOP = {
   overzicht:     ['Dagstart', ''],
   agenda:        ['Agenda', 'Reserveringen en diensten per dag, week, maand of jaar.'],
-  calls:         ['Welkomstcalls', 'Bel de gast, boek extra\u2019s bij en stuur de bevestiging met betaallink en incheckformulier.'],
-  werk:          ['Taken', 'Wat er openstaat, voor jezelf of voor een collega. De data-entrylijsten staan eronder.'],
+  calls:         ['Welkomstcalls', 'Bovenaan de calls die nog open staan. Daaronder bel je de gast, boek je extra\u2019s bij en stuur je de bevestiging.'],
+  werk:          ['Taken', 'Alle openstaande taken van het team. Draag een taak over aan een collega met \u21c4. Daaronder de overdracht en de data-entrylijsten.'],
   reserveringen: ['Reserveringen & incheck', 'Reserveringen bekijken, incheckformulieren klaarzetten en koppelen, en het nachtregister bijhouden.'],
   klantbeheer:   ['Klantbeheer', 'Klanten toevoegen, gegevens bijwerken en dubbelingen samenvoegen.'],
   bellen:        ['Belscripts', 'Werk een bellijst af met het script ernaast en vink de stappen af.'],
@@ -2715,6 +2841,7 @@ function kiesGroep(groep){
   try{ sessionStorage.setItem(LS.tab, groep); }catch(e){}
   zetKop(groep);
   window.scrollTo({top:0, behavior:'instant'});
+  if(groep === 'agenda' && typeof agCentreer === 'function') setTimeout(agCentreer, 0);
 }
 /* een oud tabblad aanroepen brengt je naar de groep waar het in zit */
 function kiesTab(naam){
@@ -3023,7 +3150,8 @@ function renderOverzicht(){
       ${t.omschrijving?`<span class="meta">${esc(t.omschrijving)}</span>`:''}</td>
       <td>${esc(mwNaam(t.medewerker_id))}</td>
       <td>${t.deadline && t.deadline<vandaag() ? `<span class="pill crit">${dmy(t.deadline)}</span>` : dmy(t.deadline)}</td>
-      <td class="act"><button class="icon-btn ok" title="Afvinken" data-klaar="${t.id}">✓</button></td></tr>`).join('')
+      <td class="act"><button class="icon-btn" title="Overdragen aan een collega" aria-label="Overdragen" data-overdragen="${t.id}">⇄</button>
+        <button class="icon-btn ok" title="Afvinken" data-klaar="${t.id}">✓</button></td></tr>`).join('')
     : `<tr><td colspan="4"><div class="empty"><strong>Niets openstaand</strong>Alles is afgevinkt.</div></td></tr>`;
   $('#ovTakenHint').textContent = open.length+' open';
 
@@ -3084,6 +3212,8 @@ function tkVulWie(){
     S.medewerkers.filter(m=>m.actief!==false)
       .map(m=>`<option value="${m.id}"${m.id===h?' selected':''}>${esc(m.naam)}</option>`).join('');
 }
+const tkOms = t => String(t.omschrijving||'').split('\n').filter(l=>!/^Overgedragen door /.test(l)).join(' ').trim();
+const tkOdr = t => String(t.omschrijving||'').split('\n').filter(l=>/^Overgedragen door /.test(l)).pop() || '';
 function renderTaken(){
   tkVulWie();
   let lijst = mijnTaken();
@@ -3112,7 +3242,8 @@ function renderTaken(){
         ${tkSuite(t)?`<span class="pill neutral">${esc(tkSuite(t))}</span>`:''}
         ${t.link?` <a href="${esc(t.link)}" target="_blank" rel="noopener">↗ link</a>`:''}
         ${t.van?`<span class="meta">van ${esc(t.van)}${t.email_datum?' · '+esc(String(t.email_datum).slice(0,25)):''}</span>`:''}
-        ${t.omschrijving?`<span class="meta">${esc(kort(t.omschrijving))}</span>`:''}
+        ${tkOms(t)?`<span class="meta">${esc(kort(tkOms(t)))}</span>`:''}
+        ${tkOdr(t)?`<span class="meta tk-odr">⇄ ${esc(tkOdr(t))}</span>`:''}
         ${t.aangemaakt_door && t.aangemaakt_door!==t.medewerker_id?`<span class="meta">uitgezet door ${esc(mwNaam(t.aangemaakt_door))}</span>`:''}
         ${bijlagenVan(t.id).length?`<span class="meta">📎 ${bijlagenVan(t.id).map(d=>
           `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titel)}</a>`).join(' · ')}</span>`:''}</td>
@@ -3120,7 +3251,8 @@ function renderTaken(){
       <td>${t.deadline && t.status!=='klaar' && t.deadline<vandaag() ? `<span class="pill crit">${dmy(t.deadline)}</span>` : dmy(t.deadline)}</td>
       <td>${t.status==='klaar'?'<span class="pill ok">klaar</span>':t.status==='bezig'?'<span class="pill warn">bezig</span>':'<span class="pill neutral">open</span>'}</td>
       <td class="act">
-        ${t.status!=='klaar'?`<button class="icon-btn" title="Mee bezig" data-bezig="${t.id}">◐</button>
+        ${t.status!=='klaar'?`<button class="icon-btn" title="Overdragen aan een collega" aria-label="Overdragen" data-overdragen="${t.id}">⇄</button>
+        <button class="icon-btn" title="Mee bezig" data-bezig="${t.id}">◐</button>
         <button class="icon-btn ok" title="Afvinken" data-klaar="${t.id}">✓</button>`
         :`<button class="icon-btn" title="Weer openzetten" data-heropen="${t.id}">↺</button>`}
         ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-deltaak="${t.id}">✕</button>`:''}
@@ -3142,6 +3274,41 @@ document.addEventListener('click', async e=>{
   const d = e.target.closest('[data-deltaak]');
   if(d){ if(!confirm('Deze taak verwijderen?')) return;
     await verwijder('taken', d.dataset.deltaak); renderTaken(); renderOverzicht(); badges(); }
+});
+
+
+/* ---------------- taak overdragen ----------------
+   Iedereen kan een openstaande taak aan een collega doorgeven. Wie, wanneer en
+   waarom komt als regel onder de toelichting, zodat het terug te lezen is. */
+let odrTaakId = null;
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-overdragen]'); if(!b) return;
+  const t = (S.taken||[]).find(x=>x.id === b.dataset.overdragen); if(!t) return;
+  const anderen = S.medewerkers.filter(m=>m.actief!==false && m.id !== t.medewerker_id);
+  if(!anderen.length){ toast('Er is niemand anders om de taak aan over te dragen.'); return; }
+  odrTaakId = t.id;
+  $('#odrTaak').textContent = t.titel + ' — nu bij ' + (t.medewerker_id ? mwNaam(t.medewerker_id) : 'niemand');
+  $('#odrWie').innerHTML = anderen.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
+  $('#odrNotitie').value = '';
+  $('#dlgOverdragen').showModal();
+});
+$('#dlgOverdragen').addEventListener('close', async ()=>{
+  const d = $('#dlgOverdragen');
+  const id = odrTaakId; odrTaakId = null;
+  if(d.returnValue !== 'ok' || !id) return;
+  const t = (S.taken||[]).find(x=>x.id === id); if(!t) return;
+  const nieuw = $('#odrWie').value; if(!nieuw) return;
+  const notitie = $('#odrNotitie').value.trim();
+  const regel = 'Overgedragen door ' + (IK ? IK.naam : 'onbekend') + ' aan ' + mwNaam(nieuw) +
+    ' op ' + dmy(vandaag()) + (notitie ? ': ' + notitie : '');
+  LAATSTE_FOUT = '';
+  await wijzig('taken', t.id, {
+    medewerker_id: nieuw,
+    status: t.status === 'klaar' ? 'open' : (t.status || 'open'),
+    omschrijving: [t.omschrijving, regel].filter(Boolean).join('\n').slice(0, 4000)
+  });
+  renderTaken(); renderOverzicht(); badges();
+  if(!LAATSTE_FOUT) toast('Taak overgedragen aan ' + mwNaam(nieuw) + '.');
 });
 
 $('#tkExport').addEventListener('click', ()=>{
@@ -4160,7 +4327,7 @@ function badges(){
   zet('overdracht', S.overdracht.filter(o=>!o.afgehandeld).length);
   /* de tellers op de nieuwe groepsknoppen */
   const groepTeller = {
-    werk: S.taken.filter(t=>t.status!=='klaar').length,
+    werk: mijnTaken().filter(t=>t.status!=='klaar').length,
     calls: (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
     reserveringen: RES.length,
     klantbeheer: (S.klanten||[]).length,
@@ -4248,7 +4415,19 @@ function ovLocTel(locatie, start, eind){
 /* ---------------- BLOKKEN IN- EN UITKLAPPEN ----------------
    Elk blok op de overzichtspagina klap je open met een klik op de titel.
    Wat open of dicht staat wordt per apparaat onthouden. */
-const INKLAP_SLEUTEL = 'bwf_overzicht_open';
+const INKLAP_SLEUTEL = 'bwf_dagstart_tegels_open';
+/* naar welke pagina elke tegel verwijst: een menuonderdeel, of een paneel binnen een onderdeel */
+const DG_NAAR = {
+  'De drie locaties':                   {groep:'agenda',        label:'Naar Agenda'},
+  'Incheckformulieren':                 {groep:'reserveringen', label:'Naar Reserveringen & incheck'},
+  'Formulier koppelen aan reservering': {groep:'reserveringen', label:'Naar Reserveringen & incheck'},
+  'Reservering zoeken':                 {groep:'reserveringen', label:'Naar Reserveringen & incheck'},
+  'Welkomstcalls te doen':              {groep:'calls',         label:'Naar Welkomstcalls'},
+  'Wijziging doorgeven':                {groep:'reserveringen', label:'Naar Reserveringen & incheck'},
+  'Gesprekslog':                        {groep:'bellen',        label:'Naar Belscripts'},
+  'Openstaande taken':                  {groep:'werk',          label:'Naar Taken'},
+  'Overdracht aanmaken':                {tab:'overdracht',      label:'Naar Overdracht'}
+};
 function inklapStand(){
   try{ return JSON.parse(localStorage.getItem(INKLAP_SLEUTEL) || '{}'); }catch(e){ return {}; }
 }
@@ -4256,9 +4435,9 @@ function inklapBewaar(st){ try{ localStorage.setItem(INKLAP_SLEUTEL, JSON.string
 function inklapKlaar(){
   const paneel = $('#panel-start'); if(!paneel) return;
   const stand = inklapStand();
-  /* deze twee staan standaard open, de rest dicht */
-  const standaardOpen = ['Planning', 'De drie locaties', 'Welkomstcalls te doen'];
-  paneel.querySelectorAll(':scope > .card, :scope > .two-col > .card').forEach(kaart=>{
+  /* alle tegels staan standaard dicht */
+  const standaardOpen = [];
+  paneel.querySelectorAll(':scope > .dg-tegels > .card').forEach(kaart=>{
     const kop = kaart.querySelector('.card-head'); if(!kop) return;
     const titel = (kop.querySelector('h2') || {}).textContent || '';
     const naam = titel.split('·')[0].trim();
@@ -4267,12 +4446,30 @@ function inklapKlaar(){
     const open = stand[naam] !== undefined ? stand[naam]
       : standaardOpen.some(x=>naam.startsWith(x));
     kaart.classList.toggle('dicht', !open);
+    const doel = DG_NAAR[naam];
+    if(doel && !kop.querySelector('.dg-naar')){
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn ghost small dg-naar'; b.textContent = doel.label;
+      if(doel.tab) b.dataset.dgtab = doel.tab; else b.dataset.dggroep = doel.groep;
+      kop.appendChild(b);
+    }
+    kop.setAttribute('role', 'button'); kop.tabIndex = 0;
+    kop.setAttribute('aria-expanded', String(open));
     if(!kop.dataset.inklapAan){
       kop.dataset.inklapAan = '1';
+      const wissel = ()=>{
+        const dicht = kaart.classList.toggle('dicht');
+        kop.setAttribute('aria-expanded', String(!dicht));
+        const st = inklapStand(); st[kaart.dataset.inklap] = !dicht; inklapBewaar(st);
+        if(!dicht) setTimeout(()=>kaart.scrollIntoView({behavior:'smooth', block:'nearest'}), 30);
+      };
       kop.addEventListener('click', e=>{
         if(e.target.closest('button, a, select, input, .segment')) return;   /* knoppen gewoon laten werken */
-        const dicht = kaart.classList.toggle('dicht');
-        const st = inklapStand(); st[kaart.dataset.inklap] = !dicht; inklapBewaar(st);
+        wissel();
+      });
+      kop.addEventListener('keydown', e=>{
+        if(e.target !== kop || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault(); wissel();
       });
     }
   });
@@ -4282,11 +4479,16 @@ function inklapAlles(open){
   const st = inklapStand();
   paneel.querySelectorAll('.card.inklap').forEach(k=>{
     k.classList.toggle('dicht', !open);
+    const kop = k.querySelector('.card-head'); if(kop) kop.setAttribute('aria-expanded', String(open));
     st[k.dataset.inklap] = open;
   });
   inklapBewaar(st);
 }
 $('#ovAllesUit').addEventListener('click', ()=>inklapAlles(true));
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-dggroep], [data-dgtab]'); if(!b) return;
+  if(b.dataset.dgtab) kiesTab(b.dataset.dgtab); else kiesGroep(b.dataset.dggroep);
+});
 $('#ovAllesIn').addEventListener('click', ()=>inklapAlles(false));
 document.addEventListener('DOMContentLoaded', inklapKlaar);
 inklapKlaar();
@@ -5895,9 +6097,9 @@ wjTekstMaken();
    alle reserveringen vanaf vandaag, uit de agenda en uit de eigen tabel.
    Klik op een dag om alleen die dag in de lijst eronder te zien. */
 const RES = [];
-const KAL_KLEUR = {'Malina Jacuzzi':'#1C6FD0', 'Malina Zwembad':'#D63A2A',
-                   'Suite Angie Almere':'#0F7B5A'};
-let kalMaand = null, kalDag = '', kalWat = 'alles', kalWeergave = 'maand';
+const KAL_KLEUR = {'Malina Jacuzzi':'#1F5C47', 'Malina Zwembad':'#2F6479',
+                   'Suite Angie Almere':'#94703B'};
+let kalMaand = null, kalDag = '', kalWat = 'alles', kalWeergave = 'dag';
 /* De diensten van het personeelsdashboard staan in de tabel 'planning', het team in
    'medewerkers' — dat zijn andere tabellen dan die van dit dashboard. Lezen lukt met
    de publieke sleutel; die is ook openbaar in het personeelsdashboard te vinden. */
@@ -6269,7 +6471,7 @@ function renderKalender(){
     titel = lbl.charAt(0).toUpperCase() + lbl.slice(1);
   }
   rooster.innerHTML = html;
-  $('#kalKop').textContent = 'Planning · ' + titel;
+  agKop(titel);
 
   $('#kalLegend').innerHTML =
     LOCATIES.map(l=>`<span class="leg"><span class="kal-dot" style="--c:${KAL_KLEUR[l.naam]}"></span>${esc(l.naam)}</span>`).join('') +
@@ -6279,7 +6481,7 @@ function renderKalender(){
   /* de lijst eronder volgt de weergave */
   const lijst = lijstRes.filter(r=>{
     const d = String(r.start||'').slice(0,10);
-    if(kalWeergave === 'dag')  return d === (kalDag || vd);
+    if(kalWeergave === 'dag')  return agOverlapt(r, kalDag || vd);
     if(kalWeergave === 'jaar') return d.slice(0,4) === String(j);
     if(kalDag) return d === kalDag;
     if(kalWeergave === 'week'){
@@ -6333,7 +6535,156 @@ function renderKalender(){
   $('#kalFoot').textContent = lijst.length + ' reservering' + (lijst.length===1?'':'en') +
     ' · ' + dnstAantal + ' dienst' + (dnstAantal===1?'':'en') + ' deze maand';
   $('#kalAlles').hidden = !(kalDag && kalWeergave === 'maand');
+  agRender(lijstRes);
 }
+
+/* ---------------- AGENDA: dagweergave per suite ----------------
+   Zelfde opzet als het beschikbaarheidsscherm: een dagbalk met een strook
+   dagen, wie er werkt, en per suite de boekingen die die dag lopen. Week,
+   maand en jaar tonen de kalender zoals voorheen. */
+const agSchuif = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); };
+const agKort = iso => { try{ return new Date(iso + 'T12:00:00').toLocaleDateString('nl-NL', {day:'numeric', month:'short'}); }catch(e){ return iso; } };
+function agOverlapt(r, dag){
+  const s = String(r.start||'').slice(0,10); if(!s) return false;
+  const e = String(r.eind||'').slice(0,10) || s;
+  return s <= dag && e >= dag;
+}
+function agKop(titel){
+  const kop = $('#kalKop'), sub = $('#agSub'); if(!kop) return;
+  const vd = vandaag();
+  if(kalWeergave === 'dag'){
+    const dag = kalDag || vd;
+    const naam = dag === vd ? 'Vandaag' : dag === agSchuif(vd, 1) ? 'Morgen' : dag === agSchuif(vd, -1) ? 'Gisteren'
+      : new Date(dag + 'T12:00:00').toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'});
+    kop.textContent = naam.charAt(0).toUpperCase() + naam.slice(1);
+    if(sub) sub.textContent = new Date(dag + 'T12:00:00').toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  } else {
+    kop.textContent = titel;
+    if(sub) sub.textContent = kalWeergave === 'week' ? 'weekoverzicht' : kalWeergave === 'jaar' ? 'jaaroverzicht' : 'maandoverzicht';
+  }
+}
+function agSoort(r, dag){
+  if(/blokkade|geblokkeerd/i.test(String(r.bron||''))) return 'blokkade';
+  const s = String(r.start||'').slice(0,10), e = String(r.eind||'').slice(0,10) || s;
+  if(s === e) return 'dag';
+  if(dag === s) return 'aankomst';
+  if(dag === e) return 'vertrek';
+  return 'verblijft';
+}
+const AG_LABEL = {dag:'Dagverblijf', aankomst:'Aankomst', verblijft:'Verblijft', vertrek:'Vertrek', blokkade:'Geblokkeerd'};
+function agCallBij(r){
+  return (S.calls||[]).find(c => c.referentie &&
+    ((r.ref && String(c.referentie) === String(r.ref)) || c.referentie === resSleutel(r))) || null;
+}
+function agRegel(r, dag){
+  const k = r.kop || {};
+  const soort = agSoort(r, dag);
+  const s = String(r.start||'').slice(0,10), e = String(r.eind||'').slice(0,10) || s;
+  const tIn = kalTijd(r.start) || kalTijd(k.tijd_in), tUit = kalTijd(r.eind) || kalTijd(k.tijd_uit);
+  const nachten = Math.round((new Date(e + 'T12:00:00Z') - new Date(s + 'T12:00:00Z')) / 864e5);
+  let tijd, sorteer;
+  if(soort === 'aankomst'){ tijd = (tIn || 'aankomst') + ' \u2192 ' + agKort(e) + (tUit ? ' ' + tUit : ''); sorteer = tIn || '12:00'; }
+  else if(soort === 'vertrek'){ tijd = 'tot ' + (tUit || 'vertrek'); sorteer = tUit || '10:00'; }
+  else if(soort === 'verblijft'){ tijd = 'hele dag'; sorteer = '00:00'; }
+  else { tijd = (tIn || '?') + ' \u2013 ' + (tUit || '?'); sorteer = tIn || '12:00'; }
+  const call = agCallBij(r);
+  const bij = [k.gast || (r.ontleed||{}).naam || r.naam || 'gast', r.bron, k.arrangement,
+    soort === 'vertrek' ? 'aangekomen ' + agKort(s) : '',
+    soort === 'verblijft' ? agKort(s) + ' t/m ' + agKort(e) : '',
+    (k.totaal != null && k.totaal !== '') ? eur(k.totaal) : '',
+    call ? 'welkomstcall: ' + (call.status || 'te bellen') : ''].filter(Boolean);
+  return {r, soort, tijd, sorteer, bij, nachten};
+}
+function agSuiteHtml(st, rijen){
+  rijen.sort((a,b)=>a.sorteer.localeCompare(b.sorteer));
+  return `<section class="ag-suite"><div class="ag-suitekop"><span class="ag-vlek" style="--c:${st.kleur||'var(--goud)'}"></span>
+    <h3>${esc(st.titel)}</h3>${st.plaats ? `<span class="ag-plaats">${esc(st.plaats)}</span>` : ''}
+    <em>${rijen.length ? rijen.length + (rijen.length === 1 ? ' boeking' : ' boekingen') : 'vrij'}</em></div>` +
+    (rijen.length ? rijen.map(x=>`<button type="button" class="ag-blok" data-soort="${x.soort}" data-agres="${RES.indexOf(x.r)}">
+      <span class="ag-tijd"><b>${esc(x.tijd)}${x.soort === 'aankomst' && x.nachten > 0
+        ? `<span class="ag-meerdaags">${x.nachten} ${x.nachten === 1 ? 'nacht' : 'nachten'}</span>` : ''}</b>
+      <span>${esc(x.bij.join(' \u00b7 '))}</span></span>
+      <span class="ag-merk">${AG_LABEL[x.soort]}</span><span class="ag-chev">\u203a</span></button>`).join('')
+    : '<div class="ag-leeg">Geen reserveringen op deze dag.</div>') + '</section>';
+}
+/* de gekozen dag in het midden van de strook zetten (kan pas als de agenda zichtbaar is) */
+function agCentreer(){
+  const strook = $('#agStrook'); if(!strook || strook.hidden) return;
+  const actief = strook.querySelector('[data-nu="1"]') || strook.querySelector('[data-vandaag="1"]');
+  if(actief) strook.scrollLeft = actief.offsetLeft - strook.clientWidth / 2 + actief.offsetWidth / 2;
+}
+function agRender(lijstRes){
+  const blok = $('#kalBlok'); if(!blok) return;
+  const vd = vandaag(), dag = kalDag || vd, dagModus = kalWeergave === 'dag';
+  blok.classList.toggle('ag-dagmodus', dagModus);
+
+  const strook = $('#agStrook');
+  if(strook){
+    const toon = dagModus || kalWeergave === 'week';
+    strook.hidden = !toon;
+    if(toon){
+      const dagen = []; for(let i=-3; i<=10; i++) dagen.push(agSchuif(dag, i));
+      strook.innerHTML = dagen.map(d=>{
+        const dt = new Date(d + 'T12:00:00');
+        const vol = kalWat !== 'dienst' && lijstRes.some(r=>agOverlapt(r, d));
+        return `<button type="button" class="ag-dagje" data-agdag="${d}"${d === dag && dagModus ? ' data-nu="1"' : ''}${d === vd ? ' data-vandaag="1"' : ''}
+          aria-label="${esc(dt.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'}))}">
+          <small>${esc(dt.toLocaleDateString('nl-NL', {weekday:'short'}).slice(0,2))}</small><b>${dt.getDate()}</b>
+          <span class="ag-stip"${vol ? ' data-vol="1"' : ''}></span></button>`;
+      }).join('');
+      agCentreer();
+    }
+  }
+
+  const dn = DIENSTEN.filter(x=>String(x.datum||'').slice(0,10) === dag);
+  const regel = $('#agDienst');
+  if(regel){
+    regel.hidden = !dagModus || kalWat === 'res';
+    regel.innerHTML = dn.length
+      ? 'Ingepland: ' + dn.map(x=>`<span class="kal-dot" style="--c:${kalMwKleur(x.medewerker_id)}"></span><b>${
+          esc(teamNaam(x.medewerker_id))}</b> (${esc(kalSoortLabel(x.dienst).toLowerCase())})`).join(', ')
+      : 'Niemand ingepland op deze dag.';
+  }
+
+  const doel = $('#agDag'); if(!doel) return;
+  if(!dagModus){ doel.innerHTML = ''; return; }
+  if(kalWat === 'dienst'){
+    doel.innerHTML = `<section class="ag-suite"><div class="ag-suitekop"><span class="ag-vlek"></span><h3>Diensten</h3>
+      <em>${dn.length} ingepland</em></div>` +
+      (dn.length ? dn.map(x=>`<div class="ag-blok" data-soort="dienst"><span class="ag-tijd"><b>${esc(teamNaam(x.medewerker_id))}</b>
+        <span>${esc(kalSoortLabel(x.dienst))}${x.notitie ? ' \u00b7 ' + esc(x.notitie) : ''}</span></span>
+        <span class="ag-merk">${esc(kalSoortLabel(x.dienst))}</span></div>`).join('')
+      : '<div class="ag-leeg">Niemand ingepland op deze dag.</div>') + '</section>';
+    return;
+  }
+  const regels = lijstRes.filter(r=>agOverlapt(r, dag)).map(r=>agRegel(r, dag));
+  const kies = ($('#kalSuite')||{}).value || '';
+  let html = LOCATIES.filter(l=>!kies || l.naam === kies).map(l=>agSuiteHtml(
+    {titel:l.naam.replace(/\s+Almere$/, ''), plaats:l.plaats, kleur:KAL_KLEUR[l.naam]},
+    regels.filter(x=>x.r.locatie === l.naam))).join('');
+  const los = regels.filter(x=>!LOCATIES.some(l=>l.naam === x.r.locatie));
+  if(los.length) html += agSuiteHtml({titel:'Locatie onbekend', plaats:'', kleur:'var(--muted)'}, los);
+  doel.innerHTML = html;
+}
+document.addEventListener('click', e=>{
+  const dj = e.target.closest('[data-agdag]');
+  if(dj){
+    kalDag = dj.dataset.agdag; kalMaand = kalDag.slice(0,7);
+    if(kalWeergave !== 'dag'){
+      kalWeergave = 'dag';
+      $$('#kalWeergave button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.v === 'dag')));
+    }
+    renderKalender(); return;
+  }
+  const ab = e.target.closest('[data-agres]');
+  if(ab){
+    const r = RES[Number(ab.dataset.agres)]; if(!r) return;
+    const i = KAL_LIJST.indexOf(r); if(i < 0) return;
+    $('#resToggle').setAttribute('aria-expanded', 'true'); $('#resTabel').hidden = false;
+    const rij = document.querySelector(`tr.resrij[data-res="${i}"]`);
+    if(rij){ if(!rij.classList.contains('open')) rij.click(); rij.scrollIntoView({behavior:'smooth', block:'start'}); }
+  }
+});
 document.addEventListener('click', e=>{
   const d = e.target.closest('[data-kaldag]'); if(!d) return;
   kalDag = (kalDag === d.dataset.kaldag) ? '' : d.dataset.kaldag;
@@ -7645,6 +7996,7 @@ function wcTaakTekst(c){
 
 /* maakt of werkt de taak bij die bij deze welkomstcall hoort */
 async function wcTaakSync(c, stil){
+  return;   /* welkomstcalls komen niet meer op de takenlijst; ze staan apart op het tabblad Welkomstcalls */
   if(!c || !c.id) return;
   const bestaand = wcTaakVan(c.id);
   const naam = c.naam || 'gast';
@@ -7714,8 +8066,8 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
     if(k){ renderKlanten(); if(typeof vulKlantKeuze === 'function') vulKlantKeuze(); }
   }
   $('#wcNote').textContent = f.status === 'afgerond'
-    ? 'Welkomstcall bewaard en afgerond — de taak is afgevinkt.'
-    : 'Welkomstcall bewaard — hij staat als taak op de takenlijst.';
+    ? 'Welkomstcall bewaard en afgerond.'
+    : 'Welkomstcall bewaard. Hij staat bij de openstaande welkomstcalls.';
   renderCalls(); renderTaken(); badges(); toast('Welkomstcall bewaard.');
 });
 let wcFilterStand = 'open';
