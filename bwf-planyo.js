@@ -341,7 +341,16 @@
       return verstuur(
         "create-reservation",
         gegevens
-      );
+      ).then(function (uit) {
+        if (!uit || !uit.reservation_id) {
+          throw new Error(
+            "Planyo heeft de reservering niet aangemaakt" +
+            (uit && uit.error ? ": " + uit.error : ".")
+          );
+        }
+        if (window.BWFSync) window.BWFSync.melden("reservering", { id: uit.reservation_id });
+        return uit;
+      });
     },
 
     /*
