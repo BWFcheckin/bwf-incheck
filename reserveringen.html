@@ -1,2924 +1,633 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="utf-8">
-<meta name="color-scheme" content="light dark">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Reserveringen — Bed &amp; Wellness Flevoland</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14342A">
+<title>Beschikbaarheid — Bed &amp; Wellness Flevoland</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
-  --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
-  --accent:#483C34; --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2;
-  --warn:#8F6420; --warn-soft:#F6EBD9; --crit:#A34434; --crit-soft:#F7E2DC;
-  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
-  --r-s:6px; --r-m:10px; --r-l:16px;
-  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1;
+  --vrij:#2E7D53; --vrij-zacht:#E6F2EA;
+  --deels:#B8860B; --deels-zacht:#FBF1DA;
+  --bezet:#B3453A; --bezet-zacht:#FBEAE7;
+  --r:12px;
+  --f-titel:"Cormorant Garamond",Georgia,serif;
   --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
-  /* kleuren van SMG */
-  --smg-blok:#7DB63F;        --smg-blok-vlak:#EBF4DF;
-  --smg-vrij:#B4F04E;        --smg-vrij-vlak:#F2FCE0;
-  --smg-potentieel:#F0A33C;  --smg-potentieel-vlak:#FDF0DE;
-  --smg-definitief:#E8321C;  --smg-definitief-vlak:#FCE7E4;
-  --smg-schoonmaak:#9AA9CC;  --smg-schoonmaak-vlak:#EBEFF8;
-  --smg-bezet:#E22BC0;       --smg-bezet-vlak:#FBE6F7;
-  --smg-gesloten:#EF8FBE;    --smg-gesloten-vlak:#FCEAF3;
-}
-:root[data-theme="dark"]{
-  --bg:#1A1613; --surface:#221D19; --surface-2:#2A241F;
-  --line:#3A322B; --line-soft:#312A24;
-  --ink:#F0EAE3; --ink-2:#D5CABF; --muted:#9C8E80;
-  --accent:#7A6248; --brass:#C79A63;
-  --ok:#6FA783; --ok-soft:#25352B; --warn:#C79A63; --warn-soft:#352C1F;
-  --crit:#D98B7D; --crit-soft:#3A2622;
-  --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 24px -14px rgba(0,0,0,.6);
-  --smg-blok-vlak:#28321F; --smg-vrij-vlak:#2C3A1D; --smg-potentieel-vlak:#372C1D;
-  --smg-definitief-vlak:#3A2723; --smg-schoonmaak-vlak:#242A36;
-  --smg-bezet-vlak:#33232F; --smg-gesloten-vlak:#36242B;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-body.ingebed{background:transparent}
-body.ingebed .paginakop{display:none}
-h1,h2,h3{font-family:var(--f-display);margin:0;font-weight:600;letter-spacing:-.01em}
-button{font:inherit;color:inherit;cursor:pointer}
-.wrap{max-width:1320px;margin:0 auto;padding:0 18px 40px}
-body.ingebed .wrap{padding:0}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px}
+a{color:var(--groen-2)}
+:focus-visible{outline:2px solid var(--goud);outline-offset:2px;border-radius:6px}
 
-.paginakop{background:var(--accent);color:#fff;padding:18px 0 20px;margin-bottom:20px}
-.paginakop .wrap{display:flex;align-items:center;gap:14px;padding-bottom:0}
-.paginakop .mark{width:38px;height:38px;border-radius:9px;background:var(--brass);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:14px}
-.paginakop b{display:block;font-family:var(--f-display);font-size:16px}
-.paginakop span{display:block;font-size:12.5px;opacity:.72}
-.topbalk{position:sticky;top:0;z-index:60;background:var(--accent);
-  box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
-body.ingebed .topbalk{display:none}
-.kopmenu{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:9px 18px!important}
-.kopmenu a{color:rgba(255,255,255,.82);text-decoration:none;font-size:13px;padding:6px 12px;
-  border-radius:999px;border:1px solid rgba(255,255,255,.18);white-space:nowrap;line-height:1.2}
-.kopmenu a:hover{background:rgba(255,255,255,.13);color:#fff}
-.kopmenu a.hier{background:#fff;color:var(--accent);border-color:#fff;font-weight:600}
-.kopmenu a.thuis{background:var(--brass);border-color:var(--brass);color:#fff;font-weight:600}
-.kopmenu .scheiding{width:1px;align-self:stretch;background:rgba(255,255,255,.2);margin:2px 4px}
-.paginakop{padding-top:16px}
-@media(max-width:700px){
-  .kopmenu{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 14px!important}
-  .kopmenu a{font-size:12.5px;padding:5px 10px}
+/* ---------- merkbalk ---------- */
+.merkbalk{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+.merkbalk .binnen{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 18px}
+.merk{font-family:var(--f-titel);font-size:17px;letter-spacing:.16em;text-transform:uppercase;
+  line-height:1.1;color:var(--groen)}
+.merk small{display:block;font-size:9.5px;letter-spacing:.34em;color:var(--goud);margin-top:2px}
+.merkbalk nav{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.merkbalk nav a{display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;
+  color:var(--ink-2);padding:7px 12px;border-radius:999px;white-space:nowrap}
+.merkbalk nav a:hover{background:var(--surface-2)}
+.merkbalk nav a.hier{color:var(--groen);border-bottom:2px solid var(--goud);border-radius:0}
+.merkbalk .wie{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+
+/* ---------- sfeerbeeld ---------- */
+.hero{position:relative;min-height:190px;display:flex;align-items:flex-end;
+  background:var(--groen) center/cover no-repeat}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(
+  to right, rgba(20,52,42,.92) 0%, rgba(20,52,42,.72) 45%, rgba(20,52,42,.25) 100%)}
+.hero .tekst{position:relative;z-index:1;max-width:1120px;margin:0 auto;width:100%;padding:26px 18px 24px;color:#fff}
+.hero h1{font-family:var(--f-titel);font-size:34px;font-weight:500;margin:0 0 4px;letter-spacing:.01em}
+.hero p{margin:0;font-size:14px;color:rgba(255,255,255,.82);max-width:52ch}
+
+/* ---------- dagbalk ---------- */
+.wrap{max-width:1120px;margin:0 auto;padding:18px 18px 70px}
+.dagkaart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:16px}
+.dagrij{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dagrij h2{font-family:var(--f-titel);font-size:24px;font-weight:500;margin:0;line-height:1.15}
+.dagrij .sub{display:block;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.rond{width:36px;height:36px;border:1px solid var(--line);background:var(--surface-2);
+  border-radius:50%;cursor:pointer;font-size:15px;color:var(--ink-2);flex:none}
+.rond:hover{border-color:var(--groen-2);color:var(--groen)}
+.nu{margin-left:auto;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
+  padding:8px 15px;font:inherit;font-size:13px;cursor:pointer}
+.nu:hover{border-color:var(--groen-2)}
+
+.strook{display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
+.strook::-webkit-scrollbar{display:none}
+.dagje{flex:none;width:56px;text-align:center;border:1px solid var(--line);border-radius:10px;
+  padding:7px 0 8px;background:var(--surface-2);cursor:pointer;font:inherit;color:inherit}
+.dagje small{display:block;font-family:var(--f-mono);font-size:9.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em}
+.dagje b{display:block;font-family:var(--f-titel);font-size:19px;font-weight:500;line-height:1.25}
+.dagje .stip{display:block;width:4px;height:4px;border-radius:50%;margin:3px auto 0;background:var(--line)}
+.dagje[data-nu="1"]{background:var(--groen);border-color:var(--groen);color:#fff}
+.dagje[data-nu="1"] small{color:rgba(255,255,255,.7)}
+.dagje[data-nu="1"] .stip{background:var(--goud)}
+
+.dienst{margin-top:12px;background:var(--groen-zacht);border-radius:10px;padding:9px 13px;
+  font-size:13.5px;color:var(--groen)}
+.dienst b{font-weight:600}
+.filterrij{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.filt{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
+  padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.filt:hover{border-color:var(--groen-2)}
+.filt.aan{background:var(--groen);border-color:var(--groen);color:#fff}
+.legenda{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);
+  border-top:1px solid var(--line-soft);margin-top:12px;padding-top:11px}
+.legenda span{display:flex;align-items:center;gap:7px}
+.legenda i{width:9px;height:9px;border-radius:50%;display:block}
+
+/* ---------- suites ---------- */
+.suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:26px}
+.suitekop{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 2px 2px}
+.suitekop .vlek{width:4px;height:20px;border-radius:2px;flex:none;background:var(--goud)}
+.suitekop h3{font-family:var(--f-titel);font-size:21px;font-weight:500;margin:0;letter-spacing:.01em}
+.suitekop .plaats{font-size:12.5px;color:var(--muted)}
+.suitekop em{font-style:normal;margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+
+.blok{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:13px 15px;cursor:pointer}
+.blok:hover{border-color:var(--groen-2)}
+.blok .tijd{flex:1;min-width:0}
+.blok .tijd b{display:block;font-size:14.5px;font-weight:500;font-variant-numeric:tabular-nums}
+.blok .tijd span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.blok .merk2{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 11px;
+  border-radius:999px;background:var(--vrij-zacht);color:var(--vrij);white-space:nowrap;flex:none}
+.blok .merk2::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.blok .chev{color:var(--muted);flex:none;font-size:15px}
+
+.blok[data-vrij="deels"]{background:var(--deels-zacht);border-color:#EBD9AE}
+.blok[data-vrij="deels"] .merk2{background:var(--surface);color:var(--deels)}
+.blok[data-vrij="0"]{background:var(--bezet-zacht);border-color:#EFCFC8}
+.blok[data-vrij="0"] .merk2{background:var(--surface);color:var(--bezet)}
+.blok[data-vrij="0"] .tijd b{color:#7A2C24}
+
+.leeg{color:var(--muted);font-size:13.5px;padding:12px 2px}
+.balk{background:var(--bezet-zacht);color:var(--bezet);border:1px solid #EFCFC8;
+  border-radius:var(--r);padding:12px 14px;font-size:13.5px;margin-bottom:16px}
+
+/* ---------- inloggen ---------- */
+#slot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
+  background:var(--groen) center/cover no-repeat}
+#slot::before{content:"";position:absolute;inset:0;background:rgba(20,52,42,.72)}
+#slot.weg{display:none}
+#slot .doos{position:relative;background:var(--surface);border-radius:16px;padding:30px 26px;
+  max-width:380px;width:100%;text-align:center;box-shadow:0 24px 60px -30px rgba(20,52,42,.7)}
+#slot .merk{margin-bottom:6px}
+#slot .spreuk{font-family:var(--f-titel);font-size:14px;color:var(--muted);margin:0 0 20px}
+#slot label{display:block;text-align:left;font-size:12.5px;color:var(--ink-2);margin:12px 0 4px}
+#slot input{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:11px 12px;font:inherit}
+#slot input:focus{outline:2px solid var(--groen-2);outline-offset:-1px;background:#fff}
+#slot button{width:100%;margin-top:18px;background:var(--groen);color:#fff;border:0;border-radius:8px;
+  padding:12px;font:inherit;font-weight:600;cursor:pointer}
+#slot button:hover{background:var(--groen-2)}
+#slot .fout{color:var(--bezet);font-size:13px;margin-top:10px}
+@media(max-width:640px){
+  .hero{min-height:150px}
+  .hero h1{font-size:27px}
+  .merkbalk nav a{padding:6px 9px;font-size:12.5px}
+  .blok{padding:12px 13px}
 }
-@media print{.kopmenu{display:none}}
-
-/* ---------- tegels ---------- */
-.tegels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
-@media(max-width:720px){.tegels{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.tegel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:13px 15px;text-align:left;box-shadow:var(--shadow)}
-.tegel[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-.tegel .aantal{font-family:var(--f-mono);font-size:24px;font-weight:500;display:block;line-height:1.15}
-.tegel .naam{font-size:12.5px;color:var(--muted);display:block;margin-top:2px}
-.tegel[aria-pressed="true"] .naam{color:rgba(255,255,255,.75)}
-.tegel .bij{font-size:11.5px;color:var(--muted);display:block;margin-top:5px;font-family:var(--f-mono)}
-.tegel[aria-pressed="true"] .bij{color:rgba(255,255,255,.7)}
-
-.paneel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);overflow:visible}
-.balk{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line-soft);background:var(--surface-2);border-radius:var(--r-l) var(--r-l) 0 0}
-.balk label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
-input,select{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:6px 10px;font:inherit;font-size:13.5px;color:var(--ink)}
-input[type=search]{min-width:180px}
-.rechts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.knop{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:6px 12px;font-size:13.5px;color:var(--ink-2);text-decoration:none;display:inline-block}
-.knop:hover{background:var(--surface-2)}
-.knop.vol{background:var(--accent);border-color:var(--accent);color:#fff}
-.knop.klein{padding:3px 9px;font-size:12.5px}
-.knop.gevaar{color:var(--crit);border-color:var(--crit-soft)}
-.themaknop{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:6px;padding:6px 12px;font-size:13.5px;line-height:1.2}
-
-/* ---------- legenda ---------- */
-.legenda{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--line-soft);font-size:11.5px;color:var(--muted)}
-.legenda span{display:flex;align-items:center;gap:6px}
-.legenda i{width:18px;height:9px;border-radius:3px;display:block}
-
-/* ---------- tabel (compact) ---------- */
-.tabelwrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:13px}
-th{text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
-td{padding:4px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle;line-height:1.35}
-.datum{display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
-tbody tr:hover{background:var(--surface-2)}
-tr.detail td{background:var(--surface-2);border-bottom:2px solid var(--line);vertical-align:top;padding:10px 12px}
-th.acties,td.acties{width:1%;white-space:nowrap;padding-left:8px;padding-right:4px}
-td.naam{font-weight:600;cursor:pointer;max-width:250px}
-td.naam:hover .gastnaam{text-decoration:underline}
-.gastnaam{display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.subregel{font-size:10.5px;color:var(--muted);font-weight:400;line-height:1.3;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.merkjes{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}
-td.nowrap,th.nowrap{white-space:nowrap}
-.geld{font-family:var(--f-mono);text-align:right;white-space:nowrap}
-.open{color:var(--crit);font-weight:600}
-body.geen-bedragen td.geld,body.geen-bedragen th:nth-child(10),body.geen-bedragen th:nth-child(11){visibility:hidden}
-.leeg{color:var(--muted);font-size:14px;padding:26px 18px;text-align:center}
-.fout{color:var(--crit);background:var(--crit-soft);border-radius:var(--r-s);padding:10px 12px;font-size:13.5px;margin:12px 16px}
-.gelukt{color:var(--ok);background:var(--ok-soft);border-radius:var(--r-s);padding:10px 12px;font-size:13.5px;margin:12px 16px}
-.voetregel{display:flex;gap:16px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line-soft);font-family:var(--f-mono);font-size:11.5px;color:var(--muted);background:var(--surface-2);border-radius:0 0 var(--r-l) var(--r-l)}
-
-.soort{font-family:var(--f-mono);font-size:10px;padding:1px 7px;border-radius:20px;background:var(--vlak);color:var(--kleur);border:1px solid var(--kleur);white-space:nowrap}
-tr.rij td:first-child{border-left:4px solid var(--kleur)}
-.gekoppeld{font-family:var(--f-mono);font-size:9.5px;padding:0 6px;border-radius:20px;background:var(--ok-soft);color:var(--ok);white-space:nowrap;line-height:1.6}
-
-.detailblok{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:12.5px;max-width:820px}
-.detailblok dt{color:var(--muted)}
-.detailblok dd{margin:0}
-.detailblok ul{margin:0;padding-left:16px}
-.detailknoppen{margin-top:12px;display:flex;gap:7px;flex-wrap:wrap}
-
-/* ---------- actiemenu ---------- */
-.menuhouder{position:relative}
-.menuknop{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s);padding:1px 9px;font-size:15px;line-height:1.3;color:var(--ink-2)}
-.actiemenu{position:absolute;left:0;top:100%;margin-top:4px;z-index:50;width:250px;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--r-m);box-shadow:0 18px 50px -18px rgba(36,30,25,.5);display:none;overflow:hidden}
-.actiemenu.open{display:block}
-.actiemenu button,.actiemenu a{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 14px;font-size:13.5px;color:var(--ink);text-decoration:none}
-.actiemenu button:hover,.actiemenu a:hover{background:var(--surface-2)}
-.actiemenu .kop{padding:9px 14px 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.actiemenu hr{border:0;border-top:1px solid var(--line-soft);margin:5px 0}
-
-dialog{border:1px solid var(--line);border-radius:var(--r-l);padding:0;max-width:580px;width:calc(100% - 32px);box-shadow:var(--shadow);background:var(--surface);color:var(--ink)}
-dialog.breed{max-width:780px}
-dialog::backdrop{background:rgba(36,30,25,.4)}
-dialog .binnen{padding:20px}
-dialog h3{font-size:17px;margin-bottom:4px}
-dialog .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
-.velden{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
-@media(max-width:560px){.velden{grid-template-columns:1fr}}
-.veld{display:flex;flex-direction:column;gap:4px}
-.veld.breed{grid-column:1/-1}
-.veld span{font-size:12.5px;color:var(--ink-2)}
-.veld input,.veld select,.veld textarea{width:100%;border:1px solid var(--line);border-radius:var(--r-s);padding:8px 10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink)}
-.veld textarea{min-height:64px;resize:vertical}
-.voet{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
-.voet .links{margin-right:auto}
-.treffer{border:1px solid var(--line);border-radius:var(--r-s);padding:10px 12px;margin-bottom:8px;background:var(--surface-2);font-size:13.5px}
-.treffer b{display:block}
-:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
-
-/* ---------- klantkaart ---------- */
-.kkraster{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:620px){.kkraster{grid-template-columns:1fr}}
-.kkvak{border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px;background:var(--surface-2)}
-.kkvak.breed{grid-column:1/-1}
-.kkvak h4{margin:0 0 8px;font-family:var(--f-display);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.kkvak dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
-.kkvak dt{color:var(--muted)}
-.kkvak dd{margin:0;word-break:break-word}
-.kkbezoek{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line-soft)}
-.kkbezoek:last-child{border-bottom:0}
-.kkbezoek span{color:var(--muted);white-space:nowrap}
-.kkmerkjes{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
-.kkacties{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}
-
-/* ---------- kalender ---------- */
-.wissel{display:flex;border:1px solid var(--line);border-radius:var(--r-s);overflow:hidden}
-.wissel button{border:0;background:var(--surface);color:var(--ink-2);padding:6px 12px;font-size:13.5px}
-.wissel button[aria-pressed="true"]{background:var(--accent);color:#fff}
-.kalkop{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
-.kalkop b{font-family:var(--f-display);font-size:15px;min-width:170px}
-.kalkop .telling{margin-left:auto;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
-.kalgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line-soft);padding:1px}
-.kaldagkop{background:var(--surface);padding:5px 8px;font-size:11px;color:var(--muted);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-.kalcel{background:var(--surface);min-height:98px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.kalcel.buiten{background:var(--surface-2)}
-.kalcel.buiten .dagnr{opacity:.45}
-.kalcel.vandaag{box-shadow:inset 0 0 0 2px var(--brass)}
-.kalcel .dagnr{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
-.kalcel.weekend .dagnr{color:var(--brass)}
-.kalitem{border:0;border-left:3px solid var(--kleur);background:var(--vlak);color:var(--ink);border-radius:4px;
-  padding:2px 5px;font-size:10.5px;text-align:left;line-height:1.3;width:100%;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kalitem:hover{filter:brightness(.95)}
-.kalitem .kt{font-family:var(--f-mono);color:var(--muted);margin-right:3px}
-.kalitem.meerdaags{position:relative;z-index:1;border-radius:0;margin-left:-5px;margin-right:-5px;width:calc(100% + 10px)}
-.kalitem.meerdaags.kal-start{margin-left:0;width:calc(100% + 5px);border-radius:4px 0 0 4px}
-.kalitem.meerdaags.kal-eind{margin-right:0;width:calc(100% + 5px);border-left:0;border-radius:0 4px 4px 0}
-.kalitem.meerdaags.kal-start.kal-eind{width:100%;margin-left:0;margin-right:0;border-left:3px solid var(--kleur);border-radius:4px}
-.kalitem.meerdaags:not(.kal-start){border-left:0;padding-left:7px}
-.kalleeg{color:var(--muted);font-size:13.5px;padding:24px;text-align:center}
-/* wie werkt er — bovenaan elke dag (alleen met ?planning=1) */
-.kaldagrij{display:flex;align-items:center;gap:5px;min-width:0;height:18px}
-.kaldagrij .dagnr{flex:none}
-.kalwerk{display:flex;gap:3px;min-width:0;overflow:hidden;flex:1}
-.kalwerk .wk{display:inline-flex;align-items:center;gap:4px;flex:none;max-width:100%;
-  font-size:10.5px;font-weight:600;line-height:16px;padding:0 6px 0 5px;border-radius:999px;
-  background:var(--surface-2);border:1px solid var(--line-soft);color:var(--ink-2);white-space:nowrap}
-.kalwerk .wk i{width:7px;height:7px;border-radius:50%;background:var(--wk);flex:none}
-.kalwerk .wk b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
-.kalcel.buiten .kalwerk{opacity:.5}
-@media(max-width:760px){
-  .kalwerk .wk{font-size:9.5px;padding:0 4px}
-  .kalwerk .wk i{display:none}
-}
-@media(max-width:760px){
-  .kalcel{min-height:74px;padding:3px}
-  .kalitem{font-size:9.5px;padding:1px 3px}
-  .kalkop b{min-width:130px;font-size:14px}
-}
-#berichtDialog[data-soort="wijziging"] .annuleerveld{display:none}
-#berichtDialog[data-soort="annulering"] .wijzigveld{display:none}
-.vinkje{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--ink-2)}
-.vinkje input{width:17px;height:17px}
 </style>
-<link rel="icon" href="favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="bwf-icon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="BWF Lelystad">
 </head>
 <body>
-<!-- ================= BWF-toegang ================= -->
-<style>
-#bwfSlot{position:fixed;inset:0;z-index:10000;background:#F4F1ED;display:none;
-  align-items:center;justify-content:center;padding:20px;
-  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif}
-#bwfSlot.open{display:flex}
-:root[data-theme="dark"] #bwfSlot{background:#1A1613}
-#bwfSlot .kaart{background:#fff;border:1px solid #E3DAD0;border-radius:16px;padding:28px;
-  width:100%;max-width:380px;box-shadow:0 18px 50px -18px rgba(36,30,25,.4)}
-:root[data-theme="dark"] #bwfSlot .kaart{background:#221D19;border-color:#3A322B;color:#F0EAE3}
-#bwfSlot .merk{display:flex;align-items:center;gap:11px;margin-bottom:18px}
-#bwfSlot .mark{width:40px;height:40px;border-radius:10px;background:#9A7B4F;color:#fff;
-  display:grid;place-items:center;font-weight:700;font-size:14px}
-#bwfSlot h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:19px;margin:0}
-#bwfSlot .onder{font-size:12.5px;color:#7B6E62;margin:2px 0 0}
-#bwfSlot label{display:block;font-size:12.5px;color:#4B4239;margin:12px 0 4px}
-:root[data-theme="dark"] #bwfSlot label{color:#D5CABF}
-#bwfSlot input{width:100%;border:1px solid #E3DAD0;border-radius:6px;padding:10px 12px;
-  font:inherit;font-size:15px;background:#FAF7F3;color:#241E19}
-:root[data-theme="dark"] #bwfSlot input{background:#2A241F;border-color:#3A322B;color:#F0EAE3}
-#bwfSlot button{width:100%;margin-top:18px;background:#483C34;color:#fff;border:0;
-  border-radius:8px;padding:11px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
-#bwfSlot button:disabled{opacity:.6;cursor:wait}
-#bwfSlot .fout{margin-top:14px;background:#F7E2DC;color:#A34434;border-radius:6px;
-  padding:10px 12px;font-size:13.5px;display:none}
-#bwfSlot .fout.open{display:block}
-#bwfSlot .voetnoot{margin-top:16px;font-size:12px;color:#7B6E62;line-height:1.45}
-#bwfUit{position:fixed;right:16px;bottom:16px;z-index:8980;border:1px solid #E3DAD0;
-  background:#fff;color:#4B4239;border-radius:999px;padding:7px 14px;font-size:12.5px;
-  font-family:"Public Sans",Arial,sans-serif;cursor:pointer;display:none;
-  box-shadow:0 4px 14px rgba(36,30,25,.2)}
-#bwfUit.open{display:block}
-:root[data-theme="dark"] #bwfUit{background:#221D19;border-color:#3A322B;color:#D5CABF}
-body.bwf-vergrendeld > *:not(#bwfSlot){filter:blur(6px);pointer-events:none;user-select:none}
-</style>
 
-<div id="bwfSlot">
-  <div class="kaart">
-    <div class="merk">
-      <div class="mark">B&amp;W</div>
-      <div>
-        <h2>Inloggen</h2>
-        <p class="onder">Bed &amp; Wellness Flevoland</p>
-      </div>
-    </div>
-    <label for="bwfMail">E-mailadres</label>
-    <input id="bwfMail" type="email" autocomplete="username" inputmode="email">
-    <label for="bwfWw">Wachtwoord</label>
-    <input id="bwfWw" type="password" autocomplete="current-password">
-    <button type="button" id="bwfInlog">Inloggen</button>
-    <div class="fout" id="bwfFout"></div>
-    <p class="voetnoot">Deze pagina bevat gegevens van gasten. Log in met het account dat je van Angela hebt gekregen.</p>
+<div id="slot">
+  <div class="doos">
+    <div class="merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <p class="spreuk">Ontspan. Geniet. Beleef.</p>
+    <label for="lgMail">E-mailadres</label><input id="lgMail" type="email" inputmode="email">
+    <label for="lgWw">Wachtwoord</label><input id="lgWw" type="password">
+    <button type="button" id="lgKnop">Inloggen</button>
+    <p style="margin:14px 0 0;font-size:13px"><a href="#" id="bwfVergeten">Wachtwoord vergeten?</a></p>
+    <div class="fout" id="lgFout"></div>
   </div>
 </div>
-<button id="bwfUit" type="button">Uitloggen</button>
 
-<script>
-/* =========================================================
-   Toegang — één login voor alle BWF-pagina's
-   ========================================================= */
-window.BWF = window.BWF || {};
-(function(){
-  var PROJECT = 'iuyjvtlauktnjprbmbjj';
-  var BASIS   = 'https://' + PROJECT + '.supabase.co';
-  var ANON    = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
-  var SLEUTEL = 'sb-' + PROJECT + '-auth-token';
-
-  var slot = document.getElementById('bwfSlot');
-  var uitKnop = document.getElementById('bwfUit');
-  var foutVak = document.getElementById('bwfFout');
-
-  function lees(){
-    try{ return JSON.parse(localStorage.getItem(SLEUTEL) || 'null'); }catch(e){ return null; }
-  }
-  function schrijf(s){
-    try{ localStorage.setItem(SLEUTEL, JSON.stringify(s)); }catch(e){}
-  }
-  function wis(){ try{ localStorage.removeItem(SLEUTEL); }catch(e){} }
-
-  function verlopen(jwt){
-    try{
-      var d = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      return !d.exp || (d.exp * 1000) < (Date.now() + 30000);
-    }catch(e){ return true; }
-  }
-  function mailUit(jwt){
-    try{
-      var d = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      return d.email || '';
-    }catch(e){ return ''; }
-  }
-
-  async function verversen(s){
-    if(!s || !s.refresh_token) return null;
-    try{
-      var r = await fetch(BASIS + '/auth/v1/token?grant_type=refresh_token', {
-        method:'POST',
-        headers:{ 'apikey':ANON, 'Content-Type':'application/json' },
-        body: JSON.stringify({ refresh_token: s.refresh_token })
-      });
-      if(!r.ok) return null;
-      var n = await r.json();
-      if(!n.access_token) return null;
-      schrijf(n);
-      return n;
-    }catch(e){ return null; }
-  }
-
-  async function geldigeSessie(){
-    var s = lees();
-    if(s && s.access_token && !verlopen(s.access_token)) return s;
-    return await verversen(s);
-  }
-
-  async function haalRol(mail){
-    if(!mail) return '';
-    try{
-      var s = lees();
-      var r = await fetch(BASIS + '/rest/v1/wz_medewerkers?select=email,rol,naam&email=eq.' +
-        encodeURIComponent(mail), {
-        headers:{ 'apikey':ANON, 'Authorization':'Bearer ' + (s && s.access_token ? s.access_token : ANON) }
-      });
-      if(!r.ok) return '';
-      var rijen = await r.json();
-      if(rijen && rijen[0]){
-        window.BWF.medewerker = rijen[0].naam || '';
-        return (rijen[0].rol || '').toLowerCase();
-      }
-    }catch(e){}
-    return '';
-  }
-
-  function vergrendel(){
-    document.body.classList.add('bwf-vergrendeld');
-    slot.classList.add('open');
-    uitKnop.classList.remove('open');
-    setTimeout(function(){ document.getElementById('bwfMail').focus(); }, 60);
-  }
-  function ontgrendel(){
-    document.body.classList.remove('bwf-vergrendeld');
-    slot.classList.remove('open');
-    uitKnop.classList.add('open');
-  }
-
-  function fout(tekst){
-    foutVak.textContent = tekst;
-    foutVak.classList.add('open');
-  }
-
-  document.getElementById('bwfInlog').onclick = async function(){
-    var knop = this;
-    var mail = document.getElementById('bwfMail').value.trim();
-    var ww = document.getElementById('bwfWw').value;
-    if(!mail || !ww){ fout('Vul je e-mailadres en wachtwoord in.'); return; }
-    knop.disabled = true; knop.textContent = 'Bezig…';
-    foutVak.classList.remove('open');
-    try{
-      var r = await fetch(BASIS + '/auth/v1/token?grant_type=password', {
-        method:'POST',
-        headers:{ 'apikey':ANON, 'Content-Type':'application/json' },
-        body: JSON.stringify({ email: mail, password: ww })
-      });
-      var d = await r.json();
-      if(!r.ok || !d.access_token){
-        fout(d.error_description || d.msg || 'Inloggen lukte niet. Controleer je e-mailadres en wachtwoord.');
-      }else{
-        schrijf(d);
-        window.BWF.email = mail;
-        window.BWF.rol = await haalRol(mail);
-        ontgrendel();
-        window.dispatchEvent(new Event('bwf-ingelogd'));
-        location.reload();
-      }
-    }catch(e){
-      fout('Geen verbinding. Controleer je internet en probeer opnieuw.');
-    }
-    knop.disabled = false; knop.textContent = 'Inloggen';
-  };
-  document.getElementById('bwfWw').addEventListener('keydown', function(e){
-    if(e.key === 'Enter') document.getElementById('bwfInlog').click();
-  });
-
-  uitKnop.onclick = function(){
-    if(!confirm('Uitloggen?')) return;
-    wis();
-    location.reload();
-  };
-
-  /* meteen bij het laden controleren */
-  (async function(){
-    var s = await geldigeSessie();
-    if(!s){ vergrendel(); window.BWF.rol = ''; return; }
-    ontgrendel();
-    window.BWF.email = mailUit(s.access_token);
-    window.BWF.rol = await haalRol(window.BWF.email);
-    window.dispatchEvent(new Event('bwf-ingelogd'));
-    /* ruim voor het verlopen alvast verversen */
-    setInterval(function(){ geldigeSessie(); }, 4 * 60 * 1000);
-  })();
-
-  window.BWF.token = function(){
-    var s = lees();
-    return (s && s.access_token && !verlopen(s.access_token)) ? s.access_token : null;
-  };
-  window.BWF.mag = function(){
-    var r = window.BWF.rol || '';
-    for(var i=0;i<arguments.length;i++) if(arguments[i] === r) return true;
-    return false;
-  };
-})();
-</script>
-<!-- ================= einde BWF-toegang ================= -->
-
-
-
-<div class="topbalk">
-  <nav class="kopmenu wrap" id="bwfBalk" aria-label="Navigatie"></nav>
+<div class="merkbalk">
+  <div class="binnen">
+    <div class="merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <nav>
+      <a class="hier" href="beschikbaarheid2.html">Beschikbaarheid</a>
+      <a href="vandaag.html">Vandaag</a>
+      <a href="reserveringen.html">Reserveringen</a>
+      <a href="dagstart.html">Dagstart</a>
+    </nav>
+    <span class="wie" id="wieBen"></span>
+  </div>
 </div>
 
-<header class="paginakop">
-  <div class="wrap">
-    <div class="mark">B&amp;W</div>
-    <div><b>Reserveringen</b><span>Bed &amp; Wellness Flevoland</span></div>
+<div class="hero" id="hero">
+  <div class="tekst">
+    <h1>Beschikbaarheid</h1>
+    <p>Bekijk de vrije tijdsblokken per suite en boek direct.</p>
   </div>
-</header>
+</div>
 
 <div class="wrap">
-
-  <div class="tegels" id="tegels"></div>
-
-  <div class="paneel">
-    <div class="balk">
-      <label>Van <input type="date" id="fVan"></label>
-      <label>Tot <input type="date" id="fTot"></label>
-      <select id="fLocatie"><option value="">Alle locaties</option></select>
-      <select id="fSoort"><option value="">Alle soorten</option></select>
-      <select id="fMedewerker"><option value="">Alle medewerkers</option><option value="__geen">Nog niemand</option></select>
-      <input type="search" id="fZoek" placeholder="Zoek op naam, nummer of e-mail">
-      <div class="rechts">
-        <div class="wissel">
-          <button type="button" id="btnLijst" aria-pressed="true">Lijst</button>
-          <button type="button" id="btnKalender" aria-pressed="false">Kalender</button>
-        </div>
-        <span id="bwfMenuPlek"></span>
-        <button class="themaknop" id="themaKnop" type="button">Donkere modus</button>
-        <button class="knop" type="button" id="btnBlacklist">Zwarte lijst</button>
-        <button class="knop" type="button" id="btnReview">Reviewtaken</button>
-        <button class="knop" type="button" id="btnCsv">CSV</button>
-        <button class="knop vol" type="button" id="btnNieuw">Reservering toevoegen</button>
-      </div>
+  <div class="dagkaart">
+    <div class="dagrij">
+      <button class="rond" id="terug" aria-label="Vorige dag">&larr;</button>
+      <div><h2 id="datumTitel">Vandaag</h2><span class="sub" id="datumSub"></span></div>
+      <button class="rond" id="vooruit" aria-label="Volgende dag">&rarr;</button>
+      <button class="nu" id="knopNu">Vandaag</button>
     </div>
-    <div class="legenda" id="legenda"></div>
-    <div id="melding"></div>
-    <div class="tabelwrap">
-      <table>
-        <thead><tr>
-          <th class="acties"></th>
-          <th class="nowrap">Aankomst</th>
-          <th class="nowrap">Vertrek</th>
-          <th>N</th>
-          <th>Gast</th>
-          <th>Locatie</th>
-          <th>Soort</th>
-          <th>Medewerker</th>
-          <th class="nowrap">Contact</th>
-          <th style="text-align:right">Totaal</th>
-          <th style="text-align:right">Open</th>
-        </tr></thead>
-        <tbody id="rijen"><tr><td colspan="11" class="leeg">Bezig met laden…</td></tr></tbody>
-      </table>
+    <div class="strook" id="strook"></div>
+    <div id="dienstRegel" class="dienst" style="display:none"></div>
+    <div class="filterrij">
+      <button type="button" class="filt aan" data-filter="alles">Alles</button>
+      <button type="button" class="filt" data-filter="vrij">Alleen vrij</button>
+      <button type="button" class="filt" data-filter="bezet">Alleen geboekt</button>
     </div>
-    <div id="kalender" hidden>
-      <div class="kalkop">
-        <button class="knop" type="button" id="kalVorige">‹</button>
-        <b id="kalTitel"></b>
-        <button class="knop" type="button" id="kalVolgende">›</button>
-        <button class="knop" type="button" id="kalVandaag">Deze maand</button>
-        <span class="telling" id="kalTelling"></span>
-      </div>
-      <div id="kalInhoud"></div>
+    <div class="legenda">
+      <span><i style="background:var(--vrij)"></i> Vrij</span>
+      <span><i style="background:var(--deels)"></i> Deels bezet</span>
+      <span><i style="background:var(--bezet)"></i> Bezet</span>
     </div>
-    <div class="voetregel" id="voetregel"></div>
   </div>
+
+  <div class="balk" id="balk" style="display:none"></div>
+  <div id="lijst"></div>
 </div>
-
-<!-- klantkaart -->
-<dialog id="kaartDialog" class="breed"><div class="binnen">
-  <h3 id="kkNaam">Klantkaart</h3>
-  <div class="sub" id="kkSub"></div>
-  <div id="kkWaarschuwing"></div>
-  <div class="kkmerkjes" id="kkMerkjes"></div>
-  <div class="kkraster" id="kkRaster"></div>
-  <div class="kkacties" id="kkActies"></div>
-  <div class="voet">
-    <button class="knop vol" type="button" data-sluit="kaartDialog">Sluiten</button>
-  </div>
-</div></dialog>
-
-<!-- handmatige reservering -->
-<dialog id="resDialog"><div class="binnen">
-  <h3 id="dlgTitel">Reservering toevoegen</h3>
-  <div class="velden">
-    <div class="veld"><span>Voornaam</span><input id="v_voornaam" type="text"></div>
-    <div class="veld"><span>Achternaam</span><input id="v_achternaam" type="text"></div>
-    <div class="veld"><span>Locatie</span><input id="v_locatie" type="text" list="locatieLijst"><datalist id="locatieLijst"></datalist></div>
-    <div class="veld"><span>Arrangement</span><input id="v_arrangement" type="text"></div>
-    <div class="veld"><span>Aankomst</span><input id="v_checkindatum" type="date"></div>
-    <div class="veld"><span>Vertrek</span><input id="v_checkuitdatum" type="date"></div>
-    <div class="veld"><span>Tijd aankomst</span><input id="v_checkintijd" type="time"></div>
-    <div class="veld"><span>Tijd vertrek</span><input id="v_checkuittijd" type="time"></div>
-    <div class="veld"><span>Telefoon</span><input id="v_telefoon" type="tel"></div>
-    <div class="veld"><span>E-mail</span><input id="v_email" type="email"></div>
-    <div class="veld"><span>Totaalbedrag</span><input id="v_totaal" type="number" step="0.01" min="0"></div>
-    <div class="veld"><span>Al betaald</span><input id="v_betaald" type="number" step="0.01" min="0"></div>
-    <div class="veld breed"><span>Toegewezen aan</span><input id="v_toegewezen" type="text"></div>
-    <div class="veld breed"><span>Opmerkingen</span><textarea id="v_opmerkingen"></textarea></div>
-    <div class="veld breed" id="planyoVelden">
-      <span>Planyo-accommodatie</span>
-      <select id="v_planyo_resource"><option value="">Accommodaties laden…</option></select>
-      <label style="display:flex;gap:9px;align-items:center;margin-top:10px;font-weight:600">
-        <input id="v_planyo" type="checkbox" checked style="width:auto"> Ook als echte reservering in Planyo aanmaken
-      </label>
-      <label style="display:flex;gap:9px;align-items:center;margin-top:8px;font-weight:400">
-        <input id="v_planyo_mail" type="checkbox" checked style="width:auto"> Bevestiging vanuit Planyo naar de gast sturen
-      </label>
-      <small class="sub">Bij een nieuwe reservering is Planyo de hoofdopslag; de boeking verschijnt daarna automatisch in deze agenda.</small>
-    </div>
-  </div>
-  <div class="voet">
-    <button class="knop gevaar links" type="button" id="btnVerwijder" hidden>Verwijderen</button>
-    <button class="knop" type="button" id="btnAnnuleer">Annuleren</button>
-    <button class="knop vol" type="button" id="btnBewaar">Opslaan</button>
-  </div>
-</div></dialog>
-
-<!-- klant koppelen -->
-<dialog id="klantDialog"><div class="binnen">
-  <h3>Klant koppelen</h3>
-  <div class="sub" id="klSub"></div>
-  <div id="klTreffers"></div>
-  <div class="velden">
-    <div class="veld"><span>Voorletter(s)</span><input id="kl_voorletters" type="text"></div>
-    <div class="veld"><span>Achternaam</span><input id="kl_achternaam" type="text"></div>
-    <div class="veld"><span>E-mail</span><input id="kl_email" type="email"></div>
-    <div class="veld"><span>Telefoon</span><input id="kl_telefoon" type="tel"></div>
-    <div class="veld"><span>Woonplaats</span><input id="kl_woonplaats" type="text"></div>
-    <div class="veld"><span>Member maken</span>
-      <label style="display:flex;gap:8px;align-items:center;font-size:14px">
-        <input id="kl_member" type="checkbox" style="width:17px;height:17px"> Ja, member
-      </label>
-    </div>
-  </div>
-  <div class="voet">
-    <button class="knop" type="button" data-sluit="klantDialog">Annuleren</button>
-    <button class="knop vol" type="button" id="klNieuw">Nieuwe klant aanmaken</button>
-  </div>
-</div></dialog>
-
-<!-- betaalgegevens -->
-<dialog id="betaalDialog"><div class="binnen">
-  <h3>Betaalgegevens</h3>
-  <div class="sub" id="btSub"></div>
-  <div class="velden">
-    <div class="veld"><span>Totaalbedrag</span><input id="bt_totaal" type="number" step="0.01" min="0"></div>
-    <div class="veld"><span>Al betaald</span><input id="bt_betaald" type="number" step="0.01" min="0"></div>
-    <div class="veld"><span>Betaalwijze</span>
-      <select id="bt_wijze">
-        <option value=""></option><option>Vooraf online</option><option>Mollie-betaallink</option>
-        <option>Pin op locatie</option><option>Contant</option><option>Booking.com</option>
-        <option>Origineel Overnachten</option><option>Anders</option>
-      </select>
-    </div>
-    <div class="veld"><span>Uit incheckformulier</span>
-      <button class="knop" type="button" id="bt_ophalen">Gegevens overnemen</button>
-    </div>
-    <div class="veld breed"><span>Notitie</span><textarea id="bt_notitie"></textarea></div>
-  </div>
-  <div class="voet">
-    <button class="knop" type="button" data-sluit="betaalDialog">Annuleren</button>
-    <button class="knop vol" type="button" id="btBewaar">Opslaan</button>
-  </div>
-</div></dialog>
-
-<!-- taak -->
-<dialog id="taakDialog"><div class="binnen">
-  <h3>Taak bij deze reservering</h3>
-  <div class="sub" id="tkSub"></div>
-  <div class="velden">
-    <div class="veld breed"><span>Taak</span><input id="tk_titel" type="text" placeholder="Suite klaarzetten"></div>
-    <div class="veld"><span>Voor wie</span><select id="tk_wie"></select></div>
-    <div class="veld"><span>Uiterlijk op</span><input id="tk_deadline" type="date"></div>
-    <div class="veld breed"><span>Toelichting</span><textarea id="tk_omschrijving"></textarea></div>
-  </div>
-  <div class="voet">
-    <button class="knop" type="button" data-sluit="taakDialog">Annuleren</button>
-    <button class="knop vol" type="button" id="tkBewaar">Taak aanmaken</button>
-  </div>
-</div></dialog>
-
-<!-- gastenregister -->
-<dialog id="registerDialog"><div class="binnen">
-  <h3>Toevoegen aan gastenregister</h3>
-  <div class="sub" id="grSub"></div>
-  <div class="velden">
-    <div class="veld"><span>Voorletter(s)</span><input id="gr_voorletters" type="text"></div>
-    <div class="veld"><span>Achternaam</span><input id="gr_achternaam" type="text"></div>
-    <div class="veld"><span>Woonplaats</span><input id="gr_woonplaats" type="text"></div>
-    <div class="veld"><span>Nationaliteit</span><input id="gr_nationaliteit" type="text" value="Nederlandse"></div>
-    <div class="veld"><span>Aantal personen</span><input id="gr_personen" type="number" min="1" value="2"></div>
-    <div class="veld"><span>Waarvan t/m 11 jaar</span><input id="gr_kinderen" type="number" min="0" value="0"></div>
-    <div class="veld"><span>Kale logiesprijs</span><input id="gr_kale" type="number" step="0.01" min="0"></div>
-    <div class="veld"><span>Totaal betaald</span><input id="gr_totaal" type="number" step="0.01" min="0"></div>
-  </div>
-  <div class="voet">
-    <button class="knop" type="button" data-sluit="registerDialog">Annuleren</button>
-    <button class="knop vol" type="button" id="grBewaar">Opnemen in register</button>
-  </div>
-</div></dialog>
-
-<!-- gegevens aanpassen -->
-<dialog id="wijzigDialog"><div class="binnen">
-  <h3>Gegevens van de reservering</h3>
-  <div class="sub" id="wzSub"></div>
-  <div class="velden">
-    <div class="veld breed"><span>Naam van de gast</span><input id="wz_gast" type="text"></div>
-    <div class="veld"><span>Aankomst</span><input id="wz_aankomst" type="date"></div>
-    <div class="veld"><span>Tijd aankomst</span><input id="wz_tijdin" type="time"></div>
-    <div class="veld"><span>Vertrek</span><input id="wz_vertrek" type="date"></div>
-    <div class="veld"><span>Tijd vertrek</span><input id="wz_tijduit" type="time"></div>
-    <div class="veld"><span>Telefoon</span><input id="wz_telefoon" type="tel"></div>
-    <div class="veld"><span>E-mail</span><input id="wz_email" type="email"></div>
-    <div class="veld"><span>Aantal personen</span><input id="wz_personen" type="text"></div>
-    <div class="veld"><span>Arrangement</span><input id="wz_arrangement" type="text"></div>
-    <div class="veld"><span>Platform</span><select id="wz_kanaal"></select></div>
-    <div class="veld"><span>Soort verblijf</span><select id="wz_verblijf">
-      <option value="">Automatisch</option><option>Overnachting</option><option>Dagverblijf</option>
-    </select></div>
-    <div class="veld breed"><span>Extra services</span><input id="wz_extra" type="text" placeholder="Massagetafel, shisha, borrelplank…"></div>
-    <div class="veld breed"><span>Notitie</span><textarea id="wz_notitie"></textarea></div>
-  </div>
-  <p class="sub" style="margin-top:14px">De agenda van SMG blijft ongewijzigd. Wat je hier invult wordt hier bewaard en gaat voor op de tekst uit de agenda.</p>
-  <div class="voet">
-    <button class="knop links" type="button" id="wzLeeg">Aanpassingen wissen</button>
-    <button class="knop" type="button" data-sluit="wijzigDialog">Annuleren</button>
-    <button class="knop vol" type="button" id="wzBewaar">Opslaan</button>
-  </div>
-</div></dialog>
-
-<!-- blacklist -->
-<dialog id="blDialog"><div class="binnen">
-  <h3 id="blTitel">Gast op de zwarte lijst</h3>
-  <div class="sub" id="blSub"></div>
-  <div class="velden">
-    <div class="veld breed"><span>Naam</span><input id="bl_naam" type="text"></div>
-    <div class="veld"><span>Telefoon</span><input id="bl_telefoon" type="tel"></div>
-    <div class="veld"><span>E-mail</span><input id="bl_email" type="email"></div>
-    <div class="veld breed"><span>Reden</span><textarea id="bl_reden" placeholder="Wat is er gebeurd, en op welke datum"></textarea></div>
-  </div>
-  <div class="voet">
-    <button class="knop" type="button" data-sluit="blDialog">Annuleren</button>
-    <button class="knop vol gevaar" type="button" id="blBewaar">Op de lijst zetten</button>
-  </div>
-</div></dialog>
-
-<dialog id="blLijstDialog"><div class="binnen">
-  <h3>Zwarte lijst</h3>
-  <div class="sub">Gasten die niet meer welkom zijn. Bij een nieuwe reservering krijg je een waarschuwing.</div>
-  <div id="blLijst"></div>
-  <div class="voet"><button class="knop vol" type="button" data-sluit="blLijstDialog">Sluiten</button></div>
-</div></dialog>
-
-<!-- gastenlink versturen -->
-<dialog id="gastlinkDialog"><div class="binnen">
-  <h3>Incheckformulier naar de gast sturen</h3>
-  <div class="sub" id="glSub"></div>
-  <div class="velden">
-    <div class="veld"><span>Telefoon</span><input id="gl_telefoon" type="tel"></div>
-    <div class="veld"><span>E-mail</span><input id="gl_email" type="email"></div>
-    <div class="veld breed"><span>Link voor de gast</span><input id="gl_link" type="url"></div>
-    <div class="veld breed"><span>Bericht</span><textarea id="gl_tekst" style="min-height:150px"></textarea></div>
-  </div>
-  <p class="sub" style="margin-top:12px">De gast vult alleen zijn eigen gegevens in. De tekst wordt onthouden voor de volgende keer.</p>
-  <div class="voet">
-    <button class="knop links" type="button" id="glOpen">Link zelf openen</button>
-    <button class="knop" type="button" id="glKopieer">Tekst kopiëren</button>
-    <button class="knop" type="button" id="glMail">Via e-mail</button>
-    <button class="knop vol" type="button" id="glApp">Via WhatsApp</button>
-  </div>
-</div></dialog>
-
-<!-- wijziging of annulering doorgeven -->
-<dialog id="berichtDialog" data-soort="wijziging"><div class="binnen">
-  <h3 id="brTitel">Wijziging doorgeven</h3>
-  <div class="sub" id="brSub"></div>
-  <div class="velden">
-    <div class="veld"><span>Reserveringsnummer</span><input id="br_nummer" type="text"></div>
-    <div class="veld"><span>Locatie</span><input id="br_locatie" type="text"></div>
-    <div class="veld wijzigveld"><span>Nieuwe aankomst</span><input id="br_aankomst" type="date"></div>
-    <div class="veld wijzigveld"><span>Tijd aankomst</span><input id="br_tijdin" type="time"></div>
-    <div class="veld wijzigveld"><span>Nieuw vertrek</span><input id="br_vertrek" type="date"></div>
-    <div class="veld wijzigveld"><span>Tijd vertrek</span><input id="br_tijduit" type="time"></div>
-    <div class="veld breed annuleerveld"><span>Reden van de annulering</span><input id="br_reden" type="text" placeholder="Op verzoek van de gast"></div>
-    <div class="veld breed annuleerveld"><span>Annuleringsvoorwaarden — pas aan naar je eigen voorwaarden, ze worden onthouden</span><textarea id="br_voorwaarden" style="min-height:96px"></textarea></div>
-    <div class="veld"><span>Telefoon</span><input id="br_telefoon" type="tel"></div>
-    <div class="veld"><span>E-mail</span><input id="br_email" type="email"></div>
-    <div class="veld breed"><span>Bericht</span><textarea id="br_tekst" style="min-height:190px"></textarea></div>
-    <div class="veld breed wijzigveld"><label class="vinkje"><input id="br_overnemen" type="checkbox" checked> Nieuwe datum en tijd meteen in de reservering bijwerken</label></div>
-    <div class="veld breed annuleerveld"><label class="vinkje"><input id="br_blacklist" type="checkbox"> Deze gast op de zwarte lijst zetten</label></div>
-    <div class="veld breed annuleerveld"><span>Korte notitie voor de zwarte lijst</span><input id="br_blnotitie" type="text" placeholder="Bijvoorbeeld: derde keer op het laatste moment afgezegd"></div>
-  </div>
-  <div class="voet">
-    <button class="knop links" type="button" id="brOpnieuw">Tekst opnieuw opbouwen</button>
-    <button class="knop" type="button" data-sluit="berichtDialog">Annuleren</button>
-    <button class="knop" type="button" id="brKopieer">Tekst kopiëren</button>
-    <button class="knop" type="button" id="brMail">Via e-mail</button>
-    <button class="knop vol" type="button" id="brApp">Via WhatsApp</button>
-  </div>
-</div></dialog>
-
-<!-- reviewverzoek -->
-<dialog id="reviewDialog"><div class="binnen">
-  <h3>Reviewverzoek</h3>
-  <div class="sub" id="rvSub"></div>
-  <div class="velden">
-    <div class="veld"><span>Telefoon</span><input id="rv_telefoon" type="tel"></div>
-    <div class="veld"><span>E-mail</span><input id="rv_email" type="email"></div>
-    <div class="veld breed"><span>Reviewlink</span><input id="rv_link" type="url" placeholder="https://g.page/r/..."></div>
-    <div class="veld breed"><span>Bericht</span><textarea id="rv_tekst" style="min-height:150px"></textarea></div>
-  </div>
-  <p class="sub" style="margin-top:12px">De link en de standaardtekst worden onthouden voor de volgende keer.</p>
-  <div class="voet">
-    <button class="knop links" type="button" id="rvTaak">Als taak inplannen</button>
-    <button class="knop" type="button" id="rvKopieer">Tekst kopiëren</button>
-    <button class="knop" type="button" id="rvMail">Via e-mail</button>
-    <button class="knop vol" type="button" id="rvApp">Via WhatsApp</button>
-  </div>
-</div></dialog>
-
-<script src="bwf-planyo.js?v=10"></script>
 <script src="bwf-agenda.js?v=1"></script>
 <script>
 /* =========================================================
-   INSTELLINGEN
+   Beschikbaarheid per suite
+   Vrije blokken komen uit bwf_tariefblokken, met de vaste lijst als
+   terugval. Bezette tijden komen uit de agenda, uit reservations en
+   uit res_koppeling — dezelfde bronnen als de rest van het dashboard.
    ========================================================= */
-var SUPABASE_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
-var SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
-
-/* soort → kleur en naam volgens de legenda van SMG */
-var SOORTEN = {
-  reservering:{ naam:'Definitieve boeking', kleur:'var(--smg-definitief)', vlak:'var(--smg-definitief-vlak)' },
-  extern:     { naam:'Bezet',               kleur:'var(--smg-bezet)',      vlak:'var(--smg-bezet-vlak)' },
-  handmatig:  { naam:'Potentiële boeking',  kleur:'var(--smg-potentieel)', vlak:'var(--smg-potentieel-vlak)' },
-  blok:       { naam:'Blok',                kleur:'var(--smg-blok)',       vlak:'var(--smg-blok-vlak)' },
-  vrij:       { naam:'Vrij',                kleur:'var(--smg-vrij)',       vlak:'var(--smg-vrij-vlak)' },
-  schoonmaak: { naam:'Schoonmaak',          kleur:'var(--smg-schoonmaak)', vlak:'var(--smg-schoonmaak-vlak)' },
-  gesloten:   { naam:'Gesloten',            kleur:'var(--smg-gesloten)',   vlak:'var(--smg-gesloten-vlak)' }
+const CFG = {
+  url:'https://iuyjvtlauktnjprbmbjj.supabase.co',
+  key:'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U',
+  ls :'sb-iuyjvtlauktnjprbmbjj-auth-token'
 };
-var KANALEN = ['Website Malina','Website Angie','Booking.com','Origineel Overnachten',
-  'Privésauna (SMG)','Secret Rooms','Planyo','WhatsApp','Telefonisch','Herhaalgast','Anders'];
 
-/* PSA/PSM/PSMD → de locatie-id's die klantbeheer gebruikt */
-var LOCATIE_ID = { PSA:'angie', PSM:'jacuzzi', PSMD:'zwembad' };
+const SUITES = {
+  angie  :{ naam:'Suite Angie · Almere',        kleur:'var(--loc-angie)',   zoek:'angie' },
+  jacuzzi:{ naam:'Malina Jacuzzi · Lelystad',   kleur:'var(--loc-jacuzzi)', zoek:'jacuzzi' },
+  deluxe :{ naam:'Malina Zwembad · Lelystad',   kleur:'var(--loc-deluxe)',  zoek:'deluxe' }
+};
 
-/* =========================================================
-   Hulpjes
-   ========================================================= */
-function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
-function veld(o,namen,st){ for(var i=0;i<namen.length;i++){ var w=o?o[namen[i]]:null;
-  if(w!==undefined&&w!==null&&w!=="") return w; } return st===undefined?"":st; }
-function dstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function euro(n){ n=parseFloat(n||0); return '€ '+n.toFixed(2).replace('.',','); }
-function nachten(a,b){
-  if(!a||!b) return '';
-  var d=(new Date(b)-new Date(a))/86400000;
-  return d>0 ? Math.round(d) : (d===0 ? 'dag' : '');
-}
-function tijd(w){
-  w = String(w==null?'':w).trim();
-  if(!w) return '';
-  if(/^\d{1,2}:\d{2}/.test(w)) return w.slice(0,5);
-  var m = w.match(/T(\d{2}:\d{2})/);          /* 2026-09-08T19:00:00+02:00 */
-  if(m) return m[1] === '00:00' ? '' : m[1];
-  return '';                                    /* formules en andere rommel: weglaten */
-}
-function verlopen(jwt){
-  try{
-    var deel = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-    return deel.exp && (deel.exp * 1000) < Date.now();
-  }catch(e){ return false; }
-}
-function token(){
-  if(window.BWF && window.BWF.token && window.BWF.token()) return window.BWF.token();
-  try{
-    for(var i=0;i<localStorage.length;i++){
-      var k=localStorage.key(i);
-      if(k&&k.indexOf('sb-')===0&&k.indexOf('-auth-token')>-1){
-        var v=JSON.parse(localStorage.getItem(k));
-        /* een verlopen bewijs geeft alleen maar foutmeldingen; dan liever de publieke sleutel */
-        if(v&&v.access_token&&!verlopen(v.access_token)) return v.access_token;
-      }
-    }
-  }catch(e){}
-  return SUPABASE_KEY;
-}
-async function sb(pad, opties){
-  opties = opties || {};
-  var kop = { "apikey":SUPABASE_KEY, "Authorization":"Bearer "+token() };
-  if(opties.body){ kop["Content-Type"]="application/json";
-    kop["Prefer"] = opties.prefer || "return=representation"; }
-  var r = await fetch(SUPABASE_URL+"/rest/v1/"+pad, {
-    method: opties.method||"GET", headers: kop, body: opties.body||undefined });
-  if(!r.ok) throw new Error("HTTP "+r.status+" — "+(await r.text()).slice(0,160));
-  var t = await r.text();
-  if((opties.method||"GET") !== "GET" && /^(res_koppeling|reservations|checkins|wz_welkomstcalls|wz_klantbeheer)/.test(pad)) meldWijziging();
-  return t ? JSON.parse(t) : null;
-}
-/* Ingeladen in een dashboard? Dan laat dat dashboard weten dat er iets is opgeslagen. */
-var wijzigTimer = null;
-function meldWijziging(){
-  if(window.self === window.top) return;
-  clearTimeout(wijzigTimer);
-  wijzigTimer = setTimeout(function(){
-    try{ parent.postMessage({ bwf:'gewijzigd', bron:'reserveringen' }, location.origin); }catch(e){}
-  }, 1200);
-}
-var meldEl = document.getElementById('melding');
-function meld(tekst, goed){
-  meldEl.innerHTML = tekst ? '<div class="'+(goed?'gelukt':'fout')+'">'+esc(tekst)+'</div>' : '';
-  if(goed) setTimeout(function(){ meldEl.innerHTML=''; }, 5000);
-}
-function sluitDialogen(){
-  Array.prototype.forEach.call(document.querySelectorAll('[data-sluit]'), function(b){
-    b.onclick = function(){ document.getElementById(b.getAttribute('data-sluit')).close(); };
-  });
-}
-sluitDialogen();
+/* terugval als de tarieventabel niet geladen kan worden */
+const VAST = {
+  angie:{ dag:[['12:00','15:00',249],['12:30','15:30',249],['13:00','16:00',249],
+               ['12:00','16:00',269],['12:30','16:30',269],['13:00','17:00',269],
+               ['13:00','18:00',299]],
+          nacht:[['13:00','11:00',449,'Relax & Stay'],['20:00','11:00',399,'Late check-in'],
+                 ['13:00','11:00',449,'Wellness Experience']] },
+  jacuzzi:{ dag:[['12:00','14:30',199],['14:30','17:00',199],['12:00','15:00',229],
+                 ['14:00','17:00',229],['15:00','18:00',229],['12:00','16:00',259],
+                 ['12:00','17:00',299]],
+          nacht:[['14:00','10:00',399,'Relax & Stay'],['20:00','10:00',379,'Late check-in']] },
+  deluxe:{ dag:[['12:30','15:30',299],['13:00','16:00',299],['12:30','16:30',349],
+                ['13:00','17:00',349]],
+          nacht:[['13:00','11:00',749,'Early check-in'],['19:00','11:00',479,'Relax & Stay']] }
+};
 
-/* =========================================================
-   Gegevens
-   ========================================================= */
-var ALLES = [], KOPPEL = {}, MEDEWERKERS = [], KLANTEN = [], CHECKINS = [], BLACKLIST = [];
-/* Instellingen via het webadres, zodat andere pagina's deze pagina kunnen inladen:
-   ?weergave=kalender  opent meteen de kalender in plaats van de lijst
-   ?regio=lelystad     toont alleen Malina Jacuzzi en Malina Deluxe
-   ?planning=1         zet bovenaan elke dag wie er werkt
-   Zonder deze toevoegingen werkt de pagina precies zoals altijd. */
-var PARAM = new URLSearchParams(location.search);
-var START_WEERGAVE = PARAM.get('weergave') === 'kalender' ? 'kalender' : 'lijst';
-var REGIO = String(PARAM.get('regio') || '').toLowerCase();
-var MET_PLANNING = PARAM.get('planning') === '1';
-var PLANNING = [], PLANTEAM = [], GELADEN = false;
-var WERKKLEUR = ['#165dff','#b5842c','#14805e','#c15a3e','#8a5bc4','#2da2bb'];
-var ONTDUBBELD = 0;
-var INSTELLINGEN = {};
+let SESSIE=null, DATUM=vandaagISO(), BLOKKEN=null, BEZET=[], FOUT='', FILTER='alles', DIENST='';
 
-/* gedeelde instellingen — voor iedereen gelijk, met de browser als terugval */
-function inst(sleutel, standaard){
-  if(INSTELLINGEN[sleutel] != null && INSTELLINGEN[sleutel] !== '') return INSTELLINGEN[sleutel];
-  try{ var v = localStorage.getItem('bwf_'+sleutel); if(v) return v; }catch(e){}
-  return standaard;
-}
-async function bewaarInst(sleutel, waarde){
-  INSTELLINGEN[sleutel] = waarde;
-  try{ localStorage.setItem('bwf_'+sleutel, waarde); }catch(e){}
-  try{
-    await sb('bwf_instellingen', { method:'POST',
-      prefer:'resolution=merge-duplicates,return=minimal',
-      body: JSON.stringify([{ sleutel:sleutel, waarde:waarde, bijgewerkt:new Date().toISOString() }]) });
-  }catch(e){ meld('Instelling kon niet worden gedeeld: '+e.message); }
-}
-var periode = 'maand';
+/* ---------- hulpjes ---------- */
+function vandaagISO(){ const d=new Date();
+  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function schuif(iso,n){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10); }
+function nlKort(iso){ try{ return new Date(iso+'T12:00:00')
+  .toLocaleDateString('nl-NL',{day:'numeric',month:'short'}); }catch(e){ return iso; } }
+function nlLang(iso){ return new Date(iso+'T12:00:00')
+  .toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'}); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function eur(n){ return '\u20ac ' + (Math.round(n)||0); }
+function min(t){ const m=String(t||'').match(/(\d{1,2}):(\d{2})/);
+  return m ? +m[1]*60 + +m[2] : null; }
+/* een blok dat over middernacht loopt telt door naar de volgende dag */
+function eindMin(van,tot){ let a=min(van), b=min(tot); if(a==null||b==null) return null;
+  return b <= a ? b + 1440 : b; }
 
-function resSleutel(r){
-  return r.bron === 'handmatig' ? 'hm-'+r.id : (r.nummer || (r.locatie+'-'+r.aankomst+'-'+r.tijdIn));
-}
-function uitAgenda(ev){
-  return {
-    bron:'agenda', bewerkbaar:false,
-    id: ev.nummer || (ev.suite+'-'+ev.start),
-    soort: ev.soort,
-    voornaam: ev.gast||'', achternaam:'',
-    locatie: ev.suite||'',
-    aankomst: String(ev.start||'').slice(0,10),
-    vertrek: String(ev.eind||'').slice(0,10),
-    tijdIn: tijd(ev.start),
-    tijdUit: tijd(ev.eind),
-    arrangementen: ev.arrangementen||[],
-    arrangement: (ev.arrangementen&&ev.arrangementen.length) ? ev.arrangementen.join(', ') : '',
-    opties: ev.opties||'',
-    telefoon: ev.telefoon||'', email: ev.email||'',
-    totaal: null, betaald: null,
-    nummer: ev.nummer||'', personen: ev.personen||'',
-    kanaal: ev.bron||'',
-    bijAankomst: ev.betalenBijAankomst||'',
-    reedsBetaald: ev.betaald||'',
-    omschrijving: ev.omschrijving||'', titel: ev.titel||''
-  };
-}
-function uitSupabase(r){
-  return {
-    bron:'handmatig', bewerkbaar:true, ruw:r,
-    id: veld(r,['id'],''), soort:'handmatig',
-    voornaam: veld(r,['voornaam'],''), achternaam: veld(r,['achternaam'],''),
-    locatie: veld(r,['locatie'],''),
-    aankomst: String(veld(r,['checkindatum'],'')).slice(0,10),
-    vertrek: String(veld(r,['checkuitdatum'],'')).slice(0,10),
-    tijdIn: tijd(veld(r,['checkintijd'],'')), tijdUit: tijd(veld(r,['checkuittijd'],'')),
-    arrangementen: [], arrangement: veld(r,['arrangement'],''), opties:'',
-    telefoon: veld(r,['telefoon'],''), email: veld(r,['email'],''),
-    totaal: parseFloat(veld(r,['totaal'],0))||0,
-    betaald: parseFloat(veld(r,['betaald'],0))||0,
-    nummer:'', personen:'', kanaal:'', bijAankomst:'', reedsBetaald:'',
-    omschrijving: veld(r,['opmerkingen'],''), titel:'',
-    toegewezen: veld(r,['toegewezen'],'')
-  };
-}
+function locId(v){ const t=String(v||'').toLowerCase(); if(!t) return '';
+  if(/\bpsmd\b|\bpsd\b/.test(t)) return 'deluxe';
+  if(/\bpsm\b/.test(t))          return 'jacuzzi';
+  if(/\bpsa\b/.test(t))          return 'angie';
+  if(t.includes('angie')||t.includes('almere')) return 'angie';
+  if(t.includes('zwembad')||t.includes('deluxe')) return 'deluxe';
+  if(t.includes('jacuzzi')||t.includes('malina')) return 'jacuzzi';
+  return SUITES[t] ? t : ''; }
 
-/* =========================================================
-   Veilige ontdubbeling
-   Verwijdert niets uit Planyo of Supabase. Dubbele bronnen worden alleen
-   samengevoegd voor de lijst en kalender. Bij twijfel blijven beide staan.
-   ========================================================= */
-function vergelijkTekst(v){
-  return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^a-z0-9]/g,'');
-}
-function vergelijkLocatie(v){
-  var s = vergelijkTekst(v);
-  if(/psmd|deluxe|zwembad|pool/.test(s)) return 'zwembad';
-  if(/psa|angie|almere|specerij/.test(s)) return 'angie';
-  if(/psm|jacuzzi|malina/.test(s)) return 'jacuzzi';
-  return s;
-}
-function vergelijkNaam(r){
-  return vergelijkTekst((r.voornaam||'')+' '+(r.achternaam||''));
-}
-function vergelijkTelefoon(v){ return String(v||'').replace(/\D/g,'').slice(-9); }
-function minuut(v){
-  var m=String(v||'').match(/(\d{1,2}):(\d{2})/);
-  return m ? Number(m[1])*60+Number(m[2]) : null;
-}
-function zelfdeBoeking(a,b){
-  if(a.nummer && b.nummer && vergelijkTekst(a.nummer)===vergelijkTekst(b.nummer)) return true;
-  if(!a.aankomst || a.aankomst!==b.aankomst) return false;
-  if(!vergelijkLocatie(a.locatie) || vergelijkLocatie(a.locatie)!==vergelijkLocatie(b.locatie)) return false;
-  if(a.vertrek && b.vertrek && a.vertrek!==b.vertrek) return false;
-
-  var mailA=String(a.email||'').trim().toLowerCase(), mailB=String(b.email||'').trim().toLowerCase();
-  var telA=vergelijkTelefoon(a.telefoon), telB=vergelijkTelefoon(b.telefoon);
-  var naamA=vergelijkNaam(a), naamB=vergelijkNaam(b);
-  var identiteit=(mailA && mailB && mailA===mailB) ||
-    (telA.length>=8 && telB.length>=8 && telA===telB) ||
-    (naamA.length>=5 && naamA===naamB);
-  if(!identiteit) return false;
-
-  var ta=minuut(a.tijdIn), tb=minuut(b.tijdIn);
-  return ta===null || tb===null || Math.abs(ta-tb)<=90;
-}
-function informatieScore(r){
-  var velden=['voornaam','achternaam','locatie','aankomst','vertrek','tijdIn','tijdUit',
-    'arrangement','opties','telefoon','email','nummer','personen','kanaal','omschrijving','toegewezen'];
-  var score=velden.reduce(function(n,k){ return n+(r[k]!==null&&r[k]!==undefined&&r[k]!=='' ? 1:0); },0);
-  if(Number(r.totaal)>0) score+=2;
-  if(Number(r.betaald)>0 || Number(r.reedsBetaald)>0) score+=2;
-  if(r.soort==='reservering') score+=8;
-  else if(r.soort==='extern') score+=5;
-  if(r.nummer) score+=4;
-  return score;
-}
-function combineerBoeking(a,b){
-  var hoofd=informatieScore(b)>informatieScore(a) ? b : a;
-  var aanvulling=hoofd===a ? b : a;
-  var samen=Object.assign({},hoofd);
-  Object.keys(aanvulling).forEach(function(k){
-    if((samen[k]===null || samen[k]===undefined || samen[k]==='' || samen[k]===0) &&
-       aanvulling[k]!==null && aanvulling[k]!==undefined && aanvulling[k]!=='') samen[k]=aanvulling[k];
-  });
-  samen.dubbelAantal=(a.dubbelAantal||1)+(b.dubbelAantal||1);
-  samen.samengevoegdeBronnen=(a.samengevoegdeBronnen||[a.bron]).concat(b.samengevoegdeBronnen||[b.bron]);
-  return samen;
-}
-function ontdubbelBoekingen(lijst){
-  var resultaat=[], bakken={};
-  lijst.forEach(function(r){
-    var bak=(r.aankomst||'geen-datum')+'|'+vergelijkLocatie(r.locatie);
-    var kandidaten=bakken[bak]||[];
-    var gevonden=-1;
-    for(var i=0;i<kandidaten.length;i++){
-      if(zelfdeBoeking(resultaat[kandidaten[i]],r)){ gevonden=kandidaten[i]; break; }
-    }
-    if(gevonden<0){
-      resultaat.push(r);
-      (bakken[bak]||(bakken[bak]=[])).push(resultaat.length-1);
-    }else{
-      resultaat[gevonden]=combineerBoeking(resultaat[gevonden],r);
-      ONTDUBBELD++;
-    }
-  });
-  return resultaat;
-}
-
-async function laden(){
-  var fouten = [], agenda = [], eigen = [];
-  ONTDUBBELD = 0;
-
-  try{
-    var json = await BWFAgenda.events();
-    if(json.fout) throw new Error(json.fout);
-    agenda = (json.events||[]).map(uitAgenda);
-  }catch(e){ fouten.push('agenda: '+e.message); }
-
-  try{ eigen = (await sb('reservations?select=*&order=checkindatum.desc&limit=3000')||[]).map(uitSupabase); }
-  catch(e){ fouten.push('handmatige reserveringen: '+e.message); }
-
-  try{
-    KOPPEL = {};
-    (await sb('res_koppeling?select=*&limit=5000')||[]).forEach(function(k){ KOPPEL[k.res_sleutel] = k; });
-  }catch(e){ fouten.push('koppelingen: '+e.message); }
-
-  try{ MEDEWERKERS = await sb('wz_medewerkers?select=*') || []; }
-  catch(e){ try{ MEDEWERKERS = await sb('medewerkers?select=*') || []; }catch(e2){ MEDEWERKERS = []; } }
-
-  try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=4000') || []; }
-  catch(e){ fouten.push('klantenbestand: '+e.message); }
-
-  try{ CHECKINS = await sb('checkins?select=*&order=created_at.desc&limit=1500') || []; }
-  catch(e){ CHECKINS = []; }
-
-  try{ BLACKLIST = await sb('gast_blacklist?select=*&limit=500') || []; }
-  catch(e){ BLACKLIST = []; }
-
-  try{
-    INSTELLINGEN = {};
-    (await sb('bwf_instellingen?select=*') || []).forEach(function(x){ INSTELLINGEN[x.sleutel] = x.waarde; });
-  }catch(e){ INSTELLINGEN = {}; }
-
-  if(MET_PLANNING){
-    try{ PLANTEAM = await sb('medewerkers?select=id,naam&order=aangemaakt.asc') || []; }
-    catch(e){ try{ PLANTEAM = await sb('medewerkers?select=id,naam') || []; }catch(e2){ PLANTEAM = []; } }
-    try{ PLANNING = await sb('planning?select=datum,medewerker_id,locatie,dienst,notitie&order=datum.asc&limit=4000') || []; }
-    catch(e){ PLANNING = []; fouten.push('planning: '+e.message); }
-  }
-
-  ALLES = ontdubbelBoekingen(agenda.concat(eigen)).sort(function(a,b){
-    return String(b.aankomst).localeCompare(String(a.aankomst)); });
-  if(REGIO === 'lelystad'){
-    ALLES = ALLES.filter(function(r){
-      var l = vergelijkLocatie(r.locatie);
-      return l === 'jacuzzi' || l === 'zwembad';
-    });
-  }
-  GELADEN = true;
-
-  if(fouten.length && fouten.join(' ').indexOf('401') > -1){
-    meld('Je bent niet (meer) ingelogd bij Supabase. Open klantbeheer of het VR Dashboard, log daar in, en ververs deze pagina. De reserveringen uit de agenda zie je wel.');
-  }else{
-    meld(fouten.length ? 'Niet alles kon worden opgehaald — '+fouten.join(' · ') :
-      (ONTDUBBELD ? ONTDUBBELD+' dubbele reservering'+(ONTDUBBELD===1?'':'en')+' veilig samengevoegd in deze weergave.' : ''),
-      !fouten.length);
-  }
-  vulKeuzes(); tekenTegels(); teken();
-  if(weergave === 'kalender') tekenKalender();
-}
-
-function medewerkerNaam(m){ return veld(m,['naam','voornaam','medewerker','email'],''); }
-
-function vulKeuzes(){
-  var locs = {}, soorten = {};
-  ALLES.forEach(function(r){ if(r.locatie) locs[r.locatie]=1; if(r.soort) soorten[r.soort]=1; });
-
-  var sl = document.getElementById('fLocatie'), h1 = sl.value;
-  sl.innerHTML = '<option value="">Alle locaties</option>'+
-    Object.keys(locs).sort().map(function(l){ return '<option>'+esc(l)+'</option>'; }).join('');
-  sl.value = h1;
-  document.getElementById('locatieLijst').innerHTML =
-    Object.keys(locs).sort().map(function(l){ return '<option value="'+esc(l)+'">'; }).join('');
-
-  var ss = document.getElementById('fSoort'), h2 = ss.value;
-  ss.innerHTML = '<option value="">Alle soorten</option>'+
-    Object.keys(soorten).sort().map(function(s){
-      return '<option value="'+esc(s)+'">'+esc((SOORTEN[s]||{naam:s}).naam)+'</option>'; }).join('');
-  ss.value = h2;
-
-  var namen = MEDEWERKERS.map(medewerkerNaam).filter(Boolean).sort();
-  var ms = document.getElementById('fMedewerker'), h3 = ms.value;
-  ms.innerHTML = '<option value="">Alle medewerkers</option><option value="__geen">Nog niemand</option>'+
-    namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
-  ms.value = h3;
-
-  var tk = document.getElementById('tk_wie');
-  tk.innerHTML = '<option value="">Niet toegewezen</option>'+
-    namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
-
-  document.getElementById('legenda').innerHTML = Object.keys(SOORTEN).map(function(k){
-    return '<span><i style="background:'+SOORTEN[k].kleur+'"></i>'+SOORTEN[k].naam+'</span>'; }).join('') +
-    (MET_PLANNING ? '<span style="margin-left:auto">Namen bovenaan een dag: wie er werkt (\u263d nacht, \u2726 schoonmaak)</span>' : '');
-}
-
-/* =========================================================
-   Tegels — vandaag, week, maand, alles
-   ========================================================= */
-function grenzen(welke){
-  var nu = new Date(), van, tot;
-  if(welke === 'vandaag'){ van = new Date(nu); tot = new Date(nu); }
-  else if(welke === 'week'){
-    var dag = (nu.getDay()+6)%7;
-    van = new Date(nu); van.setDate(nu.getDate()-dag);
-    tot = new Date(van); tot.setDate(van.getDate()+6);
-  }
-  else if(welke === 'maand'){
-    van = new Date(nu.getFullYear(), nu.getMonth(), 1);
-    tot = new Date(nu.getFullYear(), nu.getMonth()+1, 0);
-  }
-  else return { van:'', tot:'' };
-  return { van:dstr(van), tot:dstr(tot) };
-}
-function telIn(welke){
-  var g = grenzen(welke);
-  return ALLES.filter(function(r){
-    if(r.soort !== 'reservering' && r.soort !== 'extern' && r.soort !== 'handmatig') return false;
-    if(g.van && r.vertrek && r.vertrek < g.van) return false;
-    if(g.van && !r.vertrek && r.aankomst < g.van) return false;
-    if(g.tot && r.aankomst > g.tot) return false;
-    return true;
-  });
-}
-function tekenTegels(){
-  var opties = [
-    { id:'vandaag', naam:'Vandaag' },
-    { id:'week',    naam:'Deze week' },
-    { id:'maand',   naam:'Deze maand' },
-    { id:'alles',   naam:'Alle reserveringen' }
-  ];
-  document.getElementById('tegels').innerHTML = opties.map(function(o){
-    var lijst = telIn(o.id);
-    var g = grenzen(o.id);
-    var aankomsten = lijst.filter(function(r){
-      return !g.van || (r.aankomst >= g.van && (!g.tot || r.aankomst <= g.tot)); }).length;
-    var openstaand = lijst.filter(function(r){ return !KOPPEL[resSleutel(r)]; }).length;
-    return '<button class="tegel" type="button" data-periode="'+o.id+'" aria-pressed="'+(periode===o.id)+'">'+
-      '<span class="aantal">'+lijst.length+'</span>'+
-      '<span class="naam">'+o.naam+'</span>'+
-      '<span class="bij">'+aankomsten+' aankomst'+(aankomsten===1?'':'en')+
-      ' · '+openstaand+' nog niet verwerkt</span></button>';
-  }).join('');
-  Array.prototype.forEach.call(document.querySelectorAll('[data-periode]'), function(b){
-    b.onclick = function(){
-      periode = b.getAttribute('data-periode');
-      var g = grenzen(periode);
-      document.getElementById('fVan').value = g.van;
-      document.getElementById('fTot').value = g.tot;
-      tekenTegels(); teken();
-      if(weergave === 'kalender') tekenKalender();
-    };
-  });
-}
-
-/* =========================================================
-   Tabel
-   ========================================================= */
-/* alles behalve het datumbereik — de kalender gebruikt dit ook */
-function pastBijFilters(r){
-  var loc = document.getElementById('fLocatie').value;
-  var srt = document.getElementById('fSoort').value;
-  var mw  = document.getElementById('fMedewerker').value;
-  var zoek = document.getElementById('fZoek').value.trim().toLowerCase();
-  var k = KOPPEL[resSleutel(r)] || {};
-  if(loc && r.locatie !== loc) return false;
-  if(srt && r.soort !== srt) return false;
-  if(mw === '__geen' && k.medewerker) return false;
-  if(mw && mw !== '__geen' && k.medewerker !== mw) return false;
-  if(zoek){
-    var hooi = (gastVan(r)+' '+r.voornaam+' '+r.achternaam+' '+r.nummer+' '+
-                r.email+' '+r.locatie+' '+r.omschrijving).toLowerCase();
-    if(hooi.indexOf(zoek) === -1) return false;
-  }
-  return true;
-}
-function gefilterd(){
-  var van = document.getElementById('fVan').value;
-  var tot = document.getElementById('fTot').value;
-  return ALLES.filter(function(r){
-    var fa = aankomstVan(r), fv = vertrekVan(r);
-    if(van && fv && fv < van) return false;
-    if(van && !fv && fa < van) return false;
-    if(tot && fa > tot) return false;
-    return pastBijFilters(r);
-  });
-}
-
-var openDetail = {};
-function teken(){
-  var lijst = gefilterd();
-  var tb = document.getElementById('rijen');
-  if(!lijst.length){
-    tb.innerHTML = '<tr><td colspan="11" class="leeg">Geen reserveringen in deze selectie.</td></tr>';
-    voet(lijst); meldHoogte(); return;
-  }
-  var namen = MEDEWERKERS.map(medewerkerNaam).filter(Boolean).sort();
-
-  tb.innerHTML = lijst.map(function(r, i){
-    var s = SOORTEN[r.soort] || SOORTEN.handmatig;
-    var k = KOPPEL[resSleutel(r)] || {};
-    var naam = k.gast || (r.voornaam+' '+r.achternaam).trim() || r.titel || 'Zonder naam';
-    var A = aankomstVan(r), V = vertrekVan(r), TI = tijdInVan(r), TU = tijdUitVan(r), N = nachten(A, V);
-    var tel  = k.telefoon || r.telefoon || '';
-    var mail = k.email || r.email || '';
-    var totaal = (k.totaal!=null && k.totaal!=='') ? parseFloat(k.totaal) : r.totaal;
-    var betaald = (k.betaald!=null && k.betaald!=='') ? parseFloat(k.betaald) : r.betaald;
-    var open = (totaal==null) ? null : Math.max(0, (totaal||0)-(betaald||0));
-    var contact = [];
-    if(tel) contact.push('<a href="tel:'+esc(tel)+'">'+esc(tel)+'</a>');
-    if(mail) contact.push('<a href="mailto:'+esc(mail)+'">'+esc(mail)+'</a>');
-
-    var merkjes = '';
-    if(k.klant_id) merkjes += '<span class="gekoppeld">klant</span>';
-    if(k.member) merkjes += '<span class="gekoppeld">member</span>';
-    if(k.checkin_id) merkjes += '<span class="gekoppeld">incheck</span>';
-    if(k.gastenregister_id) merkjes += '<span class="gekoppeld">register</span>';
-    if(datumGewijzigd(r)) merkjes += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">datum gewijzigd</span>';
-    if(k.geannuleerd) merkjes += '<span class="gekoppeld" style="background:var(--crit-soft);color:var(--crit)">geannuleerd</span>';
-    if(k.welkomstcall_gedaan) merkjes += '<span class="gekoppeld">call gedaan</span>';
-    else if(k.welkomstcall_id) merkjes += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">call open</span>';
-    if(opBlacklist(r)) merkjes += '<span class="gekoppeld" style="background:var(--crit-soft);color:var(--crit)">zwarte lijst</span>';
-    if(k.gastlink_verstuurd) merkjes += '<span class="gekoppeld">link verstuurd</span>';
-    if(k.review_verstuurd) merkjes += '<span class="gekoppeld">review</span>';
-    if(k.gast || k.telefoon || k.email) merkjes += '<span class="gekoppeld">bijgewerkt</span>';
-    if(merkjes) merkjes = '<div class="merkjes">'+merkjes+'</div>';
-
-    var onder = [kanaalVan(r), verblijfVan(r)].filter(Boolean).join(' · ');
-
-    var rij = '<tr class="rij" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+
-      '<td class="acties" style="border-left:4px solid '+s.kleur+'"><div class="menuhouder">'+
-        '<button class="menuknop" type="button" data-menu="'+i+'" aria-label="Acties">⋯</button>'+
-        '<div class="actiemenu" id="menu'+i+'">'+
-          '<div class="kop">Reservering</div>'+
-          '<button type="button" data-actie="kaart" data-i="'+i+'">Klantkaart openen</button>'+
-          '<button type="button" data-actie="detail" data-i="'+i+'">Details tonen</button>'+
-          '<button type="button" data-actie="wijzig" data-i="'+i+'">Gegevens aanpassen</button>'+
-          '<a href="incheckformulier.html?reservering='+encodeURIComponent(r.nummer||resSleutel(r))+'" target="_blank" rel="noopener">Incheckformulier openen</a>'+
-          '<button type="button" data-actie="checkin" data-i="'+i+'">Incheckformulier koppelen</button>'+
-          '<button type="button" data-actie="gastlink" data-i="'+i+'">Gastenlink versturen'+(k.gastlink_verstuurd?' (verstuurd)':'')+'</button>'+
-          '<hr>'+
-          '<div class="kop">Klant</div>'+
-          '<button type="button" data-actie="klant" data-i="'+i+'">Klant koppelen of aanmaken</button>'+
-          '<button type="button" data-actie="member" data-i="'+i+'">'+(k.member?'Member-vinkje weghalen':'Member maken')+'</button>'+
-          '<button type="button" data-actie="welkom" data-i="'+i+'">'+(k.welkomstcall_id?'Welkomstcall opnieuw aanmaken':'Welkomstcall aanmaken')+'</button>'+
-          '<button type="button" data-actie="welkomklaar" data-i="'+i+'">'+(k.welkomstcall_gedaan?'Welkomstcall ongedaan maken':'Welkomstcall afgerond')+'</button>'+
-          '<hr>'+
-          '<div class="kop">Verwerken</div>'+
-          (!window.BWF||!window.BWF.rol||window.BWF.mag('eigenaar')?'<button type="button" data-actie="betaal" data-i="'+i+'">Betaalgegevens</button>':'')+
-          '<button type="button" data-actie="taak" data-i="'+i+'">Taak toevoegen</button>'+
-          '<button type="button" data-actie="review" data-i="'+i+'">Reviewverzoek'+(k.review_verstuurd?' (verstuurd)':'')+'</button>'+
-          '<button type="button" data-actie="wijzigbericht" data-i="'+i+'">Wijziging doorgeven</button>'+
-          '<button type="button" data-actie="annulering" data-i="'+i+'">Annulering doorgeven</button>'+
-          (N && N!=='dag'
-            ? '<button type="button" data-actie="register" data-i="'+i+'">Toevoegen aan gastenregister</button>' : '')+
-          '<hr><button type="button" data-actie="blacklist" data-i="'+i+'" style="color:var(--crit)">'+(opBlacklist(r)?'Van de zwarte lijst halen':'Op de zwarte lijst zetten')+'</button>'+
-          (r.bewerkbaar ? '<hr><button type="button" data-actie="bewerk" data-i="'+i+'">Reservering bewerken</button>' : '')+
-        '</div></div></td>'+
-      '<td class="nowrap"><span class="datum">'+esc(A)+
-        (TI?' <span style="color:var(--muted)">'+esc(TI)+'</span>':'')+'</span></td>'+
-      '<td class="nowrap"><span class="datum">'+esc(V)+
-        (TU?' <span style="color:var(--muted)">'+esc(TU)+'</span>':'')+'</span></td>'+
-      '<td>'+esc(N)+'</td>'+
-      '<td class="naam" data-kaart="'+i+'" title="Klantkaart openen">'+
-        '<span class="gastnaam" title="'+esc(naam)+'">'+esc(naam)+'</span>'+merkjes+
-        (r.nummer?'<div class="subregel" style="font-family:var(--f-mono)">'+esc(r.nummer)+'</div>':'')+'</td>'+
-      '<td>'+esc(r.locatie)+(onder?'<div class="subregel">'+esc(onder)+'</div>':'')+'</td>'+
-      '<td><span class="soort" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+s.naam+'</span></td>'+
-      '<td><select class="kies" data-mw="'+i+'" style="font-size:12px;padding:2px 5px">'+
-        '<option value="">—</option>'+
-        namen.map(function(n){ return '<option'+(k.medewerker===n?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
-        '</select></td>'+
-      '<td style="font-size:11.5px;line-height:1.3">'+(contact.join('<br>')||'<span style="color:var(--muted)">—</span>')+'</td>'+
-      '<td class="geld">'+(totaal==null?'<span style="color:var(--muted)">—</span>':esc(euro(totaal)))+'</td>'+
-      '<td class="geld'+(open?' open':'')+'">'+(open==null?'<span style="color:var(--muted)">—</span>':esc(euro(open)))+'</td>'+
-    '</tr>';
-
-    if(openDetail[resSleutel(r)]){
-      var d = '';
-      function rr(l,w){ if(w) d += '<dt>'+l+'</dt><dd>'+w+'</dd>'; }
-      rr('Wat is geboekt', esc(r.titel || r.omschrijving || '—'));
-      rr('Soort verblijf', esc(verblijfVan(r)));
-      rr('Geboekt via', esc(kanaalVan(r)));
-      rr('Inchecken', esc(A + (TI ? ' om '+TI : '')));
-      rr('Uitchecken', esc(V ? V + (TU ? ' om '+TU : '') : '—'));
-      if(datumGewijzigd(r)) rr('Oorspronkelijk', esc(r.aankomst+(r.tijdIn?' '+r.tijdIn:'')+(r.vertrek?' t/m '+r.vertrek:'')+(r.tijdUit?' '+r.tijdUit:'')));
-      if(k.geannuleerd) rr('Geannuleerd', esc(k.geannuleerd));
-      rr('Personen', esc(k.personen || r.personen));
-      if(r.arrangementen && r.arrangementen.length)
-        rr('Arrangementen','<ul>'+r.arrangementen.map(function(a){ return '<li>'+esc(a)+'</li>'; }).join('')+'</ul>');
-      rr('Opties', esc(r.opties));
-      rr('Al betaald', esc(r.reedsBetaald));
-      rr('Bij aankomst', esc(r.bijAankomst));
-      rr('Extra services', esc(k.extra));
-      rr('Betaalwijze', esc(k.betaalwijze));
-      rr('Welkomstcall', k.welkomstcall_gedaan ? 'afgerond op '+esc(k.welkomstcall_gedaan)
-          : (k.welkomstcall_id ? 'ingepland, nog te doen' : 'nog niet ingepland'));
-      rr('Gastenlink', k.gastlink_verstuurd ? 'verstuurd op '+esc(k.gastlink_verstuurd) : 'nog niet verstuurd');
-      rr('Review', k.review_verstuurd ? 'verstuurd op '+esc(k.review_verstuurd)
-          : (k.review_taak_id ? 'als taak ingepland' : '—'));
-      rr('Notitie', esc(k.notitie));
-      if(opBlacklist(r)) rr('Let op', '<b style="color:var(--crit)">Deze gast staat op de zwarte lijst — '+
-        esc(opBlacklist(r).reden || 'geen reden genoteerd')+'</b>');
-      if(r.omschrijving && r.omschrijving !== r.titel)
-        rr('Volledige tekst','<div style="white-space:pre-wrap">'+esc(r.omschrijving)+'</div>');
-      rij += '<tr class="detail"><td colspan="11"><dl class="detailblok">'+d+'</dl></td></tr>';
-    }
-    return rij;
-  }).join('');
-
-  /* knoppen aanhaken */
-  Array.prototype.forEach.call(tb.querySelectorAll('[data-menu]'), function(b){
-    b.onclick = function(e){
-      e.stopPropagation();
-      var m = document.getElementById('menu'+b.getAttribute('data-menu'));
-      var alOpen = m.classList.contains('open');
-      Array.prototype.forEach.call(document.querySelectorAll('.actiemenu'), function(x){ x.classList.remove('open'); });
-      if(!alOpen) m.classList.add('open');
-    };
-  });
-  Array.prototype.forEach.call(tb.querySelectorAll('[data-actie]'), function(b){
-    b.onclick = function(){
-      Array.prototype.forEach.call(document.querySelectorAll('.actiemenu'), function(x){ x.classList.remove('open'); });
-      doeActie(b.getAttribute('data-actie'), lijst[parseInt(b.getAttribute('data-i'),10)]);
-    };
-  });
-  Array.prototype.forEach.call(tb.querySelectorAll('[data-kaart]'), function(b){
-    b.onclick = function(){
-      openKlantkaart(lijst[parseInt(b.getAttribute('data-kaart'),10)]);
-    };
-  });
-  Array.prototype.forEach.call(tb.querySelectorAll('[data-mw]'), function(sel){
-    sel.onchange = async function(){
-      var r = lijst[parseInt(sel.getAttribute('data-mw'),10)];
-      try{
-        await bewaarKoppeling(r, { medewerker: sel.value || null });
-        meld('Toegewezen aan '+(sel.value||'niemand')+'.', true);
-      }catch(e){ meld('Toewijzen lukte niet: '+e.message); }
-    };
-  });
-  voet(lijst); meldHoogte();
-}
-document.addEventListener('click', function(){
-  Array.prototype.forEach.call(document.querySelectorAll('.actiemenu'), function(x){ x.classList.remove('open'); });
-});
-
-function voet(lijst){
-  var verwerkt = lijst.filter(function(r){ return KOPPEL[resSleutel(r)]; }).length;
-  document.getElementById('voetregel').innerHTML =
-    lijst.length+' regels · '+verwerkt+' met koppeling · '+
-    lijst.filter(function(r){return r.bron==='agenda';}).length+' uit de agenda · '+
-    lijst.filter(function(r){return r.bron==='handmatig';}).length+' handmatig';
-}
-
-/* =========================================================
-   Kalender
-   ========================================================= */
-var weergave = 'lijst';
-var kalMaand = (function(){ var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
-var MAANDEN = ['januari','februari','maart','april','mei','juni',
-               'juli','augustus','september','oktober','november','december'];
-var DAGEN = ['ma','di','wo','do','vr','za','zo'];
-
-function zetWeergave(welke){
-  weergave = welke;
-  document.getElementById('btnLijst').setAttribute('aria-pressed', welke==='lijst');
-  document.getElementById('btnKalender').setAttribute('aria-pressed', welke==='kalender');
-  document.querySelector('.tabelwrap').hidden = (welke !== 'lijst');
-  document.getElementById('voetregel').hidden = (welke !== 'lijst');
-  document.getElementById('kalender').hidden = (welke !== 'kalender');
-  if(welke === 'kalender') tekenKalender(); else teken();
-}
-
-/* welke dagen beslaat een reservering: van aankomst tot en met de laatste nacht */
-function dagenVan(r){
-  var a = aankomstVan(r), v = vertrekVan(r);
-  if(!a) return [];
-  var uit = [], d = new Date(a+'T12:00:00');
-  var eind = v ? new Date(v+'T12:00:00') : new Date(a+'T12:00:00');
-  if(v && v > a) eind.setDate(eind.getDate()-1);      /* vertrekdag telt niet mee */
-  var stop = 0;
-  while(d <= eind && stop < 60){ uit.push(dstr(d)); d.setDate(d.getDate()+1); stop++; }
-  return uit;
-}
-
-/* wie er op een dag werkt, uit de planning van het personeelsdashboard */
-function werkKleur(id){
-  for(var i=0;i<PLANTEAM.length;i++) if(String(PLANTEAM[i].id) === String(id)) return WERKKLEUR[i % WERKKLEUR.length];
-  return 'var(--muted)';
-}
-function werkNaam(id){
-  for(var i=0;i<PLANTEAM.length;i++) if(String(PLANTEAM[i].id) === String(id)) return PLANTEAM[i].naam || '';
-  return '';
-}
-function werkStrook(ds){
-  if(!MET_PLANNING) return '';
-  var rijen = PLANNING.filter(function(p){
-    if(String(p.datum||'').slice(0,10) !== ds || p.dienst === 'afwezig') return false;
-    if(REGIO !== 'lelystad') return true;
-    var l = String(p.locatie||'').toLowerCase();
-    return !l || l.indexOf('lelystad') > -1 || l.indexOf('malina') > -1;
-  });
-  if(!rijen.length) return '<span class="kalwerk"></span>';
-  var uitleg = rijen.map(function(p){
-    var soort = p.dienst === 'nacht' ? 'nachtverblijf' : p.dienst === 'schoonmaak' ? 'schoonmaak' : 'dagverblijf';
-    return (werkNaam(p.medewerker_id) || 'Onbekend') + ' \u2013 ' + soort + (p.notitie ? ' (' + p.notitie + ')' : '');
-  }).join('\n');
-  return '<span class="kalwerk" title="' + esc('Werkt op deze dag:\n' + uitleg) + '">' + rijen.map(function(p){
-    var vol = werkNaam(p.medewerker_id) || 'Onbekend';
-    var teken = p.dienst === 'nacht' ? ' \u263d' : p.dienst === 'schoonmaak' ? ' \u2726' : '';
-    return '<span class="wk" style="--wk:' + werkKleur(p.medewerker_id) + '"><i></i><b>' +
-      esc(vol.split(' ')[0]) + teken + '</b></span>';
-  }).join('') + '</span>';
-}
-
-function tekenKalender(){
-  var jaar = kalMaand.getFullYear(), maand = kalMaand.getMonth();
-  document.getElementById('kalTitel').textContent = MAANDEN[maand]+' '+jaar;
-
-  var eerste = new Date(jaar, maand, 1);
-  var laatste = new Date(jaar, maand+1, 0);
-  var vanaf = new Date(eerste); vanaf.setDate(1 - ((eerste.getDay()+6)%7));
-  var totMet = new Date(laatste); totMet.setDate(laatste.getDate() + (6 - ((laatste.getDay()+6)%7)));
-  var vanStr = dstr(vanaf), totStr = dstr(totMet);
-
-  /* alles wat in dit raster valt */
-  var lijst = ALLES.filter(function(r){
-    if(!pastBijFilters(r)) return false;
-    var a = aankomstVan(r), v = vertrekVan(r) || a;
-    return a && a <= totStr && v >= vanStr;
-  });
-
-  var perDag = {};
-  lijst.forEach(function(r, i){
-    dagenVan(r).forEach(function(d){
-      if(d < vanStr || d > totStr) return;
-      (perDag[d] = perDag[d] || []).push(i);
-    });
-  });
-
-  var inMaand = lijst.filter(function(r){
-    var a = aankomstVan(r);
-    return a >= dstr(eerste) && a <= dstr(laatste);
-  }).length;
-  document.getElementById('kalTelling').textContent =
-    inMaand+' aankomst'+(inMaand===1?'':'en')+' in deze maand';
-
-  var html = '<div class="kalgrid">' +
-    DAGEN.map(function(d){ return '<div class="kaldagkop">'+d+'</div>'; }).join('');
-
-  var vandaag = dstr(new Date());
-  var loop = new Date(vanaf);
-  while(dstr(loop) <= totStr){
-    var ds = dstr(loop);
-    var buiten = (loop.getMonth() !== maand);
-    var wknd = ((loop.getDay()+6)%7) > 4;
-    html += '<div class="kalcel'+(buiten?' buiten':'')+(wknd?' weekend':'')+
-            (ds===vandaag?' vandaag':'')+'">'+
-            (MET_PLANNING
-              ? '<div class="kaldagrij"><span class="dagnr">'+loop.getDate()+'</span>'+werkStrook(ds)+'</div>'
-              : '<span class="dagnr">'+loop.getDate()+'</span>');
-    (perDag[ds]||[]).forEach(function(i){
-      var r = lijst[i];
-      var s = SOORTEN[r.soort] || SOORTEN.handmatig;
-      var naam = gastVan(r) || 'Zonder naam';
-      var start = (aankomstVan(r) === ds);
-      var bezetteDagen = dagenVan(r);
-      var meerdaags = bezetteDagen.length > 1;
-      var weekdag = (new Date(ds+'T12:00:00').getDay()+6)%7;
-      /* Aan het begin/einde van een kalenderweek wordt de balk netjes afgerond
-         en op maandag opnieuw gestart. Zo loopt hij ook over meerdere weken door. */
-      var segmentStart = meerdaags && (ds===bezetteDagen[0] || weekdag===0);
-      var segmentEind = meerdaags && (ds===bezetteDagen[bezetteDagen.length-1] || weekdag===6);
-      var klassen = meerdaags ? ' meerdaags'+(segmentStart?' kal-start':'')+(segmentEind?' kal-eind':'') : '';
-      var toonTekst = !meerdaags || segmentStart;
-      var tijdje = toonTekst && start && tijdInVan(r) ? '<span class="kt">'+esc(tijdInVan(r))+'</span>' : '';
-      var titel = naam+' — '+r.locatie+' · '+aankomstVan(r)+
-                  (vertrekVan(r)?' t/m '+vertrekVan(r):'')+' · '+s.naam;
-      html += '<button class="kalitem'+klassen+'" type="button" data-kal="'+i+'" title="'+esc(titel)+'" '+
-              'style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+
-              (toonTekst ? tijdje+(r.locatie?esc(r.locatie)+' · ':'')+esc(naam) : '&nbsp;')+'</button>';
-    });
-    html += '</div>';
-    loop.setDate(loop.getDate()+1);
-  }
-  html += '</div>';
-  if(!lijst.length) html += '<div class="kalleeg">'+(GELADEN ? 'Geen reserveringen in deze maand met de huidige filters.' : 'Bezig met laden\u2026')+'</div>';
-
-  var vak = document.getElementById('kalInhoud');
-  vak.innerHTML = html;
-  Array.prototype.forEach.call(vak.querySelectorAll('[data-kal]'), function(b){
-    b.onclick = function(){ openKlantkaart(lijst[parseInt(b.getAttribute('data-kal'),10)]); };
-  });
-  meldHoogte();
-}
-
-document.getElementById('btnLijst').onclick = function(){ zetWeergave('lijst'); };
-document.getElementById('btnKalender').onclick = function(){ zetWeergave('kalender'); };
-document.getElementById('kalVorige').onclick = function(){
-  kalMaand.setMonth(kalMaand.getMonth()-1); tekenKalender(); };
-document.getElementById('kalVolgende').onclick = function(){
-  kalMaand.setMonth(kalMaand.getMonth()+1); tekenKalender(); };
-document.getElementById('kalVandaag').onclick = function(){
-  var d = new Date(); kalMaand = new Date(d.getFullYear(), d.getMonth(), 1); tekenKalender(); };
-
-/* =========================================================
-   Koppeling opslaan
-   ========================================================= */
-async function bewaarKoppeling(r, wijziging){
-  var sleutel = resSleutel(r);
-  var bestaat = KOPPEL[sleutel];
-  var obj = Object.assign({ res_sleutel: sleutel, bron: r.bron }, wijziging, { bijgewerkt: new Date().toISOString() });
-  if(bestaat){
-    await sb('res_koppeling?res_sleutel=eq.'+encodeURIComponent(sleutel), { method:'PATCH', body:JSON.stringify(obj) });
-    KOPPEL[sleutel] = Object.assign({}, bestaat, obj);
-  }else{
-    await sb('res_koppeling', { method:'POST', body:JSON.stringify(obj) });
-    KOPPEL[sleutel] = obj;
-  }
-  tekenTegels(); teken();
-  if(weergave === 'kalender') tekenKalender();
-  if(wijziging && wijziging.klant_id){
-    var reserveringId = String(r.nummer || r.id || sleutel);
-    var bronNaam = String(r.bron || 'dashboard');
-    await sb('wz_reservering_klanten?on_conflict=bron,reservering_id', {
-      method:'POST', prefer:'resolution=merge-duplicates,return=representation',
-      body:JSON.stringify({ bron:bronNaam, reservering_id:reserveringId,
-        klant_id:String(wijziging.klant_id), bijgewerkt:new Date().toISOString() })
-    });
-    if(r.bewerkbaar && r.id){
-      await sb('reservations?id=eq.'+encodeURIComponent(r.id), {
-        method:'PATCH', body:JSON.stringify({ klant_id:String(wijziging.klant_id) })
-      });
-    }
-  }
-  return KOPPEL[sleutel];
-}
-
-/* =========================================================
-   Klantkaart
-   ========================================================= */
-function klantVan(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  if(!k.klant_id) return null;
-  for(var i=0;i<KLANTEN.length;i++){
-    if(String(KLANTEN[i].id) === String(k.klant_id)) return KLANTEN[i];
-  }
+/* ---------- sessie ---------- */
+function leesSessie(){
+  try{ const v=JSON.parse(localStorage.getItem(CFG.ls)||'null');
+    if(v&&v.access_token){
+      const d=JSON.parse(atob(v.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      if(!d.exp||d.exp*1000>Date.now()) return v;
+    }}catch(e){}
   return null;
 }
-function eerdereBezoeken(r){
-  var mij = resSleutel(r);
-  var naam = gastVan(r).toLowerCase().trim();
-  var tel = String(telVan(r)).replace(/\D/g,'').slice(-9);
-  var mail = String(mailVan(r)).toLowerCase().trim();
-  return ALLES.filter(function(x){
-    if(resSleutel(x) === mij) return false;
-    if(x.soort!=='reservering' && x.soort!=='extern' && x.soort!=='handmatig') return false;
-    var xt = String(telVan(x)).replace(/\D/g,'').slice(-9);
-    var xm = String(mailVan(x)).toLowerCase().trim();
-    var xn = gastVan(x).toLowerCase().trim();
-    if(mail && xm && xm === mail) return true;
-    if(tel && xt && xt === tel) return true;
-    if(naam && xn && naam.length > 4 && xn === naam) return true;
-    return false;
-  }).sort(function(a,b){ return String(b.aankomst).localeCompare(String(a.aankomst)); }).slice(0,12);
+async function inloggen(){
+  const f=document.getElementById('lgFout'), k=document.getElementById('lgKnop');
+  f.textContent=''; k.disabled=true; k.textContent='Bezig…';
+  try{
+    const r=await fetch(CFG.url+'/auth/v1/token?grant_type=password',{method:'POST',
+      headers:{apikey:CFG.key,'Content-Type':'application/json'},
+      body:JSON.stringify({email:document.getElementById('lgMail').value.trim().toLowerCase(),
+        password:document.getElementById('lgWw').value})});
+    const d=await r.json();
+    if(!r.ok||!d.access_token) throw new Error(d.error_description||d.msg||'Inloggen lukte niet.');
+    localStorage.setItem(CFG.ls,JSON.stringify(d)); location.reload();
+  }catch(e){ f.textContent=e.message; }
+  k.disabled=false; k.textContent='Inloggen';
 }
-function openKlantkaart(r){
-  actieRes = r;
-  var k = KOPPEL[resSleutel(r)] || {};
-  var kl = klantVan(r);
-  var eigenaar = (!window.BWF || !window.BWF.rol || window.BWF.mag('eigenaar'));
-  var totaal = (k.totaal!=null && k.totaal!=='') ? parseFloat(k.totaal) : r.totaal;
-  var betaald = (k.betaald!=null && k.betaald!=='') ? parseFloat(k.betaald) : r.betaald;
-  var open = (totaal==null) ? null : Math.max(0, (totaal||0)-(betaald||0));
 
-  document.getElementById('kkNaam').textContent = gastVan(r) || 'Zonder naam';
-  document.getElementById('kkSub').textContent =
-    [r.locatie, verblijfVan(r), kanaalVan(r), r.nummer].filter(Boolean).join(' · ');
+/* ---------- database ---------- */
+async function haal(pad,naam){
+  try{
+    const r=await fetch(CFG.url+'/rest/v1/'+pad,
+      {headers:{apikey:CFG.key,Authorization:'Bearer '+SESSIE.access_token}});
+    if(!r.ok) throw new Error(r.status+'');
+    const t=await r.text(); return t?JSON.parse(t):[];
+  }catch(e){ FOUT += (FOUT?' · ':'') + naam+' ('+e.message+')'; return []; }
+}
 
-  var bl = opBlacklist(r);
-  document.getElementById('kkWaarschuwing').innerHTML = bl
-    ? '<div class="fout" style="margin:0 0 14px">Deze gast staat op de zwarte lijst — '+
-      esc(bl.reden || 'geen reden genoteerd')+'</div>' : '';
+/* ---------- de blokken van een suite op een dag ---------- */
+async function laadBlokken(){
+  if(BLOKKEN) return BLOKKEN;
+  const rijen = await haal('bwf_tariefblokken?select=*&actief=eq.true&order=sortering.asc','tarieven');
+  BLOKKEN = {};
+  Object.keys(SUITES).forEach(k=>BLOKKEN[k]={dag:[],nacht:[]});
+  rijen.forEach(x=>{
+    const s = SUITES[x.suite] ? x.suite : locId(x.suite);
+    if(!s || !BLOKKEN[s]) return;
+    const rij=[String(x.starttijd).slice(0,5),String(x.eindtijd).slice(0,5),Number(x.prijs),x.naam];
+    (x.verblijf==='dag' ? BLOKKEN[s].dag : BLOKKEN[s].nacht).push(rij);
+  });
+  /* niets gevonden? dan de vaste lijst gebruiken */
+  Object.keys(SUITES).forEach(k=>{
+    if(!BLOKKEN[k].dag.length && !BLOKKEN[k].nacht.length) BLOKKEN[k] = VAST[k];
+  });
+  return BLOKKEN;
+}
 
-  var m = '';
-  if(k.klant_id) m += '<span class="gekoppeld">klant gekoppeld</span>';
-  if(k.member) m += '<span class="gekoppeld">member</span>';
-  if(k.checkin_id) m += '<span class="gekoppeld">ingecheckt formulier</span>';
-  if(k.gastenregister_id) m += '<span class="gekoppeld">in gastenregister</span>';
-  if(k.welkomstcall_gedaan) m += '<span class="gekoppeld">welkomstcall gedaan</span>';
-  else if(k.welkomstcall_id) m += '<span class="gekoppeld" style="background:var(--warn-soft);color:var(--warn)">welkomstcall open</span>';
-  if(k.gastlink_verstuurd) m += '<span class="gekoppeld">gastenlink verstuurd</span>';
-  if(k.review_verstuurd) m += '<span class="gekoppeld">review verstuurd</span>';
-  document.getElementById('kkMerkjes').innerHTML = m;
-
-  function vak(titel, regels, breed){
-    var d = regels.filter(function(x){ return x[1]; })
-      .map(function(x){ return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>'; }).join('');
-    if(!d) d = '<dt>—</dt><dd>niets bekend</dd>';
-    return '<div class="kkvak'+(breed?' breed':'')+'"><h4>'+titel+'</h4><dl>'+d+'</dl></div>';
-  }
-
-  var blokken = '';
-
-  var A = aankomstVan(r), V = vertrekVan(r), TI = tijdInVan(r), TU = tijdUitVan(r);
-  blokken += vak('Verblijf', [
-    ['Locatie', esc(r.locatie)],
-    ['Aankomst', esc(A + (TI ? ' om '+TI : ''))],
-    ['Vertrek', esc(V ? V + (TU ? ' om '+TU : '') : '')],
-    ['Nachten', esc(nachten(A, V))],
-    ['Gewijzigd', datumGewijzigd(r) ? 'ja — oorspronkelijk '+esc(r.aankomst+(r.tijdIn?' '+r.tijdIn:'')) : ''],
-    ['Geannuleerd', esc(k.geannuleerd)],
-    ['Personen', esc(k.personen || r.personen)],
-    ['Arrangement', esc(k.arrangement || r.arrangement || (r.arrangementen||[]).join(', '))],
-    ['Extra', esc(k.extra)],
-    ['Geboekt via', esc(kanaalVan(r))],
-    ['Nummer', esc(r.nummer)]
+/* ---------- wat is er bezet ---------- */
+async function laadBezet(){
+  FOUT='';
+  const d=DATUM;
+  const [agenda,res,kop] = await Promise.all([
+    (async()=>{ try{
+        if(!window.BWFAgenda) throw new Error('agenda niet geladen');
+        const j=await window.BWFAgenda.events();
+        return (j.events||[]).filter(e=>e.soort==='reservering'||e.soort==='extern');
+      }catch(e){ FOUT += (FOUT?' \u00b7 ':'')+'agenda ('+e.message+')'; return []; } })(),
+    /* Alles wat op deze dag loopt, ook als het eerder begon of later eindigt.
+       Eerder keken we alleen naar de aankomstdag, waardoor een verblijf van
+       twee nachten op de tussenliggende dag onzichtbaar was. */
+    haal('reservations?select=id,locatie,voornaam,achternaam,checkindatum,checkuitdatum,' +
+      'checkintijd,checkuittijd&checkindatum=lte.'+d+'&checkuitdatum=gte.'+d+'&limit=400','reserveringen'),
+    haal('res_koppeling?select=res_sleutel,gast,locatie,aankomst,vertrek,tijd_in,tijd_uit,' +
+      'geannuleerd&aankomst=lte.'+d+'&vertrek=gte.'+d+'&limit=600','koppelingen')
   ]);
 
-  blokken += vak('Contact', [
-    ['Telefoon', telVan(r) ? '<a href="tel:'+esc(telVan(r))+'">'+esc(telVan(r))+'</a>' : ''],
-    ['E-mail', mailVan(r) ? '<a href="mailto:'+esc(mailVan(r))+'">'+esc(mailVan(r))+'</a>' : ''],
-    ['WhatsApp', telVan(r) ? '<a href="https://wa.me/'+esc(String(telVan(r)).replace(/\D/g,'').replace(/^0/,'31'))+'" target="_blank" rel="noopener">bericht sturen</a>' : ''],
-    ['Woonplaats', kl ? esc(kl.woonplaats) : ''],
-    ['Toegewezen aan', esc(k.medewerker)]
-  ]);
-
-  if(kl){
-    blokken += vak('Klantgegevens', [
-      ['Naam', esc(((kl.voorletters||'')+' '+(kl.achternaam||'')).trim())],
-      ['Member', kl.member ? 'ja' : 'nee'],
-      ['Bron', esc(kl.bron)],
-      ['Eerste contact', esc(kl.contact_datum)],
-      ['Notitie', esc(kl.notitie)]
-    ]);
-  }else{
-    blokken += '<div class="kkvak"><h4>Klantgegevens</h4>'+
-      '<p style="margin:0;font-size:13px;color:var(--muted)">Nog geen klant gekoppeld. '+
-      'Gebruik hieronder "Klant koppelen" om deze gast in het klantenbestand te zetten.</p></div>';
-  }
-
-  if(eigenaar){
-    blokken += vak('Betaling', [
-      ['Totaal', totaal==null ? '' : esc(euro(totaal))],
-      ['Betaald', betaald==null ? '' : esc(euro(betaald))],
-      ['Nog open', open==null ? '' : '<b'+(open?' style="color:var(--crit)"':'')+'>'+esc(euro(open))+'</b>'],
-      ['Betaalwijze', esc(k.betaalwijze)],
-      ['Uit de agenda', esc(r.reedsBetaald)],
-      ['Bij aankomst', esc(r.bijAankomst)]
-    ]);
-  }
-
-  var bez = eerdereBezoeken(r);
-  var bezHtml = bez.length
-    ? bez.map(function(x){
-        return '<div class="kkbezoek"><b>'+esc(x.aankomst)+'</b><span>'+
-          esc([x.locatie, verblijfVan(x), kanaalVan(x)].filter(Boolean).join(' · '))+'</span></div>';
-      }).join('')
-    : '<p style="margin:0;font-size:13px;color:var(--muted)">Geen eerdere reserveringen gevonden op deze naam, telefoon of e-mail.</p>';
-  blokken += '<div class="kkvak breed"><h4>Eerdere bezoeken ('+bez.length+')</h4>'+bezHtml+'</div>';
-
-  if(k.notitie || r.titel || r.omschrijving){
-    blokken += '<div class="kkvak breed"><h4>Notitie en boekingstekst</h4>'+
-      (k.notitie ? '<p style="margin:0 0 8px;font-size:13px"><b>Notitie:</b> '+esc(k.notitie)+'</p>' : '')+
-      '<div style="font-size:12.5px;white-space:pre-wrap;color:var(--ink-2);max-height:180px;overflow:auto">'+
-      esc(r.omschrijving || r.titel || '')+'</div></div>';
-  }
-
-  document.getElementById('kkRaster').innerHTML = blokken;
-
-  var acties = [['wijzig','Alle gegevens aanpassen'],['wijzigbericht','Wijziging doorgeven'],
-    ['annulering','Annulering doorgeven'],['klant','Klant koppelen'],
-    ['gastlink','Gastenlink versturen'],['welkom','Welkomstcall aanmaken'],
-    ['taak','Taak toevoegen'],['review','Reviewverzoek'],['detail','Details in de tabel']];
-  if(eigenaar) acties.splice(4, 0, ['betaal','Betaalgegevens']);
-  if(nachten(A,V) && nachten(A,V)!=='dag')
-    acties.push(['register','Naar gastenregister']);
-  if(r.bewerkbaar) acties.push(['bewerk','Reservering bewerken']);
-
-  document.getElementById('kkActies').innerHTML =
-    '<a class="knop" href="incheckformulier.html?reservering='+
-      encodeURIComponent(r.nummer||resSleutel(r))+'" target="_blank" rel="noopener">Incheckformulier</a>'+
-    acties.map(function(a){
-      return '<button class="knop" type="button" data-kk="'+a[0]+'">'+a[1]+'</button>'; }).join('')+
-    '<button class="knop gevaar" type="button" data-kk="blacklist">'+
-      (bl?'Van de zwarte lijst halen':'Op de zwarte lijst')+'</button>';
-
-  Array.prototype.forEach.call(document.getElementById('kkActies').querySelectorAll('[data-kk]'), function(b){
-    b.onclick = function(){
-      document.getElementById('kaartDialog').close();
-      doeActie(b.getAttribute('data-kk'), r);
-    };
-  });
-
-  document.getElementById('kaartDialog').showModal();
-}
-
-/* =========================================================
-   Acties
-   ========================================================= */
-var actieRes = null;
-function doeActie(actie, r){
-  actieRes = r;
-  if(actie === 'kaart'){ openKlantkaart(r); return; }
-  if(actie === 'detail'){ openDetail[resSleutel(r)] = !openDetail[resSleutel(r)]; teken(); return; }
-  if(actie === 'bewerk'){ openDialoog(r); return; }
-  if(actie === 'klant'){ openKlant(r); return; }
-  if(actie === 'member'){ zetMember(r); return; }
-  if(actie === 'betaal'){ openBetaal(r); return; }
-  if(actie === 'taak'){ openTaak(r); return; }
-  if(actie === 'register'){ openRegister(r); return; }
-  if(actie === 'welkom'){ maakWelkomstcall(r); return; }
-  if(actie === 'checkin'){ koppelCheckin(r); return; }
-  if(actie === 'wijzig'){ openWijzig(r); return; }
-  if(actie === 'review'){ openReview(r); return; }
-  if(actie === 'gastlink'){ openGastlink(r); return; }
-  if(actie === 'welkomklaar'){ welkomstcallKlaar(r); return; }
-  if(actie === 'blacklist'){ openBlacklist(r); return; }
-  if(actie === 'wijzigbericht'){ openBericht(r, 'wijziging'); return; }
-  if(actie === 'annulering'){ openBericht(r, 'annulering'); return; }
-}
-
-/* --- klant koppelen of aanmaken --- */
-function splitNaam(r){
-  var n = (r.voornaam+' '+r.achternaam).trim().split(/\s+/);
-  if(n.length === 1) return { voor:'', achter:n[0]||'' };
-  return { voor:n[0].charAt(0).toUpperCase()+'.', achter:n.slice(1).join(' ') };
-}
-function zoekKlanten(r){
-  var naam = (r.voornaam+' '+r.achternaam).toLowerCase().trim();
-  var tel = String(r.telefoon||'').replace(/\D/g,'').slice(-9);
-  var mail = String(r.email||'').toLowerCase();
-  return KLANTEN.filter(function(k){
-    if(mail && String(k.email||'').toLowerCase() === mail) return true;
-    if(tel && String(k.telefoon||'').replace(/\D/g,'').slice(-9) === tel) return true;
-    var kn = ((k.voorletters||'')+' '+(k.achternaam||'')).toLowerCase().trim();
-    if(naam && k.achternaam && naam.indexOf(String(k.achternaam).toLowerCase()) > -1) return true;
-    return false;
-  }).slice(0,5);
-}
-function openKlant(r){
-  var d = splitNaam(r);
-  document.getElementById('klSub').textContent =
-    (r.voornaam+' '+r.achternaam).trim()+' · '+r.locatie+' · '+r.aankomst;
-  document.getElementById('kl_voorletters').value = d.voor;
-  document.getElementById('kl_achternaam').value = d.achter;
-  document.getElementById('kl_email').value = r.email||'';
-  document.getElementById('kl_telefoon').value = r.telefoon||'';
-  document.getElementById('kl_woonplaats').value = '';
-  document.getElementById('kl_member').checked = !!(KOPPEL[resSleutel(r)]||{}).member;
-
-  var treffers = zoekKlanten(r);
-  document.getElementById('klTreffers').innerHTML = treffers.length
-    ? '<div class="sub">Mogelijk bestaat deze klant al:</div>'+treffers.map(function(k,i){
-        return '<div class="treffer"><b>'+esc(((k.voorletters||'')+' '+(k.achternaam||'')).trim())+'</b>'+
-          esc([k.woonplaats,k.email,k.telefoon].filter(Boolean).join(' · '))+
-          '<div style="margin-top:7px"><button class="knop klein" type="button" data-kies="'+esc(k.id)+'">Hieraan koppelen</button></div></div>';
-      }).join('')
-    : '<div class="sub">Geen bestaande klant gevonden. Vul de gegevens aan en maak een nieuwe klant.</div>';
-
-  Array.prototype.forEach.call(document.getElementById('klTreffers').querySelectorAll('[data-kies]'), function(b){
-    b.onclick = async function(){
-      try{
-        await bewaarKoppeling(r, { klant_id: b.getAttribute('data-kies'),
-                                   member: document.getElementById('kl_member').checked });
-        document.getElementById('klantDialog').close();
-        meld('Gekoppeld aan bestaande klant.', true);
-      }catch(e){ meld('Koppelen lukte niet: '+e.message); }
-    };
-  });
-  document.getElementById('klantDialog').showModal();
-}
-document.getElementById('klNieuw').onclick = async function(){
-  var r = actieRes; if(!r) return;
-  var id = 'k'+Date.now();
-  var rec = {
-    id:id, type:'klant', locatie_id: LOCATIE_ID[r.locatie]||null,
-    contact_datum: dstr(new Date()),
-    voorletters: document.getElementById('kl_voorletters').value.trim(),
-    achternaam: document.getElementById('kl_achternaam').value.trim(),
-    email: document.getElementById('kl_email').value.trim(),
-    telefoon: document.getElementById('kl_telefoon').value.trim(),
-    woonplaats: document.getElementById('kl_woonplaats').value.trim(),
-    personen:0, kinderen:0, nachten:0, kale_prijs:0, totaal_betaald:0,
-    member: document.getElementById('kl_member').checked,
-    bron:'Reservering', notitie:'Aangemaakt vanuit reservering '+(r.nummer||r.aankomst),
-    aangemaakt: new Date().toISOString()
-  };
-  if(!rec.achternaam){ alert('Vul een achternaam in.'); return; }
-  try{
-    await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
-    KLANTEN.push(rec);
-    await bewaarKoppeling(r, { klant_id:id, member:rec.member });
-    document.getElementById('klantDialog').close();
-    meld('Nieuwe klant aangemaakt en gekoppeld.', true);
-  }catch(e){ meld('Klant aanmaken lukte niet: '+e.message); }
-};
-
-/* --- member --- */
-async function zetMember(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  var nieuw = !k.member;
-  try{
-    await bewaarKoppeling(r, { member: nieuw });
-    if(k.klant_id){
-      await sb('wz_klantbeheer?id=eq.'+encodeURIComponent(k.klant_id),
-        { method:'PATCH', body:JSON.stringify({ member:nieuw }) });
+  /* Een verblijf omrekenen naar de tijden die het op déze dag bezet houdt. */
+  function opDeze(vanDatum, totDatum, vanTijd, totTijd){
+    const a=String(vanDatum||'').slice(0,10);
+    let b=String(totDatum||vanDatum||'').slice(0,10);
+    if(!a) return null;
+    /* Staat er geen vertrekdatum maar eindigt het verblijf eerder op de klok
+       dan het begint, dan is het een overnachting die de volgende dag eindigt. */
+    if(b===a && vanTijd && totTijd && min(totTijd) <= min(vanTijd)){
+      const n=new Date(a+'T12:00:00'); n.setDate(n.getDate()+1);
+      b=n.toISOString().slice(0,10);
     }
-    meld(nieuw ? 'Als member gemarkeerd.' : 'Member-vinkje weggehaald.', true);
-  }catch(e){ meld('Lukte niet: '+e.message); }
-}
-
-/* --- incheckformulier koppelen --- */
-async function koppelCheckin(r){
-  var naam = (r.voornaam+' '+r.achternaam).toLowerCase().trim();
-  var tel = String(r.telefoon||'').replace(/\D/g,'').slice(-9);
-  var treffer = CHECKINS.find(function(c){
-    if(r.nummer && String(veld(c,['reservering','reserveringsnummer','nummer'],'')) === String(r.nummer)) return true;
-    var cn = ((c.voornaam||'')+' '+(c.achternaam||'')).toLowerCase().trim();
-    var ct = String(c.telefoon||'').replace(/\D/g,'').slice(-9);
-    if(tel && ct === tel) return true;
-    if(naam && cn && naam.indexOf(cn) > -1) return true;
-    return false;
-  });
-  if(!treffer){ meld('Geen bijbehorend incheckformulier gevonden. Open het formulier en vul het in, daarna verschijnt het hier.'); return; }
-  var wijz = { checkin_id: treffer.id };
-  var t = parseFloat(veld(treffer,['totaal','totaalbedrag'],0));
-  var b = parseFloat(veld(treffer,['betaald','aanbetaling'],0));
-  if(t) wijz.totaal = t;
-  if(b) wijz.betaald = b;
-  var w = veld(treffer,['betaalwijze','betaalmethode'],'');
-  if(w) wijz.betaalwijze = w;
-  try{
-    await bewaarKoppeling(r, wijz);
-    meld('Incheckformulier gekoppeld'+(t?' en bedragen overgenomen':'')+'.', true);
-  }catch(e){ meld('Koppelen lukte niet: '+e.message); }
-}
-
-/* --- betaalgegevens --- */
-function openBetaal(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  document.getElementById('btSub').textContent =
-    (r.voornaam+' '+r.achternaam).trim()+' · '+r.locatie+' · '+r.aankomst;
-  document.getElementById('bt_totaal').value = k.totaal!=null ? k.totaal : (r.totaal!=null?r.totaal:'');
-  document.getElementById('bt_betaald').value = k.betaald!=null ? k.betaald : (r.betaald!=null?r.betaald:'');
-  document.getElementById('bt_wijze').value = k.betaalwijze||'';
-  document.getElementById('bt_notitie').value = k.notitie||'';
-  document.getElementById('betaalDialog').showModal();
-}
-document.getElementById('bt_ophalen').onclick = function(){
-  if(actieRes) koppelCheckin(actieRes).then(function(){
-    var k = KOPPEL[resSleutel(actieRes)] || {};
-    if(k.totaal!=null) document.getElementById('bt_totaal').value = k.totaal;
-    if(k.betaald!=null) document.getElementById('bt_betaald').value = k.betaald;
-    if(k.betaalwijze) document.getElementById('bt_wijze').value = k.betaalwijze;
-  });
-};
-document.getElementById('btBewaar').onclick = async function(){
-  try{
-    await bewaarKoppeling(actieRes, {
-      totaal: parseFloat(document.getElementById('bt_totaal').value)||0,
-      betaald: parseFloat(document.getElementById('bt_betaald').value)||0,
-      betaalwijze: document.getElementById('bt_wijze').value,
-      notitie: document.getElementById('bt_notitie').value.trim()
-    });
-    document.getElementById('betaalDialog').close();
-    meld('Betaalgegevens opgeslagen.', true);
-  }catch(e){ meld('Opslaan lukte niet: '+e.message); }
-};
-
-/* --- taak --- */
-function openTaak(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  document.getElementById('tkSub').textContent =
-    (r.voornaam+' '+r.achternaam).trim()+' · '+r.locatie+' · '+r.aankomst;
-  document.getElementById('tk_titel').value = '';
-  document.getElementById('tk_wie').value = k.medewerker||'';
-  document.getElementById('tk_deadline').value = r.aankomst||'';
-  document.getElementById('tk_omschrijving').value =
-    'Bij reservering '+(r.nummer||'')+' — '+(r.voornaam+' '+r.achternaam).trim()+', '+r.locatie+' '+r.aankomst;
-  document.getElementById('taakDialog').showModal();
-}
-document.getElementById('tkBewaar').onclick = async function(){
-  var titel = document.getElementById('tk_titel').value.trim();
-  if(!titel){ alert('Vul een taak in.'); return; }
-  var obj = {
-    titel: titel,
-    omschrijving: document.getElementById('tk_omschrijving').value.trim(),
-    locatie: actieRes.locatie,
-    toegewezen: document.getElementById('tk_wie').value,
-    deadline: document.getElementById('tk_deadline').value || null,
-    status: 'open'
-  };
-  try{
-    await sb('wz_taken', { method:'POST', body:JSON.stringify(obj) });
-    document.getElementById('taakDialog').close();
-    meld('Taak aangemaakt.', true);
-  }catch(e){ meld('Taak aanmaken lukte niet: '+e.message); }
-};
-
-/* --- welkomstcall --- */
-async function maakWelkomstcall(r){
-  var obj = {
-    gast: (r.voornaam+' '+r.achternaam).trim(),
-    telefoon: r.telefoon||'', email: r.email||'',
-    locatie: r.locatie, aankomst: r.aankomst || null,
-    reservering: r.nummer || resSleutel(r),
-    status: 'open'
-  };
-  try{
-    var res = await sb('wz_welkomstcalls', { method:'POST', body:JSON.stringify(obj) });
-    var id = (res && res[0] && res[0].id) ? res[0].id : '';
-    await bewaarKoppeling(r, { welkomstcall_id: String(id) });
-    meld('Welkomstcall aangemaakt — af te ronden in het VR Dashboard.', true);
-  }catch(e){ meld('Welkomstcall aanmaken lukte niet: '+e.message); }
-}
-
-/* --- gastenregister --- */
-function openRegister(r){
-  var d = splitNaam(r);
-  document.getElementById('grSub').textContent =
-    r.locatie+' · '+r.aankomst+' t/m '+r.vertrek+' · '+nachten(r.aankomst,r.vertrek)+' nacht(en)';
-  document.getElementById('gr_voorletters').value = d.voor;
-  document.getElementById('gr_achternaam').value = d.achter;
-  document.getElementById('gr_woonplaats').value = '';
-  document.getElementById('gr_personen').value = r.personen || 2;
-  document.getElementById('gr_kinderen').value = 0;
-  var k = KOPPEL[resSleutel(r)] || {};
-  document.getElementById('gr_totaal').value = k.totaal!=null ? k.totaal : '';
-  document.getElementById('gr_kale').value = '';
-  document.getElementById('registerDialog').showModal();
-}
-document.getElementById('grBewaar').onclick = async function(){
-  var r = actieRes;
-  var id = 'r'+Date.now();
-  var rec = {
-    id:id, type:'overnachting', locatie_id: LOCATIE_ID[r.locatie]||null,
-    datum_in: r.aankomst||null, datum_uit: r.vertrek||null,
-    nachten: parseInt(nachten(r.aankomst,r.vertrek),10)||0,
-    voorletters: document.getElementById('gr_voorletters').value.trim(),
-    achternaam: document.getElementById('gr_achternaam').value.trim(),
-    woonplaats: document.getElementById('gr_woonplaats').value.trim(),
-    nationaliteit: document.getElementById('gr_nationaliteit').value.trim(),
-    email: r.email||'', telefoon: r.telefoon||'',
-    personen: parseInt(document.getElementById('gr_personen').value,10)||0,
-    kinderen: parseInt(document.getElementById('gr_kinderen').value,10)||0,
-    kale_prijs: parseFloat(document.getElementById('gr_kale').value)||0,
-    totaal_betaald: parseFloat(document.getElementById('gr_totaal').value)||0,
-    member: !!(KOPPEL[resSleutel(r)]||{}).member,
-    bron:'Reservering', notitie:'Vanuit reservering '+(r.nummer||''),
-    aangemaakt: new Date().toISOString()
-  };
-  if(!rec.achternaam){ alert('Vul een achternaam in.'); return; }
-  try{
-    await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
-    await bewaarKoppeling(r, { gastenregister_id:id });
-    document.getElementById('registerDialog').close();
-    meld('Opgenomen in het gastenregister.', true);
-  }catch(e){ meld('Opnemen lukte niet: '+e.message); }
-};
-
-/* =========================================================
-   Handmatige reservering toevoegen of bewerken
-   ========================================================= */
-var dlg = document.getElementById('resDialog');
-var bewerkId = null;
-var planyoResourcesGeladen = false;
-function zet(id,w){ document.getElementById(id).value = w==null?'':w; }
-async function laadPlanyoResources(naam){
-  var select = document.getElementById('v_planyo_resource');
-  if(!window.BWFPlanyo){ select.innerHTML = '<option value="">Planyo-koppeling ontbreekt</option>'; return; }
-  if(!planyoResourcesGeladen){
-    select.innerHTML = '<option value="">Accommodaties laden…</option>';
-    try{
-      var data = await BWFPlanyo.resources();
-      var lijst = (data.resources || []).filter(function(r){ return r && r.id && r.name; });
-      select.innerHTML = '<option value="">Kies een accommodatie</option>' + lijst.map(function(r){
-        return '<option value="'+String(r.id).replace(/"/g,'&quot;')+'">'+esc(String(r.name))+'</option>';
-      }).join('');
-      planyoResourcesGeladen = true;
-    }catch(e){ select.innerHTML = '<option value="">Laden mislukt</option>'; meld(e.message); return; }
+    if(a>d || (b && b<d)) return null;
+    const begint = a===d, eindigt = (b||a)===d;
+    if(begint && eindigt) return { van:vanTijd||'00:00', tot:totTijd||'23:59', doorlopend:false };
+    if(begint)            return { van:vanTijd||'00:00', tot:'23:59', doorlopend:true };
+    if(eindigt)           return { van:'00:00', tot:totTijd||'23:59', doorlopend:true };
+    return { van:'00:00', tot:'23:59', doorlopend:true };   /* hele dag bezet */
   }
-  if(naam){
-    var zoek = naam.toLowerCase();
-    Array.prototype.some.call(select.options, function(o){
-      if(o.text.toLowerCase() === zoek || o.text.toLowerCase().indexOf(zoek) >= 0){ select.value=o.value; return true; }
+
+  /* Eén boeking per verblijf. Een reservering en de correctie erop horen bij
+     elkaar: res_koppeling met sleutel hm-<id> hoort bij reservations met dat id.
+     Wat in de koppeling staat is een bewuste aanpassing en gaat dus voor. */
+  const perSleutel = {};
+  function zet(sleutel, waarden, voorrang){
+    if(!sleutel) return;
+    const bestaand = perSleutel[sleutel] || {};
+    perSleutel[sleutel] = voorrang
+      ? Object.assign({}, bestaand, schoon(waarden))
+      : Object.assign({}, schoon(waarden), bestaand);
+  }
+  function schoon(o){
+    const uit={}; Object.keys(o).forEach(k=>{ if(o[k]!==undefined && o[k]!=='' && o[k]!==null) uit[k]=o[k]; });
+    return uit;
+  }
+
+  agenda.forEach(e=>{
+    const nummer = e.nummer || e.referentie || e.reservering;
+    const sleutel = nummer ? String(nummer)
+      : (e.suite||e.locatie||'') + '-' + String(e.start||'').slice(0,16);
+    zet(sleutel, {
+      suite: locId(e.suite||e.locatie),
+      vanD: String(e.start||'').slice(0,10),
+      totD: String(e.eind||'').slice(0,10) || String(e.start||'').slice(0,10),
+      vanT: (String(e.start||'').match(/(\d{2}:\d{2})/)||[])[1],
+      totT: (String(e.eind||'').match(/(\d{2}:\d{2})/)||[])[1],
+      wie: e.gast||e.naam||e.titel||'geboekt',
+      bron: e.bron||'agenda'
+    }, false);
+  });
+
+  res.forEach(r=>{
+    zet('hm-'+r.id, {
+      suite: locId(r.locatie),
+      vanD: String(r.checkindatum||'').slice(0,10),
+      totD: String(r.checkuitdatum||r.checkindatum||'').slice(0,10),
+      vanT: String(r.checkintijd||'').slice(0,5),
+      totT: String(r.checkuittijd||'').slice(0,5),
+      wie: ((r.voornaam||'')+' '+(r.achternaam||'')).trim()||'geboekt',
+      bron: 'eigen boeking'
+    }, false);
+  });
+
+  kop.forEach(k=>{
+    if(k.geannuleerd){ delete perSleutel[k.res_sleutel]; return; }
+    zet(k.res_sleutel, {
+      suite: locId(k.locatie||k.res_sleutel),
+      vanD: String(k.aankomst||'').slice(0,10),
+      totD: String(k.vertrek||k.aankomst||'').slice(0,10),
+      vanT: String(k.tijd_in||'').slice(0,5),
+      totT: String(k.tijd_uit||'').slice(0,5),
+      wie: k.gast, bron: k.bron
+    }, true);   /* de correctie wint */
+  });
+
+  const uit=[];
+  Object.keys(perSleutel).forEach(sleutel=>{
+    const x=perSleutel[sleutel];
+    const t=opDeze(x.vanD, x.totD, x.vanT, x.totT);
+    if(!t || !x.suite) return;
+    uit.push({ sleutel:sleutel, suite:x.suite, van:t.van, tot:t.tot, doorlopend:t.doorlopend,
+      echtVan:x.vanD, echtTot:x.totD, echtVanT:x.vanT||'', echtTotT:x.totT||'',
+      wie:x.wie||'geboekt', bron:x.bron||'boeking' });
+  });
+
+  BEZET = uit.filter(x=>x.suite);
+
+  /* Wie staat er die dag ingepland in Lelystad. Alleen de naam \u2014
+     de volledige planning staat in het personeelsdashboard. */
+  try{
+    const p = await haal('planning?select=medewerker_id,locatie,dienst&datum=eq.'+d+'&limit=20','planning');
+    const namen = p.filter(x=>/lelystad|malina/i.test(String(x.locatie||'')))
+      .map(x=>{
+        const kaal = String(x.medewerker_id||'').replace(/^mw[-_]?/,'').replace(/[-_]/g,' ').trim();
+        return kaal ? kaal.charAt(0).toUpperCase()+kaal.slice(1) : '';
+      }).filter(Boolean);
+    DIENST = namen.length ? namen.filter((v,i,a)=>a.indexOf(v)===i).join(', ') : '';
+  }catch(e){ DIENST=''; }
+}
+
+/* overlapt het blok met iets dat al geboekt is */
+function overlap(suite, van, tot){
+  const a=min(van), b=eindMin(van,tot);
+  if(a==null||b==null) return null;
+  /* een blok dat vandaag begint, en boekingen van gisteren die doorlopen */
+  const raak=[];
+  BEZET.forEach(x=>{
+    if(x.suite!==suite) return;
+    const xa=min(x.van), xb=eindMin(x.van,x.tot);
+    if(xa==null||xb==null) return;
+    if(xa < b && xb > a) raak.push({ wie:x.wie, van:x.van, tot:x.tot, bron:x.bron,
+      volledig: xa<=a && xb>=b });
+  });
+  return raak.length ? raak : null;
+}
+
+/* ---------- tekenen ---------- */
+function tekenStrook(){
+  const s=document.getElementById('strook');
+  const dagen=[];
+  for(let i=-2;i<=9;i++) dagen.push(schuif(vandaagISO(),i));
+  s.innerHTML=dagen.map(d=>{
+    const dt=new Date(d+'T12:00:00');
+    return '<button class="dagje" data-dag="'+d+'"'+(d===DATUM?' data-nu="1"':'')+'>'+
+      '<small>'+dt.toLocaleDateString('nl-NL',{weekday:'short'}).slice(0,2)+'</small>'+
+      '<b>'+dt.getDate()+'</b><span class="stip"></span></button>';
+  }).join('');
+  const actief=s.querySelector('[data-nu="1"]');
+  if(actief) actief.scrollIntoView({inline:'center',block:'nearest'});
+}
+
+async function teken(){
+  const blokken=await laadBlokken();
+  await laadBezet();
+
+  const balk=document.getElementById('balk');
+  if(FOUT){ balk.style.display='block';
+    balk.textContent='Niet alles kon geladen worden: '+FOUT+'. De weergave kan onvolledig zijn.'; }
+  else balk.style.display='none';
+
+  document.getElementById('datumTitel').textContent =
+    DATUM===vandaagISO() ? 'Vandaag' : nlLang(DATUM).replace(/^\w/,c=>c.toUpperCase());
+  document.getElementById('datumSub').textContent = nlLang(DATUM);
+
+  const dr = document.getElementById('dienstRegel');
+  if(dr){
+    if(DIENST){ dr.style.display='block';
+      dr.innerHTML = 'Lelystad: <b>'+esc(DIENST)+'</b> staat ingepland.'; }
+    else { dr.style.display='block';
+      dr.innerHTML = 'Lelystad: niemand ingepland op deze dag.'; }
+  }
+
+  const doel=document.getElementById('lijst');
+  doel.innerHTML = Object.keys(SUITES).map(function(sleutel){
+    const S=SUITES[sleutel], B=blokken[sleutel]||{dag:[],nacht:[]};
+    const alle=[].concat(
+      (B.dag||[]).map(x=>({van:x[0],tot:x[1],prijs:x[2],naam:x[3]||'Dagverblijf',soort:'dag'})),
+      (B.nacht||[]).map(x=>({van:x[0],tot:x[1],prijs:x[2],naam:x[3]||'Overnachting',soort:'nacht'}))
+    ).sort((a,b)=>min(a.van)-min(b.van));
+
+    /* Eén regel per boeking, niet per tijdsblok. Een gast die van 13:00 tot
+       18:00 zit, overlapt met meerdere blokken \u2014 die zou je anders vier
+       keer terugzien. */
+    const boekingen = [];
+    BEZET.forEach(function(x){
+      if(x.suite !== sleutel) return;
+      const sleutelRij = x.sleutel;
+      if(boekingen.some(function(b){ return b.sleutelRij === sleutelRij; })) return;
+      boekingen.push({ sleutelRij:sleutelRij, wie:x.wie||'geboekt', van:x.van, tot:x.tot,
+        bron:x.bron, doorlopend:x.doorlopend, echtVan:x.echtVan, echtTot:x.echtTot,
+        echtVanT:x.echtVanT, echtTotT:x.echtTotT });
+    });
+    boekingen.sort(function(a,b){ return (min(a.van)||0) - (min(b.van)||0); });
+
+    let vrij=0;
+    const vrijeBlokken = alle.filter(function(b){
+      const raak = overlap(sleutel, b.van, b.tot);
+      if(!raak){ vrij++; return true; }
       return false;
     });
-  }
-}
-function openDialoog(r){
-  bewerkId = (r && r.bewerkbaar) ? r.id : null;
-  document.getElementById('dlgTitel').textContent = bewerkId ? 'Reservering bewerken' : 'Reservering toevoegen';
-  document.getElementById('btnVerwijder').hidden = !bewerkId;
-  zet('v_voornaam', r&&r.voornaam); zet('v_achternaam', r&&r.achternaam);
-  zet('v_locatie', r&&r.locatie); zet('v_arrangement', r&&r.arrangement);
-  zet('v_checkindatum', r&&r.aankomst); zet('v_checkuitdatum', r&&r.vertrek);
-  zet('v_checkintijd', r&&r.tijdIn); zet('v_checkuittijd', r&&r.tijdUit);
-  zet('v_telefoon', r&&r.telefoon); zet('v_email', r&&r.email);
-  zet('v_totaal', r&&r.totaal); zet('v_betaald', r&&r.betaald);
-  zet('v_toegewezen', r&&r.toegewezen); zet('v_opmerkingen', r&&r.omschrijving);
-  document.getElementById('planyoVelden').hidden = !!bewerkId;
-  document.getElementById('v_planyo').checked = !bewerkId;
-  if(!bewerkId) laadPlanyoResources(r&&r.locatie);
-  dlg.showModal();
-}
-document.getElementById('btnNieuw').onclick = function(){ window.location.href='reservering-aanmaken.html'; };
-document.getElementById('btnAnnuleer').onclick = function(){ dlg.close(); };
-document.getElementById('btnBewaar').onclick = async function(){
-  var w = function(id){ return document.getElementById(id).value.trim(); };
-  var ontbreekt = [];
-  if(!w('v_locatie')) ontbreekt.push('Locatie');
-  if(!w('v_voornaam')) ontbreekt.push('Voornaam');
-  if(!w('v_checkindatum')) ontbreekt.push('Aankomst');
-  if(!w('v_checkuitdatum')) ontbreekt.push('Vertrek');
-  var naarPlanyo = !bewerkId && document.getElementById('v_planyo').checked;
-  if(naarPlanyo && !w('v_planyo_resource')) ontbreekt.push('Planyo-accommodatie');
-  if(naarPlanyo && !w('v_email')) ontbreekt.push('E-mail');
-  if(ontbreekt.length){ alert('Vul nog in:\n— '+ontbreekt.join('\n— ')); return; }
-  if(w('v_checkuitdatum') < w('v_checkindatum')){ alert('De vertrekdatum ligt vóór de aankomstdatum.'); return; }
-  var obj = {
-    locatie:w('v_locatie'), voornaam:w('v_voornaam'), achternaam:w('v_achternaam'),
-    telefoon:w('v_telefoon'), email:w('v_email'),
-    checkindatum:w('v_checkindatum'), checkuitdatum:w('v_checkuitdatum'),
-    checkintijd:w('v_checkintijd'), checkuittijd:w('v_checkuittijd'),
-    arrangement:w('v_arrangement'),
-    totaal:parseFloat(w('v_totaal')||0)||0, betaald:parseFloat(w('v_betaald')||0)||0,
-    toegewezen:w('v_toegewezen'), opmerkingen:w('v_opmerkingen')
-  };
-  var knop = this; knop.disabled = true; knop.textContent = 'Bezig…';
-  try{
-    if(naarPlanyo){
-      var resultaat = await BWFPlanyo.createReservation({
-        resource_id:w('v_planyo_resource'),
-        start_time:w('v_checkindatum')+(w('v_checkintijd')?' '+w('v_checkintijd'):''),
-        end_time:w('v_checkuitdatum')+(w('v_checkuittijd')?' '+w('v_checkuittijd'):''),
-        quantity:1, email:obj.email, first_name:obj.voornaam, last_name:obj.achternaam,
-        phone:obj.telefoon, notes:[obj.arrangement,obj.opmerkingen].filter(Boolean).join(' · '),
-        custom_price:obj.totaal, send_notifications:document.getElementById('v_planyo_mail').checked
-      });
-      dlg.close(); await laden();
-      meld('Reservering '+(resultaat.reservation_id ? '#'+resultaat.reservation_id+' ' : '')+'is aangemaakt in Planyo.', true);
-    }else{
-      if(bewerkId) await sb('reservations?id=eq.'+encodeURIComponent(bewerkId), { method:'PATCH', body:JSON.stringify(obj) });
-      else { obj.id = 'r'+Date.now(); await sb('reservations', { method:'POST', body:JSON.stringify(obj) }); }
-      dlg.close(); await laden();
+
+    let rijen = '';
+    if(FILTER !== 'vrij'){
+      rijen += boekingen.map(function(x){
+        return '<button class="blok" data-vrij="0" data-status="bezet" data-wie="'+esc(x.wie)+'"'+
+          ' data-open="'+esc(x.wie)+'" data-nummer="'+esc(String(x.sleutelRij||'').replace(/^hm-/,''))+'">'+
+          '<span class="tijd"><b>'+ (x.doorlopend
+            ? esc(nlKort(x.echtVan)) + ' ' + esc(x.echtVanT||'') + ' \u2192 ' +
+              esc(nlKort(x.echtTot)) + ' ' + esc(x.echtTotT||'')
+            : esc(x.van)+' \u2013 '+esc(x.tot)) + '</b>'+
+          '<span>'+esc(x.wie)+' \u00b7 '+esc(x.bron)+
+          (x.doorlopend
+            ? ' \u00b7 ' + (x.van==='00:00' && x.tot==='23:59' ? 'deze dag volledig bezet'
+                : x.van==='00:00' ? 'tot ' + esc(x.tot) + ' bezet'
+                : 'vanaf ' + esc(x.van) + ' bezet')
+            : '')+'</span></span>'+
+          '<span class="merk2">Geboekt</span><span class="chev">\u203a</span></button>';
+      }).join('');
     }
-  }catch(e){ meld('Opslaan lukte niet: '+e.message); }
-  knop.disabled = false; knop.textContent = 'Opslaan';
-};
-document.getElementById('btnVerwijder').onclick = async function(){
-  if(!bewerkId || !confirm('Deze reservering verwijderen?')) return;
-  try{
-    await sb('reservations?id=eq.'+encodeURIComponent(bewerkId), { method:'DELETE' });
-    dlg.close(); await laden();
-  }catch(e){ meld('Verwijderen lukte niet: '+e.message); }
-};
-
-/* =========================================================
-   Gegevens van de reservering aanpassen
-   ========================================================= */
-function gastVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.gast || (r.voornaam+' '+r.achternaam).trim() || r.titel || ''; }
-function aankomstVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.aankomst || r.aankomst || ''; }
-function vertrekVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.vertrek || r.vertrek || ''; }
-function tijdInVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return tijd(k.tijd_in) || r.tijdIn || ''; }
-function tijdUitVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return tijd(k.tijd_uit) || r.tijdUit || ''; }
-function datumGewijzigd(r){ var k = KOPPEL[resSleutel(r)]||{}; return !!(k.aankomst || k.vertrek || k.tijd_in || k.tijd_uit); }
-function telVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.telefoon || r.telefoon || ''; }
-function mailVan(r){ var k = KOPPEL[resSleutel(r)]||{}; return k.email || r.email || ''; }
-
-function openWijzig(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  document.getElementById('wzSub').textContent = r.locatie+' · '+r.aankomst+
-    (r.vertrek?' t/m '+r.vertrek:'')+(r.nummer?' · '+r.nummer:'');
-  document.getElementById('wz_gast').value = gastVan(r);
-  document.getElementById('wz_aankomst').value = aankomstVan(r);
-  document.getElementById('wz_vertrek').value = vertrekVan(r);
-  document.getElementById('wz_tijdin').value = tijdInVan(r);
-  document.getElementById('wz_tijduit').value = tijdUitVan(r);
-  document.getElementById('wz_telefoon').value = telVan(r);
-  document.getElementById('wz_email').value = mailVan(r);
-  document.getElementById('wz_personen').value = k.personen || r.personen || '';
-  document.getElementById('wz_arrangement').value = k.arrangement || r.arrangement || '';
-  var ks = document.getElementById('wz_kanaal');
-  var huidig = k.kanaal || kanaalVan(r);
-  ks.innerHTML = '<option value="">Automatisch</option>'+
-    KANALEN.map(function(x){ return '<option'+(x===huidig?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
-  if(huidig && KANALEN.indexOf(huidig) === -1) ks.insertAdjacentHTML('beforeend','<option selected>'+esc(huidig)+'</option>');
-  document.getElementById('wz_verblijf').value = k.verblijf || '';
-  document.getElementById('wz_extra').value = k.extra || '';
-  document.getElementById('wz_notitie').value = k.notitie || '';
-  document.getElementById('wijzigDialog').showModal();
-}
-document.getElementById('wzBewaar').onclick = async function(){
-  try{
-    await bewaarKoppeling(actieRes, {
-      gast: document.getElementById('wz_gast').value.trim(),
-      aankomst: document.getElementById('wz_aankomst').value || null,
-      vertrek: document.getElementById('wz_vertrek').value || null,
-      tijd_in: document.getElementById('wz_tijdin').value || null,
-      tijd_uit: document.getElementById('wz_tijduit').value || null,
-      telefoon: document.getElementById('wz_telefoon').value.trim(),
-      email: document.getElementById('wz_email').value.trim(),
-      personen: document.getElementById('wz_personen').value.trim(),
-      arrangement: document.getElementById('wz_arrangement').value.trim(),
-      kanaal: document.getElementById('wz_kanaal').value,
-      verblijf: document.getElementById('wz_verblijf').value,
-      extra: document.getElementById('wz_extra').value.trim(),
-      notitie: document.getElementById('wz_notitie').value.trim()
-    });
-    document.getElementById('wijzigDialog').close();
-    meld('Gegevens bijgewerkt.', true);
-  }catch(e){ meld('Opslaan lukte niet: '+e.message); }
-};
-document.getElementById('wzLeeg').onclick = async function(){
-  if(!confirm('De aangepaste gegevens wissen? Daarna staat de tekst uit de agenda er weer.')) return;
-  try{
-    await bewaarKoppeling(actieRes, { gast:null, telefoon:null, email:null, personen:null, arrangement:null,
-      aankomst:null, vertrek:null, tijd_in:null, tijd_uit:null });
-    document.getElementById('wijzigDialog').close();
-    meld('Aanpassingen gewist.', true);
-  }catch(e){ meld('Wissen lukte niet: '+e.message); }
-};
-
-/* =========================================================
-   Platform, verblijfsoort en zwarte lijst
-   ========================================================= */
-function kanaalVan(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  if(k.kanaal) return k.kanaal;
-  if(r.kanaal) return r.kanaal;
-  var tekst = ((r.titel||'')+' '+(r.omschrijving||'')).toLowerCase();
-  if(/booking\.?com/.test(tekst)) return 'Booking.com';
-  if(/origin?eel\s*overnachten|^\s*or\s/.test(tekst)) return 'Origineel Overnachten';
-  if(/secret\s*rooms?/.test(tekst)) return 'Secret Rooms';
-  if(/priv[ée]\s*sauna|smg/.test(tekst)) return 'Privésauna (SMG)';
-  if(/planyo/.test(tekst)) return 'Planyo';
-  if(/whats?app|\bwa\b/.test(tekst)) return 'WhatsApp';
-  if(/telefonisch/.test(tekst)) return 'Telefonisch';
-  if(r.nummer && /^\d{5,}$/.test(String(r.nummer)))
-    return r.locatie === 'PSA' ? 'Website Angie' : 'Website Malina';
-  return '';
-}
-function verblijfVan(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  if(k.verblijf) return k.verblijf;
-  var n = nachten(aankomstVan(r), vertrekVan(r));
-  if(n === 'dag' || n === '' || n === 0) return 'Dagverblijf';
-  return n === 1 ? 'Overnachting' : n + ' nachten';
-}
-function opBlacklist(r){
-  var naam = gastVan(r).toLowerCase().trim();
-  var tel = String(telVan(r)).replace(/\D/g,'').slice(-9);
-  var mail = String(mailVan(r)).toLowerCase().trim();
-  for(var i=0;i<BLACKLIST.length;i++){
-    var b = BLACKLIST[i];
-    if(mail && String(b.email||'').toLowerCase() === mail) return b;
-    if(tel && String(b.telefoon||'').replace(/\D/g,'').slice(-9) === tel) return b;
-    var bn = String(b.naam||'').toLowerCase().trim();
-    if(bn && bn.length > 3 && naam && naam.indexOf(bn) > -1) return b;
-  }
-  return null;
-}
-function openBlacklist(r){
-  actieRes = r;
-  var bestaand = opBlacklist(r);
-  if(bestaand){
-    if(!confirm(gastVan(r)+' van de zwarte lijst halen?')) return;
-    sb('gast_blacklist?id=eq.'+encodeURIComponent(bestaand.id), { method:'DELETE' })
-      .then(function(){
-        BLACKLIST = BLACKLIST.filter(function(x){ return x.id !== bestaand.id; });
-        teken(); meld('Van de zwarte lijst gehaald.', true);
-      })
-      .catch(function(e){ meld('Lukte niet: '+e.message); });
-    return;
-  }
-  document.getElementById('blSub').textContent = r.locatie+' · '+r.aankomst;
-  document.getElementById('bl_naam').value = gastVan(r);
-  document.getElementById('bl_telefoon').value = telVan(r);
-  document.getElementById('bl_email').value = mailVan(r);
-  document.getElementById('bl_reden').value = '';
-  document.getElementById('blDialog').showModal();
-}
-document.getElementById('blBewaar').onclick = async function(){
-  var naam = document.getElementById('bl_naam').value.trim();
-  if(!naam){ alert('Vul een naam in.'); return; }
-  var rec = {
-    id: 'bl'+Date.now(), naam: naam,
-    telefoon: document.getElementById('bl_telefoon').value.trim(),
-    email: document.getElementById('bl_email').value.trim(),
-    reden: document.getElementById('bl_reden').value.trim(),
-    locatie: actieRes ? actieRes.locatie : '',
-    datum: dstr(new Date())
-  };
-  try{
-    await sb('gast_blacklist', { method:'POST', body:JSON.stringify(rec) });
-    BLACKLIST.push(rec);
-    document.getElementById('blDialog').close();
-    teken(); meld('Op de zwarte lijst gezet.', true);
-  }catch(e){ meld('Lukte niet: '+e.message); }
-};
-document.getElementById('btnBlacklist').onclick = function(){
-  var el = document.getElementById('blLijst');
-  el.innerHTML = BLACKLIST.length
-    ? BLACKLIST.slice().sort(function(a,b){ return String(b.datum).localeCompare(String(a.datum)); })
-        .map(function(b){
-          return '<div class="treffer"><b>'+esc(b.naam)+'</b>'+
-            esc([b.telefoon,b.email,b.locatie].filter(Boolean).join(' · '))+
-            (b.reden?'<div style="margin-top:5px">'+esc(b.reden)+'</div>':'')+
-            '<div style="margin-top:7px;color:var(--muted);font-size:12px">sinds '+esc(b.datum||'')+
-            ' <button class="knop klein gevaar" type="button" data-blweg="'+esc(b.id)+'" style="margin-left:8px">Verwijderen</button></div></div>';
-        }).join('')
-    : '<div class="sub">De lijst is leeg.</div>';
-  Array.prototype.forEach.call(el.querySelectorAll('[data-blweg]'), function(k){
-    k.onclick = async function(){
-      var id = k.getAttribute('data-blweg');
-      if(!confirm('Van de lijst halen?')) return;
-      try{
-        await sb('gast_blacklist?id=eq.'+encodeURIComponent(id), { method:'DELETE' });
-        BLACKLIST = BLACKLIST.filter(function(x){ return x.id !== id; });
-        document.getElementById('btnBlacklist').click(); teken();
-      }catch(e){ meld('Lukte niet: '+e.message); }
-    };
-  });
-  document.getElementById('blLijstDialog').showModal();
-};
-
-/* --- welkomstcall afronden --- */
-async function welkomstcallKlaar(r){
-  var k = KOPPEL[resSleutel(r)] || {};
-  try{
-    await bewaarKoppeling(r, { welkomstcall_gedaan: k.welkomstcall_gedaan ? null : dstr(new Date()) });
-    meld(k.welkomstcall_gedaan ? 'Welkomstcall weer op open gezet.' : 'Welkomstcall afgerond.', true);
-  }catch(e){ meld('Lukte niet: '+e.message); }
-}
-
-/* =========================================================
-   Gastenlink — het incheckformulier naar de gast sturen
-   ========================================================= */
-var STANDAARD_GASTLINK =
-  "Hoi {voornaam},\n\n" +
-  "Wat leuk dat je bij ons komt! Je verblijf staat gepland op {datum} in {locatie}.\n\n" +
-  "Wil je alvast online inchecken? Dat scheelt tijd bij aankomst:\n{link}\n\n" +
-  "Heb je nog vragen, stuur gerust een berichtje.\n\n" +
-  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
-
-function gastlinkSjabloon(){ return inst('gastlink_tekst', STANDAARD_GASTLINK); }
-function gastlinkUrl(r){
-  var basis;
-  try{ basis = new URL('gast.html', window.location.href).href; }
-  catch(e){ basis = 'gast.html'; }
-  var p = [];
-  var loc = LOCATIE_ID[r.locatie] || vergelijkLocatie(r.locatie);
-  if(loc === 'zwembad') loc = 'deluxe';
-  if(loc) p.push('loc='+encodeURIComponent(loc));
-  if(r.nummer) p.push('r='+encodeURIComponent(r.nummer));
-  if(r.aankomst) p.push('d='+encodeURIComponent(r.aankomst));
-  return basis + (p.length ? '?'+p.join('&') : '');
-}
-function gastlinkTekst(r, link){
-  var naam = gastVan(r);
-  return gastlinkSjabloon()
-    .replace(/\{voornaam\}/g, naam.split(' ')[0] || '')
-    .replace(/\{naam\}/g, naam)
-    .replace(/\{locatie\}/g, r.locatie || 'onze suite')
-    .replace(/\{datum\}/g, r.aankomst || '')
-    .replace(/\{tijd\}/g, r.tijdIn || '')
-    .replace(/\{link\}/g, link);
-}
-function openGastlink(r){
-  actieRes = r;
-  var link = gastlinkUrl(r);
-  document.getElementById('glSub').textContent =
-    gastVan(r)+' · '+r.locatie+' · aankomst '+(r.aankomst||'onbekend')+(r.tijdIn?' om '+r.tijdIn:'');
-  document.getElementById('gl_telefoon').value = telVan(r);
-  document.getElementById('gl_email').value = mailVan(r);
-  document.getElementById('gl_link').value = link;
-  document.getElementById('gl_tekst').value = gastlinkTekst(r, link);
-  document.getElementById('gastlinkDialog').showModal();
-}
-async function bewaarGastlinkSjabloon(){
-  var x = document.getElementById('gl_tekst').value;
-  if(x.indexOf('{') > -1) await bewaarInst('gastlink_tekst', x);
-}
-document.getElementById('glOpen').onclick = function(){
-  window.open(document.getElementById('gl_link').value, '_blank');
-};
-document.getElementById('glKopieer').onclick = function(){
-  bewaarGastlinkSjabloon();
-  var v = document.getElementById('gl_tekst');
-  v.select();
-  try{ navigator.clipboard.writeText(v.value); }catch(e){ document.execCommand('copy'); }
-  meld('Tekst gekopieerd.', true);
-};
-document.getElementById('glApp').onclick = async function(){
-  bewaarGastlinkSjabloon();
-  var tel = document.getElementById('gl_telefoon').value.replace(/\D/g,'');
-  if(!tel){ alert('Vul eerst een telefoonnummer in.'); return; }
-  if(tel.indexOf('0') === 0) tel = '31' + tel.substring(1);
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(document.getElementById('gl_tekst').value), '_blank');
-  await gastlinkVerstuurd(actieRes);
-};
-document.getElementById('glMail').onclick = async function(){
-  bewaarGastlinkSjabloon();
-  var mail = document.getElementById('gl_email').value.trim();
-  if(!mail){ alert('Vul eerst een e-mailadres in.'); return; }
-  window.location.href = 'mailto:'+encodeURIComponent(mail)+
-    '?subject='+encodeURIComponent('Online inchecken bij Bed & Wellness Flevoland')+
-    '&body='+encodeURIComponent(document.getElementById('gl_tekst').value);
-  await gastlinkVerstuurd(actieRes);
-};
-async function gastlinkVerstuurd(r){
-  try{
-    var wijz = { gastlink_verstuurd: dstr(new Date()) };
-    var tel = document.getElementById('gl_telefoon').value.trim();
-    var mail = document.getElementById('gl_email').value.trim();
-    if(tel && tel !== r.telefoon) wijz.telefoon = tel;
-    if(mail && mail !== r.email) wijz.email = mail;
-    await bewaarKoppeling(r, wijz);
-    document.getElementById('gastlinkDialog').close();
-    meld('Genoteerd als verstuurd.', true);
-  }catch(e){ meld('Noteren lukte niet: '+e.message); }
-}
-
-/* =========================================================
-   Wijziging of annulering doorgeven
-   ========================================================= */
-var STANDAARD_WIJZIGING =
-  "Hoi {voornaam},\n\n" +
-  "Je reservering bij Bed & Wellness Flevoland is aangepast.\n\n" +
-  "Reserveringsnummer: {nummer}\n" +
-  "Locatie: {locatie}\n" +
-  "Nieuwe aankomst: {aankomst} om {tijdin}\n" +
-  "Vertrek: {vertrek} om {tijduit}\n\n" +
-  "Klopt dit zo? Laat het even weten, dan zetten we het definitief.\n\n" +
-  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
-
-var STANDAARD_ANNULERING =
-  "Hoi {voornaam},\n\n" +
-  "Je reservering bij Bed & Wellness Flevoland is geannuleerd.\n\n" +
-  "Reserveringsnummer: {nummer}\n" +
-  "Locatie: {locatie}\n" +
-  "Datum: {aankomst}\n" +
-  "Reden: {reden}\n\n" +
-  "Onze annuleringsvoorwaarden:\n{voorwaarden}\n\n" +
-  "Heb je hier vragen over, stuur gerust een berichtje.\n\n" +
-  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
-
-/* Let op: dit zijn voorbeeldvoorwaarden. Pas ze in het scherm aan naar je
-   eigen voorwaarden, daarna worden ze onthouden voor alle volgende berichten. */
-var STANDAARD_VOORWAARDEN =
-  "- Kosteloos annuleren tot 14 dagen voor aankomst.\n" +
-  "- Van 14 tot 7 dagen voor aankomst brengen wij 50% van het totaalbedrag in rekening.\n" +
-  "- Binnen 7 dagen voor aankomst is het volledige bedrag verschuldigd.\n" +
-  "- In overleg kan een betaald bedrag worden omgezet in een tegoed voor een nieuwe datum.";
-
-var brSoort = 'wijziging';
-function brVeld(id){ return document.getElementById(id).value.trim(); }
-function berichtTekst(r){
-  var naam = gastVan(r);
-  var sjabloon = brSoort === 'annulering'
-    ? inst('annulering_tekst', STANDAARD_ANNULERING)
-    : inst('wijziging_tekst', STANDAARD_WIJZIGING);
-  return sjabloon
-    .replace(/\{voornaam\}/g, naam.split(' ')[0] || '')
-    .replace(/\{naam\}/g, naam)
-    .replace(/\{nummer\}/g, brVeld('br_nummer') || 'niet bekend')
-    .replace(/\{locatie\}/g, brVeld('br_locatie') || 'onze suite')
-    .replace(/\{aankomst\}/g, brVeld('br_aankomst') || aankomstVan(r))
-    .replace(/\{vertrek\}/g, brVeld('br_vertrek') || vertrekVan(r))
-    .replace(/\{tijdin\}/g, brVeld('br_tijdin') || tijdInVan(r) || '—')
-    .replace(/\{tijduit\}/g, brVeld('br_tijduit') || tijdUitVan(r) || '—')
-    .replace(/\{reden\}/g, brVeld('br_reden') || 'op verzoek van de gast')
-    .replace(/\{voorwaarden\}/g, document.getElementById('br_voorwaarden').value.trim());
-}
-function openBericht(r, soort){
-  actieRes = r; brSoort = soort;
-  var dlgB = document.getElementById('berichtDialog');
-  dlgB.setAttribute('data-soort', soort);
-  document.getElementById('brTitel').textContent =
-    soort === 'annulering' ? 'Annulering doorgeven' : 'Wijziging doorgeven';
-  document.getElementById('brSub').textContent =
-    gastVan(r)+' · '+r.locatie+' · '+aankomstVan(r)+(vertrekVan(r)?' t/m '+vertrekVan(r):'');
-  document.getElementById('br_nummer').value = r.nummer || resSleutel(r);
-  document.getElementById('br_locatie').value = r.locatie || '';
-  document.getElementById('br_aankomst').value = aankomstVan(r);
-  document.getElementById('br_vertrek').value = vertrekVan(r);
-  document.getElementById('br_tijdin').value = tijdInVan(r);
-  document.getElementById('br_tijduit').value = tijdUitVan(r);
-  document.getElementById('br_reden').value = '';
-  document.getElementById('br_voorwaarden').value = inst('annulering_voorwaarden', STANDAARD_VOORWAARDEN);
-  document.getElementById('br_telefoon').value = telVan(r);
-  document.getElementById('br_email').value = mailVan(r);
-  document.getElementById('br_overnemen').checked = true;
-  document.getElementById('br_blacklist').checked = false;
-  document.getElementById('br_blnotitie').value = '';
-  document.getElementById('br_tekst').value = berichtTekst(r);
-  dlgB.showModal();
-}
-['br_nummer','br_locatie','br_aankomst','br_vertrek','br_tijdin','br_tijduit','br_reden','br_voorwaarden']
-  .forEach(function(id){
-    document.getElementById(id).addEventListener('change', function(){
-      if(actieRes) document.getElementById('br_tekst').value = berichtTekst(actieRes);
-    });
-  });
-document.getElementById('brOpnieuw').onclick = function(){
-  if(actieRes) document.getElementById('br_tekst').value = berichtTekst(actieRes);
-};
-async function bewaarBerichtSjabloon(){
-  var x = document.getElementById('br_tekst').value;
-  if(x.indexOf('{') > -1)
-    await bewaarInst(brSoort === 'annulering' ? 'annulering_tekst' : 'wijziging_tekst', x);
-  var v = document.getElementById('br_voorwaarden').value.trim();
-  if(v && v !== inst('annulering_voorwaarden','')) await bewaarInst('annulering_voorwaarden', v);
-}
-async function berichtVerwerkt(r){
-  var gedaan = [];
-  try{
-    if(brSoort === 'wijziging' && document.getElementById('br_overnemen').checked){
-      await bewaarKoppeling(r, {
-        aankomst: brVeld('br_aankomst') || null,
-        vertrek:  brVeld('br_vertrek')  || null,
-        tijd_in:  brVeld('br_tijdin')   || null,
-        tijd_uit: brVeld('br_tijduit')  || null
-      });
-      gedaan.push('reservering bijgewerkt');
+    if(FILTER !== 'bezet'){
+      rijen += vrijeBlokken.map(function(b){
+        return '<button class="blok" data-vrij="1" data-status="vrij"'+
+          ' data-suite="'+sleutel+'" data-van="'+b.van+'" data-tot="'+b.tot+'">'+
+          '<span class="tijd"><b>'+b.van+' \u2013 '+b.tot+'</b>'+
+          '<span>'+esc(b.naam)+(b.prijs?' \u00b7 '+eur(b.prijs):'')+'</span></span>'+
+          '<span class="merk2">Vrij</span><span class="chev">\u203a</span></button>';
+      }).join('');
     }
-    if(brSoort === 'annulering'){
-      await bewaarKoppeling(r, { geannuleerd: dstr(new Date()) });
-      gedaan.push('genoteerd als geannuleerd');
-      if(document.getElementById('br_blacklist').checked && !opBlacklist(r)){
-        var rec = {
-          id:'bl'+Date.now(), naam: gastVan(r), telefoon: telVan(r), email: mailVan(r),
-          reden: brVeld('br_blnotitie') || ('Annulering '+dstr(new Date())+' — '+(brVeld('br_reden')||'geen toelichting')),
-          locatie: r.locatie || '', datum: dstr(new Date())
-        };
-        await sb('gast_blacklist', { method:'POST', body:JSON.stringify(rec) });
-        BLACKLIST.push(rec);
-        gedaan.push('op de zwarte lijst gezet');
-      }
+    const getoond = (FILTER==='vrij' ? vrijeBlokken.length
+                   : FILTER==='bezet' ? boekingen.length
+                   : boekingen.length + vrijeBlokken.length);
+
+    const deel = String(S.naam).split(' \u00b7 ');
+    return '<section class="suite"><div class="suitekop">'+
+      '<span class="vlek"></span>'+
+      '<h3>'+esc(deel[0])+'</h3>'+
+      (deel[1] ? '<span class="plaats">'+esc(deel[1])+'</span>' : '')+
+      '<em>'+vrij+' van '+alle.length+' vrij</em></div>'+
+      (getoond ? rijen : '<div class="leeg">' +
+        (FILTER==='vrij'  ? 'Alle tijdsblokken zijn bezet op deze dag.' :
+         FILTER==='bezet' ? 'Nog geen boekingen op deze dag.' :
+         'Geen tijdsblokken bekend voor deze suite.') + '</div>')+
+      '</section>';
+  }).join('');
+}
+
+/* ---------- klikken ---------- */
+document.addEventListener('click', function(e){
+  const d=e.target.closest('[data-dag]');
+  if(d){ DATUM=d.getAttribute('data-dag'); tekenStrook(); teken(); return; }
+
+  const b=e.target.closest('.blok');
+  if(b){
+    const status=b.getAttribute('data-status');
+    if(status==='bezet'){
+      /* naar de reserveringenpagina, met de naam als zoekterm */
+      const naam = b.getAttribute('data-open') || b.getAttribute('data-wie') || '';
+      const nummer = b.getAttribute('data-nummer') || '';
+      const zoek = naam.split(/\s+/).filter(w=>w.length>2).slice(-1)[0] || naam;
+      const p = new URLSearchParams();
+      if(zoek) p.set('zoek', zoek);
+      if(nummer) p.set('res', nummer);
+      p.set('kaart','1');
+      location.href = 'reserveringen.html?' + p.toString();
+      return;
     }
-    document.getElementById('berichtDialog').close();
-    teken();
-    meld('Bericht klaargezet'+(gedaan.length?' — '+gedaan.join(' en '):'')+'.', true);
-  }catch(e){ meld('Opslaan lukte niet: '+e.message); }
-}
-document.getElementById('brKopieer').onclick = function(){
-  bewaarBerichtSjabloon();
-  var v = document.getElementById('br_tekst');
-  v.select();
-  try{ navigator.clipboard.writeText(v.value); }catch(e){ document.execCommand('copy'); }
-  meld('Tekst gekopieerd.', true);
-};
-document.getElementById('brApp').onclick = async function(){
-  bewaarBerichtSjabloon();
-  var tel = document.getElementById('br_telefoon').value.replace(/\D/g,'');
-  if(!tel){ alert('Vul eerst een telefoonnummer in.'); return; }
-  if(tel.indexOf('0') === 0) tel = '31' + tel.substring(1);
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(document.getElementById('br_tekst').value), '_blank');
-  await berichtVerwerkt(actieRes);
-};
-document.getElementById('brMail').onclick = async function(){
-  bewaarBerichtSjabloon();
-  var mail = brVeld('br_email');
-  if(!mail){ alert('Vul eerst een e-mailadres in.'); return; }
-  var onderwerp = brSoort === 'annulering'
-    ? 'Annulering van je reservering — Bed & Wellness Flevoland'
-    : 'Wijziging van je reservering — Bed & Wellness Flevoland';
-  window.location.href = 'mailto:'+encodeURIComponent(mail)+
-    '?subject='+encodeURIComponent(onderwerp)+
-    '&body='+encodeURIComponent(document.getElementById('br_tekst').value);
-  await berichtVerwerkt(actieRes);
-};
-
-/* =========================================================
-   Reviewverzoek
-   ========================================================= */
-var STANDAARD_REVIEW =
-  "Hoi {voornaam},\n\n" +
-  "Bedankt dat je bij Bed & Wellness Flevoland was. We hopen dat je hebt kunnen ontspannen in {locatie}.\n\n" +
-  "Zou je ons willen helpen met een korte review? Het kost je een minuut en het betekent enorm veel voor ons.\n\n" +
-  "{link}\n\n" +
-  "Hartelijke groet,\nAngela\nBed & Wellness Flevoland";
-
-function reviewSjabloon(){ return inst('review_tekst', STANDAARD_REVIEW); }
-function reviewLink(){ return inst('review_link', ''); }
-function reviewTekst(r){
-  var naam = gastVan(r);
-  return reviewSjabloon()
-    .replace(/\{voornaam\}/g, naam.split(' ')[0] || '')
-    .replace(/\{naam\}/g, naam)
-    .replace(/\{locatie\}/g, r.locatie || 'onze suite')
-    .replace(/\{datum\}/g, r.aankomst || '')
-    .replace(/\{link\}/g, reviewLink() || '[reviewlink]');
-}
-function openReview(r){
-  actieRes = r;
-  document.getElementById('rvSub').textContent =
-    gastVan(r)+' · '+r.locatie+' · vertrek '+(r.vertrek||'onbekend');
-  document.getElementById('rv_telefoon').value = telVan(r);
-  document.getElementById('rv_email').value = mailVan(r);
-  document.getElementById('rv_link').value = reviewLink();
-  document.getElementById('rv_tekst').value = reviewTekst(r);
-  document.getElementById('reviewDialog').showModal();
-}
-async function bewaarSjabloon(){
-  await bewaarInst('review_link', document.getElementById('rv_link').value.trim());
-  var x = document.getElementById('rv_tekst').value;
-  /* alleen het sjabloon delen als er nog plaatshouders in staan */
-  if(x.indexOf('{') > -1) await bewaarInst('review_tekst', x);
-}
-document.getElementById('rvKopieer').onclick = function(){
-  bewaarSjabloon();
-  var v = document.getElementById('rv_tekst');
-  v.select();
-  try{ navigator.clipboard.writeText(v.value); }catch(e){ document.execCommand('copy'); }
-  meld('Tekst gekopieerd.', true);
-};
-document.getElementById('rvApp').onclick = async function(){
-  bewaarSjabloon();
-  var tel = document.getElementById('rv_telefoon').value.replace(/\D/g,'');
-  if(!tel){ alert('Vul eerst een telefoonnummer in.'); return; }
-  if(tel.indexOf('0') === 0) tel = '31' + tel.substring(1);
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(document.getElementById('rv_tekst').value), '_blank');
-  await markeerVerstuurd(actieRes);
-};
-document.getElementById('rvMail').onclick = async function(){
-  bewaarSjabloon();
-  var mail = document.getElementById('rv_email').value.trim();
-  if(!mail){ alert('Vul eerst een e-mailadres in.'); return; }
-  window.location.href = 'mailto:'+encodeURIComponent(mail)+
-    '?subject='+encodeURIComponent('Hoe was je verblijf bij Bed & Wellness Flevoland?')+
-    '&body='+encodeURIComponent(document.getElementById('rv_tekst').value);
-  await markeerVerstuurd(actieRes);
-};
-async function markeerVerstuurd(r){
-  try{
-    await bewaarKoppeling(r, { review_verstuurd: dstr(new Date()) });
-    document.getElementById('reviewDialog').close();
-    meld('Genoteerd als verstuurd.', true);
-  }catch(e){ meld('Noteren lukte niet: '+e.message); }
-}
-
-/* --- reviewtaak aanmaken --- */
-async function maakReviewTaak(r, stil){
-  var k = KOPPEL[resSleutel(r)] || {};
-  if(k.review_taak_id) { if(!stil) meld('Er staat al een reviewtaak voor deze gast.'); return false; }
-  var naam = gastVan(r), tel = telVan(r), mail = mailVan(r);
-  var deadline = r.vertrek || r.aankomst || '';
-  if(deadline){ var d = new Date(deadline); d.setDate(d.getDate()+1); deadline = dstr(d); }
-  var obj = {
-    titel: 'Reviewverzoek sturen — ' + naam,
-    omschrijving:
-      'Gast: ' + naam + '\n' +
-      'Telefoon: ' + (tel || 'niet bekend') + '\n' +
-      'E-mail: ' + (mail || 'niet bekend') + '\n' +
-      'Locatie: ' + r.locatie + '\n' +
-      'Verblijf: ' + r.aankomst + (r.vertrek ? ' t/m ' + r.vertrek : '') +
-      (r.nummer ? '\nReservering: ' + r.nummer : '') +
-      '\n\n--- tekst om te versturen ---\n' + reviewTekst(r),
-    locatie: r.locatie,
-    toegewezen: k.medewerker || '',
-    deadline: deadline || null,
-    status: 'open'
-  };
-  var res = await sb('wz_taken', { method:'POST', body:JSON.stringify(obj) });
-  var id = (res && res[0] && res[0].id) ? String(res[0].id) : 'ja';
-  await bewaarKoppeling(r, { review_taak_id: id });
-  return true;
-}
-document.getElementById('rvTaak').onclick = async function(){
-  bewaarSjabloon();
-  try{
-    var gelukt = await maakReviewTaak(actieRes, false);
-    if(gelukt){ document.getElementById('reviewDialog').close(); meld('Reviewtaak aangemaakt.', true); }
-  }catch(e){ meld('Taak aanmaken lukte niet: '+e.message); }
-};
-
-/* --- in bulk voor iedereen die al vertrokken is --- */
-document.getElementById('btnReview').onclick = async function(){
-  var vandaag = dstr(new Date());
-  var kandidaten = gefilterd().filter(function(r){
-    if(r.soort !== 'reservering' && r.soort !== 'extern') return false;
-    if(!r.vertrek || r.vertrek > vandaag) return false;
-    var k = KOPPEL[resSleutel(r)] || {};
-    return !k.review_taak_id && !k.review_verstuurd;
-  });
-  if(!kandidaten.length){ meld('Geen vertrokken gasten zonder reviewtaak in deze selectie.', true); return; }
-  if(!confirm('Voor '+kandidaten.length+' vertrokken gast(en) een reviewtaak aanmaken?')) return;
-  var goed = 0, mis = '';
-  for(var i=0;i<kandidaten.length;i++){
-    try{ await maakReviewTaak(kandidaten[i], true); goed++; }
-    catch(e){ mis = e.message; }
+    const p=new URLSearchParams();
+    p.set('suite', b.getAttribute('data-suite'));
+    p.set('datum', DATUM);
+    p.set('tijdin', b.getAttribute('data-van'));
+    p.set('tijduit', b.getAttribute('data-tot'));
+    if(status==='deels' && !confirm('Dit blok overlapt met een bestaande boeking. Toch doorgaan?')) return;
+    location.href='reservering-aanmaken.html?'+p.toString();
   }
-  meld(goed+' reviewtaak(en) aangemaakt'+(mis?' — laatste fout: '+mis:'')+'.', !mis);
-};
+});
+document.addEventListener('click', function(e){
+  const f=e.target.closest('[data-filter]');
+  if(!f) return;
+  FILTER=f.getAttribute('data-filter');
+  document.querySelectorAll('.filt').forEach(x=>x.classList.toggle('aan',x===f));
+  teken();
+});
+document.getElementById('terug').onclick   = ()=>{ DATUM=schuif(DATUM,-1); tekenStrook(); teken(); };
+document.getElementById('vooruit').onclick = ()=>{ DATUM=schuif(DATUM, 1); tekenStrook(); teken(); };
+document.getElementById('knopNu').onclick  = ()=>{ DATUM=vandaagISO(); tekenStrook(); teken(); };
+document.getElementById('lgKnop').onclick  = inloggen;
+document.getElementById('lgWw').addEventListener('keydown',e=>{ if(e.key==='Enter') inloggen(); });
 
-/* =========================================================
-   Wat mag welke rol zien
-   ========================================================= */
-function pasRolToe(){
-  var eigenaar = !window.BWF || !window.BWF.rol || window.BWF.mag('eigenaar');
-  document.getElementById('btnBlacklist').style.display = eigenaar ? '' : 'none';
-  document.getElementById('btnCsv').style.display = eigenaar ? '' : 'none';
-  document.body.classList.toggle('geen-bedragen', !eigenaar);
-}
-
-/* =========================================================
-   CSV
-   ========================================================= */
-document.getElementById('btnCsv').onclick = function(){
-  var lijst = gefilterd();
-  var kop = ['Aankomst','Vertrek','Nachten','Gast','Locatie','Soort','Medewerker','Arrangement',
-             'Telefoon','E-mail','Totaal','Betaald','Nummer','Bron'];
-  var regels = lijst.map(function(r){
-    var k = KOPPEL[resSleutel(r)] || {};
-    return [aankomstVan(r),vertrekVan(r),nachten(aankomstVan(r),vertrekVan(r)),gastVan(r),
-            r.locatie,(SOORTEN[r.soort]||{naam:r.soort}).naam,k.medewerker||'',r.arrangement,
-            r.telefoon,r.email,k.totaal!=null?k.totaal:(r.totaal!=null?r.totaal:''),
-            k.betaald!=null?k.betaald:(r.betaald!=null?r.betaald:''),r.nummer,r.bron];
-  });
-  var csv = [kop].concat(regels).map(function(rij){
-    return rij.map(function(c){ return '"'+String(c==null?'':c).replace(/"/g,'""')+'"'; }).join(';');
-  }).join('\r\n');
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8'}));
-  a.download = 'reserveringen-'+dstr(new Date())+'.csv';
-  a.click();
-};
-
-/* =========================================================
-   Ingebed
-   ========================================================= */
-if(window.self !== window.top) document.body.classList.add('ingebed');
-function meldHoogte(){
-  if(window.self === window.top) return;
-  try{ parent.postMessage({ bwf:'hoogte', bron:'reserveringen',
-        hoogte: document.documentElement.scrollHeight }, '*'); }catch(e){}
-}
-window.addEventListener('resize', meldHoogte);
-
-/* =========================================================
-   Start
-   ========================================================= */
-(function start(){
-  var g = grenzen('maand');
-  document.getElementById('fVan').value = g.van;
-  document.getElementById('fTot').value = g.tot;
-  var verversen = function(){ if(weergave === 'kalender') tekenKalender(); else teken(); };
-  ['fVan','fTot','fLocatie','fSoort','fMedewerker'].forEach(function(id){
-    document.getElementById(id).onchange = verversen;
-  });
-  document.getElementById('fZoek').oninput = verversen;
-  window.addEventListener('bwf-ingelogd', pasRolToe);
-  pasRolToe();
-  if(START_WEERGAVE === 'kalender') zetWeergave('kalender');
-  /* het dashboard waarin deze pagina zit kan om nieuwe gegevens vragen */
-  window.addEventListener('message', function(e){
-    if(e.origin !== location.origin || !e.data || e.data.bwf !== 'verversen') return;
-    laden();
-  });
-  laden();
-})();
-</script>
-<script>
-/* ---------- licht of donker, keuze geldt op alle BWF-pagina's ---------- */
+/* sfeerbeeld uit de eigen website */
 (function(){
-  var SLEUTEL = "bwf_thema";
-  function systeem(){
-    return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
-  }
-  function huidig(){
-    try{ return localStorage.getItem(SLEUTEL) || systeem(); }catch(e){ return systeem(); }
-  }
-  function zet(thema, bewaar){
-    document.documentElement.setAttribute("data-theme", thema);
-    if(bewaar){ try{ localStorage.setItem(SLEUTEL, thema); }catch(e){} }
-    var k = document.getElementById("themaKnop");
-    if(k){
-      k.textContent = thema === "dark" ? "Lichte modus" : "Donkere modus";
-      k.setAttribute("aria-pressed", thema === "dark" ? "true" : "false");
-    }
-    /* eventuele ingebedde pagina's meenemen */
-    var frames = document.querySelectorAll("iframe");
-    for(var i=0;i<frames.length;i++){
-      try{ frames[i].contentWindow.postMessage({bwf:"thema", thema:thema}, "*"); }catch(e){}
-    }
-  }
-  zet(huidig(), false);
-  window.BWFthema = { wissel: function(){
-    zet(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark", true);
-  }, zet: zet };
-  window.addEventListener("message", function(e){
-    if(e.data && e.data.bwf === "thema" && (e.data.thema === "dark" || e.data.thema === "light")) zet(e.data.thema, false);
-  });
-  window.addEventListener("storage", function(e){
-    if(e.key === SLEUTEL && e.newValue) zet(e.newValue, false);
-  });
-  document.addEventListener("DOMContentLoaded", function(){
-    var k = document.getElementById("themaKnop");
-    if(k) k.addEventListener("click", window.BWFthema.wissel);
-    zet(document.documentElement.getAttribute("data-theme"), false);
-  });
+  const foto='https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/almere%20bed%20en%20wellness%20angie/Bed%20en%20wellness%20Flevoland_%20B&W%20Angie%20Locatie%20Almere%20Zwembad.webp';
+  const h=document.getElementById('hero'); if(h) h.style.backgroundImage='url("'+foto+'")';
+  const s=document.getElementById('slot'); if(s) s.style.backgroundImage='url("'+foto+'")';
 })();
+
+SESSIE=leesSessie();
+if(SESSIE){
+  try{
+    const deel=JSON.parse(atob(SESSIE.access_token.split('.')[1]));
+    const w=document.getElementById('wieBen');
+    if(w && deel.email) w.textContent=deel.email;
+  }catch(e){}
+  document.getElementById('slot').classList.add('weg');
+  if(window.BWFAgenda) window.BWFAgenda.setAccessToken(SESSIE.access_token);
+  tekenStrook(); teken();
+}else{
+  setTimeout(()=>document.getElementById('lgMail').focus(),80);
+}
 </script>
 
-<!-- ================= BWF-menu ================= -->
-<style>
-#bwfMenuKnop{position:fixed;right:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
-  background:#483C34;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
-  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer;
-  box-shadow:0 4px 14px rgba(36,30,25,.32)}
-#bwfMenuKnop:hover{background:#5A4B41}
-/* in de bovenbalk van de pagina */
-#bwfMenuKnop.inbalk{position:static;border-radius:6px;padding:6px 12px;font-size:13.5px;font-weight:500;
-  box-shadow:none;background:#483C34}
-#bwfMenuKnop.inbalk:hover{background:#5A4B41}
-:root[data-theme="dark"] #bwfMenuKnop.inbalk{background:#7A6248}
-#bwfMenuKnop .streep{display:inline-block;width:15px;height:11px;position:relative}
-#bwfMenuKnop .streep i,#bwfMenuKnop .streep i:before,#bwfMenuKnop .streep i:after{
-  position:absolute;left:0;width:15px;height:2px;background:#fff;border-radius:2px;content:""}
-#bwfMenuKnop .streep i{top:4px}
-#bwfMenuKnop .streep i:before{top:-4px}
-#bwfMenuKnop .streep i:after{top:4px}
-#bwfMenuLaag{position:fixed;inset:0;z-index:8990;background:rgba(36,30,25,.35);display:none}
-#bwfMenuLaag.open{display:block}
-#bwfMenu{position:fixed;right:16px;bottom:70px;z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
-  background:#fff;color:#241E19;border:1px solid #E3DAD0;border-radius:14px;display:none;
-  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:14px;
-  box-shadow:0 18px 50px -18px rgba(36,30,25,.5)}
-#bwfMenu.open{display:block}
-#bwfMenu .kop{padding:12px 16px 7px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-  color:#7B6E62;font-weight:700}
-#bwfMenu a,#bwfMenu button.tabknop{display:flex;align-items:center;gap:10px;padding:9px 16px;color:#241E19;
-  text-decoration:none;border:0;background:none;width:100%;text-align:left;cursor:pointer;font:inherit}
-#bwfMenu a:hover,#bwfMenu button.tabknop:hover{background:#FAF7F3}
-#bwfMenu a.hier{background:#E8DFD5;font-weight:600}
-#bwfMenu a.hier:after{content:"nu";margin-left:auto;font-size:11px;color:#7B6E62;font-weight:400}
-#bwfMenu .scheiding{height:1px;background:#EFE8E1;margin:7px 0}
-#bwfMenu .thuis{margin:6px 10px 10px;padding:10px 14px;background:#483C34;color:#fff;border-radius:9px;
-  justify-content:center;font-weight:600}
-#bwfMenu .thuis:hover{background:#5A4B41}
-:root[data-theme="dark"] #bwfMenu{background:#221D19;color:#F0EAE3;border-color:#3A322B}
-:root[data-theme="dark"] #bwfMenu a,:root[data-theme="dark"] #bwfMenu button.tabknop{color:#F0EAE3}
-:root[data-theme="dark"] #bwfMenu a:hover,:root[data-theme="dark"] #bwfMenu button.tabknop:hover{background:#2A241F}
-:root[data-theme="dark"] #bwfMenu a.hier{background:#332A21}
-:root[data-theme="dark"] #bwfMenu .scheiding{background:#312A24}
-:root[data-theme="dark"] #bwfMenuKnop{background:#7A6248}
-@media print{#bwfMenuKnop,#bwfMenu,#bwfMenuLaag{display:none!important}}
-</style>
-<script>
-(function(){
-  /* niet tonen als de pagina in een andere pagina is ingebed */
-  if(window.self !== window.top) return;
-
-  var PAGINAS = [
-    { groep:"Dagelijks", items:[
-      { naam:"Dagoverzicht",       bestand:"dagoverzicht.html" },
-      { naam:"Reserveringen",      bestand:"reserveringen.html" },
-      { naam:"Incheckformulier",   bestand:"incheckformulier.html" },
-      { naam:"Gastenlink",         bestand:"gast.html" }
-    ]},
-    { groep:"Werken", items:[
-      { naam:"Personeelsdashboard", bestand:"dashboard.html" },
-      { naam:"VR Dashboard",        bestand:"vr2.html" },
-      { naam:"Klantbeheer",         bestand:"klantbeheer.html" }
-    ]}
-  ];
-
-  var hier = (location.pathname.split("/").pop() || "index.html").toLowerCase();
-
-  var knop = document.createElement("button");
-  knop.id = "bwfMenuKnop"; knop.type = "button";
-  knop.setAttribute("aria-haspopup","true"); knop.setAttribute("aria-expanded","false");
-  knop.innerHTML = '<span class="streep"><i></i></span>Menu';
-
-  var laag = document.createElement("div");
-  laag.id = "bwfMenuLaag";
-
-  var menu = document.createElement("nav");
-  menu.id = "bwfMenu"; menu.setAttribute("aria-label","Hoofdmenu");
-
-  var html = '<a class="thuis" href="index.html">Naar de startpagina</a>';
-  for(var g=0; g<PAGINAS.length; g++){
-    html += '<div class="kop">' + PAGINAS[g].groep + '</div>';
-    for(var i=0; i<PAGINAS[g].items.length; i++){
-      var p = PAGINAS[g].items[i];
-      var actief = p.bestand.toLowerCase() === hier;
-      html += '<a href="' + p.bestand + '"' + (actief ? ' class="hier" aria-current="page"' : '') + '>' + p.naam + '</a>';
-    }
-    if(g < PAGINAS.length - 1) html += '<div class="scheiding"></div>';
-  }
-  menu.innerHTML = html;
-
-  /* heeft deze pagina zelf tabbladen? dan die er ook bij */
-  function vulTabs(){
-    var oud = menu.querySelector("[data-eigen-tabs]");
-    if(oud) oud.remove();
-    var knoppen = document.querySelectorAll("nav.tabs button[data-tab], .tabs button[data-tab], [role='tablist'] button[data-tab]");
-    if(knoppen.length < 2) return;
-    var blok = document.createElement("div");
-    blok.setAttribute("data-eigen-tabs","");
-    var h = '<div class="scheiding"></div><div class="kop">Op deze pagina</div>';
-    for(var i=0;i<knoppen.length;i++){
-      var t = knoppen[i].textContent.replace(/\s+/g," ").trim();
-      h += '<button class="tabknop" type="button" data-ga="' + i + '">' + t + '</button>';
-    }
-    blok.innerHTML = h;
-    menu.appendChild(blok);
-    blok.addEventListener("click", function(e){
-      var b = e.target.closest("[data-ga]");
-      if(!b) return;
-      knoppen[parseInt(b.getAttribute("data-ga"),10)].click();
-      sluit();
-      window.scrollTo({ top:0, behavior:"smooth" });
-    });
-  }
-
-  /* het menu onder de knop hangen als die in de bovenbalk staat */
-  function plaatsMenu(){
-    if(!knop.classList.contains("inbalk")) return;
-    var r = knop.getBoundingClientRect();
-    menu.style.top = (r.bottom + 6) + "px";
-    menu.style.bottom = "auto";
-    menu.style.right = Math.max(12, window.innerWidth - r.right) + "px";
-  }
-
-  function open(){
-    vulTabs();
-    plaatsMenu();
-    menu.classList.add("open"); laag.classList.add("open");
-    knop.setAttribute("aria-expanded","true");
-  }
-  function sluit(){
-    menu.classList.remove("open"); laag.classList.remove("open");
-    knop.setAttribute("aria-expanded","false");
-  }
-  knop.addEventListener("click", function(){
-    menu.classList.contains("open") ? sluit() : open();
-  });
-  laag.addEventListener("click", sluit);
-  document.addEventListener("keydown", function(e){ if(e.key === "Escape") sluit(); });
-  window.addEventListener("resize", function(){ if(menu.classList.contains("open")) plaatsMenu(); });
-  window.addEventListener("scroll", function(){ if(menu.classList.contains("open")) plaatsMenu(); });
-
-  /* de vaste navigatiebalk bovenaan de pagina */
-  function vulBalk(){
-    var balk = document.getElementById("bwfBalk");
-    if(!balk) return;
-    var h = '<a class="thuis" href="index.html">Startpagina</a><span class="scheiding"></span>';
-    for(var g=0; g<PAGINAS.length; g++){
-      for(var i=0; i<PAGINAS[g].items.length; i++){
-        var p = PAGINAS[g].items[i];
-        var nu = p.bestand.toLowerCase() === hier;
-        h += '<a href="' + p.bestand + '"' + (nu ? ' class="hier" aria-current="page"' : '') + '>' +
-             p.naam + '</a>';
-      }
-      if(g < PAGINAS.length - 1) h += '<span class="scheiding"></span>';
-    }
-    balk.innerHTML = h;
-  }
-
-  function plaats(){
-    vulBalk();
-    document.body.appendChild(laag);
-    document.body.appendChild(menu);
-    /* staat er een plek in de bovenbalk klaar? dan daar, anders rechtsonder */
-    var plek = document.getElementById("bwfMenuPlek");
-    if(plek){ knop.classList.add("inbalk"); plek.appendChild(knop); }
-    else { document.body.appendChild(knop); }
-  }
-  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", plaats);
-  else plaats();
-})();
-</script>
-<!-- ================= einde BWF-menu ================= -->
-<script src="bwf-shell.js"></script>
+<script src="bwf-account.js?v=1"></script>
 </body>
 </html>
