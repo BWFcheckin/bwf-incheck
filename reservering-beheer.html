@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14342A">
+<title>Reserveringen beheren — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1;
+  --ok:#2E7D53; --ok-zacht:#E6F2EA;
+  --warn:#B8860B; --warn-zacht:#FBF1DA;
+  --crit:#B3453A; --crit-zacht:#FBEAE7;
+  --r:12px;
+  --f-titel:"Cormorant Garamond",Georgia,serif;
+  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  /* voor bwf-shell.js */
+  --accent:#14342A; --accent-soft:#E7EFEA;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px}
+a{color:var(--groen-2)}
+:focus-visible{outline:2px solid var(--goud);outline-offset:2px;border-radius:6px}
+button,input,select,textarea{font:inherit;color:inherit}
+
+/* ---------- inloggen ---------- */
+.slot:not([hidden]){position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:var(--groen)}
+.slot .doos{background:var(--surface);border-radius:18px;padding:30px 28px;width:min(380px,100%);
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.5)}
+.merk{font-family:var(--f-titel);font-size:19px;letter-spacing:.16em;text-transform:uppercase;line-height:1.1;color:var(--groen)}
+.merk small{display:block;font-size:10px;letter-spacing:.34em;color:var(--goud);margin-top:3px}
+.slot label{display:block;font-size:12.5px;color:var(--ink-2);margin:14px 0 5px}
+.slot input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.slot .fout{color:var(--crit);font-size:13px;min-height:1.2em;margin-top:10px}
+.slot .knop{width:100%;margin-top:18px}
+
+/* ---------- knoppen, velden ---------- */
+.knop{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:999px;
+  border:1px solid var(--groen);background:var(--groen);color:#fff;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.knop:hover{background:var(--groen-2)}
+.knop.sec{background:var(--surface-2);color:var(--ink);border-color:var(--line)}
+.knop.sec:hover{border-color:var(--groen-2);color:var(--groen)}
+.knop.klein{padding:5px 11px;font-size:12.5px}
+.knop:disabled{opacity:.55;cursor:default}
+label.veld{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--ink-2)}
+label.veld input,label.veld select,label.veld textarea{padding:9px 11px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-2);font-size:14.5px;width:100%}
+label.veld textarea{resize:vertical;min-height:70px}
+label.veld small{color:var(--muted);font-size:11.5px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--groen-2);outline-offset:-1px;background:var(--surface)}
+
+/* ---------- pagina ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 80px}
+.kop{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--goud)}
+h1{font-family:var(--f-titel);font-weight:500;font-size:34px;margin:2px 0 0;color:var(--groen);letter-spacing:.01em}
+.groet{margin:4px 0 0;color:var(--ink-2);font-size:14px}
+.kop-rechts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.wie{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.uitleg{color:var(--ink-2);margin:6px 0 16px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:14px 16px;margin-bottom:12px;align-items:end}
+.melding{padding:11px 14px;border-radius:10px;margin-bottom:12px;font-size:14px;background:var(--groen-zacht);color:var(--groen)}
+.melding.fout{background:var(--crit-zacht);color:var(--crit)}
+.telling{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0 2px 8px}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.geannuleerd td{color:var(--muted)}
+tbody tr.geannuleerd .gast b{text-decoration:line-through}
+.datum b{display:block;white-space:nowrap}
+.datum span,.gast span,.klein-grijs{display:block;font-size:12px;color:var(--muted)}
+.suite i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);margin:0 4px 4px 0}
+.pill.ok{background:var(--ok-zacht);border-color:transparent;color:var(--ok)}
+.pill.warn{background:var(--warn-zacht);border-color:transparent;color:var(--warn)}
+.pill.crit{background:var(--crit-zacht);border-color:transparent;color:var(--crit)}
+.leeg{padding:28px;text-align:center;color:var(--muted)}
+
+/* ---------- venster ---------- */
+dialog{border:0;border-radius:18px;padding:0;width:min(820px,calc(100vw - 20px));max-height:calc(100dvh - 24px);
+  box-shadow:0 30px 90px -30px rgba(0,0,0,.45);background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(20,52,42,.45)}
+.v-kop{position:sticky;top:0;background:var(--surface);z-index:2;padding:18px 22px 12px;border-bottom:1px solid var(--line);
+  display:flex;gap:12px;align-items:flex-start}
+.v-kop h2{font-family:var(--f-titel);font-weight:500;font-size:26px;margin:0;color:var(--groen)}
+.v-kop .sub{font-size:13px;color:var(--ink-2);margin-top:3px}
+.v-kop .sluit{margin-left:auto;border:1px solid var(--line);background:var(--surface-2);border-radius:50%;width:36px;height:36px;
+  cursor:pointer;font-size:18px;flex:none}
+.v-inhoud{padding:6px 22px 8px}
+.v-inhoud fieldset{border:0;padding:0;margin:14px 0 6px}
+.v-inhoud legend{font-family:var(--f-titel);font-size:19px;color:var(--groen);padding:0;margin-bottom:8px}
+.raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.raster .breed{grid-column:1/-1}
+.opmerking{background:var(--warn-zacht);color:var(--warn);border-radius:10px;padding:9px 12px;font-size:13.5px;margin-top:12px}
+details.bron{margin:6px 0 10px}
+details.bron summary{cursor:pointer;font-size:13px;color:var(--ink-2)}
+details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-mono);font-size:12px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;max-height:220px;overflow:auto;margin:8px 0 0}
+.herkend{font-size:13px;color:var(--ink-2);margin-top:8px;min-height:1.2em}
+.v-voet{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 22px;
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.v-voet .v-melding{flex:1;min-width:180px;font-size:13.5px;color:var(--crit)}
+@media(max-width:620px){
+  h1{font-size:28px}
+  .v-kop,.v-inhoud,.v-voet{padding-left:14px;padding-right:14px}
+}
+</style>
+</head>
+<body class="bwf-vergrendeld">
+
+<!-- ============ inloggen ============ -->
+<div class="slot" id="slot">
+  <div class="doos">
+    <div class="merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <label for="lgMail">E-mailadres</label><input id="lgMail" type="email" inputmode="email" autocomplete="username">
+    <label for="lgWw">Wachtwoord</label><input id="lgWw" type="password" autocomplete="current-password">
+    <button type="button" class="knop" id="lgKnop">Inloggen</button>
+    <p style="margin:14px 0 0;font-size:13px"><a href="#" id="bwfVergeten">Wachtwoord vergeten?</a></p>
+    <div class="fout" id="lgFout"></div>
+  </div>
+</div>
+
+<!-- ============ pagina ============ -->
+<main class="wrap">
+  <div class="kop">
+    <div>
+      <span class="eyebrow">Reserveringen</span>
+      <h1>Reserveringen beheren</h1>
+      <p class="groet" id="bwfGroet"></p>
+    </div>
+    <div class="kop-rechts">
+      <span class="wie" id="wieBen"></span>
+      <button type="button" class="knop sec klein" id="uitloggen">Uitloggen</button>
+    </div>
+  </div>
+  <p class="uitleg">Vandaag en de komende 30 dagen, uit alle kanalen. Klik op een reservering om gastgegevens aan te vullen,
+    een bevestiging te plakken of de reservering als bevestigd te markeren.</p>
+
+  <div class="melding" id="melding" hidden></div>
+
+  <div class="card filters">
+    <label class="veld">Suite
+      <select id="fSuite"><option value="">Alle suites</option></select></label>
+    <label class="veld">Kanaal
+      <select id="fKanaal"><option value="">Alle kanalen</option></select></label>
+    <label class="veld">Status
+      <select id="fStatus">
+        <option value="actief">Bevestigd en optie</option>
+        <option value="">Alle statussen</option>
+        <option value="bevestigd">Bevestigd</option>
+        <option value="optie">Optie</option>
+        <option value="geannuleerd">Geannuleerd</option>
+        <option value="no_show">No-show</option>
+      </select></label>
+    <label class="veld">Alleen
+      <select id="fAandacht">
+        <option value="">Alles tonen</option>
+        <option value="gegevens">Gastgegevens ontbreken</option>
+        <option value="opmerking">Tijden controleren</option>
+        <option value="open">Nog niet gecontroleerd</option>
+      </select></label>
+    <label class="veld">Zoeken
+      <input id="fZoek" type="search" placeholder="naam, e-mail, nummer"></label>
+    <div><button type="button" class="knop sec" id="vernieuwen">Vernieuwen</button></div>
+  </div>
+
+  <div class="telling" id="telling"></div>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr>
+        <th>Aankomst</th><th>Suite</th><th>Gast</th><th>Kanaal</th><th>Type</th><th>Status</th><th>Let op</th><th></th>
+      </tr></thead>
+      <tbody id="lijst"><tr><td colspan="8" class="leeg">Laden…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- ============ reservering bewerken ============ -->
+<dialog id="venster" aria-labelledby="vTitel">
+  <form method="dialog" id="formulier" autocomplete="off">
+    <div class="v-kop">
+      <div>
+        <h2 id="vTitel">Reservering</h2>
+        <div class="sub" id="vSub"></div>
+      </div>
+      <button type="button" class="sluit" id="vSluit" aria-label="Sluiten">&times;</button>
+    </div>
+
+    <div class="v-inhoud">
+      <div class="opmerking" id="vOpmerking" hidden></div>
+
+      <fieldset>
+        <legend>Gast</legend>
+        <div class="raster">
+          <label class="veld">Voornaam <input id="vVoornaam" type="text"></label>
+          <label class="veld">Achternaam <input id="vAchternaam" type="text"></label>
+          <label class="veld">E-mail <input id="vEmail" type="email" inputmode="email"></label>
+          <label class="veld">Telefoon <input id="vTelefoon" type="tel" inputmode="tel"></label>
+          <label class="veld">Personen <input id="vPersonen" type="number" min="1" max="20" step="1"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Verblijf</legend>
+        <div class="raster">
+          <label class="veld">Tijdsblok <select id="vBlok"></select></label>
+          <label class="veld">Type <select id="vType"></select></label>
+          <label class="veld">Incheck-tijd <input id="vIncheck" type="time"><small>alleen bij afwijking van het tijdsblok</small></label>
+          <label class="veld">Uitcheck-tijd <input id="vUitcheck" type="time"><small>alleen bij afwijking van het tijdsblok</small></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Arrangement en betaling</legend>
+        <div class="raster">
+          <label class="veld breed">Arrangementen <textarea id="vArr" rows="3" placeholder="Eén arrangement of extra per regel"></textarea></label>
+          <label class="veld">Totaalbedrag (€) <input id="vBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
+          <label class="veld">Betaalstatus <select id="vBetaal"></select></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Status en notities</legend>
+        <div class="raster">
+          <label class="veld">Status <select id="vStatus"></select></label>
+          <label class="veld breed">Omschrijving <textarea id="vOms" rows="3"></textarea></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Brongegevens</legend>
+        <details class="bron" id="vBronHouder" hidden><summary>Wat er al bewaard is</summary><pre id="vBron"></pre></details>
+        <label class="veld">Plakveld
+          <textarea id="vPlak" rows="6" placeholder="Plak hier de SMG-bevestiging, de Booking.com-mail of de tekst van Origineel Overnachten"></textarea>
+          <small>Wordt bij opslaan toegevoegd aan de brongegevens. "Gegevens herkennen" vult alleen velden die nog leeg zijn.</small></label>
+        <div style="margin-top:8px"><button type="button" class="knop sec klein" id="vHerken">Gegevens herkennen</button></div>
+        <div class="herkend" id="vHerkend"></div>
+      </fieldset>
+    </div>
+
+    <div class="v-voet">
+      <span class="v-melding" id="vMelding"></span>
+      <button type="button" class="knop sec" id="vAnnuleer">Annuleren</button>
+      <button type="button" class="knop sec" id="vOpslaan">Opslaan</button>
+      <button type="button" class="knop" id="vBevestig">Bevestigd</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+/* =========================================================
+   Reserveringen beheren — uitgeklede versie van fase 4 (plan).
+   Leest en schrijft public.reserveringen; wat iemand mag, bepaalt de RLS
+   (eigenaar en VR bewerken, locatiemanager bekijkt alleen eigen suites).
+   De import (kanalen-sync) laat handmatig ingevulde gegevens met rust.
+   ========================================================= */
+const CFG = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  ls:  "sb-iuyjvtlauktnjprbmbjj-auth-token"
+};
+const SUITES = {
+  angie:          { naam: "Suite Angie · Almere",      kleur: "#B9975B" },
+  malina_jacuzzi: { naam: "Malina Jacuzzi · Lelystad", kleur: "#2E7D9A" },
+  malina_deluxe:  { naam: "Malina Deluxe · Lelystad",  kleur: "#1F4D3D" }
+};
+const KANALEN = { smg: "Privésauna (SMG)", booking: "Booking.com", oo: "Origineel Overnachten",
+  planyo: "Planyo", eigen: "Eigen website", handmatig: "Handmatig" };
+const TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overnachting",
+  late_checkin: "Late check-in", honeymoon: "Honeymoon" };
+const STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannuleerd", no_show: "No-show" };
+const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
+const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
+  "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,betaalstatus," +
+  "omschrijving,brongegevens,import_opmerking,gewijzigd_door";
+const IMPORT_REGEL = "handmatige regel in de SMG-planning";
+
+let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = null, ARR_START = "";
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const magBewerken = () => ROL === "eigenaar" || ROL === "vr";
+
+/* ---------- sessie ---------- */
+function jwtDeel(t) {
+  try { return JSON.parse(atob(String(t).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch (e) { return {}; }
+}
+function leesSessie() { try { return JSON.parse(localStorage.getItem(CFG.ls) || "null"); } catch (e) { return null; } }
+function bewaarSessie(d) { try { localStorage.setItem(CFG.ls, JSON.stringify(d)); } catch (e) {} SESSIE = d; }
+
+let verversBezig = null;
+async function ververs() {
+  if (!SESSIE || !SESSIE.refresh_token) return null;
+  const r = await fetch(CFG.url + "/auth/v1/token?grant_type=refresh_token", {
+    method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: SESSIE.refresh_token })
+  });
+  if (!r.ok) return null;
+  const d = await r.json();
+  if (!d.access_token) return null;
+  bewaarSessie(d);
+  return d.access_token;
+}
+async function geldigToken() {
+  if (!SESSIE || !SESSIE.access_token) return null;
+  const exp = (jwtDeel(SESSIE.access_token).exp || 0) * 1000;
+  if (exp - Date.now() > 60000) return SESSIE.access_token;
+  if (!verversBezig) verversBezig = ververs().finally(() => { verversBezig = null; });
+  return verversBezig;
+}
+
+function toonSlot(tekst) {
+  document.body.classList.add("bwf-vergrendeld");
+  $("#slot").hidden = false;
+  $("#lgFout").textContent = tekst || "";
+  setTimeout(() => $("#lgMail").focus(), 60);
+}
+function verbergSlot() { document.body.classList.remove("bwf-vergrendeld"); $("#slot").hidden = true; }
+
+async function inloggen() {
+  const k = $("#lgKnop"), f = $("#lgFout");
+  f.textContent = ""; k.disabled = true; k.textContent = "Bezig…";
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=password", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("#lgMail").value.trim().toLowerCase(), password: $("#lgWw").value })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) {
+      throw new Error(d.error_description === "Invalid login credentials" ? "E-mailadres of wachtwoord klopt niet." : (d.error_description || d.msg || "Inloggen lukte niet."));
+    }
+    bewaarSessie(d);
+    $("#lgWw").value = "";
+    await start();
+  } catch (e) { f.textContent = e.message; }
+  k.disabled = false; k.textContent = "Inloggen";
+}
+
+/* ---------- database ---------- */
+async function api(pad, opties = {}) {
+  const token = await geldigToken();
+  if (!token) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  const headers = { apikey: CFG.key, Authorization: "Bearer " + token };
+  if (opties.body !== undefined) { headers["Content-Type"] = "application/json"; headers.Prefer = "return=representation"; }
+  const r = await fetch(CFG.url + "/rest/v1/" + pad, {
+    method: opties.method || "GET", headers,
+    body: opties.body === undefined ? undefined : JSON.stringify(opties.body)
+  });
+  const tekst = await r.text();
+  if (r.status === 401) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  if (!r.ok) {
+    let m = tekst;
+    try { m = JSON.parse(tekst).message || tekst; } catch (e) {}
+    throw new Error(m || "Fout " + r.status);
+  }
+  return tekst ? JSON.parse(tekst) : null;
+}
+
+function melding(tekst, soort) {
+  const m = $("#melding");
+  m.textContent = tekst || "";
+  m.className = "melding" + (soort === "fout" ? " fout" : "");
+  m.hidden = !tekst;
+}
+
+/* ---------- opmaak ---------- */
+const fmtDag = new Intl.DateTimeFormat("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Amsterdam" });
+const fmtTijd = new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
+const fmtGeplakt = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
+const hhmm = (t) => (t ? String(t).slice(0, 5) : "");
+const euro = (n) => n == null ? "" : Number(n).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const gastNaam = (r) => [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ");
+const gastOntbreekt = (r) => !(r.gast_voornaam || r.gast_achternaam) || !(r.gast_email || r.gast_telefoon);
+const tijdenControleren = (r) => !!r.import_opmerking && r.import_opmerking !== IMPORT_REGEL;
+const gecontroleerd = (r) => !!r.gewijzigd_door && r.gewijzigd_door !== "kanalen-sync";
+
+function periode(r) {
+  const a = new Date(r.aankomst), v = new Date(r.vertrek);
+  const dagA = fmtDag.format(a), dagV = fmtDag.format(v);
+  return { dag: dagA, tijd: fmtTijd.format(a) + " – " + (dagA === dagV ? "" : dagV + " ") + fmtTijd.format(v) };
+}
+function statusPill(s) {
+  const cls = s === "bevestigd" ? "ok" : s === "optie" ? "warn" : "crit";
+  return '<span class="pill ' + cls + '">' + esc(STATUSSEN[s] || s) + "</span>";
+}
+function opties(lijst, gekozen) {
+  return Object.entries(lijst).map(([w, t]) => '<option value="' + esc(w) + '"' + (w === gekozen ? " selected" : "") + ">" + esc(t) + "</option>").join("");
+}
+
+/* ---------- lijst ---------- */
+function gefilterd() {
+  const s = $("#fSuite").value, k = $("#fKanaal").value, st = $("#fStatus").value, a = $("#fAandacht").value;
+  const z = $("#fZoek").value.trim().toLowerCase();
+  return RIJEN.filter((r) =>
+    (!s || r.suite === s) &&
+    (!k || r.kanaal === k) &&
+    (!st || (st === "actief" ? (r.status === "bevestigd" || r.status === "optie") : r.status === st)) &&
+    (!a || (a === "gegevens" ? gastOntbreekt(r) : a === "opmerking" ? tijdenControleren(r) : !gecontroleerd(r))) &&
+    (!z || [r.gast_voornaam, r.gast_achternaam, r.gast_email, r.gast_telefoon, r.kanaal_ref, r.omschrijving]
+      .join(" ").toLowerCase().includes(z)));
+}
+
+function rijHtml(r) {
+  const p = periode(r);
+  const naam = gastNaam(r);
+  const letop = [];
+  if (gastOntbreekt(r)) letop.push('<span class="pill warn">gastgegevens ontbreken</span>');
+  if (tijdenControleren(r)) letop.push('<span class="pill crit" title="' + esc(r.import_opmerking) + '">tijden controleren</span>');
+  else if (r.import_opmerking) letop.push('<span class="pill" title="' + esc(r.import_opmerking) + '">SMG-planningregel</span>');
+  const afwijkend = [r.incheck_tijd ? "in " + hhmm(r.incheck_tijd) : "", r.uitcheck_tijd ? "uit " + hhmm(r.uitcheck_tijd) : ""].filter(Boolean).join(" · ");
+  const contact = [r.gast_telefoon, r.gast_email].filter(Boolean).join(" · ");
+  const knop = magBewerken() && r.status !== "geannuleerd" && (!gecontroleerd(r) || r.status === "optie")
+    ? '<button type="button" class="knop klein" data-bevestig="' + esc(r.id) + '">Bevestigd</button>' : "";
+  return '<tr data-id="' + esc(r.id) + '" tabindex="0" class="' + esc(r.status) + '">' +
+    '<td class="datum"><b>' + esc(p.dag) + "</b><span>" + esc(p.tijd) + "</span>" + (afwijkend ? "<span>" + esc(afwijkend) + "</span>" : "") + "</td>" +
+    '<td class="suite"><i style="background:' + (SUITES[r.suite] ? SUITES[r.suite].kleur : "#999") + '"></i>' + esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + "</td>" +
+    '<td class="gast"><b>' + (naam ? esc(naam) : '<span style="display:inline;color:var(--muted)">zonder naam</span>') + "</b>" +
+      (contact ? "<span>" + esc(contact) + "</span>" : "") + (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") + "</td>" +
+    "<td>" + esc(KANALEN[r.kanaal] || r.kanaal) + (r.kanaal === "smg" && r.kanaal_ref ? '<span class="klein-grijs">' + esc(r.kanaal_ref) + "</span>" : "") + "</td>" +
+    "<td>" + esc(TYPES[r.type] || r.type) + "</td>" +
+    "<td>" + statusPill(r.status) + (gecontroleerd(r) ? '<span class="klein-grijs">✓ ' + esc(r.gewijzigd_door) + "</span>" : "") + "</td>" +
+    "<td>" + letop.join("") + "</td>" +
+    '<td style="text-align:right">' + knop + "</td></tr>";
+}
+
+function teken() {
+  const lijst = gefilterd();
+  const zonderGegevens = lijst.filter(gastOntbreekt).length;
+  const controleren = lijst.filter(tijdenControleren).length;
+  $("#telling").textContent = lijst.length + " van " + RIJEN.length + " reserveringen · " +
+    zonderGegevens + " zonder volledige gastgegevens · " + controleren + " met tijden om te controleren";
+  $("#lijst").innerHTML = lijst.length
+    ? lijst.map(rijHtml).join("")
+    : '<tr><td colspan="8" class="leeg">Geen reserveringen die aan dit filter voldoen.</td></tr>';
+}
+
+function begin(dagen) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dagen); return d.toISOString(); }
+
+async function laad() {
+  $("#telling").textContent = "Laden…";
+  try {
+    RIJEN = await api("reserveringen?select=" + KOLOMMEN +
+      "&aankomst=lt." + encodeURIComponent(begin(31)) + "&vertrek=gt." + encodeURIComponent(begin(0)) +
+      "&order=aankomst.asc&limit=1000") || [];
+    teken();
+  } catch (e) {
+    $("#telling").textContent = "";
+    melding("Reserveringen konden niet worden geladen: " + e.message, "fout");
+  }
+}
+
+/* ---------- venster ---------- */
+function vulBlokken(suite, gekozen) {
+  const eigen = BLOKKEN.filter((b) => b.suite === suite);
+  $("#vBlok").innerHTML = '<option value="">— geen tijdsblok —</option>' + eigen.map((b) =>
+    '<option value="' + esc(b.id) + '"' + (b.id === gekozen ? " selected" : "") + ">" + esc(b.naam) + "</option>").join("");
+}
+
+function openVenster(id) {
+  const r = RIJEN.find((x) => x.id === id);
+  if (!r) return;
+  HUIDIG = r;
+  const p = periode(r);
+  $("#vTitel").textContent = gastNaam(r) || "Reservering zonder naam";
+  $("#vSub").textContent = [SUITES[r.suite] ? SUITES[r.suite].naam : r.suite, KANALEN[r.kanaal] || r.kanaal,
+    r.kanaal === "smg" && r.kanaal_ref ? "nr. " + r.kanaal_ref : "", p.dag + " " + p.tijd].filter(Boolean).join(" · ");
+  const opm = $("#vOpmerking");
+  opm.hidden = !r.import_opmerking;
+  opm.textContent = r.import_opmerking ? "Import: " + r.import_opmerking : "";
+
+  $("#vVoornaam").value = r.gast_voornaam || "";
+  $("#vAchternaam").value = r.gast_achternaam || "";
+  $("#vEmail").value = r.gast_email || "";
+  $("#vTelefoon").value = r.gast_telefoon || "";
+  $("#vPersonen").value = r.personen ?? "";
+  vulBlokken(r.suite, r.tijdsblok_id);
+  $("#vType").innerHTML = opties(TYPES, r.type);
+  $("#vIncheck").value = hhmm(r.incheck_tijd);
+  $("#vUitcheck").value = hhmm(r.uitcheck_tijd);
+  ARR_START = (Array.isArray(r.arrangementen) ? r.arrangementen : []).map((a) =>
+    typeof a === "string" ? a : [a.aantal > 1 ? a.aantal + "× " : "", a.naam || a.tekst || ""].join("")).join("\n");
+  $("#vArr").value = ARR_START;
+  $("#vBedrag").value = r.bedrag_totaal == null ? "" : euro(r.bedrag_totaal);
+  $("#vBetaal").innerHTML = opties(BETAAL, r.betaalstatus || "open");
+  const statussen = Object.fromEntries(Object.entries(STATUSSEN).filter(([w]) => w !== "no_show" || r.status === "no_show"));
+  $("#vStatus").innerHTML = opties(statussen, r.status);
+  $("#vOms").value = r.omschrijving || "";
+  $("#vBronHouder").hidden = !r.brongegevens;
+  $("#vBron").textContent = r.brongegevens || "";
+  $("#vPlak").value = "";
+  $("#vHerkend").textContent = "";
+  $("#vMelding").textContent = "";
+
+  const bewerk = magBewerken();
+  $("#formulier").querySelectorAll("input,select,textarea").forEach((el) => { el.disabled = !bewerk; });
+  ["#vOpslaan", "#vBevestig", "#vHerken"].forEach((s) => { $(s).hidden = !bewerk; });
+  $("#venster").showModal();
+}
+
+function sluitVenster() { $("#venster").close(); HUIDIG = null; }
+
+function leesBedrag(tekst) {
+  let s = String(tekst || "").replace(/[€\s]/g, "");
+  if (!s) return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+
+function formWaarden() {
+  const leeg = (v) => { v = String(v ?? "").trim(); return v === "" ? null : v; };
+  const bedrag = leesBedrag($("#vBedrag").value);
+  if (Number.isNaN(bedrag)) throw new Error("Het totaalbedrag is geen geldig bedrag.");
+  const personen = $("#vPersonen").value === "" ? null : parseInt($("#vPersonen").value, 10);
+  if (personen !== null && !(personen >= 1 && personen <= 20)) throw new Error("Vul bij personen een aantal tussen 1 en 20 in.");
+  const d = {
+    gast_voornaam: leeg($("#vVoornaam").value),
+    gast_achternaam: leeg($("#vAchternaam").value),
+    gast_email: leeg($("#vEmail").value) ? $("#vEmail").value.trim().toLowerCase() : null,
+    gast_telefoon: leeg($("#vTelefoon").value),
+    personen,
+    tijdsblok_id: $("#vBlok").value || null,
+    type: $("#vType").value,
+    incheck_tijd: leeg($("#vIncheck").value),
+    uitcheck_tijd: leeg($("#vUitcheck").value),
+    bedrag_totaal: bedrag,
+    betaalstatus: $("#vBetaal").value,
+    status: $("#vStatus").value,
+    omschrijving: leeg($("#vOms").value),
+    gewijzigd_door: NAAM
+  };
+  /* arrangementen alleen meesturen als ze echt gewijzigd zijn */
+  if ($("#vArr").value !== ARR_START) {
+    d.arrangementen = $("#vArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }));
+  }
+  /* geplakte tekst toevoegen, bestaande brongegevens blijven staan */
+  const plak = $("#vPlak").value.trim();
+  if (plak) {
+    d.brongegevens = [HUIDIG.brongegevens, "--- geplakt " + fmtGeplakt.format(new Date()) + " door " + NAAM + " ---\n" + plak]
+      .filter(Boolean).join("\n\n");
+  }
+  return d;
+}
+
+async function bewaar(bevestig) {
+  if (!HUIDIG || !magBewerken()) return;
+  const knoppen = [$("#vOpslaan"), $("#vBevestig")];
+  $("#vMelding").textContent = "";
+  let d;
+  try { d = formWaarden(); } catch (e) { $("#vMelding").textContent = e.message; return; }
+  if (bevestig) d.status = "bevestigd";
+  knoppen.forEach((k) => { k.disabled = true; });
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id) + "&select=" + KOLOMMEN, { method: "PATCH", body: d });
+    if (!rij || !rij.length) throw new Error("Opslaan lukte niet: je hebt geen rechten om deze reservering te wijzigen.");
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    const naam = gastNaam(rij[0]) || "reservering";
+    sluitVenster();
+    teken();
+    melding((bevestig ? "Bevestigd: " : "Opgeslagen: ") + naam + ".");
+  } catch (e) {
+    $("#vMelding").textContent = e.message;
+  }
+  knoppen.forEach((k) => { k.disabled = false; });
+}
+
+async function snelBevestigen(id, knop) {
+  if (!magBewerken()) return;
+  knop.disabled = true; knop.textContent = "Bezig…";
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { status: "bevestigd", gewijzigd_door: NAAM } });
+    if (!rij || !rij.length) throw new Error("geen rechten om deze reservering te wijzigen");
+    RIJEN = RIJEN.map((x) => (x.id === id ? rij[0] : x));
+    teken();
+    melding("Bevestigd: " + (gastNaam(rij[0]) || "reservering") + ".");
+  } catch (e) {
+    melding("Bevestigen lukte niet: " + e.message, "fout");
+    knop.disabled = false; knop.textContent = "Bevestigd";
+  }
+}
+
+/* ---------- plakveld: eenvoudige herkenning ---------- */
+function herken(tekst) {
+  const t = String(tekst || "").replace(/\r/g, "");
+  const uit = {};
+  const label = (namen) => {
+    for (const n of namen) {
+      const m = t.match(new RegExp("^[ \\t]*(?:" + n + ")[ \\t]*[:：][ \\t]*(.+)$", "im"));
+      if (m && m[1].trim()) return m[1].trim();
+    }
+    return null;
+  };
+
+  const mail = t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  if (mail) uit.email = mail[0].toLowerCase();
+
+  const telLabel = label(["tel(?:efoon)?(?:nummer)?", "telephone", "phone(?: number)?", "mobiel(?:e nummer)?", "gsm"]);
+  let tel = telLabel || (t.match(/(?:\+|00)\d[\d \-]{8,16}\d|\b0[1-9](?:[ \-]?\d){8}\b/) || [])[0];
+  if (tel) {
+    tel = tel.replace(/[^\d+]/g, "");
+    if (tel.replace(/\D/g, "").length >= 9) uit.telefoon = tel;
+  }
+
+  let voor = label(["voornaam", "first name"]), achter = label(["achternaam", "last name", "surname"]);
+  if (!voor && !achter) {
+    let naam = label(["naam", "name", "gastnaam", "guest name", "guest", "hoofdboeker", "boeker", "booker", "gast"]);
+    if (!naam) { const oo = t.match(/origineel\s+overnachten\s*-\s*([^\n]+)/i); if (oo) naam = oo[1]; }
+    if (naam) {
+      const delen = naam.replace(/[,;(].*$/, "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+      if (delen.length && delen.length <= 6) { voor = delen[0]; achter = delen.slice(1).join(" ") || null; }
+    }
+  }
+  if (voor) uit.voornaam = voor;
+  if (achter) uit.achternaam = achter;
+
+  const bedragTekst = label(["totaal(?:bedrag|prijs)?", "total(?: price| amount)?", "totaalprijs", "bedrag", "prijs", "price", "te betalen"])
+    || (t.match(/€\s?\d[\d.]*(?:,\d{1,2})?/) || [])[0];
+  if (bedragTekst) {
+    const m = bedragTekst.match(/\d{1,3}(?:\.\d{3})+,\d{1,2}|\d+,\d{1,2}|\d+\.\d{1,2}(?!\d)|\d{1,3}(?:\.\d{3})+(?!\d)|\d+/);
+    const n = m ? leesBedrag(m[0]) : null;
+    if (n && n > 0) uit.bedrag = n;
+  }
+
+  const pLabel = label(["aantal personen", "personen", "aantal gasten", "gasten", "number of guests", "guests", "volwassenen", "adults"]);
+  const pTekst = pLabel || (t.match(/\b(\d{1,2})\s*(?:personen|volwassenen|adults|guests|gasten)\b/i) || [])[0];
+  const pn = parseInt(((pTekst || "").match(/\d+/) || [])[0] || "", 10);
+  if (pn >= 1 && pn <= 20) uit.personen = pn;
+  return uit;
+}
+
+function pasHerkenningToe() {
+  const uit = herken($("#vPlak").value);
+  const velden = [
+    ["voornaam", "#vVoornaam", "voornaam"], ["achternaam", "#vAchternaam", "achternaam"],
+    ["email", "#vEmail", "e-mail"], ["telefoon", "#vTelefoon", "telefoon"],
+    ["personen", "#vPersonen", "personen"], ["bedrag", "#vBedrag", "bedrag"]
+  ];
+  const ingevuld = [], overgeslagen = [];
+  for (const [sleutel, veld, naam] of velden) {
+    if (uit[sleutel] == null) continue;
+    const el = $(veld);
+    const waarde = sleutel === "bedrag" ? euro(uit[sleutel]) : String(uit[sleutel]);
+    if (String(el.value).trim() === "") { el.value = waarde; ingevuld.push(naam); }
+    else if (String(el.value).trim().toLowerCase() !== waarde.toLowerCase()) overgeslagen.push(naam + " (gevonden: " + waarde + ")");
+  }
+  $("#vHerkend").textContent = !$("#vPlak").value.trim() ? "Plak eerst een tekst in het plakveld."
+    : (ingevuld.length ? "Ingevuld: " + ingevuld.join(", ") + ". " : "Niets nieuws ingevuld. ") +
+      (overgeslagen.length ? "Al gevuld, niet overschreven: " + overgeslagen.join("; ") + "." : "");
+}
+
+/* ---------- start ---------- */
+async function start() {
+  SESSIE = leesSessie();
+  if (!(await geldigToken())) { toonSlot(); return; }
+  verbergSlot();
+  const deel = jwtDeel(SESSIE.access_token);
+  $("#wieBen").textContent = deel.email || "";
+  if (window.BWFaccount) window.BWFaccount.begroeting();
+  try {
+    const [rol, mw, blokken] = await Promise.all([
+      api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
+      api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || "")),
+      api("tijdsblokken?select=id,suite,type,naam,begin,eind&actief=eq.true&order=suite.asc,sortering.asc")
+    ]);
+    ROL = rol || null;
+    NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
+    BLOKKEN = blokken || [];
+  } catch (e) {
+    melding("Je gegevens konden niet worden geladen: " + e.message, "fout");
+    return;
+  }
+  if (!ROL) {
+    melding("Je account heeft geen toegang tot reserveringen. Vraag Angela om een toegangsrol.", "fout");
+    $("#lijst").innerHTML = '<tr><td colspan="8" class="leeg">Geen toegang.</td></tr>';
+    return;
+  }
+  if (!magBewerken()) melding("Je kunt reserveringen van je eigen suites bekijken, maar niet wijzigen.");
+  await laad();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  $("#fSuite").insertAdjacentHTML("beforeend", Object.entries(SUITES).map(([w, s]) => '<option value="' + w + '">' + esc(s.naam) + "</option>").join(""));
+  $("#fKanaal").insertAdjacentHTML("beforeend", opties(KANALEN, null));
+  ["#fSuite", "#fKanaal", "#fStatus", "#fAandacht"].forEach((s) => $(s).addEventListener("change", teken));
+  $("#fZoek").addEventListener("input", teken);
+  $("#vernieuwen").addEventListener("click", laad);
+  $("#uitloggen").addEventListener("click", () => {
+    try { localStorage.removeItem(CFG.ls); } catch (e) {}
+    location.reload();
+  });
+  $("#lgKnop").addEventListener("click", inloggen);
+  $("#lgWw").addEventListener("keydown", (e) => { if (e.key === "Enter") inloggen(); });
+
+  $("#lijst").addEventListener("click", (e) => {
+    const knop = e.target.closest("[data-bevestig]");
+    if (knop) { e.stopPropagation(); snelBevestigen(knop.getAttribute("data-bevestig"), knop); return; }
+    const tr = e.target.closest("tr[data-id]");
+    if (tr) openVenster(tr.getAttribute("data-id"));
+  });
+  $("#lijst").addEventListener("keydown", (e) => {
+    const tr = e.target.closest("tr[data-id]");
+    if (tr && e.key === "Enter" && !e.target.closest("button")) openVenster(tr.getAttribute("data-id"));
+  });
+
+  $("#vBlok").addEventListener("change", () => {
+    const b = BLOKKEN.find((x) => x.id === $("#vBlok").value);
+    if (b) $("#vType").value = b.type;
+  });
+  $("#vHerken").addEventListener("click", pasHerkenningToe);
+  $("#vOpslaan").addEventListener("click", () => bewaar(false));
+  $("#vBevestig").addEventListener("click", () => bewaar(true));
+  /* nooit per ongeluk "verzenden" (sluit het venster zonder op te slaan) */
+  $("#formulier").addEventListener("submit", (e) => e.preventDefault());
+  $("#vAnnuleer").addEventListener("click", sluitVenster);
+  $("#vSluit").addEventListener("click", sluitVenster);
+
+  start();
+});
+</script>
+<script src="bwf-shell.js"></script>
+<script src="bwf-account.js?v=1"></script>
+</body>
+</html>

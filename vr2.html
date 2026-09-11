@@ -1096,6 +1096,7 @@ div.ag-blok{cursor:default}
       <button class="tab" role="tab" data-groep="calls">Welkomstcalls<span class="badge" id="badge-groep-calls">0</span></button>
       <button class="tab" role="tab" data-groep="werk">Taken<span class="badge" id="badge-groep-werk">0</span></button>
       <button class="tab" role="tab" data-groep="reserveringen">Reserveringen &amp; incheck<span class="badge" id="badge-groep-reserveringen">0</span></button>
+      <a class="tab" href="reservering-beheer.html" style="text-decoration:none">Reserveringen (nieuw)</a>
       <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
       <button class="tab" role="tab" data-groep="bellen">Belscripts<span class="badge" id="badge-groep-bellen">0</span></button>
       <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
@@ -2850,7 +2851,8 @@ function kiesTab(naam){
   if(paneel && GROEPEN[groepNu].length > 1) paneel.scrollIntoView({behavior:'smooth', block:'start'});
 }
 $('#groeptabs').addEventListener('click', e=>{
-  const b = e.target.closest('.tab'); if(b) kiesGroep(b.dataset.groep);
+  /* links (zoals Reserveringen (nieuw)) gewoon laten openen */
+  const b = e.target.closest('.tab'); if(b && b.dataset.groep) kiesGroep(b.dataset.groep);
 });
 $('#tabs').addEventListener('click', e=>{ const t = e.target.closest('.tab'); if(t) kiesTab(t.dataset.tab); });
 
@@ -8513,6 +8515,7 @@ $('#whoBtn').addEventListener('click', ()=>{
     { groep:"Dagelijks", items:[
       { naam:"Dagoverzicht",       bestand:"dagoverzicht.html" },
       { naam:"Reserveringen",      bestand:"reserveringen.html" },
+      { naam:"Reserveringen (nieuw)", bestand:"reservering-beheer.html" },
       { naam:"Incheckformulier",   bestand:"incheckformulier.html" },
       { naam:"Gastenlink",         bestand:"gast.html" }
     ]},
