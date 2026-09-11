@@ -2368,7 +2368,7 @@ div.ag-blok{cursor:default}
 
 <div class="toast" id="toast"></div>
 <script src="bwf-agenda.js?v=1"></script>
-<script src="bwf-kalender.js?v=3"></script>
+<script src="bwf-kalender.js?v=4"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -5713,34 +5713,66 @@ const wcSpoed = aankomst => {
   const dagen = (new Date(a) - new Date(vandaag())) / 86400000;
   return dagen >= 0 && dagen < 3;
 };
+/* De bron is `reserveringen` in Supabase, niet meer de Google Agenda. De
+   koppeling loopt via wz_welkomstcalls.reservering_id: één call per reservering,
+   dus geen dubbele calls meer op naam + datum, en geen calls op titels als
+   "Betaling" of "Menu". Geannuleerde boekingen krijgen geen call.
+   We schrijven met opzet niets terug naar `reserveringen`: elke wijziging daar
+   zet handmatig_gewijzigd_op, waarna de import die boeking niet meer bijwerkt. */
+const WC_SUITE_LOC = {angie:'Suite Angie Almere', malina_jacuzzi:'Malina Jacuzzi',
+                      malina_deluxe:'Malina Zwembad'};
+const WC_KANAAL_NAAM = {smg:'SMG', booking:'Booking.com', oo:'Origineel Overnachten',
+                        planyo:'Planyo', eigen:'Eigen website', handmatig:'Handmatig'};
+function wcLokaal(iso){
+  if(!iso) return {datum:'', tijd:''};
+  if(window.BWFKalender && BWFKalender._test && BWFKalender._test.lokaal)
+    return BWFKalender._test.lokaal(new Date(iso));
+  const p = new Intl.DateTimeFormat('sv-SE', {timeZone:'Europe/Amsterdam', year:'numeric',
+    month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false})
+    .format(new Date(iso));                                   /* 2026-09-12 20:00 */
+  return {datum: p.slice(0,10), tijd: p.slice(11,16)};
+}
 let wcAutoBezig = false;
 async function wcAutoAanmaken(){
   if(wcAutoBezig || !online() || !IK) return;
   wcAutoBezig = true;
   try{
-    const bestaat = new Set((S.calls||[]).map(c=>wcSleutel(c.referentie, c.naam, c.datum)));
-    const vd = vandaag();
-    const nieuw = RES.filter(r=>{
-      const d = String(r.start||'').slice(0,10);
-      if(!d || d < vd || r.verleden) return false;
-      if(!r.naam || !String(r.naam).trim()) return false;      /* zonder naam niet aanmaken */
-      return !bestaat.has(wcSleutel(r.ref, r.naam, d));
-    });
+    const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
+                   'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,bedrag_totaal,betaalstatus';
+    const boekingen = await api('reserveringen?select=' + velden + '&aankomst=gte.' + vandaag() +
+                                '&status=eq.bevestigd&order=aankomst.asc&limit=300') || [];
+    const heeft = new Set((S.calls||[]).map(c=>c.reservering_id).filter(Boolean));
+    const nieuw = boekingen.filter(r=>{
+      if(heeft.has(r.id)) return false;
+      return !!(String(r.gast_voornaam||'').trim() || String(r.gast_achternaam||'').trim());
+    });                                                        /* zonder naam niet aanmaken */
     for(const r of nieuw.slice(0, 40)){                        /* rustig aan, max 40 per keer */
-      const datum = String(r.start||'').slice(0,10);
+      const aan = wcLokaal(r.aankomst), uit = wcLokaal(r.vertrek);
       await maak('calls', {
-        naam: r.naam, locatie: r.locatie || null, datum,
-        datum_eind: r.eind ? String(r.eind).slice(0,10) : null,
-        referentie: r.ref || null, bron: r.bron || null,
+        reservering_id: r.id,
+        naam: [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(' '),
+        voornaam: r.gast_voornaam || null, achternaam: r.gast_achternaam || null,
+        telefoon: r.gast_telefoon || null, email: r.gast_email || null,
+        locatie: WC_SUITE_LOC[r.suite] || null,
+        verblijftype: r.type === 'dagverblijf' ? 'Dagverblijf' : 'Overnachting',
+        datum: aan.datum,
+        tijd: String(r.incheck_tijd || aan.tijd || '').slice(0,5) || null,
+        datum_eind: uit.datum || null,
+        tijd_eind: String(r.uitcheck_tijd || uit.tijd || '').slice(0,5) || null,
+        personen: r.personen || null,
+        referentie: r.kanaal_ref || null,
+        bron: WC_KANAAL_NAAM[r.kanaal] || r.kanaal || null,
+        smg_bedrag: r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null,
+        smg_betaald: r.betaalstatus === 'betaald',
         status: 'te bellen', medewerker_id: null,
-        deadline: wcDeadline(datum), automatisch: true
+        deadline: wcDeadline(aan.datum), automatisch: true
       });
-      bestaat.add(wcSleutel(r.ref, r.naam, datum));
+      heeft.add(r.id);
     }
     if(nieuw.length){ renderCalls(); renderWcTeDoen(); badges(); }
   }catch(e){
     const h = $('#wtHint');
-    if(h) h.textContent = 'automatisch aanmaken lukte niet — controleer de kolommen deadline en automatisch';
+    if(h) h.textContent = 'automatisch aanmaken lukte niet — melding: ' + e.message;
   }
   wcAutoBezig = false;
 }
@@ -7198,6 +7230,7 @@ $('#klImportOk').addEventListener('click', async ()=>{
 /* ---------------- WELKOMSTCALLS ---------------- */
 let wcKeuzes = {};      /* extraId -> aantal */
 let wcHuidig = null;    /* id van een opgeslagen call die je bewerkt */
+let wcResId  = null;    /* reserveringen.id waar deze call bij hoort (vaste koppeling) */
 const INCHECK_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
 const GAST_URL    = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
 /* de eigenaar kan een ander formulier instellen; dat wordt bewaard als link met tab 'instelling' */
@@ -7378,6 +7411,7 @@ function wcFormulier(){
   const regels = wcRegels();
   const totaal = regels.reduce((a,x)=>a+x.bedrag,0);
   return {
+    reservering_id: wcResId || null,
     klant_id: $('#wcKlant').value || null,
     naam: wcVolledigeNaam() || null,
     voornaam: $('#wcVoor').value.trim() || null,
@@ -7992,7 +8026,7 @@ $('#wcGastform').addEventListener('click', ()=>{
   $('#wcFormNote').textContent = 'Het gastformulier is geopend in een nieuw tabblad — dit is precies wat de gast te zien krijgt.';
 });
 $('#wcNieuw').addEventListener('click', ()=>{
-  wcHuidig = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
+  wcHuidig = null; wcResId = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
   ['#wcNaam','#wcVoor','#wcAchter','#wcTel','#wcMail','#wcPlaats','#wcRef','#wcTijd','#wcTijdEind',
    '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg','#wcBijz','#wcAllergie']
     .forEach(s=>{ const el=$(s); if(el) el.value=''; });
@@ -8007,6 +8041,26 @@ $('#wcNieuw').addEventListener('click', ()=>{
   wcSmgVat(); wcHerhaalCheck(); wcZetBetaal('mollie');
   $('#wcNote').textContent=''; wcToonBijlage(); renderExtras(); wcVersTekst(true);
 });
+
+/* Vanuit de kalender (knop Welkomstcall) komt ?rid=<reserveringen.id> mee.
+   Bestaat er al een call voor die reservering, dan openen we die in plaats van
+   een nieuwe te maken — zo blijft het bij één call per reservering. */
+window.wcZetReservering = function(rid, poging){
+  if(!rid) return;
+  poging = poging || 0;
+  if(!(S.calls||[]).length && poging < 30){         /* de lijst wordt nog geladen */
+    setTimeout(()=>window.wcZetReservering(rid, poging+1), 500);
+    return;
+  }
+  const bestaand = (S.calls||[]).find(c=>c.reservering_id === rid);
+  if(bestaand){
+    const knop = document.querySelector('[data-wcopen="'+bestaand.id+'"]');
+    if(knop){ knop.click(); return; }
+  }
+  wcResId = rid;
+  const n = $('#wcNote');
+  if(n && !n.textContent) n.textContent = 'Gekoppeld aan de reservering uit de kalender.';
+};
 /* ============ openstaande welkomstcalls als taak ============ */
 const wcTaakVan = id => (S.taken||[]).find(t => String(t.call_id||'') === String(id));
 
@@ -8142,7 +8196,7 @@ document.addEventListener('click', async e=>{
   const o = e.target.closest('[data-wcopen]');
   if(o){
     const c = S.calls.find(x=>x.id===o.dataset.wcopen); if(!c) return;
-    wcHuidig = c.id; wcKeuzes = {};
+    wcHuidig = c.id; wcResId = c.reservering_id || null; wcKeuzes = {};
     vulWcDoor(c.medewerker_id || (IK ? IK.id : ''));
     setTimeout(wcOpenBalkToon, 0);
     (c.regels||[]).forEach(r=>{ if(r && r.id) wcKeuzes[r.id] = r.per_persoon ? 1 : (r.aantal||1); });
@@ -8703,6 +8757,12 @@ $('#whoBtn').addEventListener('click', ()=>{
       for(var i=0;i<b.options.length;i++)
         if(b.options[i].text.toLowerCase() === p.get('bron').toLowerCase()){ b.selectedIndex = i; break; }
     }
+    var loc = {angie:'Suite Angie Almere', malina_jacuzzi:'Malina Jacuzzi',
+               malina_deluxe:'Malina Zwembad'}[p.get('suite') || ''];
+    var l = document.getElementById('wcLoc');
+    if(l && loc) l.value = loc;
+    /* vaste koppeling aan de reservering, zodat er geen dubbele call ontstaat */
+    if(typeof window.wcZetReservering === 'function') window.wcZetReservering(p.get('rid'));
   }
   function probeer(){
     if(klaar) return;

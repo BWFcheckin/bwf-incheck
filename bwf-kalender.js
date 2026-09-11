@@ -268,6 +268,7 @@
     p.set("tijduit", hhmm(r.uitcheck_tijd) || e.tijd);
     if (r.type) p.set("type", r.type);
     if (KANAAL_WC[r.kanaal]) p.set("bron", KANAAL_WC[r.kanaal]);
+    if (r.suite) p.set("suite", r.suite);
     p.set("rid", r.id);
     if (typeof location !== "undefined") p.set("terug", location.href);
     return "vr2.html?" + p.toString();
