@@ -262,21 +262,38 @@ function verwerkSuite(suite: string, feeds: Record<string, Ev[]>, blokken: Tijds
     }));
   }
 
+  /* SMG geeft handmatige planningsregels bij elke download een nieuwe UID (zie logboek 11-09-2026).
+     Daarom een vaste sleutel uit suite + begin + eind; bij regels met exact dezelfde tijden volgt #2, #3
+     op volgorde van de titel. Dezelfde opbouw staat in migratie 20260911140100_fase2_dubbele_opruimen.sql. */
+  function vasteSleutels(evs: Ev[], soort: string): Map<Ev, string> {
+    const stempel = (m: Moment) => m.datum.replace(/-/g, "") + m.tijd.replace(":", "");
+    const volgorde = (e: Ev) => `${stempel(e.start)}|${stempel(e.eind)}|${e.summary}`;
+    const sleutels = new Map<Ev, string>();
+    const teller: Record<string, number> = {};
+    const gesorteerd = [...evs].sort((a, b) => (volgorde(a) < volgorde(b) ? -1 : volgorde(a) > volgorde(b) ? 1 : 0));
+    for (const ev of gesorteerd) {
+      const basis = `${soort}:${suite}:${stempel(ev.start)}-${stempel(ev.eind)}`;
+      teller[basis] = (teller[basis] ?? 0) + 1;
+      sleutels.set(ev, teller[basis] === 1 ? basis : `${basis}#${teller[basis]}`);
+    }
+    return sleutels;
+  }
+
   // Overige handmatige SMG-regels: kanaal uit de titel
-  for (const ev of smgRegels) {
-    if (gebruikt.has(ev)) continue;
+  const regelSleutels = vasteSleutels(smgRegels.filter((ev) => !gebruikt.has(ev)), "smg-regel");
+  for (const [ev, sleutel] of regelSleutels) {
     const t = ev.summary.toLowerCase();
     const kanaal = t.includes("booking") ? "booking" : t.includes("origineel") ? "oo" : t.includes("planyo") ? "planyo" : "handmatig";
-    res.smg.push(reservering(blokken, suite, kanaal, `smg-regel:${ev.uid}`, ev.uid, ev.start, ev.eind, {
+    res.smg.push(reservering(blokken, suite, kanaal, sleutel, sleutel, ev.start, ev.eind, {
       brongegevens: ev.summary || null,
       import_opmerking: "handmatige regel in de SMG-planning",
     }));
   }
 
   // "Niet beschikbaar" / "Vol" zonder overlappende Booking.com/OO-boeking → blokkade
-  for (const ev of smgBlok) {
-    if (gebruikt.has(ev)) continue;
-    blk.smg.push({ bron_uid: ev.uid, van_lokaal: lokaal(ev.start), tot_lokaal: lokaal(ev.eind), reden: ev.summary || "SMG: niet beschikbaar" });
+  const blokSleutels = vasteSleutels(smgBlok.filter((ev) => !gebruikt.has(ev)), "smg-blok");
+  for (const [ev, sleutel] of blokSleutels) {
+    blk.smg.push({ bron_uid: sleutel, van_lokaal: lokaal(ev.start), tot_lokaal: lokaal(ev.eind), reden: ev.summary || "SMG: niet beschikbaar" });
   }
 
   return { res, blk, telling };
@@ -389,7 +406,7 @@ Deno.serve(async (req) => {
       resultaat[suite] = { ...geschreven, ...uitkomst.telling };
     }
 
-    return antwoord({ proef, run, suites: resultaat });
+    return antwoord({ versie: 2, proef, run, suites: resultaat }); // versie 2: vaste sleutels voor handmatige SMG-regels
   } catch (e) {
     return antwoord({ fout: foutTekst(e) }, 500);
   }
