@@ -54,6 +54,18 @@ async function rest(pad: string, methode = "GET", body?: unknown): Promise<Rij> 
   return tekst ? JSON.parse(tekst) : null;
 }
 
+/* De verwerkfunctie is snel (gemiddeld ~17 ms), maar de gateway geeft af en toe een 504.
+   Opnieuw verwerken is veilig (zelfde run, zelfde regels), dus bij een 5xx één keer opnieuw. */
+async function verwerk(body: Rij): Promise<Rij> {
+  try {
+    return await rest("rpc/kanalen_verwerk", "POST", body);
+  } catch (e) {
+    if (!/HTTP 5\d\d/.test(foutTekst(e))) throw e;
+    await new Promise((klaar) => setTimeout(klaar, 3000));
+    return await rest("rpc/kanalen_verwerk", "POST", body);
+  }
+}
+
 async function logFout(run: string, feed: string, suite: string, fout: string) {
   try {
     await rest("kanalen_sync_log", "POST", { run_op: run, bron_feed: feed, suite, gelukt: false, fout });
@@ -398,7 +410,7 @@ Deno.serve(async (req) => {
       for (const feed of FEEDS) {
         if (!(feed in feeds)) continue;
         try {
-          geschreven[feed] = await rest("rpc/kanalen_verwerk", "POST", {
+          geschreven[feed] = await verwerk({
             p_bron_feed: feed,
             p_suite: suite,
             p_run: run,
@@ -414,7 +426,7 @@ Deno.serve(async (req) => {
       resultaat[suite] = { ...geschreven, ...uitkomst.telling };
     }
 
-    return antwoord({ versie: 3, proef, run, suites: resultaat }); // versie 3: Booking.com-sluiting bij overlap met OO/SMG = blokkade
+    return antwoord({ versie: 4, proef, run, suites: resultaat }); // versie 4: bij een 5xx van de verwerkfunctie één keer opnieuw
   } catch (e) {
     return antwoord({ fout: foutTekst(e) }, 500);
   }
