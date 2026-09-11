@@ -4552,6 +4552,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       if(r.aankomst >= van && r.aankomst <= tot) return true;
       return r.aankomst <= tot && r.vertrek && r.vertrek >= van;   /* loopt door de periode heen */
     }
+    /* Voor het getal tussen haakjes: wat vandaag speelt, los van de gekozen periode.
+       Stond hier tot commit ed2a745 (08-09-2026) en is toen per ongeluk weggevallen. */
+    function opVandaag(r){
+      if(isVrijBlok(r)) return r.aankomst===vandaag;
+      return r.aankomst===vandaag || (r.aankomst<=vandaag && r.vertrek && r.vertrek>=vandaag);
+    }
     var alles   = gefilterd().filter(inPeriode);
     var boeking = alles.filter(function(r){ return !isVrijBlok(r); });
     var vrij    = (vrijAan() && kalWeergave === 'dag' ? vrijeSlots(van) : []).sort(function(a,b){
