@@ -8,12 +8,13 @@ Opgesteld 11-09-2026. Dit bestand is de opdracht voor Claude Code op de MacBook 
 
 1. **Eerst lezen, dan bouwen.** Begin elke sessie met `git pull` en lees dit plan plus `README.md` en `LEESMIJ-wijzigingen.md`.
 2. **Niets weggooien zonder export.** Vóór elke `drop`/`truncate`/`delete` op Supabase eerst een export naar `exports/YYYY-MM-DD/<tabel>.csv` (via `supabase db dump` of `psql \copy`). Exports worden **niet** gecommit (`exports/` in `.gitignore`).
-3. **Geen geheimen in de repo.** Service-role key, Google-agendasleutel en ICS-URL's staan alleen in Supabase (Edge Function-secrets, Vault of de tabel `kanaal_instellingen` die alleen de eigenaar kan lezen) of in een lokale `.env` die in `.gitignore` staat. In HTML/JS alleen de publieke anon key.
+3. **Geen geheimen in de repo.** Service-role key, Google-agendasleutel en ICS-URL's staan alleen in Supabase (Edge Function-secrets, Vault of de tabel `kanaal_instellingen` die alleen de eigenaar kan lezen) of in een lokale `.env` die in `.gitignore` staat. In HTML/JS alleen de publieke anon key. Ook e-mailadressen van medewerkers horen niet in de (publieke) repo.
 4. **Eén stap per commit**, korte Nederlandse commit-berichten. Na elke fase: `git push` → controleren op `https://bwfcheckin.github.io/bwf-incheck/`.
 5. **Privésauna blijft leidend tot begin oktober 2026.** Tot dan is de nieuwe agenda een leesspiegel van de kanalen. Bouw alles zo dat de bron later Planyo wordt zonder de agenda te herbouwen (zie fase 6).
 6. **Huisstijl**: kleuren en lettertypes uit `agenda.html` / `bwf-agenda-stijl.css` (Cormorant Garamond + Public Sans, groen `#14342A`, goud `#B9975B`). Nieuwe pagina's gebruiken `bwf-shell.js` en `bwf-account.js` voor login en menu.
 7. Bij twijfel: **vraag Angela**, bouw geen aannames in.
 8. **Geen Make-scenario's.** Automatische taken (zoals de ICS-import) draaien in Supabase: Edge Function + `pg_cron`.
+9. **SQL-migraties eerst laten zien.** Elke migratie staat in `supabase/migrations/` en wordt pas uitgevoerd na akkoord van Angela, na een proefdraai met rollback. Migraties verwijderen niets. Bij rechten-migraties staat vooraf een terugdraaiscript klaar in `supabase/rollback/`. Uitvoeren: `supabase db query --linked -f <bestand>`.
 
 ---
 
@@ -54,54 +55,27 @@ Eén gedeelde agenda en één reserveringstabel in Supabase waar alle kanalen in
 
 ## 3. Datamodel (Supabase)
 
+De SQL staat in `supabase/migrations/` (fase 1, migraties 1–4). Hieronder de opzet.
+
 ### 3.1 `reserveringen` — de ene bron van waarheid
-```sql
-create table if not exists public.reserveringen (
-  id                uuid primary key default gen_random_uuid(),
-  suite             text not null check (suite in ('angie','malina_jacuzzi','malina_deluxe')), -- malina_deluxe = Malina Zwembad
-  kanaal            text not null check (kanaal in ('smg','oo','booking','planyo','eigen','handmatig')),
-  kanaal_ref        text,                 -- SMG-reserveringsnummer, Booking.com R-nummer, OO-nummer
-  status            text not null default 'bevestigd', -- bevestigd | optie | geannuleerd | no_show
-  type              text not null,        -- dagverblijf | overnachting | late_checkin | honeymoon
-  aankomst          timestamptz not null,
-  vertrek           timestamptz not null,
-  incheck_tijd      time,                 -- afwijking t.o.v. standaard
-  uitcheck_tijd     time,
-  gast_voornaam     text,
-  gast_achternaam   text,
-  gast_email        text,
-  gast_telefoon     text,
-  gast_adres        text,
-  personen          int default 2,
-  arrangementen     jsonb default '[]',   -- [{naam, aantal, prijs}]
-  extras            jsonb default '[]',
-  omschrijving      text,
-  -- geld (geen commissieberekening)
-  bedrag_totaal     numeric,              -- wat de gast in totaal betaalt
-  betaald_via       text,                 -- kanaal | mollie | locatie | paypal
-  betaalstatus      text default 'open',  -- open | deels | betaald
-  restant_bedrag    numeric,
-  uitbetaling_verwacht date,              -- alleen de datum, geen bedragen
-  -- bronmateriaal
-  brongegevens      text,                 -- geplakte/uitgelezen tekst uit pdf/mail/SMG
-  bron_bestanden    jsonb default '[]',   -- paden in Supabase Storage bucket 'reservering-bijlagen'
-  -- koppelingen
-  klant_id          uuid references public.wz_klantbeheer(id),
-  checkin_id        uuid,                 -- incheckformulier
-  welkomstcall_id   uuid,
-  nachtregister_id  uuid,
-  -- beheer
-  aangemaakt_door   text,
-  gewijzigd_door    text,
-  created_at        timestamptz default now(),
-  updated_at        timestamptz default now(),
-  unique (kanaal, kanaal_ref)
-);
-create index on public.reserveringen (suite, aankomst);
-```
+Migratie `20260911120000_fase1_structuur.sql`. Kolommen:
+
+| Groep | Kolommen |
+|---|---|
+| Verblijf | `suite` (`angie` / `malina_jacuzzi` / `malina_deluxe`), `kanaal` (`smg`, `oo`, `booking`, `planyo`, `eigen`, `handmatig`), `kanaal_ref`, `status` (`bevestigd`, `optie`, `geannuleerd`, `no_show`), `type` (`dagverblijf`, `avond`, `overnachting`, `late_checkin`, `honeymoon`), `tijdsblok_id` → `tijdsblokken`, `aankomst`, `vertrek`, `incheck_tijd` / `uitcheck_tijd` (alleen bij afwijking van het tijdsblok) |
+| Import | `bron_uid` (UID uit de ICS-feed), `feed_gezien_op` (niet meer in de feed → `geannuleerd`) |
+| Gast | `gast_voornaam`, `gast_achternaam`, `gast_email`, `gast_telefoon`, `gast_adres`, `personen` |
+| Inhoud | `arrangementen`, `extras` (jsonb; leeg tot ingevuld via plak-/pdf-veld of handmatig), `omschrijving` |
+| Geld (geen commissie) | `bedrag_totaal`, `betaald_via`, `betaalstatus` (`open`, `deels`, `betaald`), `restant_bedrag`, `uitbetaling_verwacht` (alleen de datum) |
+| Bronmateriaal | `brongegevens` (tekst), `bron_bestanden` (paden in bucket `reservering-bijlagen`) |
+| Koppelingen | `klant_id` → `wz_klantbeheer` (tekst-id), `checkin_id` → `checkins` (tekst-id), `welkomstcall_id` → `wz_welkomstcalls`, `nachtregister_id` → `wz_gastenregister` |
+| Beheer | `aangemaakt_door`, `gewijzigd_door`, `created_at`, `updated_at` (trigger) |
+
+Uniek: `(kanaal, kanaal_ref)` en `(kanaal, suite, bron_uid)`. Controle: `vertrek > aankomst`.
+
 Migratie: bestaande `res_koppeling`/`checkins`-gegevens **niet** verwijderen maar via een migratiescript (`scripts/migreer-reserveringen.sql`) overzetten. Pas na controle door Angela de oude tabellen hernoemen naar `oud_*`.
 
-**Suitenamen (besloten 11-09-2026):** overal `angie`, `malina_jacuzzi`, `malina_deluxe`. Malina Deluxe en Malina Zwembad zijn dezelfde suite. Omzetting van de waarden die nu in de database staan (zie `docs/INVENTARIS.md` §1.6):
+**Suitenamen (besloten 11-09-2026):** overal `angie`, `malina_jacuzzi`, `malina_deluxe`. Malina Deluxe en Malina Zwembad zijn dezelfde suite. Omzetting van de waarden die nu in de database staan (zie `docs/INVENTARIS.md` §1.6), ook als functie `bwf_suite()`:
 
 | Nu in de database | Wordt |
 |---|---|
@@ -112,35 +86,47 @@ Migratie: bestaande `res_koppeling`/`checkins`-gegevens **niet** verwijderen maa
 Bestaande tabellen en pagina's houden hun huidige waarden tot de migratie in fase 1; nieuwe code gebruikt alleen de drie nieuwe namen.
 
 ### 3.2 `blokkades` — beschikbaarheid / gesloten
-```sql
-create table if not exists public.blokkades (
-  id uuid primary key default gen_random_uuid(),
-  suite text not null,
-  van timestamptz not null,
-  tot timestamptz not null,
-  reden text,                 -- gesloten | onderhoud | eigen gebruik | ICS-import
-  bron text default 'handmatig',
-  created_at timestamptz default now()
-);
-```
+`suite`, `van`, `tot`, `reden` (gesloten | onderhoud | eigen gebruik | ICS-import), `bron` (standaard `handmatig`), `bron_uid`, `aangemaakt_door`. Controle: `tot > van`.
 
-### 3.3 `kanaal_instellingen`
-Per kanaal: uitbetaalregel, standaard in-/uitchecktijden per type, ICS-URL (alleen leesbaar voor eigenaar). Geen commissie of servicekosten. Vervangt losse constanten in de code.
+### 3.3 `tijdsblokken` en `kanaal_instellingen` (aangepast 11-09-2026)
+In- en uitchecktijden gelden **per suite én per tijdsblok**, niet per type. `tijdsblokken` komt exact overeen met SMG; de ICS-import herkent het blok aan begin- en eindtijd. Meerdere arrangementen met dezelfde tijden (bijv. Angie 13:00–11:00 met en zonder ontbijt, Jacuzzi 20:00–10:00 in vier varianten) delen één rij. De import bepaalt alleen suite, type en tijden; het arrangement blijft leeg tot het via het plak-/pdf-veld of handmatig wordt ingevuld.
 
-Standaardtijden (te bevestigen door Angela):
-| Type | Incheck | Uitcheck |
+Kolommen: `suite`, `type`, `naam`, `begin`, `eind`, `overnachting` (er wordt geslapen), `volgende_dag` (berekend: `eind <= begin`), `smg_room_id`, `actief`, `sortering`. Uniek: `(suite, begin, eind)`. Gegevens: migratie `20260911120100_fase1_tijdsblokken_kanalen.sql`.
+
+| Suite (SMG room) | Dagverblijf | Avond | Overnachting | Late check-in | Honeymoon |
+|---|---|---|---|---|---|
+| `angie` (459) | 12:00–15:00, 12:00–16:00, 12:30–16:30, 13:00–16:00, 13:00–17:00, 13:00–18:00 | – | 13:00–11:00 | 20:00–11:00 | 01:00–15:00 |
+| `malina_deluxe` (907) | 12:30–15:30, 12:30–16:30, 13:00–16:00, 13:00–17:00 | – | 13:00–11:00 | 19:00–11:00 | 01:00–15:00 |
+| `malina_jacuzzi` (802) | 12:00–14:30, 12:00–16:00, 15:00–18:00 | 20:00–23:00 | 20:00–10:00 (enige variant; geen 13:00-incheck) | – | – |
+
+Laat uitchecken (+€50, tot 12:00) is geen apart tijdsblok maar een afwijkende `uitcheck_tijd` bij het blok.
+
+**`kanaal_instellingen`** — één rij per kanaal per suite: `extern_id`, `ics_secret` (alleen de **naam** van het Supabase-secret), `uitbetaalregel` (`direct`, `na_aankomst`, `dag7_volgende_maand`), `actief`. Alleen de eigenaar kan deze tabel lezen. Geen commissie of servicekosten.
+
+| Suite | SMG room-ID | Booking.com hotel-ID | OO-snelcode | ICS-secrets |
+|---|---|---|---|---|
+| `angie` | 459 | 12955821 | 2750 | `ICS_ANGIE_SMG`, `ICS_ANGIE_BOOKING`, `ICS_ANGIE_OO` |
+| `malina_deluxe` | 907 | 14967346 | 2900 | `ICS_MALINA_DELUXE_SMG`, `ICS_MALINA_DELUXE_BOOKING`, `ICS_MALINA_DELUXE_OO` |
+| `malina_jacuzzi` | 802 | 16218254 | 2901 | `ICS_MALINA_JACUZZI_SMG`, `ICS_MALINA_JACUZZI_BOOKING`, `ICS_MALINA_JACUZZI_OO` |
+
+De ICS-links zelf staan **alleen** als Supabase-secrets (gezet op 11-09-2026), nooit in HTML, JS, docs of git.
+
+### 3.4 Rollen: `wz_medewerkers.toegangsrol` + `suites` en RLS
+Nieuwe kolommen `toegangsrol` (`eigenaar`, `vr`, `locatiemanager`) en `suites text[]`. De bestaande kolom `rol` blijft ongewijzigd: `vr2.html` schrijft daar `eigenaar`/`medewerker` in, een controle op die kolom zou het opslaan van medewerkers breken. Row Level Security op `reserveringen`, `blokkades`, `wz_taken`, `checkins`, `voorraad`, `wz_werkzaamheden` volgens de matrix in §5 (migratie 4). Op bestaande tabellen alleen *restrictive* policies erbij; bestaande policies blijven staan.
+
+| Medewerker | Toegangsrol | Suites |
 |---|---|---|
-| Overnachting | 15:00 | 11:00 |
-| Late check-in | 20:00 | 11:00 |
-| Honeymoon | 01:00 | 11:00 |
-| Dagverblijf | per boeking | per boeking |
-| Laat uitchecken (+€50) | — | 12:00 |
+| Angela | eigenaar | alle |
+| Kelly | vr | alle |
+| Senna | vr | alle |
+| Ruth | locatiemanager | `malina_jacuzzi`, `malina_deluxe` |
+| Michel | locatiemanager | alle drie |
+| Jerry | locatiemanager | `malina_jacuzzi`, `malina_deluxe` |
 
-### 3.4 `wz_medewerkers.rol` en RLS
-Kolom `rol text check (rol in ('eigenaar','vr','locatiemanager'))` en per medewerker `suites text[]` (welke suites hij/zij mag zien). Row Level Security op `reserveringen`, `blokkades`, `wz_taken`, `checkins`, `voorraad`, `wz_werkzaamheden` volgens de matrix in §5.
+Koppeling via `wz_medewerkers.auth_id` (login-account). E-mailadressen staan niet in de repo. Accounts zonder toegangsrol hebben na migratie 4 geen toegang tot deze tabellen.
 
 ### 3.5 `voorraad` en `voorraad_mutaties`
-`voorraad` bestaat al (88 rijen) — uitbreiden, niet opnieuw aanmaken. Artikel, locatie, aantal, minimum, bestellijst-vinkje; mutaties met wie/wanneer.
+`voorraad` bestaat al (88 rijen) — uitbreiden (kolom `locatie`), niet opnieuw aanmaken. Nieuwe tabel `voorraad_mutaties`: `voorraad_id`, `oud_aantal`, `nieuw_aantal`, `reden`, `medewerker_id`, `auth_id`, `created_at`.
 
 ### 3.6 `wz_werkzaamheden` uitbreiden
 Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reservering hangt; maandoverzicht per medewerker × tarief → factuurbasis.
@@ -155,15 +141,30 @@ Kolom `reservering_id` zodat elke gelogde taak van de VR-assistent aan een reser
 - [x] Repo opschonen: `archief/`, `*.zip`, `files (5).zip`, map `~` en `*-test.html` beoordelen; verwijderen wat dubbel is (lijst eerst aan Angela laten zien)
 
 ### Fase 1 — Datamodel (1 dag)
-- [ ] `supabase/migrations/2026xxxx_reserveringen.sql` met §3.1–3.6
-- [ ] Migratiescript oude tabellen → `reserveringen` (incl. omzetting suitenamen, §3.1)
-- [ ] Storage bucket `reservering-bijlagen` (privé, alleen ingelogd)
-- [ ] RLS-policies + testaccounts per rol
-- [ ] Extensies `pg_cron` en `pg_net` aanzetten (staan nu uit)
+- [x] ICS-links als Supabase-secrets (9 stuks, `ICS_<SUITE>_<KANAAL>`)
+- [x] Migratie 1 `20260911120000_fase1_structuur.sql` (uitgevoerd 11-09-2026): extensies `pg_cron` + `pg_net`, `bwf_suite()`, `tijdsblokken`, `kanaal_instellingen`, `reserveringen`, `blokkades`, `voorraad_mutaties`, nieuwe kolommen, privé-bucket `reservering-bijlagen`
+- [x] Migratie 2 `20260911120100_fase1_tijdsblokken_kanalen.sql` (uitgevoerd 11-09-2026): 21 tijdsblokken + 9 kanaalinstellingen
+- [x] Migratie 3 `20260911120200_fase1_rollen.sql` (uitgevoerd 11-09-2026): toegangsrol en suites per medewerker (e-mailadressen bevestigd); Ruth, Michel en Jerry op `actief`
+- [x] Migratie 4 `20260911120300_fase1_rechten.sql` (uitgevoerd 11-09-2026): RLS-policies (nieuwe tabellen + restrictive op bestaande tabellen + storage). Terugdraaien binnen een minuut: `supabase db query --linked -f supabase/rollback/20260911120300_fase1_rechten_terugdraaien.sql`
+- [ ] Testaccounts per rol
+- [ ] Migratiescript oude gegevens → `reserveringen` (`scripts/migreer-reserveringen.sql`): **na** de eerste ICS-import uit fase 2, want de SMG-reserveringsnummers in `res_koppeling.res_sleutel` koppelen dan op `kanaal_ref` (12 van de 68 nummers staan in de huidige SMG-feeds). De 36 rijen uit `reservations` apart overzetten als `kanaal = 'handmatig'`/`'planyo'`.
 
 ### Fase 2 — Import van de kanalen (1–2 dagen)
 Geen Make-scenario's: de import draait volledig in Supabase.
-- [ ] Edge function `kanalen-sync` (Deno): haalt ICS van Privésauna, Booking.com en OO op (URL's uit `kanaal_instellingen`), schrijft/updatet `reserveringen` op `(kanaal, kanaal_ref)`; verwijderde ICS-items → status `geannuleerd`
+
+**Wat de feeds leveren** (gecontroleerd 11-09-2026, alleen tijden en aantallen bekeken):
+- **SMG** (tijden met tijdzone): events **mét** beschrijving zijn echte SMG-boekingen (status CONFIRMED) met het 6-cijferige reserveringsnummer in beschrijving, URL en UID — 33 van de 138. Events **zonder** beschrijving (105) zijn handmatige regels in de SMG-planning met titels als "Booking.com", "Origineel overnachten", "Late check-in", "WhatsApp", "Planyo", "niet beschikbaar", "Vol".
+- De meeste SMG-tijden vallen in een tijdsblok, maar niet allemaal: o.a. 19:00–12:00 en 20:00–12:00 (laat uitchecken), 20:00–20:00, 15:00–11:00 over meerdere nachten, 12:00–17:00.
+- **Booking.com**: alleen datums (geen tijden), titel "CLOSED – Not available", geen gastgegevens; ook lange sluitingen (21 en 418 nachten).
+- **Origineel Overnachten**: datum 00:00–00:00 met gastnaam in de titel, geen tijden.
+- Booking.com- en OO-feed van `malina_jacuzzi` zijn nu leeg.
+
+**Importregels (voorstel, zie §6 vragen 9–10):**
+1. Tijdsblok alleen herkenbaar bij SMG: exacte `(begin, eind)` per suite → `tijdsblok_id` + `type`. Zelfde begin, andere eindtijd → dat blok + afwijkende `uitcheck_tijd`. Geen match → geen blok, tijden in `incheck_tijd`/`uitcheck_tijd`, markeren om te controleren.
+2. SMG met beschrijving → `kanaal = 'smg'`, `kanaal_ref` = reserveringsnummer.
+3. Booking.com/OO → type `overnachting` met de tijden van het overnachtingsblok van de suite.
+
+- [ ] Edge function `kanalen-sync` (Deno): haalt ICS van Privésauna, Booking.com en OO op (secret-namen uit `kanaal_instellingen`), schrijft/updatet `reserveringen` op `(kanaal, suite, bron_uid)` / `(kanaal, kanaal_ref)`; niet meer in de feed → status `geannuleerd`
 - [ ] `pg_cron`-job die `kanalen-sync` elke 15 minuten aanroept via `pg_net`; de sleutel voor die aanroep staat in Vault, niet in de SQL
 - [ ] Gastgegevens die niet in de ICS staan (SMG-bevestiging, Booking.com-pdf/mail) aanvullen via het plak-/uploadveld uit fase 4
 - [ ] `uitbetaling_verwacht` invullen uit de uitbetaalregel in `kanaal_instellingen` — alleen de datum, geen bedragen
@@ -187,9 +188,13 @@ Geen Make-scenario's: de import draait volledig in Supabase.
 - [ ] Gewenste functies uit het verwijderde `archief/dashboard-test.html` terugbrengen in `dashboard.html`: (1) handmatige in-/uitchecktijd (`tijd_in`/`tijd_uit`, gaat vóór de tijd uit de agenda), (2) welkomstcall-status op de reserveringskaart, (3) "Besproken" op de reserveringskaart. Oude code: `git show 5d26838:archief/dashboard-test.html`
 
 ### Fase 5 — Rollen, taken, voorraad, werkzaamheden (1–2 dagen)
+Rollen en suites per medewerker: zie §3.4. Pagina's gaan `toegangsrol` en `suites` gebruiken in plaats van `rol`.
 - [ ] Menu en knoppen per rol (matrix §5); alles wat niet mag is ook niet zichtbaar
 - [ ] Taken: aanmaken, toewijzen, overdragen, afvinken, verwijderen (VR/eigenaar)
+- [ ] `vr2.html` verwijst naar de niet-bestaande tabel `wz_planning` (console: 404 op `wz_planning?select=*&limit=1000`) — herstellen naar `wz_taken` (melding Angela: taak openen werkt niet). Bevinding 11-09-2026: de aanroep staat in `laadOverzicht()` bij de tegel "Planning" (`ovProbeer(['wz_planning…', 'planning…'])`) en valt daarna terug op `planning`; waarom taak openen niet werkt, bij het herstel apart nagaan.
 - [ ] Voorraadbeheer als pagina in beide dashboards
+- [ ] Voorraad als eigen knop boven in de menubalk van `dashboard.html` én `vr2.html` (wens Angela). Nu zit voorraad in `dashboard.html` onder het oude overzicht en is de tab `tab-voorraad` verborgen.
+- [ ] Lege voorraadlijst in `dashboard.html` terwijl de tabel 88 rijen heeft (melding Angela 11-09-2026). Bevinding: de tegels onder het overzicht (blok B, `sb('voorraad…')`) en de volledige lijst (blok A, paneel `panel-voorraad`) laden los van elkaar. Blok A laadt pas na de toegangscode-poort, met een eigen `sessieToken()`, en haalt vijf tabellen in één `Promise.all` op (`medewerkers`, `planning`, `voorraad`, `overdracht`, `instellingen`): mislukt er één of is de sessie verlopen, dan blijft de hele lijst leeg (status "Verbinding mislukt", console `Supabase: …`). Sinds migratie 4 ziet een account zonder toegangsrol ook geen voorraad. Oorzaak in de browser vaststellen; geen kleine fix.
 - [ ] Werkzaamhedenlog met `reservering_id`; maandoverzicht per medewerker → export voor factuur
 - [ ] Externe knoppen: Gmail, Wati, SMG-dashboard, Booking.com extranet, OO, Planyo, Mollie — openen in nieuw tabblad (iframes worden door die sites geblokkeerd)
 
@@ -228,13 +233,19 @@ Geen Make-scenario's: de import draait volledig in Supabase.
 
 ## 6. Open beslissingen voor Angela
 1. Oude tabellen (`res_koppeling`, `checkins`) na migratie hernoemen naar `oud_*` of direct verwijderen?
-2. Standaard in-/uitchecktijden per type (§3.3) kloppen?
-3. ICS-URL's van Booking.com en Origineel Overnachten aanleveren.
-4. Welke locatiemanager mag welke suite(s) zien — Lelystad = `malina_jacuzzi` + `malina_deluxe`, Almere = `angie`?
+2. ~~Standaard in-/uitchecktijden per type~~ **Besloten 11-09-2026:** tijden per suite en tijdsblok, exact SMG (§3.3).
+3. ~~ICS-URL's aanleveren~~ **Besloten 11-09-2026:** aangeleverd en als Supabase-secrets opgeslagen.
+4. ~~Welke locatiemanager mag welke suite(s) zien?~~ **Besloten 11-09-2026:** zie §3.4.
 5. ~~Import elke 15 minuten: via `pg_cron` of via Make?~~ **Besloten 11-09-2026:** via `pg_cron` in Supabase, geen Make.
 6. Gmail in het dashboard: knop naar Gmail (nu) of later echte Gmail-API-koppeling (apart project)?
 7. ~~`uitbetaling_verwacht` behouden nu de commissie vervalt?~~ **Besloten 11-09-2026:** blijft, alleen de datum (geen bedragen).
 8. ~~Is `PSM` de Malina Jacuzzi?~~ **Besloten 11-09-2026:** `PSM` = `malina_jacuzzi`, `PSMD` = `malina_deluxe`, `PSA` = `angie`.
+9. Handmatige regels in de SMG-planning (zonder gastgegevens): als reservering importeren met het kanaal uit de titel ("Booking" → `booking`, "Origineel" → `oo`, "Planyo" → `planyo`, anders `handmatig`) en "niet beschikbaar"/"Vol" als blokkade? En bij overlap met een Booking.com/OO-event van dezelfde suite samenvoegen tot één reservering?
+10. Booking.com-feed ("CLOSED – Not available", alleen datums): als reservering (overnachting) of als blokkade? Periodes langer dan bijvoorbeeld 14 nachten altijd als blokkade?
+11. ~~Telt Honeymoon als overnachting?~~ **Besloten 11-09-2026:** ja (nachtregister/toeristenbelasting).
+12. ~~OO-snelcodes?~~ **Besloten 11-09-2026:** 2750 = `angie`, 2900 = `malina_deluxe`, 2901 = `malina_jacuzzi`.
+13. ~~Accounts zonder toegangsrol?~~ **Besloten 11-09-2026:** urenstaat-account, reserveringen-account en tweede info-account krijgen geen toegangsrol en dus geen toegang tot incheckformulieren, taken, voorraad en werkzaamheden.
+14. ~~Ruth, Michel en Jerry op actief?~~ **Besloten 11-09-2026:** ja, in migratie 3.
 
 ---
 
@@ -253,3 +264,6 @@ cd ~/bwf-incheck && git pull
 - 11-09-2026 — agendasleutel uit de HTML gehaald; `dashboard`, `dagoverzicht` en `incheckformulier` laden de agenda via `bwf-agenda.js` / `agenda-bridge` (commit `5d26838`). Sleutel vervangen: `docs/SLEUTEL-ROTATIE.md`.
 - 11-09-2026 — besluiten Angela: `uitbetaling_verwacht` blijft (alleen datum); `PSM` = `malina_jacuzzi`, `PSMD` = `malina_deluxe`, `PSA` = `angie`.
 - 11-09-2026 — repo opgeschoond (commit "Opschonen repo"): archief, testpagina's, `vrdashboard.html`, `bwf-reservering-extra.js`, beide zips en map `~` verwijderd; `archief/boeking.html` → `boeking.html` (boeking-flow fase 7); afbeeldingen uit `files (5).zip` → `afbeeldingen/`; links naar `beschikbaarheid2.html` → `agenda.html` en naar `vrdashboard.html` → `vr2.html`; `supabase/.temp/` uit git. Fase 0 afgerond.
+- 11-09-2026 — fase 1 gestart. Aanpassing §3.3: tijden per suite én tijdsblok (tabel `tijdsblokken`, exact SMG). 9 ICS-links als Supabase-secrets gezet en gecontroleerd (alle feeds bereikbaar). Rollen en suites vastgelegd in §3.4. Migraties 1–4 geschreven in `supabase/migrations/`, nog **niet** uitgevoerd (wacht op akkoord). Rollen in nieuwe kolom `toegangsrol` i.p.v. `rol` (zou `vr2.html` breken). Migratie van oude reserveringsgegevens verschoven naar na de eerste ICS-import.
+- 11-09-2026 — besluiten Angela: e-mailadressen bevestigd; honeymoon telt als overnachting; OO-snelcodes 2750/2900/2901 = angie/malina_deluxe/malina_jacuzzi; accounts zonder toegangsrol krijgen geen toegang; Ruth, Michel en Jerry op actief (migratie 3). Proefdraai met rollback van migraties 1–4 + terugdraaiscript geslaagd (rechten getest als eigenaar, vr, locatiemanager, account zonder rol en anoniem; niets blijven staan). Migraties 1 en 2 uitgevoerd en gecontroleerd; bestaande policies op `checkins`, `wz_taken`, `voorraad`, `wz_werkzaamheden` ongewijzigd. Migraties 3 en 4 wachten op controle van dashboard, vr2 en incheckformulier door Angela.
+- 11-09-2026 — `dashboard.html`: `opVandaag` teruggezet (commit `e93f8bc`); de functie viel weg in `ed2a745` (08-09-2026), niet in `5d26838`. Migraties 3 en 4 uitgevoerd: 6 medewerkers met toegangsrol (alle actief), 21 policies en 3 functies; de oude policies op `checkins`, `wz_taken`, `voorraad` en `wz_werkzaamheden` staan er nog. Controle per rol (in een teruggedraaide transactie): eigenaar/vr zien 88 incheckformulieren, Ruth en Jerry 57 (Malina), Michel 88; kanaalinstellingen alleen eigenaar; urenstaat-account alleen urenstaat; anoniem alleen documenten. Consolemeldingen `wz_planning` (vr2) en lege voorraadlijst (dashboard) genoteerd bij fase 5. Wacht op test door Angela, Senna en Ruth; daarna migraties en plan committen.
