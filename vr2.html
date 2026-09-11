@@ -6828,8 +6828,8 @@ async function laadOverzicht(){
     OV.gastSub = metDatum.length ? 'laatste 7 dagen \u00b7 ' + g.length + ' totaal' : g.length + ' in totaal';
   } else { OV.gast = '\u2014'; OV.gastSub = 'geen formulieren gevonden'; }
 
-  /* planning — de eerste tabel die bestaat */
-  const pl = await ovProbeer(['wz_planning?select=*&limit=1000', 'planning?select=*&limit=1000']);
+  /* planning — diensten uit de tabel planning (wz_planning bestaat niet) */
+  const pl = await ovProbeer(['planning?select=*&limit=1000']);
   if(pl){
     const komend = pl.filter(r=>{ const d = ovDatum(r); return d && d >= vd; });
     OV.planning = komend.filter(r=>ovDatum(r) <= ovDag(7)).length;
