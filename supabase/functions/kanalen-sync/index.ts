@@ -188,7 +188,7 @@ function reservering(
 function verwerkSuite(suite: string, feeds: Record<string, Ev[]>, blokken: Tijdsblok[]) {
   const res: Record<string, Rij[]> = { smg: [], booking: [], oo: [] };
   const blk: Record<string, Rij[]> = { smg: [], booking: [], oo: [] };
-  const telling = { samengevoegd: 0, smg_blokkade_vervallen: 0, overgeslagen: 0 };
+  const telling = { samengevoegd: 0, smg_blokkade_vervallen: 0, booking_bezet_via_ander: 0, overgeslagen: 0 };
   const overnacht = blokken.find((b) => b.suite === suite && b.type === "overnachting");
 
   // SMG indelen: echte boeking (reserveringsnummer), blokkade-regel of overige handmatige regel
@@ -201,17 +201,25 @@ function verwerkSuite(suite: string, feeds: Record<string, Ev[]>, blokken: Tijds
   }
   const gebruikt = new Set<Ev>();
 
-  // Booking.com en Origineel Overnachten (alleen datums)
-  for (const feed of ["booking", "oo"]) {
+  // Booking.com en Origineel Overnachten (alleen datums).
+  // Besluit 11-09-2026: een Booking.com-sluiting op een nacht die al via OO of als SMG-boeking bezet is,
+  // is geen tweede gast maar een sluiting → blokkade. Daarom OO eerst, en overlap controleren.
+  const ooBezet = (feeds.oo ?? []).filter((ev) => ev.status !== "CANCELLED" && nachten(ev.start.datum, ev.eind.datum) >= 1);
+  const bezetDoorAnder = (ev: Ev) => [...ooBezet, ...smgEcht].some((o) =>
+    (o.start.datum >= ev.start.datum && o.start.datum < ev.eind.datum) ||
+    (o.start.datum < ev.start.datum && o.eind.datum > ev.start.datum));
+  for (const feed of ["oo", "booking"]) {
     for (const ev of feeds[feed] ?? []) {
       const n = nachten(ev.start.datum, ev.eind.datum);
       if (ev.status === "CANCELLED" || n < 1) { telling.overgeslagen++; continue; }
-      if (feed === "booking" && n > MAX_NACHTEN_BOOKING) {
+      if (feed === "booking" && (n > MAX_NACHTEN_BOOKING || bezetDoorAnder(ev))) {
+        const bezet = n <= MAX_NACHTEN_BOOKING;
+        if (bezet) telling.booking_bezet_via_ander++;
         blk.booking.push({
           bron_uid: ev.uid,
           van_lokaal: `${ev.start.datum} 00:00`,
           tot_lokaal: `${ev.eind.datum} 00:00`,
-          reden: `Booking.com: ${ev.summary}`,
+          reden: `Booking.com: ${ev.summary}${bezet ? " (nacht bezet via OO/SMG)" : ""}`,
         });
         continue;
       }
@@ -406,7 +414,7 @@ Deno.serve(async (req) => {
       resultaat[suite] = { ...geschreven, ...uitkomst.telling };
     }
 
-    return antwoord({ versie: 2, proef, run, suites: resultaat }); // versie 2: vaste sleutels voor handmatige SMG-regels
+    return antwoord({ versie: 3, proef, run, suites: resultaat }); // versie 3: Booking.com-sluiting bij overlap met OO/SMG = blokkade
   } catch (e) {
     return antwoord({ fout: foutTekst(e) }, 500);
   }
