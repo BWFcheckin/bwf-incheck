@@ -156,7 +156,6 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
   .paar{grid-template-columns:96px 1fr}
 }
 </style>
-<script src="bwf-agenda.js?v=1"></script>
 <script src="bwf-account.js?v=1"></script>
 <link rel="stylesheet" href="bwf-agenda-stijl.css">
 </head>
@@ -241,10 +240,12 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
 /* ==========================================================================
    Vandaag — Bed & Wellness Flevoland
    Toont de aankomsten en vertrekken van één dag en verbindt ze met het
-   incheckformulier en de gastenlink. Leest uit: reservations (eigen
-   boekingen), res_koppeling (boekingen uit de agenda + extra gegevens),
-   checkins (ingevulde incheckformulieren) en gast_aanmeldingen.
-   Schrijft alleen naar res_koppeling, en alleen het notitieveld.
+   incheckformulier en de gastenlink. Leest uit: reserveringen (de ene bron van
+   waarheid, gevuld door de import van de kanalen), reservations (oude eigen
+   boekingen), res_koppeling (oude extra gegevens), checkins (ingevulde
+   incheckformulieren), gast_aanmeldingen en wz_welkomstcalls.
+   Schrijft de notitie naar reserveringen en de welkomstcall naar
+   wz_welkomstcalls. De Google Agenda wordt niet meer gelezen.
    ========================================================================== */
 
 const CFG = {
@@ -253,10 +254,9 @@ const CFG = {
   ls  : 'bwf_vandaag_sessie'
 };
 
-/* De boekingen van Booking.com, Origineel Overnachten en Privésauna komen niet
-   uit Supabase maar uit de gedeelde agenda. Die wordt opgehaald via
-   bwf-agenda.js, dat via een functie op Supabase loopt \u2014 zo staat de
-   Google-sleutel niet in deze pagina. */
+/* De boekingen van Booking.com, Origineel Overnachten en Privésauna staan in
+   de tabel reserveringen; de import vult die elk kwartier. De gedeelde Google
+   Agenda wordt niet meer gelezen. */
 
 const LOCATIES = {
   angie   : { naam:'Suite Angie',      plaats:'Almere',   groep:'almere'   },
@@ -472,25 +472,38 @@ async function wieBenIk(){
   return rijen[0] || null;
 }
 
-/* De agenda geeft per afspraak: start, eind, gast, suite, nummer en bron.
-   De sleutel is exact dezelfde als in het VR-dashboard, zodat de notities
-   en koppelingen die daar zijn gemaakt hier ook verschijnen. */
-function agendaSleutel(ev){
-  const nummer = ev.nummer || ev.referentie || ev.reservering;
-  if(nummer) return String(nummer);
-  return (ev.suite || ev.locatie || '') + '-' +
-         String(ev.start || '').slice(0,10) + '-' + tijd(ev.start);
+/* De sleutel van een boeking is reserveringen.id. Suite en kanaal vertalen we
+   naar de namen die deze pagina al gebruikt. */
+const SUITE_LOC   = { angie:'angie', malina_jacuzzi:'jacuzzi', malina_deluxe:'deluxe' };
+const KANAAL_NAAM = { smg:'Priv\u00e9sauna', booking:'Booking.com', oo:'Origineel Overnachten',
+                      planyo:'Planyo', eigen:'Eigen website', handmatig:'Handmatig' };
+const WC_LOC      = { angie:'Suite Angie Almere', jacuzzi:'Malina Jacuzzi', deluxe:'Malina Zwembad' };
+
+/* Aankomst en vertrek staan als tijdstip met tijdzone in de database; wij
+   werken met de datum en tijd zoals ze in Nederland op de klok staan. */
+function lokaalDatumTijd(iso){
+  if(!iso) return { datum:'', tijd:'' };
+  const p = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Amsterdam', year:'numeric',
+    month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false })
+    .format(new Date(iso));                                  /* 2026-09-12 20:00 */
+  return { datum: p.slice(0,10), tijd: p.slice(11,16) };
 }
-async function haalAgenda(){
-  try{
-    if(!window.BWFAgenda) throw new Error('bwf-agenda.js is niet geladen');
-    const j = await window.BWFAgenda.events();
-    return (j.events || []).filter(ev => ev.soort === 'reservering' || ev.soort === 'extern');
-  }catch(e){
-    FOUTEN.push('agenda: ' + e.message +
-      ' \u2014 boekingen van Booking.com, Origineel Overnachten en Priv\u00e9sauna ontbreken nu');
-    return [];
-  }
+/* De statuswoorden van deze pagina vertalen naar de status van een welkomstcall. */
+function wcStatusNaarCall(s){
+  if(s === 'gebeld en geregeld') return 'afgerond';
+  if(!s || s === 'nog niet gebeld') return 'te bellen';
+  return 'gebeld';
+}
+async function haalBoekingen(){
+  const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
+    'gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,omschrijving,' +
+    'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,notitie,medewerker,' +
+    'welkomstcall_id,checkin_id,klant_id';
+  /* een verblijf duurt hooguit een paar weken, dus een venster van 30 dagen
+     terug tot morgen bevat alles wat vandaag aankomt of vertrekt */
+  return haal('reserveringen?select=' + velden + '&status=neq.geannuleerd' +
+    '&aankomst=gte.' + schuifDag(DATUM, -30) + '&aankomst=lte.' + schuifDag(DATUM, 1) +
+    '&order=aankomst.asc&limit=500', 'reserveringen');
 }
 
 /* ============ gegevens van één dag ============ */
@@ -500,8 +513,8 @@ async function laadDag(){
   /* De tabellen zijn klein (tientallen tot honderden rijen), dus we halen ze
      in hun geheel op. Dat is betrouwbaarder dan filteren op datum: een
      koppeling of incheckformulier heeft niet altijd een datum ingevuld. */
-  const [agenda, res, kop, chk, aanm, calls] = await Promise.all([
-    haalAgenda(),
+  const [boekingen, res, kop, chk, aanm, calls] = await Promise.all([
+    haalBoekingen(),
     haal('reservations?select=*&limit=3000', 'reservations'),
     haal('res_koppeling?select=*&limit=5000', 'res_koppeling'),
     haal('checkins?select=*&order=created_at.desc&limit=2000', 'checkins'),
@@ -515,22 +528,30 @@ async function laadDag(){
     return Object.assign(perSleutel[sleutel], obj);
   };
 
-  /* 1. boekingen uit de agenda — de externe kanalen */
-  agenda.forEach(ev => {
-    const van = String(ev.start || '').slice(0,10);
-    const tot = String(ev.eind || '').slice(0,10) || van;
-    if(van !== d && tot !== d) return;
-    zet(agendaSleutel(ev), {
-      id      : agendaSleutel(ev),
-      resnr   : ev.nummer || ev.referentie || ev.reservering || '',
-      naam    : ev.gast || ev.naam || naamUit(ev.titel) || kortTitel(ev.titel),
-      titelRuw: ev.titel || '',
-      locatie : locId(ev.suite || ev.locatie),
-      aankomst: van, vertrek: tot,
-      tijdIn  : tijd(ev.start), tijdUit: tijd(ev.eind),
-      personen: ev.personen || '',
-      bron    : ev.bron || 'Uit de agenda',
-      eigen   : false, uitAgenda: true
+  /* 1. boekingen uit reserveringen — alle kanalen bij elkaar */
+  boekingen.forEach(b => {
+    const a = lokaalDatumTijd(b.aankomst), v = lokaalDatumTijd(b.vertrek);
+    if(a.datum !== d && v.datum !== d) return;
+    const arr = Array.isArray(b.arrangementen)
+      ? b.arrangementen.map(x => (x && x.naam) || x).filter(Boolean).join(', ') : '';
+    zet(b.id, {
+      id      : b.id,
+      resId   : b.id,                                 /* vaste sleutel voor het schrijven */
+      resnr   : b.kanaal_ref || '',
+      naam    : [b.gast_voornaam, b.gast_achternaam].filter(Boolean).join(' ').trim(),
+      titelRuw: b.omschrijving || b.import_opmerking || '',
+      locatie : SUITE_LOC[b.suite] || '',
+      aankomst: a.datum, vertrek: v.datum,
+      tijdIn  : tijd(b.incheck_tijd) || a.tijd,
+      tijdUit : tijd(b.uitcheck_tijd) || v.tijd,
+      personen: b.personen || '',
+      arrangement: arr,
+      telefoon: b.gast_telefoon || '', email: b.gast_email || '',
+      totaal  : getal(b.bedrag_totaal), betaald: getal(b.betaald_bedrag),
+      notitie : b.notitie || '', toegewezen: b.medewerker || '',
+      bron    : KANAAL_NAAM[b.kanaal] || b.kanaal || '',
+      boeking : b,
+      eigen   : b.kanaal === 'handmatig' || b.kanaal === 'eigen'
     });
   });
 
@@ -556,29 +577,30 @@ async function laadDag(){
         notities, bedragen, koppeling aan een incheckformulier of klant */
   kop.forEach(k => {
     if(k.geannuleerd) { delete perSleutel[k.res_sleutel]; return; }
-    const bestaat = !!perSleutel[k.res_sleutel];
-    if(!bestaat && k.aankomst !== d && k.vertrek !== d) return;
-    const b = perSleutel[k.res_sleutel] || {};
-    zet(k.res_sleutel, {
+    /* Oude gegevens horen bij een boeking als de sleutel gelijk is, of als het
+       SMG-nummer overeenkomt met kanaal_ref. Wat in reserveringen staat gaat
+       nu vóór: res_koppeling vult alleen aan wat daar nog leeg is. */
+    const doel = perSleutel[k.res_sleutel] ||
+      Object.values(perSleutel).find(x => x.resnr && String(x.resnr) === String(k.res_sleutel));
+    if(!doel && k.aankomst !== d && k.vertrek !== d) return;
+    const b = doel || {};
+    zet(doel ? doel.sleutel : k.res_sleutel, {
       koppeling: k,
       id       : b.id || k.res_sleutel,
       resnr    : b.resnr || k.res_sleutel.replace(/^hm-/, ''),
-      /* Wat in res_koppeling staat is een bewuste correctie van iemand van het
-         team en gaat daarom vóór de tekst uit de agenda. Zo tonen deze pagina
-         en het reserveringenoverzicht hetzelfde. */
-      naam     : k.gast || b.naam || '',
-      locatie  : locId(k.locatie) || b.locatie || locId(k.res_sleutel),
-      aankomst : k.aankomst || b.aankomst,
-      vertrek  : k.vertrek  || b.vertrek,
-      tijdIn   : tijd(k.tijd_in)  || b.tijdIn,
-      tijdUit  : tijd(k.tijd_uit) || b.tijdUit,
-      arrangement: k.arrangement || b.arrangement,
-      totaal   : getal(k.totaal)  || b.totaal,
-      betaald  : getal(k.betaald) || b.betaald,
-      telefoon : k.telefoon || b.telefoon,
-      email    : k.email || b.email,
-      personen : k.personen || b.personen,
-      bron     : k.bron || b.bron || 'Uit de agenda',
+      naam     : b.naam || k.gast || '',
+      locatie  : b.locatie || locId(k.locatie) || locId(k.res_sleutel),
+      aankomst : b.aankomst || k.aankomst,
+      vertrek  : b.vertrek  || k.vertrek,
+      tijdIn   : b.tijdIn   || tijd(k.tijd_in),
+      tijdUit  : b.tijdUit  || tijd(k.tijd_uit),
+      arrangement: b.arrangement || k.arrangement,
+      totaal   : b.totaal  || getal(k.totaal),
+      betaald  : b.betaald || getal(k.betaald),
+      telefoon : b.telefoon || k.telefoon,
+      email    : b.email || k.email,
+      personen : b.personen || k.personen,
+      bron     : b.bron || k.bron || '',
       eigen    : !!b.eigen,
       aangepast: !!(k.aankomst || k.vertrek || k.tijd_in || k.tijd_uit || k.gast)
     });
@@ -636,6 +658,9 @@ async function laadDag(){
   Object.values(perSleutel).forEach(x => {
     const nx = String(x.naam || '').toLowerCase().replace(/\s+/g, ' ').trim();
     x.call = calls.find(c => {
+      /* de vaste koppeling gaat voor; hoort de call bij een andere
+         reservering, dan telt hij hier niet mee */
+      if(c.reservering_id) return !!(x.resId && String(c.reservering_id) === String(x.resId));
       if(c.referentie && x.resnr && String(c.referentie) === String(x.resnr)) return true;
       if(c.telefoon && x.telefoon && telSchoon(c.telefoon) && telSchoon(c.telefoon) === telSchoon(x.telefoon)) return true;
       const nc = String(c.naam || ((c.voornaam || '') + ' ' + (c.achternaam || ''))).toLowerCase().trim();
@@ -746,11 +771,11 @@ function rijHtml(x, veld){
     : '<span class="tag open">incheck open</span>');
   if(x.aanmelding) tags.push('<span class="tag ok">gast ingevuld</span>');
   /* de welkomstcall en bijzonderheden meteen zichtbaar in de lijst */
-  const wcs = x.koppeling && x.koppeling.wc_status;
+  const wcs = (x.call && x.call.uitkomst) || (x.koppeling && x.koppeling.wc_status);
   if(wcs === 'gebeld en geregeld') tags.push('<span class="tag ok">welkomstcall gedaan</span>');
   else if(wcs && wcs !== 'nog niet gebeld') tags.push('<span class="tag open">' + esc(wcs) + '</span>');
   if(x.aangepast) tags.push('<span class="tag">handmatig aangepast</span>');
-  if(x.koppeling && x.koppeling.notitie) tags.push('<span class="tag let">notitie</span>');
+  if(x.notitie || (x.koppeling && x.koppeling.notitie)) tags.push('<span class="tag let">notitie</span>');
   else if(x.call && (x.call.bijzonderheden || x.call.allergieen))
     tags.push('<span class="tag let">bijzonderheden</span>');
   if(open > 0) tags.push(`<span class="tag let">${euro(open)} op locatie</span>`);
@@ -782,13 +807,13 @@ function openDetail(sleutel){
 
   const open = Math.max(0, (x.totaal||0) - (x.betaald||0));
   const g = x.aanmelding;
-  const notitie = x.koppeling ? (x.koppeling.notitie || '') : '';
+  const notitie = x.notitie || (x.koppeling ? (x.koppeling.notitie || '') : '');
   /* Is er nog niets ingevuld, dan nemen we over wat er in de welkomstcall staat. */
   const uitCall = callStatus(x.call);
   const wc = {
-    status : (x.koppeling && x.koppeling.wc_status) || uitCall || 'nog niet gebeld',
-    bedrag : (x.koppeling && x.koppeling.wc_extra_bedrag) || (x.call && x.call.tijd_bedrag) || '',
-    betaald: (x.koppeling && x.koppeling.wc_betaalwijze) || (x.call && x.call.betaalwijze) || 'nog niet betaald'
+    status : (x.call && x.call.uitkomst) || (x.koppeling && x.koppeling.wc_status) || uitCall || 'nog niet gebeld',
+    bedrag : (x.call && x.call.tijd_bedrag) || (x.koppeling && x.koppeling.wc_extra_bedrag) || '',
+    betaald: (x.call && x.call.betaalwijze) || (x.koppeling && x.koppeling.wc_betaalwijze) || 'nog niet betaald'
   };
   const callNotitie = x.call
     ? [x.call.bijzonderheden, x.call.allergieen ? 'Allergie: ' + x.call.allergieen : '',
@@ -964,24 +989,58 @@ async function bewaarNotitie(x){
   const wcBetaald = (document.getElementById('d_wcbetaald') || {}).value || null;
   melding('Bezig met bewaren…', '');
   try{
-    await api('res_koppeling?on_conflict=res_sleutel', {
-      method:'POST',
-      headers:{ Prefer:'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({
-        res_sleutel: x.sleutel,
-        bron: x.eigen ? 'handmatig' : (x.bron || 'agenda'),
-        notitie: tekst,
-        wc_status: wcStatus,
-        wc_extra_bedrag: wcBedrag,
-        wc_betaalwijze: wcBetaald,
-        bijgewerkt: new Date().toISOString()
-      })
-    });
-    if(!x.koppeling) x.koppeling = {};
-    x.koppeling.notitie = tekst;
-    x.koppeling.wc_status = wcStatus;
-    x.koppeling.wc_extra_bedrag = wcBedrag;
-    x.koppeling.wc_betaalwijze = wcBetaald;
+    if(x.resId){
+      /* De notitie hoort bij de reservering, de uitslag van het belletje bij de
+         welkomstcall. Bestaat die call nog niet, dan maken we hem hier aan met
+         een vaste koppeling, zodat het VR-dashboard geen tweede aanmaakt. */
+      await api('reserveringen?id=eq.' + x.resId, {
+        method:'PATCH', headers:{ Prefer:'return=minimal' },
+        body: JSON.stringify({ notitie: tekst })
+      });
+      x.notitie = tekst;
+      if(x.boeking) x.boeking.notitie = tekst;
+      const velden = {
+        uitkomst: wcStatus, tijd_bedrag: wcBedrag, betaalwijze: wcBetaald,
+        status: wcStatusNaarCall(wcStatus), bijgewerkt: new Date().toISOString()
+      };
+      if(x.call){
+        await api('wz_welkomstcalls?id=eq.' + x.call.id, {
+          method:'PATCH', headers:{ Prefer:'return=minimal' }, body: JSON.stringify(velden) });
+        Object.assign(x.call, velden);
+      }else if(wcStatus && wcStatus !== 'nog niet gebeld'){
+        const nieuw = await api('wz_welkomstcalls', {
+          method:'POST', headers:{ Prefer:'return=representation' },
+          body: JSON.stringify(Object.assign({
+            reservering_id: x.resId, naam: x.naam || null,
+            telefoon: x.telefoon || null, email: x.email || null,
+            locatie: WC_LOC[x.locatie] || null, datum: x.aankomst || null,
+            referentie: x.resnr || null, bron: x.bron || null,
+            medewerker_id: IK ? IK.id : null, aangemaakt: new Date().toISOString()
+          }, velden))
+        });
+        if(nieuw && nieuw[0]) x.call = nieuw[0];
+      }
+    }else{
+      /* losse formulieren en oude boekingen zonder reservering */
+      await api('res_koppeling?on_conflict=res_sleutel', {
+        method:'POST',
+        headers:{ Prefer:'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({
+          res_sleutel: x.sleutel,
+          bron: x.eigen ? 'handmatig' : (x.bron || 'agenda'),
+          notitie: tekst,
+          wc_status: wcStatus,
+          wc_extra_bedrag: wcBedrag,
+          wc_betaalwijze: wcBetaald,
+          bijgewerkt: new Date().toISOString()
+        })
+      });
+      if(!x.koppeling) x.koppeling = {};
+      x.koppeling.notitie = tekst;
+      x.koppeling.wc_status = wcStatus;
+      x.koppeling.wc_extra_bedrag = wcBedrag;
+      x.koppeling.wc_betaalwijze = wcBetaald;
+    }
     melding('Bewaard \u2014 de locatiemanager ziet dit ook.', 'ok');
     teken();
   }catch(e){
@@ -1066,7 +1125,6 @@ function zetDatum(iso){
   ververs();
 }
 async function start(){
-  if(window.BWFAgenda && SESSIE) window.BWFAgenda.setAccessToken(SESSIE.token);
   document.getElementById('loginScherm').classList.add('verborgen');
   document.getElementById('app').classList.remove('verborgen');
   IK = await wieBenIk();
