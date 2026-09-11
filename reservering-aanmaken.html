@@ -245,7 +245,7 @@ html{scroll-padding-top:80px}
         </div>
         <div class="wide"><label for="bkNotitie">Notitie voor het team</label><textarea id="bkNotitie"></textarea></div>
       </div>
-      <p class="hint">De suite staat daarna als bezet op Beschikbaarheid. Planyo, de website en de boekingskanalen worden hiermee niet geblokkeerd.</p>
+      <p class="hint">De suite staat daarna als gesloten in de agenda. Planyo, de website en de boekingskanalen worden hiermee niet geblokkeerd.</p>
       <div class="actions"><button type="button" class="btn primary" id="bkOpslaan">Blokkade opslaan</button></div>
       <div class="bkmelding" id="bkMelding"></div>
     </div></section>
@@ -530,9 +530,8 @@ $('opslaanEigen').onclick=bewaarEigen;$('datum').onchange=()=>{let a=new Date($(
 <script>
 /* =========================================================
    Blokkade zonder gast
-   Wordt bewaard zoals op Beschikbaarheid: een regel in res_koppeling
-   met bron 'blokkade' en de suite in de sleutel (blok-angie-...).
-   Daardoor staat hij daar meteen als bezet.
+   Wordt bewaard in de tabel blokkades (bron 'handmatig', fase 3): dezelfde
+   bron als de agenda. Opheffen zet actief op false; er wordt niets verwijderd.
    ========================================================= */
 (function(){
   function el(id){ return document.getElementById(id); }
@@ -541,12 +540,12 @@ $('opslaanEigen').onclick=bewaarEigen;$('datum').onchange=()=>{let a=new Date($(
   function vandaag(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
   function nlDatum(iso){ try{ return new Date(iso+'T12:00:00').toLocaleDateString('nl-NL',
     {weekday:'short',day:'numeric',month:'short'}); }catch(e){ return iso; } }
-  /* Beschikbaarheid gebruikt 'deluxe' voor de zwembadsuite */
-  function sleutelSuite(k){ return k === 'zwembad' ? 'deluxe' : k; }
-  function suiteUitSleutel(sl){
-    var m = String(sl||'').match(/^blok-([a-z]+)-/); if(!m) return '';
-    return m[1] === 'deluxe' ? 'zwembad' : m[1];
-  }
+  /* suitenamen van dit formulier <-> tabel blokkades */
+  var NAAR_DB = { angie:'angie', jacuzzi:'malina_jacuzzi', zwembad:'malina_deluxe', deluxe:'malina_deluxe' };
+  var UIT_DB = { angie:'angie', malina_jacuzzi:'jacuzzi', malina_deluxe:'zwembad' };
+  function tijdstip(datum, tijd){ return new Date(datum + 'T' + (tijd || '00:00') + ':00').toISOString(); }
+  function datumDeel(iso){ var d = new Date(iso); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function tijdDeel(iso){ return new Date(iso).toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' }); }
   function suiteNaam(k){ return (typeof suites !== 'undefined' && suites[k]) ? suites[k].naam : (k || 'Onbekende suite'); }
 
   var hero = document.querySelector('.hero h1'), heroSub = el('heroSub');
@@ -644,27 +643,20 @@ $('opslaanEigen').onclick=bewaarEigen;$('datum').onchange=()=>{let a=new Date($(
     var lijst = suite === '__alle'
       ? Array.prototype.map.call(el('bkSuite').options, function(o){ return o.value; }).filter(function(v){ return v !== '__alle'; })
       : [suite];
-    var nu = Date.now();
-    var rijen = lijst.map(function(k, i){
-      return {
-        res_sleutel: 'blok-' + sleutelSuite(k) + '-' + (nu + i),
-        bron: 'blokkade',
-        gast: tekst,
-        aankomst: vanD, vertrek: totD,
-        tijd_in: vanT, tijd_uit: totT,
-        notitie: el('bkNotitie').value.trim() || 'Blokkade aangemaakt via Nieuwe reservering.',
-        bijgewerkt: new Date().toISOString()
-      };
-    });
-
+    var notitie = el('bkNotitie').value.trim();
     var knop = el('bkOpslaan'); knop.disabled = true; knop.textContent = 'Opslaan…';
     melding('Bezig met opslaan…', 'bezig');
     try{
-      await apiTabel('res_koppeling?on_conflict=res_sleutel', { method:'POST', body:rijen,
-        prefer:'resolution=merge-duplicates,return=minimal' });
+      var rijen = lijst.map(function(k){
+        if(!NAAR_DB[k]) throw new Error('onbekende suite ' + k);
+        return { suite: NAAR_DB[k], van: tijdstip(vanD, vanT), tot: tijdstip(totD, totT),
+          reden: tekst + (notitie ? ' — ' + notitie : ''), bron: 'handmatig', aangemaakt_door: 'reservering-aanmaken' };
+      });
+      var uit = await apiTabel('blokkades', { method:'POST', body:rijen, prefer:'return=representation' });
+      if(!Array.isArray(uit) || uit.length !== rijen.length) throw new Error((uit && uit.message) || 'niet opgeslagen; alleen eigenaar en VR mogen blokkeren');
       melding('Opgeslagen: ' + tekst + ' in ' + lijst.map(suiteNaam).join(', ') + ', ' +
         nlDatum(vanD) + ' ' + vanT + ' tot ' + nlDatum(totD) + ' ' + totT +
-        (lijst.length > 1 ? '. De suites staan nu' : '. De suite staat nu') + ' als bezet op Beschikbaarheid.', 'goed');
+        (lijst.length > 1 ? '. De suites staan nu' : '. De suite staat nu') + ' als gesloten in de agenda.', 'goed');
       el('bkOmschrijving').value = ''; el('bkNotitie').value = '';
       laadLijst();
     }catch(e){
@@ -679,23 +671,20 @@ $('opslaanEigen').onclick=bewaarEigen;$('datum').onchange=()=>{let a=new Date($(
   async function laadLijst(){
     var doel = el('bkLijst');
     try{
-      var rijen = await apiTabel('res_koppeling?select=*&bron=eq.blokkade&limit=500') || [];
-      var d = vandaag();
-      rijen = rijen.filter(function(x){ return !x.geannuleerd && String(x.vertrek || x.aankomst || '').slice(0,10) >= d; })
-        .sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)) ||
-          String(a.tijd_in||'').localeCompare(String(b.tijd_in||'')); });
+      var rijen = await apiTabel('blokkades?select=id,suite,van,tot,reden,bron&actief=eq.true&tot=gt.' + encodeURIComponent(new Date().toISOString()) + '&order=van.asc&limit=500');
+      if(!Array.isArray(rijen)) throw new Error((rijen && rijen.message) || 'onbekend antwoord');
       if(!rijen.length){ doel.innerHTML = '<div class="bkleeg">Er staan geen blokkades gepland.</div>'; return; }
       doel.innerHTML = rijen.map(function(x){
-        var van = String(x.aankomst||'').slice(0,10), tot = String(x.vertrek||x.aankomst||'').slice(0,10);
-        var ti = String(x.tijd_in||'').slice(0,5), tu = String(x.tijd_uit||'').slice(0,5);
+        var van = datumDeel(x.van), tot = datumDeel(x.tot), ti = tijdDeel(x.van), tu = tijdDeel(x.tot);
         var wanneer = van === tot
           ? nlDatum(van) + (ti === '00:00' && tu === '23:59' ? ', hele dag' : ', ' + ti + '\u2013' + tu)
           : nlDatum(van) + ' ' + ti + ' tot ' + nlDatum(tot) + ' ' + tu;
-        return '<div class="bkitem"><div class="wat"><b>' + esc(x.gast || 'Niet beschikbaar') + '</b>' +
-          '<span>' + esc(suiteNaam(suiteUitSleutel(x.res_sleutel))) + '</span>' +
+        var handmatig = x.bron === 'handmatig';
+        return '<div class="bkitem"><div class="wat"><b>' + esc(x.reden || 'Niet beschikbaar') + '</b>' +
+          '<span>' + esc(suiteNaam(UIT_DB[x.suite] || x.suite)) + (handmatig ? '' : ' · uit ' + esc(String(x.bron || '').replace('ics-', ''))) + '</span>' +
           '<em>' + esc(wanneer) + '</em></div>' +
-          '<button type="button" class="btn danger" data-ophef="' + esc(x.res_sleutel) + '" data-wat="' +
-          esc((x.gast||'') + ', ' + wanneer) + '">Opheffen</button></div>';
+          (handmatig ? '<button type="button" class="btn danger" data-ophef="' + esc(x.id) + '" data-wat="' +
+            esc((x.reden || '') + ', ' + wanneer) + '">Opheffen</button>' : '') + '</div>';
       }).join('');
     }catch(e){
       doel.innerHTML = '<div class="bkleeg">De blokkades konden niet worden geladen: ' + esc(e.message) + '</div>';
@@ -705,7 +694,8 @@ $('opslaanEigen').onclick=bewaarEigen;$('datum').onchange=()=>{let a=new Date($(
   async function hefOp(sleutel, wat){
     if(!sleutel || !confirm('Deze blokkade opheffen?\n' + (wat || ''))) return;
     try{
-      await apiTabel('res_koppeling?res_sleutel=eq.' + encodeURIComponent(sleutel), { method:'DELETE', prefer:'return=minimal' });
+      var uit = await apiTabel('blokkades?id=eq.' + encodeURIComponent(sleutel), { method:'PATCH', body:{ actief:false }, prefer:'return=representation' });
+      if(!Array.isArray(uit) || !uit.length) throw new Error((uit && uit.message) || 'geen rechten; alleen eigenaar en VR mogen opheffen');
       melding('Blokkade opgeheven.', 'goed');
       laadLijst();
     }catch(e){ melding('Opheffen lukte niet: ' + e.message, 'fout'); }
