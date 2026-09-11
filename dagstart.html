@@ -643,7 +643,7 @@ let RESERVERINGEN = [], KOPPELINGEN = [];
 async function laadKoppelbronnen(){
   if(RESERVERINGEN.length || KOPPELINGEN.length) return;
   RESERVERINGEN = await haal('reservations?select=id,voornaam,achternaam,locatie,checkindatum&limit=2000', 'reserveringen');
-  KOPPELINGEN = await haal('res_koppeling?select=res_sleutel,gast,aankomst,locatie,welkomstcall_id&limit=5000', 'koppelingen');
+  KOPPELINGEN = await haal('res_koppeling?select=res_sleutel,gast,aankomst,welkomstcall_id&limit=5000', 'koppelingen');
 }
 
 async function koppelZoeken(){

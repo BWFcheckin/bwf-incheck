@@ -1417,7 +1417,7 @@ function haalKoppelBronnen(){
        nodig. Alles ophalen liep op een telefoon vast met "Load failed". */
     sbGet("reservations?select=id,voornaam,achternaam,locatie,checkindatum,checkuitdatum," +
       "totaal,email,telefoon&order=checkindatum.desc&limit=800")["catch"](function(){ return []; }),
-    sbGet("res_koppeling?select=res_sleutel,gast,email,telefoon,aankomst,vertrek,locatie," +
+    sbGet("res_koppeling?select=res_sleutel,gast,email,telefoon,aankomst,vertrek," +
       "totaal,betaald,bron,geannuleerd,checkin_id&order=aankomst.desc&limit=1200")["catch"](function(){ return []; }),
     sbGet("checkins?select=id,resnr,locatie,datum,checkuitdatum,voornaam,achternaam,email," +
       "telefoon,totaal,status,gekoppelde_reservering&order=created_at.desc&limit=600")["catch"](function(){ return []; })
