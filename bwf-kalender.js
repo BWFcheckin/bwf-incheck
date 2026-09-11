@@ -1,5 +1,5 @@
 /* =========================================================
-   bwf-kalender.js — gedeelde kalender (fase 3, versie 2)
+   bwf-kalender.js — gedeelde kalender (fase 3, versie 3)
 
    Leest alleen public.reserveringen en public.blokkades (Supabase).
    Wat iemand ziet bepaalt de RLS: locatiemanagers zien alleen hun eigen suites.
@@ -7,7 +7,7 @@
 
    Gebruik:
      <div id="mijnKalender"></div>
-     <script src="bwf-kalender.js?v=2"></script>
+     <script src="bwf-kalender.js?v=3"></script>
      <script>
        BWFKalender.maak(document.getElementById("mijnKalender"), {
          weergave: "week",                              // "dag" | "week" | "maand"
@@ -15,7 +15,9 @@
          token: async () => "…",                        // optioneel: eigen sessie van de pagina
          lijst: true,                                   // uitklaplijst met de gekozen dag
          vrijeBlokken: false,                           // vrije tijdsblokken per suite in de daglijst
-         blokkadeOpheffen: async (blokkade) => {}       // optioneel: knop "Opheffen" bij handmatige blokkades
+         blokkadeOpheffen: async (blokkade) => {},      // optioneel: knop "Opheffen" bij handmatige blokkades
+         knoppen: { welkomstcall: true, taak: true },   // optioneel uitzetten; zichtbaar volgens de rol
+         naTaak: (taak) => {}                           // optioneel: seintje na een nieuwe taak
        });
      </script>
    Staat er een <div id="bwfKalender"> op de pagina, dan start hij daar vanzelf.
@@ -198,7 +200,21 @@
       ".bwfk-acties a:hover,.bwfk-acties button:hover{border-color:var(--k-accent);color:var(--k-accent)}",
       ".bwfk-vrij{padding:10px 14px;border-top:1px solid var(--k-line);font-size:13px;display:grid;gap:6px}",
       ".bwfk-vrij span.blok{display:inline-block;margin:2px 4px 2px 0;padding:1px 8px;border-radius:999px;background:#E6F2EA;color:#2E7D53;font-size:12px}",
+      /* taakvenster */
+      ".bwfk-taakvenster{border:0;border-radius:16px;padding:0;width:min(480px,calc(100vw - 20px));box-shadow:0 30px 90px -30px rgba(0,0,0,.45);color:var(--k-ink);background:var(--k-bg)}",
+      ".bwfk-taakvenster::backdrop{background:rgba(20,52,42,.45)}",
+      ".bwfk-taakform{padding:20px;display:grid;gap:10px}",
+      ".bwfk-taakform h3{font-family:var(--f-titel,'Cormorant Garamond',Georgia,serif);font-weight:500;font-size:22px;margin:0;color:var(--k-accent)}",
+      ".bwfk-taaksub{margin:-6px 0 2px;font-size:12.5px;color:var(--k-muted)}",
+      ".bwfk-taakform label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--k-muted)}",
+      ".bwfk-taakform input,.bwfk-taakform select,.bwfk-taakform textarea{font:inherit;color:var(--k-ink);padding:8px 10px;border:1px solid var(--k-line);border-radius:10px;background:var(--k-bg2);width:100%}",
+      ".bwfk-twee{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
+      ".bwfk-taakvoet{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-top:4px}",
+      ".bwfk-taakmelding{flex:1;min-width:150px;font-size:12.5px;color:#B3453A}",
+      ".bwfk-vol{background:var(--k-accent);border-color:var(--k-accent);color:#fff}",
+      ".bwfk-vol:hover{color:#fff;filter:brightness(1.1)}",
       "@media(max-width:760px){",
+      ".bwfk-twee{grid-template-columns:1fr}",
       ".bwfk-koprij{display:none}",
       ".bwfk-maand .bwfk-week{grid-template-columns:1fr}",
       ".bwfk-maand .bwfk-cel{min-height:0}",
@@ -237,6 +253,26 @@
     return "incheckformulier.html?" + p.toString();
   }
 
+  /* ---------- welkomstcall-link: vr2.html?open=welkomstcall vult het formulier alvast in ---------- */
+  var KANAAL_WC = { smg: "Privé sauna", booking: "Booking.com", oo: "Origineel Overnachten", planyo: "Planyo", eigen: "Website" };
+  function welkomstcallLink(r) {
+    var p = new URLSearchParams();
+    var s = lokaal(new Date(r.aankomst)), e = lokaal(new Date(r.vertrek));
+    p.set("open", "welkomstcall");
+    if (gastNaam(r)) p.set("gast", gastNaam(r));
+    ["voornaam", "achternaam", "telefoon", "email"].forEach(function (v) { if (r["gast_" + v]) p.set(v, r["gast_" + v]); });
+    if (r.kanaal === "smg" && r.kanaal_ref) p.set("nummer", r.kanaal_ref);
+    p.set("aankomst", s.datum);
+    p.set("vertrek", e.datum);
+    p.set("tijdin", hhmm(r.incheck_tijd) || s.tijd);
+    p.set("tijduit", hhmm(r.uitcheck_tijd) || e.tijd);
+    if (r.type) p.set("type", r.type);
+    if (KANAAL_WC[r.kanaal]) p.set("bron", KANAAL_WC[r.kanaal]);
+    p.set("rid", r.id);
+    if (typeof location !== "undefined") p.set("terug", location.href);
+    return "vr2.html?" + p.toString();
+  }
+
   /* =========================================================
      Eén kalender
      ========================================================= */
@@ -251,9 +287,11 @@
       dag: /^\d{4}-\d{2}-\d{2}$/.test(opties.datum || "") ? opties.datum : vandaag(),
       suite: toegestaan.indexOf(opties.suite) >= 0 ? opties.suite : "",
       geannuleerd: opties.geannuleerdTonen !== false,
-      res: [], blok: [], blokken: null, bereik: "", bezig: false, uitgelicht: null, timer: null
+      res: [], blok: [], blokken: null, bereik: "", bezig: false, uitgelicht: null, timer: null,
+      rol: undefined, sub: null, mijnId: null, medewerkers: null, taakRes: null
     };
     var beheerUrl = opties.beheerUrl || "reservering-beheer.html";
+    var knoppen = Object.assign({ welkomstcall: true, taak: true }, opties.knoppen || {});
 
     houder.classList.add("bwfk");
     houder.innerHTML =
@@ -282,7 +320,18 @@
         '<span><i style="background:#ddd"></i>geannuleerd</span>' +
         '<span><i style="border:1px dashed #999"></i>optie</span>' +
       '</div>' +
-      (opties.lijst === false ? '' : '<details class="bwfk-lijst" open><summary></summary><div class="bwfk-lijstinhoud"></div></details>');
+      (opties.lijst === false ? '' : '<details class="bwfk-lijst" open><summary></summary><div class="bwfk-lijstinhoud"></div></details>') +
+      '<dialog class="bwfk-taakvenster"><form method="dialog" class="bwfk-taakform">' +
+        '<h3>Taak aanmaken</h3><p class="bwfk-taaksub"></p>' +
+        '<label>Titel <input name="titel" type="text" required></label>' +
+        '<div class="bwfk-twee"><label>Toewijzen aan <select name="medewerker"></select></label>' +
+        '<label>Deadline <input name="deadline" type="date"></label></div>' +
+        '<label>Prioriteit <select name="prioriteit"><option value="normaal">Normaal</option><option value="hoog">Hoog</option><option value="laag">Laag</option></select></label>' +
+        '<label>Toelichting <textarea name="omschrijving" rows="3"></textarea></label>' +
+        '<div class="bwfk-taakvoet"><span class="bwfk-taakmelding" role="status"></span>' +
+          '<button type="button" class="bwfk-knop" data-taakactie="annuleer">Annuleren</button>' +
+          '<button type="button" class="bwfk-knop bwfk-vol" data-taakactie="bewaar">Taak aanmaken</button></div>' +
+      '</form></dialog>';
 
     var $ = function (s) { return houder.querySelector(s); };
     if ($(".bwfk-suite")) $(".bwfk-suite").value = st.suite;
@@ -312,6 +361,20 @@
       return r.json();
     }
 
+    /* rol en eigen medewerker één keer ophalen: bepaalt welke knoppen in de daglijst staan */
+    async function laadRol() {
+      if (st.rol !== undefined) return;
+      try {
+        var token = await (opties.token ? opties.token() : standaardToken());
+        if (!token) return;
+        var r = await fetch(BASIS + "/rest/v1/rpc/bwf_toegangsrol", {
+          method: "POST", headers: { apikey: ANON, Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}"
+        });
+        st.rol = r.ok ? await r.json() : null;
+        st.sub = jwtDeel(token).sub || null;
+      } catch (e) { st.rol = null; }
+    }
+
     async function laad(stil) {
       var p = periode();
       /* ruim om de periode heen, zodat meerdaagse verblijven meekomen */
@@ -322,6 +385,7 @@
       st.bezig = true;
       if (!stil) status("Laden…");
       try {
+        await laadRol();
         var verzoeken = [
           haal("reserveringen?select=" + KOLOMMEN + "&aankomst=lt." + encodeURIComponent(tot) + "&vertrek=gt." + encodeURIComponent(van) + "&order=aankomst.asc&limit=3000"),
           haal("blokkades?select=id,suite,van,tot,reden,bron&actief=eq.true&van=lt." + encodeURIComponent(tot) + "&tot=gt." + encodeURIComponent(van) + "&order=van.asc&limit=1000")
@@ -451,6 +515,8 @@
     function tekenLijst(lijst) {
       var lijstEl = $(".bwfk-lijst");
       if (!lijstEl) return;
+      var magWc = knoppen.welkomstcall && (st.rol === "eigenaar" || st.rol === "vr");
+      var magTaak = knoppen.taak && !!st.rol;
       var dagStart = moment(st.dag, "00:00").getTime(), dagEind = moment(plusDagen(st.dag, 1), "00:00").getTime();
       var rijen = st.res.filter(function (r) {
         return zichtbaar(r.suite) && (st.geannuleerd || (r.status !== "geannuleerd" && r.status !== "no_show")) &&
@@ -476,7 +542,9 @@
           '<td><span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span>" + (r.kanaal === "smg" && r.kanaal_ref ? "<small>nr. " + esc(r.kanaal_ref) + "</small>" : "") + "</td>" +
           '<td><span class="bwfk-pil ' + esc(r.status) + '">' + esc(STATUSSEN[r.status] || r.status) + "</span></td>" +
           '<td><div class="bwfk-acties"><a href="' + esc(beheerUrl + "?id=" + encodeURIComponent(r.id)) + '" target="_top">Reservering</a>' +
-            '<a href="' + esc(incheckLink(r)) + '" target="_top">Incheckformulier</a></div></td></tr>' };
+            '<a href="' + esc(incheckLink(r)) + '" target="_top">Incheckformulier</a>' +
+            (magWc ? '<a href="' + esc(welkomstcallLink(r)) + '" target="_top">Welkomstcall</a>' : "") +
+            (magTaak ? '<button type="button" data-taak="' + esc(r.id) + '">Taak</button>' : "") + '</div></td></tr>' };
       }).concat(blokken.map(function (b) {
         return { sorteer: b.van, html: '<tr class="blokkade">' +
           "<td>" + tijdTekst(b.van, b.tot) + "</td>" +
@@ -531,6 +599,12 @@
         return;
       }
       if (e.target.closest(".bwfk-acties a")) return;
+      if ((t = e.target.closest("[data-taak]"))) { openTaak(t.getAttribute("data-taak")); return; }
+      if ((t = e.target.closest("[data-taakactie]"))) {
+        if (t.getAttribute("data-taakactie") === "bewaar") bewaarTaak(); else $(".bwfk-taakvenster").close();
+        return;
+      }
+      if (e.target.closest(".bwfk-taakvenster")) return;
       if ((t = e.target.closest("[data-res]"))) { e.stopPropagation(); kiesDag(t.getAttribute("data-dag"), t.getAttribute("data-res")); return; }
       if ((t = e.target.closest("[data-blok]"))) { e.stopPropagation(); kiesDag(t.getAttribute("data-dag"), null); return; }
       if ((t = e.target.closest("[data-k]"))) {
@@ -552,6 +626,65 @@
       if (e.target.classList.contains("bwfk-suite")) { st.suite = e.target.value; teken(); }
       if (e.target.classList.contains("bwfk-geann")) { st.geannuleerd = e.target.checked; teken(); }
     });
+
+    /* ---------- taak aanmaken ---------- */
+    async function openTaak(id) {
+      var r = st.res.find(function (x) { return x.id === id; });
+      if (!r) return;
+      st.taakRes = r;
+      var f = $(".bwfk-taakform"), s = lokaal(new Date(r.aankomst)), m = $(".bwfk-taakmelding");
+      f.titel.value = (gastNaam(r) || "Gast onbekend") + " — " + SUITES[r.suite].kort + " " + dagKort(s.datum);
+      f.deadline.value = s.datum;
+      f.prioriteit.value = "normaal";
+      f.omschrijving.value = "";
+      $(".bwfk-taaksub").textContent = SUITES[r.suite].naam + " · " + (KANALEN[r.kanaal] || KANALEN.handmatig).naam + " · " + dagKort(s.datum) + " " + s.tijd;
+      m.textContent = "";
+      f.medewerker.innerHTML = '<option value="">Niet toegewezen</option>';
+      try {
+        if (!st.medewerkers) st.medewerkers = await haal("wz_medewerkers?select=id,naam,auth_id&actief=eq.true&order=naam.asc");
+        f.medewerker.innerHTML += st.medewerkers.map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.naam) + '</option>'; }).join("");
+        var ik = st.medewerkers.find(function (x) { return x.auth_id && x.auth_id === st.sub; });
+        st.mijnId = ik ? ik.id : null;
+        if (ik) f.medewerker.value = ik.id;
+      } catch (err) { m.textContent = err.message; }
+      var dlg = $(".bwfk-taakvenster");
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+      f.titel.focus();
+    }
+
+    async function bewaarTaak() {
+      var f = $(".bwfk-taakform"), r = st.taakRes, m = $(".bwfk-taakmelding");
+      var knop = houder.querySelector('[data-taakactie="bewaar"]');
+      var titel = f.titel.value.trim();
+      if (!r) return;
+      if (!titel) { m.textContent = "Geef de taak een titel."; return; }
+      knop.disabled = true;
+      try {
+        var token = await (opties.token ? opties.token() : standaardToken());
+        if (!token) throw new Error("log opnieuw in");
+        var resp = await fetch(BASIS + "/rest/v1/wz_taken", {
+          method: "POST",
+          headers: { apikey: ANON, Authorization: "Bearer " + token, "Content-Type": "application/json", Prefer: "return=representation" },
+          body: JSON.stringify({
+            titel: titel, omschrijving: f.omschrijving.value.trim() || null, medewerker_id: f.medewerker.value || null,
+            deadline: f.deadline.value || null, prioriteit: f.prioriteit.value, status: "open", bron: "agenda",
+            link: beheerUrl + "?id=" + r.id, aangemaakt_door: st.mijnId
+          })
+        });
+        var tekst = await resp.text();
+        if (!resp.ok) { var fout = tekst; try { fout = JSON.parse(tekst).message || tekst; } catch (x) {} throw new Error(fout || "fout " + resp.status); }
+        var taak = (JSON.parse(tekst) || [])[0];
+        if (!taak) throw new Error("geen rechten om een taak aan te maken");
+        $(".bwfk-taakvenster").close();
+        status("Taak aangemaakt voor " + (f.medewerker.value ? f.medewerker.options[f.medewerker.selectedIndex].text : "niemand") + ": " + titel);
+        if (typeof opties.naTaak === "function") { try { opties.naTaak(taak); } catch (x) {} }
+      } catch (err) {
+        m.textContent = "Taak aanmaken lukte niet: " + err.message;
+      } finally {
+        knop.disabled = false;
+      }
+    }
+    houder.addEventListener("submit", function (e) { if (e.target.classList.contains("bwfk-taakform")) e.preventDefault(); });
 
     /* verversen: elke 5 minuten, na een wijziging elders, en wanneer de sessie beschikbaar komt */
     st.timer = setInterval(function () { laad(true); }, 5 * 60 * 1000);
@@ -584,6 +717,7 @@
     SUITES: SUITES,
     KANALEN: KANALEN,
     incheckLink: incheckLink,
+    welkomstcallLink: welkomstcallLink,
     _test: { lokaal: lokaal, moment: moment, plusDagen: plusDagen, weekdag: weekdag, dagenVan: dagenVan }
   };
 

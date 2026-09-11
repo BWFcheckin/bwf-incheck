@@ -2368,7 +2368,7 @@ div.ag-blok{cursor:default}
 
 <div class="toast" id="toast"></div>
 <script src="bwf-agenda.js?v=1"></script>
-<script src="bwf-kalender.js?v=2"></script>
+<script src="bwf-kalender.js?v=3"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -2481,6 +2481,12 @@ function maakVrKalender(){
   if(VR_KAL || !window.BWFKalender || !$('#vrKalender')) return;
   VR_KAL = window.BWFKalender.maak($('#vrKalender'), {
     weergave: window.innerWidth < 760 ? 'dag' : 'week',
+    /* een taak uit de kalender meteen in de eigen takenlijst zetten */
+    naTaak: (taak)=>{
+      if(!taak || !Array.isArray(S.taken)) return;
+      S.taken.unshift(taak);
+      try{ renderTaken(); renderOverzicht(); badges(); }catch(e){}
+    },
     token: async ()=>{
       if(!ingelogd()) return null;
       if(SESSIE.verloopt && Date.now() > SESSIE.verloopt) await vernieuwSessie();
