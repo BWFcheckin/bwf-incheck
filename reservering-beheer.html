@@ -693,6 +693,22 @@ async function start() {
   }
   if (!magBewerken()) melding("Je kunt reserveringen van je eigen suites bekijken, maar niet wijzigen.");
   await laad();
+  await openUitLink();
+}
+
+/* reservering-beheer.html?id=<uuid> opent meteen die reservering (bijv. vanuit de agenda),
+   ook als die buiten vandaag + 30 dagen valt. */
+async function openUitLink() {
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
+  if (!RIJEN.some((r) => r.id === id)) {
+    try {
+      const rij = await api("reserveringen?select=" + KOLOMMEN + "&id=eq." + encodeURIComponent(id));
+      if (!rij || !rij.length) { melding("Deze reservering is niet gevonden, of je hebt er geen toegang toe.", "fout"); return; }
+      RIJEN.push(rij[0]);
+    } catch (e) { melding("Reservering kon niet worden geopend: " + e.message, "fout"); return; }
+  }
+  openVenster(id);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
