@@ -525,9 +525,9 @@ window.BWF = window.BWF || {};
   </div>
 </div></dialog>
 
-<script src="bwf-agenda.js?v=1"></script>
+<script src="bwf-kalender.js?v=2"></script>
 <script>
-/* De agenda loopt via bwf-agenda.js en Supabase (agenda-bridge); de sleutel staat niet meer in deze pagina. */
+/* De agenda komt uit Supabase: reserveringen en blokkades (fase 3). Google Agenda wordt hier niet meer gebruikt. */
 
 /* Supabase — zelfde project als je andere pagina's */
 var SUPABASE_URL = "https://iuyjvtlauktnjprbmbjj.supabase.co";
@@ -571,21 +571,63 @@ function datumTekst(iso){
 function leegBlok(el,t){ el.innerHTML='<div class="leeg">'+esc(t)+'</div>'; }
 
 /* =========================================================
-   1. Reserveringskalender — uit de agendakoppeling
+   1. Reserveringskalender — uit reserveringen en blokkades (Supabase)
    ========================================================= */
 var agenda = null;
 var peil = new Date();
 var gekozenDag = dagSleutel(new Date());
 var uit = { suites:new Set(), soorten:new Set() };
 
+var AMS_TIJD = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Amsterdam', year:'numeric', month:'2-digit',
+  day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' });
+/* tijdstip uit Supabase (UTC) → "JJJJ-MM-DDTUU:MM:SS" in Amsterdamse tijd, zoals de rest van deze pagina verwacht */
+function amsLokaal(waarde){
+  var p = {};
+  AMS_TIJD.formatToParts(new Date(waarde)).forEach(function(x){ p[x.type] = x.value; });
+  return p.year+'-'+p.month+'-'+p.day+'T'+p.hour+':'+p.minute+':'+p.second;
+}
+var KANAALNAAM = { smg:'Privésauna (SMG)', booking:'Booking.com', oo:'Origineel Overnachten', planyo:'Planyo', eigen:'Eigen website', handmatig:'Handmatig' };
+
 async function haalAgenda(vers){
   var lijst = document.getElementById('dagInhoud');
   try{
-    if(!window.BWFAgenda) throw new Error('bwf-agenda.js is niet geladen');
     var t = window.BWF && window.BWF.token ? window.BWF.token() : '';
-    if(t && String(t).split('.').length === 3) window.BWFAgenda.setAccessToken(t);
-    var json = await window.BWFAgenda.events(vers);
-    agenda = json;
+    if(!t || String(t).split('.').length !== 3) throw new Error('log eerst in');
+    var nu = Date.now();
+    var van = new Date(nu - 120*86400000).toISOString(), tot = new Date(nu + 400*86400000).toISOString();
+    var kolommen = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,gast_voornaam,gast_achternaam,' +
+      'gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,restant_bedrag,omschrijving,import_opmerking';
+    var uit = await Promise.all([
+      sbZacht('reserveringen?select='+kolommen+'&status=neq.geannuleerd&vertrek=gt.'+encodeURIComponent(van)+
+        '&aankomst=lt.'+encodeURIComponent(tot)+'&order=aankomst.asc&limit=3000', 'reserveringen'),
+      sbZacht('blokkades?select=id,suite,van,tot,reden,bron&actief=eq.true&tot=gt.'+encodeURIComponent(van)+
+        '&van=lt.'+encodeURIComponent(tot)+'&limit=1000', 'blokkades')
+    ]);
+    if(!uit[0].ok) throw new Error(uit[0].reden || 'reserveringen konden niet worden gelezen');
+    var events = uit[0].data.map(function(r){
+      return {
+        soort: 'reservering', suite: r.suite, start: amsLokaal(r.aankomst), eind: amsLokaal(r.vertrek),
+        gast: [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(' ') || 'Gast onbekend',
+        titel: KANAALNAAM[r.kanaal] || r.kanaal, nummer: r.kanaal === 'smg' ? (r.kanaal_ref || '') : '',
+        personen: r.personen, telefoon: r.gast_telefoon, email: r.gast_email,
+        betalenBijAankomst: r.restant_bedrag != null ? '€ ' + Number(r.restant_bedrag).toFixed(2).replace('.', ',') : '',
+        arrangementen: (Array.isArray(r.arrangementen) ? r.arrangementen : []).map(function(a){
+          return typeof a === 'string' ? a : (a && (a.naam || a.tekst)) || ''; }).filter(Boolean),
+        omschrijving: [KANAALNAAM[r.kanaal] || r.kanaal, r.status === 'optie' ? 'optie' : '', r.status === 'no_show' ? 'no-show' : '',
+          r.omschrijving, r.import_opmerking].filter(Boolean).join(' · '),
+        _r: r
+      };
+    }).concat(uit[1].data.map(function(b){
+      return { soort: 'gesloten', suite: b.suite, start: amsLokaal(b.van), eind: amsLokaal(b.tot), titel: b.reden || 'Gesloten',
+        omschrijving: b.bron === 'handmatig' ? 'handmatige blokkade' : 'uit ' + String(b.bron || '').replace('ics-', '') };
+    }));
+    agenda = {
+      opgehaald: amsLokaal(new Date()),
+      fouten: uit.filter(function(x){ return !x.ok; }).map(function(x){ return x.naam; }),
+      suites: [{ kort:'angie', naam:'Suite Angie · Almere' }, { kort:'malina_jacuzzi', naam:'Malina Jacuzzi · Lelystad' },
+               { kort:'malina_deluxe', naam:'Malina Deluxe · Lelystad' }],
+      events: events
+    };
     toonVerversing();
     bouwFilters();
     tekenKalender();
@@ -750,8 +792,10 @@ function tekenDag(){
     var vertrekt = String(ev.eind||'').slice(0,10) === gekozenDag;
     var acties = '';
     if(ev.soort === 'reservering' || ev.soort === 'extern'){
-      acties += '<a class="knop" target="_blank" rel="noopener" href="incheckformulier.html?reservering='+
-                encodeURIComponent(ev.nummer||'')+'">Incheckformulier</a>';
+      acties += '<a class="knop" target="_blank" rel="noopener" href="'+esc(ev._r && window.BWFKalender
+                ? window.BWFKalender.incheckLink(ev._r) : 'incheckformulier.html?reservering='+encodeURIComponent(ev.nummer||''))+'">Incheckformulier</a>';
+      if(ev._r) acties += '<a class="knop zacht" target="_blank" rel="noopener" href="reservering-beheer.html?id='+
+                encodeURIComponent(ev._r.id)+'">Reservering</a>';
       if(vertrekt) acties += '<button class="knop zacht" type="button" data-review="'+i+'">Reviewverzoek</button>';
     }
     return '<div class="res" style="--kleur:'+s.kleur+';--vlak:'+s.vlak+'">'+
