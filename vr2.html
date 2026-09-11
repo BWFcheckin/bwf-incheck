@@ -1344,9 +1344,11 @@ div.ag-blok{cursor:default}
   <section class="panel" id="panel-agenda" role="tabpanel" aria-labelledby="tab-agenda" hidden>
     <div class="page-head">
       <h1>Agenda</h1>
-      <p>Reserveringen en diensten per dag, week, maand of jaar.</p>
+      <p>Reserveringen en blokkades uit alle kanalen, per dag, week of maand. Diensten staan eronder.</p>
     </div>
-    <div class="card ag-dagkaart">
+    <!-- Fase 3: gedeelde kalender uit reserveringen + blokkades. De oude kalender (Google Agenda) is verborgen. -->
+    <div class="card" style="padding:14px 16px;margin-bottom:14px"><div id="vrKalender"></div></div>
+    <div class="card ag-dagkaart" hidden style="display:none">
       <div class="ag-dagrij">
         <button class="ag-rond" id="kalVorige" type="button" aria-label="Vorige">&larr;</button>
         <div class="ag-datum"><h2 id="kalKop">Vandaag</h2><span class="ag-sub" id="agSub"></span></div>
@@ -1384,7 +1386,7 @@ div.ag-blok{cursor:default}
       <div class="legend ag-legenda" id="kalLegend"></div>
     </div>
 
-    <div id="kalBlok" class="ag-dagmodus">
+    <div id="kalBlok" class="ag-dagmodus" hidden style="display:none">
       <div class="ag-dag" id="agDag"></div>
       <div class="card ag-rooster"><div class="card-body">
         <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
@@ -1412,7 +1414,7 @@ div.ag-blok{cursor:default}
       </div>
       <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
 
-      <div class="reskop" id="resKop">
+      <div class="reskop" id="resKop" style="display:none">
         <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
           <span class="pijl">›</span><span>Reserveringen inzien</span>
           <span class="pill neutral" id="resAantal">0</span>
@@ -1430,11 +1432,11 @@ div.ag-blok{cursor:default}
           </select>
         </div>
       </div>
-      <div class="table-wrap" id="resTabel" hidden><table>
+      <div class="table-wrap" id="resTabel" hidden style="display:none"><table>
         <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
         <tbody id="kalLijst"></tbody>
       </table></div>
-      <div class="card-foot"><span id="kalFoot"></span>
+      <div class="card-foot" style="display:none"><span id="kalFoot"></span>
         <button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button></div>
     </div>
   </section>
@@ -2366,6 +2368,7 @@ div.ag-blok{cursor:default}
 
 <div class="toast" id="toast"></div>
 <script src="bwf-agenda.js?v=1"></script>
+<script src="bwf-kalender.js?v=2"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -2470,6 +2473,20 @@ async function api(path, opts, tweedePoging){
   if(!r.ok){ const t = await r.text(); throw new Error(r.status+' '+t.slice(0,200)); }
   const txt = await r.text();
   return txt ? JSON.parse(txt) : null;
+}
+
+/* Fase 3: gedeelde kalender (reserveringen + blokkades) in het Agenda-paneel */
+let VR_KAL = null;
+function maakVrKalender(){
+  if(VR_KAL || !window.BWFKalender || !$('#vrKalender')) return;
+  VR_KAL = window.BWFKalender.maak($('#vrKalender'), {
+    weergave: window.innerWidth < 760 ? 'dag' : 'week',
+    token: async ()=>{
+      if(!ingelogd()) return null;
+      if(SESSIE.verloopt && Date.now() > SESSIE.verloopt) await vernieuwSessie();
+      return ingelogd() ? SESSIE.token : null;
+    }
+  });
 }
 
 function bewaarLokaal(){ try{ localStorage.setItem(LS.data, JSON.stringify(S)); }catch(e){ console.warn(e); } }
@@ -2678,6 +2695,7 @@ async function start(){
   await zorgVoorExtras(); renderExtras(); wcToonBijlage(); wcZetBetaal('mollie'); wcSmgVat(); wcHerhaalCheck();
   wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
   laadOverzicht();
+  maakVrKalender();
   if(!window.__ovTimer) window.__ovTimer = setInterval(()=>{ if(!$('#app').hidden) laadOverzicht(); }, 300000);
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   let t = null; try{ t = sessionStorage.getItem(LS.tab); }catch(e){}
@@ -4625,8 +4643,8 @@ $('#rzNaarDag').addEventListener('click', ()=>{
   const r = rzHuidig(); if(!r) return;
   const dag = String(r.start||'').slice(0,10);
   kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
-  naarPaneelVan($('#kalender'));
-  $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
+  kiesGroep('agenda'); if(VR_KAL) VR_KAL.naarDatum(dag);
+  $('#vrKalender').scrollIntoView({behavior:'smooth', block:'start'});
 });
 $('#rzNaarWijziging').addEventListener('click', ()=>{
   const r = rzHuidig(); if(!r) return;
@@ -4971,7 +4989,8 @@ document.addEventListener('click', async e=>{
     const r = KAL_LIJST[Number(dg.dataset.rdag)];
     const dag = String(r.start||'').slice(0,10);
     kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
-    $('#kalender').scrollIntoView({behavior:'smooth', block:'center'});
+    kiesGroep('agenda'); if(VR_KAL) VR_KAL.naarDatum(dag);
+    $('#vrKalender').scrollIntoView({behavior:'smooth', block:'start'});
   }
 });
 
