@@ -720,7 +720,6 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   </div>
 </div>
 
-<script src="bwf-agenda.js?v=1"></script>
 <script>
 /* ================= CONFIG ================= */
 const LOCATIONS = [
@@ -1743,6 +1742,14 @@ async function saveCheckin(alsConcept){
       await sb('checkins', { method:'POST', body: JSON.stringify(data) });
       document.getElementById('c_id').value = data.id;
     }
+    /* het formulier ook aan de reservering hangen, zodat de dagoverzichten en
+       de reserveringskaart meteen zien dat er is ingecheckt */
+    if(gekoppeld && gekoppeld.resId){
+      try{
+        await sb('reserveringen?id=eq.' + encodeURIComponent(gekoppeld.resId),
+          { method:'PATCH', body: JSON.stringify({ checkin_id: data.id }) });
+      }catch(e){ console.warn('koppelen aan de reservering lukte niet:', e.message); }
+    }
     if(!alsConcept) await verwerkteAanmeldingWegstrepen(data.id);
     await loadCheckins();
     renderCheckinTable();
@@ -2210,8 +2217,10 @@ var resArrangementen = [];       // arrangementen van de gekoppelde reservering
 var gekoppeld = null;            // {bron, id, label}
 var RESERVERINGEN = [], KLANTEN = [], AGENDA_RES = [], KOPPELING = {};
 
-/* ---------- reserveringen uit de agenda (dezelfde koppeling als het dashboard) ---------- */
-/* De sleutel staat niet meer in deze pagina: zie agendaEvents() hieronder. */
+/* ---------- boekingen uit `reserveringen` (dezelfde bron als het dashboard) ----------
+   De tekstherkenning hieronder (AG_*) was nodig zolang de gegevens uit een
+   agendatitel moesten komen. Die staan nu in kolommen; de functies blijven
+   staan voor oude regels en voor het plakveld. */
 var AG_STOP = new RegExp('^(booking|bookingcom|com|relax|stay|all|inclusive|incl|late|check|checkin|checkout|'+
   'overnachting|overnachten|origineel|orgineel|middag|deals|deal|geniet|uur|van|exclusieve|wellness|suite|'+
   'jacuzzi|zwembad|luxe|deluxe|malina|angie|prive|priv\u00e9|sauna|whatsapp|wa|boeking|reservering|'+
@@ -2330,65 +2339,56 @@ function agBron(t){
   if(/telefonisch/.test(s))                       return 'Telefonisch';
   return '';
 }
-/* Agenda via bwf-agenda.js en Supabase (agenda-bridge); bij een verlopen sessie eenmaal verversen. */
-async function agendaEvents(){
-  if(!window.BWFAgenda) throw new Error('bwf-agenda.js is niet geladen');
-  window.BWFAgenda.setAccessToken(auth && auth.access_token);
-  try{
-    return await window.BWFAgenda.events();
-  }catch(e){
-    if(!/sessie|log eerst|401/i.test(e.message || '') || !(await vernieuwToken())) throw e;
-    window.BWFAgenda.setAccessToken(auth.access_token);
-    return await window.BWFAgenda.events();
-  }
-}
+/* De boekingen komen uit `reserveringen`; de Google Agenda wordt niet meer
+   gelezen. De vorm hieronder is dezelfde als voorheen, zodat de rest van het
+   formulier ongewijzigd blijft werken. Bedragen en namen staan nu netjes in
+   kolommen: raden uit een agendatitel is niet meer nodig. */
 var AGENDA_FOUT = '';
+var BOEKING_KANAAL = { smg:'Priv\u00e9 sauna', booking:'Booking.com', oo:'Origineel Overnachten',
+                       planyo:'Planyo', eigen:'Website', handmatig:'Handmatig' };
+function boekingStuk(iso){
+  if(!iso) return { datum:'', tijd:'' };
+  var p = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Amsterdam', year:'numeric',
+    month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false })
+    .format(new Date(iso));
+  return { datum: p.slice(0,10), tijd: p.slice(11,16) };
+}
 async function laadAgenda(){
   AGENDA_FOUT = '';
   try{
-    var json = await agendaEvents();
-    if(json.fout) throw new Error(json.fout);
-    AGENDA_RES = (json.events||[])
-      .filter(function(ev){ return ev.soort === 'reservering' || ev.soort === 'extern'; })
-      .map(function(ev){
-        var tekst = (ev.titel||'') + ' ' + (ev.omschrijving||'');
-        var L = agLabels(ev.omschrijving||'');
-        var naam = L.naam || agNaam(ev.titel||''), delen = String(naam).split(' ');
-        var geld = agBedragen(tekst);
-        var lTot = agGetal(L.totaal), lBet = agGetal(L.betaald), lBij = agGetal(L.bij);
-        if(lTot) geld = { totaal:lTot, betaald:lBet||0,
-                          open: lBij || Math.max(0, lTot-(lBet||0)), onzeker:false };
-        /* uit Supabase (gevuld door het terminalscript) \u2014 dat weegt het zwaarst */
-        var K = zoekKoppeling(ev, L, naam);
-        var kTot = parseFloat(K.totaal), kBet = parseFloat(K.betaald);
-        if(!isNaN(kTot) && kTot > 0){
-          geld = { totaal:kTot, betaald:isNaN(kBet)?0:kBet,
-                   open: Math.max(0, kTot - (isNaN(kBet)?0:kBet)), onzeker:false };
-          if(K.gast) naam = K.gast;
-          delen = String(naam).split(' ');
-        }
-        return {
-          id: 'ag-' + (ev.nummer || (ev.suite + '-' + ev.start)),
-          uitAgenda: true,
-          voornaam: delen.shift() || '', achternaam: delen.join(' '),
-          locatie: agLocatie(ev.suite),
-          checkindatum:  String(ev.start||'').slice(0,10),
-          checkuitdatum: String(ev.eind||'').slice(0,10) !== String(ev.start||'').slice(0,10)
-                         ? String(ev.eind||'').slice(0,10) : '',
-          checkintijd:  String(ev.start||'').slice(11,16) || String(K.tijd_in||'').slice(0,5),
-          checkuittijd: String(ev.eind||'').slice(11,16)  || String(K.tijd_uit||'').slice(0,5),
-          reserveringsnummer: L.nummer || ev.nummer || '',
-          personen: K.personen || L.personen || ev.personen || '',
-          telefoon: K.telefoon || L.telefoon || ev.telefoon || agTel(tekst),
-          email: K.email || L.email || ev.email || agMail(tekst),
-          totaal: geld.totaal, betaald: geld.betaald,
-          openstaand: geld.open, bedragOnzeker: geld.onzeker,
-          arrangementen: K.arrangement || L.arr || (ev.arrangementen||[]).join(', '),
-          omschrijving: ev.omschrijving || '',
-          opmerkingen: ev.titel || '',
-          boekingsbron: agBron(tekst)
-        };
-      });
+    var velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
+      'gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,omschrijving,' +
+      'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,notitie,checkin_id';
+    var eerder = new Date(); eerder.setDate(eerder.getDate() - 60);
+    var rijen = await sb('reserveringen?select=' + velden + '&status=neq.geannuleerd' +
+      '&aankomst=gte.' + eerder.toISOString().slice(0,10) +
+      '&order=aankomst.desc&limit=800') || [];
+    AGENDA_RES = rijen.map(function(r){
+      var a = boekingStuk(r.aankomst), v = boekingStuk(r.vertrek);
+      var totaal  = parseFloat(r.bedrag_totaal)  || 0;
+      var betaald = parseFloat(r.betaald_bedrag) || 0;
+      var open = r.restant_bedrag != null ? (parseFloat(r.restant_bedrag) || 0)
+                                          : Math.max(0, totaal - betaald);
+      var arr = Array.isArray(r.arrangementen)
+        ? r.arrangementen.map(function(x){ return (x && x.naam) || x; }).filter(Boolean).join(', ') : '';
+      return {
+        id: 'res-' + r.id, resId: r.id, uitAgenda: true,
+        voornaam: r.gast_voornaam || '', achternaam: r.gast_achternaam || '',
+        locatie: agLocatie(r.suite),
+        checkindatum: a.datum,
+        checkuitdatum: (v.datum && v.datum !== a.datum) ? v.datum : '',
+        checkintijd:  String(r.incheck_tijd  || a.tijd || '').slice(0,5),
+        checkuittijd: String(r.uitcheck_tijd || v.tijd || '').slice(0,5),
+        reserveringsnummer: r.kanaal_ref || '',
+        personen: r.personen || '',
+        telefoon: r.gast_telefoon || '', email: r.gast_email || '',
+        totaal: totaal, betaald: betaald, openstaand: open, bedragOnzeker: false,
+        arrangementen: arr,
+        omschrijving: r.omschrijving || r.import_opmerking || '',
+        opmerkingen: r.notitie || '',
+        boekingsbron: BOEKING_KANAAL[r.kanaal] || r.kanaal || ''
+      };
+    });
   }catch(e){ AGENDA_RES = []; AGENDA_FOUT = e.message || 'onbekende fout'; }
 }
 /* De regel uit res_koppeling bij een agenda-afspraak zoeken. Het reserveringsnummer
@@ -2425,11 +2425,7 @@ var NIEUWE_KOLOMMEN = true;
 async function laadKoppelBronnen(){
   try{ RESERVERINGEN = await sb('reservations?select=*&order=checkindatum.desc&limit=800') || []; }
   catch(e){ RESERVERINGEN = []; }
-  try{
-    KOPPELING = {};
-    (await sb('res_koppeling?select=*&limit=5000') || [])
-      .forEach(function(k){ KOPPELING[String(k.res_sleutel)] = k; });
-  }catch(e){ KOPPELING = {}; }
+  KOPPELING = {};       /* res_koppeling is niet meer nodig: alles staat in reserveringen */
   await laadAgenda();
   try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=3000') || []; }
   catch(e){ KLANTEN = []; }
@@ -2458,7 +2454,7 @@ window.koppelBronLijst = koppelBronLijst;
 function koppelBronLijst(){
   var bron = document.getElementById('k_bron').value;
   if(bron === 'reservering'){
-    var uitAgenda = AGENDA_RES.map(function(r){ return { id:r.id, label:resLabel(r) + ' \u00b7 agenda', data:r }; });
+    var uitAgenda = AGENDA_RES.map(function(r){ return { id:r.id, label:resLabel(r) + ' \u00b7 ' + (r.boekingsbron || 'reservering'), data:r }; });
     var eigen     = RESERVERINGEN.map(function(r){ return { id:r.id, label:resLabel(r), data:r }; });
     return uitAgenda.concat(eigen).sort(function(a,b){
       return String(b.data.checkindatum||'').localeCompare(String(a.data.checkindatum||'')); });
@@ -2486,8 +2482,8 @@ function vulKoppelKeuze(){
 
   var tel = document.getElementById('k_tel');
   if(tel && document.getElementById('k_bron').value === 'reservering'){
-    var stukken = [AGENDA_RES.length + ' uit de agenda', RESERVERINGEN.length + ' uit het systeem'];
-    if(AGENDA_FOUT) stukken.push('agenda kon niet worden opgehaald: ' + AGENDA_FOUT);
+    var stukken = [AGENDA_RES.length + ' uit reserveringen', RESERVERINGEN.length + ' oude eigen boekingen'];
+    if(AGENDA_FOUT) stukken.push('reserveringen konden niet worden opgehaald: ' + AGENDA_FOUT);
     tel.textContent = stukken.join(' \u00b7 ');
     tel.style.color = AGENDA_FOUT ? '#c13e50' : '';
   } else if(tel){
@@ -2535,7 +2531,7 @@ function neemKoppelOver(){
   var x = koppelHuidige();
   if(!x){ st.className = 'status err'; st.textContent = '✕ Kies eerst iets in de lijst.'; return; }
   var d = x.data;
-  gekoppeld = { bron: bron, id: x.id, label: x.label };
+  gekoppeld = { bron: bron, id: x.id, label: x.label, resId: d.resId || null };
 
   if(d.locatie){
     var loc = herkenLocatie(d.locatie);
@@ -2951,7 +2947,10 @@ function koppelUitAdres(){
     return;
   }
   document.getElementById('c_resnr').value = param;
-  var treffer = RESERVERINGEN.filter(function(r){
+  /* eerst in de boekingen zoeken (op id, uuid of kanaalnummer), dan in de oude tabel */
+  var treffer = AGENDA_RES.filter(function(r){
+    return [r.id, r.resId, r.reserveringsnummer].some(function(v){ return v != null && String(v) === String(param); });
+  })[0] || RESERVERINGEN.filter(function(r){
     return [r.id, r.reserveringsnummer, r.resnr, r.nummer].some(function(v){ return v != null && String(v) === String(param); });
   })[0];
   var st = document.getElementById('k_status');
@@ -3418,7 +3417,9 @@ function collectCheckinData(){
   }
   data.betalingen = betalingen;
   data.cadeau_code = (document.getElementById('c_cadeaucode') || {}).value || '';
-  data.gekoppelde_reservering = gekoppeld ? (gekoppeld.bron + ':' + gekoppeld.id) : '';
+  data.gekoppelde_reservering = gekoppeld
+    ? (gekoppeld.resId ? 'reservering:' + gekoppeld.resId : gekoppeld.bron + ':' + gekoppeld.id)
+    : '';
   return data;
 }
 

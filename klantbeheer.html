@@ -1417,11 +1417,21 @@ function haalKoppelBronnen(){
        nodig. Alles ophalen liep op een telefoon vast met "Load failed". */
     sbGet("reservations?select=id,voornaam,achternaam,locatie,checkindatum,checkuitdatum," +
       "totaal,email,telefoon&order=checkindatum.desc&limit=800")["catch"](function(){ return []; }),
-    sbGet("res_koppeling?select=res_sleutel,gast,email,telefoon,aankomst,vertrek," +
-      "totaal,betaald,bron,geannuleerd,checkin_id&order=aankomst.desc&limit=1200")["catch"](function(){ return []; }),
+    sbGet("reserveringen?select=id,suite,kanaal,kanaal_ref,aankomst,vertrek,gast_voornaam," +
+      "gast_achternaam,gast_email,gast_telefoon,bedrag_totaal,betaald_bedrag,checkin_id" +
+      "&status=neq.geannuleerd&order=aankomst.desc&limit=1200")["catch"](function(){ return []; }),
     sbGet("checkins?select=id,resnr,locatie,datum,checkuitdatum,voornaam,achternaam,email," +
       "telefoon,totaal,status,gekoppelde_reservering&order=created_at.desc&limit=600")["catch"](function(){ return []; })
   ]).then(function(r){ KOPPEL_CACHE = {res:r[0]||[], kop:r[1]||[], chk:r[2]||[]}; return KOPPEL_CACHE; });
+}
+/* labels voor de boekingen uit `reserveringen` */
+var SUITE_LABEL = { angie:"Suite Angie", malina_jacuzzi:"Malina Jacuzzi", malina_deluxe:"Malina Deluxe" };
+var KANAAL_LABEL = { smg:"Privé sauna", booking:"Booking.com", oo:"Origineel Overnachten",
+  planyo:"Planyo", eigen:"Website", handmatig:"Handmatig" };
+function dagNL(iso){
+  if(!iso) return "";
+  return new Intl.DateTimeFormat("sv-SE", { timeZone:"Europe/Amsterdam", year:"numeric",
+    month:"2-digit", day:"2-digit" }).format(new Date(iso));
 }
 function koppelRij(datum, wat, locatie, bedrag, link, knop){
   return "<tr><td>" + (datum ? dNL(datum) : "\u2014") + "</td><td>" + wat + "</td><td>" +
@@ -1447,11 +1457,13 @@ function laadKlantKoppelingen(k){
     }
     for(i = 0; i < bron.kop.length; i++){
       x = bron.kop[i];
-      if(x.geannuleerd) continue;
-      if(!hoortBij(k, x.email, x.telefoon, x.gast)) continue;
-      rijen.push({ d:x.aankomst, html: koppelRij(x.aankomst,
-        '<span class="pill nacht">' + esc(x.bron || "boeking") + "</span>", x.locatie, x.totaal,
-        "incheckformulier.html?reservering=" + encodeURIComponent(x.res_sleutel), "Openen") });
+      var bnaam = ((x.gast_voornaam || "") + " " + (x.gast_achternaam || "")).trim();
+      if(!hoortBij(k, x.gast_email, x.gast_telefoon, bnaam)) continue;
+      var bdag = dagNL(x.aankomst);
+      rijen.push({ d:bdag, html: koppelRij(bdag,
+        '<span class="pill nacht">' + esc(KANAAL_LABEL[x.kanaal] || x.kanaal || "boeking") + "</span>",
+        SUITE_LABEL[x.suite] || x.suite, x.bedrag_totaal,
+        "incheckformulier.html?reservering=" + encodeURIComponent(x.id), "Openen") });
     }
     for(i = 0; i < bron.chk.length; i++){
       x = bron.chk[i];
