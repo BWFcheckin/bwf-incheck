@@ -324,9 +324,15 @@ function bereken(){let regels=prijsregels(),tot=regels.reduce((a,x)=>a+x[1],0),b
    ------------------------------------------------------------------ */
 async function eigenNummer(){
   let jaar=new Date().getFullYear(), hoogste=0;
+  /* nieuwe boekingen staan in reserveringen; de oude tabel telt mee zodat een
+     nummer nooit twee keer wordt uitgegeven */
   try{
-    let r=await apiTabel('reservations?select=id&id=like.BWF-'+jaar+'-*&limit=2000')||[];
-    r.forEach(x=>{ let m=String(x.id).match(/BWF-\d{4}-(\d+)/); if(m&&+m[1]>hoogste) hoogste=+m[1]; });
+    let r=await apiTabel('reserveringen?select=kanaal_ref&kanaal=eq.eigen&kanaal_ref=like.BWF-'+jaar+'-*&limit=2000')||[];
+    r.forEach(x=>{ let m=String(x.kanaal_ref).match(/BWF-\d{4}-(\d+)/); if(m&&+m[1]>hoogste) hoogste=+m[1]; });
+  }catch(e){}
+  try{
+    let oud=await apiTabel('reservations?select=id&id=like.BWF-'+jaar+'-*&limit=2000')||[];
+    oud.forEach(x=>{ let m=String(x.id).match(/BWF-\d{4}-(\d+)/); if(m&&+m[1]>hoogste) hoogste=+m[1]; });
   }catch(e){}
   return 'BWF-'+jaar+'-'+String(hoogste+1).padStart(4,'0');
 }
@@ -344,40 +350,42 @@ async function bewaarEigen(){
     let suite=suites[$('suite').value];
     let omschrijving=b.regels.map(x=>x[0]).join(' · ');
 
-    await apiTabel('reservations',{method:'POST',prefer:'return=minimal',body:{
-      id:nummer, locatie:$('suite').value,
-      voornaam:$('voor').value, achternaam:$('achter').value,
-      checkindatum:$('datum').value,
-      checkuitdatum:$('vertrek').value||$('datum').value,
-      checkintijd:slot[0], checkuittijd:slot[1],
-      arrangement:omschrijving,
-      totaal:b.tot, betaald:b.betaald,
-      telefoon:$('tel').value, email:$('email').value,
-      opmerkingen:[$('notitie').value,'Handmatig ingevoerd, niet in Planyo aangemaakt.',
-        'Betaalwijze: '+$('wijze').value].filter(Boolean).join('\n'),
-      status:1
-    }});
+    /* De boeking komt als gewone reservering in `reserveringen` te staan, met
+       kanaal 'eigen' en het BWF-nummer als kanaalnummer. Zo staat hij meteen in
+       de kalender, bij Vandaag en in het reserveringenoverzicht. */
+    const NAAR_SUITE = { angie:'angie', jacuzzi:'malina_jacuzzi', zwembad:'malina_deluxe', deluxe:'malina_deluxe' };
+    const suiteCode = NAAR_SUITE[$('suite').value];
+    if(!suiteCode) throw new Error('onbekende suite: '+$('suite').value);
+    const stip = (d,t)=> new Date(d+'T'+(t||'00:00')+':00').toISOString();
+    const vertrekDatum = $('vertrek').value || $('datum').value;
+    const betaald = Number(b.betaald)||0, totaal = Number(b.tot)||0;
 
-    await apiTabel('res_koppeling?on_conflict=res_sleutel',{method:'POST',
-      prefer:'resolution=merge-duplicates,return=minimal',body:{
-        res_sleutel:'hm-'+nummer, bron:'handmatig',
-        gast:($('voor').value+' '+$('achter').value).trim(),
-        telefoon:$('tel').value, email:$('email').value,
-        personen:String($('personen').value||''),
-        arrangement:omschrijving, totaal:b.tot, betaald:b.betaald,
-        aankomst:$('datum').value, vertrek:$('vertrek').value||$('datum').value,
-        tijd_in:slot[0], tijd_uit:slot[1],
-        notitie:$('notitie').value,
-        bijgewerkt:new Date().toISOString()
-      }});
+    await apiTabel('reserveringen',{method:'POST',prefer:'return=minimal',body:{
+      suite:suiteCode, kanaal:'eigen', kanaal_ref:nummer, status:'bevestigd',
+      type: type==='nacht' ? 'overnachting' : 'dagverblijf',
+      aankomst: stip($('datum').value, slot[0]),
+      vertrek:  stip(vertrekDatum, slot[1]),
+      incheck_tijd: slot[0], uitcheck_tijd: slot[1],
+      gast_voornaam:$('voor').value||null, gast_achternaam:$('achter').value||null,
+      gast_telefoon:$('tel').value||null, gast_email:$('email').value||null,
+      personen: parseInt($('personen').value,10) || 2,
+      arrangementen: b.regels.map(x=>({naam:x[0]})),
+      omschrijving: omschrijving,
+      bedrag_totaal: totaal, betaald_bedrag: betaald,
+      restant_bedrag: Math.max(0, totaal-betaald),
+      betaalstatus: (totaal>0 && betaald>=totaal) ? 'betaald' : 'open',
+      notitie:[$('notitie').value,'Handmatig ingevoerd, niet in Planyo aangemaakt.',
+        'Betaalwijze: '+$('wijze').value].filter(Boolean).join('\n'),
+      aangemaakt_door:'reservering-aanmaken'
+    }});
 
     try{ let klant=await zorgVoorKlant(''); if(klant){
       await apiTabel('wz_klantbeheer?id=eq.'+encodeURIComponent(klant.id),{method:'PATCH',
         body:{ referentie:nummer, laatste_bezoek:$('datum').value }});
     }}catch(e){ console.warn('klant koppelen:', e.message); }
 
-    msg('Opgeslagen als '+nummer+'. De reservering staat in je overzicht en bij Vandaag. '+
-        'Hij staat niet in Planyo en dus ook niet in de agenda.', true);
+    msg('Opgeslagen als '+nummer+'. De reservering staat in de kalender, bij Vandaag '+
+        'en in het reserveringenoverzicht. Hij staat niet in Planyo.', true);
     knop.textContent='Opgeslagen als '+nummer;
   }catch(e){
     msg('Opslaan lukte niet: '+e.message);

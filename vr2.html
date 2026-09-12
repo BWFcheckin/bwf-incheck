@@ -2367,7 +2367,6 @@ div.ag-blok{cursor:default}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
-<script src="bwf-agenda.js?v=1"></script>
 <script src="bwf-kalender.js?v=4"></script>
 <script>
 /* =======================================================================
@@ -6860,19 +6859,28 @@ async function laadOverzicht(){
   let n = 0, vandaagIn = 0;
   ovLocLeeg(); RES.length = 0;
   try{
-    const j = await BWFAgenda.events();
-    (j.events||[]).forEach(ev=>{
-      if(ev.soort !== 'reservering' && ev.soort !== 'extern') return;
-      const s = String(ev.start||'').slice(0,10), e = String(ev.eind||'').slice(0,10) || s;
+    /* De boekingen komen uit `reserveringen`: alle kanalen bij elkaar. De Google
+       Agenda wordt niet meer gelezen. */
+    const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
+                   'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,' +
+                   'bedrag_totaal,betaald_bedrag,betaalstatus,notitie,omschrijving';
+    const boekingen = await api('reserveringen?select=' + velden + '&status=neq.geannuleerd' +
+      '&aankomst=gte.' + ovDag(-120) + '&order=aankomst.asc&limit=1000') || [];
+    boekingen.forEach(b=>{
+      const a = wcLokaal(b.aankomst), v = wcLokaal(b.vertrek);
+      const s = a.datum, e = v.datum || s;
       /* de tellingen bovenaan gaan over vandaag en later; de lijst zelf houdt ook
          eerdere boekingen vast, zodat je een gast van gisteren nog kunt opzoeken */
-      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(ev.suite || ev.locatie, ev.start, ev.eind); }
-      RES.push({locatie: ovLocNaam(ev.suite || ev.locatie), naam: ev.gast || ev.naam || ev.titel || '',
-        start: ev.start, eind: ev.eind,
-        ref: ev.nummer || ev.referentie || ev.reservering || null,
-        suiteRuw: ev.suite || '',              /* de suitenaam zoals de agenda hem geeft */
-        bron: ev.bron || (ev.soort === 'extern' ? 'extern' : 'agenda'),
-        verleden: e < vd, eigen:false, ruw: ev});
+      if(e >= vd){ n++; if(s === vd) vandaagIn++; ovLocTel(b.suite, s, e); }
+      RES.push({locatie: ovLocNaam(b.suite),
+        naam: [b.gast_voornaam, b.gast_achternaam].filter(Boolean).join(' '),
+        start: s + 'T' + (String(b.incheck_tijd  || a.tijd || '00:00').slice(0,5)),
+        eind:  e + 'T' + (String(b.uitcheck_tijd || v.tijd || '00:00').slice(0,5)),
+        ref: b.kanaal_ref || null,
+        resId: b.id,                           /* vaste sleutel van de reservering */
+        suiteRuw: b.suite || '',
+        bron: WC_KANAAL_NAAM[b.kanaal] || b.kanaal || '',
+        verleden: e < vd, eigen:false, ruw: b});
     });
   }catch(e){}
   try{
