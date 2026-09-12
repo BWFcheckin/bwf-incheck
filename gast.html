@@ -384,10 +384,16 @@ async function laadVeiligeLink(){
     const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
     if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
     if(g.arrival) document.getElementById('g_datum').value=g.arrival;
-    document.getElementById('g_voornaam').value=g.first_name||'';
-    document.getElementById('g_achternaam').value=g.last_name||'';
-    document.getElementById('g_email').value=g.email||'';
-    document.getElementById('g_telefoon').value=g.phone||'';
+    /* Alleen invullen wat nog leeg is: deze gegevens komen soms later binnen dan
+       de gast begint met typen, en dan mag zijn invoer niet worden gewist. */
+    const zetAls = (id, waarde) => {
+      const el = document.getElementById(id);
+      if(el && waarde && !String(el.value).trim()) el.value = waarde;
+    };
+    zetAls('g_voornaam',   g.first_name);
+    zetAls('g_achternaam', g.last_name);
+    zetAls('g_email',      g.email);
+    zetAls('g_telefoon',   g.phone);
     document.getElementById('verblijfWrap').style.display='none';
     const chip=document.getElementById('resChip');
     chip.textContent='Reservering '+g.reservation_id;

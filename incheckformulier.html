@@ -1647,7 +1647,9 @@ function gebruikAanmelding(id){
     openDetailId = concept.id;
     editCheckinFromDetail();
   } else {
-    clearCheckinForm();
+    /* Leegmaken geannuleerd? Dan stoppen we hier. Anders zouden de gegevens van
+       deze gast worden opgeslagen op het formulier van de vorige gast. */
+    if(!clearCheckinForm()) return;
     if(a.locatie){ document.getElementById('c_locatie').value = a.locatie; updateCheckinManagerOptions(); }
     if(a.datum) document.getElementById('c_datum').value = a.datum;
     if(a.code) document.getElementById('c_resnr').value = a.code;
@@ -3504,8 +3506,11 @@ function laadInConcept(c){
 }
 
 /* =================== FORMULIER LEEGMAKEN =================== */
+/* Geeft terug of het formulier echt is leeggemaakt. Dat is belangrijk: wie
+   annuleert, houdt het formulier van de vorige gast open — en dan mogen er geen
+   nieuwe gastgegevens overheen worden gezet. */
 function clearCheckinForm(){
-  if(!confirm('Formulier leegmaken? Alles wat je hebt ingevuld gaat weg.')) return;
+  if(!confirm('Formulier leegmaken? Alles wat je hebt ingevuld gaat weg.')) return false;
   document.getElementById('checkinForm').reset();
   document.getElementById('c_id').value = '';
   gekozenArrangementen = []; voorafGekozen = []; serviceGekozen = [];
@@ -3523,6 +3528,7 @@ function clearCheckinForm(){
   toggleVerblijftype();
   updateCheckoutPrijs();
   herberekenAlles();
+  return true;
 }
 
 /* =================== RENDER ALL =================== */
