@@ -2912,7 +2912,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-planyo.js?v=11"></script>
-<script src="bwf-agenda.js?v=1"></script>
 <script src="bwf-kalender.js?v=4"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
@@ -3279,6 +3278,41 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       omschrijving: veld(r,['opmerkingen'],''), titel:'',
       toegewezen: veld(r,['toegewezen'],'') };
   }
+  /* Een boeking uit de tabel `reserveringen`, in dezelfde vorm als hierboven.
+     De suitecode gaat rechtstreeks door hoofdnaam(), die zowel psa/psm/psmd als
+     angie/malina_jacuzzi/malina_deluxe herkent. */
+  var KANAAL_NAAM = { smg:'Privé sauna', booking:'Booking.com', oo:'Origineel Overnachten',
+                      planyo:'Planyo', eigen:'Website', handmatig:'Handmatig' };
+  function lokaalStuk(iso){
+    if(!iso) return { datum:'', tijd:'' };
+    var p = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Amsterdam', year:'numeric',
+      month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false })
+      .format(new Date(iso));
+    return { datum: p.slice(0,10), tijd: p.slice(11,16) };
+  }
+  function uitReservering(r){
+    var a = lokaalStuk(r.aankomst), v = lokaalStuk(r.vertrek);
+    var tIn  = r.incheck_tijd  ? String(r.incheck_tijd).slice(0,5)  : a.tijd;
+    var tUit = r.uitcheck_tijd ? String(r.uitcheck_tijd).slice(0,5) : v.tijd;
+    var arr = Array.isArray(r.arrangementen)
+      ? r.arrangementen.map(function(x){ return (x && x.naam) || x; }).filter(Boolean).join(', ') : '';
+    return { bron:'reservering', bewerkbaar:false, ruw:r, resId:r.id,
+      id: r.id, soort:'reservering',
+      voornaam: r.gast_voornaam||'', achternaam: r.gast_achternaam||'',
+      locatie: r.suite||'',
+      aankomst: a.datum, vertrek: v.datum,
+      start: a.datum + (tIn ? 'T'+tIn+':00' : ''),
+      eind:  v.datum + (tUit ? 'T'+tUit+':00' : ''),
+      tijdIn: tIn, tijdUit: tUit,
+      arrangement: arr, opties:'',
+      telefoon: r.gast_telefoon||'', email: r.gast_email||'',
+      totaal: parseFloat(r.bedrag_totaal||0)||0,
+      reedsBetaald: parseFloat(r.betaald_bedrag||0)||0,
+      bijAankomst: r.restant_bedrag != null ? String(r.restant_bedrag) : '',
+      nummer: r.kanaal_ref||'', personen: r.personen||'',
+      kanaal: KANAAL_NAAM[r.kanaal] || r.kanaal || '',
+      omschrijving: r.omschrijving || r.import_opmerking || '', titel:'', adres:'' };
+  }
   function sleutel(r){
     if(r._sl) return r._sl;
     r._sl = r.bron==='handmatig' ? 'hm-'+r.id
@@ -3517,33 +3551,22 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   async function laden(){
-    var fouten = [], agenda = [], eigen = [];
+    var fouten = [], boekingen = [], eigen = [];
+    /* Alle kanalen staan bij elkaar in `reserveringen`; de import vult die elk
+       kwartier. De Google Agenda en Planyo worden niet meer als bron gelezen. */
     try{
-      var t0 = token();
-      if(!window.BWFAgenda) throw new Error('bwf-agenda.js is niet geladen');
-      if(!t0 || t0 === SB_KEY) throw new Error('Niet ingelogd');
-      window.BWFAgenda.setAccessToken(t0);
-      var json = await window.BWFAgenda.events();
-      if(json.fout) throw new Error(json.fout);
-      agenda = (json.events||[]).map(uitAgenda);
-    }catch(e){ fouten.push('agenda'); }
-
-    /* Planyo is de hoofdbron: ook live uit Planyo lezen (zie reserveringen.html) */
-    try{
-      if(window.BWFPlanyo){
-        var d1 = new Date(); d1.setDate(d1.getDate()-730);
-        var d2 = new Date(); d2.setDate(d2.getDate()+1095);
-        var pj = await BWFPlanyo.reservations(dstr(d1), dstr(d2));
-        (pj.events||[]).forEach(function(ev){
-          if(ev.soort === 'geannuleerd') return;
-          ev.bron = 'Planyo';
-          agenda.push(uitAgenda(ev));
-        });
-      }
-    }catch(e){ fouten.push('planyo'); }
+      var velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
+        'gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,omschrijving,' +
+        'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,notitie,medewerker,' +
+        'borg_bedrag,borg_wijze,borg_ontvangen,borg_terug,borg_ingehouden,borg_afgehandeld,borg_notitie,' +
+        'welkomstcall_id,checkin_id,klant_id,geannuleerd_op,review_taak_id,review_verstuurd,gastlink_verstuurd';
+      var dv = new Date(); dv.setDate(dv.getDate()-365);
+      boekingen = (await sb('reserveringen?select='+velden+'&status=neq.geannuleerd' +
+        '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000')||[]).map(uitReservering);
+    }catch(e){ fouten.push('reserveringen'); }
 
     try{ eigen = (await sb('reservations?select=*&order=checkindatum.desc&limit=3000')||[]).map(uitSupabase); }
-    catch(e){ fouten.push('reserveringen'); }
+    catch(e){ fouten.push('eigen boekingen'); }
 
     try{ KOPPEL={}; (await sb('res_koppeling?select=*&limit=5000')||[])
       .forEach(function(k){ KOPPEL[k.res_sleutel]=k; }); }catch(e){ fouten.push('koppelingen'); }
@@ -3572,7 +3595,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     await laadBlokken();
     await laadLinks();
 
-    ALLES = agenda.concat(eigen).filter(function(r){
+    ALLES = boekingen.concat(eigen).filter(function(r){
       var h = hoofdnaam(r.locatie);
       return h === 'Malina Jacuzzi' || h === 'Malina Deluxe' || h === 'Suite Angie';
     }).sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
@@ -3609,6 +3632,45 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     /* Centraal aangepaste gegevens (reserveringen.html → res_koppeling) gaan
        voor op de agenda: datum, tijd, naam en contact. Zo is één wijziging
        hier, in de kalender en in het reserveringenoverzicht hetzelfde. */
+    /* Wat vroeger in res_koppeling stond, staat nu op de reservering zelf en op
+       de welkomstcall. We zetten het onder dezelfde namen in KOPPEL, zodat de
+       reserveringskaart en de overzichten ongewijzigd blijven werken. Lege
+       waarden overschrijven niets: oude gegevens blijven zichtbaar. */
+    ALLES.forEach(function(r){
+      if(!r.resId) return;
+      var b = r.ruw || {}, sl = sleutel(r), c = null;
+      for(var i=0;i<CALLS.length;i++){
+        if(String(CALLS[i].reservering_id||'') === String(r.resId)){ c = CALLS[i]; break; }
+      }
+      var uit = {
+        res_sleutel: sl, bron: r.bron,
+        gast: [b.gast_voornaam, b.gast_achternaam].filter(Boolean).join(' '),
+        telefoon: b.gast_telefoon, email: b.gast_email, personen: b.personen,
+        arrangement: r.arrangement, totaal: b.bedrag_totaal, betaald: b.betaald_bedrag,
+        tijd_in:  b.incheck_tijd  ? String(b.incheck_tijd).slice(0,5)  : null,
+        tijd_uit: b.uitcheck_tijd ? String(b.uitcheck_tijd).slice(0,5) : null,
+        notitie: b.notitie, medewerker: b.medewerker,
+        klant_id: b.klant_id, checkin_id: b.checkin_id,
+        welkomstcall_id: b.welkomstcall_id || (c ? c.id : null),
+        welkomstcall_gedaan: (c && c.status === 'afgerond')
+          ? String(c.afgerond_op || c.bijgewerkt || '').slice(0,10) : null,
+        borg_bedrag: b.borg_bedrag, borg_wijze: b.borg_wijze, borg_ontvangen: b.borg_ontvangen,
+        borg_terug: b.borg_terug, borg_ingehouden: b.borg_ingehouden,
+        borg_afgehandeld: b.borg_afgehandeld, borg_notitie: b.borg_notitie,
+        wc_extra_bedrag:   c ? c.tijd_bedrag   : null,
+        wc_betaalwijze:    c ? c.betaalwijze   : null,
+        wc_bijzonderheden: c ? c.bijzonderheden : null,
+        review_taak_id: b.review_taak_id, review_verstuurd: b.review_verstuurd,
+        geannuleerd: b.geannuleerd_op
+      };
+      var samen = Object.assign({}, KOPPEL[sl] || {});
+      Object.keys(uit).forEach(function(veldnaam){
+        if(uit[veldnaam] !== null && uit[veldnaam] !== undefined && uit[veldnaam] !== '')
+          samen[veldnaam] = uit[veldnaam];
+      });
+      KOPPEL[sl] = samen;
+    });
+
     ALLES.forEach(function(r){
       var k = KOPPEL[sleutel(r)]; if(!k) return;
       if(k.aankomst) r.aankomst = String(k.aankomst).slice(0,10);
@@ -3661,14 +3723,33 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       aangemaakt: new Date().toISOString()
     };
     if(medewerker) basis.medewerker_id = medewerker;
-    var res = await sb('wz_welkomstcalls?on_conflict=naam,datum', {
-      method: 'POST',
-      prefer: 'resolution=merge-duplicates,return=representation',
-      body: JSON.stringify(basis)
-    });
-    var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
-    await bewaarKoppeling(r, { welkomstcall_id: id, medewerker: medewerker });
-    return id;
+    var res;
+    if(r.resId){
+      /* Eén call per reservering: bestaat hij al, dan wordt hij bijgewerkt. */
+      var bestaand = callVanRes(r);
+      if(bestaand && bestaand.id){
+        res = await sb('wz_welkomstcalls?id=eq.'+encodeURIComponent(bestaand.id), {
+          method:'PATCH', prefer:'return=representation',
+          body: JSON.stringify({ medewerker_id: medewerker || bestaand.medewerker_id || null,
+                                 bijgewerkt: new Date().toISOString() }) });
+      }else{
+        basis.reservering_id = r.resId;
+        res = await sb('wz_welkomstcalls', {
+          method:'POST', prefer:'return=representation', body: JSON.stringify(basis) });
+        if(res && res[0]) CALLS.push(res[0]);
+      }
+      if(medewerker) await bewaarKoppeling(r, { medewerker: medewerker });
+    }else{
+      res = await sb('wz_welkomstcalls?on_conflict=naam,datum', {
+        method: 'POST',
+        prefer: 'resolution=merge-duplicates,return=representation',
+        body: JSON.stringify(basis)
+      });
+      var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
+      await bewaarKoppeling(r, { welkomstcall_id: id, medewerker: medewerker });
+      return id;
+    }
+    return (res && res[0] && res[0].id) ? String(res[0].id) : '';
   }
   document.getElementById('ovCallsKlaar').onclick = async function(){
     var knop = this, lijst = callsTeDoen();
@@ -5143,7 +5224,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var eigen = r.bron === 'handmatig';
       if(!confirm(eigen
         ? 'Deze reservering definitief verwijderen uit de database?'
-        : 'Deze regel uit het overzicht halen?\n\nIn Google Agenda blijft hij staan \u2014 verwijder hem daar ook als hij echt weg moet.')) return;
+        : 'Deze reservering op geannuleerd zetten?\n\nStaat de boeking nog in de feed van het kanaal, dan zet de import hem weer terug \u2014 annuleer hem dan ook bij het kanaal zelf.')) return;
       weg.disabled = true; weg.textContent = 'Bezig\u2026';
       try{
         if(eigen) await sb('reservations?id=eq.'+encodeURIComponent(r.id), { method:'DELETE' });
@@ -5315,13 +5396,64 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
   })();
 
+  /* Waar hoort welk veld thuis? Borg, notitie, tijden en koppelingen staan op de
+     reservering zelf; wat bij het belletje hoort staat op de welkomstcall. De
+     rest (zoals de handmatig gekozen bron) blijft in res_koppeling staan.
+     reserveringen.kanaal raken we niet aan: dat is samen met kanaal_ref de
+     sleutel van de import. */
+  var NAAR_RESERVERING = {
+    borg_bedrag:'borg_bedrag', borg_wijze:'borg_wijze', borg_ontvangen:'borg_ontvangen',
+    borg_terug:'borg_terug', borg_ingehouden:'borg_ingehouden',
+    borg_afgehandeld:'borg_afgehandeld', borg_notitie:'borg_notitie',
+    notitie:'notitie', medewerker:'medewerker', klant_id:'klant_id', checkin_id:'checkin_id',
+    tijd_in:'incheck_tijd', tijd_uit:'uitcheck_tijd',
+    review_taak_id:'review_taak_id', review_verstuurd:'review_verstuurd',
+    gastlink_verstuurd:'gastlink_verstuurd'
+  };
+  var NAAR_CALL = {
+    wc_extra_bedrag:'tijd_bedrag', wc_betaalwijze:'betaalwijze', wc_bijzonderheden:'bijzonderheden'
+  };
   async function bewaarKoppeling(r, wijziging){
     var sl = sleutel(r);
-    var obj = Object.assign({ res_sleutel:sl, bron:r.bron }, wijziging, { bijgewerkt:new Date().toISOString() });
+    var res = {}, call = {}, rest = {}, iets = false;
+    Object.keys(wijziging || {}).forEach(function(v){
+      if(r.resId && NAAR_RESERVERING[v]) { res[NAAR_RESERVERING[v]] = wijziging[v]; iets = true; }
+      else if(r.resId && NAAR_CALL[v])   { call[NAAR_CALL[v]] = wijziging[v]; iets = true; }
+      else rest[v] = wijziging[v];
+    });
+    /* annuleren: op de reservering is dat de status, niet een los datumveld */
+    if(r.resId && Object.prototype.hasOwnProperty.call(wijziging || {}, 'geannuleerd')){
+      res.status = wijziging.geannuleerd ? 'geannuleerd' : 'bevestigd';
+      res.geannuleerd_op = wijziging.geannuleerd || null;
+      delete rest.geannuleerd; iets = true;
+    }
     try{
-      await sb('res_koppeling?on_conflict=res_sleutel',
-        { method:'POST', body:JSON.stringify(obj), prefer:'resolution=merge-duplicates,return=representation' });
-      KOPPEL[sl] = Object.assign({}, KOPPEL[sl]||{}, obj);
+      if(Object.keys(res).length)
+        await sb('reserveringen?id=eq.'+encodeURIComponent(r.resId), { method:'PATCH', body:JSON.stringify(res) });
+      if(Object.keys(call).length){
+        var c = callVanRes(r);
+        if(c && c.id){
+          await sb('wz_welkomstcalls?id=eq.'+encodeURIComponent(c.id), { method:'PATCH',
+            body:JSON.stringify(Object.assign({ bijgewerkt:new Date().toISOString() }, call)) });
+          Object.assign(c, call);
+        }else{
+          var n = naw(r);
+          var nieuw = await sb('wz_welkomstcalls', { method:'POST', prefer:'return=representation',
+            body: JSON.stringify(Object.assign({
+              reservering_id: r.resId, naam: gastnaam(r), telefoon: n.telefoon||'', email: n.email||'',
+              locatie: hoofdnaam(r.locatie), datum: r.aankomst || null, referentie: n.nummer || null,
+              status: 'te bellen', bron: 'dashboard', aangemaakt: new Date().toISOString()
+            }, call)) });
+          if(nieuw && nieuw[0]) CALLS.push(nieuw[0]);
+        }
+      }
+      if(Object.keys(rest).length || !iets){
+        var obj = Object.assign({ res_sleutel:sl, bron:r.bron }, rest, { bijgewerkt:new Date().toISOString() });
+        await sb('res_koppeling?on_conflict=res_sleutel',
+          { method:'POST', body:JSON.stringify(obj), prefer:'resolution=merge-duplicates,return=representation' });
+      }
+      KOPPEL[sl] = Object.assign({}, KOPPEL[sl]||{}, wijziging, { res_sleutel:sl, bron:r.bron });
+      if(r.ruw) Object.assign(r.ruw, res);
       if(window.BWFSync) BWFSync.melden('reservering', { res: sl });
     }catch(e){ melding('Opslaan lukte niet: '+e.message); }
   }
@@ -5330,6 +5462,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var k = kop(r), sl = sleutel(r);
     for(var i=0;i<CALLS.length;i++){
       var c = CALLS[i];
+      /* de vaste koppeling gaat voor */
+      if(r.resId && c.reservering_id && String(c.reservering_id)===String(r.resId)) return c;
+      if(c.reservering_id) continue;      /* hoort bij een andere reservering */
       if(k.welkomstcall_id && String(c.id)===String(k.welkomstcall_id)) return c;
       if(c.res_sleutel && String(c.res_sleutel)===String(sl)) return c;
       if(naw(r).nummer && c.referentie && String(c.referentie)===String(naw(r).nummer)) return c;
@@ -5395,14 +5530,22 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         Object.assign(obj, { naam: gastnaam(r), telefoon: k.telefoon||n.telefoon||'', email: k.email||n.email||'',
           locatie: hoofdnaam(r.locatie), datum: r.aankomst||null, referentie: n.nummer||sleutel(r),
           res_sleutel: sleutel(r), bron:'dashboard', aangemaakt: new Date().toISOString() });
-        res = await sb('wz_welkomstcalls?on_conflict=naam,datum',
-          { method:'POST', prefer:'resolution=merge-duplicates,return=representation', body:JSON.stringify(obj) });
+        if(r.resId){
+          obj.reservering_id = r.resId;
+          res = await sb('wz_welkomstcalls', { method:'POST', prefer:'return=representation', body:JSON.stringify(obj) });
+        }else{
+          res = await sb('wz_welkomstcalls?on_conflict=naam,datum',
+            { method:'POST', prefer:'resolution=merge-duplicates,return=representation', body:JSON.stringify(obj) });
+        }
       }
       var rijData = (res && res[0]) ? res[0] : Object.assign({}, c||{}, obj);
       var gevonden = false;
       CALLS = CALLS.map(function(x){ if(String(x.id)===String(rijData.id)){ gevonden=true; return rijData; } return x; });
       if(!gevonden) CALLS.push(rijData);
-      await bewaarKoppeling(r, { welkomstcall_id: String(rijData.id||''), welkomstcall_gedaan: status==='afgerond' ? dstr(new Date()) : null });
+      /* Bij een reservering staat de koppeling al op de call zelf; dan hoeven we
+         niets in res_koppeling te zetten (en blijft de import de boeking bijwerken). */
+      if(!r.resId)
+        await bewaarKoppeling(r, { welkomstcall_id: String(rijData.id||''), welkomstcall_gedaan: status==='afgerond' ? dstr(new Date()) : null });
       herteken();
       melding(status==='afgerond' ? 'Welkomstcall afgerond.' : 'Welkomstcall op "'+status+'" gezet.', true);
       openCall(r);
@@ -5465,7 +5608,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     try{
       var rec = {
         id: 's'+Date.now()+Math.random().toString(36).slice(2,6),
-        res_sleutel: sleutel(r), klant_id: k.klant_id || null,
+        res_sleutel: sleutel(r), reservering_id: r.resId || null, klant_id: k.klant_id || null,
         gast: document.getElementById('sk-gast').value.trim(),
         email: document.getElementById('sk-email').value.trim(),
         telefoon: document.getElementById('sk-tel').value.trim(),
