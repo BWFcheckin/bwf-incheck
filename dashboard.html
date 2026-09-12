@@ -4969,13 +4969,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       (k.betaalwijze ? '<div class="rij" style="opacity:.7"><span>Betaalwijze</span><span>'+esc(k.betaalwijze)+'</span></div>' : '')+
       '</div>';
 
+    /* De kaart toont de echte stand van de call, niet alleen gedaan of niet, en
+       laat meteen zien wat er besproken is. */
+    var kaartCall = callVanRes(r);
+    var kaartSt = k.welkomstcall_gedaan ? 'afgerond'
+      : (kaartCall && kaartCall.status ? String(kaartCall.status) : (kaartCall ? 'te bellen' : ''));
+    var besproken = veld(kaartCall, ['notities','notitie','opmerkingen','samenvatting'], '') ||
+                    (kaartCall && kaartCall.bijzonderheden) || k.wc_bijzonderheden || '';
+    var wanneer = k.welkomstcall_gedaan
+      ? String(k.welkomstcall_gedaan).slice(0,10).split('-').reverse().join('-')
+      : (kaartCall && kaartCall.afgerond_op ? dtKort(kaartCall.afgerond_op) : '');
+
     h += '<div class="actie" style="display:block">'+
       '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><b>Welkomstcall</b>'+
-      '<span class="vlag '+(call?'ja':'nee')+'">'+(call?'Gedaan':'Nog te doen')+'</span>'+
+      '<span class="vlag '+(call?'ja':'nee')+'">'+esc(callStatusNaam(kaartSt))+
+        (wanneer ? ' <small style="opacity:.7">'+esc(wanneer)+'</small>' : '')+'</span>'+
+      (kaartCall && kaartCall.medewerker_id ? '<span style="font-size:13px;opacity:.7">door '+esc(kaartCall.medewerker_id)+'</span>' : '')+
       '<span class="rechts" style="margin-left:auto;display:flex;gap:8px">'+
         (call ? '<button class="knop klein" type="button" id="rkCallInfo">Wat is besproken</button>' : '')+
         '<button class="knop klein vol" type="button" id="rkCall">'+(call?'Opnieuw openen':'Welkomstcall doen')+'</button>'+
       '</span></div>'+
+      (besproken ? '<div style="margin-top:8px;font-size:13.5px"><b>Besproken:</b> '+esc(besproken)+'</div>' : '')+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
         '<div class="field"><label for="rkWcBedrag">Extra betaald na de call</label>'+
         '<input type="number" id="rkWcBedrag" min="0" step="0.01" value="'+(parseFloat(k.wc_extra_bedrag)||0)+'" style="max-width:140px"></div>'+
