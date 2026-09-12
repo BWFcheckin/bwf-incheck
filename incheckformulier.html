@@ -3373,6 +3373,12 @@ function collectCheckinData(){
   var verblijftypeEl = document.querySelector('input[name="verblijftype"]:checked');
   var split = document.getElementById('c_splitToggle').checked;
   var betaaldTotaal = aanbetaald + betalingenTotaal();
+  /* De keuzelijsten voor betaalwijze zijn in dit scherm verborgen, waardoor er
+     altijd de standaardwaarde werd opgeslagen. We leiden de wijze daarom af uit
+     de betalingen die daadwerkelijk zijn ingevoerd. */
+  var wijzen = betalingen.map(function(b){ return (b && b.wijze) || ''; }).filter(Boolean);
+  var uniekeWijzen = wijzen.filter(function(w, i){ return wijzen.indexOf(w) === i; });
+  var wijzeAfgeleid = uniekeWijzen.length > 1 ? 'Gesplitst' : (uniekeWijzen[0] || '');
   var data = {
     id: existingId || ('c' + Date.now()),
     locatie: document.getElementById('c_locatie').value,
@@ -3398,11 +3404,11 @@ function collectCheckinData(){
     checkout_extra_betaalwijze: document.getElementById('c_checkoutBetaalwijze').value,
     reservering_bedrag: reserveringsBedrag(),
     extras_totaal: extrasTotaal(),
-    extras_betaalwijze: document.getElementById('c_extrasBetaalwijze').value,
+    extras_betaalwijze: document.getElementById('c_extrasBetaalwijze').value || wijzeAfgeleid,
     totaal: totaal,
     aanbetaald: aanbetaald,
     restant: Math.max(0, totaal - betaaldTotaal),
-    betaalwijze: split ? 'Gesplitst' : document.getElementById('c_betaalwijze').value,
+    betaalwijze: split ? 'Gesplitst' : (wijzeAfgeleid || document.getElementById('c_betaalwijze').value),
     split_betaling: split,
     split_bedrag1: split ? parseFloat(document.getElementById('c_split1bedrag').value || 0) : null,
     split_wijze1: split ? document.getElementById('c_split1wijze').value : null,
@@ -3492,7 +3498,10 @@ function laadInConcept(c){
 
   document.getElementById('c_resbedrag').value = c.reservering_bedrag || 0;
   document.getElementById('c_extrasBetaalwijze').value = c.extras_betaalwijze || '';
-  document.getElementById('c_totaal').value = c.totaal || '';
+  /* Met opzet niet voorvullen: een ingevuld totaalveld wint altijd van de
+     berekening, waardoor arrangementen, extra's en betalingen die je hierna
+     toevoegt niet meer meetelden. Een verschil melden we hieronder. */
+  document.getElementById('c_totaal').value = '';
   document.getElementById('c_aanbetaald').value = c.aanbetaald || 0;
   document.getElementById('c_splitToggle').checked = !!c.split_betaling;
   toggleSplitBetaling();
@@ -3515,6 +3524,18 @@ function laadInConcept(c){
   renderGuestStatus();
   buildPersoonSelects();
   herberekenAlles();
+  /* Wijkt het eerder vastgelegde totaal af van wat de berekening nu oplevert,
+     dan zeggen we dat hardop in plaats van stil het oude bedrag aan te houden. */
+  var eerder = parseFloat(c.totaal);
+  if(!isNaN(eerder) && Math.abs(eerder - berekenSubtotaal()) >= 0.01){
+    var melding = document.getElementById('checkinStatus');
+    if(melding){
+      melding.className = 'status';
+      melding.textContent = 'Let op: eerder stond hier ' + euro(eerder) +
+        ', de berekening komt nu op ' + euro(berekenSubtotaal()) +
+        '. Klopt het oude bedrag, vul het dan in bij Totaal.';
+    }
+  }
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
