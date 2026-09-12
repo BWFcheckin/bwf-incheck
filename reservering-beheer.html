@@ -651,6 +651,48 @@ async function openBijlage(pad) {
   window.open(CFG.url + "/storage/v1" + d.signedURL, "_blank", "noopener");
 }
 
+/* Tekst uit een bijlage halen, zodat "Gegevens herkennen" er meteen op kan
+   werken. pdf.js wordt pas geladen als er echt een pdf langskomt. */
+const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+let pdfjsBezig = null;
+function laadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfjsBezig) return pdfjsBezig;
+  pdfjsBezig = new Promise((klaar, fout) => {
+    const s = document.createElement("script");
+    s.src = PDFJS_URL;
+    s.onload = () => {
+      if (!window.pdfjsLib) { fout(new Error("pdf.js is niet geladen")); return; }
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; } catch (e) {}
+      klaar(window.pdfjsLib);
+    };
+    s.onerror = () => fout(new Error("pdf.js is niet bereikbaar"));
+    document.head.appendChild(s);
+  });
+  return pdfjsBezig;
+}
+
+async function tekstUitBestand(f) {
+  const naam = String(f.name || "").toLowerCase();
+  const soort = String(f.type || "");
+  if (/\.(txt|csv|eml)$/.test(naam) || soort.startsWith("text/")) {
+    return (await f.text()).slice(0, 20000);
+  }
+  if (/\.pdf$/.test(naam) || soort === "application/pdf") {
+    const pdfjs = await laadPdfJs();
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+    let uit = "";
+    for (let i = 1; i <= Math.min(doc.numPages, 10); i++) {
+      const bladzijde = await doc.getPage(i);
+      const inhoud = await bladzijde.getTextContent();
+      uit += inhoud.items.map((x) => x.str).join(" ") + "\n";
+    }
+    return uit.slice(0, 20000);
+  }
+  return "";   /* foto's en Excel: alleen bewaren, geen tekst */
+}
+
 async function uploadBijlagen(bestanden) {
   if (!HUIDIG || !magBewerken() || !bestanden.length) return;
   const note = $("#vBestandNote");
@@ -668,6 +710,19 @@ async function uploadBijlagen(bestanden) {
     });
     if (!r.ok) { note.textContent = "Uploaden van " + f.name + " lukte niet (" + r.status + "). Alleen eigenaar en VR mogen bijlagen toevoegen."; return; }
     nieuw.push({ pad, naam: f.name, type: f.type || "", grootte: f.size, toegevoegd: new Date().toISOString(), door: NAAM });
+
+    /* staat het plakveld nog leeg, dan zetten we de tekst uit de bijlage erin */
+    if (!$("#vPlak").value.trim()) {
+      try {
+        const tekst = await tekstUitBestand(f);
+        if (tekst.trim()) {
+          $("#vPlak").value = tekst.trim();
+          note.textContent = "De tekst uit " + f.name + " staat in het plakveld — klik op “Gegevens herkennen”.";
+        }
+      } catch (e) {
+        note.textContent = "De bijlage is bewaard, maar de tekst eruit halen lukte niet: " + e.message;
+      }
+    }
   }
   try {
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id) + "&select=" + KOLOMMEN,
