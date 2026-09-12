@@ -7927,12 +7927,38 @@ const MOLLIE_FUNCTIE = CFG.url.replace(/\/$/,'') + '/functions/v1/mollie-create-
 $('#wcMollieOpen').addEventListener('click', async ()=>{
   const knop = $('#wcMollieOpen'), note = $('#wcMollieNote');
   const f = wcFormulier();
-  const bedrag = Number(f.totaal) || 0;
   const oms = [f.naam || 'gast', f.locatie, f.datum ? dmy(f.datum) : '',
     f.referentie ? 'res. '+f.referentie : ''].filter(Boolean).join(' \u00b7 ');
 
+  /* De link is voor alles wat de gast nog moet betalen: het restant van de
+     boeking, de bijgeboekte extra's en een eventuele toeslag voor eerder
+     inchecken of later uitchecken. */
+  const extras = Number(f.totaal) || 0;
+  const tijdToeslag = Number(f.tijd_bedrag) || 0;
+  let restant = 0;
+  if(wcResId){
+    try{
+      const rij = await api('reserveringen?select=bedrag_totaal,betaald_bedrag,restant_bedrag&id=eq.' +
+                            encodeURIComponent(wcResId));
+      const r0 = rij && rij[0];
+      if(r0){
+        restant = r0.restant_bedrag != null
+          ? (Number(r0.restant_bedrag) || 0)
+          : Math.max(0, (Number(r0.bedrag_totaal) || 0) - (Number(r0.betaald_bedrag) || 0));
+      }
+    }catch(e){ /* geen restant bekend: dan alleen de extra's */ }
+  }
+  const bedrag = Math.round((restant + extras + tijdToeslag) * 100) / 100;
+  const soort = (restant && (extras || tijdToeslag)) ? 'gemengd'
+              : restant ? 'restant'
+              : (tijdToeslag && !extras) ? 'tijd' : 'extras';
+  const opbouw = [restant ? 'restant ' + eur(restant) : '',
+                  extras ? 'extra\'s ' + eur(extras) : '',
+                  tijdToeslag ? 'tijd ' + eur(tijdToeslag) : ''].filter(Boolean).join(' + ');
+
   if(!bedrag){
-    if(note) note.textContent = 'Er staat nog niets bijgeboekt \u2014 vink eerst de extra\'s aan.';
+    if(note) note.textContent = 'Er valt niets te betalen: er staat geen restant open ' +
+      'en er is niets bijgeboekt.';
     return;
   }
 
@@ -7961,6 +7987,9 @@ $('#wcMollieOpen').addEventListener('click', async ()=>{
         bedrag: Number(bedrag.toFixed(2)),
         omschrijving: oms || 'Bed & Wellness Flevoland',
         reservering: f.referentie || '',
+        reservering_id: wcResId || '',        /* vaste koppeling aan de boeking */
+        welkomstcall_id: wcHuidig || '',
+        soort: soort,
         gast: f.naam || ''
       })
     });
@@ -7974,8 +8003,8 @@ $('#wcMollieOpen').addEventListener('click', async ()=>{
     $('#wcBetaallink').value = d.checkoutUrl;
     wcVersTekst(true);
     const test = String(d.mode||'') === 'test';
-    if(note) note.innerHTML = 'Betaallink van <strong>' + eur(bedrag) +
-      '</strong> aangemaakt en in het bericht gezet.' +
+    if(note) note.innerHTML = 'Betaallink van <strong>' + eur(bedrag) + '</strong>' +
+      (opbouw ? ' (' + esc(opbouw) + ')' : '') + ' aangemaakt en in het bericht gezet.' +
       (test ? ' <strong style="color:var(--crit)">Let op: dit is een TESTbetaling</strong> \u2014 ' +
               'in Supabase staat nog een testsleutel bij MOLLIE_API_KEY.'
             : ' Dit is een echte betaling.');
