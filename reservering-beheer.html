@@ -249,6 +249,24 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <small>Wordt bij opslaan toegevoegd aan de brongegevens. "Gegevens herkennen" vult alleen velden die nog leeg zijn.</small></label>
         <div style="margin-top:8px"><button type="button" class="knop sec klein" id="vHerken">Gegevens herkennen</button></div>
         <div class="herkend" id="vHerkend"></div>
+        <label class="veld" style="margin-top:12px">Bijlagen toevoegen
+          <input type="file" id="vBestand" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.eml,.xlsx,.xls,.csv">
+          <small>De bevestiging als pdf, een schermafbeelding of een e-mail. Toevoegen kan door eigenaar en VR; iedereen met toegang kan ze openen.</small></label>
+        <div class="herkend" id="vBestandNote"></div>
+        <ul id="vBijlagen" style="list-style:none;margin:8px 0 0;padding:0;font-size:14px"></ul>
+      </fieldset>
+
+      <fieldset>
+        <legend>Koppelingen</legend>
+        <div id="vKoppelingen" style="font-size:14px">—</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wijzigingslog</legend>
+        <details id="vLogHouder">
+          <summary>Wie heeft wat veranderd</summary>
+          <div id="vLog" style="font-size:13.5px;margin-top:8px">—</div>
+        </details>
       </fieldset>
     </div>
 
@@ -286,8 +304,9 @@ const TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overn
 const STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannuleerd", no_show: "No-show" };
 const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
 const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
-  "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,betaalstatus," +
-  "omschrijving,brongegevens,import_opmerking,gewijzigd_door";
+  "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,betaald_bedrag," +
+  "restant_bedrag,betaalstatus,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
+  "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door";
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
 
 let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = null, ARR_START = "";
@@ -509,10 +528,160 @@ function openVenster(id) {
   const bewerk = magBewerken();
   $("#formulier").querySelectorAll("input,select,textarea").forEach((el) => { el.disabled = !bewerk; });
   ["#vOpslaan", "#vBevestig", "#vHerken"].forEach((s) => { $(s).hidden = !bewerk; });
+
+  /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
+  $("#vBestandNote").textContent = "";
+  vulBijlagen(r);
+  vulKoppelingen(r);
+  vulLog(r);
+
   $("#venster").showModal();
 }
 
 function sluitVenster() { $("#venster").close(); HUIDIG = null; }
+
+/* ---------- koppelingen, bijlagen en wijzigingslog ---------- */
+const BIJLAGE_BUCKET = "reservering-bijlagen";
+const fmtLog = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
+
+/* Namen zoals ze in de log staan, leesbaar gemaakt. */
+const VELDNAAM = {
+  gast_voornaam: "voornaam", gast_achternaam: "achternaam", gast_email: "e-mail", gast_telefoon: "telefoon",
+  personen: "personen", aankomst: "aankomst", vertrek: "vertrek", incheck_tijd: "inchecktijd",
+  uitcheck_tijd: "uitchecktijd", type: "type", tijdsblok_id: "tijdsblok", status: "status",
+  bedrag_totaal: "totaalbedrag", betaald_bedrag: "betaald", restant_bedrag: "restant",
+  betaalstatus: "betaalstatus", arrangementen: "arrangementen", omschrijving: "omschrijving",
+  notitie: "notitie", medewerker: "medewerker", klant_id: "klant", checkin_id: "incheckformulier",
+  welkomstcall_id: "welkomstcall", nachtregister_id: "nachtregister", geannuleerd_op: "geannuleerd op"
+};
+const kort = (v) => { const s = String(v ?? ""); return s.length > 40 ? s.slice(0, 40) + "…" : (s || "leeg"); };
+
+async function vulKoppelingen(r) {
+  const doel = $("#vKoppelingen");
+  doel.textContent = "Laden…";
+  const zacht = (p) => api(p).catch(() => null);
+  try {
+    const [klant, checkin, calls, schade] = await Promise.all([
+      r.klant_id ? zacht("wz_klantbeheer?select=id,voorletters,achternaam,email&id=eq." + encodeURIComponent(r.klant_id)) : null,
+      r.checkin_id ? zacht("checkins?select=id,status,datum&id=eq." + encodeURIComponent(r.checkin_id)) : null,
+      zacht("wz_welkomstcalls?select=id,status,datum,medewerker_id&reservering_id=eq." + encodeURIComponent(r.id)),
+      zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id))
+    ]);
+    const naam = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ");
+    const zoek = r.gast_email || r.gast_telefoon || r.gast_achternaam || "";
+    const regels = [];
+
+    const k = klant && klant[0];
+    regels.push(rijKoppeling("Klant",
+      k ? esc([k.voorletters, k.achternaam].filter(Boolean).join(" ") || k.email || k.id) : "nog niet gekoppeld",
+      "klantbeheer.html" + (zoek ? "?zoek=" + encodeURIComponent(zoek) : ""), "Klantbeheer openen"));
+
+    const c = checkin && checkin[0];
+    regels.push(rijKoppeling("Incheckformulier",
+      c ? esc((c.status || "aangemaakt") + (c.datum ? " · " + c.datum : "")) : "nog niet ingevuld",
+      "incheckformulier.html?reservering=" + encodeURIComponent(r.id), c ? "Openen" : "Aanmaken"));
+
+    const w = calls && calls[0];
+    regels.push(rijKoppeling("Welkomstcall",
+      w ? esc((w.status || "te bellen") + (w.datum ? " · " + w.datum : "") + (w.medewerker_id ? " · " + w.medewerker_id : ""))
+        : "nog geen call",
+      "vr2.html?open=welkomstcall&rid=" + encodeURIComponent(r.id) +
+        (naam ? "&gast=" + encodeURIComponent(naam) : "") + "&suite=" + encodeURIComponent(r.suite || ""),
+      w ? "Openen" : "Call maken"));
+
+    regels.push(rijKoppeling("Nachtregister",
+      r.nachtregister_id ? "toegevoegd" : "nog niet toegevoegd", "", ""));
+
+    const s = (schade || []).filter(Boolean);
+    regels.push(rijKoppeling("Schade",
+      s.length ? esc(s.map((x) => (x.omschrijving || "schade") + (x.bedrag ? " · € " + euro(x.bedrag) : "")).join("; ")) : "geen",
+      "", ""));
+
+    doel.innerHTML = regels.join("");
+  } catch (e) {
+    doel.textContent = "Koppelingen konden niet worden geladen: " + e.message;
+  }
+}
+
+function rijKoppeling(kop, waarde, link, knop) {
+  return '<div style="display:flex;gap:10px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--lijn,#eee)">' +
+    '<b style="min-width:150px">' + esc(kop) + "</b><span style=\"flex:1\">" + waarde + "</span>" +
+    (link ? '<a class="knop sec klein" href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(knop) + "</a>" : "") +
+    "</div>";
+}
+
+async function vulLog(r) {
+  const doel = $("#vLog");
+  doel.textContent = "Laden…";
+  try {
+    const rijen = await api("reservering_log?select=wanneer,door,veld,oud,nieuw&reservering_id=eq." +
+      encodeURIComponent(r.id) + "&order=wanneer.desc&limit=25");
+    if (!rijen || !rijen.length) { doel.textContent = "Nog geen wijzigingen vastgelegd."; return; }
+    doel.innerHTML = rijen.map((x) =>
+      '<div style="padding:3px 0"><span style="opacity:.7">' + esc(fmtLog.format(new Date(x.wanneer))) + " · " +
+      esc(x.door || "onbekend") + "</span> — " + esc(VELDNAAM[x.veld] || x.veld) + ": " +
+      esc(kort(x.oud)) + " → <b>" + esc(kort(x.nieuw)) + "</b></div>").join("");
+  } catch (e) {
+    doel.textContent = "De wijzigingslog kon niet worden geladen: " + e.message;
+  }
+}
+
+const bijlagenVan = (r) => (Array.isArray(r.bron_bestanden) ? r.bron_bestanden : []);
+
+function vulBijlagen(r) {
+  const doel = $("#vBijlagen");
+  const lijst = bijlagenVan(r);
+  doel.innerHTML = lijst.length
+    ? lijst.map((b, i) => '<li style="padding:3px 0">' +
+        '<a href="#" data-bijlage="' + i + '">' + esc(b.naam || b.pad) + "</a>" +
+        (b.toegevoegd ? ' <span style="opacity:.6">· ' + esc(String(b.toegevoegd).slice(0, 10)) + "</span>" : "") + "</li>").join("")
+    : '<li style="opacity:.6">Nog geen bijlagen.</li>';
+}
+
+/* De bucket is niet openbaar: we vragen per keer een tijdelijke link op. */
+async function openBijlage(pad) {
+  const token = await geldigToken();
+  const r = await fetch(CFG.url + "/storage/v1/object/sign/" + BIJLAGE_BUCKET + "/" + pad, {
+    method: "POST",
+    headers: { apikey: CFG.key, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: 3600 })
+  });
+  if (!r.ok) throw new Error("De bijlage kon niet worden geopend (" + r.status + ").");
+  const d = await r.json();
+  window.open(CFG.url + "/storage/v1" + d.signedURL, "_blank", "noopener");
+}
+
+async function uploadBijlagen(bestanden) {
+  if (!HUIDIG || !magBewerken() || !bestanden.length) return;
+  const note = $("#vBestandNote");
+  const token = await geldigToken();
+  const nieuw = bijlagenVan(HUIDIG).slice();
+  for (const f of bestanden) {
+    if (f.size > 20 * 1024 * 1024) { note.textContent = f.name + " is groter dan 20 MB en is overgeslagen."; continue; }
+    note.textContent = "Bezig met " + f.name + "…";
+    const veilig = f.name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-");
+    const pad = HUIDIG.id + "/" + Date.now() + "-" + veilig;
+    const r = await fetch(CFG.url + "/storage/v1/object/" + BIJLAGE_BUCKET + "/" + encodeURIComponent(pad), {
+      method: "POST",
+      headers: { apikey: CFG.key, Authorization: "Bearer " + token, "Content-Type": f.type || "application/octet-stream", "x-upsert": "true" },
+      body: f
+    });
+    if (!r.ok) { note.textContent = "Uploaden van " + f.name + " lukte niet (" + r.status + "). Alleen eigenaar en VR mogen bijlagen toevoegen."; return; }
+    nieuw.push({ pad, naam: f.name, type: f.type || "", grootte: f.size, toegevoegd: new Date().toISOString(), door: NAAM });
+  }
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { bron_bestanden: nieuw, gewijzigd_door: NAAM } });
+    if (rij && rij[0]) {
+      HUIDIG = rij[0];
+      RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+      vulBijlagen(HUIDIG);
+      note.textContent = nieuw.length + (nieuw.length === 1 ? " bijlage" : " bijlagen") + " bewaard.";
+    }
+  } catch (e) {
+    note.textContent = "De bijlage is geüpload, maar vastleggen bij de reservering lukte niet: " + e.message;
+  }
+}
 
 function leesBedrag(tekst) {
   let s = String(tekst || "").replace(/[€\s]/g, "");
@@ -740,6 +909,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (b) $("#vType").value = b.type;
   });
   $("#vHerken").addEventListener("click", pasHerkenningToe);
+  $("#vBestand").addEventListener("change", (e) => {
+    const bestanden = Array.from(e.target.files || []);
+    e.target.value = "";
+    uploadBijlagen(bestanden);
+  });
+  $("#vBijlagen").addEventListener("click", (e) => {
+    const a = e.target.closest("[data-bijlage]");
+    if (!a) return;
+    e.preventDefault();
+    const b = bijlagenVan(HUIDIG)[Number(a.getAttribute("data-bijlage"))];
+    if (b) openBijlage(b.pad).catch((err) => { $("#vBestandNote").textContent = err.message; });
+  });
   $("#vOpslaan").addEventListener("click", () => bewaar(false));
   $("#vBevestig").addEventListener("click", () => bewaar(true));
   /* nooit per ongeluk "verzenden" (sluit het venster zonder op te slaan) */
