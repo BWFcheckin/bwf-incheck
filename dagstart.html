@@ -220,7 +220,6 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
   </form>
 </dialog>
 
-<script src="bwf-agenda.js?v=1"></script>
 <script src="bwf-account.js?v=1"></script>
 <script>
 /* =========================================================
@@ -635,15 +634,26 @@ function vrLink(c){
 }
 
 /* ---------- een welkomstcall aan een reservering koppelen ----------
-   Er wordt gezocht in de eigen reserveringen en in de koppelingen. Bij het
-   koppelen wordt het nummer van de call in res_koppeling gezet, waardoor de
-   gegevens ook bij de reservering zichtbaar worden. */
-let RESERVERINGEN = [], KOPPELINGEN = [];
+   Er wordt gezocht in de boekingen van de laatste 30 dagen en verder. Bij het
+   koppelen komt reservering_id op de welkomstcall te staan; daarmee weten alle
+   pagina's welke call bij welke boeking hoort. */
+let RESERVERINGEN = [];
 
+/* De boekingen staan in `reserveringen`; res_koppeling en de Google Agenda
+   zijn hier niet meer nodig. */
+const SUITE_NAAM = { angie:'Suite Angie', malina_jacuzzi:'Malina Jacuzzi', malina_deluxe:'Malina Deluxe' };
+function dagVan(iso){
+  if(!iso) return '';
+  return new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Amsterdam', year:'numeric',
+    month:'2-digit', day:'2-digit' }).format(new Date(iso));
+}
 async function laadKoppelbronnen(){
-  if(RESERVERINGEN.length || KOPPELINGEN.length) return;
-  RESERVERINGEN = await haal('reservations?select=id,voornaam,achternaam,locatie,checkindatum&limit=2000', 'reserveringen');
-  KOPPELINGEN = await haal('res_koppeling?select=res_sleutel,gast,aankomst,welkomstcall_id&limit=5000', 'koppelingen');
+  if(RESERVERINGEN.length) return;
+  const velden = 'id,suite,kanaal,kanaal_ref,aankomst,gast_voornaam,gast_achternaam,welkomstcall_id';
+  const eerder = new Date(); eerder.setDate(eerder.getDate() - 30);
+  RESERVERINGEN = await haal('reserveringen?select=' + velden + '&status=neq.geannuleerd' +
+    '&aankomst=gte.' + eerder.toISOString().slice(0,10) +
+    '&order=aankomst.asc&limit=1000', 'reserveringen');
 }
 
 async function koppelZoeken(){
@@ -657,16 +667,13 @@ async function koppelZoeken(){
     if(q.length < 2){ doel.innerHTML = '<span style="font-size:12.5px;color:var(--muted)">' +
       'Typ een naam of datum om te zoeken.</span>'; return; }
 
-    const uitRes = RESERVERINGEN.map(function(r){
-      return { sleutel:'hm-' + r.id,
-        naam: ((r.voornaam || '') + ' ' + (r.achternaam || '')).trim(),
-        datum: r.checkindatum, locatie: r.locatie };
-    });
-    const uitKop = KOPPELINGEN.map(function(k){
-      return { sleutel:k.res_sleutel, naam:k.gast || '', datum:k.aankomst,
-        locatie:k.locatie, alGekoppeld: !!k.welkomstcall_id };
-    });
-    const alles = uitRes.concat(uitKop).filter(function(x){
+    const alles = RESERVERINGEN.map(function(r){
+      return { sleutel: r.id,
+        naam: ((r.gast_voornaam || '') + ' ' + (r.gast_achternaam || '')).trim(),
+        datum: dagVan(r.aankomst),
+        locatie: SUITE_NAAM[r.suite] || r.suite || '',
+        alGekoppeld: !!r.welkomstcall_id };
+    }).filter(function(x){
       return ((x.naam || '') + ' ' + (x.datum || '')).toLowerCase().indexOf(q) > -1;
     }).slice(0, 6);
 
@@ -691,10 +698,9 @@ async function koppelZoeken(){
       m.style.color = ''; m.textContent = 'Bezig met koppelen\u2026';
       let id = BEWERK.rij.id;
       if(!id){ await bewaren(); return; }   /* eerst opslaan, dan koppelen */
-      await schrijf('res_koppeling?on_conflict=res_sleutel', 'POST', {
-        res_sleutel: b.getAttribute('data-koppel'),
-        bron: 'welkomstcall',
-        welkomstcall_id: String(id),
+      /* de koppeling staat op de welkomstcall zelf: één call per reservering */
+      await schrijf('wz_welkomstcalls?id=eq.' + encodeURIComponent(id), 'PATCH', {
+        reservering_id: b.getAttribute('data-koppel'),
         bijgewerkt: new Date().toISOString()
       });
       m.style.color = 'var(--ok)';
