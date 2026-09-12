@@ -1478,7 +1478,9 @@ function confirmGuestForm(){
   const akkoord = document.getElementById('g_akkoord').checked;
   const akkoordvw = document.getElementById('g_akkoordvw').checked;
   const lidEl = document.querySelector('input[name="g_lid"]:checked');
-  const handtekening = getSignatureData();
+  /* Heeft de gast al getekend en is er niets nieuws bijgekomen, dan houden we
+     die handtekening; hij mag niet verloren gaan door het venster te openen. */
+  const handtekening = getSignatureData() || (guestData && guestData.handtekening) || null;
 
   const missing = [];
   if(!voornaam) missing.push('Voornaam');
@@ -2857,6 +2859,17 @@ function openGuestModal(){
     document.getElementById('g_akkoordvw').checked = !!g.akkoord_voorwaarden;
     var lid = !!g.lid;
     document.querySelectorAll('input[name="g_lid"]').forEach(function(r){ r.checked = (r.value === (lid ? 'ja' : 'nee')); });
+  }
+  /* De handtekening die de gast zelf heeft gezet terugzetten op het vel. Zonder
+     dit lijkt het vel leeg, wordt er een nieuwe krabbel overheen gezet en is de
+     echte handtekening van de gast verdwenen. */
+  clearSignature();
+  if(g && g.handtekening){
+    var vel = document.getElementById('g_sigpad');
+    var afb = new Image();
+    afb.onload = function(){ try{ sigCtx.drawImage(afb, 0, 0, vel.width, vel.height); }catch(e){} };
+    afb.src = g.handtekening;
+    sigHasContent = true;
   }
   openModal('guestModal');
 }
