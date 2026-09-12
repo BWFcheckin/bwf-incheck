@@ -5748,9 +5748,24 @@ async function wcAutoAanmaken(){
     });                                                        /* zonder naam niet aanmaken */
     for(const r of nieuw.slice(0, 40)){                        /* rustig aan, max 40 per keer */
       const aan = wcLokaal(r.aankomst), uit = wcLokaal(r.vertrek);
+      const volledig = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(' ');
+      /* Uit de oude agenda-automatiek staan er nog calls zonder koppeling. Hoort
+         zo'n call bij deze boeking, dan koppelen we hem in plaats van een tweede
+         call te maken. Locatie moet kloppen als die is ingevuld. */
+      const los = (S.calls||[]).find(c => !c.reservering_id && (
+        (r.kanaal_ref && c.referentie && String(c.referentie) === String(r.kanaal_ref)) ||
+        (String(c.datum||'').slice(0,10) === aan.datum &&
+         String(c.naam||'').trim().toLowerCase() === volledig.trim().toLowerCase() &&
+         (!c.locatie || c.locatie === (WC_SUITE_LOC[r.suite] || '')))
+      ));
+      if(los){
+        await wijzig('calls', los.id, { reservering_id: r.id });
+        heeft.add(r.id);
+        continue;
+      }
       await maak('calls', {
         reservering_id: r.id,
-        naam: [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(' '),
+        naam: volledig,
         voornaam: r.gast_voornaam || null, achternaam: r.gast_achternaam || null,
         telefoon: r.gast_telefoon || null, email: r.gast_email || null,
         locatie: WC_SUITE_LOC[r.suite] || null,
