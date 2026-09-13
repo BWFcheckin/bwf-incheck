@@ -108,7 +108,17 @@
       "table{min-width:560px}",
       "#bwfPaneel{width:min(320px,92vw)}",
     "}",
-    "@media print{#bwfBalk,#bwfPaneel,#bwfLaag{display:none!important}body{padding-top:0!important}}"
+    /* ---- op een breed scherm staat het menu vast aan de zijkant ---- */
+    "@media(min-width:1200px){",
+      "#bwfPaneel{display:block;top:var(--bwfbalk);width:250px;border-right:1px solid var(--line,#dfe6ef);",
+        "box-shadow:none;height:calc(100dvh - var(--bwfbalk))}",
+      "body{padding-left:250px!important}",
+      "body.gate-open,body.bwf-vergrendeld{padding-left:0!important}",
+      "#bwfLaag{display:none!important}",
+      "#bwfBalk{left:250px}",
+      "#bwfMenuBtn{display:none}",
+    "}",
+    "@media print{#bwfBalk,#bwfPaneel,#bwfLaag{display:none!important}body{padding-top:0!important;padding-left:0!important}}"
   ].join("");
   (document.head || document.documentElement).appendChild(css);
 
@@ -195,6 +205,9 @@
     document.body.appendChild(paneel);
     document.body.appendChild(balk);
     document.getElementById("bwfTitel").textContent = paginaNaam();
+    /* Op een breed scherm staat het menu vast aan de zijkant; dan moet het
+       meteen gevuld zijn en niet pas na een klik op Menu. */
+    vulPaneel();
 
     document.getElementById("bwfMenuBtn").addEventListener("click", function(){
       paneel.classList.contains("open") ? sluit() : open();

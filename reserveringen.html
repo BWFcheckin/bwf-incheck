@@ -363,6 +363,8 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
 
     <div class="v-voet">
       <span class="v-melding" id="vMelding"></span>
+      <button type="button" class="knop sec" id="vVerwijder"
+        style="border-color:var(--crit);color:var(--crit)" hidden>Verwijderen</button>
       <button type="button" class="knop sec" id="vAnnuleer">Annuleren</button>
       <button type="button" class="knop sec" id="vOpslaan">Opslaan</button>
       <button type="button" class="knop" id="vBevestig">Bevestigd</button>
@@ -657,6 +659,7 @@ function openVenster(id) {
   $("#vOpslaan").hidden = !(bewerk || beperkt);
   $("#vHerken").hidden  = !(bewerk || beperkt);
   $("#vBevestig").hidden = !bewerk;
+  $("#vVerwijder").hidden = !bewerk;
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
   $("#vBestandNote").textContent = "";
@@ -961,6 +964,37 @@ async function bewaar(bevestig) {
     $("#vMelding").textContent = e.message;
   }
   knoppen.forEach((k) => { k.disabled = false; });
+}
+
+/* Een dubbele reservering weghalen. Wat verdwijnt wordt eerst vastgelegd in de
+   wijzigingslog. Staat de boeking nog in de feed van een kanaal, dan zet de
+   import hem terug: dan is annuleren de juiste weg. */
+async function verwijderReservering() {
+  if (!HUIDIG || !magBewerken()) return;
+  const uitFeed = ["smg", "booking", "oo"].includes(HUIDIG.kanaal);
+  const naam = gastNaam(HUIDIG) || "deze reservering";
+  const waarschuwing = uitFeed
+    ? "\n\nLet op: deze boeking komt uit " + (KANALEN[HUIDIG.kanaal] || HUIDIG.kanaal) +
+      ". Staat hij daar nog, dan zet de import hem bij de volgende ronde terug. " +
+      "Zet hem in dat geval liever op Geannuleerd."
+    : "";
+  if (!confirm("Reservering van " + naam + " (" + resNummer(HUIDIG) + ") verwijderen?" +
+      "\n\nDit kan niet ongedaan worden gemaakt. In de wijzigingslog blijft staan wat er weg is." +
+      waarschuwing)) return;
+
+  const knop = $("#vVerwijder");
+  knop.disabled = true;
+  try {
+    await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id), { method: "DELETE" });
+    const weg = HUIDIG.id;
+    RIJEN = RIJEN.filter((x) => x.id !== weg);
+    sluitVenster();
+    teken();
+    melding("Reservering van " + naam + " is verwijderd.");
+  } catch (e) {
+    $("#vMelding").textContent = "Verwijderen lukte niet: " + e.message;
+  }
+  knop.disabled = false;
 }
 
 async function snelBevestigen(id, knop) {
@@ -1343,6 +1377,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (b) openBijlage(b.pad).catch((err) => { $("#vBestandNote").textContent = err.message; });
   });
   $("#vOpslaan").addEventListener("click", () => bewaar(false));
+  $("#vVerwijder").addEventListener("click", verwijderReservering);
   $("#vBevestig").addEventListener("click", () => bewaar(true));
   /* nooit per ongeluk "verzenden" (sluit het venster zonder op te slaan) */
   $("#formulier").addEventListener("submit", (e) => e.preventDefault());
