@@ -1735,6 +1735,7 @@ async function saveCheckin(alsConcept){
     throw new Error('Gastgegevens ontbreken');
   }
   const data = collectCheckinData();
+  let koppelMelding = false;   /* koppelen aan de reservering geweigerd (rechten) */
   data.status = alsConcept ? 'concept' : 'definitief';
   const isEdit = !!document.getElementById('c_id').value && checkins.some(c=>c.id===data.id);
   statusEl.textContent = 'Bezig met opslaan...';
@@ -1750,17 +1751,24 @@ async function saveCheckin(alsConcept){
        de reserveringskaart meteen zien dat er is ingecheckt */
     if(gekoppeld && gekoppeld.resId){
       try{
-        await sb('reserveringen?id=eq.' + encodeURIComponent(gekoppeld.resId),
+        /* Een geweigerde koppeling geeft geen foutmelding maar een leeg
+           antwoord. Dat overkomt een locatiemanager: die mag het formulier wel
+           opslaan, maar de reservering niet koppelen. */
+        var gekop = await sb('reserveringen?id=eq.' + encodeURIComponent(gekoppeld.resId) + '&select=id',
           { method:'PATCH', body: JSON.stringify({ checkin_id: data.id }) });
-      }catch(e){ console.warn('koppelen aan de reservering lukte niet:', e.message); }
+        if(!gekop || !gekop.length) koppelMelding = true;
+      }catch(e){ koppelMelding = true; console.warn('koppelen aan de reservering lukte niet:', e.message); }
     }
     if(!alsConcept) await verwerkteAanmeldingWegstrepen(data.id);
     await loadCheckins();
     renderCheckinTable();
     renderConcepten();
-    statusEl.textContent = alsConcept
+    statusEl.textContent = (alsConcept
       ? '✓ Opgeslagen als concept. Je kunt er nu een persoonlijke gastenlink aan koppelen.'
-      : `✓ Incheckformulier ${isEdit ? 'bijgewerkt' : 'opgeslagen'}.`;
+      : `✓ Incheckformulier ${isEdit ? 'bijgewerkt' : 'opgeslagen'}.`)
+      + (koppelMelding
+         ? ' Let op: vastzetten bij de reservering mocht niet met jouw account — vraag Kelly of Angela om te koppelen.'
+         : '');
     statusEl.className = 'status ok';
     return data;
   }catch(err){

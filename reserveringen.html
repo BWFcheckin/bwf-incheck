@@ -405,6 +405,12 @@ let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = nul
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const magBewerken = () => ROL === "eigenaar" || ROL === "vr";
+/* Een locatiemanager mag bij de eigen suites alleen gastgegevens, personen en
+   de in- en uitchecktijden aanvullen. De database bewaakt dat ook: alles wat
+   hij verder meestuurt wordt daar teruggezet op de oude waarde. */
+const magBeperkt = () => ROL === "locatiemanager";
+const BEPERKTE_VELDEN = ["vVoornaam", "vAchternaam", "vEmail", "vTelefoon", "vPersonen",
+                         "vIncheck", "vUitcheck", "vPlak"];
 
 /* Eén reserveringsnummer voor iedereen: het nummer van het kanaal als dat er is,
    anders de eerste acht tekens van het id. Dezelfde regel staat in
@@ -639,8 +645,13 @@ function openVenster(id) {
   $("#vMelding").textContent = "";
 
   const bewerk = magBewerken();
-  $("#formulier").querySelectorAll("input,select,textarea").forEach((el) => { el.disabled = !bewerk; });
-  ["#vOpslaan", "#vBevestig", "#vHerken"].forEach((s) => { $(s).hidden = !bewerk; });
+  const beperkt = !bewerk && magBeperkt();
+  $("#formulier").querySelectorAll("input,select,textarea").forEach((el) => {
+    el.disabled = !(bewerk || (beperkt && BEPERKTE_VELDEN.includes(el.id)));
+  });
+  $("#vOpslaan").hidden = !(bewerk || beperkt);
+  $("#vHerken").hidden  = !(bewerk || beperkt);
+  $("#vBevestig").hidden = !bewerk;
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
   $("#vBestandNote").textContent = "";
@@ -926,7 +937,7 @@ function formWaarden() {
 }
 
 async function bewaar(bevestig) {
-  if (!HUIDIG || !magBewerken()) return;
+  if (!HUIDIG || !(magBewerken() || magBeperkt())) return;
   const knoppen = [$("#vOpslaan"), $("#vBevestig")];
   $("#vMelding").textContent = "";
   let d;
@@ -1232,7 +1243,9 @@ async function start() {
     $("#lijst").innerHTML = '<tr><td colspan="8" class="leeg">Geen toegang.</td></tr>';
     return;
   }
-  if (!magBewerken()) melding("Je kunt reserveringen van je eigen suites bekijken, maar niet wijzigen.");
+  if (magBeperkt()) melding("Je kunt bij je eigen suites de gastgegevens, het aantal personen en de in- en uitchecktijden aanvullen. " +
+    "Bedragen, status en annuleren doet Kelly of Angela.");
+  else if (!magBewerken()) melding("Je kunt reserveringen van je eigen suites bekijken, maar niet wijzigen.");
   $("#iSuite").insertAdjacentHTML("beforeend", Object.entries(SUITES).map(([w, s]) =>
     '<option value="' + w + '">' + esc(s.naam) + "</option>").join(""));
   vulNieuwKeuzes();
