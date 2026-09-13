@@ -310,8 +310,8 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <div class="raster">
           <label class="veld">Tijdsblok <select id="vBlok"></select></label>
           <label class="veld">Type <select id="vType"></select></label>
-          <label class="veld">Incheck-tijd <input id="vIncheck" type="time"><small>alleen bij afwijking van het tijdsblok</small></label>
-          <label class="veld">Uitcheck-tijd <input id="vUitcheck" type="time"><small>alleen bij afwijking van het tijdsblok</small></label>
+          <label class="veld">Incheck-tijd <input id="vIncheck" type="time"><small>staat voorgevuld op de tijd van de boeking; pas aan als het afwijkt</small></label>
+          <label class="veld">Uitcheck-tijd <input id="vUitcheck" type="time"><small>staat voorgevuld op de tijd van de boeking; pas aan als het afwijkt</small></label>
         </div>
       </fieldset>
 
@@ -521,6 +521,9 @@ const gastOntbreekt = (r) => !(r.gast_voornaam || r.gast_achternaam) || !(r.gast
 const tijdenControleren = (r) => !!r.import_opmerking && r.import_opmerking !== IMPORT_REGEL;
 const gecontroleerd = (r) => !!r.gewijzigd_door && r.gewijzigd_door !== "kanalen-sync";
 
+/* De tijd van de boeking zelf, voor als er geen afwijkende tijd is vastgelegd. */
+const tijdVan = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : fmtTijd.format(d); };
+
 function periode(r) {
   const a = new Date(r.aankomst), v = new Date(r.vertrek);
   const dagA = fmtDag.format(a), dagV = fmtDag.format(v);
@@ -628,8 +631,10 @@ function openVenster(id) {
   $("#vPersonen").value = r.personen ?? "";
   vulBlokken(r.suite, r.tijdsblok_id);
   $("#vType").innerHTML = opties(TYPES, r.type);
-  $("#vIncheck").value = hhmm(r.incheck_tijd);
-  $("#vUitcheck").value = hhmm(r.uitcheck_tijd);
+  /* Altijd een tijd laten zien: is er geen afwijkende tijd vastgelegd, dan de
+     tijd van de boeking zelf. Zo staat er nooit een leeg tijdveld. */
+  $("#vIncheck").value = hhmm(r.incheck_tijd) || tijdVan(r.aankomst);
+  $("#vUitcheck").value = hhmm(r.uitcheck_tijd) || tijdVan(r.vertrek);
   ARR_START = (Array.isArray(r.arrangementen) ? r.arrangementen : []).map((a) =>
     typeof a === "string" ? a : [a.aantal > 1 ? a.aantal + "× " : "", a.naam || a.tekst || ""].join("")).join("\n");
   $("#vArr").value = ARR_START;
