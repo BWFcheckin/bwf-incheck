@@ -117,6 +117,8 @@
       "#bwfLaag{display:none!important}",
       "#bwfBalk{left:250px}",
       "#bwfMenuBtn{display:none}",
+      /* balken die een pagina zelf onderaan vastzet, niet onder het menu door */
+      "#bwfTerugBalk{left:250px}",
     "}",
     "@media print{#bwfBalk,#bwfPaneel,#bwfLaag{display:none!important}body{padding-top:0!important;padding-left:0!important}}"
   ].join("");
