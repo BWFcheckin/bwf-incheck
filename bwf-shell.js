@@ -19,7 +19,7 @@
       { naam: "Agenda",             bestand: "agenda.html" },
       { naam: "Dagoverzicht",       bestand: "dagoverzicht.html" },
       { naam: "Reserveringen",      bestand: "reserveringen.html" },
-      { naam: "Reservering aanmaken", bestand: "reservering-aanmaken.html" },
+      { naam: "Reservering aanmaken", bestand: "reserveringen.html?tab=nieuw" },
       { naam: "Incheckformulier",   bestand: "incheckformulier.html" },
       { naam: "Gastenlink",         bestand: "gast.html" }
     ]},
