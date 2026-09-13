@@ -681,6 +681,21 @@ function laadPdfJs() {
   return pdfjsBezig;
 }
 
+const XLSX_URL = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+let xlsxBezig = null;
+function laadXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (xlsxBezig) return xlsxBezig;
+  xlsxBezig = new Promise((klaar, fout) => {
+    const s = document.createElement("script");
+    s.src = XLSX_URL;
+    s.onload = () => (window.XLSX ? klaar(window.XLSX) : fout(new Error("Excel-lezer is niet geladen")));
+    s.onerror = () => fout(new Error("Excel-lezer is niet bereikbaar"));
+    document.head.appendChild(s);
+  });
+  return xlsxBezig;
+}
+
 async function tekstUitBestand(f) {
   const naam = String(f.name || "").toLowerCase();
   const soort = String(f.type || "");
@@ -698,7 +713,14 @@ async function tekstUitBestand(f) {
     }
     return uit.slice(0, 20000);
   }
-  return "";   /* foto's en Excel: alleen bewaren, geen tekst */
+  if (/\.(xlsx|xlsm|xls)$/.test(naam)) {
+    const XLSX = await laadXlsx();
+    const boek = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type: "array" });
+    let uit = "";
+    boek.SheetNames.slice(0, 3).forEach((blad) => { uit += XLSX.utils.sheet_to_csv(boek.Sheets[blad]) + "\n"; });
+    return uit.slice(0, 20000);
+  }
+  return "";   /* foto's: alleen bewaren, daar valt geen tekst uit te halen */
 }
 
 async function uploadBijlagen(bestanden) {
