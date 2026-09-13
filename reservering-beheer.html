@@ -561,11 +561,13 @@ async function vulKoppelingen(r) {
   doel.textContent = "Laden…";
   const zacht = (p) => api(p).catch(() => null);
   try {
-    const [klant, checkin, calls, schade] = await Promise.all([
+    const [klant, checkin, calls, schade, gekoppeldeForms] = await Promise.all([
       r.klant_id ? zacht("wz_klantbeheer?select=id,voorletters,achternaam,email&id=eq." + encodeURIComponent(r.klant_id)) : null,
       r.checkin_id ? zacht("checkins?select=id,status,datum&id=eq." + encodeURIComponent(r.checkin_id)) : null,
       zacht("wz_welkomstcalls?select=id,status,datum,medewerker_id&reservering_id=eq." + encodeURIComponent(r.id)),
-      zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id))
+      zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id)),
+      zacht("checkins?select=id,status,datum&gekoppelde_reservering=eq." +
+            encodeURIComponent("reservering:" + r.id) + "&order=created_at.desc&limit=5")
     ]);
     const naam = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ");
     const zoek = r.gast_email || r.gast_telefoon || r.gast_achternaam || "";
@@ -576,10 +578,16 @@ async function vulKoppelingen(r) {
       k ? esc([k.voorletters, k.achternaam].filter(Boolean).join(" ") || k.email || k.id) : "nog niet gekoppeld",
       "klantbeheer.html" + (zoek ? "?zoek=" + encodeURIComponent(zoek) : ""), "Klantbeheer openen"));
 
-    const c = checkin && checkin[0];
+    /* Drie staten: klaargezet (concept), definitief, of nog geen formulier. */
+    const forms = [].concat(checkin || [], gekoppeldeForms || []).filter(Boolean);
+    const definitief = forms.find((x) => x.status === "definitief");
+    const concept = forms.find((x) => x.status === "concept");
     regels.push(rijKoppeling("Incheckformulier",
-      c ? esc((c.status || "aangemaakt") + (c.datum ? " · " + c.datum : "")) : "nog niet ingevuld",
-      "incheckformulier.html?reservering=" + encodeURIComponent(r.id), c ? "Openen" : "Aanmaken"));
+      definitief ? esc("definitief" + (definitief.datum ? " · " + definitief.datum : ""))
+        : concept ? esc("klaargezet, nog niet afgerond" + (concept.datum ? " · " + concept.datum : ""))
+        : "nog geen formulier",
+      "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
+      (definitief || concept) ? "Openen" : "Aanmaken"));
 
     const w = calls && calls[0];
     regels.push(rijKoppeling("Welkomstcall",

@@ -2072,11 +2072,22 @@ async function klantUitGastgegevens(){
   }
   var eigenId = document.getElementById('c_id').value || ('los' + Date.now());
   try{
-    await sb('wz_klantbeheer', {
-      method: 'POST',
-      prefer: 'resolution=merge-duplicates,return=minimal',
-      body: JSON.stringify([{
-        id: 'ci-' + eigenId,
+    /* Eerst kijken of deze gast al in het bestand staat. Zonder dit kreeg
+       dezelfde gast bij elk bezoek een nieuwe klantregel. */
+    var zoekMail = String(g.email || '').trim().toLowerCase();
+    var zoekTel = String(g.telefoon || '').replace(/\D/g, '').slice(-9);
+    var bestaand = null;
+    var velden = 'select=id,voornaam,achternaam,email,telefoon,woonplaats,nationaliteit,member,type';
+    if(zoekMail){
+      var opMail = await sb('wz_klantbeheer?' + velden + '&email=eq.' + encodeURIComponent(zoekMail) + '&limit=1');
+      bestaand = opMail && opMail[0];
+    }
+    if(!bestaand && zoekTel.length >= 9){
+      var opTel = await sb('wz_klantbeheer?' + velden + '&telefoon=like.*' + encodeURIComponent(zoekTel) + '&limit=1');
+      bestaand = opTel && opTel[0];
+    }
+
+    var gegevens = {
         type: overnacht ? 'overnachting' : 'dagverblijf',
         locatie_id: document.getElementById('c_locatie').value || null,
         datum_in: dIn || null,
@@ -2095,16 +2106,38 @@ async function klantUitGastgegevens(){
         kale_prijs: reserveringsBedrag(),
         totaal_betaald: actueelTotaal(),
         member: !!g.lid,
-        bron: 'Incheckformulier',
         referentie: document.getElementById('c_resnr').value || '',
-        laatste_bezoek: dIn || null,
-        notitie: 'Aangemaakt vanuit het incheckformulier. Kale kamerprijs controleren.',
-        aangemaakt: new Date().toISOString()
-      }])
-    });
+        laatste_bezoek: dIn || null
+    };
+
+    if(bestaand){
+      /* Bestaande klant bijwerken. Wat bij ons al gevuld is en bij de gast leeg,
+         laten we staan: een leeg veld mag nooit iets goeds overschrijven. */
+      var wijziging = {};
+      Object.keys(gegevens).forEach(function(k){
+        var w = gegevens[k];
+        if(w === null || w === '' || w === undefined) return;
+        if((k === 'woonplaats' || k === 'nationaliteit' || k === 'email' || k === 'telefoon') && bestaand[k]) return;
+        wijziging[k] = w;
+      });
+      await sb('wz_klantbeheer?id=eq.' + encodeURIComponent(bestaand.id), {
+        method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(wijziging)
+      });
+    }else{
+      await sb('wz_klantbeheer', {
+        method: 'POST',
+        prefer: 'resolution=merge-duplicates,return=minimal',
+        body: JSON.stringify([Object.assign({
+          id: 'ci-' + eigenId,
+          bron: 'Incheckformulier',
+          notitie: 'Aangemaakt vanuit het incheckformulier. Kale kamerprijs controleren.',
+          aangemaakt: new Date().toISOString()
+        }, gegevens)])
+      });
+    }
     st.className = 'status ok';
     st.textContent = '\u2713 ' + (g.voornaam || '') + ' ' + (g.achternaam || '') +
-      ' staat in het klantenbestand' +
+      (bestaand ? ' stond al in het klantenbestand en is bijgewerkt' : ' staat nu in het klantenbestand') +
       (overnacht ? ' \u2014 en in het nachtregister voor de toeristenbelasting.' : '.');
   }catch(e){
     st.className = 'status err';
