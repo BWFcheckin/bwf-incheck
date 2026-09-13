@@ -1415,8 +1415,9 @@ function haalKoppelBronnen(){
   return Promise.all([
     /* Alleen de kolommen die deze kaart nodig heeft, en niet meer rijen dan
        nodig. Alles ophalen liep op een telefoon vast met "Load failed". */
-    sbGet("reservations?select=id,voornaam,achternaam,locatie,checkindatum,checkuitdatum," +
-      "totaal,email,telefoon&order=checkindatum.desc&limit=800")["catch"](function(){ return []; }),
+    /* de oude tabel reservations wordt niet meer gelezen: die boekingen staan
+       sinds de migratie in reserveringen, dat hieronder wordt opgehaald */
+    Promise.resolve([]),
     sbGet("reserveringen?select=id,suite,kanaal,kanaal_ref,aankomst,vertrek,gast_voornaam," +
       "gast_achternaam,gast_email,gast_telefoon,bedrag_totaal,betaald_bedrag,checkin_id" +
       "&status=neq.geannuleerd&order=aankomst.desc&limit=1200")["catch"](function(){ return []; }),

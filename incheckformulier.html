@@ -2460,8 +2460,9 @@ var NIEUWE_KOLOMMEN = true;
 
 /* =================== 1. KOPPELEN =================== */
 async function laadKoppelBronnen(){
-  try{ RESERVERINGEN = await sb('reservations?select=*&order=checkindatum.desc&limit=800') || []; }
-  catch(e){ RESERVERINGEN = []; }
+  /* De oude tabel reservations wordt niet meer gelezen: die boekingen staan
+     sinds de migratie in reserveringen en komen via laadAgenda() binnen. */
+  RESERVERINGEN = [];
   KOPPELING = {};       /* res_koppeling is niet meer nodig: alles staat in reserveringen */
   await laadAgenda();
   try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=3000') || []; }

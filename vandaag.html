@@ -515,8 +515,10 @@ async function laadDag(){
      koppeling of incheckformulier heeft niet altijd een datum ingevuld. */
   const [boekingen, res, kop, chk, aanm, calls] = await Promise.all([
     haalBoekingen(),
-    haal('reservations?select=*&limit=3000', 'reservations'),
-    haal('res_koppeling?select=*&limit=5000', 'res_koppeling'),
+    /* reservations en res_koppeling worden niet meer gelezen: alles staat in
+       reserveringen, dat hierboven wordt opgehaald */
+    Promise.resolve([]),
+    Promise.resolve([]),
     haal('checkins?select=*&order=created_at.desc&limit=2000', 'checkins'),
     haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500', 'gast_aanmeldingen'),
     haal('wz_welkomstcalls?select=*&order=datum.desc&limit=1500', 'wz_welkomstcalls')
@@ -1021,25 +1023,11 @@ async function bewaarNotitie(x){
         if(nieuw && nieuw[0]) x.call = nieuw[0];
       }
     }else{
-      /* losse formulieren en oude boekingen zonder reservering */
-      await api('res_koppeling?on_conflict=res_sleutel', {
-        method:'POST',
-        headers:{ Prefer:'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify({
-          res_sleutel: x.sleutel,
-          bron: x.eigen ? 'handmatig' : (x.bron || 'agenda'),
-          notitie: tekst,
-          wc_status: wcStatus,
-          wc_extra_bedrag: wcBedrag,
-          wc_betaalwijze: wcBetaald,
-          bijgewerkt: new Date().toISOString()
-        })
-      });
-      if(!x.koppeling) x.koppeling = {};
-      x.koppeling.notitie = tekst;
-      x.koppeling.wc_status = wcStatus;
-      x.koppeling.wc_extra_bedrag = wcBedrag;
-      x.koppeling.wc_betaalwijze = wcBetaald;
+      /* Een los incheckformulier of een gastaanmelding zonder reservering: daar
+         is niets om aan vast te leggen. res_koppeling wordt niet meer gebruikt. */
+      melding('Deze regel hoort nog bij geen enkele reservering. Koppel hem eerst ' +
+              'in Reserveringen, dan kun je hier een notitie kwijt.', 'err');
+      return;
     }
     melding('Bewaard \u2014 de locatiemanager ziet dit ook.', 'ok');
     teken();

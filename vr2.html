@@ -2367,7 +2367,7 @@ div.ag-blok{cursor:default}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
-<script src="bwf-kalender.js?v=4"></script>
+<script src="bwf-kalender.js?v=5"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -4813,10 +4813,21 @@ document.addEventListener('click', async e=>{
     const wijzigingen = {};
     vak.querySelectorAll('[data-rv]').forEach(el=>{ wijzigingen[el.dataset.rv] = el.value.trim() || null; });
     try{
-      await api('reservations?id=eq.'+encodeURIComponent(r.id),
+      /* De oude tabel reservations wordt niet meer geschreven: deze boeking
+         staat in `reserveringen`. Veldnamen vertalen we daarheen. */
+      const NAAR = { voornaam:'gast_voornaam', achternaam:'gast_achternaam',
+                     telefoon:'gast_telefoon', email:'gast_email',
+                     opmerkingen:'omschrijving', notitie:'notitie' };
+      const d = {};
+      Object.keys(wijzigingen).forEach(k=>{ if(NAAR[k]) d[NAAR[k]] = wijzigingen[k]; });
+      const resId = r.resId || (r.ruw && r.ruw.id);
+      if(!resId || !Object.keys(d).length)
+        throw new Error('deze regel is hier niet te bewerken — open hem in Reserveringen');
+      d.gewijzigd_door = IK ? IK.naam : null;
+      await api('reserveringen?id=eq.'+encodeURIComponent(resId),
         {method:'PATCH', headers:{'Content-Type':'application/json', Prefer:'return=minimal'},
-         body: JSON.stringify(wijzigingen)});
-      Object.assign(r.ruw, wijzigingen);
+         body: JSON.stringify(d)});
+      Object.assign(r.ruw, d);
       r.naam = [wijzigingen.voornaam, wijzigingen.achternaam].filter(Boolean).join(' ') || r.naam;
       if(note) note.textContent = 'Opgeslagen.';
       toast('Reservering bijgewerkt.');
@@ -6215,7 +6226,9 @@ async function laadFormulieren(){
   const [aanm, chk, kop] = await Promise.all([
     planHaal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500'),
     planHaal('checkins?select=*&order=created_at.desc&limit=1000'),
-    planHaal('res_koppeling?select=*&limit=5000')
+    /* res_koppeling wordt niet meer gelezen: alles staat in reserveringen,
+       dat in laadOverzicht() wordt opgehaald */
+    Promise.resolve([])
   ]);
   FORMS.length = 0;
   (aanm||[]).forEach(f=>FORMS.push(Object.assign({_soort:'aanmelding'}, f)));
@@ -6227,13 +6240,33 @@ async function laadFormulieren(){
 function formGekoppeld(f){
   return Object.values(KOPPEL).some(k=>String(k.checkin_id||'') === String(f.id));
 }
+/* Wat hier wordt bijgewerkt hoort bij de reservering zelf. res_koppeling wordt
+   niet meer geschreven: alle gegevens staan in `reserveringen`. */
+const NAAR_RES = {
+  telefoon:'gast_telefoon', email:'gast_email', personen:'personen',
+  tijd_in:'incheck_tijd', tijd_uit:'uitcheck_tijd',
+  totaal:'bedrag_totaal', betaald:'betaald_bedrag', notitie:'notitie',
+  checkin_id:'checkin_id', klant_id:'klant_id', medewerker:'medewerker'
+};
 async function bewaarKoppeling(r, wijziging){
-  const obj = Object.assign({res_sleutel: resSleutel(r), bron: r.eigen ? 'handmatig' : (r.bron||'agenda')},
-    wijziging, {bijgewerkt: new Date().toISOString()});
-  await api('res_koppeling?on_conflict=res_sleutel', {method:'POST',
-    headers:{'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=representation'},
-    body: JSON.stringify(obj)});
-  KOPPEL[obj.res_sleutel] = Object.assign({}, KOPPEL[obj.res_sleutel]||{}, obj);
+  const resId = r.resId || (r.ruw && r.ruw.id);
+  if(!resId) return;                    /* losse regel zonder reservering */
+  const d = {};
+  Object.keys(wijziging || {}).forEach(v=>{
+    if(v === 'gast'){
+      const delen = String(wijziging.gast || '').trim().split(/\s+/);
+      d.gast_voornaam = delen.shift() || null;
+      d.gast_achternaam = delen.join(' ') || null;
+    }else if(v === 'geannuleerd'){
+      d.status = wijziging.geannuleerd ? 'geannuleerd' : 'bevestigd';
+    }else if(NAAR_RES[v]) d[NAAR_RES[v]] = wijziging[v];
+  });
+  if(!Object.keys(d).length) return;
+  d.gewijzigd_door = IK ? IK.naam : null;
+  await api('reserveringen?id=eq.' + encodeURIComponent(resId),
+    {method:'PATCH', headers:{'Content-Type':'application/json', Prefer:'return=minimal'},
+     body: JSON.stringify(d)});
+  if(r.ruw) Object.assign(r.ruw, d);
 }
 
 /* Reserveringen van Booking.com, Origineel Overnachten en Privésauna komen via de
@@ -6883,8 +6916,10 @@ async function laadOverzicht(){
         verleden: e < vd, eigen:false, ruw: b});
     });
   }catch(e){}
+  /* De oude tabel reservations wordt niet meer gelezen: die boekingen staan
+     sinds de migratie in reserveringen en zitten hierboven al in RES. */
   try{
-    const eigen = await api('reservations?select=*&order=checkindatum.desc&limit=3000') || [];
+    const eigen = [];
     eigen.forEach(r=>{
       const s = String(r.checkindatum||'').slice(0,10), e = String(r.checkuitdatum||'').slice(0,10) || s;
       if(!s) return;

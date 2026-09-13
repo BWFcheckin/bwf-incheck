@@ -2912,7 +2912,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-planyo.js?v=11"></script>
-<script src="bwf-kalender.js?v=4"></script>
+<script src="bwf-kalender.js?v=5"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
 (function(){
@@ -3565,11 +3565,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000')||[]).map(uitReservering);
     }catch(e){ fouten.push('reserveringen'); }
 
-    try{ eigen = (await sb('reservations?select=*&order=checkindatum.desc&limit=3000')||[]).map(uitSupabase); }
-    catch(e){ fouten.push('eigen boekingen'); }
-
-    try{ KOPPEL={}; (await sb('res_koppeling?select=*&limit=5000')||[])
-      .forEach(function(k){ KOPPEL[k.res_sleutel]=k; }); }catch(e){ fouten.push('koppelingen'); }
+    /* reservations en res_koppeling worden niet meer gelezen: die gegevens
+       staan sinds de migratie in reserveringen. KOPPEL wordt verderop gevuld
+       uit de reservering zelf en uit de gekoppelde welkomstcall. */
+    eigen = [];
+    KOPPEL = {};
 
     try{ KLANTEN = await sb('wz_klantbeheer?select=*&limit=4000') || []; }catch(e){ KLANTEN=[]; }
     try{ MEDEWERKERS = await sb('wz_medewerkers?select=*') || []; }catch(e){ MEDEWERKERS=[]; }
@@ -5241,8 +5241,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         : 'Deze reservering op geannuleerd zetten?\n\nStaat de boeking nog in de feed van het kanaal, dan zet de import hem weer terug \u2014 annuleer hem dan ook bij het kanaal zelf.')) return;
       weg.disabled = true; weg.textContent = 'Bezig\u2026';
       try{
-        if(eigen) await sb('reservations?id=eq.'+encodeURIComponent(r.id), { method:'DELETE' });
-        else await bewaarKoppeling(r, { geannuleerd: dstr(new Date()) });
+        /* Ook een eigen boeking staat nu in reserveringen: op geannuleerd zetten
+           in plaats van een rij uit de oude tabel verwijderen. */
+        await bewaarKoppeling(r, { geannuleerd: dstr(new Date()) });
         ALLES = ALLES.filter(function(x){ return sleutel(x) !== sleutel(r); });
         document.getElementById('resKaart').close();
         herteken();
@@ -5461,11 +5462,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           if(nieuw && nieuw[0]) CALLS.push(nieuw[0]);
         }
       }
-      if(Object.keys(rest).length || !iets){
-        var obj = Object.assign({ res_sleutel:sl, bron:r.bron }, rest, { bijgewerkt:new Date().toISOString() });
-        await sb('res_koppeling?on_conflict=res_sleutel',
-          { method:'POST', body:JSON.stringify(obj), prefer:'resolution=merge-duplicates,return=representation' });
-      }
+      /* Wat niet bij de reservering of de welkomstcall hoort (zoals de handmatig
+         gekozen bron) bewaren we alleen in het scherm: res_koppeling wordt niet
+         meer geschreven. */
       KOPPEL[sl] = Object.assign({}, KOPPEL[sl]||{}, wijziging, { res_sleutel:sl, bron:r.bron });
       if(r.ruw) Object.assign(r.ruw, res);
       if(window.BWFSync) BWFSync.melden('reservering', { res: sl });

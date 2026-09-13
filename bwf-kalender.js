@@ -46,6 +46,14 @@
   };
   var TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overnachting", late_checkin: "Late check-in", honeymoon: "Honeymoon" };
   var STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannuleerd", no_show: "No-show" };
+  /* Eén reserveringsnummer voor iedereen: het nummer van het kanaal als dat er
+     is, anders de eerste acht tekens van het id. Dezelfde regel staat in
+     reserveringen.html, het dashboard en het incheckformulier, zodat Ruth en
+     Kelly over hetzelfde nummer praten. */
+  function resNummer(r) {
+    return (r && r.kanaal_ref) ? String(r.kanaal_ref) : (r && r.id ? String(r.id).slice(0, 8) : "");
+  }
+
   var KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
     "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,restant_bedrag," +
     "omschrijving,import_opmerking";
@@ -232,7 +240,7 @@
   function incheckLink(r) {
     var p = new URLSearchParams();
     var s = lokaal(new Date(r.aankomst)), e = lokaal(new Date(r.vertrek));
-    p.set("reservering", r.kanaal_ref || r.id);
+    p.set("reservering", resNummer(r));
     p.set("locatie", r.suite);
     p.set("van", s.datum);
     if (["overnachting", "late_checkin", "honeymoon"].indexOf(r.type) >= 0 && e.datum > s.datum) p.set("tot", e.datum);
@@ -540,7 +548,7 @@
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[r.suite].kleur + '"></span> ' + esc(SUITES[r.suite].naam) + "<small>" + esc(TYPES[r.type] || r.type) + "</small></td>" +
           '<td class="bwfk-naam" title="' + esc(gastNaam(r) || "gast onbekend") + '">' + (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>') +
             (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") + "</td>" +
-          '<td><span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span>" + (r.kanaal === "smg" && r.kanaal_ref ? "<small>nr. " + esc(r.kanaal_ref) + "</small>" : "") + "</td>" +
+          '<td><span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span>" + (resNummer(r) ? "<small>nr. " + esc(resNummer(r)) + "</small>" : "") + "</td>" +
           '<td><span class="bwfk-pil ' + esc(r.status) + '">' + esc(STATUSSEN[r.status] || r.status) + "</span></td>" +
           '<td><div class="bwfk-acties"><a href="' + esc(beheerUrl + "?id=" + encodeURIComponent(r.id)) + '" target="_top">Reservering</a>' +
             '<a href="' + esc(incheckLink(r)) + '" target="_top">Incheckformulier</a>' +
