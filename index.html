@@ -157,10 +157,8 @@ const CONFIG = {
 
   standaardThema : 'espresso',   // espresso | salie | leisteen
 
-  rollen : {
-    tabel : 'bwf_rollen',      // id (uuid), naam, rol
-    rol   : 'rol'              // alleen terugval; de echte bron is bwf_toegangsrol()
-  },
+  /* De rol komt uit wz_medewerkers via bwf_toegangsrol(). Dat is de enige
+     bron; er valt hier niets meer in te stellen. */
 
   taken : {
     tabel      : 'wz_taken',
@@ -318,7 +316,7 @@ sb.auth.onAuthStateChange((_e, sessie) => {
     $('#initialen').textContent =
       (sessie.user.email || '?').replace(/@.*/,'').slice(0,2).toUpperCase();
     HUIDIGE_ID = sessie.user.id;
-    haalRol(sessie.user.id).then(startPortaal);
+    haalRol().then(startPortaal);
   }else{
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');
@@ -331,31 +329,23 @@ let ROL = 'medewerker';
 let rolBekend = false;
 let HUIDIGE_ID = null;
 
-/* De toegangsrol komt uit wz_medewerkers, via bwf_toegangsrol() — dezelfde
-   bron die agenda.html, reserveringen.html en de kalender gebruiken.
-   Lukt dat niet, dan valt hij terug op de oudere tabel bwf_rollen.
-   De twee woordenlijsten worden hier gelijkgetrokken:
-     eigenaar / beheerder          -> eigenaar
-     vr / locatiemanager / medewerker -> medewerker
-   Zonder die vertaling ziet een 'beheerder' geen enkele tegel. */
+/* De toegangsrol komt uit wz_medewerkers, via bwf_toegangsrol(). Dat is de
+   enige bron: agenda.html, reserveringen.html, de kalender en de functie
+   is_beheerder() in de database lezen hem daar ook.
+   Vertaald naar wat deze pagina kent:
+     eigenaar            -> eigenaar
+     vr / locatiemanager -> medewerker */
 function normaliseerRol(waarde){
   const r = String(waarde || '').trim().toLowerCase();
-  if(r === 'eigenaar' || r === 'beheerder') return 'eigenaar';
-  if(r === 'vr' || r === 'locatiemanager' || r === 'medewerker') return 'medewerker';
+  if(r === 'eigenaar') return 'eigenaar';
+  if(r === 'vr' || r === 'locatiemanager') return 'medewerker';
   return '';
 }
 
-async function haalRol(userId){
+async function haalRol(){
   try{
     const { data } = await sb.rpc('bwf_toegangsrol');
     const rol = normaliseerRol(data);
-    if(rol){ ROL = rol; rolBekend = true; return; }
-  }catch(e){}
-
-  try{
-    const R = CONFIG.rollen;
-    const { data } = await sb.from(R.tabel).select(R.rol).eq('id', userId).maybeSingle();
-    const rol = data ? normaliseerRol(data[R.rol]) : '';
     if(rol){ ROL = rol; rolBekend = true; }
   }catch(e){}
 }
@@ -417,7 +407,7 @@ function startPortaal(){
 
   if(!rolBekend){
     $('#zijTeller').textContent =
-      'Beperkte weergave: je staat nog niet als eigenaar in de tabel bwf_rollen.';
+      'Beperkte weergave: je account heeft nog geen toegangsrol in wz_medewerkers.';
   }
 }
 
