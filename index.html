@@ -1,29 +1,27 @@
 <!DOCTYPE html>
-<html lang="nl" data-thema="espresso">
+<html lang="nl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bed &amp; Wellness Flevoland — portaal</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bed &amp; Wellness Flevoland</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="bwf-icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="bwf-icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="bwf-icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta id="themaKleur" name="theme-color" content="#000000">
+<meta id="themaKleur" name="theme-color" content="#173C35">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="BWF Lelystad">
-<link rel="stylesheet" href="bwf-stijl.css">
-<link rel="stylesheet" href="bwf-agenda-stijl.css">
 <link rel="stylesheet" href="bwf-portaal-stijl.css">
 </head>
-<body class="portaalpagina">
+<body>
 
-<!-- ══════════ INLOGGEN ══════════ -->
+<!-- =====================================================
+     INLOGGEN — zonder dit scherm geen gastgegevens
+===================================================== -->
 <div id="login">
   <div class="paneel">
     <img class="logo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
@@ -39,276 +37,405 @@
       <input id="ww" type="password" autocomplete="current-password" placeholder="••••••••">
     </div>
 
-    <button class="btn" id="knopIn">Inloggen</button>
+    <button class="login-knop" id="knopIn">INLOGGEN</button>
     <button class="reset" id="knopReset">Wachtwoord vergeten</button>
     <p class="msg" id="loginMsg"></p>
   </div>
 </div>
 
-<!-- ══════════ PORTAAL ══════════ -->
-<main id="portaal" class="hidden">
- <div class="portaal-app">
+<!-- =====================================================
+     PORTAAL
+===================================================== -->
+<div class="portaal-app hidden" id="portaal">
 
-  <!-- ══════════ ZIJBALK ══════════ -->
-  <aside class="zijbalk">
-    <div class="brand">
-      <img class="brand-logo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
-      <span class="brand-title">Bed &amp; Wellness</span>
-      <span class="brand-subtitle">Flevoland</span>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">&#9831;</div>
+    <div class="brand-name">BED &amp; WELLNESS</div>
+    <div class="brand-sub">FLEVOLAND</div>
+  </div>
+  <nav>
+    <button class="nav-item active" data-page="home"><span>&#8962;</span><b>Home</b></button>
+    <button class="nav-item" data-page="planning"><span>&#9638;</span><b>Planning</b></button>
+    <button class="nav-item" data-page="reserveringen"><span>&#9635;</span><b>Reserveringen</b><em id="navResTeller"></em></button>
+    <button class="nav-item" data-page="taken"><span>&#10003;</span><b>Taken</b><em id="navTaakTeller"></em></button>
+    <button class="nav-item" data-page="voorraad"><span>&#9633;</span><b>Voorraad</b><em id="navVoorraadTeller"></em></button>
+    <button class="nav-item" data-page="berichten"><span>&#9676;</span><b>Berichten</b><em id="navBerichtTeller"></em></button>
+    <button class="nav-item" data-page="instellingen"><span>&#9881;</span><b>Instellingen</b></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="mini-status" id="verbindingStatus"><span></span> Verbinding controleren&hellip;</div>
+    <p>Samen zorgen we<br>voor een onvergetelijk<br>verblijf.</p>
+    <div class="brand-mark small">&#9831;</div>
+  </div>
+</aside>
+
+<main class="main">
+
+<header class="topbar">
+  <div>
+    <span class="eyebrow">BED &amp; WELLNESS FLEVOLAND</span>
+    <h1 id="pageTitle">Welkom</h1>
+    <p id="pageDate"></p>
+  </div>
+  <div class="top-actions">
+    <button class="notification-button" id="knopBerichten" title="Berichten">
+      &#9826;<i id="belTeller"></i>
+    </button>
+    <button class="profile-button" id="knopUit" title="Uitloggen">
+      <span class="avatar" id="initialen">&ndash;</span>
+      <span class="profile-text">
+        <strong id="wieNaam"></strong>
+        <small id="wieRol">uitloggen</small>
+      </span>
+      <span>&#8964;</span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════ HOME ═══════════════ -->
+<section class="page active-page" id="page-home">
+
+  <div class="hero">
+    <div class="hero-image"></div>
+    <div class="hero-content">
+      <span class="hero-label">VANDAAG</span>
+      <h2>Een mooie dag begint<br>met overzicht.</h2>
+      <p>Hier zie je direct wat er vandaag moet gebeuren.</p>
+      <button class="hero-button" data-ga="planning">Bekijk planning &rarr;</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <button class="stat-card" data-ga="reserveringen">
+      <span class="stat-symbol">&#9831;</span>
+      <strong id="sReserveringen">&ndash;</strong>
+      <small>Reserveringen vandaag</small>
+      <span class="stat-arrow">&rarr;</span>
+    </button>
+    <button class="stat-card" data-ga="taken">
+      <span class="stat-symbol">&#10003;</span>
+      <strong id="sTaken">&ndash;</strong>
+      <small>Openstaande taken</small>
+      <span class="stat-arrow">&rarr;</span>
+    </button>
+    <button class="stat-card" data-ga="voorraad">
+      <span class="stat-symbol">&#9633;</span>
+      <strong id="sVoorraad">&ndash;</strong>
+      <small>Voorraad bijna op</small>
+      <span class="stat-arrow">&rarr;</span>
+    </button>
+    <button class="stat-card" data-ga="planning">
+      <span class="stat-symbol">&#9817;</span>
+      <strong id="sAankomsten">&ndash;</strong>
+      <small>Aankomsten vandaag</small>
+      <span class="stat-arrow">&rarr;</span>
+    </button>
+  </div>
+
+  <div class="home-grid">
+
+    <div class="card large-card">
+      <div class="card-head">
+        <div><span class="eyebrow">PRIORITEIT</span><h3>Nu doen</h3></div>
+        <button class="link-button" data-ga="taken">Alle taken &rarr;</button>
+      </div>
+      <div id="nuDoen"><p class="leeg">Bezig met laden&hellip;</p></div>
     </div>
 
-    <nav class="desktop-nav" id="zijNav" aria-label="Onderdelen"></nav>
-
-    <div class="sidebar-footer">
-      <p id="zijTeller"></p>
-      <button class="btn-rand" id="knopUit2">Uitloggen</button>
-    </div>
-  </aside>
-
-  <!-- ══════════ HOOFDVLAK ══════════ -->
-  <div class="main">
-
-    <div class="topbar">
-      <div class="welcome">
-        <span class="eyebrow">Portaal</span>
-        <h1 id="groet">Goedemorgen</h1>
-        <p class="datum" id="datum"></p>
+    <div class="card">
+      <div class="card-head">
+        <div><span class="eyebrow">VANDAAG</span><h3>Planning</h3></div>
+        <button class="link-button" data-ga="planning">Meer &rarr;</button>
       </div>
-      <div class="profile-groep">
-        <div class="profile">
-          <span class="initialen" id="initialen">&ndash;</span>
-          <span class="profile-info">
-            <strong id="zijMail"></strong>
-            <small>ingelogd</small>
-          </span>
-        </div>
-        <button class="btn-rand" id="knopUit">Uitloggen</button>
-      </div>
+      <div class="timeline" id="tijdlijn"><p class="leeg">Bezig met laden&hellip;</p></div>
     </div>
 
-    <div class="stats">
-      <a class="stat-card" href="#taken">
-        <span class="stat-icon">&#9719;</span>
-        <b class="stat-number" id="cVandaag">&ndash;</b>
-        <span class="stat-label">taken vandaag</span>
-        <span class="stat-arrow">&rsaquo;</span>
-      </a>
-      <a class="stat-card" href="#taken">
-        <span class="stat-icon">&#9776;</span>
-        <b class="stat-number" id="cOpen">&ndash;</b>
-        <span class="stat-label">open taken</span>
-        <span class="stat-arrow">&rsaquo;</span>
-      </a>
-      <a class="stat-card" href="#calls">
-        <span class="stat-icon">&#9742;</span>
-        <b class="stat-number" id="cCalls">&ndash;</b>
-        <span class="stat-label">welkomstcalls</span>
-        <span class="stat-arrow">&rsaquo;</span>
-      </a>
+    <div class="card">
+      <div class="card-head">
+        <div><span class="eyebrow">ACTIE</span><h3>Mijn taken</h3></div>
+        <button class="link-button" data-ga="taken">Alles &rarr;</button>
+      </div>
+      <div class="simple-list" id="mijnTaken"><p class="leeg">Bezig met laden&hellip;</p></div>
     </div>
 
-    <div class="dashboard-grid">
-
-      <div class="left-column">
-        <section class="card" id="vandaag">
-          <div class="card-header">
-            <h2 class="section-title"><span class="nav-icon">&#8962;</span>Reserveringen vandaag</h2>
-            <a class="text-button" href="reserveringen.html">Volledige agenda &rsaquo;</a>
-          </div>
-          <p class="card-uitleg">Aankomsten en vertrekken. Klik een regel aan voor de gegevens.</p>
-          <iframe id="resFrame" title="Reserveringen vandaag" src="vandaag.html" loading="lazy"></iframe>
-        </section>
-
-        <section class="card" id="taken">
-          <div class="card-header">
-            <h2 class="section-title"><span class="nav-icon">&#10003;</span>Mijn taken</h2>
-            <label class="allen-vak" id="allenVak" style="display:none">
-              <input type="checkbox" id="takenAllen"> ook van anderen</label>
-          </div>
-          <div class="task-list" id="lijstTaken"><p class="leeg">Bezig met laden&hellip;</p></div>
-        </section>
-
-        <section class="card" id="calls">
-          <div class="card-header">
-            <h2 class="section-title"><span class="nav-icon">&#9742;</span>Welkomstcalls</h2>
-          </div>
-          <div class="task-list" id="lijstCalls"><p class="leeg">Bezig met laden&hellip;</p></div>
-        </section>
+    <div class="card">
+      <div class="card-head">
+        <div><span class="eyebrow">GASTEN</span><h3>Reserveringen</h3></div>
+        <button class="link-button" data-ga="reserveringen">Alle &rarr;</button>
       </div>
-
-      <div class="right-column">
-        <section class="card kalender-kaart">
-          <div class="card-header">
-            <h2 class="section-title"><span class="nav-icon">&#9638;</span>Kalender</h2>
-          </div>
-          <div id="bwfKalender"></div>
-        </section>
-
-        <section class="card">
-          <div class="card-header">
-            <h2 class="section-title"><span class="nav-icon">&#9670;</span>Boekingskanalen</h2>
-          </div>
-          <div class="kanalen" id="extern"></div>
-        </section>
-      </div>
-
+      <div class="reservation-list" id="resKort"><p class="leeg">Bezig met laden&hellip;</p></div>
     </div>
-
-    <div class="groepen" id="groepen"></div>
-
-    <footer>
-      <span id="wieben"></span>
-      <div class="themas">
-        <span class="kop">Kleuren</span>
-        <button class="staal espresso" data-kies="espresso" aria-pressed="true"  title="Espresso &amp; goud"        aria-label="Espresso en goud"></button>
-        <button class="staal salie"    data-kies="salie"    aria-pressed="false" title="Salie &amp; champagnebrons" aria-label="Salie en champagnebrons"></button>
-        <button class="staal leisteen" data-kies="leisteen" aria-pressed="false" title="Leisteenblauw &amp; goud"   aria-label="Leisteenblauw en zacht goud"></button>
-      </div>
-    </footer>
 
   </div>
- </div>
+</section>
 
- <!-- balk onderaan, alleen op telefoon en tablet -->
- <nav class="mobile-nav" id="navlinks" aria-label="Hoofdmenu"></nav>
+<!-- ═══════════════ PLANNING ═══════════════ -->
+<section class="page" id="page-planning">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">OVERZICHT</span>
+      <h2>Planning</h2>
+      <p>Alle reserveringen en werkzaamheden op één plek.</p>
+    </div>
+    <a class="primary-button" href="reserveringen.html?tab=nieuw">+ Nieuwe reservering</a>
+  </div>
+
+  <div class="date-selector">
+    <button id="dagTerug">&lsaquo;</button>
+    <div>
+      <small id="dagLabel">VANDAAG</small>
+      <strong id="dagTekst"></strong>
+    </div>
+    <button id="dagVooruit">&rsaquo;</button>
+  </div>
+
+  <div class="week" id="weekBalk"></div>
+
+  <div id="planningLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+</section>
+
+<!-- ═══════════════ RESERVERINGEN ═══════════════ -->
+<section class="page" id="page-reserveringen">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">GASTEN</span>
+      <h2>Reserveringen</h2>
+      <p>Alle boekingen, arrangementen en gastinformatie.</p>
+    </div>
+    <a class="primary-button" href="reserveringen.html?tab=nieuw">+ Nieuwe reservering</a>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter active" data-res="vandaag">Vandaag</button>
+    <button class="filter" data-res="week">Deze week</button>
+    <button class="filter" data-res="alle">Alle</button>
+    <input type="search" id="resZoek" placeholder="Zoek gast of reserveringsnummer...">
+  </div>
+
+  <div class="reservation-cards" id="resKaarten"><p class="leeg">Bezig met laden&hellip;</p></div>
+</section>
+
+<!-- ═══════════════ TAKEN ═══════════════ -->
+<section class="page" id="page-taken">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">WERKZAAMHEDEN</span>
+      <h2>Taken</h2>
+      <p>Werk overzichtelijk per locatie en medewerker.</p>
+    </div>
+    <a class="primary-button" href="vr2.html">+ Nieuwe taak</a>
+  </div>
+
+  <div class="task-tabs" id="taakTabs">
+    <button class="active" data-taak="open">Open <b id="tOpen">0</b></button>
+    <button data-taak="bezig">In bezig <b id="tBezig">0</b></button>
+    <button data-taak="klaar">Klaar <b id="tKlaar">0</b></button>
+  </div>
+
+  <div class="tasks-full card" id="takenLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+</section>
+
+<!-- ═══════════════ VOORRAAD ═══════════════ -->
+<section class="page" id="page-voorraad">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">OPERATIE</span>
+      <h2>Voorraad</h2>
+      <p>Houd alle wellness- en hospitalityproducten bij.</p>
+    </div>
+    <a class="primary-button" href="dagstart.html">Voorraad bijwerken</a>
+  </div>
+
+  <div class="inventory-overview">
+    <div class="inventory-stat card">
+      <span>&#9633;</span><strong id="vTotaal">&ndash;</strong><small>Producten totaal</small>
+    </div>
+    <div class="inventory-stat card warning-card">
+      <span>!</span><strong id="vTekort">&ndash;</strong><small>Bijna op</small>
+    </div>
+    <div class="inventory-stat card">
+      <span>&#10003;</span><strong id="vGoed">&ndash;</strong><small>Op voorraad</small>
+    </div>
+  </div>
+
+  <div class="inventory-tools">
+    <input type="search" id="voorraadZoek" placeholder="Zoek product...">
+    <button class="active" data-vr="alle">Alles</button>
+    <button data-vr="tekort">Alleen tekort</button>
+  </div>
+
+  <div class="inventory-list card" id="voorraadLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+</section>
+
+<!-- ═══════════════ BERICHTEN ═══════════════ -->
+<section class="page" id="page-berichten">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">COMMUNICATIE</span>
+      <h2>Berichten</h2>
+      <p>Het overdrachtsbord tussen medewerkers en locaties.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="board-list" id="berichtLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+    <form class="board-form" id="berichtForm">
+      <input type="text" id="berichtTekst" placeholder="Schrijf een bericht voor je collega's...">
+      <button type="submit" title="Versturen">&#10148;</button>
+    </form>
+  </div>
+</section>
+
+<!-- ═══════════════ INSTELLINGEN ═══════════════ -->
+<section class="page" id="page-instellingen">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">PERSONALISEREN</span>
+      <h2>Instellingen</h2>
+      <p>Pas het dashboard aan jouw organisatie aan.</p>
+    </div>
+  </div>
+
+  <div class="settings-grid">
+
+    <div class="settings-card card">
+      <div class="settings-card-title">
+        <span>&#9673;</span>
+        <div><h3>Kleurenschema</h3><p>Kies een sfeer met één klik</p></div>
+      </div>
+      <div class="scheme-options" id="schemaKnoppen">
+        <button class="scheme-option scheme-zwart" data-schema="zwart"><i></i>Zwart</button>
+        <button class="scheme-option scheme-beige" data-schema="beige"><i></i>Beige</button>
+        <button class="scheme-option scheme-blauw" data-schema="blauw"><i></i>Blauw</button>
+        <button class="scheme-option scheme-groen active" data-schema="groen"><i></i>Groen</button>
+        <button class="scheme-option scheme-paars" data-schema="paars"><i></i>Paars</button>
+      </div>
+    </div>
+
+    <div class="settings-card card">
+      <div class="settings-card-title">
+        <span>&#9672;</span>
+        <div><h3>Eigen kleuren</h3><p>Fijn afstellen per kleur</p></div>
+      </div>
+      <label>Primaire kleur
+        <div class="color-control"><input type="color" id="primaryColor" value="#173C35"><span>#173C35</span></div>
+      </label>
+      <label>Achtergrond
+        <div class="color-control"><input type="color" id="backgroundColor" value="#F5F2EC"><span>#F5F2EC</span></div>
+      </label>
+      <label>Accentkleur
+        <div class="color-control"><input type="color" id="accentColor" value="#C9A96E"><span>#C9A96E</span></div>
+      </label>
+    </div>
+
+    <div class="settings-card card">
+      <div class="settings-card-title">
+        <span>Aa</span>
+        <div><h3>Typografie</h3><p>Kies de uitstraling van teksten</p></div>
+      </div>
+      <div class="font-options">
+        <button class="font-option active" data-font="DM Sans">DM Sans</button>
+        <button class="font-option" data-font="Arial">Arial</button>
+        <button class="font-option" data-font="Georgia">Georgia</button>
+      </div>
+    </div>
+
+    <div class="settings-card card">
+      <div class="settings-card-title">
+        <span>&#8984;</span>
+        <div><h3>Organisatie</h3><p>Wat er in de database staat</p></div>
+      </div>
+      <div class="setting-line"><span>Suites</span><strong id="setSuites">&ndash;</strong></div>
+      <div class="setting-line"><span>Medewerkers</span><strong id="setMedewerkers">&ndash;</strong></div>
+      <div class="setting-line"><span>Reserveringen</span><strong id="setReserveringen">&ndash;</strong></div>
+      <div class="setting-line"><span>Database</span><span class="connection" id="setDb">&#9679; Controleren&hellip;</span></div>
+    </div>
+
+    <div class="settings-card preview-card card">
+      <span class="eyebrow">VOORBEELD</span>
+      <h3>Jouw dashboard</h3>
+      <p>De gekozen kleuren worden meteen toegepast en bewaard in deze browser.</p>
+      <button class="primary-button" id="kleurenTerug">Standaardkleuren terug</button>
+    </div>
+
+  </div>
+</section>
+
 </main>
+</div>
+
+<!-- =====================================================
+     BALK ONDERAAN
+===================================================== -->
+<nav class="mobile-nav hidden" id="mobielMenu">
+  <button class="mobile-item active" data-page="home"><span>&#8962;</span><small>Home</small></button>
+  <button class="mobile-item" data-page="planning"><span>&#9638;</span><small>Planning</small></button>
+  <button class="mobile-item" data-page="taken"><span>&#10003;</span><small>Taken</small><i id="mobTaakTeller"></i></button>
+  <button class="mobile-item" data-page="voorraad"><span>&#9633;</span><small>Voorraad</small></button>
+  <button class="mobile-item" data-page="meer"><span>&#9776;</span><small>Meer</small></button>
+</nav>
+
+<div class="more-menu" id="moreMenu">
+  <button data-ga="reserveringen">&#9635; Reserveringen</button>
+  <button data-ga="berichten">&#9676; Berichten</button>
+  <button data-ga="instellingen">&#9881; Instellingen</button>
+</div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 /* ═══════════════════════════════════════════════════════════
-   CONFIGURATIE — pas alleen dit blok aan
+   CONFIGURATIE
+   De 'anon public' sleutel mag openbaar staan zolang Row Level
+   Security aan staat. Zet hier NOOIT de service_role-sleutel.
    ═══════════════════════════════════════════════════════════ */
 const CONFIG = {
-  supabaseUrl : 'https://iuyjvtlauktnjprbmbjj.supabase.co',
-  // De 'anon public' sleutel uit Supabase → Project Settings → API.
-  // Deze mág openbaar staan, mits Row Level Security aan staat (zie portaal-setup.sql).
-  // Zet hier NOOIT de service_role-sleutel neer.
-  supabaseAnonKey : 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U',
-
-  standaardThema : 'espresso',   // espresso | salie | leisteen
-
-  /* De rol komt uit wz_medewerkers via bwf_toegangsrol(). Dat is de enige
-     bron; er valt hier niets meer in te stellen. */
-
-  taken : {
-    tabel      : 'wz_taken',
-    titel      : 'titel',
-    deadline   : 'deadline',
-    prioriteit : 'prioriteit',
-    medewerker : 'medewerker_id',
-    afgerond   : 'afgerond_op'  // leeg = nog open
-  },
-
-  welkomstcalls : {
-    tabel    : 'wz_welkomstcalls',
-    naam     : 'naam',
-    datum    : 'datum',
-    locatie  : 'locatie',
-    telefoon : 'telefoon',
-    gebeld   : 'gebeld_op'      // leeg = nog te bellen
-  }
+  supabaseUrl     : 'https://iuyjvtlauktnjprbmbjj.supabase.co',
+  supabaseAnonKey : 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U'
 };
 
-const GROEPEN = [
-  {
-    kop:'Dagelijks',
-    tegels:[
-      { t:'Vandaag',          d:'Aankomsten en vertrekken van vandaag', url:'vandaag.html' },
-      { t:'Agenda',           d:'Vrij en geboekt per suite',            url:'agenda.html' },
-      { t:'Reserveringen',    d:'Lijst en kalender',                    url:'reserveringen.html' },
-      { t:'Dagoverzicht',     d:'Kalender, taken en aanmeldingen',      url:'dagoverzicht.html' },
-      { t:'Incheckformulier', d:'Inchecken en afrekenen op locatie',    url:'incheckformulier.html' },
-      { t:'Gastenlink',       d:'De pagina die de gast zelf invult',    url:'gast.html' }
-    ]
-  },
-  {
-    kop:'Werken',
-    tegels:[
-      { t:'VR Dashboard',        d:'Welkomstcalls, taken en belscripts',
-        url:'vr2.html', rollen:['eigenaar','medewerker'] },
-      { t:'Personeelsdashboard', d:'Planning, voorraad en overdracht',   url:'dashboard.html' },
-      { t:'Taken',               d:'Werkzaamheden en bellijsten',
-        url:'vr2.html', rollen:['eigenaar','medewerker'] },
-      { t:'Urenregistratie',     d:'Uren per medewerker',
-        url:'uren-ruth.html', rollen:['eigenaar','medewerker'] }
-    ]
-  },
-  {
-    kop:'Administratie',
-    tegels:[
-      { t:'Klantbeheer',        d:'Klantenbestand, nachtregister en members',
-        url:'klantbeheer.html', rollen:['eigenaar','medewerker'] },
-      { t:'Toeristenbelasting', d:'Aangifte per gemeente',    url:'klantbeheer.html?tab=aangifte' },
-      { t:'Reservering aanmaken', d:'Nieuwe boeking invoeren', url:'reservering-aanmaken.html' },
-      { t:'Financieel',         d:'Omzet, kosten en btw',      url:null },
-      { t:'Documenten',         d:'Huisregels en voorwaarden', url:null }
-    ]
-  },
-  {
-    kop:'Hulp',
-    tegels:[
-      { t:'Controle',    d:'Werkt de verbinding en je login',  url:'controle.html' },
-      { t:'SMG',         d:'Het boekingssysteem openen',       url:'https://www.smgdashboard.nl' },
-      { t:'Planyo',      d:'Reserveringssysteem',              url:'https://www.planyo.com' },
-      { t:'Privésauna',  d:'Partnerpagina',                    url:'https://www.privesauna.nl' }
-    ]
-  },
-  {
-    kop:'Marketing',
-    tegels:[
-      { t:'Contentplanning', d:'Social media en berichten', url:null },
-      { t:'Advertenties',    d:'Campagnes en budget',       url:null },
-      { t:'Events',          d:'Retreats en arrangementen', url:null }
-    ]
-  }
-];
-// rollen: wie de tegel ziet. Zonder rollen ziet alleen de eigenaar hem.
-//   rollen:['eigenaar','medewerker']  → iedereen die inlogt
-// url:null maakt de tegel grijs met "nog te bouwen".
-
-const EXTERN = [
-  { t:'Planyo',                url:'https://www.planyo.com' },
-  { t:'Booking.com',           url:'https://admin.booking.com' },
-  { t:'Privésauna',            url:'https://www.privesauna.nl' },
-  { t:'Origineel Overnachten', url:'https://www.origineelovernachten.nl' },
-  { t:'Mollie',                url:'https://my.mollie.com' }
-];
-/* Pictogram per groep, en de sfeerbeelden die bij de lijsten staan.
-   De namen image-* zijn klassen uit bwf-portaal-stijl.css. */
-const ICONEN = {
-  'Dagelijks'     : '\u2302',
-  'Werken'        : '\u2726',
-  'Administratie' : '\u25A4',
-  'Hulp'          : '\u25CE',
-  'Marketing'     : '\u25C8'
-};
-const SFEER = ['image-towels','image-wellness','image-jacuzzi','image-pool','image-angie'];
-
-/* ═══════════ EINDE CONFIGURATIE ═══════════ */
-
+const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
 const $  = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
-const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
 
-/* ---------- kleurenschema ---------- */
-const ACHTERGROND = { espresso:'#F4F1ED', salie:'#F3F6F2', leisteen:'#F2F5F7' };
-
-function zetThema(naam){
-  if(!ACHTERGROND[naam]) naam = 'espresso';
-  document.documentElement.dataset.thema = naam;
-  $('#themaKleur').setAttribute('content', ACHTERGROND[naam]);
-  $$('.staal').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.kies === naam)));
-  try{ localStorage.setItem('bwf-thema', naam); }catch(e){}
+/* alles wat uit de database komt wordt ontdaan van opmaakcode */
+function esc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-let bewaard = null;
-try{ bewaard = localStorage.getItem('bwf-thema'); }catch(e){}
-zetThema(bewaard || CONFIG.standaardThema);
+/* ---------- datum en tijd, altijd Europe/Amsterdam ---------- */
+const vandaag = () => new Date().toLocaleDateString('sv-SE');
+const dagVan  = w => w ? new Date(w).toLocaleDateString('sv-SE') : '';
+const tijdVan = w => w ? new Date(w).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}) : '';
+const hhmm    = t => t ? String(t).slice(0,5) : '';
+const nlDatum = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('nl-NL',
+                      {weekday:'long', day:'numeric', month:'long', year:'numeric'}) : '';
+function dagPlus(d, n){
+  const x = new Date(d + 'T12:00:00');
+  x.setDate(x.getDate() + n);
+  return x.toLocaleDateString('sv-SE');
+}
 
-$$('.staal').forEach(b => b.addEventListener('click', () => zetThema(b.dataset.kies)));
+/* suite -> sfeerbeeld */
+function foto(suite){
+  const s = String(suite || '').toLowerCase();
+  if(s.includes('jacuzzi') || s.includes('malina')) return 'photo-malina';
+  if(s.includes('deluxe')  || s.includes('zwembad')) return 'photo-pool';
+  return 'photo-angie';
+}
+function suiteNaam(s){
+  const t = String(s || '').trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Onbekende suite';
+}
+const volledigeNaam = r =>
+  ((r.gast_voornaam || '') + ' ' + (r.gast_achternaam || '')).trim() || 'Naam onbekend';
 
-/* ---------- inloggen ---------- */
+/* ═══════════════════════════════════════════════════════════
+   INLOGGEN
+   ═══════════════════════════════════════════════════════════ */
 function toon(soort, tekst){
   const m = $('#loginMsg');
   m.className = 'msg ' + soort;
@@ -321,10 +448,10 @@ $('#knopIn').addEventListener('click', async () => {
   if(!email || !ww){ toon('err','Vul je e-mailadres en wachtwoord in.'); return; }
 
   $('#knopIn').disabled = true;
-  $('#knopIn').textContent = 'Bezig…';
+  $('#knopIn').textContent = 'BEZIG…';
   const { error } = await sb.auth.signInWithPassword({ email, password: ww });
   $('#knopIn').disabled = false;
-  $('#knopIn').textContent = 'Inloggen';
+  $('#knopIn').textContent = 'INLOGGEN';
 
   if(error){
     toon('err', error.message.includes('Invalid')
@@ -342,218 +469,618 @@ $('#knopReset').addEventListener('click', async () => {
   toon(error ? 'err' : 'ok', error ? error.message : 'Er staat een herstelmail in je inbox.');
 });
 
-async function uitloggen(){
+$('#knopUit').addEventListener('click', async () => {
   await sb.auth.signOut();
   location.reload();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   ROL — uit wz_medewerkers via bwf_toegangsrol()
+   ═══════════════════════════════════════════════════════════ */
+let ROL = '', NAAM = '', HUIDIGE_ID = null, gestart = false;
+
+async function haalRol(){
+  try{
+    const { data } = await sb.rpc('bwf_toegangsrol');
+    ROL = String(data || '').toLowerCase();
+  }catch(e){ ROL = ''; }
 }
-$('#knopUit').addEventListener('click', uitloggen);
-$('#knopUit2').addEventListener('click', uitloggen);
 
 sb.auth.onAuthStateChange((_e, sessie) => {
   if(sessie){
     $('#login').classList.add('hidden');
     $('#portaal').classList.remove('hidden');
-    $('#wieben').textContent = sessie.user.email;
-    $('#zijMail').textContent = sessie.user.email;
-    $('#initialen').textContent =
-      (sessie.user.email || '?').replace(/@.*/,'').slice(0,2).toUpperCase();
+    $('#mobielMenu').classList.remove('hidden');
     HUIDIGE_ID = sessie.user.id;
-    haalRol().then(startPortaal);
+    const mail = sessie.user.email || '';
+    $('#initialen').textContent = mail.replace(/@.*/,'').slice(0,1).toUpperCase() || '?';
+    $('#wieNaam').textContent = mail.replace(/@.*/,'');
+    haalRol().then(start);
   }else{
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');
+    $('#mobielMenu').classList.add('hidden');
   }
 });
 
-/* ---------- portaal ---------- */
-let gestart = false;
-let ROL = 'medewerker';
-let rolBekend = false;
-let HUIDIGE_ID = null;
+/* ═══════════════════════════════════════════════════════════
+   TABBLADEN
+   ═══════════════════════════════════════════════════════════ */
+const paginaNamen = {
+  home:'Welkom', planning:'Planning', reserveringen:'Reserveringen',
+  taken:'Taken', voorraad:'Voorraad', berichten:'Berichten', instellingen:'Instellingen'
+};
 
-/* De toegangsrol komt uit wz_medewerkers, via bwf_toegangsrol(). Dat is de
-   enige bron: agenda.html, reserveringen.html, de kalender en de functie
-   is_beheerder() in de database lezen hem daar ook.
-   Vertaald naar wat deze pagina kent:
-     eigenaar            -> eigenaar
-     vr / locatiemanager -> medewerker */
-function normaliseerRol(waarde){
-  const r = String(waarde || '').trim().toLowerCase();
-  if(r === 'eigenaar') return 'eigenaar';
-  if(r === 'vr' || r === 'locatiemanager') return 'medewerker';
-  return '';
+function openPage(pagina){
+  if(pagina === 'meer'){ $('#moreMenu').classList.toggle('show'); return; }
+
+  $$('.page').forEach(s => s.classList.remove('active-page'));
+  const doel = document.getElementById('page-' + pagina);
+  if(doel) doel.classList.add('active-page');
+
+  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === pagina));
+  $$('.mobile-item').forEach(b => b.classList.toggle('active', b.dataset.page === pagina));
+
+  $('#pageTitle').textContent = pagina === 'home' ? groet() : (paginaNamen[pagina] || 'Bed & Wellness');
+  $('#moreMenu').classList.remove('show');
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
-async function haalRol(){
-  try{
-    const { data } = await sb.rpc('bwf_toegangsrol');
-    const rol = normaliseerRol(data);
-    if(rol){ ROL = rol; rolBekend = true; }
-  }catch(e){}
+$$('.nav-item').forEach(b => b.addEventListener('click', () => openPage(b.dataset.page)));
+$$('.mobile-item').forEach(b => b.addEventListener('click', () => openPage(b.dataset.page)));
+$('#knopBerichten').addEventListener('click', () => openPage('berichten'));
+
+document.addEventListener('click', e => {
+  const knop = e.target.closest('[data-ga]');
+  if(knop){ openPage(knop.dataset.ga); return; }
+  const menu = $('#moreMenu');
+  if(!menu.contains(e.target) && !e.target.closest('[data-page="meer"]')) menu.classList.remove('show');
+});
+
+function groet(){
+  const u = new Date().getHours();
+  const g = u < 6 ? 'Goedenacht' : u < 12 ? 'Goedemorgen' : u < 18 ? 'Goedemiddag' : 'Goedenavond';
+  return NAAM ? g + ', ' + NAAM : g;
 }
 
-function magZien(tegel){
-  if(ROL === 'eigenaar') return true;
-  return Array.isArray(tegel.rollen) && tegel.rollen.indexOf(ROL) >= 0;
-}
+/* ═══════════════════════════════════════════════════════════
+   GEGEVENS OPHALEN
+   ═══════════════════════════════════════════════════════════ */
+let RESERVERINGEN = [], TAKEN = [], CALLS = [], VOORRAAD = [], BERICHTEN = [], MEDEWERKERS = [];
+let planningDag = vandaag();
+let resFilter = 'vandaag', taakFilter = 'open', voorraadFilter = 'alle';
 
-function startPortaal(){
+async function start(){
   if(gestart) return;
   gestart = true;
 
-  const nu  = new Date();
-  const uur = nu.getHours();
-  $('#groet').textContent = uur < 6 ? 'Goedenacht' : uur < 12 ? 'Goedemorgen'
-                          : uur < 18 ? 'Goedemiddag' : 'Goedenavond';
-  $('#datum').textContent = nu.toLocaleDateString('nl-NL',
-    { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  $('#pageDate').textContent = nlDatum(vandaag());
+  const grens = dagPlus(vandaag(), -14);
 
-  const slug = t => t.toLowerCase().replace(/[^a-z]/g,'');
+  const [res, taken, calls, voorraad, berichten, mw] = await Promise.all([
+    sb.from('reserveringen')
+      .select('id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,gast_voornaam,gast_achternaam,gast_telefoon,personen,arrangementen,bedrag_totaal,betaalstatus,notitie')
+      .gte('aankomst', grens + 'T00:00:00')
+      .order('aankomst', { ascending:true }).limit(400),
+    sb.from('wz_taken')
+      .select('id,titel,omschrijving,medewerker_id,deadline,prioriteit,status,afgerond_op,aangemaakt')
+      .order('deadline', { ascending:true, nullsFirst:false }).limit(300),
+    sb.from('wz_welkomstcalls')
+      .select('id,naam,telefoon,locatie,datum,tijd,gebeld_op')
+      .is('gebeld_op', null).order('datum', { ascending:true, nullsFirst:false }).limit(200),
+    sb.from('voorraad')
+      .select('id,naam,categorie,aantal,min_aantal,leverancier,besteld,locatie')
+      .order('naam', { ascending:true }).limit(400),
+    sb.from('overdracht')
+      .select('id,auteur,aan,locatie,cat,tekst,klaar,aangemaakt,datum')
+      .order('aangemaakt', { ascending:false, nullsFirst:false }).limit(60),
+    sb.from('wz_medewerkers').select('naam,auth_id,toegangsrol').limit(50)
+  ]);
 
-  const ZICHTBAAR = GROEPEN
-    .map(g => ({ kop:g.kop, tegels:g.tegels.filter(magZien) }))
-    .filter(g => g.tegels.length > 0);
+  const stuk    = [res, taken, calls, voorraad, berichten, mw].filter(r => r.error);
+  RESERVERINGEN = res.data       || [];
+  TAKEN         = taken.data     || [];
+  CALLS         = calls.data     || [];
+  VOORRAAD      = voorraad.data  || [];
+  BERICHTEN     = berichten.data || [];
+  MEDEWERKERS   = mw.data        || [];
 
-  const nogTeBouwen = ZICHTBAAR.flatMap(g => g.tegels).filter(t => !t.url).length;
+  const ik = MEDEWERKERS.find(m => m.auth_id === HUIDIGE_ID);
+  if(ik){
+    NAAM = ik.naam || NAAM;
+    $('#wieNaam').textContent = NAAM;
+    $('#initialen').textContent = (NAAM || '?').slice(0,1).toUpperCase();
+  }
+  $('#wieRol').textContent = ROL || 'uitloggen';
+  $('#pageTitle').textContent = groet();
 
-  $('#zijNav').innerHTML =
-    `<a class="nav-item" href="#vandaag"><span class="nav-icon">\u2302</span>Vandaag</a>
-     <a class="nav-item" href="#taken"><span class="nav-icon">\u2713</span>Mijn taken</a>` +
-    ZICHTBAAR.map(g => {
-      const klaar = g.tegels.filter(t => t.url).length;
-      return `<a class="nav-item" href="#${slug(g.kop)}">` +
-             `<span class="nav-icon">${ICONEN[g.kop] || '\u25C6'}</span>${g.kop}` +
-             `<span class="nav-badge">${klaar}</span></a>`;
-    }).join('');
+  const status = $('#verbindingStatus');
+  status.classList.toggle('fout', stuk.length > 0);
+  status.innerHTML = stuk.length
+    ? '<span></span> ' + stuk.length + ' van 6 lijsten mislukt'
+    : '<span></span> Alles operationeel';
 
-  $('#zijTeller').textContent =
-    `${nogTeBouwen} onderdelen staan klaar als tegel maar zijn nog niet gebouwd.`;
+  tekenHome();
+  tekenPlanning();
+  tekenReserveringen();
+  tekenTaken();
+  tekenVoorraad();
+  tekenBerichten();
+  tekenTellers();
+  tekenInstellingen(stuk.length === 0);
+}
 
-  $('#navlinks').innerHTML =
-    `<a class="mobile-nav-item" href="#vandaag"><span>\u2302</span>Vandaag</a>` +
-    ZICHTBAAR.map(g =>
-      `<a class="mobile-nav-item" href="#${slug(g.kop)}">` +
-      `<span>${ICONEN[g.kop] || '\u25C6'}</span>${g.kop}</a>`).join('');
+/* ---------- hulpfuncties op de gegevens ---------- */
+const openTaken   = () => TAKEN.filter(t => !t.afgerond_op && t.status !== 'klaar');
+const bezigTaken  = () => TAKEN.filter(t => !t.afgerond_op && t.status === 'bezig');
+const klaarTaken  = () => TAKEN.filter(t =>  t.afgerond_op || t.status === 'klaar');
+const tekortLijst = () => VOORRAAD.filter(v =>
+  v.min_aantal != null && Number(v.aantal) <= Number(v.min_aantal));
 
-  $('#groepen').innerHTML = ZICHTBAAR.map(g => {
-    const klaar = g.tegels.filter(t => t.url).length;
-    const ico   = ICONEN[g.kop] || '\u25C6';
-    return `
-    <section class="card" id="${slug(g.kop)}">
-      <div class="card-header">
-        <h2 class="section-title"><span class="nav-icon">${ico}</span>${g.kop}</h2>
-        <span class="text-button">${klaar} van ${g.tegels.length} klaar</span>
-      </div>
-      <div class="quick-grid">` + g.tegels.map(x => x.url
-        ? `<a class="quick-card" href="${x.url}"${x.extern ? ' target="_blank" rel="noopener"' : ''}>` +
-          `<span class="quick-icon">${ico}</span><strong>${x.t}</strong><small>${x.d}</small></a>`
-        : `<div class="quick-card binnenkort"><span class="quick-icon">\u25C7</span>` +
-          `<strong>${x.t}</strong><small>${x.d}</small><span class="tag">nog te bouwen</span></div>`
-      ).join('') + `</div>
-    </section>`;
+const levend     = r => r.status !== 'geannuleerd';
+const aankomstOp = d => RESERVERINGEN.filter(r => levend(r) && dagVan(r.aankomst) === d);
+const vertrekOp  = d => RESERVERINGEN.filter(r => levend(r) && dagVan(r.vertrek)  === d);
+const verblijfOp = d => RESERVERINGEN.filter(r => levend(r) &&
+  dagVan(r.aankomst) <= d && dagVan(r.vertrek) >= d);
+
+function tekenTellers(){
+  const t = openTaken().length;
+  const v = tekortLijst().length;
+  const b = BERICHTEN.filter(x => !x.klaar).length;
+  const r = verblijfOp(vandaag()).length;
+
+  $('#navTaakTeller').textContent     = t || '';
+  $('#mobTaakTeller').textContent     = t || '';
+  $('#navVoorraadTeller').textContent = v || '';
+  $('#navBerichtTeller').textContent  = b || '';
+  $('#navResTeller').textContent      = r || '';
+  $('#belTeller').textContent         = b || '';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HOME
+   ═══════════════════════════════════════════════════════════ */
+function tekenHome(){
+  const dag = vandaag();
+
+  $('#sReserveringen').textContent = verblijfOp(dag).length;
+  $('#sTaken').textContent         = openTaken().length;
+  $('#sVoorraad').textContent      = tekortLijst().length;
+  $('#sAankomsten').textContent    = aankomstOp(dag).length;
+
+  /* ---- nu doen: de meest dringende open taak ---- */
+  const dringend = openTaken().slice().sort((a,b) => {
+    const ha = (a.prioriteit || '').toLowerCase() === 'hoog' ? 0 : 1;
+    const hb = (b.prioriteit || '').toLowerCase() === 'hoog' ? 0 : 1;
+    if(ha !== hb) return ha - hb;
+    return String(a.deadline || '9999').localeCompare(String(b.deadline || '9999'));
+  })[0];
+
+  if(!dringend){
+    $('#nuDoen').innerHTML = '<p class="leeg">Geen openstaande taken. Alles is bij.</p>';
+  }else{
+    const laat = dringend.deadline && dringend.deadline < dag;
+    const hoog = (dringend.prioriteit || '').toLowerCase() === 'hoog';
+    $('#nuDoen').innerHTML =
+      '<div class="priority-task">' +
+        '<div class="task-photo ' + foto(dringend.omschrijving) + '"></div>' +
+        '<div class="priority-info">' +
+          (hoog || laat ? '<span class="badge danger">' + (laat ? 'TE LAAT' : 'URGENT') + '</span>' : '') +
+          '<h2>' + esc(dringend.titel || 'Zonder titel') + '</h2>' +
+          '<p>' + esc(dringend.omschrijving || 'Geen omschrijving') + '</p>' +
+          '<div class="meta">' +
+            '<span>&#9719; ' + esc(dringend.deadline || 'geen datum') + '</span>' +
+            (dringend.prioriteit ? '<span>&#10022; ' + esc(dringend.prioriteit) + '</span>' : '') +
+          '</div>' +
+          '<a class="primary-button" href="vr2.html">&#9654; &nbsp; OPEN IN TAKEN</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ---- tijdlijn van vandaag ---- */
+  const punten = [];
+  aankomstOp(dag).forEach(r => punten.push({
+    tijd: hhmm(r.incheck_tijd) || tijdVan(r.aankomst),
+    titel: volledigeNaam(r), sub: suiteNaam(r.suite), soort: 'aankomst' }));
+  vertrekOp(dag).forEach(r => punten.push({
+    tijd: hhmm(r.uitcheck_tijd) || tijdVan(r.vertrek),
+    titel: 'Vertrek ' + volledigeNaam(r), sub: suiteNaam(r.suite), soort: 'vertrek' }));
+  openTaken().filter(t => t.deadline === dag).forEach(t => punten.push({
+    tijd: '', titel: t.titel || 'Taak', sub: t.omschrijving || '', soort: 'taak' }));
+
+  punten.sort((a,b) => String(a.tijd || '99:99').localeCompare(String(b.tijd || '99:99')));
+
+  $('#tijdlijn').innerHTML = punten.length
+    ? punten.slice(0, 8).map(p =>
+        '<div class="timeline-item">' +
+          '<time>' + esc(p.tijd || '—') + '</time>' +
+          '<span class="timeline-dot"></span>' +
+          '<div><strong>' + esc(p.titel) + '</strong><small>' + esc(p.sub) + '</small></div>' +
+          '<label' + (p.soort === 'aankomst' ? ' class="green"' : '') + '>' + esc(p.soort) + '</label>' +
+        '</div>').join('')
+    : '<p class="leeg">Vandaag staat er niets gepland.</p>';
+
+  /* ---- mijn taken ---- */
+  const mijn  = openTaken().filter(t => t.medewerker_id === HUIDIGE_ID);
+  const lijst = mijn.length ? mijn : openTaken();
+  $('#mijnTaken').innerHTML = lijst.length
+    ? lijst.slice(0, 5).map(t =>
+        '<div class="simple-task">' +
+          '<span class="round-icon">&#10003;</span>' +
+          '<div><strong>' + esc(t.titel || 'Zonder titel') + '</strong>' +
+          '<small>' + esc([t.omschrijving, t.deadline].filter(Boolean).join(' · ')) + '</small></div>' +
+          '<button data-ga="taken">Open</button>' +
+        '</div>').join('')
+    : '<p class="leeg">Geen openstaande taken.</p>';
+
+  /* ---- reserveringen kort ---- */
+  const komend = RESERVERINGEN.filter(r => levend(r) && dagVan(r.aankomst) >= dag).slice(0, 4);
+  $('#resKort').innerHTML = komend.length
+    ? komend.map(r => {
+        const d = dagVan(r.aankomst);
+        return '<div class="reservation-row">' +
+          '<div class="reservation-photo ' + foto(r.suite) + '"></div>' +
+          '<div><strong>' + esc(volledigeNaam(r)) + '</strong>' +
+            '<small>' + esc(suiteNaam(r.suite)) + '</small>' +
+            '<small>' + esc((r.type || 'verblijf') + ' · ' + (hhmm(r.incheck_tijd) || tijdVan(r.aankomst))) + '</small>' +
+          '</div>' +
+          '<span class="badge ' + (d === dag ? 'green' : 'gold') + '">' +
+            (d === dag ? 'Vandaag' : esc(d.slice(8) + '-' + d.slice(5,7))) + '</span>' +
+        '</div>';
+      }).join('')
+    : '<p class="leeg">Geen komende reserveringen.</p>';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLANNING
+   ═══════════════════════════════════════════════════════════ */
+$('#dagTerug').addEventListener('click',   () => { planningDag = dagPlus(planningDag, -1); tekenPlanning(); });
+$('#dagVooruit').addEventListener('click', () => { planningDag = dagPlus(planningDag,  1); tekenPlanning(); });
+
+function tekenPlanning(){
+  const dag = planningDag;
+  $('#dagLabel').textContent = dag === vandaag() ? 'VANDAAG' : 'GEKOZEN DAG';
+  $('#dagTekst').textContent = nlDatum(dag);
+
+  const dagen = ['zo','ma','di','wo','do','vr','za'];
+  const start = dagPlus(dag, -3);
+  $('#weekBalk').innerHTML = Array.from({length:7}, (_, i) => {
+    const d = dagPlus(start, i);
+    const w = new Date(d + 'T12:00:00').getDay();
+    return '<button data-dag="' + d + '"' + (d === dag ? ' class="selected"' : '') + '>' +
+           '<small>' + dagen[w].toUpperCase() + '</small><strong>' + Number(d.slice(8)) + '</strong></button>';
   }).join('');
+  $$('#weekBalk button').forEach(b =>
+    b.addEventListener('click', () => { planningDag = b.dataset.dag; tekenPlanning(); }));
 
-  $('#extern').innerHTML = EXTERN.map(x =>
-    `<a class="pil" href="${x.url}" target="_blank" rel="noopener">${x.t}</a>`
-  ).join('');
+  const suites = [...new Set(RESERVERINGEN.map(r => r.suite).filter(Boolean))].sort();
+  if(!suites.length){
+    $('#planningLijst').innerHTML = '<div class="card"><p class="leeg">Geen suites gevonden.</p></div>';
+    return;
+  }
 
-  laadDag();
+  $('#planningLijst').innerHTML = suites.map(s => {
+    const bezet = verblijfOp(dag).filter(r => r.suite === s);
+    const aank  = aankomstOp(dag).filter(r => r.suite === s);
+    const vert  = vertrekOp(dag).filter(r => r.suite === s);
+    const taken = openTaken().filter(t => t.deadline === dag &&
+      String(t.omschrijving || '').toLowerCase().includes(String(s).toLowerCase()));
 
-  if(!rolBekend){
-    $('#zijTeller').textContent =
-      'Beperkte weergave: je account heeft nog geen toegangsrol in wz_medewerkers.';
+    const stand      = bezet.length ? 'booked' : (aank.length ? 'partial' : 'available');
+    const standTekst = bezet.length ? 'Bezet'  : (aank.length ? 'Deels'   : 'Vrij');
+
+    const regels = []
+      .concat(taken.map(t => ({ tijd:'', titel:t.titel || 'Taak', sub:t.omschrijving || '', merk:'' })))
+      .concat(aank.map(r => ({ tijd:hhmm(r.incheck_tijd) || tijdVan(r.aankomst),
+              titel:volledigeNaam(r), sub:(r.type || 'verblijf') + ' · ' + (r.personen || '?') + ' pers.',
+              merk:'<span class="availability booked">Aankomst</span>' })))
+      .concat(vert.map(r => ({ tijd:hhmm(r.uitcheck_tijd) || tijdVan(r.vertrek),
+              titel:'Vertrek ' + volledigeNaam(r), sub:'', merk:'' })))
+      .sort((a,b) => String(a.tijd || '99:99').localeCompare(String(b.tijd || '99:99')));
+
+    return '<div class="planning-card card">' +
+      '<div class="planning-location">' +
+        '<span class="location-dot' + (bezet.length ? ' gold-dot' : '') + '"></span>' +
+        '<div><strong>' + esc(suiteNaam(s)) + '</strong><small>' + esc(nlDatum(dag)) + '</small></div>' +
+        '<span class="availability ' + stand + '">' + standTekst + '</span>' +
+      '</div>' +
+      (regels.length
+        ? regels.map(r =>
+            '<div class="planning-line"><time>' + esc(r.tijd || '—') + '</time>' +
+            '<div><strong>' + esc(r.titel) + '</strong>' +
+            (r.sub ? '<small>' + esc(r.sub) + '</small>' : '') + '</div>' +
+            (r.merk || '<span>&#9675;</span>') + '</div>').join('')
+        : '<p class="leeg">Niets gepland op deze dag.</p>') +
+    '</div>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESERVERINGEN
+   ═══════════════════════════════════════════════════════════ */
+$$('[data-res]').forEach(b => b.addEventListener('click', () => {
+  resFilter = b.dataset.res;
+  $$('[data-res]').forEach(x => x.classList.toggle('active', x === b));
+  tekenReserveringen();
+}));
+$('#resZoek').addEventListener('input', tekenReserveringen);
+
+function tekenReserveringen(){
+  const dag  = vandaag();
+  const week = dagPlus(dag, 7);
+  const zoek = $('#resZoek').value.trim().toLowerCase();
+
+  let lijst = RESERVERINGEN.filter(levend);
+  if(resFilter === 'vandaag') lijst = lijst.filter(r => dagVan(r.aankomst) <= dag && dagVan(r.vertrek) >= dag);
+  if(resFilter === 'week')    lijst = lijst.filter(r => dagVan(r.aankomst) >= dag && dagVan(r.aankomst) <= week);
+  if(zoek) lijst = lijst.filter(r =>
+    (volledigeNaam(r) + ' ' + (r.kanaal_ref || '') + ' ' + (r.suite || '')).toLowerCase().includes(zoek));
+
+  $('#resKaarten').innerHTML = lijst.length
+    ? lijst.slice(0, 40).map(r => {
+        const vandaagAan = dagVan(r.aankomst) === dag;
+        const bedrag = r.bedrag_totaal != null
+          ? '€ ' + Number(r.bedrag_totaal).toLocaleString('nl-NL',{minimumFractionDigits:2}) : '';
+        return '<article class="booking-card card">' +
+          '<div class="booking-photo ' + foto(r.suite) + '"></div>' +
+          '<div class="booking-main">' +
+            '<div class="booking-top">' +
+              '<span class="badge ' + (vandaagAan ? 'green' : 'gold') + '">' +
+                (vandaagAan ? 'AANKOMST' : esc(String(r.status || 'verblijf').toUpperCase())) + '</span>' +
+              '<small>' + esc(r.kanaal_ref || String(r.id).slice(0,8)) + '</small>' +
+            '</div>' +
+            '<h3>' + esc(volledigeNaam(r)) + '</h3>' +
+            '<p>' + esc(suiteNaam(r.suite)) + (r.kanaal ? ' · ' + esc(r.kanaal) : '') + '</p>' +
+            '<div class="booking-details">' +
+              '<span>&#9719; ' + esc(hhmm(r.incheck_tijd) || tijdVan(r.aankomst)) + '</span>' +
+              '<span>&#9817; ' + esc(r.personen || '?') + ' personen</span>' +
+              (bedrag ? '<span>' + esc(bedrag) + '</span>' : '') +
+            '</div>' +
+            '<div class="arrangement">' +
+              '<strong>' + esc(r.type || 'Verblijf') + '</strong>' +
+              '<small>' + esc(r.arrangementen || r.notitie || 'Geen bijzonderheden') + '</small>' +
+            '</div>' +
+          '</div>' +
+          '<a class="more-button" href="reserveringen.html" title="Openen">&bull;&bull;&bull;</a>' +
+        '</article>';
+      }).join('')
+    : '<div class="card"><p class="leeg">Geen reserveringen in deze selectie.</p></div>';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TAKEN
+   ═══════════════════════════════════════════════════════════ */
+$$('[data-taak]').forEach(b => b.addEventListener('click', () => {
+  taakFilter = b.dataset.taak;
+  $$('[data-taak]').forEach(x => x.classList.toggle('active', x === b));
+  tekenTaken();
+}));
+
+function tekenTaken(){
+  $('#tOpen').textContent  = openTaken().length;
+  $('#tBezig').textContent = bezigTaken().length;
+  $('#tKlaar').textContent = klaarTaken().length;
+
+  const lijst = taakFilter === 'klaar' ? klaarTaken()
+              : taakFilter === 'bezig' ? bezigTaken()
+              : openTaken();
+  const dag = vandaag();
+
+  $('#takenLijst').innerHTML = lijst.length
+    ? lijst.slice(0, 60).map(t => {
+        const klaar = !!t.afgerond_op || t.status === 'klaar';
+        const laat  = !klaar && t.deadline && t.deadline < dag;
+        const hoog  = (t.prioriteit || '').toLowerCase() === 'hoog';
+        return '<div class="full-task' + (klaar ? ' completed' : '') + '">' +
+          '<div class="task-status' + (klaar ? ' success-dot' : (laat || hoog ? ' danger-dot' : '')) + '"></div>' +
+          '<div class="full-task-content">' +
+            (laat ? '<span class="badge danger">TE LAAT</span>'
+                  : (hoog && !klaar ? '<span class="badge danger">URGENT</span>' : '')) +
+            '<h3>' + esc(t.titel || 'Zonder titel') + '</h3>' +
+            '<p>' + esc(t.omschrijving || '') + '</p>' +
+            '<small>' + esc([t.deadline, t.prioriteit].filter(Boolean).join(' · ') || 'geen deadline') + '</small>' +
+          '</div>' +
+          (klaar ? '<span class="done-label">&#10003; Klaar</span>'
+                 : '<a class="task-action" href="vr2.html">Open</a>') +
+        '</div>';
+      }).join('')
+    : '<p class="leeg">Geen taken in deze selectie.</p>';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VOORRAAD
+   ═══════════════════════════════════════════════════════════ */
+$$('[data-vr]').forEach(b => b.addEventListener('click', () => {
+  voorraadFilter = b.dataset.vr;
+  $$('[data-vr]').forEach(x => x.classList.toggle('active', x === b));
+  tekenVoorraad();
+}));
+$('#voorraadZoek').addEventListener('input', tekenVoorraad);
+
+function tekenVoorraad(){
+  const tekort = tekortLijst();
+  $('#vTotaal').textContent = VOORRAAD.length;
+  $('#vTekort').textContent = tekort.length;
+  $('#vGoed').textContent   = VOORRAAD.length - tekort.length;
+
+  const zoek = $('#voorraadZoek').value.trim().toLowerCase();
+  let lijst = voorraadFilter === 'tekort' ? tekort : VOORRAAD;
+  if(zoek) lijst = lijst.filter(v =>
+    ((v.naam || '') + ' ' + (v.categorie || '') + ' ' + (v.locatie || '')).toLowerCase().includes(zoek));
+
+  $('#voorraadLijst').innerHTML = lijst.length
+    ? lijst.slice(0, 80).map(v => {
+        const op = v.min_aantal != null && Number(v.aantal) <= Number(v.min_aantal);
+        return '<div class="inventory-row">' +
+          '<span class="inventory-icon">&#9831;</span>' +
+          '<div><strong>' + esc(v.naam || 'Zonder naam') + '</strong>' +
+            '<small>' + esc([v.categorie, v.locatie].filter(Boolean).join(' · ') || 'geen categorie') + '</small></div>' +
+          '<b>' + esc(v.aantal != null ? v.aantal : '?') + ' stuks</b>' +
+          '<span class="inventory-alert ' + (op ? 'danger' : 'good') + '">' +
+            (op ? (v.besteld ? 'Besteld' : 'Bijna op') : 'Op voorraad') + '</span>' +
+        '</div>';
+      }).join('')
+    : '<p class="leeg">Geen producten gevonden.</p>';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BERICHTEN — het overdrachtsbord
+   ═══════════════════════════════════════════════════════════ */
+function tekenBerichten(){
+  $('#berichtLijst').innerHTML = BERICHTEN.length
+    ? BERICHTEN.map(b =>
+        '<div class="board-item">' +
+          '<div class="message-avatar">' + esc(String(b.auteur || '?').slice(0,1).toUpperCase()) + '</div>' +
+          '<div>' +
+            '<strong>' + esc(b.auteur || 'Onbekend') + (b.locatie ? ' · ' + esc(b.locatie) : '') + '</strong>' +
+            '<p>' + esc(b.tekst || '') + '</p>' +
+            '<small>' + esc(b.aangemaakt ? new Date(b.aangemaakt).toLocaleString('nl-NL') : (b.datum || '')) +
+              (b.klaar ? ' · afgehandeld' : '') + '</small>' +
+          '</div>' +
+        '</div>').join('')
+    : '<p class="leeg">Nog geen berichten. Schrijf hieronder het eerste.</p>';
+}
+
+$('#berichtForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const tekst = $('#berichtTekst').value.trim();
+  if(!tekst) return;
+
+  const { data, error } = await sb.from('overdracht')
+    .insert({ auteur: NAAM || 'onbekend', tekst, klaar: false, datum: vandaag() })
+    .select().single();
+
+  if(error){
+    $('#berichtLijst').insertAdjacentHTML('afterbegin',
+      '<p class="fout">Opslaan lukte niet: ' + esc(error.message) + '</p>');
+    return;
+  }
+  $('#berichtTekst').value = '';
+  BERICHTEN.unshift(data);
+  tekenBerichten();
+  tekenTellers();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   INSTELLINGEN
+   ═══════════════════════════════════════════════════════════ */
+function tekenInstellingen(alleslukt){
+  $('#setSuites').textContent        = [...new Set(RESERVERINGEN.map(r => r.suite).filter(Boolean))].length + ' suites';
+  $('#setMedewerkers').textContent   = MEDEWERKERS.length + ' medewerkers';
+  $('#setReserveringen').textContent = RESERVERINGEN.length + ' geladen';
+  const db = $('#setDb');
+  db.textContent = alleslukt ? '● Verbonden' : '● Deels mislukt';
+  db.classList.toggle('fout', !alleslukt);
+}
+
+const wortel = document.documentElement;
+const kleurVelden = {
+  primary    : $('#primaryColor'),
+  background : $('#backgroundColor'),
+  accent     : $('#accentColor')
+};
+const kleurNamen = { primary:'--primary', background:'--background', accent:'--accent' };
+
+/* de vijf vaste kleurenschema's */
+const SCHEMAS = {
+  zwart : { primary:'#1B1B1B', light:'#333333', background:'#F4F3F1', accent:'#C9A96E' },
+  beige : { primary:'#6E5B45', light:'#8A745A', background:'#F8F4ED', accent:'#B08E5E' },
+  blauw : { primary:'#1E3A4C', light:'#2F5468', background:'#F1F4F7', accent:'#C9A96E' },
+  groen : { primary:'#173C35', light:'#28584E', background:'#F5F2EC', accent:'#C9A96E' },
+  paars : { primary:'#3A2B4A', light:'#533F68', background:'#F5F2F7', accent:'#BFA0CB' }
+};
+
+function toonKleurTekst(){
+  Object.keys(kleurVelden).forEach(s => {
+    const tekst = kleurVelden[s].parentElement.querySelector('span');
+    if(tekst) tekst.textContent = String(kleurVelden[s].value).toUpperCase();
+  });
+}
+
+function zetSchema(naam, bewaren){
+  const s = SCHEMAS[naam];
+  if(!s) return;
+  wortel.style.setProperty('--primary', s.primary);
+  wortel.style.setProperty('--primary-light', s.light);
+  wortel.style.setProperty('--background', s.background);
+  wortel.style.setProperty('--accent', s.accent);
+  kleurVelden.primary.value    = s.primary;
+  kleurVelden.background.value = s.background;
+  kleurVelden.accent.value     = s.accent;
+  toonKleurTekst();
+  $('#themaKleur').setAttribute('content', s.primary);
+  $$('.scheme-option').forEach(k => k.classList.toggle('active', k.dataset.schema === naam));
+  if(bewaren !== false){
+    try{
+      localStorage.setItem('bwf_schema', naam);
+      localStorage.removeItem('bwf_uiterlijk');
+    }catch(e){}
   }
 }
 
-const vandaag = () => new Date().toLocaleDateString('sv-SE'); // JJJJ-MM-DD, lokale tijd
+$$('.scheme-option').forEach(knop =>
+  knop.addEventListener('click', () => zetSchema(knop.dataset.schema, true)));
 
-function fout(waar, tabel, melding){
-  $(waar).innerHTML =
-    `<p class="fout">Kon niet laden uit <code>${tabel}</code>. ${melding}</p>`;
-}
-
-/* de eigenaar kan wisselen tussen eigen taken en alle taken */
-document.addEventListener('change', function(e){
-  if(e.target && e.target.id === 'takenAllen') laadTaken();
+/* eigen kleuren: dan is het geen vast schema meer */
+Object.keys(kleurVelden).forEach(sleutel => {
+  kleurVelden[sleutel].addEventListener('input', function(){
+    wortel.style.setProperty(kleurNamen[sleutel], this.value);
+    const tekst = this.parentElement.querySelector('span');
+    if(tekst) tekst.textContent = this.value.toUpperCase();
+    if(sleutel === 'primary') $('#themaKleur').setAttribute('content', this.value);
+    $$('.scheme-option').forEach(k => k.classList.remove('active'));
+    try{ localStorage.removeItem('bwf_schema'); }catch(e){}
+    bewaarUiterlijk();
+  });
 });
 
-async function laadDag(){
-  laadTaken();
-  laadCalls();
+$('#kleurenTerug').addEventListener('click', () => zetSchema('groen', true));
+
+$$('.font-option').forEach(knop => {
+  knop.addEventListener('click', function(){
+    $$('.font-option').forEach(k => k.classList.remove('active'));
+    this.classList.add('active');
+    wortel.style.setProperty('--font-body', this.dataset.font + ', sans-serif');
+    try{ localStorage.setItem('bwf_font', this.dataset.font); }catch(e){}
+  });
+});
+
+function bewaarUiterlijk(){
+  try{
+    localStorage.setItem('bwf_uiterlijk', JSON.stringify({
+      primary    : kleurVelden.primary.value,
+      background : kleurVelden.background.value,
+      accent     : kleurVelden.accent.value
+    }));
+  }catch(e){}
 }
 
-async function laadTaken(){
-  const T = CONFIG.taken, dag = vandaag();
+function laadUiterlijk(){
+  try{
+    const schema = localStorage.getItem('bwf_schema');
+    if(schema && SCHEMAS[schema]) zetSchema(schema, false);
 
-  let vraag = sb.from(T.tabel)
-    .select([T.titel, T.deadline, T.prioriteit, T.medewerker].join(','))
-    .is(T.afgerond, null)
-    .order(T.deadline, { ascending:true, nullsFirst:false });
+    const bewaard = localStorage.getItem('bwf_uiterlijk');
+    if(bewaard){
+      const d = JSON.parse(bewaard);
+      Object.keys(kleurVelden).forEach(s => {
+        if(!d[s]) return;
+        kleurVelden[s].value = d[s];
+        wortel.style.setProperty(kleurNamen[s], d[s]);
+      });
+      toonKleurTekst();
+      if(d.primary) $('#themaKleur').setAttribute('content', d.primary);
+      $$('.scheme-option').forEach(k => k.classList.remove('active'));
+    }
 
-  /* Standaard alleen je eigen taken. De eigenaar kan de rest erbij zetten. */
-  const allen = document.getElementById('takenAllen');
-  if(allen && ROL === 'eigenaar') document.getElementById('allenVak').style.display = 'inline-flex';
-  const toonAlles = ROL === 'eigenaar' && allen && allen.checked;
-  if(HUIDIGE_ID && !toonAlles) vraag = vraag.eq(T.medewerker, HUIDIGE_ID);
-
-  const { data, error } = await vraag;
-  if(error){ fout('lijstTaken', T.tabel, error.message); return; }
-
-  const rijen = data || [];
-  const vandaagOfEerder = rijen.filter(r => r[T.deadline] && r[T.deadline] <= dag);
-
-  $('#cVandaag').textContent = vandaagOfEerder.length;
-  $('#cOpen').textContent    = rijen.length;
-
-  $('#lijstTaken').innerHTML = rijen.length === 0
-    ? `<p class="leeg">Geen openstaande taken.</p>`
-    : rijen.slice(0, 12).map((r, i) => {
-        const d = r[T.deadline];
-        const laat = d && d < dag;
-        const prio = (r[T.prioriteit] || '').toLowerCase();
-        return `
-        <div class="task-row">
-          <div class="task-image small-image ${SFEER[i % SFEER.length]}"></div>
-          <div class="task-details">
-            <strong>${r[T.titel] || 'Zonder titel'}</strong>
-            <small class="${laat ? 'laat' : ''}">${d ? 'deadline ' + d.slice(8,10) + '-' + d.slice(5,7) : 'geen deadline'}${laat ? ' \u2014 te laat' : ''}</small>
-          </div>
-          <span class="task-button ${prio === 'hoog' ? 'task-hoog' : ''}">${prio || 'gewoon'}</span>
-        </div>`;
-      }).join('');
+    const letter = localStorage.getItem('bwf_font');
+    if(letter){
+      wortel.style.setProperty('--font-body', letter + ', sans-serif');
+      $$('.font-option').forEach(k => k.classList.toggle('active', k.dataset.font === letter));
+    }
+  }catch(e){}
 }
-
-async function laadCalls(){
-  const W = CONFIG.welkomstcalls;
-
-  const { data, error } = await sb.from(W.tabel)
-    .select([W.naam, W.datum, W.locatie, W.telefoon].join(','))
-    .is(W.gebeld, null)
-    .order(W.datum, { ascending:true, nullsFirst:false });
-
-  if(error){ fout('lijstCalls', W.tabel, error.message); $('#cCalls').textContent = '–'; return; }
-
-  const rijen = data || [];
-  $('#cCalls').textContent = rijen.length;
-
-  $('#lijstCalls').innerHTML = rijen.length === 0
-    ? `<p class="leeg">Alles gebeld.</p>`
-    : rijen.slice(0, 12).map((r, i) => {
-        const d = r[W.datum];
-        return `
-        <div class="task-row">
-          <div class="task-image small-image ${SFEER[(i + 2) % SFEER.length]}"></div>
-          <div class="task-details">
-            <strong>${r[W.naam] || 'Naam onbekend'}</strong>
-            <p>${r[W.locatie] || ''}</p>
-            <small>${d ? d.slice(8,10) + '-' + d.slice(5,7) : 'geen datum'}</small>
-          </div>
-          ${r[W.telefoon] ? `<a class="task-button task-bellen" href="tel:${r[W.telefoon]}">bellen</a>` : ''}
-        </div>`;
-      }).join('');
-}
+laadUiterlijk();
 </script>
-<script src="bwf-kalender.js?v=5"></script>
-<script src="bwf-shell.js"></script>
 </body>
 </html>
