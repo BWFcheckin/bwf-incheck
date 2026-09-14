@@ -41,8 +41,12 @@
   /* ---- accent: donkergroen met goud ---- */
   --accent:#173C35;
   --accent-2:#28584E;
-  --accent-ink:#FFFFFF;
   --accent-soft:#E7EFEA;
+  /* --accent-ink wordt hier bewust NIET gezet. Klantbeheer en andere
+     pagina's gebruiken die naam voor een koperkleurige tekstkleur
+     (a{color:var(--accent-ink)}). Zetten we hem op wit, dan worden
+     links en klantnamen onzichtbaar. Elke pagina houdt zijn eigen
+     waarde; hieronder staat waar nodig gewoon #fff. */
   --accent-rgb:23,60,53;
   --brass:#C9A96E;
 
@@ -133,7 +137,7 @@ small,.klein,.subkop,.bijschrift{ font-size:.82em }
 button.primary{
   background:var(--accent);
   border-color:var(--accent);
-  color:var(--accent-ink);
+  color:#fff;
 }
 .btn:not(.secondary):not(.ghost):not(.sec):hover,
 .knop.vol:hover,
