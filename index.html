@@ -159,7 +159,7 @@ const CONFIG = {
 
   rollen : {
     tabel : 'bwf_rollen',      // id (uuid), naam, rol
-    rol   : 'rol'              // waarde 'eigenaar' of 'medewerker'
+    rol   : 'rol'              // alleen terugval; de echte bron is bwf_toegangsrol()
   },
 
   taken : {
@@ -331,11 +331,32 @@ let ROL = 'medewerker';
 let rolBekend = false;
 let HUIDIGE_ID = null;
 
+/* De toegangsrol komt uit wz_medewerkers, via bwf_toegangsrol() — dezelfde
+   bron die agenda.html, reserveringen.html en de kalender gebruiken.
+   Lukt dat niet, dan valt hij terug op de oudere tabel bwf_rollen.
+   De twee woordenlijsten worden hier gelijkgetrokken:
+     eigenaar / beheerder          -> eigenaar
+     vr / locatiemanager / medewerker -> medewerker
+   Zonder die vertaling ziet een 'beheerder' geen enkele tegel. */
+function normaliseerRol(waarde){
+  const r = String(waarde || '').trim().toLowerCase();
+  if(r === 'eigenaar' || r === 'beheerder') return 'eigenaar';
+  if(r === 'vr' || r === 'locatiemanager' || r === 'medewerker') return 'medewerker';
+  return '';
+}
+
 async function haalRol(userId){
+  try{
+    const { data } = await sb.rpc('bwf_toegangsrol');
+    const rol = normaliseerRol(data);
+    if(rol){ ROL = rol; rolBekend = true; return; }
+  }catch(e){}
+
   try{
     const R = CONFIG.rollen;
     const { data } = await sb.from(R.tabel).select(R.rol).eq('id', userId).maybeSingle();
-    if(data && data[R.rol]){ ROL = data[R.rol]; rolBekend = true; }
+    const rol = data ? normaliseerRol(data[R.rol]) : '';
+    if(rol){ ROL = rol; rolBekend = true; }
   }catch(e){}
 }
 
