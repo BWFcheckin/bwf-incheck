@@ -364,6 +364,7 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
 
     <div class="v-voet">
       <span class="v-melding" id="vMelding"></span>
+      <a class="knop sec" id="vKlantkaart" target="_blank" rel="noopener" hidden>Klantkaart</a>
       <button type="button" class="knop sec" id="vVerwijder"
         style="border-color:var(--crit);color:var(--crit)" hidden>Verwijderen</button>
       <button type="button" class="knop sec" id="vAnnuleer">Annuleren</button>
@@ -621,6 +622,13 @@ function openVenster(id) {
   HUIDIG = r;
   const p = periode(r);
   $("#vTitel").textContent = gastNaam(r) || "Reservering zonder naam";
+
+  /* Klantbeheer kent al ?zoek= : dat vult het zoekveld, springt naar het
+     klantentabblad en filtert. Daar hoeft dus niets bijgebouwd te worden. */
+  const kk = $("#vKlantkaart");
+  const kkZoek = (r.gast_achternaam || r.gast_voornaam || "").trim();
+  kk.hidden = !kkZoek;
+  if (kkZoek) kk.href = "klantbeheer.html?zoek=" + encodeURIComponent(kkZoek);
   $("#vSub").textContent = [SUITES[r.suite] ? SUITES[r.suite].naam : r.suite, KANALEN[r.kanaal] || r.kanaal,
     r.kanaal === "smg" && r.kanaal_ref ? "nr. " + r.kanaal_ref : "", p.dag + " " + p.tijd].filter(Boolean).join(" · ");
   const opm = $("#vOpmerking");

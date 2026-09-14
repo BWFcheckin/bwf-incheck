@@ -867,6 +867,7 @@ function openDetail(sleutel){
         ? `Ingestuurd door ${esc([g.voornaam,g.achternaam].filter(Boolean).join(' '))} — ${esc(g.woonplaats||'')} ${esc(g.nationaliteit||'')}, ${g.handtekening ? 'met handtekening' : 'zonder handtekening'}.`
         : 'Nog niet ingevuld. Stuur de gast de link.'}</p>
       <div class="knoprij">
+        ${x.resId ? `<a class="btn sm" href="reserveringen.html?id=${esc(x.resId)}" target="_top">Reserveringskaart openen</a>` : ''}
         <button class="btn sec sm" id="d_kopieer">Link kopiëren</button>
         <a class="btn sec sm" id="d_wa" target="_blank" rel="noopener">Via WhatsApp</a>
         <a class="btn sec sm" href="${gastLink(x)}" target="_blank" rel="noopener">Zelf openen</a>
