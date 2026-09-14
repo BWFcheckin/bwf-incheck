@@ -47,86 +47,114 @@
 
 <!-- ══════════ PORTAAL ══════════ -->
 <main id="portaal" class="hidden">
+ <div class="portaal-app">
 
-  <div class="navbalk">
-    <div class="navinner">
-      <img class="navlogo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">
-      <div class="navlinks" id="navlinks"></div>
-      <button class="btn-rand" id="knopUit">Uitloggen</button>
-    </div>
-  </div>
-
+  <!-- ══════════ ZIJBALK ══════════ -->
   <aside class="zijbalk">
-    <div class="zij-merk">
-      <img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
-      <span class="merk-naam">Bed &amp; Wellness</span>
-      <span class="merk-plaats">Flevoland</span>
+    <div class="brand">
+      <img class="brand-logo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
+      <span class="brand-title">Bed &amp; Wellness</span>
+      <span class="brand-subtitle">Flevoland</span>
     </div>
 
-    <div class="zij-wie">
-      <span class="initialen" id="initialen">–</span>
-      <span class="zij-mail" id="zijMail"></span>
-    </div>
+    <nav class="desktop-nav" id="zijNav" aria-label="Onderdelen"></nav>
 
-    <nav class="zij-nav" id="zijNav"></nav>
-
-    <div class="zij-kaart">
-      <b>Meer toevoegen</b>
+    <div class="sidebar-footer">
       <p id="zijTeller"></p>
       <button class="btn-rand" id="knopUit2">Uitloggen</button>
     </div>
   </aside>
 
-  <div class="inhoud">
-  <div class="wrap">
+  <!-- ══════════ HOOFDVLAK ══════════ -->
+  <div class="main">
 
-    <header>
-      <span class="eyebrow">Portaal</span>
-      <h1 id="groet">Goedemorgen</h1>
-      <p class="datum" id="datum"></p>
-    </header>
-    <hr class="regel">
+    <div class="topbar">
+      <div class="welcome">
+        <span class="eyebrow">Portaal</span>
+        <h1 id="groet">Goedemorgen</h1>
+        <p class="datum" id="datum"></p>
+      </div>
+      <div class="profile-groep">
+        <div class="profile">
+          <span class="initialen" id="initialen">&ndash;</span>
+          <span class="profile-info">
+            <strong id="zijMail"></strong>
+            <small>ingelogd</small>
+          </span>
+        </div>
+        <button class="btn-rand" id="knopUit">Uitloggen</button>
+      </div>
+    </div>
 
-    <div class="kolommen">
+    <div class="stats">
+      <a class="stat-card" href="#taken">
+        <span class="stat-icon">&#9719;</span>
+        <b class="stat-number" id="cVandaag">&ndash;</b>
+        <span class="stat-label">taken vandaag</span>
+        <span class="stat-arrow">&rsaquo;</span>
+      </a>
+      <a class="stat-card" href="#taken">
+        <span class="stat-icon">&#9776;</span>
+        <b class="stat-number" id="cOpen">&ndash;</b>
+        <span class="stat-label">open taken</span>
+        <span class="stat-arrow">&rsaquo;</span>
+      </a>
+      <a class="stat-card" href="#calls">
+        <span class="stat-icon">&#9742;</span>
+        <b class="stat-number" id="cCalls">&ndash;</b>
+        <span class="stat-label">welkomstcalls</span>
+        <span class="stat-arrow">&rsaquo;</span>
+      </a>
+    </div>
 
-    <section aria-label="Reserveringen" style="grid-column:1/-1">
-      <h2>Reserveringen vandaag</h2>
-      <p class="subkop" style="margin-top:0">Aankomsten en vertrekken. Klik een regel aan voor de gegevens.</p>
-      <iframe id="resFrame" title="Reserveringen vandaag" src="vandaag.html" loading="lazy"></iframe>
-      <p class="subkop"><a href="reserveringen.html">De volledige agenda openen</a></p>
-    </section>
-    <hr class="regel scheiding">
+    <div class="dashboard-grid">
 
-    <section aria-labelledby="vandaag">
-      <h2 id="vandaag">Mijn taken</h2>
-      <div class="tellers">
-        <div class="teller"><b id="cVandaag">–</b><span>taken vandaag</span></div>
-        <div class="teller"><b id="cOpen">–</b><span>open taken</span></div>
-        <div class="teller"><b id="cCalls">–</b><span>welkomstcalls</span></div>
+      <div class="left-column">
+        <section class="card" id="vandaag">
+          <div class="card-header">
+            <h2 class="section-title"><span class="nav-icon">&#8962;</span>Reserveringen vandaag</h2>
+            <a class="text-button" href="reserveringen.html">Volledige agenda &rsaquo;</a>
+          </div>
+          <p class="card-uitleg">Aankomsten en vertrekken. Klik een regel aan voor de gegevens.</p>
+          <iframe id="resFrame" title="Reserveringen vandaag" src="vandaag.html" loading="lazy"></iframe>
+        </section>
+
+        <section class="card" id="taken">
+          <div class="card-header">
+            <h2 class="section-title"><span class="nav-icon">&#10003;</span>Mijn taken</h2>
+            <label class="allen-vak" id="allenVak" style="display:none">
+              <input type="checkbox" id="takenAllen"> ook van anderen</label>
+          </div>
+          <div class="task-list" id="lijstTaken"><p class="leeg">Bezig met laden&hellip;</p></div>
+        </section>
+
+        <section class="card" id="calls">
+          <div class="card-header">
+            <h2 class="section-title"><span class="nav-icon">&#9742;</span>Welkomstcalls</h2>
+          </div>
+          <div class="task-list" id="lijstCalls"><p class="leeg">Bezig met laden&hellip;</p></div>
+        </section>
       </div>
 
-      <p class="subkop">Taken
-        <label id="allenVak" style="display:none;float:right;font-weight:400;font-size:12.5px">
-          <input type="checkbox" id="takenAllen"> ook van anderen</label></p>
-      <div id="lijstTaken"><p class="leeg">Bezig met laden…</p></div>
+      <div class="right-column">
+        <section class="card kalender-kaart">
+          <div class="card-header">
+            <h2 class="section-title"><span class="nav-icon">&#9638;</span>Kalender</h2>
+          </div>
+          <div id="bwfKalender"></div>
+        </section>
 
-      <p class="subkop">Welkomstcalls</p>
-      <div id="lijstCalls"><p class="leeg">Bezig met laden…</p></div>
-    </section>
-    <hr class="regel scheiding">
+        <section class="card">
+          <div class="card-header">
+            <h2 class="section-title"><span class="nav-icon">&#9670;</span>Boekingskanalen</h2>
+          </div>
+          <div class="kanalen" id="extern"></div>
+        </section>
+      </div>
 
-    <section aria-label="Onderdelen">
-      <div id="groepen"></div>
-      <h2>Boekingskanalen</h2>
-      <div class="extern" id="extern"></div>
-    </section>
-    <hr class="regel scheiding">
-
-    <section aria-label="Kalender" style="grid-column:1/-1">
-      <h2>Kalender</h2>
-      <div id="bwfKalender"></div>
-    </section>
     </div>
+
+    <div class="groepen" id="groepen"></div>
 
     <footer>
       <span id="wieben"></span>
@@ -139,7 +167,10 @@
     </footer>
 
   </div>
-  </div>
+ </div>
+
+ <!-- balk onderaan, alleen op telefoon en tablet -->
+ <nav class="mobile-nav" id="navlinks" aria-label="Hoofdmenu"></nav>
 </main>
 
 <script type="module">
@@ -243,6 +274,17 @@ const EXTERN = [
   { t:'Origineel Overnachten', url:'https://www.origineelovernachten.nl' },
   { t:'Mollie',                url:'https://my.mollie.com' }
 ];
+/* Pictogram per groep, en de sfeerbeelden die bij de lijsten staan.
+   De namen image-* zijn klassen uit bwf-portaal-stijl.css. */
+const ICONEN = {
+  'Dagelijks'     : '\u2302',
+  'Werken'        : '\u2726',
+  'Administratie' : '\u25A4',
+  'Hulp'          : '\u25CE',
+  'Marketing'     : '\u25C8'
+};
+const SFEER = ['image-towels','image-wellness','image-jacuzzi','image-pool','image-angie'];
+
 /* ═══════════ EINDE CONFIGURATIE ═══════════ */
 
 const $  = s => document.querySelector(s);
@@ -375,29 +417,41 @@ function startPortaal(){
   const nogTeBouwen = ZICHTBAAR.flatMap(g => g.tegels).filter(t => !t.url).length;
 
   $('#zijNav').innerHTML =
-    `<span class="zij-kop">Overzicht</span>
-     <a class="zij-link" href="#vandaag">Vandaag</a>
-     <span class="zij-kop">Onderdelen</span>` +
+    `<a class="nav-item" href="#vandaag"><span class="nav-icon">\u2302</span>Vandaag</a>
+     <a class="nav-item" href="#taken"><span class="nav-icon">\u2713</span>Mijn taken</a>` +
     ZICHTBAAR.map(g => {
       const klaar = g.tegels.filter(t => t.url).length;
-      return `<a class="zij-link" href="#${slug(g.kop)}">${g.kop}
-              <span class="aantal">${klaar}/${g.tegels.length}</span></a>`;
+      return `<a class="nav-item" href="#${slug(g.kop)}">` +
+             `<span class="nav-icon">${ICONEN[g.kop] || '\u25C6'}</span>${g.kop}` +
+             `<span class="nav-badge">${klaar}</span></a>`;
     }).join('');
 
   $('#zijTeller').textContent =
     `${nogTeBouwen} onderdelen staan klaar als tegel maar zijn nog niet gebouwd.`;
 
   $('#navlinks').innerHTML =
-    `<a class="navlink" href="#vandaag">Vandaag</a>` +
-    ZICHTBAAR.map(g => `<a class="navlink" href="#${slug(g.kop)}">${g.kop}</a>`).join('');
+    `<a class="mobile-nav-item" href="#vandaag"><span>\u2302</span>Vandaag</a>` +
+    ZICHTBAAR.map(g =>
+      `<a class="mobile-nav-item" href="#${slug(g.kop)}">` +
+      `<span>${ICONEN[g.kop] || '\u25C6'}</span>${g.kop}</a>`).join('');
 
-  $('#groepen').innerHTML = ZICHTBAAR.map(g => `
-    <h2 id="${slug(g.kop)}">${g.kop}</h2>
-    <div class="tegels">` + g.tegels.map(x => x.url
-      ? `<a class="tegel" href="${x.url}"${x.extern ? ' target="_blank" rel="noopener"' : ''}><span class="t">${x.t}</span><span class="d">${x.d}</span></a>`
-      : `<div class="tegel binnenkort"><span class="t">${x.t}</span><span class="d">${x.d}</span>
-         <span class="tag">nog te bouwen</span></div>`
-    ).join('') + `</div>`).join('');
+  $('#groepen').innerHTML = ZICHTBAAR.map(g => {
+    const klaar = g.tegels.filter(t => t.url).length;
+    const ico   = ICONEN[g.kop] || '\u25C6';
+    return `
+    <section class="card" id="${slug(g.kop)}">
+      <div class="card-header">
+        <h2 class="section-title"><span class="nav-icon">${ico}</span>${g.kop}</h2>
+        <span class="text-button">${klaar} van ${g.tegels.length} klaar</span>
+      </div>
+      <div class="quick-grid">` + g.tegels.map(x => x.url
+        ? `<a class="quick-card" href="${x.url}"${x.extern ? ' target="_blank" rel="noopener"' : ''}>` +
+          `<span class="quick-icon">${ico}</span><strong>${x.t}</strong><small>${x.d}</small></a>`
+        : `<div class="quick-card binnenkort"><span class="quick-icon">\u25C7</span>` +
+          `<strong>${x.t}</strong><small>${x.d}</small><span class="tag">nog te bouwen</span></div>`
+      ).join('') + `</div>
+    </section>`;
+  }).join('');
 
   $('#extern').innerHTML = EXTERN.map(x =>
     `<a class="pil" href="${x.url}" target="_blank" rel="noopener">${x.t}</a>`
@@ -438,7 +492,7 @@ async function laadTaken(){
 
   /* Standaard alleen je eigen taken. De eigenaar kan de rest erbij zetten. */
   const allen = document.getElementById('takenAllen');
-  if(allen && ROL === 'eigenaar') document.getElementById('allenVak').style.display = 'inline';
+  if(allen && ROL === 'eigenaar') document.getElementById('allenVak').style.display = 'inline-flex';
   const toonAlles = ROL === 'eigenaar' && allen && allen.checked;
   if(HUIDIGE_ID && !toonAlles) vraag = vraag.eq(T.medewerker, HUIDIGE_ID);
 
@@ -453,16 +507,18 @@ async function laadTaken(){
 
   $('#lijstTaken').innerHTML = rijen.length === 0
     ? `<p class="leeg">Geen openstaande taken.</p>`
-    : rijen.slice(0, 12).map(r => {
+    : rijen.slice(0, 12).map((r, i) => {
         const d = r[T.deadline];
         const laat = d && d < dag;
         const prio = (r[T.prioriteit] || '').toLowerCase();
         return `
-        <div class="rij">
-          <span class="tijd ${laat ? 'laat' : ''}">${d ? d.slice(8,10) + '-' + d.slice(5,7) : '—'}</span>
-          <span><span class="naam">${r[T.titel] || 'Zonder titel'}</span>
-                ${laat ? '<span class="plek laat">te laat</span>' : ''}</span>
-          <span>${prio ? `<span class="prio ${prio === 'hoog' ? 'hoog' : ''}">${prio}</span>` : ''}</span>
+        <div class="task-row">
+          <div class="task-image small-image ${SFEER[i % SFEER.length]}"></div>
+          <div class="task-details">
+            <strong>${r[T.titel] || 'Zonder titel'}</strong>
+            <small class="${laat ? 'laat' : ''}">${d ? 'deadline ' + d.slice(8,10) + '-' + d.slice(5,7) : 'geen deadline'}${laat ? ' \u2014 te laat' : ''}</small>
+          </div>
+          <span class="task-button ${prio === 'hoog' ? 'task-hoog' : ''}">${prio || 'gewoon'}</span>
         </div>`;
       }).join('');
 }
@@ -482,14 +538,17 @@ async function laadCalls(){
 
   $('#lijstCalls').innerHTML = rijen.length === 0
     ? `<p class="leeg">Alles gebeld.</p>`
-    : rijen.slice(0, 12).map(r => {
+    : rijen.slice(0, 12).map((r, i) => {
         const d = r[W.datum];
         return `
-        <div class="rij">
-          <span class="tijd">${d ? d.slice(8,10) + '-' + d.slice(5,7) : '—'}</span>
-          <span><span class="naam">${r[W.naam] || 'Naam onbekend'}</span>
-                <span class="plek">${r[W.locatie] || ''}</span></span>
-          <span>${r[W.telefoon] ? `<a class="prio" href="tel:${r[W.telefoon]}">bellen</a>` : ''}</span>
+        <div class="task-row">
+          <div class="task-image small-image ${SFEER[(i + 2) % SFEER.length]}"></div>
+          <div class="task-details">
+            <strong>${r[W.naam] || 'Naam onbekend'}</strong>
+            <p>${r[W.locatie] || ''}</p>
+            <small>${d ? d.slice(8,10) + '-' + d.slice(5,7) : 'geen datum'}</small>
+          </div>
+          ${r[W.telefoon] ? `<a class="task-button task-bellen" href="tel:${r[W.telefoon]}">bellen</a>` : ''}
         </div>`;
       }).join('');
 }
