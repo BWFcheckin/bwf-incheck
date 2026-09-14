@@ -240,6 +240,18 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <label class="veld">Betaalstatus <select id="nBetaal"></select></label>
         <label class="veld breed">Arrangementen <textarea id="nArr" rows="2" placeholder="Eén arrangement of extra per regel"></textarea></label>
         <label class="veld breed">Omschrijving <textarea id="nOms" rows="2"></textarea></label>
+
+        <div class="veld breed" id="nExtrasVak">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <strong>Arrangementen en extra&#39;s</strong>
+            <span id="nExtrasSom" style="font-weight:700">&euro; 0,00</span>
+          </div>
+          <div id="nExtras" style="display:grid;gap:5px;margin-top:7px"></div>
+          <label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:13px;font-weight:400">
+            <input type="checkbox" id="nBedragVolg" checked>
+            totaalbedrag automatisch bijwerken
+          </label>
+        </div>
       </div>
       <div class="v-voet" style="position:static;border:0;padding:14px 0 0">
         <span class="v-melding" id="nMelding"></span>
@@ -1166,8 +1178,86 @@ function leegNieuw() {
    "#nIncheck", "#nUitcheck"].forEach((s) => { $(s).value = ""; });
   $("#nPersonen").value = 2;
   $("#nMelding").textContent = "";
+  /* ook de aangevinkte extra's wissen, anders erft de volgende boeking
+     stilzwijgend de keuzes van de vorige - met geld erin */
+  N_KEUZES = {};
+  N_BEDRAG_ZELF = false;
+  if (typeof tekenNieuwExtras === "function") tekenNieuwExtras();
   vulNieuwKeuzes();
 }
+
+/* =========================================================
+   Arrangementen en extra's bij een nieuwe reservering
+   Zelfde opzet als de welkomstcall in het VR-dashboard: aanvinken,
+   aantal erbij, en een som die meeloopt. Staat per_persoon aan, dan
+   telt het aantal personen in plaats van een eigen aantal.
+   ========================================================= */
+let EXTRAS = [], N_KEUZES = {}, N_BEDRAG_ZELF = false;
+
+function nExtraRegels() {
+  const personen = parseInt($("#nPersonen").value, 10) || 1;
+  return Object.keys(N_KEUZES).map((id) => {
+    const e = EXTRAS.find((x) => String(x.id) === String(id));
+    if (!e) return null;
+    const aantal = e.per_persoon ? personen : (Number(N_KEUZES[id]) || 1);
+    const prijs = Number(e.prijs) || 0;
+    return { naam: e.naam, prijs, aantal, bedrag: Math.round(prijs * aantal * 100) / 100 };
+  }).filter(Boolean);
+}
+
+function tekenNieuwExtras() {
+  const vak = $("#nExtras");
+  if (!vak) return;
+  if (!EXTRAS.length) {
+    vak.innerHTML = '<span style="color:var(--muted);font-size:13px">Geen extra\'s ingesteld.</span>';
+    return;
+  }
+  const groepen = {};
+  EXTRAS.forEach((e) => { (groepen[e.categorie || "Overig"] ||= []).push(e); });
+  vak.innerHTML = Object.keys(groepen).sort().map((cat) =>
+    '<div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:6px">' +
+      esc(cat) + "</div>" +
+    groepen[cat].map((e) => {
+      const aan = N_KEUZES[e.id] !== undefined;
+      return '<label style="display:flex;align-items:center;gap:9px;font-weight:400;font-size:13.5px">' +
+        '<input type="checkbox" data-nextra="' + esc(e.id) + '"' + (aan ? " checked" : "") + ">" +
+        "<span style=\"flex:1\">" + esc(e.naam) +
+          (e.per_persoon ? ' <span style="color:var(--muted)">per persoon</span>' : "") + "</span>" +
+        (e.per_persoon || !aan ? "" :
+          '<input type="number" min="1" step="1" value="' + (Number(N_KEUZES[e.id]) || 1) +
+          '" data-nextraaantal="' + esc(e.id) + '" style="width:62px;text-align:center">') +
+        '<span style="min-width:74px;text-align:right">' + euro(Number(e.prijs) || 0) + "</span></label>";
+    }).join("")
+  ).join("");
+  nHerbereken();
+}
+
+function nHerbereken() {
+  const regels = nExtraRegels();
+  const totaal = regels.reduce((a, x) => a + x.bedrag, 0);
+  const som = $("#nExtrasSom");
+  if (som) som.textContent = euro(totaal);
+  /* Het totaalbedrag blijft van de gebruiker: zodra die het zelf aanpast,
+     stopt de rekenhulp met overschrijven. */
+  const volg = $("#nBedragVolg");
+  if (volg && volg.checked && !N_BEDRAG_ZELF) $("#nBedrag").value = euro(totaal);
+}
+
+document.addEventListener("change", (e) => {
+  const v = e.target.closest("[data-nextra]");
+  if (v) {
+    if (v.checked) N_KEUZES[v.dataset.nextra] = 1; else delete N_KEUZES[v.dataset.nextra];
+    tekenNieuwExtras();
+    return;
+  }
+  const a = e.target.closest("[data-nextraaantal]");
+  if (a) { N_KEUZES[a.dataset.nextraaantal] = Math.max(1, Number(a.value) || 1); nHerbereken(); return; }
+  if (e.target.id === "nPersonen" || e.target.id === "nBedragVolg") nHerbereken();
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "nBedrag") N_BEDRAG_ZELF = true;
+  if (e.target.id === "nPersonen") nHerbereken();
+});
 
 async function maakReservering() {
   const m = $("#nMelding");
@@ -1202,7 +1292,8 @@ async function maakReservering() {
     gast_email: $("#nEmail").value.trim().toLowerCase() || null,
     gast_telefoon: $("#nTelefoon").value.trim() || null,
     personen: parseInt($("#nPersonen").value, 10) || 2,
-    arrangementen: $("#nArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam })),
+    arrangementen: $("#nArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }))
+      .concat(nExtraRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag }))),
     omschrijving: $("#nOms").value.trim() || null,
     bedrag_totaal: bedrag,
     betaalstatus: $("#nBetaal").value,
@@ -1303,11 +1394,14 @@ async function start() {
   $("#wieBen").textContent = deel.email || "";
   if (window.BWFaccount) window.BWFaccount.begroeting();
   try {
-    const [rol, mw, blokken] = await Promise.all([
+    const [rol, mw, blokken, extras] = await Promise.all([
       api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
       api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || "")),
-      api("tijdsblokken?select=id,suite,type,naam,begin,eind&actief=eq.true&order=suite.asc,sortering.asc")
+      api("tijdsblokken?select=id,suite,type,naam,begin,eind&actief=eq.true&order=suite.asc,sortering.asc"),
+      api("wz_extras?select=id,naam,categorie,prijs,per_persoon&actief=eq.true&order=sortering.asc,naam.asc")
     ]);
+    EXTRAS = extras || [];
+    tekenNieuwExtras();
     ROL = rol || null;
     NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
     BLOKKEN = blokken || [];
