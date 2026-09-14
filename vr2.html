@@ -7542,7 +7542,6 @@ function wcFormulier(){
     smg_tekst: $('#wcSmg').value.trim() || null,
     smg_extra: wcSmgInfo.extra || null,
     smg_betaald: ($('#wcVooraf') ? $('#wcVooraf').checked : wcSmgInfo.betaald === true),
-    vooraf_betaald: ($('#wcVooraf') ? $('#wcVooraf').checked : false),
     smg_bedrag: wcSmgInfo.bedrag != null ? wcSmgInfo.bedrag : null,
     betaalwijze: wcBetaal,
     regels, totaal:+totaal.toFixed(2),
@@ -7891,7 +7890,8 @@ function wcBericht(f, kanaal){
     r.push('');
     r.push('Genoteerd bij allergieën of dieetwensen: ' + $('#wcAllergie').value.trim() + '.');
   }
-  if(f.vooraf_betaald){
+  /* smg_betaald komt van hetzelfde vinkje "vooraf betaald" */
+  if(f.smg_betaald){
     r.push('');
     r.push('Je reservering' + (f.bron ? ' via '+f.bron : '') + ' is al volledig vooraf betaald'
       + (f.regels.length ? ' — alleen wat je nu hebt bijgeboekt moet nog worden voldaan.' : '.'));
