@@ -491,6 +491,16 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
 .vr-velden input:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:#fff }
 .vr-velden .vr-naam{ font-weight:600; font-size:13px }
 
+/* foto per artikel */
+.vr-foto{
+  width:46px; height:46px; flex:none; border-radius:11px;
+  background-size:cover; background-position:center; background-color:#FBFAF7;
+  border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:15px;
+}
+.vr-foto.heeft-foto{ color:transparent }
+
 .vr-teller{ display:flex; align-items:center; gap:5px; flex:none }
 .vr-teller input{
   width:56px; text-align:center; border:1px solid var(--border);
