@@ -2365,6 +2365,20 @@ div.ag-blok{cursor:default}
     <button class="btn" value="ok" type="submit">Overdragen</button></div>
 </div></form></dialog>
 
+<dialog id="dlgTaak"><form method="dialog"><div class="card-body">
+  <h2>Taak bewerken</h2>
+  <div class="field"><label for="tkbTitel">Titel</label><input type="text" id="tkbTitel"></div>
+  <div class="field" style="margin-top:10px"><label for="tkbOms">Toelichting</label>
+    <textarea id="tkbOms" rows="3" placeholder="wat moet er precies gebeuren?"></textarea></div>
+  <div class="field" style="margin-top:10px"><label for="tkbWie">Toegewezen aan</label><select id="tkbWie"></select></div>
+  <div class="field" style="margin-top:10px"><label for="tkbDeadline">Deadline</label><input type="date" id="tkbDeadline"></div>
+  <div class="field" style="margin-top:10px"><label for="tkbPrio">Prioriteit</label>
+    <select id="tkbPrio"><option value="">gewoon</option><option value="hoog">hoog</option><option value="laag">laag</option></select></div>
+  <p class="note" id="tkbNote" style="margin-top:10px"></p>
+  <div class="dlg-acties"><button class="btn ghost" value="annuleer" type="submit">Annuleren</button>
+    <button class="btn" value="ok" type="submit">Opslaan</button></div>
+</div></form></dialog>
+
 <div class="toast" id="toast"></div>
 <script src="bwf-kalender.js?v=5"></script>
 <script>
@@ -3275,11 +3289,12 @@ function renderTaken(){
       <td>${t.deadline && t.status!=='klaar' && t.deadline<vandaag() ? `<span class="pill crit">${dmy(t.deadline)}</span>` : dmy(t.deadline)}</td>
       <td>${t.status==='klaar'?'<span class="pill ok">klaar</span>':t.status==='bezig'?'<span class="pill warn">bezig</span>':'<span class="pill neutral">open</span>'}</td>
       <td class="act">
+        <button class="icon-btn" title="Openen en bewerken" aria-label="Openen" data-taakopen="${t.id}">✎</button>
         ${t.status!=='klaar'?`<button class="icon-btn" title="Overdragen aan een collega" aria-label="Overdragen" data-overdragen="${t.id}">⇄</button>
         <button class="icon-btn" title="Mee bezig" data-bezig="${t.id}">◐</button>
         <button class="icon-btn ok" title="Afvinken" data-klaar="${t.id}">✓</button>`
         :`<button class="icon-btn" title="Weer openzetten" data-heropen="${t.id}">↺</button>`}
-        ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-deltaak="${t.id}">✕</button>`:''}
+        <button class="icon-btn" title="Verwijderen" data-deltaak="${t.id}">✕</button>
       </td></tr>`).join('')
     : `<tr><td colspan="5"><div class="empty"><strong>Geen taken</strong>Voeg hierboven je eerste taak toe.</div></td></tr>`;
   $('#tkFoot').textContent = gefilterd
@@ -3300,6 +3315,41 @@ document.addEventListener('click', async e=>{
     await verwijder('taken', d.dataset.deltaak); renderTaken(); renderOverzicht(); badges(); }
 });
 
+
+/* ---------------- taak openen en bewerken ----------------
+   Titel, toelichting, deadline, prioriteit en wie hem oppakt. Wat je hier
+   opslaat, bewaakt de database: mag je de taak niet wijzigen, dan gebeurt er
+   niets en blijft de oude tekst staan. */
+let tkbId = null;
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-taakopen]'); if(!b) return;
+  const t = (S.taken||[]).find(x=>x.id === b.dataset.taakopen); if(!t) return;
+  tkbId = t.id;
+  $('#tkbTitel').value = t.titel || '';
+  $('#tkbOms').value = tkOms(t) || '';
+  $('#tkbWie').innerHTML = '<option value="">niemand</option>' +
+    S.medewerkers.filter(m=>m.actief!==false).map(m=>
+      `<option value="${m.id}"${m.id===t.medewerker_id?' selected':''}>${esc(m.naam)}</option>`).join('');
+  $('#tkbDeadline').value = t.deadline || '';
+  $('#tkbPrio').value = t.prioriteit || '';
+  $('#tkbNote').textContent = t.bron==='agenda' && t.link ? 'Deze taak hoort bij een reservering.' : '';
+  $('#dlgTaak').showModal();
+});
+$('#dlgTaak').addEventListener('close', async ()=>{
+  const id = tkbId; tkbId = null;
+  if($('#dlgTaak').returnValue !== 'ok' || !id) return;
+  const titel = $('#tkbTitel').value.trim();
+  if(!titel){ toast('Een taak heeft een titel nodig.'); return; }
+  await wijzig('taken', id, {
+    titel,
+    omschrijving: $('#tkbOms').value.trim() || null,
+    medewerker_id: $('#tkbWie').value || null,
+    deadline: $('#tkbDeadline').value || null,
+    prioriteit: $('#tkbPrio').value || null
+  });
+  renderTaken(); renderOverzicht(); badges();
+  toast('Taak bijgewerkt.');
+});
 
 /* ---------------- taak overdragen ----------------
    Iedereen kan een openstaande taak aan een collega doorgeven. Wie, wanneer en
@@ -8262,7 +8312,7 @@ function renderCalls(){
       <td>${esc(c.notitie||'')}</td>
       <td class="act">
         <button class="btn ghost small" type="button" data-wcopen="${c.id}">Openen</button>
-        ${isEigenaar()?`<button class="icon-btn" title="Verwijderen" data-wcwis="${c.id}">✕</button>`:''}
+        <button class="icon-btn" title="Verwijderen" data-wcwis="${c.id}">✕</button>
       </td></tr>`).join('')
     : `<tr><td colspan="6"><div class="empty"><strong>Geen welkomstcalls</strong>Vul hierboven een gesprek in en klik op Opslaan.</div></td></tr>`;
   $('#wcFoot').textContent = lijst.length+' gesprekken getoond';
