@@ -696,7 +696,9 @@ async function vulKoppelingen(r) {
     const [klant, checkin, calls, schade, gekoppeldeForms] = await Promise.all([
       r.klant_id ? zacht("wz_klantbeheer?select=id,voorletters,achternaam,email&id=eq." + encodeURIComponent(r.klant_id)) : null,
       r.checkin_id ? zacht("checkins?select=id,status,datum&id=eq." + encodeURIComponent(r.checkin_id)) : null,
-      zacht("wz_welkomstcalls?select=id,status,datum,medewerker_id&reservering_id=eq." + encodeURIComponent(r.id)),
+      zacht("wz_welkomstcalls?select=id,status,datum,medewerker_id,notitie,notities,bijzonderheden," +
+            "allergieen,gelegenheid,regels,totaal,tijd_bedrag,betaalwijze,betaallink" +
+            "&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("checkins?select=id,status,datum&gekoppelde_reservering=eq." +
             encodeURIComponent("reservering:" + r.id) + "&order=created_at.desc&limit=5")
@@ -728,6 +730,33 @@ async function vulKoppelingen(r) {
       "vr2.html?open=welkomstcall&rid=" + encodeURIComponent(r.id) +
         (naam ? "&gast=" + encodeURIComponent(naam) : "") + "&suite=" + encodeURIComponent(r.suite || ""),
       w ? "Openen" : "Call maken"));
+
+    /* Wat er tijdens het belletje is besproken en bijgeboekt, hoort hier te
+       staan: op locatie heb je daar meer aan dan in het belscherm. */
+    if (w) {
+      const besproken = [w.notities, w.notitie, w.bijzonderheden,
+        w.allergieen ? "Allergie: " + w.allergieen : "",
+        w.gelegenheid ? "Gelegenheid: " + w.gelegenheid : ""]
+        .map((x) => String(x || "").trim()).filter(Boolean).join(" · ");
+      if (besproken) regels.push(rijKoppeling("Besproken", esc(besproken), "", ""));
+
+      const lijst = Array.isArray(w.regels) ? w.regels : [];
+      const extras = lijst.map((x) => {
+        const naam = (x && (x.naam || x.omschrijving)) || "";
+        if (!naam) return "";
+        return naam + (Number(x.aantal) > 1 ? " " + x.aantal + "×" : "") +
+               (Number(x.bedrag) ? " (€ " + euro(x.bedrag) + ")" : "");
+      }).filter(Boolean).join(", ");
+      const bedragen = [];
+      if (Number(w.totaal)) bedragen.push("totaal € " + euro(w.totaal));
+      if (Number(w.tijd_bedrag)) bedragen.push("eerder in- of later uitchecken € " + euro(w.tijd_bedrag));
+      if (w.betaalwijze) bedragen.push(w.betaalwijze === "locatie" ? "op locatie afrekenen" : "betaallink");
+      if (extras || bedragen.length) {
+        regels.push(rijKoppeling("Bijgeboekt",
+          esc([extras, bedragen.join(" · ")].filter(Boolean).join(" — ")),
+          w.betaallink || "", w.betaallink ? "Betaallink" : ""));
+      }
+    }
 
     regels.push(rijKoppeling("Nachtregister",
       r.nachtregister_id ? "toegevoegd" : "nog niet toegevoegd", "", ""));

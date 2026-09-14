@@ -4976,6 +4976,18 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       : (kaartCall && kaartCall.status ? String(kaartCall.status) : (kaartCall ? 'te bellen' : ''));
     var besproken = veld(kaartCall, ['notities','notitie','opmerkingen','samenvatting'], '') ||
                     (kaartCall && kaartCall.bijzonderheden) || k.wc_bijzonderheden || '';
+    /* wat er tijdens het belletje is bijgeboekt, met de bedragen erbij */
+    var wcRegelsLijst = (kaartCall && Array.isArray(kaartCall.regels)) ? kaartCall.regels : [];
+    var bijgeboekt = wcRegelsLijst.map(function(x){
+      var naam = (x && (x.naam || x.omschrijving)) || '';
+      if(!naam) return '';
+      return naam + (Number(x.aantal) > 1 ? ' ' + x.aantal + '×' : '') +
+             (Number(x.bedrag) ? ' (' + euro(x.bedrag) + ')' : '');
+    }).filter(Boolean).join(', ');
+    if(kaartCall && Number(kaartCall.totaal))
+      bijgeboekt += (bijgeboekt ? ' — ' : '') + 'totaal ' + euro(kaartCall.totaal);
+    if(kaartCall && Number(kaartCall.tijd_bedrag))
+      bijgeboekt += (bijgeboekt ? ' · ' : '') + 'eerder in- of later uitchecken ' + euro(kaartCall.tijd_bedrag);
     var wanneer = k.welkomstcall_gedaan
       ? String(k.welkomstcall_gedaan).slice(0,10).split('-').reverse().join('-')
       : (kaartCall && kaartCall.afgerond_op ? dtKort(kaartCall.afgerond_op) : '');
@@ -4990,6 +5002,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<button class="knop klein vol" type="button" id="rkCall">'+(call?'Opnieuw openen':'Welkomstcall doen')+'</button>'+
       '</span></div>'+
       (besproken ? '<div style="margin-top:8px;font-size:13.5px"><b>Besproken:</b> '+esc(besproken)+'</div>' : '')+
+      (bijgeboekt ? '<div style="margin-top:6px;font-size:13.5px"><b>Bijgeboekt:</b> '+esc(bijgeboekt)+'</div>' : '')+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
         '<div class="field"><label for="rkWcBedrag">Extra betaald na de call</label>'+
         '<input type="number" id="rkWcBedrag" min="0" step="0.01" value="'+(parseFloat(k.wc_extra_bedrag)||0)+'" style="max-width:140px"></div>'+
