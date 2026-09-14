@@ -27,6 +27,13 @@
   --font-body:"DM Sans",sans-serif;
   --font-heading:"Playfair Display",serif;
   --sidebar:245px;
+
+  /* Foto's van Bed & Wellness Flevoland zelf. Te wijzigen op het
+     tabblad Instellingen; die waarden overschrijven deze regels. */
+  --foto-hero:url("https://bedenwellnessflevoland.nl/Hero_images/Main_Bed_en_wellness_malina_deluxe_zwembad.webp");
+  --foto-angie:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/almere%20bed%20en%20wellness%20angie/Bed%20en%20wellness%20Flevoland_%20B&W%20Angie%20Locatie%20Almere%20Zwembad.webp");
+  --foto-malina:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/lelystad%20bed%20en%20wellness%20malina%20jacuzzi%20suite/bed%20en%20wellness%20malina%20overzicht%20jacuzzi%20suite%20.webp");
+  --foto-deluxe:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/Lelystad%20bed%20en%20wellness%20malina%20deluxe%20%20zwembad%20suite/bed%20en%20wellness%20mlaina%20deluxe%20zwembad%20suite.webp");
 }
 
 /* ── reset ── */
@@ -188,7 +195,7 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
   position:absolute; inset:0;
   background:
     linear-gradient(90deg,rgba(9,44,37,.96) 0%,rgba(9,44,37,.76) 43%,rgba(9,44,37,.15) 100%),
-    url("https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=85");
+    var(--foto-hero);
   background-size:cover; background-position:center;
 }
 .hero-content{ position:relative; z-index:2; max-width:500px; padding:37px 40px; color:#fff }
@@ -317,9 +324,9 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
 .reservation-row strong{ display:block; font-size:10px }
 .reservation-row small{ display:block; color:var(--muted); font-size:8px; margin-top:2px }
 
-.photo-angie{ background-image:url("https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=900&q=80") }
-.photo-malina{ background-image:url("https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=900&q=80") }
-.photo-pool{ background-image:url("https://images.unsplash.com/photo-1572331165267-854da2b10ccc?auto=format&fit=crop&w=900&q=80") }
+.photo-angie{ background-image:var(--foto-angie) }
+.photo-malina{ background-image:var(--foto-malina) }
+.photo-pool{ background-image:var(--foto-deluxe) }
 
 /* =========================================================
    PAGINAKOP
@@ -493,6 +500,17 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
 .settings-card-title h3{ margin:0; font-family:var(--font-heading); font-size:18px; font-weight:500 }
 .settings-card-title p{ margin:3px 0 0; color:var(--muted); font-size:8px }
 .settings-card label{ display:block; padding:13px 0; border-top:1px solid var(--border); font-size:9px; font-weight:600 }
+.settings-card input[type="text"],
+.settings-card input[type="url"]{
+  width:100%; margin-top:7px; border:1px solid var(--border); background:#FBFAF7;
+  border-radius:10px; padding:9px 11px; font-size:10px; font-weight:400; color:var(--text);
+}
+.settings-card input[type="text"]:focus,
+.settings-card input[type="url"]:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:#fff }
+.bewaar-melding{ margin:11px 0 0; font-size:9px; color:var(--muted) }
+.bewaar-melding.goed{ color:#4D7858 }
+.bewaar-melding.mis{ color:#B84F4C }
+
 .color-control{ display:flex; align-items:center; justify-content:space-between; margin-top:8px }
 .color-control input{ width:42px; height:31px; border:0; padding:2px; border-radius:8px }
 .color-control span{ color:var(--muted); font-size:8px }
@@ -593,7 +611,7 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
   .hero-image{
     background:
       linear-gradient(90deg,rgba(9,44,37,.97),rgba(9,44,37,.38)),
-      url("https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1000&q=80");
+      var(--foto-hero);
     background-size:cover; background-position:center;
   }
   .hero-content{ padding:27px 22px }

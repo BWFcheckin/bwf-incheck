@@ -315,6 +315,31 @@
 
     <div class="settings-card card">
       <div class="settings-card-title">
+        <span>&#9998;</span>
+        <div><h3>Teksten en foto's</h3><p>Wat er op de startpagina staat</p></div>
+      </div>
+      <label>Klein opschrift boven de titel
+        <input type="text" id="txtHeroLabel" placeholder="VANDAAG"></label>
+      <label>Titel op de startpagina
+        <input type="text" id="txtHeroTitel" placeholder="Een mooie dag begint met overzicht."></label>
+      <label>Zin onder de titel
+        <input type="text" id="txtHeroTekst" placeholder="Hier zie je direct wat er vandaag moet gebeuren."></label>
+      <label>Spreuk onderin de zijbalk
+        <input type="text" id="txtSpreuk" placeholder="Samen zorgen we voor een onvergetelijk verblijf."></label>
+      <label>Foto bovenaan &mdash; link naar de afbeelding
+        <input type="url" id="fotoHero" placeholder="https://bedenwellnessflevoland.nl/..."></label>
+      <label>Foto suite Angie &mdash; Almere
+        <input type="url" id="fotoAngie" placeholder="https://bedenwellnessflevoland.nl/..."></label>
+      <label>Foto Malina jacuzzi &mdash; Lelystad
+        <input type="url" id="fotoMalina" placeholder="https://bedenwellnessflevoland.nl/..."></label>
+      <label>Foto Malina deluxe zwembad &mdash; Lelystad
+        <input type="url" id="fotoDeluxe" placeholder="https://bedenwellnessflevoland.nl/..."></label>
+      <button class="primary-button" id="tekstenBewaren">Opslaan</button>
+      <p class="bewaar-melding" id="tekstenMelding">Laat een veld leeg om de standaardtekst te houden.</p>
+    </div>
+
+    <div class="settings-card card">
+      <div class="settings-card-title">
         <span>&#9672;</span>
         <div><h3>Eigen kleuren</h3><p>Fijn afstellen per kleur</p></div>
       </div>
@@ -557,7 +582,7 @@ async function start(){
   $('#pageDate').textContent = nlDatum(vandaag());
   const grens = dagPlus(vandaag(), -14);
 
-  const [res, taken, calls, voorraad, berichten, mw] = await Promise.all([
+  const [res, taken, calls, voorraad, berichten, mw, inst] = await Promise.all([
     sb.from('reserveringen')
       .select('id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,gast_voornaam,gast_achternaam,gast_telefoon,personen,arrangementen,bedrag_totaal,betaalstatus,notitie')
       .gte('aankomst', grens + 'T00:00:00')
@@ -574,16 +599,19 @@ async function start(){
     sb.from('overdracht')
       .select('id,auteur,aan,locatie,cat,tekst,klaar,aangemaakt,datum')
       .order('aangemaakt', { ascending:false, nullsFirst:false }).limit(60),
-    sb.from('wz_medewerkers').select('naam,auth_id,toegangsrol').limit(50)
+    sb.from('wz_medewerkers').select('naam,auth_id,toegangsrol').limit(50),
+    sb.from('instellingen').select('sleutel,waarde')
   ]);
 
-  const stuk    = [res, taken, calls, voorraad, berichten, mw].filter(r => r.error);
+  const stuk    = [res, taken, calls, voorraad, berichten, mw, inst].filter(r => r.error);
   RESERVERINGEN = res.data       || [];
   TAKEN         = taken.data     || [];
   CALLS         = calls.data     || [];
   VOORRAAD      = voorraad.data  || [];
   BERICHTEN     = berichten.data || [];
   MEDEWERKERS   = mw.data        || [];
+
+  pasInstellingenToe(inst.data || []);
 
   const ik = MEDEWERKERS.find(m => m.auth_id === HUIDIGE_ID);
   if(ik){
@@ -597,7 +625,7 @@ async function start(){
   const status = $('#verbindingStatus');
   status.classList.toggle('fout', stuk.length > 0);
   status.innerHTML = stuk.length
-    ? '<span></span> ' + stuk.length + ' van 6 lijsten mislukt'
+    ? '<span></span> ' + stuk.length + ' van 7 lijsten mislukt'
     : '<span></span> Alles operationeel';
 
   tekenHome();
@@ -1081,6 +1109,91 @@ function laadUiterlijk(){
   }catch(e){}
 }
 laadUiterlijk();
+
+/* ═══════════════════════════════════════════════════════════
+   TEKSTEN EN FOTO'S
+   Staan in de tabel 'instellingen' (sleutel + waarde), zodat ze
+   hier te wijzigen zijn zonder een bestand te openen. Staat een
+   sleutel er niet, dan blijft de standaardtekst uit de pagina of
+   de standaardfoto uit bwf-portaal-stijl.css staan.
+   ═══════════════════════════════════════════════════════════ */
+const TEKSTVELDEN = {
+  portaal_hero_label : { veld:'#txtHeroLabel', doel:'.hero-label' },
+  portaal_hero_titel : { veld:'#txtHeroTitel', doel:'.hero-content h2' },
+  portaal_hero_tekst : { veld:'#txtHeroTekst', doel:'.hero-content p' },
+  portaal_spreuk     : { veld:'#txtSpreuk',    doel:'.sidebar-bottom p' }
+};
+const FOTOVELDEN = {
+  portaal_foto_hero   : { veld:'#fotoHero',   css:'--foto-hero' },
+  portaal_foto_angie  : { veld:'#fotoAngie',  css:'--foto-angie' },
+  portaal_foto_malina : { veld:'#fotoMalina', css:'--foto-malina' },
+  portaal_foto_deluxe : { veld:'#fotoDeluxe', css:'--foto-deluxe' }
+};
+
+/* Alleen een https-adres zonder aanhalingstekens of haakjes mag in de
+   opmaak terechtkomen; anders kan een waarde de stijl openbreken. */
+function veiligeLink(waarde){
+  const s = String(waarde || '').trim();
+  return /^https:\/\/[^"'()\s]+$/i.test(s) ? s : '';
+}
+
+function pasInstellingenToe(rijen){
+  const kaart = {};
+  (rijen || []).forEach(r => { if(r && r.sleutel) kaart[r.sleutel] = r.waarde; });
+
+  Object.keys(TEKSTVELDEN).forEach(sleutel => {
+    const waarde = (kaart[sleutel] || '').trim();
+    const veld = $(TEKSTVELDEN[sleutel].veld);
+    if(veld) veld.value = waarde;
+    if(!waarde) return;
+    const doel = $(TEKSTVELDEN[sleutel].doel);
+    if(doel) doel.textContent = waarde;
+  });
+
+  Object.keys(FOTOVELDEN).forEach(sleutel => {
+    const rauw = (kaart[sleutel] || '').trim();
+    const veld = $(FOTOVELDEN[sleutel].veld);
+    if(veld) veld.value = rauw;
+    const link = veiligeLink(rauw);
+    if(link) wortel.style.setProperty(FOTOVELDEN[sleutel].css, 'url("' + link + '")');
+  });
+}
+
+$('#tekstenBewaren').addEventListener('click', async () => {
+  const melding = $('#tekstenMelding');
+  const rijen = [];
+  const afgekeurd = [];
+
+  Object.keys(TEKSTVELDEN).forEach(sleutel =>
+    rijen.push({ sleutel, waarde: $(TEKSTVELDEN[sleutel].veld).value.trim() }));
+
+  Object.keys(FOTOVELDEN).forEach(sleutel => {
+    const rauw = $(FOTOVELDEN[sleutel].veld).value.trim();
+    const link = veiligeLink(rauw);
+    if(rauw && !link){ afgekeurd.push(sleutel); return; }
+    rijen.push({ sleutel, waarde: link });
+  });
+
+  if(afgekeurd.length){
+    melding.className = 'bewaar-melding mis';
+    melding.textContent = 'Een fotolink klopt niet. Gebruik een volledig adres dat met https:// begint, zonder spaties.';
+    return;
+  }
+
+  melding.className = 'bewaar-melding';
+  melding.textContent = 'Bezig met opslaan…';
+
+  const { error } = await sb.from('instellingen').upsert(rijen, { onConflict:'sleutel' });
+
+  if(error){
+    melding.className = 'bewaar-melding mis';
+    melding.textContent = 'Opslaan lukte niet: ' + error.message;
+    return;
+  }
+  pasInstellingenToe(rijen);
+  melding.className = 'bewaar-melding goed';
+  melding.textContent = 'Opgeslagen. Iedereen ziet dit bij de volgende keer laden.';
+});
 </script>
 </body>
 </html>
