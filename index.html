@@ -654,7 +654,7 @@ async function start(){
       .select('id,naam,telefoon,locatie,datum,tijd,gebeld_op')
       .is('gebeld_op', null).order('datum', { ascending:true, nullsFirst:false }).limit(200),
     sb.from('voorraad')
-      .select('id,naam,categorie,aantal,min_aantal,leverancier,besteld,locatie,verwacht,bestel_aantal,foto')
+      .select('id,naam,categorie,aantal,min_aantal,leverancier,besteld,locatie,verwacht,bestel_aantal')
       .order('naam', { ascending:true }).limit(400),
     sb.from('overdracht')
       .select('id,auteur,aan,locatie,cat,tekst,klaar,aangemaakt,datum')
@@ -1103,12 +1103,8 @@ function tekenVoorraad(){
 
 function vrRij(v){
   const st = vrStatus(v);
-  /* alleen een gecontroleerde https-link mag in de opmaak terechtkomen */
-  const beeld = veiligeLink(v.foto);
   return '<div class="inventory-row bewerkbaar" data-id="' + esc(v.id) + '">' +
-    (beeld
-      ? '<span class="vr-foto heeft-foto" style="background-image:url(&quot;' + esc(beeld) + '&quot;)">&#9831;</span>'
-      : '<span class="vr-foto">&#9831;</span>') +
+    '<span class="inventory-icon">&#9831;</span>' +
     '<div class="vr-velden">' +
       '<input type="text" class="vr-naam" value="' + esc(v.naam || '') +
         '" data-vr="' + esc(v.id) + '" data-veld="naam" aria-label="Artikel">' +
@@ -1116,9 +1112,6 @@ function vrRij(v){
         ' data-vr="' + esc(v.id) + '" data-veld="categorie" aria-label="Categorie" placeholder="Categorie">' +
       '<input type="text" value="' + esc(v.leverancier || '') + '" list="vrLeveranciers"' +
         ' data-vr="' + esc(v.id) + '" data-veld="leverancier" aria-label="Leverancier" placeholder="Leverancier">' +
-      '<input type="url" value="' + esc(v.foto || '') + '"' +
-        ' data-vr="' + esc(v.id) + '" data-veld="foto" aria-label="Foto"' +
-        ' placeholder="Link naar een foto (https://...)">' +
     '</div>' +
     '<span class="vr-teller">' +
       '<button class="vr-knop" data-min="' + esc(v.id) + '" title="Eentje eraf">&minus;</button>' +
@@ -1166,14 +1159,6 @@ document.addEventListener('change', e => {
   let waarde = veld.value;
   if(naam === 'aantal' || naam === 'min_aantal' || naam === 'bestel_aantal') waarde = parseInt(waarde, 10) || 0;
   if(naam === 'verwacht' && !waarde) waarde = null;
-  if(naam === 'foto'){
-    const link = String(waarde || '').trim();
-    if(link && !veiligeLink(link)){
-      vrMelding('Die fotolink klopt niet. Gebruik een volledig adres dat met https:// begint, zonder spaties.', 'mis');
-      return;
-    }
-    waarde = link || null;
-  }
   vrBewaar(veld.dataset.vr, naam, waarde);
 });
 
