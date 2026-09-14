@@ -4911,7 +4911,11 @@ document.addEventListener('click', async e=>{
     const g = resGegevens(r);
     const k = r.kop || koppelingVoor(r) || {};
     const stuk = String(g.naam||'').trim().split(' ');
-    const rij = await maak('calls', {
+    /* Staat er al een call voor deze gast op deze dag? Dan openen we die in
+       plaats van een tweede te maken; de tabel staat er maar één toe. */
+    const alBestaand = wcBestaandeCall({ naam: g.naam, datum: g.datum, reservering_id: r.resId });
+    if(alBestaand) toast('Er stond al een welkomstcall voor ' + (g.naam || 'deze gast') + '; die wordt geopend.');
+    const rij = alBestaand ? [alBestaand] : await maak('calls', {
       naam: g.naam || 'gast',
       voornaam: stuk.length > 1 ? stuk.slice(0,-1).join(' ') : (g.naam||null),
       achternaam: stuk.length > 1 ? stuk[stuk.length-1] : null,
@@ -5820,6 +5824,12 @@ async function wcAutoAanmaken(){
       if(los){
         await wijzig('calls', los.id, { reservering_id: r.id });
         heeft.add(r.id);
+        continue;
+      }
+      /* Bestaat er al een call voor deze gast op deze dag bij een ándere
+         reservering? De tabel staat er maar één toe, dus die slaan we over. */
+      if((S.calls||[]).some(c => String(c.datum||'').slice(0,10) === aan.datum &&
+           String(c.naam||'').trim().toLowerCase() === volledig.trim().toLowerCase())){
         continue;
       }
       await maak('calls', {
@@ -8256,6 +8266,19 @@ $('#wcNaarTaken').addEventListener('click', async ()=>{
               : 'Alle openstaande calls stonden al op de takenlijst.');
 });
 
+/* Er mag maar één welkomstcall per gast per dag bestaan, en maar één per
+   reservering. Voordat we een nieuwe aanmaken kijken we of hij er al is; anders
+   weigert de database met "duplicate key" en gaat er niets bewaard. */
+function wcBestaandeCall(f){
+  const naam = String(f.naam || '').trim().toLowerCase();
+  const dag  = String(f.datum || '').slice(0, 10);
+  return (S.calls || []).find(c =>
+    (f.reservering_id && c.reservering_id === f.reservering_id) ||
+    (naam && dag &&
+      String(c.naam || '').trim().toLowerCase() === naam &&
+      String(c.datum || '').slice(0, 10) === dag)) || null;
+}
+
 $('#wcOpslaan').addEventListener('click', async ()=>{
   const f = wcFormulier();
   if(!f.naam && !f.klant_id){ toast('Vul een naam in of kies een klant.'); return; }
@@ -8264,13 +8287,22 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
   LAATSTE_FOUT = '';
   if(wcHuidig){ await wijzig('calls', wcHuidig, f); }
   else {
-    const r = await maak('calls', f);
-    if(!r){
-      $('#wcNote').innerHTML = '<strong style="color:var(--crit)">Opslaan mislukt.</strong> Melding van Supabase: '
-        + esc(LAATSTE_FOUT || 'onbekend');
-      return;
+    /* Staat er al een call voor deze gast op deze dag (of voor deze
+       reservering)? Dan werken we die bij in plaats van een tweede te maken. */
+    const bestaand = wcBestaandeCall(f);
+    if(bestaand){
+      wcHuidig = bestaand.id;
+      await wijzig('calls', wcHuidig, f);
+      toast('Er stond al een welkomstcall voor ' + (f.naam || 'deze gast') + '; die is bijgewerkt.');
+    }else{
+      const r = await maak('calls', f);
+      if(!r){
+        $('#wcNote').innerHTML = '<strong style="color:var(--crit)">Opslaan mislukt.</strong> Melding van Supabase: '
+          + esc(LAATSTE_FOUT || 'onbekend');
+        return;
+      }
+      wcHuidig = r[0].id;
     }
-    wcHuidig = r[0].id;
   }
   if(LAATSTE_FOUT){
     $('#wcNote').innerHTML = '<strong style="color:var(--crit)">Opslaan mislukt.</strong> Melding van Supabase: ' + esc(LAATSTE_FOUT);
