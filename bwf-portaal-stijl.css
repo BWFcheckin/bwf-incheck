@@ -1,0 +1,588 @@
+/* =========================================================
+   bwf-portaal-stijl.css — de opmaak van de startpagina
+
+   Hoort alleen bij index.html. Laad hem als LAATSTE stijl,
+   ná bwf-stijl.css en bwf-agenda-stijl.css:
+
+     <link rel="stylesheet" href="bwf-portaal-stijl.css">
+
+   Alle klassenamen hieronder komen uit index.html zelf, ook
+   de namen die het script ter plekke aanmaakt (.rij, .tegel,
+   .zij-link, .pil ...). Er is niets hernoemd, dus de pagina
+   blijft precies doen wat hij deed.
+
+   Kleuren staan bovenaan per kleurenschema. De drie knopjes
+   onderaan de pagina wisselen daartussen.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. KLEUREN
+   De schemanaam staat in data-thema op <html>. We schrijven
+   :root[data-thema=...] zodat deze waarden zwaarder wegen dan
+   de :root van de gedeelde stijlbestanden.
+   --------------------------------------------------------- */
+
+:root[data-thema="espresso"]{
+  --primary:#3E3229;          /* zijbalk en gevulde knoppen */
+  --primary-light:#554538;
+  --background:#F5F2EC;       /* achtergrond van de pagina  */
+  --card:#FFFFFF;
+  --card-2:#FAF7F2;
+  --text:#231C16;
+  --text-2:#4B4239;
+  --muted:#857868;
+  --accent:#C9A96E;           /* goud */
+  --line:rgba(35,28,22,.09);
+  --line-soft:rgba(35,28,22,.05);
+  --ok:#4F7C5D;      --ok-soft:#E8F0E9;
+  --warn:#9A7326;    --warn-soft:#F7EEDC;
+  --crit:#A9503F;    --crit-soft:#F8E6E1;
+}
+
+:root[data-thema="salie"]{
+  --primary:#173C35;
+  --primary-light:#28584E;
+  --background:#F2F5F1;
+  --card:#FFFFFF;
+  --card-2:#F8FAF7;
+  --text:#18221F;
+  --text-2:#3D4A41;
+  --muted:#7B8580;
+  --accent:#C9A96E;
+  --line:rgba(24,34,31,.09);
+  --line-soft:rgba(24,34,31,.05);
+  --ok:#3F7A55;      --ok-soft:#E5F0E7;
+  --warn:#8F6420;    --warn-soft:#F6EBD9;
+  --crit:#A34434;    --crit-soft:#F7E2DC;
+}
+
+:root[data-thema="leisteen"]{
+  --primary:#233B48;
+  --primary-light:#35525F;
+  --background:#F1F4F6;
+  --card:#FFFFFF;
+  --card-2:#F8FAFB;
+  --text:#16212A;
+  --text-2:#3A4750;
+  --muted:#68767E;
+  --accent:#C9A96E;
+  --line:rgba(22,33,42,.09);
+  --line-soft:rgba(22,33,42,.05);
+  --ok:#3F756C;      --ok-soft:#E4EFEC;
+  --warn:#8A6420;    --warn-soft:#F2EDDF;
+  --crit:#98505A;    --crit-soft:#F5E2E5;
+}
+
+/* valt terug op espresso als er geen schema is gekozen */
+:root{
+  --primary:#3E3229; --primary-light:#554538;
+  --background:#F5F2EC; --card:#FFFFFF; --card-2:#FAF7F2;
+  --text:#231C16; --text-2:#4B4239; --muted:#857868;
+  --accent:#C9A96E;
+  --line:rgba(35,28,22,.09); --line-soft:rgba(35,28,22,.05);
+  --ok:#4F7C5D; --ok-soft:#E8F0E9;
+  --warn:#9A7326; --warn-soft:#F7EEDC;
+  --crit:#A9503F; --crit-soft:#F8E6E1;
+}
+
+:root{
+  --schaduw:0 1px 2px rgba(23,60,53,.05), 0 10px 35px -18px rgba(23,60,53,.30);
+  --rond-s:10px; --rond-m:14px; --rond-l:20px;
+  --zijbalk-breedte:258px;
+  --f-kop:"Playfair Display",Georgia,"Times New Roman",serif;
+  --f-tekst:"DM Sans","Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-klein:"DM Sans","Public Sans",Arial,sans-serif;
+}
+
+/* ---------------------------------------------------------
+   2. BASIS
+   --------------------------------------------------------- */
+
+*,*::before,*::after{ box-sizing:border-box }
+html,body{ margin:0; padding:0 }
+html{ -webkit-text-size-adjust:100%; scroll-behavior:smooth }
+
+body.portaalpagina{
+  background:var(--background);
+  color:var(--text);
+  font-family:var(--f-tekst);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+.portaalpagina a{ color:inherit }
+.portaalpagina button,
+.portaalpagina input{ font:inherit; color:inherit; cursor:pointer }
+.portaalpagina input{ cursor:auto }
+.portaalpagina :focus-visible{
+  outline:2px solid var(--accent); outline-offset:3px; border-radius:6px;
+}
+.portaalpagina .hidden{ display:none!important }
+
+.portaalpagina .wrap{ max-width:1180px; margin:0 auto; padding:0 20px }
+
+@media (prefers-reduced-motion:reduce){
+  .portaalpagina *{ transition:none!important; animation:none!important }
+}
+
+/* ---------------------------------------------------------
+   3. DE GEDEELDE BALK VAN bwf-shell.js
+   De startpagina heeft zijn eigen zijbalk en eigen menu.
+   De balk die bwf-shell.js op elke pagina zet, zou daar
+   dubbel overheen komen te staan; hier zetten we hem uit.
+   Weghalen van deze drie regels brengt hem terug.
+   --------------------------------------------------------- */
+
+body.portaalpagina #bwfBalk,
+body.portaalpagina #bwfPaneel,
+body.portaalpagina #bwfLaag{ display:none!important }
+body.portaalpagina{ padding-top:0!important; padding-left:0!important }
+
+/* ---------------------------------------------------------
+   4. INLOGGEN
+   --------------------------------------------------------- */
+
+.portaalpagina #login{
+  min-height:100dvh; display:grid; place-items:center;
+  padding:20px; position:relative; overflow:hidden;
+}
+.portaalpagina #login::before{
+  content:''; position:absolute; inset:0;
+  background:url('https://bedenwellnessflevoland.nl/Hero_images/Main_Bed_en_wellness_malina_deluxe_zwembad.webp') center/cover no-repeat;
+}
+.portaalpagina #login::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--background) 82%, transparent) 0%,
+    color-mix(in srgb, var(--card-2) 94%, transparent) 100%);
+}
+
+.portaalpagina .paneel{
+  position:relative; z-index:1; width:100%; max-width:410px;
+  background:var(--card); border:1px solid var(--line);
+  border-radius:var(--rond-l); box-shadow:0 30px 80px -40px rgba(23,60,53,.45);
+  padding:34px 30px; text-align:center;
+}
+.portaalpagina .logo{ width:118px; height:auto; margin:0 auto 18px; display:block }
+.portaalpagina .welkom{
+  font-family:var(--f-kop); font-size:27px; font-weight:500;
+  letter-spacing:.01em; margin:0;
+}
+.portaalpagina .sub{ color:var(--muted); font-size:13px; margin:7px 0 22px }
+
+.portaalpagina .veld{ text-align:left; margin:0 0 13px }
+.portaalpagina label{
+  display:block; font-size:11px; font-weight:600; letter-spacing:.04em;
+  color:var(--text-2); margin:0 0 6px;
+}
+.portaalpagina input[type=email],
+.portaalpagina input[type=password]{
+  width:100%; background:var(--card-2); border:1px solid var(--line);
+  border-radius:var(--rond-s); padding:11px 13px; font-size:14px;
+}
+.portaalpagina input:focus{
+  outline:2px solid var(--accent); outline-offset:-1px; background:var(--card);
+}
+.portaalpagina input::placeholder{ color:color-mix(in srgb, var(--muted) 60%, white) }
+
+.portaalpagina .btn{
+  width:100%; border:1px solid var(--primary); background:var(--primary);
+  color:#fff; padding:13px 18px; border-radius:30px;
+  font-size:13px; font-weight:700; letter-spacing:.03em; margin-top:6px;
+  transition:.2s ease;
+}
+.portaalpagina .btn:hover:not(:disabled){ background:var(--primary-light); border-color:var(--primary-light) }
+.portaalpagina .btn:disabled{ opacity:.45; cursor:not-allowed }
+
+.portaalpagina .btn-rand{
+  width:auto; background:var(--card); color:var(--text);
+  border:1px solid var(--line); border-radius:30px;
+  padding:8px 15px; font-size:12px; font-weight:600; transition:.2s ease;
+}
+.portaalpagina .btn-rand:hover{ border-color:var(--accent); color:var(--primary) }
+
+.portaalpagina .reset{
+  background:none; border:0; color:var(--muted); font-size:12.5px;
+  text-decoration:underline; text-underline-offset:3px; padding:14px 0 0;
+}
+.portaalpagina .reset:hover{ color:var(--primary) }
+
+.portaalpagina .msg{
+  font-size:13px; margin:14px 0 0; padding:11px 14px;
+  display:none; text-align:left; border-radius:var(--rond-m);
+}
+.portaalpagina .msg.err{ display:block; background:var(--crit-soft); color:var(--crit) }
+.portaalpagina .msg.ok{ display:block; background:var(--ok-soft); color:var(--ok) }
+
+/* ---------------------------------------------------------
+   5. ZIJBALK (vanaf 1024px)
+   --------------------------------------------------------- */
+
+.portaalpagina .zijbalk{ display:none }
+
+@media (min-width:1024px){
+  .portaalpagina .navbalk{ display:none }
+
+  .portaalpagina .zijbalk{
+    display:flex; flex-direction:column; gap:20px;
+    position:fixed; top:0; left:0; bottom:0;
+    width:var(--zijbalk-breedte); z-index:30;
+    background:var(--primary); color:#fff;
+    padding:26px 16px; overflow-y:auto;
+  }
+
+  /* merk bovenaan */
+  .portaalpagina .zij-merk{ text-align:center; padding:2px 6px 4px }
+  .portaalpagina .zij-merk img{
+    width:104px; height:auto; display:block; margin:0 auto 12px;
+    filter:brightness(0) invert(1); opacity:.94;
+  }
+  .portaalpagina .merk-naam{
+    display:block; font-family:var(--f-kop); font-size:17px;
+    font-weight:500; letter-spacing:.06em;
+  }
+  .portaalpagina .merk-plaats{
+    display:block; margin-top:5px; font-size:9px;
+    letter-spacing:.28em; text-transform:uppercase; opacity:.6;
+  }
+
+  /* wie is ingelogd */
+  .portaalpagina .zij-wie{
+    display:flex; align-items:center; gap:11px;
+    padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,.14);
+  }
+  .portaalpagina .initialen{
+    width:38px; height:38px; flex:none; border-radius:50%;
+    background:var(--accent); color:#2A2118;
+    display:grid; place-items:center;
+    font-family:var(--f-kop); font-weight:600; font-size:14px;
+  }
+  .portaalpagina .zij-mail{
+    font-size:11.5px; color:rgba(255,255,255,.72);
+    line-height:1.35; word-break:break-word;
+  }
+
+  /* het menu */
+  .portaalpagina .zij-nav{ display:flex; flex-direction:column; gap:3px; flex:1 }
+  .portaalpagina .zij-kop{
+    font-size:9px; letter-spacing:.24em; text-transform:uppercase;
+    color:rgba(255,255,255,.45); margin:18px 0 7px; padding:0 13px;
+  }
+  .portaalpagina .zij-kop:first-child{ margin-top:0 }
+
+  .portaalpagina .zij-link{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    text-decoration:none; color:rgba(255,255,255,.78);
+    font-size:13.5px; font-weight:500;
+    padding:11px 13px; border-radius:12px; transition:.2s ease;
+  }
+  .portaalpagina .zij-link:hover,
+  .portaalpagina .zij-link:focus-visible{
+    background:rgba(255,255,255,.12); color:#fff;
+  }
+  .portaalpagina .zij-link .aantal{
+    min-width:34px; text-align:center; font-size:10px; font-weight:700;
+    padding:3px 8px; border-radius:999px;
+    background:rgba(255,255,255,.14); color:rgba(255,255,255,.85);
+  }
+
+  /* kaartje onderaan */
+  .portaalpagina .zij-kaart{
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+    border-radius:var(--rond-m); padding:15px; margin-top:auto;
+  }
+  .portaalpagina .zij-kaart b{
+    display:block; font-family:var(--f-kop); font-size:15px;
+    font-weight:500; margin-bottom:5px;
+  }
+  .portaalpagina .zij-kaart p{
+    margin:0 0 12px; font-size:11.5px;
+    color:rgba(255,255,255,.6); line-height:1.5;
+  }
+  .portaalpagina .zij-kaart .btn-rand{
+    width:100%; text-align:center; justify-content:center;
+    background:transparent; color:#fff; border-color:rgba(255,255,255,.3);
+  }
+  .portaalpagina .zij-kaart .btn-rand:hover{
+    background:rgba(255,255,255,.12); color:#fff; border-color:var(--accent);
+  }
+
+  .portaalpagina .inhoud{ margin-left:var(--zijbalk-breedte); min-height:100dvh }
+  .portaalpagina .wrap{ max-width:none; padding:0 32px }
+}
+
+/* ---------------------------------------------------------
+   6. MENUBALK (telefoon en tablet)
+   --------------------------------------------------------- */
+
+.portaalpagina .navbalk{
+  position:sticky; top:0; z-index:20;
+  background:var(--card); border-bottom:1px solid var(--line);
+  box-shadow:0 2px 14px -8px rgba(23,60,53,.3);
+}
+.portaalpagina .navinner{
+  max-width:1180px; margin:0 auto; padding:0 20px;
+  display:grid; grid-template-columns:auto 1fr auto;
+  align-items:center; gap:12px;
+}
+.portaalpagina .navlogo{ height:30px; width:auto; display:block }
+.portaalpagina .navlinks{ display:flex; gap:2px; overflow-x:auto; scrollbar-width:none }
+.portaalpagina .navlinks::-webkit-scrollbar{ display:none }
+.portaalpagina .navlink{
+  text-decoration:none; color:var(--muted); font-size:13px; font-weight:600;
+  white-space:nowrap; padding:13px 12px; border-bottom:2px solid transparent;
+}
+.portaalpagina .navlink:hover,
+.portaalpagina .navlink:focus-visible{
+  color:var(--primary); border-bottom-color:var(--accent);
+}
+
+/* ---------------------------------------------------------
+   7. KOP VAN DE PAGINA
+   --------------------------------------------------------- */
+
+.portaalpagina header{ padding:30px 0 4px }
+.portaalpagina .eyebrow{
+  display:block; color:var(--muted); font-size:9.5px; font-weight:700;
+  letter-spacing:.22em; text-transform:uppercase; margin-bottom:9px;
+}
+.portaalpagina h1{
+  font-family:var(--f-kop); font-size:clamp(28px,4vw,42px);
+  font-weight:500; letter-spacing:0; margin:0; line-height:1.05;
+}
+.portaalpagina .datum{ color:var(--muted); font-size:13px; margin:9px 0 0 }
+.portaalpagina .regel{ height:1px; background:var(--line); border:0; margin:22px 0 0 }
+.portaalpagina .scheiding{ display:none }
+
+/* ---------------------------------------------------------
+   8. SECTIES
+   --------------------------------------------------------- */
+
+.portaalpagina section{ padding:24px 0 }
+.portaalpagina h2{
+  font-family:var(--f-kop); font-size:22px; font-weight:500;
+  letter-spacing:0; margin:0 0 16px;
+}
+.portaalpagina .subkop{
+  font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--muted); font-weight:700; margin:24px 0 10px;
+}
+.portaalpagina .subkop:first-of-type{ margin-top:0 }
+.portaalpagina .subkop a{ color:var(--primary); text-decoration:none; border-bottom:1px solid var(--accent) }
+
+/* de twee kolommen; de secties met grid-column:1/-1 blijven vol breed */
+@media (min-width:1100px){
+  .portaalpagina .kolommen{
+    display:grid; grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);
+    gap:24px; align-items:start;
+  }
+  .portaalpagina .kolommen > .regel{ grid-column:1/-1 }
+}
+
+/* ---------------------------------------------------------
+   9. TELLERS
+   --------------------------------------------------------- */
+
+.portaalpagina .tellers{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px; margin:0 0 22px;
+}
+.portaalpagina .teller{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:var(--rond-l); box-shadow:var(--schaduw);
+  padding:18px 20px; position:relative; overflow:hidden;
+  transition:transform .2s ease;
+}
+.portaalpagina .teller:hover{ transform:translateY(-2px) }
+.portaalpagina .teller::before{
+  content:""; position:absolute; left:0; top:0; bottom:0;
+  width:3px; background:var(--accent);
+}
+.portaalpagina .teller:nth-child(2)::before{ background:var(--primary-light) }
+.portaalpagina .teller:nth-child(3)::before{ background:var(--ok) }
+.portaalpagina .teller b{
+  display:block; font-size:30px; font-weight:700;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1;
+}
+.portaalpagina .teller span{
+  display:block; font-size:9.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted); font-weight:600; margin-top:5px;
+}
+
+/* ---------------------------------------------------------
+   10. LIJSTREGELS (taken en welkomstcalls)
+   --------------------------------------------------------- */
+
+.portaalpagina .rij{
+  display:grid; grid-template-columns:56px 1fr auto; gap:12px;
+  align-items:baseline; padding:13px 16px;
+  background:var(--card);
+  border-left:1px solid var(--line); border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line-soft);
+}
+.portaalpagina .rij:first-child{
+  border-top:1px solid var(--line);
+  border-radius:var(--rond-l) var(--rond-l) 0 0;
+}
+.portaalpagina .rij:last-child{
+  border-bottom:1px solid var(--line);
+  border-radius:0 0 var(--rond-l) var(--rond-l);
+  box-shadow:var(--schaduw);
+}
+.portaalpagina .rij:hover{ background:var(--card-2) }
+
+.portaalpagina .tijd{
+  font-variant-numeric:tabular-nums; font-size:12.5px;
+  font-weight:600; color:var(--muted);
+}
+.portaalpagina .tijd.laat{ color:var(--crit) }
+.portaalpagina .naam{ font-weight:600; font-size:14px }
+.portaalpagina .plek{ display:block; color:var(--muted); font-size:11.5px; margin-top:3px }
+.portaalpagina .plek.laat{ color:var(--crit) }
+
+.portaalpagina .prio{
+  display:inline-block; padding:4px 11px; border-radius:999px;
+  font-size:10px; font-weight:700; letter-spacing:.04em;
+  background:var(--card-2); border:1px solid var(--line);
+  color:var(--muted); text-decoration:none; white-space:nowrap;
+}
+.portaalpagina .prio.hoog{ background:var(--crit-soft); border-color:transparent; color:var(--crit) }
+.portaalpagina a.prio:hover{ border-color:var(--accent); color:var(--primary) }
+
+.portaalpagina .leeg{
+  padding:30px 20px; text-align:center; color:var(--muted); font-size:13px;
+  background:var(--card); border:1px solid var(--line);
+  border-radius:var(--rond-l); box-shadow:var(--schaduw); margin:0;
+}
+.portaalpagina .fout{
+  font-size:13px; line-height:1.5; background:var(--crit-soft);
+  color:var(--crit); padding:13px 16px; border-radius:var(--rond-m); margin:0;
+}
+.portaalpagina .fout code{ font-family:ui-monospace,Menlo,monospace; font-size:.9em }
+
+/* het vakje "ook van anderen" */
+.portaalpagina #allenVak{ color:var(--muted); letter-spacing:0; text-transform:none; font-weight:500 }
+
+/* ---------------------------------------------------------
+   11. TEGELS
+   --------------------------------------------------------- */
+
+.portaalpagina #groepen h2{ margin-top:30px }
+.portaalpagina #groepen h2:first-child{ margin-top:0 }
+
+.portaalpagina .tegels{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px;
+}
+.portaalpagina .tegel{
+  display:block; text-decoration:none;
+  background:var(--card); border:1px solid var(--line);
+  border-radius:var(--rond-l); box-shadow:var(--schaduw);
+  padding:18px 20px 20px; position:relative; overflow:hidden;
+  transition:.2s ease;
+}
+.portaalpagina .tegel::before{
+  content:""; position:absolute; left:0; top:0; bottom:0;
+  width:3px; background:var(--accent);
+}
+.portaalpagina .tegel:hover,
+.portaalpagina .tegel:focus-visible{
+  border-color:var(--accent); transform:translateY(-2px);
+}
+.portaalpagina .tegel .t{
+  display:block; font-family:var(--f-kop); font-size:18px;
+  font-weight:500; letter-spacing:0;
+}
+.portaalpagina .tegel .d{
+  display:block; color:var(--muted); font-size:12px;
+  margin-top:6px; line-height:1.5;
+}
+.portaalpagina .tegel.binnenkort{
+  background:var(--card-2); box-shadow:none; cursor:default;
+}
+.portaalpagina .tegel.binnenkort::before{ background:var(--line) }
+.portaalpagina .tegel.binnenkort:hover{ border-color:var(--line); transform:none }
+.portaalpagina .tegel.binnenkort .t{ color:var(--muted) }
+
+.portaalpagina .tag{
+  position:absolute; top:14px; right:14px;
+  font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+  color:var(--muted); background:var(--card);
+  border:1px solid var(--line-soft); padding:4px 9px; border-radius:999px;
+}
+
+/* ---------------------------------------------------------
+   12. BOEKINGSKANALEN
+   --------------------------------------------------------- */
+
+.portaalpagina .extern{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px }
+.portaalpagina .pil{
+  display:inline-flex; align-items:center; text-decoration:none;
+  background:var(--card); border:1px solid var(--line);
+  border-radius:30px; box-shadow:var(--schaduw);
+  padding:10px 18px; font-size:12.5px; font-weight:600; color:var(--text);
+  transition:.2s ease;
+}
+.portaalpagina .pil:hover,
+.portaalpagina .pil:focus-visible{
+  border-color:var(--accent); color:var(--primary); transform:translateY(-1px);
+}
+
+/* ---------------------------------------------------------
+   13. RESERVERINGEN EN KALENDER
+   --------------------------------------------------------- */
+
+.portaalpagina #resFrame{
+  width:100%; height:70vh; min-height:460px;
+  border:1px solid var(--line); border-radius:var(--rond-l);
+  background:var(--card); box-shadow:var(--schaduw);
+}
+.portaalpagina #bwfKalender{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:var(--rond-l); box-shadow:var(--schaduw);
+  padding:16px; overflow:hidden;
+}
+
+/* ---------------------------------------------------------
+   14. VOET EN KLEURKEUZE
+   --------------------------------------------------------- */
+
+.portaalpagina footer{
+  border-top:1px solid var(--line); margin-top:10px; padding:20px 0 48px;
+  color:var(--muted); font-size:12px;
+  display:flex; justify-content:space-between; align-items:center;
+  gap:14px; flex-wrap:wrap;
+}
+.portaalpagina .themas{ display:flex; align-items:center; gap:9px }
+.portaalpagina .themas .kop{
+  font-size:9px; letter-spacing:.2em; text-transform:uppercase; font-weight:700;
+}
+.portaalpagina .staal{
+  width:26px; height:26px; border-radius:50%; padding:0;
+  border:1px solid var(--line); transition:.2s ease;
+}
+.portaalpagina .staal[aria-pressed="true"]{ border-color:var(--accent); border-width:2px; transform:scale(1.1) }
+.portaalpagina .staal.espresso{ background:linear-gradient(135deg,#3E3229 50%,#C9A96E 50%) }
+.portaalpagina .staal.salie   { background:linear-gradient(135deg,#173C35 50%,#C9A96E 50%) }
+.portaalpagina .staal.leisteen{ background:linear-gradient(135deg,#233B48 50%,#C9A96E 50%) }
+
+/* ---------------------------------------------------------
+   15. KLEINE SCHERMEN
+   --------------------------------------------------------- */
+
+@media (max-width:520px){
+  .portaalpagina .wrap,
+  .portaalpagina .navinner{ padding:0 14px }
+  .portaalpagina header{ padding:22px 0 4px }
+  .portaalpagina .tellers{ grid-template-columns:1fr 1fr; gap:10px }
+  .portaalpagina .teller{ padding:14px 15px; border-radius:var(--rond-m) }
+  .portaalpagina .teller b{ font-size:24px }
+  .portaalpagina .tegels{ grid-template-columns:1fr }
+  .portaalpagina .rij{ grid-template-columns:48px 1fr auto; gap:9px; padding:12px 13px }
+  .portaalpagina .paneel{ padding:28px 22px }
+  .portaalpagina #resFrame{ height:62vh; min-height:380px }
+}
+
+@media (hover:none){
+  .portaalpagina .staal{ width:30px; height:30px }
+}
