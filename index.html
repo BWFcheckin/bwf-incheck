@@ -444,16 +444,37 @@ function dagPlus(d, n){
   return x.toLocaleDateString('sv-SE');
 }
 
-/* suite -> sfeerbeeld */
+/* De suites heten in de database precies angie, malina_jacuzzi en
+   malina_deluxe. Daarom vergelijken we exact en niet op losse woorden:
+   "malina_deluxe" bevat ook "malina", waardoor de deluxe eerder de
+   jacuzzifoto kreeg. Namen en foto's komen uit incheckformulier.html. */
+const SUITES = {
+  angie          : { naam:'B&W Angie \u00b7 Almere',            foto:'photo-angie'  },
+  malina_jacuzzi : { naam:'B&W Malina Jacuzzi \u00b7 Lelystad', foto:'photo-malina' },
+  malina_deluxe  : { naam:'B&W Malina Zwembad \u00b7 Lelystad', foto:'photo-pool'   }
+};
+
 function foto(suite){
-  const s = String(suite || '').toLowerCase();
-  if(s.includes('jacuzzi') || s.includes('malina')) return 'photo-malina';
-  if(s.includes('deluxe')  || s.includes('zwembad')) return 'photo-pool';
-  return 'photo-angie';
+  const s = SUITES[String(suite || '').trim().toLowerCase()];
+  return s ? s.foto : 'photo-angie';
 }
-function suiteNaam(s){
-  const t = String(s || '').trim();
-  return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Onbekende suite';
+
+function suiteNaam(suite){
+  const sleutel = String(suite || '').trim().toLowerCase();
+  if(SUITES[sleutel]) return SUITES[sleutel].naam;
+  if(!sleutel) return 'Onbekende suite';
+  const los = sleutel.replace(/_/g, ' ');
+  return los.charAt(0).toUpperCase() + los.slice(1);
+}
+
+/* Voor vrije tekst, zoals een taakomschrijving, blijft zoeken op woorden
+   nodig. Het meest specifieke woord eerst, anders wint 'malina' het weer
+   van 'deluxe'. */
+function fotoUitTekst(tekst){
+  const t = String(tekst || '').toLowerCase();
+  if(t.includes('deluxe') || t.includes('zwembad')) return 'photo-pool';
+  if(t.includes('jacuzzi') || t.includes('malina')) return 'photo-malina';
+  return 'photo-angie';
 }
 const volledigeNaam = r =>
   ((r.gast_voornaam || '') + ' ' + (r.gast_achternaam || '')).trim() || 'Naam onbekend';
@@ -691,7 +712,7 @@ function tekenHome(){
     const hoog = (dringend.prioriteit || '').toLowerCase() === 'hoog';
     $('#nuDoen').innerHTML =
       '<div class="priority-task">' +
-        '<div class="task-photo ' + foto(dringend.omschrijving) + '"></div>' +
+        '<div class="task-photo ' + fotoUitTekst(dringend.omschrijving) + '"></div>' +
         '<div class="priority-info">' +
           (hoog || laat ? '<span class="badge danger">' + (laat ? 'TE LAAT' : 'URGENT') + '</span>' : '') +
           '<h2>' + esc(dringend.titel || 'Zonder titel') + '</h2>' +
