@@ -1298,9 +1298,26 @@ function vDeelBedrag() {
 }
 
 function vZetBedrag(r) {
-  const totaal = Number(r.bedrag_totaal) || 0;
+  /* Reken met wat er op het scherm staat: typt iemand het totaalbedrag
+     hierboven in, dan loopt de aanbetaling meteen mee. */
+  const totaal = leesBedrag($("#vBedrag").value) || Number(r.bedrag_totaal) || 0;
   const keuze = $("#vDeelKeuze").value;
   const veld = $("#vDeelBedrag");
+  const note = $("#vBetaalNote");
+  const GEEN = "Bij deze reservering staat geen totaalbedrag";
+
+  /* Zonder totaal valt er niets te delen. Het veld dan niet leeg op slot
+     zetten: dat lijkt kapot. Openzetten en zeggen waarom. Bij 119 van de
+     167 lopende boekingen staat nog geen bedrag. */
+  if (!totaal && keuze !== "vrij") {
+    veld.readOnly = false;
+    veld.value = "";
+    if (note) note.textContent = GEEN + ", dus 50% of het volledige bedrag valt niet " +
+      "te berekenen. Vul het totaalbedrag hierboven in, of typ hier zelf een bedrag.";
+    return;
+  }
+
+  if (note && note.textContent.startsWith(GEEN)) note.textContent = "";
   veld.readOnly = keuze !== "vrij";
   if (keuze === "100") veld.value = euro(totaal);
   else if (keuze === "50") veld.value = euro(Math.round(totaal * 50) / 100);
@@ -1380,7 +1397,13 @@ async function maakBetaallink() {
 }
 
 document.addEventListener("change", (e) => {
-  if (e.target.id === "vDeelKeuze" && HUIDIG) { vZetBedrag(HUIDIG); $("#vBericht").value = vBerichtTekst(HUIDIG); }
+  if ((e.target.id === "vDeelKeuze" || e.target.id === "vBedrag") && HUIDIG) {
+    vZetBedrag(HUIDIG);
+    $("#vBericht").value = vBerichtTekst(HUIDIG);
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "vBedrag" && HUIDIG) vZetBedrag(HUIDIG);
 });
 document.addEventListener("click", (e) => {
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
