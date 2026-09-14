@@ -372,6 +372,29 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <div id="vLog" style="font-size:13.5px;margin-top:8px">—</div>
         </details>
       </fieldset>
+
+      <fieldset id="vBetaalVak">
+        <legend>Bevestiging en aanbetaling</legend>
+        <div class="raster">
+          <label class="veld">Aanbetaling
+            <select id="vDeelKeuze">
+              <option value="50">50% aanbetaling</option>
+              <option value="100">Volledig bedrag</option>
+              <option value="vrij">Vrij bedrag</option>
+            </select></label>
+          <label class="veld">Bedrag (&euro;) <input id="vDeelBedrag" type="text" inputmode="decimal"></label>
+          <label class="veld breed">Betaallink
+            <input id="vBetaallink" type="text" readonly placeholder="nog niet aangemaakt"></label>
+          <label class="veld breed">Bericht aan de gast
+            <textarea id="vBericht" rows="9"></textarea></label>
+        </div>
+        <div class="v-voet" style="position:static;border:0;padding:12px 0 0">
+          <span class="v-melding" id="vBetaalNote" style="color:var(--muted)"></span>
+          <button type="button" class="knop sec" id="vMaakLink">Betaallink maken</button>
+          <button type="button" class="knop sec" id="vApp">Via WhatsApp</button>
+          <button type="button" class="knop sec" id="vMail">E-mail opstellen</button>
+        </div>
+      </fieldset>
     </div>
 
     <div class="v-voet">
@@ -641,6 +664,8 @@ function openVenster(id) {
   const kkZoek = (r.gast_achternaam || r.gast_voornaam || "").trim();
   kk.hidden = !kkZoek;
   if (kkZoek) kk.href = "klantbeheer.html?zoek=" + encodeURIComponent(kkZoek);
+
+  vulBetaalvak(r);
   $("#vSub").textContent = [SUITES[r.suite] ? SUITES[r.suite].naam : r.suite, KANALEN[r.kanaal] || r.kanaal,
     r.kanaal === "smg" && r.kanaal_ref ? "nr. " + r.kanaal_ref : "", p.dag + " " + p.tijd].filter(Boolean).join(" · ");
   const opm = $("#vOpmerking");
@@ -1257,6 +1282,123 @@ document.addEventListener("change", (e) => {
 document.addEventListener("input", (e) => {
   if (e.target.id === "nBedrag") N_BEDRAG_ZELF = true;
   if (e.target.id === "nPersonen") nHerbereken();
+});
+
+/* =========================================================
+   Bevestiging en aanbetaling
+   De betaallink komt van dezelfde Edge Function als de welkomstcall.
+   Die kent de soort "aanbetaling" niet; op verzoek van Angela gaat een
+   deelbetaling mee als "restant". Er wordt niets vanzelf verstuurd: de
+   knoppen zetten het bericht klaar, versturen doe je zelf.
+   ========================================================= */
+const MOLLIE_URL = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-payment";
+
+function vDeelBedrag() {
+  return Math.round((leesBedrag($("#vDeelBedrag").value) || 0) * 100) / 100;
+}
+
+function vZetBedrag(r) {
+  const totaal = Number(r.bedrag_totaal) || 0;
+  const keuze = $("#vDeelKeuze").value;
+  const veld = $("#vDeelBedrag");
+  veld.readOnly = keuze !== "vrij";
+  if (keuze === "100") veld.value = euro(totaal);
+  else if (keuze === "50") veld.value = euro(Math.round(totaal * 50) / 100);
+}
+
+function vBerichtTekst(r) {
+  const voor = (r.gast_voornaam || "").trim();
+  const p = periode(r);
+  const incheck = new URL(gastLinkVan(r), location.href).href;
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : [])
+    .map((a) => (typeof a === "string" ? a : a.naam)).filter(Boolean);
+  const link = $("#vBetaallink").value.trim();
+  const t = [];
+  t.push("Beste " + (voor || "gast") + ",");
+  t.push("");
+  t.push("Hierbij de bevestiging van je reservering bij Bed & Wellness Flevoland.");
+  t.push("");
+  t.push("\u2022 Suite: " + (SUITES[r.suite] ? SUITES[r.suite].naam : r.suite));
+  t.push("\u2022 Aankomst: " + p.dag + " " + p.tijd);
+  t.push("\u2022 Personen: " + (r.personen || "\u2014"));
+  t.push("\u2022 Reserveringsnummer: " + resNummer(r));
+  if (r.bedrag_totaal != null) t.push("\u2022 Totaalbedrag: " + euro(r.bedrag_totaal));
+  if (arr.length) { t.push(""); t.push("Geboekt: " + arr.join(", ")); }
+  t.push("");
+  t.push("Vul je gegevens alvast in via het incheckformulier:");
+  t.push(incheck);
+  if (link) { t.push(""); t.push("Aanbetaling van " + euro(vDeelBedrag()) + ":"); t.push(link); }
+  t.push("");
+  t.push("Tot snel!");
+  t.push("Bed & Wellness Flevoland");
+  return t.join("\n");
+}
+
+function vulBetaalvak(r) {
+  $("#vDeelKeuze").value = "50";
+  $("#vBetaallink").value = "";
+  $("#vBetaalNote").textContent = "";
+  vZetBedrag(r);
+  $("#vBericht").value = vBerichtTekst(r);
+}
+
+async function maakBetaallink() {
+  const r = HUIDIG; if (!r) return;
+  const note = $("#vBetaalNote"), knop = $("#vMaakLink");
+  const bedrag = vDeelBedrag();
+  if (!bedrag || bedrag < 0.01) { note.textContent = "Vul een bedrag van minimaal \u20ac 0,01 in."; return; }
+  knop.disabled = true;
+  note.textContent = "De betaallink wordt aangemaakt bij Mollie\u2026";
+  try {
+    const token = await geldigToken();
+    const res = await fetch(MOLLIE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: CFG.key, Authorization: "Bearer " + token },
+      body: JSON.stringify({
+        bedrag: Number(bedrag.toFixed(2)),
+        omschrijving: [gastNaam(r), resNummer(r)].filter(Boolean).join(" \u00b7 ") || "Bed & Wellness Flevoland",
+        reservering: resNummer(r),
+        reservering_id: r.id,
+        soort: "restant",
+        gast: gastNaam(r) || ""
+      })
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.checkoutUrl) {
+      note.textContent = "Betaallink maken lukte niet: " + (d.error || ("fout " + res.status));
+    } else {
+      $("#vBetaallink").value = d.checkoutUrl;
+      $("#vBericht").value = vBerichtTekst(r);
+      note.innerHTML = String(d.mode) === "test"
+        ? "Link van " + esc(euro(bedrag)) + " aangemaakt. <strong style=\"color:var(--crit)\">Let op: dit is een TESTbetaling</strong> \u2014 in Supabase staat nog een testsleutel."
+        : "Link van " + esc(euro(bedrag)) + " aangemaakt. Dit is een echte betaling.";
+    }
+  } catch (e) {
+    note.textContent = "De verbinding met Mollie lukte niet: " + e.message;
+  }
+  knop.disabled = false;
+}
+
+document.addEventListener("change", (e) => {
+  if (e.target.id === "vDeelKeuze" && HUIDIG) { vZetBedrag(HUIDIG); $("#vBericht").value = vBerichtTekst(HUIDIG); }
+});
+document.addEventListener("click", (e) => {
+  if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
+  if (e.target.id === "vMail" && HUIDIG) {
+    e.preventDefault();
+    const adres = (HUIDIG.gast_email || "").trim();
+    if (!adres) { $("#vBetaalNote").textContent = "Er staat geen e-mailadres bij deze gast."; return; }
+    const onderwerp = "Bevestiging reservering " + resNummer(HUIDIG) + " \u2014 Bed & Wellness Flevoland";
+    window.open("mailto:" + encodeURIComponent(adres) + "?subject=" + encodeURIComponent(onderwerp) +
+      "&body=" + encodeURIComponent($("#vBericht").value), "_blank", "noopener");
+    return;
+  }
+  if (e.target.id === "vApp" && HUIDIG) {
+    e.preventDefault();
+    const tel = String(HUIDIG.gast_telefoon || "").replace(/[^0-9]/g, "").replace(/^0/, "31");
+    window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent($("#vBericht").value), "_blank", "noopener");
+    if (!tel) $("#vBetaalNote").textContent = "Geen telefoonnummer bekend \u2014 kies zelf een contact in WhatsApp.";
+  }
 });
 
 async function maakReservering() {
