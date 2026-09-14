@@ -466,6 +466,92 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
 .inventory-alert.danger{ background:#FFE4E2; color:#B84F4C }
 .inventory-alert.good{ background:#E4F0E6; color:#4D7858 }
 
+/* ---- voorraad: bewerken in de regel zelf ---- */
+.inventory-tools select{
+  border:2px solid var(--border); background:#fff; border-radius:30px;
+  padding:9px 13px; color:var(--muted); font-size:11px;
+}
+.inventory-stat{ text-align:left; cursor:pointer; transition:.2s }
+.inventory-stat:hover{ transform:translateY(-2px); border-color:rgba(201,169,110,.45) }
+
+.vr-groep{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 0 8px; font-size:11px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+  border-bottom:2px solid var(--border);
+}
+.vr-groep span{ font-weight:500; letter-spacing:0; text-transform:none }
+
+.inventory-row.bewerkbaar{ flex-wrap:wrap; gap:10px }
+.vr-velden{ flex:1; min-width:170px; display:flex; flex-direction:column; gap:5px }
+.vr-velden input{
+  width:100%; border:1px solid var(--border); background:#FBFAF7;
+  border-radius:9px; padding:7px 9px; font-size:12px; color:var(--text);
+}
+.vr-velden input:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:#fff }
+.vr-velden .vr-naam{ font-weight:600; font-size:13px }
+
+.vr-teller{ display:flex; align-items:center; gap:5px; flex:none }
+.vr-teller input{
+  width:56px; text-align:center; border:1px solid var(--border);
+  background:#FBFAF7; border-radius:9px; padding:7px 4px; font-size:13px; font-weight:600;
+}
+.vr-knop{
+  width:30px; height:30px; flex:none; border:1px solid var(--border);
+  background:#fff; border-radius:50%; color:var(--primary);
+  font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center;
+}
+.vr-knop:hover{ border-color:var(--accent); color:var(--accent) }
+.vr-knop.weg{ color:var(--danger) }
+.vr-knop.weg:hover{ border-color:var(--danger); background:#FFE4E2 }
+
+.vr-min{
+  display:flex; flex-direction:column; gap:3px; flex:none;
+  font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;
+}
+.vr-min input{
+  width:56px; text-align:center; border:1px solid var(--border);
+  background:#FBFAF7; border-radius:9px; padding:6px 4px; font-size:12px;
+}
+
+/* ---- nieuw artikel toevoegen ---- */
+.nieuw-regel{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  padding:16px 20px; border-top:2px solid var(--border);
+}
+.nieuw-regel input{
+  border:1px solid var(--border); background:#FBFAF7; border-radius:10px;
+  padding:9px 11px; font-size:12px; color:var(--text);
+}
+.nieuw-regel input:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:#fff }
+.nieuw-regel input[type="text"]{ flex:1; min-width:130px }
+.nieuw-regel input[type="number"]{ width:74px }
+.nieuw-regel .primary-button{ margin-top:0 }
+
+/* ---- bestellijst ---- */
+.kop-knoppen{ display:flex; gap:10px; flex:none }
+.bestel-lijst{ padding:0 20px 18px }
+.bestel-regel{
+  display:flex; flex-wrap:wrap; align-items:center; gap:12px;
+  padding:14px 0; border-bottom:1px solid var(--border);
+}
+.bestel-regel:last-child{ border-bottom:0 }
+.bestel-regel.onderweg{ opacity:.7 }
+.bestel-naam{ flex:1; min-width:150px }
+.bestel-naam strong{ display:block; font-size:13px }
+.bestel-naam small{ display:block; margin-top:3px; color:var(--muted); font-size:11px }
+.bestel-veld{
+  display:flex; flex-direction:column; gap:3px; flex:none;
+  font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;
+}
+.bestel-veld b{ font-size:14px; color:var(--text); letter-spacing:0 }
+.bestel-veld input{
+  border:1px solid var(--border); background:#FBFAF7; border-radius:9px;
+  padding:6px 8px; font-size:12px; color:var(--text); letter-spacing:0; text-transform:none;
+}
+.bestel-veld input[type="number"]{ width:68px; text-align:center }
+.bestel-knoppen{ display:flex; gap:7px; flex:none }
+
 /* =========================================================
    BERICHTEN — berichtenbord op de tabel overdracht
    ========================================================= */

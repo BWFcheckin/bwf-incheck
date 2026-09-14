@@ -242,30 +242,69 @@
     <div>
       <span class="eyebrow">OPERATIE</span>
       <h2>Voorraad</h2>
-      <p>Houd alle wellness- en hospitalityproducten bij.</p>
+      <p>Bijhouden, bestellen en de bestellijst uitdraaien.</p>
     </div>
-    <a class="primary-button" href="dagstart.html">Voorraad bijwerken</a>
   </div>
 
   <div class="inventory-overview">
-    <div class="inventory-stat card">
-      <span>&#9633;</span><strong id="vTotaal">&ndash;</strong><small>Producten totaal</small>
-    </div>
-    <div class="inventory-stat card warning-card">
-      <span>!</span><strong id="vTekort">&ndash;</strong><small>Bijna op</small>
-    </div>
-    <div class="inventory-stat card">
-      <span>&#10003;</span><strong id="vGoed">&ndash;</strong><small>Op voorraad</small>
-    </div>
+    <button class="inventory-stat card" data-vrfilter="">
+      <span>&#9633;</span><strong id="vTotaal">&ndash;</strong><small>Artikelen totaal</small>
+    </button>
+    <button class="inventory-stat card warning-card" data-vrfilter="bestellen">
+      <span>!</span><strong id="vTekort">&ndash;</strong><small>Te bestellen</small>
+    </button>
+    <button class="inventory-stat card" data-vrfilter="besteld">
+      <span>&#8594;</span><strong id="vOnderweg">&ndash;</strong><small>Onderweg</small>
+    </button>
+    <button class="inventory-stat card" data-vrfilter="op">
+      <span>&#10005;</span><strong id="vOp">&ndash;</strong><small>Op</small>
+    </button>
   </div>
 
   <div class="inventory-tools">
-    <input type="search" id="voorraadZoek" placeholder="Zoek product...">
-    <button class="active" data-vr="alle">Alles</button>
-    <button data-vr="tekort">Alleen tekort</button>
+    <input type="search" id="voorraadZoek" placeholder="Zoek artikel, categorie of leverancier...">
+    <select id="voorraadCat"><option value="">Alle categorie&euml;n</option></select>
+    <select id="voorraadStatus">
+      <option value="">Alle statussen</option>
+      <option value="bestellen">Te bestellen</option>
+      <option value="besteld">Onderweg</option>
+      <option value="op">Op</option>
+      <option value="peil">Op peil</option>
+    </select>
+    <button id="voorraadWis">Filters wissen</button>
   </div>
 
-  <div class="inventory-list card" id="voorraadLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+  <div class="card">
+    <div class="card-head">
+      <div><span class="eyebrow">BESTAND</span><h3>Alle artikelen</h3></div>
+      <span class="link-button" id="voorraadTel"></span>
+    </div>
+    <div class="inventory-list" id="voorraadLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+
+    <form class="nieuw-regel" id="voorraadNieuw">
+      <input type="text"   id="nwNaam"   placeholder="Nieuw artikel" required>
+      <input type="text"   id="nwCat"    placeholder="Categorie"   list="vrCategorieen">
+      <input type="number" id="nwAantal" placeholder="Nu"   min="0" value="0">
+      <input type="number" id="nwMin"    placeholder="Min." min="0" value="1">
+      <input type="text"   id="nwLev"    placeholder="Leverancier" list="vrLeveranciers">
+      <button type="submit" class="primary-button">Toevoegen</button>
+    </form>
+    <p class="bewaar-melding" id="voorraadMelding"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><span class="eyebrow">BESTELLEN</span><h3>Bestellijst</h3></div>
+      <div class="kop-knoppen">
+        <button class="link-button" id="bestelPrint">Afdrukken</button>
+        <button class="link-button" id="bestelCsv">CSV</button>
+      </div>
+    </div>
+    <div class="bestel-lijst" id="bestelLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+  </div>
+
+  <datalist id="vrCategorieen"></datalist>
+  <datalist id="vrLeveranciers"></datalist>
 </section>
 
 <!-- ═══════════════ BERICHTEN ═══════════════ -->
@@ -938,39 +977,335 @@ function tekenTaken(){
 
 /* ═══════════════════════════════════════════════════════════
    VOORRAAD
+   Overgenomen uit dashboard.html, dat dit al deed: bewerken in
+   de regel zelf, filters, bestellijst, afdrukken en CSV.
    ═══════════════════════════════════════════════════════════ */
-$$('[data-vr]').forEach(b => b.addEventListener('click', () => {
-  voorraadFilter = b.dataset.vr;
-  $$('[data-vr]').forEach(x => x.classList.toggle('active', x === b));
+let vrFilter = { zoek:'', cat:'', status:'' };
+
+const vrGetal   = (v, n) => parseInt(v[n], 10) || 0;
+const vrCatNaam = v => String(v.categorie || '').trim() || 'Zonder categorie';
+
+function vrStatus(v){
+  if(vrGetal(v,'aantal') <= 0)                       return { cls:'danger', txt:'Op' };
+  if(vrGetal(v,'aantal') <= vrGetal(v,'min_aantal')) return { cls:'danger', txt:'Bestellen' };
+  return { cls:'good', txt:'Op peil' };
+}
+function vrSleutel(v){
+  if(v.besteld) return 'besteld';
+  if(vrGetal(v,'aantal') <= 0) return 'op';
+  if(vrGetal(v,'aantal') <= vrGetal(v,'min_aantal')) return 'bestellen';
+  return 'peil';
+}
+function teBestellen(v){
+  const b = vrGetal(v,'bestel_aantal');
+  if(b > 0) return b;
+  return Math.max(vrGetal(v,'min_aantal') * 2 - vrGetal(v,'aantal'), 1);
+}
+function vrRegels(){
+  return VOORRAAD.filter(v =>
+    vrGetal(v,'aantal') <= vrGetal(v,'min_aantal') || v.besteld
+  ).sort((a,b) =>
+    String(a.leverancier || 'zzz').localeCompare(String(b.leverancier || 'zzz')) ||
+    vrCatNaam(a).localeCompare(vrCatNaam(b)) ||
+    String(a.naam).localeCompare(String(b.naam)));
+}
+
+/* ---------- filters ---------- */
+$$('[data-vrfilter]').forEach(b => b.addEventListener('click', () => {
+  vrFilter.status = b.dataset.vrfilter;
+  $('#voorraadStatus').value = vrFilter.status;
   tekenVoorraad();
 }));
-$('#voorraadZoek').addEventListener('input', tekenVoorraad);
+$('#voorraadZoek').addEventListener('input', () => { vrFilter.zoek = $('#voorraadZoek').value; tekenVoorraad(); });
+$('#voorraadCat').addEventListener('change', () => { vrFilter.cat = $('#voorraadCat').value; tekenVoorraad(); });
+$('#voorraadStatus').addEventListener('change', () => { vrFilter.status = $('#voorraadStatus').value; tekenVoorraad(); });
+$('#voorraadWis').addEventListener('click', () => {
+  vrFilter = { zoek:'', cat:'', status:'' };
+  $('#voorraadZoek').value = ''; $('#voorraadCat').value = ''; $('#voorraadStatus').value = '';
+  tekenVoorraad();
+});
 
+/* ---------- tekenen ---------- */
 function tekenVoorraad(){
-  const tekort = tekortLijst();
-  $('#vTotaal').textContent = VOORRAAD.length;
-  $('#vTekort').textContent = tekort.length;
-  $('#vGoed').textContent   = VOORRAAD.length - tekort.length;
+  const tekort   = VOORRAAD.filter(v => vrSleutel(v) === 'bestellen');
+  const onderweg = VOORRAAD.filter(v => !!v.besteld);
+  const op       = VOORRAAD.filter(v => vrGetal(v,'aantal') <= 0);
 
-  const zoek = $('#voorraadZoek').value.trim().toLowerCase();
-  let lijst = voorraadFilter === 'tekort' ? tekort : VOORRAAD;
-  if(zoek) lijst = lijst.filter(v =>
-    ((v.naam || '') + ' ' + (v.categorie || '') + ' ' + (v.locatie || '')).toLowerCase().includes(zoek));
+  $('#vTotaal').textContent   = VOORRAAD.length;
+  $('#vTekort').textContent   = tekort.length;
+  $('#vOnderweg').textContent = onderweg.length;
+  $('#vOp').textContent       = op.length;
+
+  /* keuzelijsten vullen */
+  const cats = [...new Set(VOORRAAD.map(vrCatNaam))].sort();
+  const levs = [...new Set(VOORRAAD.map(v => v.leverancier).filter(Boolean))].sort();
+  const was  = $('#voorraadCat').value;
+  $('#voorraadCat').innerHTML = '<option value="">Alle categorie\u00ebn</option>' +
+    cats.map(c => '<option value="' + esc(c) + '">' + esc(c) + '</option>').join('');
+  $('#voorraadCat').value = cats.includes(was) ? was : '';
+  $('#vrCategorieen').innerHTML = cats.map(c => '<option value="' + esc(c) + '">').join('');
+  $('#vrLeveranciers').innerHTML = levs.map(l => '<option value="' + esc(l) + '">').join('');
+
+  /* filteren */
+  const z = vrFilter.zoek.trim().toLowerCase();
+  const lijst = VOORRAAD.filter(v => {
+    if(vrFilter.cat && vrCatNaam(v) !== vrFilter.cat) return false;
+    if(vrFilter.status && vrSleutel(v) !== vrFilter.status) return false;
+    if(z && !((v.naam || '') + ' ' + (v.leverancier || '') + ' ' + (v.categorie || '') + ' ' + (v.locatie || ''))
+            .toLowerCase().includes(z)) return false;
+    return true;
+  }).sort((a,b) => vrCatNaam(a).localeCompare(vrCatNaam(b)) || String(a.naam).localeCompare(String(b.naam)));
+
+  $('#voorraadTel').textContent = lijst.length === VOORRAAD.length
+    ? VOORRAAD.length + ' artikelen'
+    : lijst.length + ' van ' + VOORRAAD.length + ' artikelen';
+
+  /* per categorie groeperen */
+  const groepen = [];
+  lijst.forEach(v => {
+    const c = vrCatNaam(v);
+    let g = groepen.find(x => x.naam === c);
+    if(!g){ g = { naam:c, rijen:[] }; groepen.push(g); }
+    g.rijen.push(v);
+  });
 
   $('#voorraadLijst').innerHTML = lijst.length
-    ? lijst.slice(0, 80).map(v => {
-        const op = v.min_aantal != null && Number(v.aantal) <= Number(v.min_aantal);
-        return '<div class="inventory-row">' +
-          '<span class="inventory-icon">&#9831;</span>' +
-          '<div><strong>' + esc(v.naam || 'Zonder naam') + '</strong>' +
-            '<small>' + esc([v.categorie, v.locatie].filter(Boolean).join(' · ') || 'geen categorie') + '</small></div>' +
-          '<b>' + esc(v.aantal != null ? v.aantal : '?') + ' stuks</b>' +
-          '<span class="inventory-alert ' + (op ? 'danger' : 'good') + '">' +
-            (op ? (v.besteld ? 'Besteld' : 'Bijna op') : 'Op voorraad') + '</span>' +
-        '</div>';
-      }).join('')
-    : '<p class="leeg">Geen producten gevonden.</p>';
+    ? groepen.map(g =>
+        '<div class="vr-groep">' + esc(g.naam) +
+          '<span>' + g.rijen.length + ' artikel' + (g.rijen.length === 1 ? '' : 'en') + '</span></div>' +
+        g.rijen.map(vrRij).join('')).join('')
+    : '<p class="leeg">Geen artikelen die aan dit filter voldoen.</p>';
+
+  /* de bestellijst eronder */
+  const bestel = vrRegels();
+  $('#bestelLijst').innerHTML = bestel.length
+    ? bestel.map(v =>
+        '<div class="bestel-regel' + (v.besteld ? ' onderweg' : '') + '" data-id="' + esc(v.id) + '">' +
+          '<div class="bestel-naam"><strong>' + esc(v.naam) + '</strong>' +
+            '<small>' + esc(vrCatNaam(v)) + (v.leverancier ? ' \u00b7 ' + esc(v.leverancier) : '') + '</small></div>' +
+          '<label class="bestel-veld">Nu<b>' + vrGetal(v,'aantal') + '</b></label>' +
+          '<label class="bestel-veld">Min.<b>' + vrGetal(v,'min_aantal') + '</b></label>' +
+          '<label class="bestel-veld">Bestellen' +
+            '<input type="number" min="1" step="1" value="' + teBestellen(v) +
+            '" data-vr="' + esc(v.id) + '" data-veld="bestel_aantal"></label>' +
+          '<label class="bestel-veld">Verwacht' +
+            '<input type="date" value="' + esc(v.verwacht || '') +
+            '" data-vr="' + esc(v.id) + '" data-veld="verwacht"></label>' +
+          '<span class="inventory-alert ' + (v.besteld ? 'good' : 'danger') + '">' +
+            (v.besteld ? 'Besteld' : 'Nog bestellen') + '</span>' +
+          '<span class="bestel-knoppen">' +
+            '<button class="task-action" data-besteld="' + esc(v.id) + '">' +
+              (v.besteld ? 'Toch niet' : 'Besteld') + '</button>' +
+            '<button class="task-action" data-ontvangen="' + esc(v.id) + '">Ontvangen</button></span>' +
+        '</div>').join('')
+    : '<p class="leeg">Niets te bestellen. Alles staat boven het minimum.</p>';
 }
+
+function vrRij(v){
+  const st = vrStatus(v);
+  return '<div class="inventory-row bewerkbaar" data-id="' + esc(v.id) + '">' +
+    '<span class="inventory-icon">&#9831;</span>' +
+    '<div class="vr-velden">' +
+      '<input type="text" class="vr-naam" value="' + esc(v.naam || '') +
+        '" data-vr="' + esc(v.id) + '" data-veld="naam" aria-label="Artikel">' +
+      '<input type="text" value="' + esc(v.categorie || '') + '" list="vrCategorieen"' +
+        ' data-vr="' + esc(v.id) + '" data-veld="categorie" aria-label="Categorie" placeholder="Categorie">' +
+      '<input type="text" value="' + esc(v.leverancier || '') + '" list="vrLeveranciers"' +
+        ' data-vr="' + esc(v.id) + '" data-veld="leverancier" aria-label="Leverancier" placeholder="Leverancier">' +
+    '</div>' +
+    '<span class="vr-teller">' +
+      '<button class="vr-knop" data-min="' + esc(v.id) + '" title="Eentje eraf">&minus;</button>' +
+      '<input type="number" min="0" step="1" value="' + vrGetal(v,'aantal') +
+        '" data-vr="' + esc(v.id) + '" data-veld="aantal" aria-label="Voorraad">' +
+      '<button class="vr-knop" data-plus="' + esc(v.id) + '" title="Eentje erbij">+</button>' +
+    '</span>' +
+    '<label class="vr-min">min.<input type="number" min="0" step="1" value="' + vrGetal(v,'min_aantal') +
+      '" data-vr="' + esc(v.id) + '" data-veld="min_aantal" aria-label="Minimum"></label>' +
+    '<span class="inventory-alert ' + st.cls + '">' + st.txt + '</span>' +
+    '<button class="vr-knop weg" data-weg="' + esc(v.id) + '" title="Verwijderen">&#10005;</button>' +
+  '</div>';
+}
+
+/* ---------- opslaan ---------- */
+function vrMelding(tekst, soort){
+  const m = $('#voorraadMelding');
+  m.className = 'bewaar-melding' + (soort ? ' ' + soort : '');
+  m.textContent = tekst;
+}
+
+async function vrBewaar(id, veld, waarde){
+  const rij = VOORRAAD.find(v => String(v.id) === String(id));
+  if(!rij) return;
+  const vorige = rij[veld];
+  rij[veld] = waarde;
+  const { error } = await sb.from('voorraad').update({ [veld]: waarde }).eq('id', id);
+  if(error){
+    rij[veld] = vorige;
+    vrMelding('Opslaan lukte niet: ' + error.message, 'mis');
+    tekenVoorraad();
+    return;
+  }
+  vrMelding('Opgeslagen.', 'goed');
+  tekenVoorraad();
+  tekenTellers();
+  tekenHome();
+}
+
+/* wijzigingen in een invulveld */
+document.addEventListener('change', e => {
+  const veld = e.target.closest('[data-vr][data-veld]');
+  if(!veld) return;
+  const naam = veld.dataset.veld;
+  let waarde = veld.value;
+  if(naam === 'aantal' || naam === 'min_aantal' || naam === 'bestel_aantal') waarde = parseInt(waarde, 10) || 0;
+  if(naam === 'verwacht' && !waarde) waarde = null;
+  vrBewaar(veld.dataset.vr, naam, waarde);
+});
+
+/* knoppen in de lijst */
+document.addEventListener('click', async e => {
+  const min = e.target.closest('[data-min]');
+  const plus = e.target.closest('[data-plus]');
+  const weg = e.target.closest('[data-weg]');
+  const besteld = e.target.closest('[data-besteld]');
+  const ontvangen = e.target.closest('[data-ontvangen]');
+
+  if(min || plus){
+    const id = (min || plus).dataset.min || (min || plus).dataset.plus;
+    const rij = VOORRAAD.find(v => String(v.id) === String(id));
+    if(!rij) return;
+    const nieuw = Math.max(0, vrGetal(rij,'aantal') + (plus ? 1 : -1));
+    vrBewaar(id, 'aantal', nieuw);
+    return;
+  }
+
+  if(besteld){
+    const id = besteld.dataset.besteld;
+    const rij = VOORRAAD.find(v => String(v.id) === String(id));
+    if(rij) vrBewaar(id, 'besteld', !rij.besteld);
+    return;
+  }
+
+  if(ontvangen){
+    const id = ontvangen.dataset.ontvangen;
+    const rij = VOORRAAD.find(v => String(v.id) === String(id));
+    if(!rij) return;
+    const bij = teBestellen(rij);
+    const { error } = await sb.from('voorraad')
+      .update({ aantal: vrGetal(rij,'aantal') + bij, besteld:false, verwacht:null, bestel_aantal:null })
+      .eq('id', id);
+    if(error){ vrMelding('Opslaan lukte niet: ' + error.message, 'mis'); return; }
+    rij.aantal = vrGetal(rij,'aantal') + bij;
+    rij.besteld = false; rij.verwacht = null; rij.bestel_aantal = null;
+    vrMelding(bij + ' erbij geboekt bij ' + rij.naam + '.', 'goed');
+    tekenVoorraad(); tekenTellers(); tekenHome();
+    return;
+  }
+
+  if(weg){
+    const id = weg.dataset.weg;
+    const rij = VOORRAAD.find(v => String(v.id) === String(id));
+    if(!rij) return;
+    if(!confirm('"' + rij.naam + '" uit de voorraad verwijderen?')) return;
+    const { error } = await sb.from('voorraad').delete().eq('id', id);
+    if(error){ vrMelding('Verwijderen lukte niet: ' + error.message, 'mis'); return; }
+    VOORRAAD = VOORRAAD.filter(v => String(v.id) !== String(id));
+    vrMelding('"' + rij.naam + '" verwijderd.', 'goed');
+    tekenVoorraad(); tekenTellers(); tekenHome();
+  }
+});
+
+/* nieuw artikel; de sleutel is tekst en verplicht, dus die maken we zelf */
+$('#voorraadNieuw').addEventListener('submit', async e => {
+  e.preventDefault();
+  const naam = $('#nwNaam').value.trim();
+  if(!naam){ vrMelding('Vul een naam in.', 'mis'); return; }
+
+  const rij = {
+    id          : 'vr-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    naam        : naam,
+    categorie   : $('#nwCat').value.trim() || null,
+    aantal      : parseInt($('#nwAantal').value, 10) || 0,
+    min_aantal  : parseInt($('#nwMin').value, 10) || 0,
+    leverancier : $('#nwLev').value.trim() || null,
+    besteld     : false
+  };
+
+  const { data, error } = await sb.from('voorraad').insert(rij).select().single();
+  if(error){ vrMelding('Toevoegen lukte niet: ' + error.message, 'mis'); return; }
+
+  VOORRAAD.push(data);
+  $('#nwNaam').value = ''; $('#nwCat').value = ''; $('#nwLev').value = '';
+  $('#nwAantal').value = '0'; $('#nwMin').value = '1';
+  vrMelding('"' + naam + '" toegevoegd.', 'goed');
+  tekenVoorraad(); tekenTellers(); tekenHome();
+});
+
+/* ---------- bestellijst uitdraaien ---------- */
+const dmy = d => d ? String(d).slice(8,10) + '-' + String(d).slice(5,7) + '-' + String(d).slice(0,4) : '';
+
+$('#bestelCsv').addEventListener('click', () => {
+  const rijen = vrRegels();
+  if(!rijen.length){ vrMelding('Er staat niets op de bestellijst.', 'mis'); return; }
+  const veld = x => '"' + String(x == null ? '' : x).replace(/"/g,'""') + '"';
+  const lijnen = [['Status','Categorie','Artikel','Locatie','Voorraad','Minimum','Te bestellen',
+                   'Leverancier','Verwacht'].map(veld).join(';')];
+  rijen.forEach(v => lijnen.push([
+    v.besteld ? 'Onderweg' : (vrGetal(v,'aantal') <= 0 ? 'Op' : 'Te bestellen'),
+    vrCatNaam(v), v.naam, v.locatie || '', vrGetal(v,'aantal'), vrGetal(v,'min_aantal'),
+    teBestellen(v), v.leverancier || '', dmy(v.verwacht)
+  ].map(veld).join(';')));
+
+  const blob = new Blob(['\ufeff' + lijnen.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bestellijst-' + vandaag() + '.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+$('#bestelPrint').addEventListener('click', () => {
+  const rijen = vrRegels();
+  if(!rijen.length){ vrMelding('Er staat niets op de bestellijst.', 'mis'); return; }
+
+  const nu = new Date();
+  let html = '<!doctype html><html lang="nl"><head><meta charset="utf-8">' +
+    '<title>Bestellijst Bed &amp; Wellness Flevoland</title><style>' +
+    'body{font-family:Helvetica,Arial,sans-serif;color:#17211E;margin:28px}' +
+    'h1{font-size:19px;margin:0 0 2px}p.sub{color:#7B8580;font-size:12px;margin:0 0 18px}' +
+    'table{border-collapse:collapse;width:100%;font-size:12.5px}' +
+    'th{text-align:left;border-bottom:1.5px solid #17211E;padding:7px 8px;font-size:10.5px;' +
+    'text-transform:uppercase;letter-spacing:.06em}' +
+    'td{border-bottom:1px solid #D7D0C2;padding:7px 8px}td.num{text-align:right}' +
+    'tr.lev td{background:#F5F2EC;font-weight:600}' +
+    '.vink{display:inline-block;width:13px;height:13px;border:1px solid #17211E;border-radius:2px}' +
+    '@media print{body{margin:12mm}}</style></head><body>' +
+    '<h1>Bestellijst &mdash; Bed &amp; Wellness Flevoland</h1>' +
+    '<p class="sub">Uitgedraaid op ' +
+      nu.toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'}) +
+      ' om ' + nu.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}) +
+      (NAAM ? ' door ' + esc(NAAM) : '') + '</p>' +
+    '<table><thead><tr><th></th><th>Artikel</th><th>Categorie</th><th class="num">Nu</th>' +
+    '<th class="num">Min.</th><th class="num">Bestellen</th><th>Verwacht</th><th>Status</th>' +
+    '</tr></thead><tbody>';
+
+  let lev = null;
+  rijen.forEach(v => {
+    const l = v.leverancier || 'Geen leverancier';
+    if(l !== lev){ lev = l; html += '<tr class="lev"><td colspan="8">' + esc(l) + '</td></tr>'; }
+    html += '<tr><td><span class="vink"></span></td><td>' + esc(v.naam) + '</td><td>' + esc(vrCatNaam(v)) +
+      '</td><td class="num">' + vrGetal(v,'aantal') + '</td><td class="num">' + vrGetal(v,'min_aantal') +
+      '</td><td class="num">' + teBestellen(v) + '</td><td>' + esc(dmy(v.verwacht)) + '</td><td>' +
+      (v.besteld ? 'Besteld' : 'Nog bestellen') + '</td></tr>';
+  });
+  html += '</tbody></table></body></html>';
+
+  const w = window.open('', '_blank');
+  if(!w){ vrMelding('Je browser blokkeert het nieuwe venster. Sta pop-ups toe voor deze pagina.', 'mis'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 350);
+});
 
 /* ═══════════════════════════════════════════════════════════
    BERICHTEN — het overdrachtsbord
