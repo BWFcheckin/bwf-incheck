@@ -1,9 +1,13 @@
 /* =========================================================
-   bwf-agenda-stijl.css — alleen de uitstraling
+   bwf-agenda-stijl.css — één uitstraling voor alle pagina's
 
-   Legt de vormgeving van de agenda over een bestaande pagina heen:
-   donkergroen accent, serif koppen, rondere kaarten en pillen.
-   De pagina blijft precies doen wat hij deed.
+   Legt de vormgeving van de startpagina over een bestaande
+   pagina heen: donkergroen met goud, Playfair Display voor
+   koppen, DM Sans voor de tekst, rondere kaarten en
+   duidelijkere lijnen.
+
+   Dit bestand verandert ALLEEN het uiterlijk. Het raakt geen
+   indeling, geen knoppen en geen werking aan.
 
    Gebruik: zet deze regel ná de eigen stijl van de pagina,
    vlak vóór </head>:
@@ -11,62 +15,112 @@
      <link rel="stylesheet" href="bwf-agenda-stijl.css">
 
    Bevalt het niet, haal die ene regel weg en alles is terug.
+
+   Let op: een pagina die eigen kleurnamen gebruikt die hier
+   niet in staan, houdt die eigen kleuren. Hieronder staan de
+   namen die in het project voorkomen, beide woordenlijsten
+   naast elkaar (--accent en --groen, --brass en --goud).
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap');
 
 :root{
   /* ---- basis ---- */
-  --bg:#F7F5F1;
+  --bg:#F5F2EC;
   --surface:#FFFFFF;
-  --surface-2:#FBF9F5;
-  --line:#E6E1D7;
-  --line-soft:#F0ECE4;
+  --surface-2:#FBFAF7;
+  --line:#D7D0C2;          /* donkerder dan voorheen: beter zichtbaar */
+  --line-soft:#E8E2D6;
+  --line-strong:#BFB6A4;
 
-  --ink:#1D2420;
-  --ink-2:#46514A;
-  --muted:#7E8A82;
+  --ink:#17211E;
+  --ink-2:#3D4A41;
+  --ink-3:#5C6960;
+  --muted:#7B8580;
 
   /* ---- accent: donkergroen met goud ---- */
-  --accent:#14342A;
-  --accent-2:#1F4D3D;
+  --accent:#173C35;
+  --accent-2:#28584E;
   --accent-ink:#FFFFFF;
   --accent-soft:#E7EFEA;
-  --brass:#B9975B;
+  --accent-rgb:23,60,53;
+  --brass:#C9A96E;
+
+  /* dezelfde kleuren onder de namen die agenda, reserveringen
+     en het VR-dashboard gebruiken */
+  --groen:#173C35;
+  --groen-2:#28584E;
+  --groen-zacht:#E7EFEA;
+  --goud:#C9A96E;
+  --goud-zacht:#F4EBD9;
+  --goud-ink:#7D6840;
 
   /* ---- statussen ---- */
-  --ok:#2E7D53;    --ok-soft:#E6F2EA;
-  --warn:#B8860B;  --warn-soft:#FBF1DA;
-  --crit:#B3453A;  --crit-soft:#FBEAE7;
+  --ok:#4D7858;    --ok-soft:#E4F0E6;    --ok-zacht:#E4F0E6;
+  --warn:#9A7326;  --warn-soft:#F4EBD9;  --warn-zacht:#F4EBD9;
+  --crit:#B84F4C;  --crit-soft:#FFE4E2;  --crit-zacht:#FFE4E2;
+  --danger:#B84F4C;
+  --good:#4D7858;
+
+  /* ---- per suite ---- */
+  --loc-angie:#C9A96E;
+  --loc-jacuzzi:#6F7A5A;
+  --loc-deluxe:#A25E48;
 
   /* ---- vorm ---- */
-  --shadow:0 1px 2px rgba(20,52,42,.05), 0 10px 30px -20px rgba(20,52,42,.35);
-  --r-s:8px; --r-m:12px; --r-l:16px;
+  --shadow:0 1px 2px rgba(23,60,53,.05), 0 12px 35px -22px rgba(23,60,53,.35);
+  --shadow-hover:0 2px 6px rgba(23,60,53,.07), 0 16px 40px -20px rgba(23,60,53,.4);
+  --r-s:10px; --r-m:14px; --r-l:20px;
+  --radius:20px;
 
-  /* ---- letters: serif voor koppen, de rest blijft ---- */
-  --f-display:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  /* ---- letters ---- */
+  --f-display:"Playfair Display",Georgia,"Times New Roman",serif;
+  --f-titel:"Playfair Display",Georgia,"Times New Roman",serif;
+  --f-body:"DM Sans","Public Sans","Helvetica Neue",Arial,sans-serif;
 }
 
-/* koppen in serif, iets ruimer */
+/* =========================================================
+   LETTERS — iets groter en rustiger dan voorheen
+   Pagina's die zelf een vaste grootte opgeven, houden die.
+   ========================================================= */
+
+body{
+  font-family:var(--f-body);
+  font-size:16px;
+  line-height:1.55;
+}
+
 h1,h2,h3,
 .page-head h1,.card-head h2,.kalkop b{
   font-family:var(--f-display);
   font-weight:500;
   letter-spacing:.01em;
 }
-h1{font-size:1.9em}
-h2{font-size:1.35em}
+h1{ font-size:1.95em }
+h2{ font-size:1.4em }
+h3{ font-size:1.15em }
 
-/* kaarten en panelen */
+/* de kleinste bijschriften waren op sommige pagina's nauwelijks
+   leesbaar; hier een ondergrens zonder de indeling te raken */
+small,.klein,.subkop,.bijschrift{ font-size:.82em }
+
+/* =========================================================
+   KAARTEN EN PANELEN — dikkere, duidelijkere randen
+   ========================================================= */
+
 .card,.kaart,.paneel,.blok,dialog{
   border-radius:var(--r-l);
   border-color:var(--line);
+  border-width:2px;
+  border-style:solid;
 }
 
-/* knoppen: gevulde knop wordt donkergroen */
-.btn,.knop,button.primary,.knop.vol{
-  border-radius:999px;
-}
+/* =========================================================
+   KNOPPEN
+   ========================================================= */
+
+.btn,.knop,button.primary,.knop.vol{ border-radius:999px }
+
 .btn:not(.secondary):not(.ghost):not(.sec),
 .knop.vol,
 button.primary{
@@ -76,7 +130,7 @@ button.primary{
 }
 .btn:not(.secondary):not(.ghost):not(.sec):hover,
 .knop.vol:hover,
-button.primary:hover{ background:var(--accent-2); border-color:var(--accent-2); }
+button.primary:hover{ background:var(--accent-2); border-color:var(--accent-2) }
 
 .btn.secondary,.btn.ghost,.btn.sec,.knop:not(.vol):not(.gevaar){
   border-radius:999px;
@@ -84,52 +138,68 @@ button.primary:hover{ background:var(--accent-2); border-color:var(--accent-2); 
   background:var(--surface-2);
 }
 .btn.secondary:hover,.btn.ghost:hover,.btn.sec:hover,
-.knop:not(.vol):not(.gevaar):hover{ border-color:var(--accent-2); color:var(--accent); }
+.knop:not(.vol):not(.gevaar):hover{ border-color:var(--accent-2); color:var(--accent) }
 
-/* invoervelden */
+/* =========================================================
+   INVOERVELDEN
+   ========================================================= */
+
 input,select,textarea{
   border-radius:var(--r-s);
   border-color:var(--line);
   background:var(--surface-2);
 }
 input:focus,select:focus,textarea:focus{
-  outline:2px solid var(--accent-2);
+  outline:2px solid var(--brass);
   outline-offset:-1px;
   background:var(--surface);
 }
 
-/* labels en merkjes als pil met stip, net als in de agenda */
-.tag,.pill,.merk,.merkje,.telling,.soort{
-  border-radius:999px;
-}
-.tag.ok,.pill.ok,.merk.ok{ background:var(--ok-soft); color:var(--ok); }
-.tag.open,.pill.warn,.merk.open{ background:var(--warn-soft); color:var(--warn); }
-.tag.let,.pill.crit,.merk.let{ background:var(--crit-soft); color:var(--crit); }
+/* =========================================================
+   MERKJES EN PILLEN
+   ========================================================= */
 
-/* tabelkoppen rustiger */
+.tag,.pill,.merk,.merkje,.telling,.soort{ border-radius:999px }
+.tag.ok,.pill.ok,.merk.ok{ background:var(--ok-soft); color:var(--ok) }
+.tag.open,.pill.warn,.merk.open{ background:var(--warn-soft); color:var(--warn) }
+.tag.let,.pill.crit,.merk.let{ background:var(--crit-soft); color:var(--crit) }
+
+/* =========================================================
+   TABELLEN — rustiger koppen, beter zichtbare scheidingen
+   ========================================================= */
+
 th{
   color:var(--muted);
   letter-spacing:.09em;
-  border-bottom-color:var(--line);
+  border-bottom:2px solid var(--line);
 }
+td{ border-bottom:1px solid var(--line-soft) }
 
-/* de kalenderkop van reserveringen.html */
-.kalkop b{ font-size:1.2em; }
+/* =========================================================
+   MENUBALKEN EN TABBLADEN
+   ========================================================= */
 
-/* menubalken en tabbladen */
+.kalkop b{ font-size:1.2em }
+
 .tab[aria-selected="true"],.tab.on,.tab.actief{
   border-bottom-color:var(--brass);
   color:var(--accent);
 }
-.bwf-topmenu{ background:var(--accent); }
-.bwf-topmenu a.hier{ color:var(--accent); }
+.bwf-topmenu{ background:var(--accent) }
+.bwf-topmenu a.hier{ color:var(--accent) }
 
-/* donkere modus laten kloppen */
+/* =========================================================
+   DONKERE MODUS
+   ========================================================= */
+
 :root[data-theme="dark"]{
   --bg:#12201B; --surface:#18291F; --surface-2:#1E3126;
-  --line:#2C4034; --line-soft:#24352B;
-  --ink:#EAF0EA; --ink-2:#CBD8CE; --muted:#90A296;
-  --accent:#1F4D3D; --accent-2:#2A6650; --accent-soft:#1B3B2F; --brass:#D3B276;
-  --ok:#6FB48A; --ok-soft:#1E3A2B; --warn:#D6AC5C; --warn-soft:#3A3120;
+  --line:#3A5145; --line-soft:#24352B; --line-strong:#4C6555;
+  --ink:#EAF0EA; --ink-2:#CBD8CE; --ink-3:#AFC0B4; --muted:#90A296;
+  --accent:#28584E; --accent-2:#35705F; --accent-soft:#1B3B2F; --brass:#D3B276;
+  --groen:#28584E; --groen-2:#35705F; --groen-zacht:#1B3B2F;
+  --goud:#D3B276; --goud-zacht:#3A3120;
+  --ok:#6FB48A; --ok-soft:#1E3A2B;
+  --warn:#D6AC5C; --warn-soft:#3A3120;
   --crit:#D98B7D; --crit-soft:#3A2622;
 }
