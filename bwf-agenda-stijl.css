@@ -77,6 +77,13 @@
   --f-display:"Playfair Display",Georgia,"Times New Roman",serif;
   --f-titel:"Playfair Display",Georgia,"Times New Roman",serif;
   --f-body:"DM Sans","Public Sans","Helvetica Neue",Arial,sans-serif;
+
+  /* Foto's van Bed & Wellness Flevoland zelf. bwf-kader.js gebruikt
+     --foto-hero voor de band bovenaan elke pagina. */
+  --foto-hero:url("https://bedenwellnessflevoland.nl/Hero_images/Main_Bed_en_wellness_malina_deluxe_zwembad.webp");
+  --foto-angie:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/almere%20bed%20en%20wellness%20angie/Bed%20en%20wellness%20Flevoland_%20B&W%20Angie%20Locatie%20Almere%20Zwembad.webp");
+  --foto-malina:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/lelystad%20bed%20en%20wellness%20malina%20jacuzzi%20suite/bed%20en%20wellness%20malina%20overzicht%20jacuzzi%20suite%20.webp");
+  --foto-deluxe:url("https://bedenwellnessflevoland.nl/New_photos/suites%20pagina/Lelystad%20bed%20en%20wellness%20malina%20deluxe%20%20zwembad%20suite/bed%20en%20wellness%20mlaina%20deluxe%20zwembad%20suite.webp");
 }
 
 /* =========================================================
