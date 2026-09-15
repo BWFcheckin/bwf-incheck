@@ -187,6 +187,78 @@ th{
 td{ border-bottom:1px solid var(--line-soft) }
 
 /* =========================================================
+   DE UITSTRALING VAN DE STARTPAGINA OP DE WERKSCHERMEN
+
+   Zelfde maten en vormen als index.html: grote serif-koppen met een
+   klein opschrift erboven, kaarten met een dikkere rand en meer ronding,
+   en pilvormige knoppen. Alleen uiterlijk; geen indeling, geen werking.
+   ========================================================= */
+
+/* ---- paginakop: groot en rustig, met opschrift erboven ---- */
+.page-head{ margin-bottom:24px }
+.page-head h1{
+  font-family:var(--f-display);
+  font-size:clamp(28px,4vw,36px);
+  font-weight:500;
+  letter-spacing:0;
+  margin:6px 0 5px;
+}
+.page-head h1::before{
+  content:"BED & WELLNESS FLEVOLAND";
+  display:block;
+  font-family:var(--f-body);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:2px;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+.page-head p{ color:var(--muted); font-size:14px; margin-top:6px }
+
+/* ---- kaarten: dikkere rand, meer ronding, meer lucht ---- */
+.card,.kaart,.paneel,.blok{
+  border-width:2px;
+  border-radius:var(--r-l);
+}
+.card-head{
+  min-height:67px;
+  padding:18px 21px;
+}
+.card-head h2,.card-head h3{
+  font-family:var(--f-display);
+  font-weight:500;
+  letter-spacing:0;
+}
+
+/* ---- tabbladen: rustiger, met goud als actieve lijn ---- */
+.tabs{ border-bottom:2px solid var(--line); gap:4px }
+.tab{ font-size:14px; padding:12px 15px 14px }
+
+/* ---- knoppen en filters: pilvorm, zoals op de startpagina ---- */
+.filters .btn,.filters .knop,
+.ag-pillen button,.segment button{
+  border-radius:999px;
+}
+.segment button[aria-pressed="true"],
+.ag-pillen button[aria-pressed="true"]{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+
+/* ---- invoervelden in de werkbalken: ronder en ruimer ---- */
+.filters input[type="search"],
+.filters input[type="text"],
+.filters select{
+  border-radius:30px;
+  border-width:2px;
+  padding:9px 15px;
+}
+
+/* ---- merkjes iets groter, zoals de badges op de startpagina ---- */
+.pill{ font-size:12px; padding:4px 11px }
+
+/* =========================================================
    SUITEFOTO IN EEN LIJSTREGEL
    Gebruikt door het VR-dashboard. De foto's staan als variabele in
    :root hierboven, dus wijzigen hoeft maar op een plek.
