@@ -89,6 +89,15 @@ tbody tr.geannuleerd .gast b{text-decoration:line-through}
 .datum b{display:block;white-space:nowrap}
 .datum span,.gast span,.klein-grijs{display:block;font-size:12px;color:var(--muted)}
 .suite i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+/* Grote suitefoto in deze lijst, in plaats van het kleine blokje.
+   Bewust alleen hier: .resfoto staat in het gedeelde stijlblad en wordt ook
+   gebruikt door de kaart Aankomsten op het VR-dashboard, waar de regels juist
+   compact moeten blijven. Twee klassen diep (.suite .resfoto), zodat deze regel
+   wint van het gedeelde blad dat later in de pagina wordt geladen. */
+.suite .resfoto{display:block;width:96px;height:72px;border-radius:11px;margin:0 0 7px}
+@media(max-width:620px){
+  .suite .resfoto{width:72px;height:54px}
+}
 .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;
   background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);margin:0 4px 4px 0}
 .pill.ok{background:var(--ok-zacht);border-color:transparent;color:var(--ok)}
