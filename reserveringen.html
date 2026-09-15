@@ -1455,22 +1455,29 @@ function verblijfRegels() {
   return uit;
 }
 
-/* Toeslag per extra persoon. Bewust EEN KEER per verblijf, niet per nacht:
-   de tarievenpagina zegt alleen "p.p." en niet of het per nacht geldt. Te veel
-   rekenen aan een gast is erger dan te weinig. */
+/* Toeslag per extra persoon, PER NACHT (bevestigd door Angela, 16-09-2026).
+   Bij een overnachting telt elke nacht mee; bij een dagverblijf is er geen
+   nacht en geldt de toeslag een keer. Het aantal in de regel is personen maal
+   nachten, zodat prijs maal aantal precies het getoonde bedrag oplevert. */
 function toeslagRegels() {
   const o = $("#nBlok").selectedOptions[0];
   const verblijf = (o && o.value) ? o.dataset.verblijf : "nacht";
   const suite = $("#nSuite").value;
+  const nachten = verblijf === "nacht" ? nAantalNachten() : 1;
   const uit = [];
   [["volwassene", "#nVolwassenen", "Extra volwassene"],
    ["kind_2_12", "#nKinderen", "Kind 2 t/m 12"]].forEach((r) => {
-    const aantal = parseInt($(r[1]).value, 10) || 0;
-    if (!aantal) return;
+    const personen = parseInt($(r[1]).value, 10) || 0;
+    if (!personen) return;
     const t = TOESLAGEN.find((x) => x.suite === suite && x.verblijf === verblijf && x.soort === r[0]);
     if (!t) return;
     const prijs = Number(t.prijs) || 0;
-    uit.push({ naam: r[2], aantal, bedrag: Math.round(prijs * aantal * 100) / 100 });
+    const aantal = personen * nachten;
+    uit.push({
+      naam: r[2] + (nachten > 1 ? " per nacht" : ""),
+      aantal,
+      bedrag: Math.round(prijs * aantal * 100) / 100
+    });
   });
   return uit;
 }
