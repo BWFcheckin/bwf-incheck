@@ -1267,11 +1267,60 @@ function lokaalNaarIso(datum, tijd) {
   return new Date(j, m - 1, d, u, min, 0).toISOString();
 }
 
+/* =========================================================
+   TIJDSBLOKKEN MET TARIEF
+   De prijzen staan in bwf_tariefblokken, met eigen suitenamen en een
+   dagtype week (ma t/m wo) of weekend (do t/m zo). De reserveringen zelf
+   gebruiken andere suitenamen, vandaar de vertaling hieronder.
+   ========================================================= */
+let TARIEVEN = [], TOESLAGEN = [];
+
+const SUITE_TARIEF = { angie: "angie", malina_jacuzzi: "jacuzzi", malina_deluxe: "zwembad" };
+const SUITE_LOCATIE = { angie: "Almere", malina_jacuzzi: "Lelystad", malina_deluxe: "Lelystad" };
+
+/* Maandag, dinsdag en woensdag vallen onder het weektarief; donderdag tot en
+   met zondag onder het weekendtarief. Zo staat het op de tarievenpagina. */
+function dagtypeVan(datumISO) {
+  const d = new Date(String(datumISO) + "T12:00:00");
+  const dag = d.getDay();                       /* 0 = zondag */
+  return (dag >= 1 && dag <= 3) ? "week" : "weekend";
+}
+
+/* Het type dat in de reservering wordt opgeslagen. De database staat alleen
+   dagverblijf, avond, overnachting, late_checkin en honeymoon toe. */
+function typeVanBlok(b) {
+  if (b.verblijf === "dag") return "dagverblijf";
+  return /late\s*check/i.test(b.naam || "") ? "late_checkin" : "overnachting";
+}
+
+/* Het oude tijdsblok bij een tariefblok, als dat bestaat. Van de 32 tarief-
+   blokken hebben er 24 een tegenhanger; bij de rest blijft tijdsblok_id leeg,
+   wat mag omdat het veld optioneel is. */
+function tijdsblokBij(b) {
+  const suite = $("#nSuite").value;
+  const t = BLOKKEN.find((x) => x.suite === suite &&
+    String(x.begin).slice(0, 5) === String(b.starttijd).slice(0, 5) &&
+    String(x.eind).slice(0, 5) === String(b.eindtijd).slice(0, 5));
+  return t ? t.id : "";
+}
+
 function vulNieuwBlokken() {
-  const eigen = BLOKKEN.filter((b) => b.suite === $("#nSuite").value);
-  $("#nBlok").innerHTML = '<option value="">— geen tijdsblok —</option>' + eigen.map((b) =>
-    '<option value="' + esc(b.id) + '" data-type="' + esc(b.type || "") + '" data-begin="' + esc(b.begin || "") +
-    '" data-eind="' + esc(b.eind || "") + '">' + esc(b.naam) + "</option>").join("");
+  const suite = $("#nSuite").value;
+  const tsuite = SUITE_TARIEF[suite];
+  const dagtype = dagtypeVan($("#nAankomst").value || new Date().toISOString().slice(0, 10));
+  const eigen = TARIEVEN.filter((b) => b.suite === tsuite &&
+    (b.dagtype === "alle" || b.dagtype === dagtype));
+
+  $("#nBlok").innerHTML = '<option value="">— eigen tijden en bedrag —</option>' + eigen.map((b) => {
+    const tijden = String(b.starttijd).slice(0, 5) + "–" + String(b.eindtijd).slice(0, 5);
+    return '<option value="' + esc(b.id) +
+      '" data-type="' + esc(typeVanBlok(b)) +
+      '" data-begin="' + esc(b.starttijd) + '" data-eind="' + esc(b.eindtijd) +
+      '" data-prijs="' + esc(b.prijs) + '" data-naam="' + esc(b.naam) +
+      '" data-verblijf="' + esc(b.verblijf) + '" data-start="' + esc(b.starttijd) +
+      '" data-tijdsblok="' + esc(tijdsblokBij(b)) + '">' +
+      esc(b.naam) + " " + esc(tijden) + " — € " + esc(euro(b.prijs)) + "</option>";
+  }).join("");
 }
 
 function vulNieuwKeuzes() {
@@ -1647,13 +1696,17 @@ async function start() {
   $("#wieBen").textContent = deel.email || "";
   if (window.BWFaccount) window.BWFaccount.begroeting();
   try {
-    const [rol, mw, blokken, extras] = await Promise.all([
+    const [rol, mw, blokken, extras, tarieven, toeslagen] = await Promise.all([
       api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
       api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || "")),
       api("tijdsblokken?select=id,suite,type,naam,begin,eind&actief=eq.true&order=suite.asc,sortering.asc"),
-      api("wz_extras?select=id,naam,categorie,prijs,per_persoon&actief=eq.true&order=sortering.asc,naam.asc")
+      api("wz_extras?select=id,naam,categorie,prijs,per_persoon,omschrijving,locatie&actief=eq.true&order=sortering.asc,naam.asc"),
+      api("bwf_tariefblokken?select=id,suite,verblijf,dagtype,naam,starttijd,eindtijd,prijs&actief=eq.true&order=suite.asc,sortering.asc"),
+      api("bwf_persoonstoeslagen?select=suite,verblijf,soort,prijs&actief=eq.true")
     ]);
     EXTRAS = extras || [];
+    TARIEVEN = tarieven || [];
+    TOESLAGEN = toeslagen || [];
     tekenNieuwExtras();
     ROL = rol || null;
     NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
@@ -1710,12 +1763,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (b) toonTab(b.dataset.tab);
   });
   $("#nSuite").addEventListener("change", vulNieuwBlokken);
+  /* De prijs hangt af van de aankomstdag: ma t/m wo is week, do t/m zo weekend.
+     Verandert de datum, dan moet de keuzelijst opnieuw gevuld worden. */
+  $("#nAankomst").addEventListener("change", () => {
+    const gekozen = $("#nBlok").selectedOptions[0];
+    const naam = gekozen ? gekozen.dataset.naam : "";
+    const start = gekozen ? gekozen.dataset.start : "";
+    vulNieuwBlokken();
+    if (naam) {
+      const terug = Array.from($("#nBlok").options).find((o) =>
+        o.dataset.naam === naam && o.dataset.start === start);
+      if (terug) { $("#nBlok").value = terug.value; }
+    }
+    nHerbereken();
+  });
   $("#nBlok").addEventListener("change", () => {
     const o = $("#nBlok").selectedOptions[0];
-    if (!o || !o.value) return;
+    if (!o || !o.value) { nHerbereken(); return; }
     if (o.dataset.type) $("#nType").value = o.dataset.type;
     if (o.dataset.begin) $("#nIncheck").value = String(o.dataset.begin).slice(0, 5);
     if (o.dataset.eind) $("#nUitcheck").value = String(o.dataset.eind).slice(0, 5);
+    nHerbereken();
   });
   $("#nBewaar").addEventListener("click", maakReservering);
   $("#nLeeg").addEventListener("click", leegNieuw);
