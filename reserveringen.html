@@ -427,6 +427,14 @@ const SUITES = {
   malina_jacuzzi: { naam: "Malina Jacuzzi · Lelystad", kleur: "#2E7D9A" },
   malina_deluxe:  { naam: "Malina Deluxe · Lelystad",  kleur: "#1F4D3D" }
 };
+// Foto per suite. Exact op de ruwe waarde uit de database, nooit op de naam:
+// "malina_deluxe" bevat "malina", dus zoeken op een deel geeft de verkeerde suite.
+const SUITE_FOTO = { angie: "foto-angie", malina_jacuzzi: "foto-malina", malina_deluxe: "foto-deluxe" };
+// Onbekende suite: liever geen foto dan de foto van een andere suite.
+function resFoto(suite){
+  const k = SUITE_FOTO[String(suite || "").trim().toLowerCase()];
+  return k ? '<span class="resfoto ' + k + '"></span>' : "";
+}
 const KANALEN = { smg: "Privésauna (SMG)", booking: "Booking.com", oo: "Origineel Overnachten",
   planyo: "Planyo", eigen: "Eigen website", handmatig: "Handmatig" };
 const TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overnachting",
@@ -602,7 +610,7 @@ function rijHtml(r) {
     ? '<button type="button" class="knop klein" data-bevestig="' + esc(r.id) + '">Bevestigd</button>' : "";
   return '<tr data-id="' + esc(r.id) + '" tabindex="0" class="' + esc(r.status) + '">' +
     '<td class="datum"><b>' + esc(p.dag) + "</b><span>" + esc(p.tijd) + "</span>" + (afwijkend ? "<span>" + esc(afwijkend) + "</span>" : "") + "</td>" +
-    '<td class="suite"><i style="background:' + (SUITES[r.suite] ? SUITES[r.suite].kleur : "#999") + '"></i>' + esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + "</td>" +
+    '<td class="suite">' + resFoto(r.suite) + '<i style="background:' + (SUITES[r.suite] ? SUITES[r.suite].kleur : "#999") + '"></i>' + esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + "</td>" +
     '<td class="gast"><b>' + (naam ? esc(naam) : '<span style="display:inline;color:var(--muted)">zonder naam</span>') + "</b>" +
       (contact ? "<span>" + esc(contact) + "</span>" : "") + (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") + "</td>" +
     "<td>" + esc(KANALEN[r.kanaal] || r.kanaal) + (r.kanaal === "smg" && r.kanaal_ref ? '<span class="klein-grijs">' + esc(r.kanaal_ref) + "</span>" : "") + "</td>" +
@@ -1537,7 +1545,7 @@ function tekenIncheck() {
       : '<span class="pill">nog niet ingevuld</span>';
     return '<tr data-id="' + esc(r.id) + '">' +
       '<td class="datum"><b>' + esc(p.dag) + "</b><span>" + esc(p.tijd) + "</span></td>" +
-      '<td class="suite"><i style="background:' + (SUITES[r.suite] ? SUITES[r.suite].kleur : "#999") + '"></i>' +
+      '<td class="suite">' + resFoto(r.suite) + '<i style="background:' + (SUITES[r.suite] ? SUITES[r.suite].kleur : "#999") + '"></i>' +
         esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + "</td>" +
       '<td class="gast"><b>' + esc(gastNaam(r) || "zonder naam") + "</b></td>" +
       '<td><span class="klein-grijs">' + esc(resNummer(r)) + "</span></td>" +
