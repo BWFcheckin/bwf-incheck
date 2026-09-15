@@ -1188,6 +1188,24 @@ div.ag-blok{cursor:default}
 
     <!-- elke kaart is een tegel: klik om te openen of te sluiten, de knop gaat naar de bijbehorende pagina -->
     <div class="dg-tegels" id="dgTegels">
+      <!-- Aankomsten stond hier nog niet: er waren alleen aantallen per locatie.
+           Openstaande taken en welkomstcalls hebben hieronder al een eigen kaart,
+           dus die worden hier bewust niet herhaald. -->
+      <div class="card">
+        <div class="card-head"><h2>Aankomsten</h2><span class="hint" id="ovAankHint"></span></div>
+        <div class="card-body" style="padding-bottom:0">
+          <span class="segment ag-pillen" id="ovAankFilter" role="group" aria-label="Periode">
+            <button type="button" data-p="vandaag" aria-pressed="true">Vandaag</button>
+            <button type="button" data-p="week" aria-pressed="false">Deze week</button>
+            <button type="button" data-p="maand" aria-pressed="false">Deze maand</button>
+          </span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aankomst</th><th>Suite</th><th>Gast</th><th>Geboekt via</th></tr></thead>
+          <tbody id="ovAankomsten"></tbody>
+        </table></div>
+      </div>
+
       <div class="card">
         <div class="card-head"><h2>De drie locaties</h2>
           <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
@@ -3214,6 +3232,47 @@ document.addEventListener('click', async e=>{
 });
 
 /* ---------------- OVERZICHT ---------------- */
+/* Aankomsten op de Dagstart: vandaag, deze week of deze maand.
+   Leest RES, dat laadOverzicht() al heeft gevuld — dus geen extra bevraging.
+   Alleen aankomsten van vandaag en later; wat al geweest is hoort hier niet. */
+let ovAankPeriode = 'vandaag';
+function renderAankomsten(){
+  const doel = $('#ovAankomsten'); if(!doel) return;
+  const vd = vandaag();
+  const eind = new Date(vd); eind.setDate(eind.getDate() + 6);
+  const totWeek = eind.toISOString().slice(0,10);
+
+  const lijst = RES
+    .map(r => ({ r, s: String(r.start||'').slice(0,10) }))
+    .filter(x => x.s && x.s >= vd)
+    .filter(x => ovAankPeriode === 'vandaag' ? x.s === vd
+               : ovAankPeriode === 'week'    ? x.s <= totWeek
+               : x.s.slice(0,7) === vd.slice(0,7))
+    .sort((a,b) => a.s.localeCompare(b.s))
+    .map(x => x.r);
+
+  const hint = $('#ovAankHint');
+  if(hint) hint.textContent = lijst.length + ' aankomst' + (lijst.length === 1 ? '' : 'en');
+
+  doel.innerHTML = lijst.length ? lijst.slice(0, 12).map(r => {
+    const s = String(r.start||'').slice(0,10);
+    const tijd = String(r.start||'').slice(11,16);
+    return `<tr>
+      <td class="name">${esc(dmy(s))}${tijd ? `<span class="meta">${esc(tijd)}</span>` : ''}</td>
+      <td><span class="resfoto ${resFotoKlasse(r.suiteRuw)}"></span>${esc(r.locatie || 'onbekend')}</td>
+      <td>${esc(r.naam || '—')}</td>
+      <td>${esc(r.bron || '')}</td>
+    </tr>`;
+  }).join('')
+    : `<tr><td colspan="4"><div class="empty"><strong>Geen aankomsten</strong>Er staat niets in deze periode.</div></td></tr>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('#ovAankFilter button'); if(!b) return;
+  ovAankPeriode = b.dataset.p || 'vandaag';
+  $$('#ovAankFilter button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderAankomsten();
+});
+
 function renderOverzicht(){
   const taken = mijnTaken(), werk = mijnWerk();
   const open = taken.filter(t=>t.status!=='klaar');
@@ -3234,6 +3293,8 @@ function renderOverzicht(){
     <div class="stat"><span class="label">Overdracht</span><span class="value">${S.overdracht.filter(o=>!o.afgehandeld).length}</span>
       <span class="sub">${(()=>{const v=S.overdracht.filter(o=>!o.afgehandeld && o.aan_id===IK.id).length;
         return v ? v+' voor jou' : 'openstaande berichten';})()}</span></div>`;
+
+  renderAankomsten();
 
   const komend = open.slice().sort((a,b)=>(a.deadline||'9999')<(b.deadline||'9999')?-1:1).slice(0,8);
   $('#ovTaken').innerHTML = komend.length ? komend.map(t=>`
