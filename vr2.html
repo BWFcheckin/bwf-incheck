@@ -1414,7 +1414,7 @@ div.ag-blok{cursor:default}
       </div>
       <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
 
-      <div class="reskop" id="resKop" style="display:none">
+      <div class="reskop" id="resKop">
         <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
           <span class="pijl">›</span><span>Reserveringen inzien</span>
           <span class="pill neutral" id="resAantal">0</span>
@@ -6906,6 +6906,7 @@ $('#kalToon').addEventListener('click', e=>{
   if(lijstAan){
     $('#resToggle').setAttribute('aria-expanded','true');
     $('#resTabel').hidden = false;
+    $('#resKop').style.display = '';
     $('#resKop').scrollIntoView({behavior:'smooth', block:'start'});
   }
 });
