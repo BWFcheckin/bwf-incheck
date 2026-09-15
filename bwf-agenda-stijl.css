@@ -274,9 +274,12 @@ td{ border-bottom:1px solid var(--line-soft) }
   border-radius:7px; border:1px solid var(--line);
   background-size:cover; background-position:center; background-color:var(--surface-2);
 }
-.resfoto.foto-angie { background-image:var(--foto-angie) }
-.resfoto.foto-malina{ background-image:var(--foto-malina) }
-.resfoto.foto-deluxe{ background-image:var(--foto-deluxe) }
+/* Zowel het kleine blokje in de lijsten (.resfoto) als de grote kaartfoto op het
+   VR-dashboard (.reskaart-foto) hangt aan dezelfde koppeling, zodat de suitefoto's
+   op een plek staan. */
+.resfoto.foto-angie ,.reskaart-foto.foto-angie { background-image:var(--foto-angie) }
+.resfoto.foto-malina,.reskaart-foto.foto-malina{ background-image:var(--foto-malina) }
+.resfoto.foto-deluxe,.reskaart-foto.foto-deluxe{ background-image:var(--foto-deluxe) }
 
 /* =========================================================
    MENUBALKEN EN TABBLADEN

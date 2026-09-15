@@ -491,13 +491,31 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 .dienstregel[data-vandaag]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .dienstregel strong{min-width:86px}
 .dienstregel em{opacity:.7;font-style:normal;font-size:13px}
-tr.resrij{cursor:pointer}
-tr.resrij:hover{background:var(--accent-soft)}
-tr.resrij .pijl{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;
-  border-radius:5px;background:var(--accent-soft);color:var(--accent);font-size:13px;line-height:1;
-  transform:rotate(0deg);transition:transform .16s ease;vertical-align:middle}
-tr.resrij.open .pijl{transform:rotate(90deg)}
-tr.resdetail > td{background:var(--surface-2);padding:16px 18px}
+/* De reserveringenlijst als kaarten, in de stijl van de startpagina.
+   Eigen namen (reskaart-*) zodat ze niet botsen met de .card, .badge en .stats
+   die dit dashboard zelf al gebruikt. */
+.reskaarten{display:flex;flex-direction:column;gap:10px;padding:14px 18px}
+.reskaart{display:flex;align-items:stretch;position:relative;cursor:pointer;
+  background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px;
+  transition:border-color .16s ease}
+.reskaart:hover,.reskaart.open{border-color:var(--accent)}
+.reskaart-foto{width:132px;min-height:112px;flex:0 0 132px;border-radius:13px;
+  background-size:cover;background-position:center;background-color:var(--surface-2)}
+.reskaart-body{padding:8px 15px;flex:1;min-width:0}
+.reskaart-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.reskaart-top small{color:var(--muted);font-size:11px}
+.reskaart-merk{width:max-content;padding:5px 9px;border-radius:30px;font-size:10px;
+  font-weight:800;letter-spacing:.6px;background:var(--accent-soft);color:var(--accent)}
+.reskaart-merk.rood{background:#FFE4E2;color:#B84F4C}
+.reskaart-body h3{margin:10px 0 3px;font-family:var(--f-display);font-size:21px;font-weight:500;
+  color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reskaart-body p{margin:0;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:7px}
+.reskaart-regels{display:flex;flex-wrap:wrap;gap:15px;margin-top:10px;color:var(--muted);font-size:11px}
+.reskaart .pijl{align-self:center;display:inline-grid;place-items:center;width:22px;height:22px;
+  flex:none;margin-right:6px;border-radius:6px;background:var(--accent-soft);color:var(--accent);
+  font-size:14px;line-height:1;transform:rotate(0deg);transition:transform .16s ease}
+.reskaart.open .pijl{transform:rotate(90deg)}
+.resdetail{background:var(--surface-2);border:2px solid var(--line);border-radius:14px;padding:16px 18px}
 .resdl{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 18px;margin-bottom:14px}
 .resdl div{font-size:13.5px}
 .resdl span.lab{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
@@ -634,7 +652,11 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .kal.jaar{grid-template-columns:repeat(2,minmax(140px,1fr))}
   .kal .ev{font-size:11.5px;padding:4px 6px}
   .kal-cel{min-height:96px}
-  #resTabel table{min-width:560px}
+  .reskaarten{padding:12px 14px}
+  .reskaart{flex-wrap:wrap}
+  .reskaart-foto{width:100%;flex:1 0 100%;min-height:150px}
+  .reskaart-body{padding:12px 4px 4px}
+  .reskaart .pijl{position:absolute;top:18px;right:18px;margin-right:0}
   body{background:linear-gradient(180deg,#f8faff 0,#f4f7fb 28rem)}
   .app{padding:0 14px 96px}
   .topbar{padding:18px 2px 14px}
@@ -842,8 +864,7 @@ td input:focus,td select:focus{border-color:var(--groen-2);background:#fff}
 /* ---------- tabellen ---------- */
 th{background:var(--surface-2);color:var(--muted);font-size:10.5px;padding-block:11px;border-bottom-color:var(--line)}
 td{padding-block:12px;border-bottom-color:var(--line-soft)}
-tbody tr:hover,tr.resrij:hover{background:var(--surface-2)}
-tr.resdetail > td{background:var(--surface-2)}
+tbody tr:hover{background:var(--surface-2)}
 .pill{padding:3px 10px;font-weight:500;font-size:11.5px}
 .pill.accent{background:var(--groen-zacht);color:var(--groen)}
 .pill.neutral{background:var(--surface);border-color:var(--line);color:var(--ink-2)}
@@ -1053,7 +1074,7 @@ div.ag-blok{cursor:default}
 }
 </style>
 
-<link rel="stylesheet" href="bwf-agenda-stijl.css?v=2">
+<link rel="stylesheet" href="bwf-agenda-stijl.css?v=3">
 </head>
 <body>
 <!-- ============ TOEGANGSSCHERM ============ -->
@@ -1436,10 +1457,13 @@ div.ag-blok{cursor:default}
           </select>
         </div>
       </div>
-      <div class="table-wrap" id="resTabel" hidden style="display:none"><table>
-        <thead><tr><th>Aankomst</th><th>Locatie</th><th>Gast</th><th>Vertrek</th><th>Bron</th></tr></thead>
-        <tbody id="kalLijst"></tbody>
-      </table></div>
+      <!-- Kaartweergave in plaats van een tabel, in de stijl van de startpagina.
+           Het id resTabel blijft staan: zoeken, sorteren en het open- en dichtklappen
+           sturen daarop. De inline display:none is weg: die hield de lijst verborgen,
+           ook nadat het uitklappen hidden al had uitgezet. -->
+      <div class="reskaarten" id="resTabel" hidden>
+        <div id="kalLijst"></div>
+      </div>
       <div class="card-foot" style="display:none"><span id="kalFoot"></span>
         <button class="btn ghost small" id="kalAlles" type="button">Hele maand tonen</button></div>
     </div>
@@ -4846,10 +4870,10 @@ function resDetailHtml(r, i){
 }
 document.addEventListener('click', async e=>{
   /* rij open- of dichtklappen */
-  const rij = e.target.closest('tr.resrij');
+  const rij = e.target.closest('.resrij');
   if(rij && !e.target.closest('button, a, input')){
     const i = rij.dataset.res;
-    const detail = document.querySelector(`tr.resdetail[data-detail="${i}"]`);
+    const detail = document.querySelector(`.resdetail[data-detail="${i}"]`);
     const open = rij.classList.toggle('open');
     if(detail){
       detail.hidden = !open;
@@ -4870,7 +4894,7 @@ document.addEventListener('click', async e=>{
   const bew = e.target.closest('[data-rbewaar]');
   if(bew){
     const r = KAL_LIJST[Number(bew.dataset.rbewaar)];
-    const vak = bew.closest('td');
+    const vak = bew.closest('.resdetail');
     const note = vak.querySelector('[data-rnote]');
     const wijzigingen = {};
     vak.querySelectorAll('[data-rv]').forEach(el=>{ wijzigingen[el.dataset.rv] = el.value.trim() || null; });
@@ -4901,7 +4925,7 @@ document.addEventListener('click', async e=>{
   const kb = e.target.closest('[data-rkbewaar]');
   if(kb){
     const r = KAL_LIJST[Number(kb.dataset.rkbewaar)];
-    const vak = kb.closest('td'), note = vak.querySelector('[data-rnote]');
+    const vak = kb.closest('.resdetail'), note = vak.querySelector('[data-rnote]');
     const wijziging = {};
     vak.querySelectorAll('[data-rk]').forEach(el=>{
       if(el.type === 'checkbox'){ wijziging[el.dataset.rk] = el.checked; return; }
@@ -5008,7 +5032,7 @@ document.addEventListener('click', async e=>{
   const smg = e.target.closest('[data-rsmgok]');
   if(smg){
     const r = KAL_LIJST[Number(smg.dataset.rsmgok)];
-    const vak = smg.closest('td');
+    const vak = smg.closest('.resdetail');
     const keuze = vak.querySelector('[data-rsmg]').value;
     const bron = KOPPEL[keuze];
     if(!bron){ toast('Kies eerst een boeking.'); return; }
@@ -6703,23 +6727,37 @@ function renderKalender(){
   });
 
   KAL_LIJST.length = 0; lijst.forEach(r=>KAL_LIJST.push(r));
+  /* Kaarten in plaats van tabelrijen. De klasse resrij en data-res blijven staan:
+     het openklappen (4849), het invullen van het paneel (4852) en het springen
+     vanuit de dagweergave (6875) zoeken daarop. Het paneel houdt precies een
+     kind-element, want regel 4857 vult het via firstElementChild. */
   $('#kalLijst').innerHTML = lijst.length ? lijst.map((r,i)=>{
     const l = kalLabel(r);
+    const gast    = (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '—';
+    const bedrag  = (r.kop && r.kop.totaal  != null) ? eur(r.kop.totaal)  : '';
+    const betaald = (r.kop && r.kop.betaald != null) ? eur(r.kop.betaald) : '';
     return `
-    <tr class="resrij" data-res="${i}">
-      <td class="name"><span class="pijl">›</span>${esc(dmy(String(r.start||'').slice(0,10)))}${
-        l.tijd?`<span class="meta">${esc(l.tijd)}</span>`:''}</td>
-      <td><span class="resfoto ${resFotoKlasse(r.suiteRuw)}"></span><span class="kal-dot" style="--c:${
-        KAL_KLEUR[r.locatie]||'var(--muted)'};margin-right:7px"></span>${
-        esc(r.locatie||'onbekend')}</td>
-      <td>${esc((r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '—')}</td>
-      <td>${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</td>
-      <td>${esc(r.bron||'')}${r.geannuleerd?' <span class="pill crit">geannuleerd</span>':''}${
-        r.kop && r.kop.totaal != null ? `<span class="meta">${esc(eur(r.kop.totaal))}${
-          r.kop.betaald != null ? ' · betaald ' + esc(eur(r.kop.betaald)) : ''}</span>` : ''}</td>
-    </tr>
-    <tr class="resdetail" data-detail="${i}" hidden><td colspan="5"></td></tr>`;}).join('')
-    : `<tr><td colspan="5"><div class="empty"><strong>Geen reserveringen</strong>Er staat niets binnen deze weergave of dit filter.</div></td></tr>`;
+    <article class="reskaart resrij" data-res="${i}">
+      <span class="reskaart-foto ${resFotoKlasse(r.suiteRuw)}"></span>
+      <div class="reskaart-body">
+        <div class="reskaart-top">
+          <span class="reskaart-merk${r.geannuleerd?' rood':''}">${
+            r.geannuleerd ? 'GEANNULEERD' : esc(String(r.bron||'reservering').toUpperCase())}</span>
+          <small>${esc(r.ref||'')}</small>
+        </div>
+        <h3>${esc(gast)}</h3>
+        <p><span class="kal-dot" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'}"></span>${
+          esc(r.locatie||'onbekend')}</p>
+        <div class="reskaart-regels">
+          <span>${esc(dmy(String(r.start||'').slice(0,10)))}${l.tijd?' · '+esc(l.tijd):''}</span>
+          <span>tot ${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</span>${
+          bedrag ? `<span>${esc(bedrag)}${betaald?' · betaald '+esc(betaald):''}</span>` : ''}
+        </div>
+      </div>
+      <span class="pijl">›</span>
+    </article>
+    <div class="resdetail" data-detail="${i}" hidden><div class="resdetail-vak"></div></div>`;}).join('')
+    : `<div class="empty"><strong>Geen reserveringen</strong>Er staat niets binnen deze weergave of dit filter.</div>`;
 
   if($('#resAantal')) $('#resAantal').textContent = lijst.length;
   const dnstAantal = DIENSTEN.filter(r=>String(r.datum||'').slice(0,7) === maand).length;
@@ -6872,7 +6910,7 @@ document.addEventListener('click', e=>{
     const r = RES[Number(ab.dataset.agres)]; if(!r) return;
     const i = KAL_LIJST.indexOf(r); if(i < 0) return;
     $('#resToggle').setAttribute('aria-expanded', 'true'); $('#resTabel').hidden = false;
-    const rij = document.querySelector(`tr.resrij[data-res="${i}"]`);
+    const rij = document.querySelector(`.resrij[data-res="${i}"]`);
     if(rij){ if(!rij.classList.contains('open')) rij.click(); rij.scrollIntoView({behavior:'smooth', block:'start'}); }
   }
 });
