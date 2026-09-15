@@ -1035,6 +1035,17 @@ div.ag-blok{cursor:default}
 .dg-tegels #ovLocaties .stat .value{font-size:26px;order:2}
 .dg-tegels #ovLocaties .stat .sub{width:100%;order:3}
 
+/* De cijferbalk bovenaan de Dagstart, in de vormtaal van de startpagina:
+   dikkere rand, ronding en schaduw, en hij komt iets omhoog als je erover gaat.
+   Bewust aan #ovStats gehangen: dat element staat buiten .dg-tegels, dus de
+   locatielijst hierboven blijft de rustige regels houden die ze nu heeft.
+   Een id plus een klasse wint van de algemene .stat-regel verderop. */
+#ovStats{grid-template-columns:repeat(auto-fit,minmax(186px,1fr));gap:14px}
+#ovStats .stat{border:2px solid var(--line);border-radius:var(--radius,var(--r-m));
+  box-shadow:var(--shadow);min-height:108px;padding:17px 19px;
+  transition:transform .18s ease,border-color .18s ease}
+#ovStats .stat:hover{transform:translateY(-2px);border-color:var(--goud)}
+
 /* ---------- taak overdragen ---------- */
 .tk-odr{color:var(--goud-ink)}
 
@@ -1165,8 +1176,11 @@ div.ag-blok{cursor:default}
       <p id="startUitleg">Klik op een tegel om hem te openen of te sluiten.</p>
     </div>
     <div class="linkstrook" data-linktab="start"></div>
-    <!-- de oude cijfertegels zijn weg; het element blijft verborgen staan zodat het script niet vastloopt -->
-    <div class="stats" id="ovStats" hidden></div>
+    <!-- De cijferbalk staat weer aan, in de vormtaal van de startpagina.
+         renderOverzicht() vulde hem altijd al (open taken, werkzaamheden en uren
+         deze maand, nog niet afgerekend, openstaande overdracht); alleen het
+         tonen stond uit. -->
+    <div class="stats" id="ovStats"></div>
     <div class="inklapbalk">
       <button class="btn ghost small" id="ovAllesUit" type="button">Alles uitklappen</button>
       <button class="btn ghost small" id="ovAllesIn" type="button">Alles inklappen</button>
