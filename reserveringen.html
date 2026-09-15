@@ -361,6 +361,10 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       <fieldset>
         <legend>Gast</legend>
         <div class="raster">
+          <!-- Koppelen aan een bestaande klant. De gastgegevens hiernaast worden
+               bewust NIET overschreven: bij een bestaande reservering zou je zo
+               een naam of adres kunnen wissen dat al klopte. -->
+          <label class="veld breed">Gekoppelde klant <select id="vKlant"></select></label>
           <label class="veld">Voornaam <input id="vVoornaam" type="text"></label>
           <label class="veld">Achternaam <input id="vAchternaam" type="text"></label>
           <label class="veld">E-mail <input id="vEmail" type="email" inputmode="email"></label>
@@ -762,6 +766,12 @@ function openVenster(id) {
 
   /* Klantbeheer kent al ?zoek= : dat vult het zoekveld, springt naar het
      klantentabblad en filtert. Daar hoeft dus niets bijgebouwd te worden. */
+  /* De keuzelijst met klanten, met de gekoppelde klant voorgeselecteerd. */
+  $("#vKlant").innerHTML = '<option value="">— geen klant gekoppeld —</option>' +
+    KLANTEN.map((k) => '<option value="' + esc(k.id) + '"' +
+      (String(k.id) === String(r.klant_id || "") ? " selected" : "") + ">" +
+      esc(klantNaam(k)) + "</option>").join("");
+
   const kk = $("#vKlantkaart");
   const kkZoek = (r.gast_achternaam || r.gast_voornaam || "").trim();
   kk.hidden = !kkZoek;
@@ -1093,6 +1103,9 @@ function formWaarden() {
   const personen = $("#vPersonen").value === "" ? null : parseInt($("#vPersonen").value, 10);
   if (personen !== null && !(personen >= 1 && personen <= 20)) throw new Error("Vul bij personen een aantal tussen 1 en 20 in.");
   const d = {
+    /* Leeg moet null zijn: klant_id verwijst hard naar wz_klantbeheer en een
+       lege tekst bestaat daar niet, waardoor de hele wijziging zou afketsen. */
+    klant_id: $("#vKlant").value || null,
     gast_voornaam: leeg($("#vVoornaam").value),
     gast_achternaam: leeg($("#vAchternaam").value),
     gast_email: leeg($("#vEmail").value) ? $("#vEmail").value.trim().toLowerCase() : null,
