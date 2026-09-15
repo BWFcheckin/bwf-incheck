@@ -52,7 +52,11 @@
   var css = document.createElement("style");
   css.id = "bwf-kader-css";
   css.textContent = [
-    ":root{--bwfkader:248px;--bwfkaderbalk:58px}",
+    ":root{--bwfkader:248px;--bwfkaderbalk:58px;--bwfbalk:58px}",
+    /* --bwfbalk hoort bij de oude menubalk. vr2.html rekent daarmee:
+       .bwf-merkbalk{position:sticky;top:var(--bwfbalk,0px)}. Zetten we die
+       naam niet, dan valt die merkbalk terug op 0 en schuift hij onder de
+       kaderbalk. Daarom krijgt hij hier dezelfde hoogte. */
 
     /* ---- zijbalk ---- */
     "#bwfKaderZij{position:fixed;left:0;top:0;bottom:0;width:var(--bwfkader);z-index:9400;",
