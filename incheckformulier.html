@@ -1878,10 +1878,44 @@ function renderCheckinTable(){
       <td>${escapeHtml(String(c.personen ?? ''))}</td>
       <td>${fmtMoney(c.totaal)}</td>
       <td>${fmtMoney(c.restant)}</td>
-      <td></td>
+      <td onclick="event.stopPropagation()">
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" data-betaalok="${escapeHtml(c.id)}" ${c.betaling_verwerkt ? 'checked' : ''}>
+          <span>betaald verwerkt${c.betaling_verwerkt && c.betaling_verwerkt_door
+            ? ' · ' + escapeHtml(c.betaling_verwerkt_door) : ''}</span>
+        </label>
+      </td>
     </tr>
   `).join('');
 }
+/* Afvinken dat de betaling is verwerkt. De hele rij opent bij een klik het
+   detailscherm, dus de cel eromheen houdt die klik tegen; anders opent het
+   formulier telkens als je het vinkje aanraakt.
+   Bij "wie vinkte af" wordt de gekozen locatiemanager vastgelegd (keuze
+   Angela): het e-mailadres van de ingelogde medewerker is het enige andere
+   dat hier bekend is, en dat leggen we niet vast. */
+document.addEventListener('change', async function(e){
+  var v = e.target.closest ? e.target.closest('[data-betaalok]') : null;
+  if(!v) return;
+  var id = v.dataset.betaalok;
+  var aan = v.checked;
+  var wie = (document.getElementById('c_manager') || {}).value || null;
+  var patch = {
+    betaling_verwerkt: aan,
+    betaling_verwerkt_op: aan ? new Date().toISOString() : null,
+    betaling_verwerkt_door: aan ? wie : null
+  };
+  try{
+    await sb('checkins?id=eq.' + encodeURIComponent(id),
+      { method:'PATCH', prefer:'return=minimal', body: JSON.stringify(patch) });
+    await loadCheckins();
+    renderCheckinTable();
+  }catch(err){
+    v.checked = !aan;            /* terugdraaien: het is niet bewaard */
+    alert('Niet bewaard: ' + err.message);
+  }
+});
+
 function openCheckinDetail(id){
   const c = checkins.find(x=>x.id===id);
   if(!c) return;
