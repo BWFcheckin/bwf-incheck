@@ -269,6 +269,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <label class="veld">Type <select id="nType"></select></label>
         <label class="veld">Incheck-tijd <input id="nIncheck" type="time"></label>
         <label class="veld">Uitcheck-tijd <input id="nUitcheck" type="time"></label>
+        <!-- Bestaande klant kiezen vult de vier velden hieronder. Leeg laten mag:
+             dan wordt er geen klant aan de reservering gekoppeld. -->
+        <label class="veld breed">Bestaande klant <select id="nKlant"></select></label>
         <label class="veld">Voornaam <input id="nVoornaam" type="text"></label>
         <label class="veld">Achternaam <input id="nAchternaam" type="text"></label>
         <label class="veld">E-mail <input id="nEmail" type="email" inputmode="email"></label>
@@ -1284,7 +1287,14 @@ function lokaalNaarIso(datum, tijd) {
    dagtype week (ma t/m wo) of weekend (do t/m zo). De reserveringen zelf
    gebruiken andere suitenamen, vandaar de vertaling hieronder.
    ========================================================= */
-let TARIEVEN = [], TOESLAGEN = [];
+let TARIEVEN = [], TOESLAGEN = [], KLANTEN = [];
+
+/* De naam zoals hij in de klantkeuze komt te staan. */
+function klantNaam(k) {
+  const naam = [k.voornaam || k.voorletters, k.achternaam].filter(Boolean).join(" ").trim();
+  const erbij = [k.woonplaats, k.email].filter(Boolean).join(" · ");
+  return (naam || "zonder naam") + (erbij ? " — " + erbij : "");
+}
 
 const SUITE_TARIEF = { angie: "angie", malina_jacuzzi: "jacuzzi", malina_deluxe: "zwembad" };
 const SUITE_LOCATIE = { angie: "Almere", malina_jacuzzi: "Lelystad", malina_deluxe: "Lelystad" };
@@ -1343,6 +1353,8 @@ function vulNieuwKeuzes() {
      stilzwijgend de herkomst van elke boeking waarbij niemand die keuze
      aanraakt. */
   $("#nKanaal").innerHTML = opties(KANALEN, "handmatig");
+  $("#nKlant").innerHTML = '<option value="">— geen bestaande klant —</option>' +
+    KLANTEN.map((k) => '<option value="' + esc(k.id) + '">' + esc(klantNaam(k)) + "</option>").join("");
   const vandaag = new Date();
   const iso = new Date(vandaag.getTime() - vandaag.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   $("#nAankomst").value = iso;
@@ -1363,6 +1375,9 @@ function leegNieuw() {
      stilzwijgend de extra personen van de vorige mee */
   $("#nVolwassenen").value = 0;
   $("#nKinderen").value = 0;
+  /* ook de klantkeuze terug: anders koppelt de volgende boeking stilzwijgend
+     de klant van de vorige */
+  if ($("#nKlant")) $("#nKlant").value = "";
   $("#nMelding").textContent = "";
   /* ook de aangevinkte extra's wissen, anders erft de volgende boeking
      stilzwijgend de keuzes van de vorige - met geld erin */
@@ -1552,6 +1567,19 @@ document.addEventListener("change", (e) => {
   }
   const a = e.target.closest("[data-nextraaantal]");
   if (a) { N_KEUZES[a.dataset.nextraaantal] = Math.max(1, Number(a.value) || 1); nHerbereken(); return; }
+  /* Een bestaande klant kiezen vult de gastvelden. Kiest iemand "geen
+     bestaande klant", dan blijft er staan wat er staat: getypte gegevens
+     worden niet gewist. */
+  if (e.target.id === "nKlant") {
+    const k = KLANTEN.find((x) => String(x.id) === String(e.target.value));
+    if (k) {
+      $("#nVoornaam").value   = k.voornaam || k.voorletters || "";
+      $("#nAchternaam").value = k.achternaam || "";
+      $("#nEmail").value      = k.email || "";
+      $("#nTelefoon").value   = k.telefoon || "";
+    }
+    return;
+  }
   if (["nPersonen", "nBedragVolg", "nVolwassenen", "nKinderen", "nEigenPrijs", "nVertrek"]
       .indexOf(e.target.id) > -1) nHerbereken();
 });
@@ -1753,6 +1781,10 @@ async function maakReservering() {
     incheck_tijd: $("#nIncheck").value || null,
     uitcheck_tijd: $("#nUitcheck").value || null,
     tijdsblok_id: $("#nBlok").value || null,
+    /* Leeg moet null zijn: klant_id verwijst hard naar wz_klantbeheer, en een
+       lege tekst bestaat daar niet, waardoor de hele reservering geweigerd zou
+       worden. */
+    klant_id: $("#nKlant").value || null,
     gast_voornaam: voor || null,
     gast_achternaam: achter || null,
     gast_email: $("#nEmail").value.trim().toLowerCase() || null,
@@ -1864,17 +1896,19 @@ async function start() {
   $("#wieBen").textContent = deel.email || "";
   if (window.BWFaccount) window.BWFaccount.begroeting();
   try {
-    const [rol, mw, blokken, extras, tarieven, toeslagen] = await Promise.all([
+    const [rol, mw, blokken, extras, tarieven, toeslagen, klanten] = await Promise.all([
       api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
       api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || "")),
       api("tijdsblokken?select=id,suite,type,naam,begin,eind&actief=eq.true&order=suite.asc,sortering.asc"),
       api("wz_extras?select=id,naam,categorie,prijs,per_persoon,omschrijving,locatie&actief=eq.true&order=sortering.asc,naam.asc"),
       api("bwf_tariefblokken?select=id,suite,verblijf,dagtype,naam,starttijd,eindtijd,prijs&actief=eq.true&order=suite.asc,sortering.asc"),
-      api("bwf_persoonstoeslagen?select=suite,verblijf,soort,prijs&actief=eq.true")
+      api("bwf_persoonstoeslagen?select=suite,verblijf,soort,prijs&actief=eq.true"),
+      api("wz_klantbeheer?select=id,voornaam,voorletters,achternaam,email,telefoon,woonplaats&order=achternaam.asc")
     ]);
     EXTRAS = extras || [];
     TARIEVEN = tarieven || [];
     TOESLAGEN = toeslagen || [];
+    KLANTEN = klanten || [];
     tekenNieuwExtras();
     ROL = rol || null;
     NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
