@@ -1637,6 +1637,22 @@ function pasLinkTabToe(){
   }catch(e){}
 }
 
+/* Rechtstreeks een klantkaart openen: klantbeheer.html?klant=<sleutel>
+   De sleutel is dezelfde die klantKey() maakt: achternaam|voorletters|woonplaats
+   in kleine letters. De reserveringenpagina bouwt hem op dezelfde manier op uit
+   dezelfde velden, dus beide kanten komen op hetzelfde uit.
+   Staat de klant er (nog) niet, dan gebeurt er niets: liever geen kaart dan de
+   verkeerde. De tweede poging verderop vangt af dat de gegevens nog laden. */
+function pasLinkKlantToe(){
+  try{
+    var k = new URLSearchParams(location.search).get("klant");
+    if(!k) return;
+    if(!klantenMap()[k]) return;
+    toonTab("klanten");
+    openKlant(k);
+  }catch(e){}
+}
+
 function pasLinkZoekToe(){
   try{
     var q = new URLSearchParams(location.search).get("zoek");
@@ -1897,6 +1913,10 @@ window.addEventListener("message", function(e){
 setTimeout(pasLinkTabToe, 700);
 setTimeout(pasLinkZoekToe, 800);
 setTimeout(pasLinkZoekToe, 2500);
+/* en een rechtstreekse klantkaart, met dezelfde tweede poging voor als de
+   klantgegevens nog aan het laden zijn */
+setTimeout(pasLinkKlantToe, 900);
+setTimeout(pasLinkKlantToe, 2600);
 </script>
 
 <script>

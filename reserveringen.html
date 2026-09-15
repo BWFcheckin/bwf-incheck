@@ -772,10 +772,22 @@ function openVenster(id) {
       (String(k.id) === String(r.klant_id || "") ? " selected" : "") + ">" +
       esc(klantNaam(k)) + "</option>").join("");
 
+  /* Is er een klant gekoppeld, dan opent de knop meteen díe klantkaart. De
+     sleutel is dezelfde die klantbeheer zelf maakt: achternaam, voorletters en
+     woonplaats in kleine letters, gescheiden door een verticale streep. Zonder
+     koppeling valt het terug op zoeken op de achternaam van de gast. */
   const kk = $("#vKlantkaart");
+  const klant = KLANTEN.find((k) => String(k.id) === String(r.klant_id || ""));
   const kkZoek = (r.gast_achternaam || r.gast_voornaam || "").trim();
-  kk.hidden = !kkZoek;
-  if (kkZoek) kk.href = "klantbeheer.html?zoek=" + encodeURIComponent(kkZoek);
+  if (klant) {
+    const sleutel = [klant.achternaam || "", klant.voorletters || "", klant.woonplaats || ""]
+      .join("|").toLowerCase();
+    kk.hidden = false;
+    kk.href = "klantbeheer.html?klant=" + encodeURIComponent(sleutel);
+  } else {
+    kk.hidden = !kkZoek;
+    if (kkZoek) kk.href = "klantbeheer.html?zoek=" + encodeURIComponent(kkZoek);
+  }
 
   vulBetaalvak(r);
   $("#vSub").textContent = [SUITES[r.suite] ? SUITES[r.suite].naam : r.suite, KANALEN[r.kanaal] || r.kanaal,
