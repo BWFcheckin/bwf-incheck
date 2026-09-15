@@ -275,6 +275,13 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <label class="veld">E-mail <input id="nEmail" type="email" inputmode="email"></label>
         <label class="veld">Telefoon <input id="nTelefoon" type="tel" inputmode="tel"></label>
         <label class="veld">Personen <input id="nPersonen" type="number" min="1" max="20" step="1" value="2"></label>
+        <!-- Toeslagen gelden per EXTRA persoon. Hoeveel personen er in de
+             basisprijs zitten staat nergens vast, dus dat wordt niet afgeleid:
+             je vult zelf in hoeveel er bijkomen. Kinderen tot 2 jaar zijn
+             gratis en horen hier niet ingevuld te worden. -->
+        <label class="veld">Extra volwassenen <input id="nVolwassenen" type="number" min="0" max="20" step="1" value="0"></label>
+        <label class="veld">Kinderen 2 t/m 12 <input id="nKinderen" type="number" min="0" max="20" step="1" value="0"></label>
+        <label class="veld">Eigen prijs verblijf (&euro;) <input id="nEigenPrijs" type="text" inputmode="decimal" placeholder="alleen bij eigen tijden"></label>
         <label class="veld">Totaalbedrag (€) <input id="nBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
         <label class="veld">Betaalstatus <select id="nBetaal"></select></label>
         <label class="veld breed">Arrangementen <textarea id="nArr" rows="2" placeholder="Eén arrangement of extra per regel"></textarea></label>
@@ -286,6 +293,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
             <span id="nExtrasSom" style="font-weight:700">&euro; 0,00</span>
           </div>
           <div id="nExtras" style="display:grid;gap:5px;margin-top:7px"></div>
+          <!-- Opsomming van het hele bedrag: verblijf, toeslagen en extra's. -->
+          <div id="nOpsomming" style="margin-top:11px;padding-top:9px;border-top:1px solid var(--line-soft);
+               font-size:13px;display:grid;gap:3px"></div>
           <label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:13px;font-weight:400">
             <input type="checkbox" id="nBedragVolg" checked>
             totaalbedrag automatisch bijwerken
@@ -1337,8 +1347,12 @@ function vulNieuwKeuzes() {
 
 function leegNieuw() {
   ["#nVoornaam", "#nAchternaam", "#nEmail", "#nTelefoon", "#nBedrag", "#nArr", "#nOms",
-   "#nIncheck", "#nUitcheck"].forEach((s) => { $(s).value = ""; });
+   "#nIncheck", "#nUitcheck", "#nEigenPrijs"].forEach((s) => { $(s).value = ""; });
   $("#nPersonen").value = 2;
+  /* ook de toeslagvelden terug op nul: anders rekent de volgende boeking
+     stilzwijgend de extra personen van de vorige mee */
+  $("#nVolwassenen").value = 0;
+  $("#nKinderen").value = 0;
   $("#nMelding").textContent = "";
   /* ook de aangevinkte extra's wissen, anders erft de volgende boeking
      stilzwijgend de keuzes van de vorige - met geld erin */
@@ -1394,11 +1408,95 @@ function tekenNieuwExtras() {
   nHerbereken();
 }
 
+/* Aantal nachten tussen aankomst en vertrek. Minstens een, want een
+   overnachting zonder nacht bestaat niet. */
+function nAantalNachten() {
+  const a = $("#nAankomst").value, v = $("#nVertrek").value;
+  if (!a || !v) return 1;
+  const n = Math.round((new Date(v + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+  return n > 0 ? n : 1;
+}
+
+/* Het tarief van een nachtblok voor een bepaald dagtype. De eindtijd zit
+   bewust NIET in de sleutel: bij Malina Jacuzzi verschilt de uitchecktijd
+   tussen week (10:00) en weekend (11:00), en dan zou er niets gevonden worden. */
+function tariefVoor(suiteT, naam, start, dagtype) {
+  return TARIEVEN.find((b) => b.suite === suiteT && b.verblijf === "nacht" &&
+    b.naam === naam && String(b.starttijd).slice(0, 5) === String(start).slice(0, 5) &&
+    b.dagtype === dagtype);
+}
+
+/* Het verblijf zelf, per nacht gerekend: elke nacht krijgt het tarief van de
+   dag waarop die nacht begint. Is er geen blok gekozen, dan telt alleen de
+   eigen prijs mee, als die is ingevuld. */
+function verblijfRegels() {
+  const o = $("#nBlok").selectedOptions[0];
+  if (!o || !o.value) {
+    const eigen = leesBedrag($("#nEigenPrijs").value);
+    return (eigen && !Number.isNaN(eigen)) ? [{ naam: "Verblijf (eigen prijs)", aantal: 1, bedrag: eigen }] : [];
+  }
+  if (o.dataset.verblijf === "dag") {
+    return [{ naam: o.dataset.naam + " (dagverblijf)", aantal: 1, bedrag: Number(o.dataset.prijs) || 0 }];
+  }
+  const suiteT = SUITE_TARIEF[$("#nSuite").value];
+  const start = $("#nAankomst").value;
+  const uit = [];
+  for (let i = 0; i < nAantalNachten(); i++) {
+    const d = new Date(start + "T12:00:00");
+    d.setDate(d.getDate() + i);
+    const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const dt = dagtypeVan(iso);
+    const t = tariefVoor(suiteT, o.dataset.naam, o.dataset.start, dt);
+    const dag = iso.slice(8) + "-" + iso.slice(5, 7);
+    uit.push(t
+      ? { naam: o.dataset.naam + " " + dag + " (" + dt + ")", aantal: 1, bedrag: Number(t.prijs) || 0 }
+      : { naam: o.dataset.naam + " " + dag + " — geen tarief gevonden", aantal: 1, bedrag: 0 });
+  }
+  return uit;
+}
+
+/* Toeslag per extra persoon. Bewust EEN KEER per verblijf, niet per nacht:
+   de tarievenpagina zegt alleen "p.p." en niet of het per nacht geldt. Te veel
+   rekenen aan een gast is erger dan te weinig. */
+function toeslagRegels() {
+  const o = $("#nBlok").selectedOptions[0];
+  const verblijf = (o && o.value) ? o.dataset.verblijf : "nacht";
+  const suite = $("#nSuite").value;
+  const uit = [];
+  [["volwassene", "#nVolwassenen", "Extra volwassene"],
+   ["kind_2_12", "#nKinderen", "Kind 2 t/m 12"]].forEach((r) => {
+    const aantal = parseInt($(r[1]).value, 10) || 0;
+    if (!aantal) return;
+    const t = TOESLAGEN.find((x) => x.suite === suite && x.verblijf === verblijf && x.soort === r[0]);
+    if (!t) return;
+    const prijs = Number(t.prijs) || 0;
+    uit.push({ naam: r[2], aantal, bedrag: Math.round(prijs * aantal * 100) / 100 });
+  });
+  return uit;
+}
+
 function nHerbereken() {
-  const regels = nExtraRegels();
-  const totaal = regels.reduce((a, x) => a + x.bedrag, 0);
+  const verblijf = verblijfRegels();
+  const toeslag = toeslagRegels();
+  const extras = nExtraRegels();
+  const alles = verblijf.concat(toeslag, extras);
+  const totaal = alles.reduce((a, x) => a + x.bedrag, 0);
+
   const som = $("#nExtrasSom");
   if (som) som.textContent = euro(totaal);
+
+  const vak = $("#nOpsomming");
+  if (vak) {
+    vak.innerHTML = alles.length
+      ? alles.map((x) =>
+          '<div style="display:flex;justify-content:space-between;gap:12px">' +
+            "<span>" + esc(x.naam) + (x.aantal > 1 ? " &times; " + esc(x.aantal) : "") + "</span>" +
+            "<span>&euro; " + esc(euro(x.bedrag)) + "</span></div>").join("") +
+        '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
+          "<span>Totaal</span><span>&euro; " + esc(euro(totaal)) + "</span></div>"
+      : '<span style="color:var(--muted)">Kies een tijdsblok of vul een eigen prijs in.</span>';
+  }
+
   /* Het totaalbedrag blijft van de gebruiker: zodra die het zelf aanpast,
      stopt de rekenhulp met overschrijven. */
   const volg = $("#nBedragVolg");
@@ -1414,11 +1512,12 @@ document.addEventListener("change", (e) => {
   }
   const a = e.target.closest("[data-nextraaantal]");
   if (a) { N_KEUZES[a.dataset.nextraaantal] = Math.max(1, Number(a.value) || 1); nHerbereken(); return; }
-  if (e.target.id === "nPersonen" || e.target.id === "nBedragVolg") nHerbereken();
+  if (["nPersonen", "nBedragVolg", "nVolwassenen", "nKinderen", "nEigenPrijs", "nVertrek"]
+      .indexOf(e.target.id) > -1) nHerbereken();
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "nBedrag") N_BEDRAG_ZELF = true;
-  if (e.target.id === "nPersonen") nHerbereken();
+  if (["nPersonen", "nVolwassenen", "nKinderen", "nEigenPrijs"].indexOf(e.target.id) > -1) nHerbereken();
 });
 
 /* =========================================================
@@ -1594,7 +1693,11 @@ async function maakReservering() {
     gast_email: $("#nEmail").value.trim().toLowerCase() || null,
     gast_telefoon: $("#nTelefoon").value.trim() || null,
     personen: parseInt($("#nPersonen").value, 10) || 2,
+    /* Wat in de opsomming staat, wordt ook bewaard: verblijf, toeslagen en
+       extra's. Zo is later terug te zien waaruit het totaalbedrag is opgebouwd. */
     arrangementen: $("#nArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }))
+      .concat(verblijfRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
+      .concat(toeslagRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
       .concat(nExtraRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag }))),
     omschrijving: $("#nOms").value.trim() || null,
     bedrag_totaal: bedrag,
