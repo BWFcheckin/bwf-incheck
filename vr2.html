@@ -1130,12 +1130,12 @@ div.ag-blok{cursor:default}
     </div>
     <nav class="tabs" id="groeptabs" role="tablist" aria-label="Dashboardonderdelen">
       <button class="tab" role="tab" data-groep="overzicht" aria-selected="true">Dagstart</button>
-      <button class="tab" role="tab" data-groep="agenda">Agenda</button>
-      <button class="tab" role="tab" data-groep="calls">Welkomstcalls<span class="badge" id="badge-groep-calls">0</span></button>
-      <button class="tab" role="tab" data-groep="werk">Taken<span class="badge" id="badge-groep-werk">0</span></button>
-      <button class="tab" role="tab" data-groep="reserveringen">Reserveringen &amp; incheck<span class="badge" id="badge-groep-reserveringen">0</span></button>
+      <button class="tab" role="tab" data-groep="planning">Planning<span class="badge" id="badge-groep-planning" hidden>0</span></button>
+      <button class="tab" role="tab" data-groep="reserveringen">Reserveringen<span class="badge" id="badge-groep-reserveringen">0</span></button>
+      <button class="tab" role="tab" data-groep="takencalls">Taken &amp; welkomstcalls<span class="badge" id="badge-groep-takencalls">0</span></button>
       <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
       <button class="tab" role="tab" data-groep="bellen">Belscripts<span class="badge" id="badge-groep-bellen">0</span></button>
+      <button class="tab" role="tab" data-groep="werktarieven">Werk &amp; tarieven<span class="badge" id="badge-groep-werktarieven" hidden>0</span></button>
       <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
     </nav>
   </header>
@@ -2773,14 +2773,19 @@ async function start(){
    Eén knop bovenin kan meerdere onderdelen onder elkaar tonen. De oude
    knoppen bestaan nog (verborgen), zodat sprongen als "open deze call"
    blijven werken. */
+/* Vier hoofdonderdelen plus vier hulpschermen. Taken en welkomstcalls staan nu
+   onder elkaar in een tabblad; de Dagstart toont er alleen een kort overzicht van.
+   'werk' (urenregistratie en tarieven) stond in geen enkele groep en was daardoor
+   nergens aanklikbaar; die heeft weer een eigen tabblad. 'uploads' blijft er
+   bewust buiten. */
 const GROEPEN = {
   overzicht:     ['start'],              /* in het menu: Dagstart */
-  agenda:        ['agenda'],
-  calls:         ['welkomstcall'],
-  werk:          ['taken', 'overdracht', 'entry'],   /* overdracht en data entry staan onder de taken */
+  planning:      ['agenda'],             /* kalender, reserveringen en wie wanneer werkt */
   reserveringen: ['klanten'],            /* reserveringen én incheckformulieren samen */
+  takencalls:    ['taken', 'welkomstcall', 'overdracht', 'entry'],
   klantbeheer:   ['klantbeheer'],
   bellen:        ['bellen'],             /* in het menu: Belscripts */
+  werktarieven:  ['werk'],               /* was onbereikbaar: stond in geen groep */
   gmail:         ['gmail']
 };
 /* Klantbeheer krijgt een eigen paneel: de kaarten Nieuwe klant en Klantenbestand
@@ -2876,12 +2881,12 @@ let groepNu = 'overzicht';
 /* titel en uitleg in het sfeerbeeld bovenaan, per menuonderdeel */
 const GROEP_KOP = {
   overzicht:     ['Dagstart', ''],
-  agenda:        ['Agenda', 'Reserveringen en diensten per dag, week, maand of jaar.'],
-  calls:         ['Welkomstcalls', 'Bovenaan de calls die nog open staan. Daaronder bel je de gast, boek je extra\u2019s bij en stuur je de bevestiging.'],
-  werk:          ['Taken', 'Alle openstaande taken van het team. Draag een taak over aan een collega met \u21c4. Daaronder de overdracht en de data-entrylijsten.'],
-  reserveringen: ['Reserveringen & incheck', 'Reserveringen bekijken, incheckformulieren klaarzetten en koppelen, en het nachtregister bijhouden.'],
+  planning:      ['Planning', 'De volledige planning: reserveringen per dag, week, maand of jaar, en daaronder wie wanneer is ingepland.'],
+  reserveringen: ['Reserveringen', 'Nieuwe reserveringen aanmaken, bestaande opzoeken en wijzigen, en de incheckformulieren klaarzetten.'],
+  takencalls:    ['Taken & welkomstcalls', 'Alle openstaande taken van het team, met de welkomstcalls eronder. Draag een taak over aan een collega met \u21c4.'],
   klantbeheer:   ['Klantbeheer', 'Klanten toevoegen, gegevens bijwerken en dubbelingen samenvoegen.'],
   bellen:        ['Belscripts', 'Werk een bellijst af met het script ernaast en vink de stappen af.'],
+  werktarieven:  ['Werk & tarieven', 'Urenregistratie en de tarieven per soort werk.'],
   gmail:         ['Gmail', 'Lees en verstuur e-mail vanuit het dashboard.']
 };
 function zetKop(groep){
@@ -4448,13 +4453,17 @@ function badges(){
   zet('werk', mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length);
   zet('overdracht', S.overdracht.filter(o=>!o.afgehandeld).length);
   /* de tellers op de nieuwe groepsknoppen */
+  /* De namen hieronder moeten gelijk zijn aan de sleutels in GROEPEN: de teller
+     zoekt het element badge-groep-<naam>. Wijkt een naam af, dan verdwijnt het
+     bolletje zonder foutmelding. Taken en welkomstcalls delen nu een tabblad,
+     dus hun aantallen worden opgeteld. */
   const groepTeller = {
-    werk: mijnTaken().filter(t=>t.status!=='klaar').length,
-    calls: (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
+    takencalls: mijnTaken().filter(t=>t.status!=='klaar').length +
+                (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
     reserveringen: RES.length,
     klantbeheer: (S.klanten||[]).length,
     bellen: (S.belitems||[]).filter(b=>!b.gebeld).length,
-    entry: (S.docs||[]).filter(d=>(d.categorie||'')==='Data entry' && !/^Status:\s*klaar/mi.test(d.opmerking||'')).length
+    werktarieven: mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length
   };
   Object.keys(groepTeller).forEach(g=>{
     const el = document.getElementById('badge-groep-'+g);
@@ -4753,7 +4762,7 @@ $('#rzNaarDag').addEventListener('click', ()=>{
   const r = rzHuidig(); if(!r) return;
   const dag = String(r.start||'').slice(0,10);
   kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
-  kiesGroep('agenda'); if(VR_KAL) VR_KAL.naarDatum(dag);
+  kiesGroep('planning'); if(VR_KAL) VR_KAL.naarDatum(dag);
   $('#vrKalender').scrollIntoView({behavior:'smooth', block:'start'});
 });
 $('#rzNaarWijziging').addEventListener('click', ()=>{
@@ -5114,7 +5123,7 @@ document.addEventListener('click', async e=>{
     const r = KAL_LIJST[Number(dg.dataset.rdag)];
     const dag = String(r.start||'').slice(0,10);
     kalMaand = dag.slice(0,7); kalDag = dag; renderKalender();
-    kiesGroep('agenda'); if(VR_KAL) VR_KAL.naarDatum(dag);
+    kiesGroep('planning'); if(VR_KAL) VR_KAL.naarDatum(dag);
     $('#vrKalender').scrollIntoView({behavior:'smooth', block:'start'});
   }
 });
