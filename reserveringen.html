@@ -98,6 +98,41 @@ tbody tr.geannuleerd .gast b{text-decoration:line-through}
 @media(max-width:620px){
   .suite .resfoto{width:72px;height:54px}
 }
+/* ---------- reserveringen als kaarten ----------
+   De fotoklassen (.reskaart-foto.foto-*) staan in het gedeelde stijlblad, dat na
+   dit blok laadt; daar staan alleen achtergrondafbeeldingen, geen kaartopmaak,
+   dus die vechten hier niet mee. */
+.reskaarten{display:flex;flex-direction:column;gap:11px}
+.reskaart{display:flex;align-items:stretch;gap:0;position:relative;cursor:pointer;
+  background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:11px;
+  transition:border-color .16s ease}
+.reskaart:hover,.reskaart:focus-visible{border-color:var(--groen);outline:none}
+.reskaart-foto{width:150px;min-height:124px;flex:0 0 150px;border-radius:12px;
+  background-size:cover;background-position:center;background-color:var(--surface-2)}
+.reskaart-body{padding:6px 16px;flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.reskaart-kop{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.reskaart-kop .nr{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--f-mono)}
+.reskaart-body h3{margin:4px 0 0;font-family:var(--f-titel);font-size:22px;font-weight:500;
+  color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reskaart-body h3 .zonder{color:var(--muted);font-size:16px}
+.reskaart-sub{margin:0;color:var(--muted);font-size:13px}
+.reskaart-regels{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:7px;font-size:12.5px;color:var(--ink-2)}
+.reskaart-regels b{font-weight:600;color:var(--ink)}
+.reskaart-geld{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:9px;padding-top:8px;
+  border-top:1px solid var(--line-soft);font-size:12.5px}
+.reskaart-geld span{color:var(--muted)}
+.reskaart-geld b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.reskaart-geld .open b{color:var(--crit)}
+.reskaart-voet{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px}
+.reskaart-voet .knop{margin-left:auto}
+.reskaart.geannuleerd{opacity:.62}
+.reskaart.geannuleerd h3{text-decoration:line-through}
+@media(max-width:620px){
+  .reskaart{flex-wrap:wrap;padding:9px}
+  .reskaart-foto{width:100%;flex:1 0 100%;min-height:150px}
+  .reskaart-body{padding:12px 4px 2px}
+  .reskaart-body h3{white-space:normal}
+}
 .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;
   background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);margin:0 4px 4px 0}
 .pill.ok{background:var(--ok-zacht);border-color:transparent;color:var(--ok)}
@@ -211,14 +246,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
     </div>
 
     <div class="telling" id="telling"></div>
-    <div class="card table-wrap">
-      <table>
-        <thead><tr>
-          <th>Aankomst</th><th>Suite</th><th>Gast</th><th>Kanaal</th><th>Type</th><th>Status</th><th>Let op</th><th></th>
-        </tr></thead>
-        <tbody id="lijst"><tr><td colspan="8" class="leeg">Laden…</td></tr></tbody>
-      </table>
-    </div>
+    <!-- Kaarten in plaats van een tabel. Het id lijst blijft staan: het tekenen,
+         het openen van de reserveringskaart en de knop Bevestigd sturen daarop. -->
+    <div class="reskaarten" id="lijst"><p class="leeg">Laden…</p></div>
   </section>
 
   <!-- ============ tab: nieuwe reservering ============ -->
@@ -617,16 +647,45 @@ function rijHtml(r) {
   const contact = [r.gast_telefoon, r.gast_email].filter(Boolean).join(" · ");
   const knop = magBewerken() && r.status !== "geannuleerd" && (!gecontroleerd(r) || r.status === "optie")
     ? '<button type="button" class="knop klein" data-bevestig="' + esc(r.id) + '">Bevestigd</button>' : "";
-  return '<tr data-id="' + esc(r.id) + '" tabindex="0" class="' + esc(r.status) + '">' +
-    '<td class="datum"><b>' + esc(p.dag) + "</b><span>" + esc(p.tijd) + "</span>" + (afwijkend ? "<span>" + esc(afwijkend) + "</span>" : "") + "</td>" +
-    '<td class="suite">' + resFoto(r.suite) + '<i style="background:' + (SUITES[r.suite] ? SUITES[r.suite].kleur : "#999") + '"></i>' + esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + "</td>" +
-    '<td class="gast"><b>' + (naam ? esc(naam) : '<span style="display:inline;color:var(--muted)">zonder naam</span>') + "</b>" +
-      (contact ? "<span>" + esc(contact) + "</span>" : "") + (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") + "</td>" +
-    "<td>" + esc(KANALEN[r.kanaal] || r.kanaal) + (r.kanaal === "smg" && r.kanaal_ref ? '<span class="klein-grijs">' + esc(r.kanaal_ref) + "</span>" : "") + "</td>" +
-    "<td>" + esc(TYPES[r.type] || r.type) + "</td>" +
-    "<td>" + statusPill(r.status) + (gecontroleerd(r) ? '<span class="klein-grijs">✓ ' + esc(r.gewijzigd_door) + "</span>" : "") + "</td>" +
-    "<td>" + letop.join("") + "</td>" +
-    '<td style="text-align:right">' + knop + "</td></tr>";
+  /* Bedragen komen alle drie uit KOLOMMEN, dus zonder extra bevraging.
+     restant_bedrag staat als eigen veld in de database; ontbreekt het, dan
+     rekenen we het alsnog uit totaal min betaald. */
+  const totaal  = r.bedrag_totaal;
+  const betaald = r.betaald_bedrag;
+  const open    = r.restant_bedrag != null ? r.restant_bedrag
+                : (totaal != null ? Number(totaal) - Number(betaald || 0) : null);
+  const geld = totaal == null ? "" :
+    '<div class="reskaart-geld">' +
+      "<span>Totaal <b>&euro; " + esc(euro(totaal)) + "</b></span>" +
+      (betaald != null ? "<span>Betaald <b>&euro; " + esc(euro(betaald)) + "</b></span>" : "") +
+      (open != null && Number(open) > 0
+        ? '<span class="open">Nog te betalen <b>&euro; ' + esc(euro(open)) + "</b></span>"
+        : '<span>Voldaan</span>') +
+    "</div>";
+
+  return '<article class="reskaart ' + esc(r.status) + '" data-id="' + esc(r.id) + '" tabindex="0">' +
+    '<span class="reskaart-foto ' +
+      esc(SUITE_FOTO[String(r.suite || "").trim().toLowerCase()] || "") + '"></span>' +
+    '<div class="reskaart-body">' +
+      '<div class="reskaart-kop">' + statusPill(r.status) +
+        '<span class="nr">' + esc(resNummer(r)) + "</span></div>" +
+      "<h3>" + (naam ? esc(naam) : '<span class="zonder">zonder naam</span>') + "</h3>" +
+      '<p class="reskaart-sub">' + esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) +
+        " &middot; " + esc(KANALEN[r.kanaal] || r.kanaal) + "</p>" +
+      '<div class="reskaart-regels">' +
+        "<span>Aankomst <b>" + esc(p.dag) + "</b></span>" +
+        "<span><b>" + esc(p.tijd) + "</b></span>" +
+        (afwijkend ? "<span>" + esc(afwijkend) + "</span>" : "") +
+        "<span><b>" + esc(TYPES[r.type] || r.type) + "</b></span>" +
+        (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
+      "</div>" +
+      (contact ? '<div class="reskaart-regels"><span>' + esc(contact) + "</span></div>" : "") +
+      geld +
+      '<div class="reskaart-voet">' + letop.join("") +
+        (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +
+        knop +
+      "</div>" +
+    "</div></article>";
 }
 
 function teken() {
@@ -637,7 +696,7 @@ function teken() {
     zonderGegevens + " zonder volledige gastgegevens · " + controleren + " met tijden om te controleren";
   $("#lijst").innerHTML = lijst.length
     ? lijst.map(rijHtml).join("")
-    : '<tr><td colspan="8" class="leeg">Geen reserveringen die aan dit filter voldoen.</td></tr>';
+    : '<p class="leeg">Geen reserveringen die aan dit filter voldoen.</p>';
 }
 
 function begin(dagen) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dagen); return d.toISOString(); }
@@ -1593,7 +1652,7 @@ async function start() {
   }
   if (!ROL) {
     melding("Je account heeft geen toegang tot reserveringen. Vraag Angela om een toegangsrol.", "fout");
-    $("#lijst").innerHTML = '<tr><td colspan="8" class="leeg">Geen toegang.</td></tr>';
+    $("#lijst").innerHTML = '<p class="leeg">Geen toegang.</p>';
     return;
   }
   if (magBeperkt()) melding("Je kunt bij je eigen suites de gastgegevens, het aantal personen en de in- en uitchecktijden aanvullen. " +
@@ -1665,12 +1724,12 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#lijst").addEventListener("click", (e) => {
     const knop = e.target.closest("[data-bevestig]");
     if (knop) { e.stopPropagation(); snelBevestigen(knop.getAttribute("data-bevestig"), knop); return; }
-    const tr = e.target.closest("tr[data-id]");
-    if (tr) openVenster(tr.getAttribute("data-id"));
+    const kaart = e.target.closest("[data-id]");
+    if (kaart) openVenster(kaart.getAttribute("data-id"));
   });
   $("#lijst").addEventListener("keydown", (e) => {
-    const tr = e.target.closest("tr[data-id]");
-    if (tr && e.key === "Enter" && !e.target.closest("button")) openVenster(tr.getAttribute("data-id"));
+    const kaart = e.target.closest("[data-id]");
+    if (kaart && e.key === "Enter" && !e.target.closest("button")) openVenster(kaart.getAttribute("data-id"));
   });
 
   $("#vBlok").addEventListener("change", () => {
