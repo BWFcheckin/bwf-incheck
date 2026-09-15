@@ -1035,16 +1035,21 @@ div.ag-blok{cursor:default}
 .dg-tegels #ovLocaties .stat .value{font-size:26px;order:2}
 .dg-tegels #ovLocaties .stat .sub{width:100%;order:3}
 
-/* De cijferbalk bovenaan de Dagstart, in de vormtaal van de startpagina:
-   dikkere rand, ronding en schaduw, en hij komt iets omhoog als je erover gaat.
-   Bewust aan #ovStats gehangen: dat element staat buiten .dg-tegels, dus de
-   locatielijst hierboven blijft de rustige regels houden die ze nu heeft.
-   Een id plus een klasse wint van de algemene .stat-regel verderop. */
-#ovStats{grid-template-columns:repeat(auto-fit,minmax(186px,1fr));gap:14px}
-#ovStats .stat{border:2px solid var(--line);border-radius:var(--radius,var(--r-m));
-  box-shadow:var(--shadow);min-height:108px;padding:17px 19px;
-  transition:transform .18s ease,border-color .18s ease}
-#ovStats .stat:hover{transform:translateY(-2px);border-color:var(--goud)}
+/* De cijferbalk bovenaan de Dagstart: vier telkaarten naast elkaar, net als op
+   de startpagina van het dashboard. Elke kaart is een knop die naar het
+   bijbehorende onderdeel springt; de pijl rechts laat dat zien.
+   Eigen klassenamen (dg-) omdat .stat en .stats in dit bestand al bezet zijn
+   door de cijfers bij Werkzaamheden en bij De drie locaties. */
+#ovStats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.dg-stat{position:relative;min-height:108px;padding:17px 19px;text-align:left;
+  background:var(--surface);border:2px solid var(--line);border-radius:var(--r-l);
+  cursor:pointer;transition:transform .18s ease,border-color .18s ease}
+.dg-stat:hover{transform:translateY(-2px);border-color:var(--goud)}
+.dg-stat .dg-teken{display:block;color:var(--groen);font-size:19px;margin-bottom:5px}
+.dg-stat .dg-getal{display:block;font-family:var(--f-titel);font-size:30px;font-weight:500;
+  line-height:1.1;color:var(--ink);font-variant-numeric:lining-nums tabular-nums}
+.dg-stat .dg-wat{display:block;margin-top:2px;color:var(--muted);font-size:12.5px}
+.dg-stat .dg-pijl{position:absolute;right:16px;top:50%;margin-top:-10px;color:var(--muted);font-size:17px}
 
 /* ---------- taak overdragen ---------- */
 .tk-odr{color:var(--goud-ink)}
@@ -1085,6 +1090,88 @@ div.ag-blok{cursor:default}
   .dg-tegels > .card.dicht .dg-naar{margin-top:4px}
   .dg-tegels > .card:not(.dicht) .dg-naar{margin-left:0}
 }
+/* ---------- Dagstart in de indeling van de startpagina ----------
+   Eigen klassenamen met dg- ervoor. De namen van de startpagina (.hero, .stats,
+   .badge, .card-head, .eyebrow, .leeg) zijn in dit bestand al bezet door iets
+   anders, dus die overnemen zou bestaande schermen veranderen. */
+.bwf-hero-label{display:block;margin-bottom:6px;font-family:var(--f-mono);font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;color:#D8C38F}
+.bwf-hero-knop{margin-top:14px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);
+  color:#fff;border-radius:999px;padding:9px 17px;font-size:13px;cursor:pointer;
+  transition:background .15s ease}
+.bwf-hero-knop:hover{background:rgba(255,255,255,.22)}
+
+.dg-home{display:grid;grid-template-columns:1.25fr .95fr;gap:16px;margin-bottom:22px;align-items:start}
+.dg-home > .card{margin:0}
+.dg-groot{grid-row:span 2}
+.dg-eyebrow{display:block;margin-bottom:2px;font-family:var(--f-mono);font-size:10.5px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--goud-ink)}
+.dg-link{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:600;
+  white-space:nowrap;cursor:pointer}
+.dg-link:hover{color:var(--groen)}
+.dg-leeg{margin:0;padding:22px 20px 26px;color:var(--muted);font-size:13px;text-align:center}
+
+/* nu doen */
+.dg-prio{margin:16px;padding:10px;display:grid;grid-template-columns:42% 1fr;gap:16px;
+  border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface)}
+.dg-prio-foto{min-height:200px;border-radius:var(--r-m);background:var(--groen) var(--foto) center/cover no-repeat}
+.dg-prio-info{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.dg-prio-info h3{margin:8px 0 4px;font-family:var(--f-titel);font-size:22px;font-weight:500;color:var(--ink)}
+.dg-prio-info p{margin:0;color:var(--muted);font-size:14px}
+.dg-merk{width:max-content;padding:5px 10px;border-radius:999px;background:var(--crit-soft);
+  color:var(--crit);font-size:10px;font-weight:800;letter-spacing:.06em}
+.dg-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;color:var(--muted);font-size:12px}
+.dg-knop{width:max-content;margin-top:16px;border:1px solid var(--groen);background:var(--groen);
+  color:#fff;border-radius:999px;padding:10px 18px;font-size:12.5px;font-weight:600;cursor:pointer;
+  transition:background .15s ease}
+.dg-knop:hover{background:var(--groen-2)}
+
+/* planning van vandaag */
+.dg-tijdlijn{padding:2px 18px 18px}
+.dg-punt{position:relative;min-height:50px;display:grid;grid-template-columns:44px 13px 1fr auto;
+  align-items:center;gap:8px;border-top:1px solid var(--line-soft)}
+.dg-punt:first-child{border-top:0}
+.dg-punt time{color:var(--muted);font-size:12px;font-variant-numeric:lining-nums tabular-nums}
+.dg-stip{position:relative;width:9px;height:9px;border-radius:50%;background:var(--goud)}
+.dg-punt:not(:last-child) .dg-stip::after{content:"";position:absolute;top:9px;left:4px;width:1px;height:42px;
+  background:var(--goud-zacht)}
+.dg-punt strong{display:block;font-size:13px;font-weight:600}
+.dg-punt small{display:block;margin-top:2px;color:var(--muted);font-size:11px}
+.dg-label{padding:5px 9px;border-radius:999px;background:var(--goud-zacht);color:var(--goud-ink);
+  font-size:10px;font-weight:700}
+.dg-label.groen{background:var(--groen-zacht);color:var(--groen)}
+
+/* mijn taken */
+.dg-lijst{padding:2px 18px 16px}
+.dg-taak{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line-soft)}
+.dg-taak:first-child{border-top:0}
+.dg-rond{width:27px;height:27px;flex:0 0 27px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;background:var(--groen-zacht);color:var(--groen);font-size:14px}
+.dg-taak > div{flex:1;min-width:0}
+.dg-taak strong{display:block;font-size:13px;font-weight:600}
+.dg-taak small{display:block;margin-top:3px;color:var(--muted);font-size:11px}
+.dg-taak button{border:0;border-radius:999px;padding:7px 12px;background:var(--goud-zacht);
+  color:var(--goud-ink);font-size:10.5px;font-weight:700;cursor:pointer}
+
+@media (max-width:900px){
+  #ovStats{grid-template-columns:repeat(2,1fr)}
+  .dg-home{grid-template-columns:1fr}
+  .dg-groot{grid-row:auto}
+}
+@media (max-width:620px){
+  #ovStats{grid-template-columns:repeat(2,1fr);gap:9px}
+  .dg-stat{min-height:92px;padding:13px 14px}
+  .dg-stat .dg-getal{font-size:25px}
+  .dg-stat .dg-pijl{display:none}
+  .dg-prio{grid-template-columns:96px 1fr;gap:11px;margin:12px;padding:8px}
+  .dg-prio-foto{min-height:118px}
+  .dg-prio-info h3{font-size:18px}
+  .dg-prio-info p{font-size:13px}
+  .dg-tijdlijn,.dg-lijst{padding:2px 13px 14px}
+  .dg-punt{grid-template-columns:38px 11px 1fr auto}
+  .bwf-hero-knop{padding:8px 14px;font-size:12px}
+}
+
 @media print{
   .bwf-merkbalk,.bwf-hero{display:none!important}
 }
@@ -1142,8 +1229,10 @@ div.ag-blok{cursor:default}
 
   <div class="bwf-hero" id="bwfHero">
     <div class="bwf-hero-tekst">
+      <span class="bwf-hero-label" id="heroLabel">Vandaag</span>
       <h1 id="heroTitel">Dagstart</h1>
       <p id="heroTekst"></p>
+      <button class="bwf-hero-knop" id="heroKnop" type="button" data-dgnaar="planning">Bekijk planning &rarr;</button>
     </div>
   </div>
 
@@ -1180,7 +1269,30 @@ div.ag-blok{cursor:default}
          renderOverzicht() vulde hem altijd al (open taken, werkzaamheden en uren
          deze maand, nog niet afgerekend, openstaande overdracht); alleen het
          tonen stond uit. -->
-    <div class="stats" id="ovStats"></div>
+    <div id="ovStats"></div>
+
+    <!-- Dezelfde indeling als de startpagina van het dashboard: links de
+         eerstvolgende taak met een foto, rechts de planning van vandaag met de
+         eigen taken eronder. renderDagstart() vult ze.
+         De hulpmiddelen hieronder blijven gewoon staan. -->
+    <div class="dg-home">
+      <div class="card dg-groot">
+        <div class="card-head"><div><span class="dg-eyebrow">Prioriteit</span><h2>Nu doen</h2></div>
+          <button class="dg-link" type="button" data-dgnaar="takencalls">Alle taken &rarr;</button></div>
+        <div id="dgNuDoen"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><span class="dg-eyebrow">Vandaag</span><h2>Planning</h2></div>
+          <button class="dg-link" type="button" data-dgnaar="planning">Meer &rarr;</button></div>
+        <div class="dg-tijdlijn" id="dgTijdlijn"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><span class="dg-eyebrow">Actie</span><h2>Mijn taken</h2></div>
+          <button class="dg-link" type="button" data-dgnaar="takencalls">Alles &rarr;</button></div>
+        <div class="dg-lijst" id="dgMijnTaken"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+      </div>
+    </div>
+
     <div class="inklapbalk">
       <button class="btn ghost small" id="ovAllesUit" type="button">Alles uitklappen</button>
       <button class="btn ghost small" id="ovAllesIn" type="button">Alles inklappen</button>
@@ -1394,6 +1506,15 @@ div.ag-blok{cursor:default}
         </div>
         <div class="card-foot"><span id="ovOdFoot"></span>
           <button class="btn" id="ovOdOpslaan" type="button">Op de overdracht zetten</button></div>
+      </div>
+
+      <!-- De cijfers over werkzaamheden, uren en overdracht stonden eerst in de
+           balk bovenaan. Die balk toont nu de vier dagstartcijfers, dus deze
+           hebben hier een eigen kaart gekregen: ze zijn niet verdwenen. -->
+      <div class="card">
+        <div class="card-head"><h2>Mijn werk deze maand</h2>
+          <span class="hint">uren, registraties en overdracht</span></div>
+        <div class="card-body"><div class="stats" id="ovWerkStats" style="margin:0"></div></div>
       </div>
     </div>
   </section>
@@ -2920,6 +3041,11 @@ function zetKop(groep){
       p.textContent = groet + (naam && naam !== '\u2014' ? ' ' + naam : '') + ', het is ' + dag + '.';
     } else p.textContent = kop[1];
   }
+  /* het opschrift en de knop in het sfeerbeeld horen bij de Dagstart; op de
+     andere onderdelen zouden ze naar de verkeerde pagina wijzen */
+  const lbl = document.getElementById('heroLabel'), knop = document.getElementById('heroKnop');
+  if(lbl)  lbl.hidden  = groep !== 'overzicht';
+  if(knop) knop.hidden = groep !== 'overzicht';
   /* het eerste zichtbare paneel toont zijn eigen kop niet: die staat al in het sfeerbeeld */
   let eerste = true;
   document.querySelectorAll('#app .panel').forEach(pn=>{
@@ -3273,6 +3399,108 @@ document.addEventListener('click', e => {
   renderAankomsten();
 });
 
+/* ---------------- DAGSTART ----------------
+   Dezelfde indeling als de startpagina van het dashboard: een balk met vier
+   telkaarten, daaronder links de eerstvolgende taak met een foto en rechts de
+   planning van vandaag met de eigen taken eronder.
+   Alles komt uit gegevens die hier al geladen zijn (RES, S.taken, S.calls), dus
+   er wordt niets extra opgehaald. De startpagina heeft ook een telkaart
+   'Voorraad bijna op'; dit dashboard houdt geen voorraad bij, dus die plek is
+   hier ingevuld met Welkomstcalls. */
+const dgOpenTaken = () => mijnTaken().filter(t => t.status !== 'klaar');
+
+function renderDagstart(){
+  const vd = vandaag();
+  const open = dgOpenTaken();
+  const calls = (S.calls || []).filter(c => c.status !== 'afgerond' && c.status !== 'gebeld');
+  const aankVandaag = RES.filter(r => String(r.start || '').slice(0,10) === vd);
+
+  const tegel = (teken, getal, wat, naar) =>
+    `<button class="dg-stat" type="button" data-dgnaar="${naar}">
+       <span class="dg-teken">${teken}</span>
+       <span class="dg-getal">${getal}</span>
+       <span class="dg-wat">${wat}</span>
+       <span class="dg-pijl">&rarr;</span></button>`;
+
+  const balk = $('#ovStats');
+  if(balk) balk.innerHTML =
+    tegel('&#9831;', RES.length,         'Reserveringen vanaf vandaag', 'reserveringen') +
+    tegel('&#10003;', open.length,       'Openstaande taken',           'takencalls') +
+    tegel('&#9742;', calls.length,       'Welkomstcalls te doen',       'takencalls') +
+    tegel('&#9817;', aankVandaag.length, 'Aankomsten vandaag',          'planning');
+
+  /* ---- nu doen: hoge prioriteit eerst, daarna de vroegste deadline ---- */
+  const dringend = open.slice().sort((a,b) => {
+    const ha = (a.prioriteit || '').toLowerCase() === 'hoog' ? 0 : 1;
+    const hb = (b.prioriteit || '').toLowerCase() === 'hoog' ? 0 : 1;
+    if(ha !== hb) return ha - hb;
+    return String(a.deadline || '9999').localeCompare(String(b.deadline || '9999'));
+  })[0];
+
+  const nuDoen = $('#dgNuDoen');
+  if(nuDoen){
+    if(!dringend){
+      nuDoen.innerHTML = '<p class="dg-leeg">Geen openstaande taken. Alles is bij.</p>';
+    }else{
+      const laat = dringend.deadline && dringend.deadline < vd;
+      const hoog = (dringend.prioriteit || '').toLowerCase() === 'hoog';
+      nuDoen.innerHTML = `<div class="dg-prio">
+        <div class="dg-prio-foto"></div>
+        <div class="dg-prio-info">
+          ${hoog || laat ? `<span class="dg-merk">${laat ? 'TE LAAT' : 'URGENT'}</span>` : ''}
+          <h3>${esc(dringend.titel || 'Zonder titel')}</h3>
+          <p>${esc(dringend.omschrijving || 'Geen omschrijving')}</p>
+          <div class="dg-meta">
+            <span>&#9719; ${esc(dringend.deadline ? dmy(dringend.deadline) : 'geen datum')}</span>
+            ${dringend.prioriteit ? `<span>&#10022; ${esc(dringend.prioriteit)}</span>` : ''}
+            <span>&#9679; ${esc(mwNaam(dringend.medewerker_id))}</span>
+          </div>
+          <button class="dg-knop" type="button" data-dgnaar="takencalls">Open in taken</button>
+        </div></div>`;
+    }
+  }
+
+  /* ---- planning van vandaag: aankomsten, vertrek en taken met deadline ---- */
+  const punten = [];
+  aankVandaag.forEach(r => punten.push({
+    tijd: String(r.start || '').slice(11,16),
+    titel: r.naam || 'Zonder naam', sub: r.locatie || '', soort: 'aankomst' }));
+  RES.filter(r => String(r.eind || '').slice(0,10) === vd).forEach(r => punten.push({
+    tijd: String(r.eind || '').slice(11,16),
+    titel: 'Vertrek ' + (r.naam || 'zonder naam'), sub: r.locatie || '', soort: 'vertrek' }));
+  open.filter(t => t.deadline === vd).forEach(t => punten.push({
+    tijd: '', titel: t.titel || 'Taak', sub: t.omschrijving || '', soort: 'taak' }));
+  punten.sort((a,b) => String(a.tijd || '99:99').localeCompare(String(b.tijd || '99:99')));
+
+  const tl = $('#dgTijdlijn');
+  if(tl) tl.innerHTML = punten.length
+    ? punten.slice(0,8).map(p => `<div class="dg-punt">
+        <time>${esc(p.tijd || '—')}</time><span class="dg-stip"></span>
+        <div><strong>${esc(p.titel)}</strong><small>${esc(p.sub)}</small></div>
+        <label class="dg-label${p.soort === 'aankomst' ? ' groen' : ''}">${esc(p.soort)}</label>
+      </div>`).join('')
+    : '<p class="dg-leeg">Vandaag staat er niets gepland.</p>';
+
+  /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
+  const mijn = open.filter(t => IK && t.medewerker_id === IK.id);
+  const lijst = mijn.length ? mijn : open;
+  const mt = $('#dgMijnTaken');
+  if(mt) mt.innerHTML = lijst.length
+    ? lijst.slice(0,5).map(t => `<div class="dg-taak">
+        <span class="dg-rond">&#10003;</span>
+        <div><strong>${esc(t.titel || 'Zonder titel')}</strong>
+          <small>${esc([t.omschrijving, t.deadline ? dmy(t.deadline) : ''].filter(Boolean).join(' · '))}</small></div>
+        <button type="button" data-dgnaar="takencalls">Open</button>
+      </div>`).join('')
+    : '<p class="dg-leeg">Geen openstaande taken.</p>';
+}
+
+/* elke knop met data-dgnaar springt naar dat onderdeel van het menu */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-dgnaar]'); if(!b) return;
+  kiesGroep(b.dataset.dgnaar);
+});
+
 function renderOverzicht(){
   const taken = mijnTaken(), werk = mijnWerk();
   const open = taken.filter(t=>t.status!=='klaar');
@@ -3281,7 +3509,9 @@ function renderOverzicht(){
   const werkMaand = werk.filter(w=>String(w.datum).slice(0,7)===maand);
   const urenMaand = werkMaand.reduce((a,w)=>a+Number(w.uren||0),0);
   const nietAfgerekend = werk.filter(w=>!w.betaald).length;
-  $('#ovStats').innerHTML = `
+  /* De balk bovenaan toont nu de vier dagstartcijfers (zie renderDagstart).
+     Deze vier gaan over het eigen werk en staan in hun eigen kaart onderaan. */
+  if($('#ovWerkStats')) $('#ovWerkStats').innerHTML = `
     <div class="stat"><span class="label">Open taken</span><span class="value">${open.length}</span>
       <span class="sub">${teLaat.length? teLaat.length+' over de deadline' : 'niets over tijd'}</span></div>
     <div class="stat brass"><span class="label">Deze maand</span><span class="value">${werkMaand.length}</span>
@@ -3294,6 +3524,7 @@ function renderOverzicht(){
       <span class="sub">${(()=>{const v=S.overdracht.filter(o=>!o.afgehandeld && o.aan_id===IK.id).length;
         return v ? v+' voor jou' : 'openstaande berichten';})()}</span></div>`;
 
+  renderDagstart();
   renderAankomsten();
 
   const komend = open.slice().sort((a,b)=>(a.deadline||'9999')<(b.deadline||'9999')?-1:1).slice(0,8);
