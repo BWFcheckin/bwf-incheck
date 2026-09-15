@@ -5789,10 +5789,20 @@ function kpFormulieren(){
 function kpVulFormulieren(){
   const sel = $('#kpForm'); if(!sel) return;
   const lijst = kpFormulieren();
+  /* Twee kopjes in plaats van kleur: opties in een uitklapmenu laten zich op
+     iPhone en in Safari niet opmaken, kopjes wel. De positie in de lijst is de
+     waarde van de optie, dus die blijft staan - anders koppel je straks het
+     verkeerde formulier aan een reservering. */
+  const optie = (g, i) => `<option value="${i}">${esc(formNaam(g) || 'zonder naam')} · ${
+      esc(formDatum(g) ? dmy(formDatum(g)) : 'geen datum')}${formLoc(g)?' · '+esc(formLoc(g)):''} · ${
+      esc(g._soort)}</option>`;
+  /* Let op: verderop in deze functie bestaat al een variabele 'los' met de
+     telling voor de voettekst. Deze twee heten daarom anders. */
+  const losOpties  = lijst.map((g, i) => formGekoppeld(g) ? '' : optie(g, i)).join('');
+  const vastOpties = lijst.map((g, i) => formGekoppeld(g) ? optie(g, i) : '').join('');
   sel.innerHTML = lijst.length
-    ? lijst.map((g,i)=>`<option value="${i}">${esc(formNaam(g) || 'zonder naam')} · ${
-        esc(formDatum(g) ? dmy(formDatum(g)) : 'geen datum')}${formLoc(g)?' · '+esc(formLoc(g)):''} · ${
-        esc(g._soort)}</option>`).join('')
+    ? (losOpties  ? '<optgroup label="Nog niet gekoppeld">' + losOpties  + '</optgroup>' : '') +
+      (vastOpties ? '<optgroup label="Al gekoppeld">'      + vastOpties + '</optgroup>' : '')
     : '<option value="">geen formulieren gevonden</option>';
   KP.lijst = lijst;
   const los = FORMS.filter(f=>!formGekoppeld(f)).length;
