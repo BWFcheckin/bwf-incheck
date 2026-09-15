@@ -650,18 +650,30 @@ function rijHtml(r) {
   /* Bedragen komen alle drie uit KOLOMMEN, dus zonder extra bevraging.
      restant_bedrag staat als eigen veld in de database; ontbreekt het, dan
      rekenen we het alsnog uit totaal min betaald. */
+  /* De betaalstatus is leidend. Het bewerkvenster vult betaald_bedrag en
+     restant_bedrag niet, dus die zijn bij vrijwel elke boeking leeg. Rekenen met
+     die leegte gaf "nog te betalen" bij een reservering die op Betaald stond.
+     Er wordt hier nooit een bedrag getoond dat niet echt bekend is. */
   const totaal  = r.bedrag_totaal;
+  const bstat   = String(r.betaalstatus || "open");
   const betaald = r.betaald_bedrag;
-  const open    = r.restant_bedrag != null ? r.restant_bedrag
-                : (totaal != null ? Number(totaal) - Number(betaald || 0) : null);
-  const geld = totaal == null ? "" :
-    '<div class="reskaart-geld">' +
-      "<span>Totaal <b>&euro; " + esc(euro(totaal)) + "</b></span>" +
-      (betaald != null ? "<span>Betaald <b>&euro; " + esc(euro(betaald)) + "</b></span>" : "") +
-      (open != null && Number(open) > 0
-        ? '<span class="open">Nog te betalen <b>&euro; ' + esc(euro(open)) + "</b></span>"
-        : '<span>Voldaan</span>') +
-    "</div>";
+  const restant = r.restant_bedrag != null ? Number(r.restant_bedrag)
+                : (totaal != null && betaald != null ? Number(totaal) - Number(betaald) : null);
+  let geldR = "";
+  if (totaal != null) {
+    geldR = "<span>Totaal <b>&euro; " + esc(euro(totaal)) + "</b></span>";
+    if (bstat === "betaald") {
+      geldR += "<span>Voldaan</span>";
+    } else if (bstat === "open") {
+      geldR += '<span class="open">Nog te betalen <b>&euro; ' + esc(euro(totaal)) + "</b></span>";
+    } else {
+      if (betaald != null) geldR += "<span>Betaald <b>&euro; " + esc(euro(betaald)) + "</b></span>";
+      geldR += restant != null
+        ? '<span class="open">Nog te betalen <b>&euro; ' + esc(euro(restant)) + "</b></span>"
+        : '<span class="open">' + esc(BETAAL[bstat] || bstat) + "</span>";
+    }
+  }
+  const geld = geldR ? '<div class="reskaart-geld">' + geldR + "</div>" : "";
 
   return '<article class="reskaart ' + esc(r.status) + '" data-id="' + esc(r.id) + '" tabindex="0">' +
     '<span class="reskaart-foto ' +
