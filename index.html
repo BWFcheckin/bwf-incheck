@@ -199,6 +199,17 @@
     <div id="planningKalender"></div>
   </div>
 
+  <div class="res-werkbalk">
+    <input type="search" id="plZoek" placeholder="Zoek op naam, suite of nummer...">
+    <select id="plSorteer">
+      <option value="datum">Op datum</option>
+      <option value="naam">Op naam</option>
+      <option value="suite">Op suite</option>
+      <option value="bedrag">Op bedrag</option>
+    </select>
+    <span class="res-telling" id="plTelling"></span>
+  </div>
+
   <div id="planningLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
 </section>
 
@@ -850,6 +861,8 @@ function tekenHome(){
 /* ═══════════════════════════════════════════════════════════
    PLANNING
    ═══════════════════════════════════════════════════════════ */
+$('#plZoek').addEventListener('input', tekenPlanningLijst);
+$('#plSorteer').addEventListener('change', tekenPlanningLijst);
 $('#dagTerug').addEventListener('click',   () => { planningDag = dagPlus(planningDag, -1); tekenPlanning(); });
 $('#dagVooruit').addEventListener('click', () => { planningDag = dagPlus(planningDag,  1); tekenPlanning(); });
 
@@ -869,46 +882,74 @@ function tekenPlanning(){
   $$('#weekBalk button').forEach(b =>
     b.addEventListener('click', () => { planningDag = b.dataset.dag; tekenPlanning(); }));
 
-  const suites = [...new Set(RESERVERINGEN.map(r => r.suite).filter(Boolean))].sort();
-  if(!suites.length){
-    $('#planningLijst').innerHTML = '<div class="card"><p class="leeg">Geen suites gevonden.</p></div>';
-    return;
+  tekenPlanningLijst();
+}
+
+/* De lijst onder de kalender: doorzoekbaar, te sorteren, en elke regel
+   klapt open voor de details. Zoek je iets, dan kijken we in alle
+   reserveringen; anders vanaf de gekozen dag. */
+function tekenPlanningLijst(){
+  const zoek = ($('#plZoek') ? $('#plZoek').value : '').trim().toLowerCase();
+  const sorteer = $('#plSorteer') ? $('#plSorteer').value : 'datum';
+  const dag = planningDag;
+
+  let lijst = RESERVERINGEN.filter(levend);
+  if(zoek){
+    lijst = lijst.filter(r =>
+      (volledigeNaam(r) + ' ' + suiteNaam(r.suite) + ' ' + (r.kanaal_ref || '') + ' ' +
+       (r.gast_telefoon || '') + ' ' + (r.type || '')).toLowerCase().includes(zoek));
+  } else {
+    lijst = lijst.filter(r => dagVan(r.vertrek) >= dag);
   }
 
-  $('#planningLijst').innerHTML = suites.map(s => {
-    const bezet = verblijfOp(dag).filter(r => r.suite === s);
-    const aank  = aankomstOp(dag).filter(r => r.suite === s);
-    const vert  = vertrekOp(dag).filter(r => r.suite === s);
-    const taken = openTaken().filter(t => t.deadline === dag &&
-      String(t.omschrijving || '').toLowerCase().includes(String(s).toLowerCase()));
+  lijst.sort((a,b) => {
+    if(sorteer === 'naam')  return volledigeNaam(a).localeCompare(volledigeNaam(b));
+    if(sorteer === 'suite') return suiteNaam(a.suite).localeCompare(suiteNaam(b.suite)) ||
+                                   String(a.aankomst).localeCompare(String(b.aankomst));
+    if(sorteer === 'bedrag') return (Number(b.bedrag_totaal) || 0) - (Number(a.bedrag_totaal) || 0);
+    return String(a.aankomst).localeCompare(String(b.aankomst));
+  });
 
-    const stand      = bezet.length ? 'booked' : (aank.length ? 'partial' : 'available');
-    const standTekst = bezet.length ? 'Bezet'  : (aank.length ? 'Deels'   : 'Vrij');
+  $('#plTelling').textContent = zoek
+    ? lijst.length + ' gevonden'
+    : lijst.length + ' vanaf ' + nlDatum(dag);
 
-    const regels = []
-      .concat(taken.map(t => ({ tijd:'', titel:t.titel || 'Taak', sub:t.omschrijving || '', merk:'' })))
-      .concat(aank.map(r => ({ tijd:hhmm(r.incheck_tijd) || tijdVan(r.aankomst),
-              titel:volledigeNaam(r), sub:(r.type || 'verblijf') + ' · ' + (r.personen || '?') + ' pers.',
-              merk:'<span class="availability booked">Aankomst</span>' })))
-      .concat(vert.map(r => ({ tijd:hhmm(r.uitcheck_tijd) || tijdVan(r.vertrek),
-              titel:'Vertrek ' + volledigeNaam(r), sub:'', merk:'' })))
-      .sort((a,b) => String(a.tijd || '99:99').localeCompare(String(b.tijd || '99:99')));
-
-    return '<div class="planning-card card">' +
-      '<div class="planning-location">' +
-        '<span class="location-dot' + (bezet.length ? ' gold-dot' : '') + '"></span>' +
-        '<div><strong>' + esc(suiteNaam(s)) + '</strong><small>' + esc(nlDatum(dag)) + '</small></div>' +
-        '<span class="availability ' + stand + '">' + standTekst + '</span>' +
-      '</div>' +
-      (regels.length
-        ? regels.map(r =>
-            '<div class="planning-line"><time>' + esc(r.tijd || '—') + '</time>' +
-            '<div><strong>' + esc(r.titel) + '</strong>' +
-            (r.sub ? '<small>' + esc(r.sub) + '</small>' : '') + '</div>' +
-            (r.merk || '<span>&#9675;</span>') + '</div>').join('')
-        : '<p class="leeg">Niets gepland op deze dag.</p>') +
-    '</div>';
-  }).join('');
+  $('#planningLijst').innerHTML = lijst.length
+    ? '<div class="res-lijst">' + lijst.slice(0, 60).map(r => {
+        const d = dagVan(r.aankomst);
+        const vandaagAan = d === vandaag();
+        const bedrag = r.bedrag_totaal != null
+          ? '\u20ac ' + Number(r.bedrag_totaal).toLocaleString('nl-NL',{minimumFractionDigits:2}) : '';
+        const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : [])
+          .map(a => (typeof a === 'string' ? a : a.naam)).filter(Boolean);
+        return '<details class="res-regel">' +
+          '<summary class="res-kop">' +
+            '<span class="res-foto ' + foto(r.suite) + '"></span>' +
+            '<span class="res-info">' +
+              '<strong>' + esc(volledigeNaam(r)) + '</strong>' +
+              '<small>' + esc(suiteNaam(r.suite)) + '</small>' +
+              '<small>' + esc(d.slice(8) + '-' + d.slice(5,7)) + ' \u00b7 ' +
+                esc(hhmm(r.incheck_tijd) || tijdVan(r.aankomst)) + '</small>' +
+            '</span>' +
+            '<span class="badge ' + (vandaagAan ? 'green' : 'gold') + '">' +
+              (vandaagAan ? 'Vandaag' : esc(String(r.status || 'verblijf'))) + '</span>' +
+          '</summary>' +
+          '<div class="res-extra">' +
+            '<div><span>Reservering</span><b>' + esc(r.kanaal_ref || String(r.id).slice(0,8)) + '</b></div>' +
+            '<div><span>Type</span><b>' + esc(r.type || 'verblijf') + '</b></div>' +
+            '<div><span>Personen</span><b>' + esc(r.personen || '?') + '</b></div>' +
+            '<div><span>Vertrek</span><b>' + esc(dagVan(r.vertrek)) + '</b></div>' +
+            (bedrag ? '<div><span>Bedrag</span><b>' + esc(bedrag) + '</b></div>' : '') +
+            (r.gast_telefoon ? '<div><span>Telefoon</span><b><a href="tel:' +
+              esc(r.gast_telefoon) + '">' + esc(r.gast_telefoon) + '</a></b></div>' : '') +
+            (arr.length ? '<div class="breed"><span>Geboekt</span><b>' + esc(arr.join(', ')) + '</b></div>' : '') +
+            '<div class="breed"><a class="task-action" href="reserveringen.html?id=' +
+              esc(r.id) + '">Reserveringskaart openen</a></div>' +
+          '</div>' +
+        '</details>';
+      }).join('') + '</div>'
+    : '<div class="card"><p class="leeg">' +
+      (zoek ? 'Niets gevonden.' : 'Geen reserveringen vanaf deze dag.') + '</p></div>';
 }
 
 /* ═══════════════════════════════════════════════════════════

@@ -466,6 +466,48 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
 .inventory-alert.danger{ background:#FFE4E2; color:#B84F4C }
 .inventory-alert.good{ background:#E4F0E6; color:#4D7858 }
 
+/* ---- planning: lijst onder de kalender ---- */
+.res-werkbalk{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:14px 0 12px }
+.res-werkbalk input[type="search"]{
+  flex:1; min-width:170px; border:2px solid var(--border); background:var(--card);
+  border-radius:30px; padding:10px 16px; font-size:12px; color:var(--text);
+}
+.res-werkbalk select{
+  border:2px solid var(--border); background:var(--card); border-radius:30px;
+  padding:10px 14px; font-size:12px; color:var(--text);
+}
+.res-werkbalk input:focus,.res-werkbalk select:focus{ outline:2px solid var(--accent); outline-offset:-1px }
+.res-telling{ color:var(--muted); font-size:11px; white-space:nowrap }
+
+.res-lijst{ display:flex; flex-direction:column; gap:10px }
+.res-regel{
+  background:var(--card); border:2px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+}
+.res-regel[open]{ border-color:var(--accent) }
+.res-kop{
+  display:flex; align-items:center; gap:12px; padding:12px 14px;
+  cursor:pointer; list-style:none;
+}
+.res-kop::-webkit-details-marker{ display:none }
+.res-foto{
+  width:58px; height:50px; flex:none; border-radius:11px;
+  background-size:cover; background-position:center; background-color:#FBFAF7;
+}
+.res-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px }
+.res-info strong{ font-size:14px }
+.res-info small{ color:var(--muted); font-size:11px }
+
+.res-extra{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px 14px; padding:0 14px 14px; border-top:1px solid var(--border); padding-top:12px;
+}
+.res-extra > div{ display:flex; flex-direction:column; gap:3px; min-width:0 }
+.res-extra .breed{ grid-column:1/-1 }
+.res-extra span{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700 }
+.res-extra b{ font-size:13px; font-weight:600; word-break:break-word }
+.res-extra a.task-action{ display:inline-block; text-decoration:none; width:max-content }
+
 /* ---- voorraad: bewerken in de regel zelf ---- */
 .inventory-tools select{
   border:2px solid var(--border); background:#fff; border-radius:30px;
