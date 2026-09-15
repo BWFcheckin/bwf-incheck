@@ -203,14 +203,18 @@ td{ border-bottom:1px solid var(--line-soft) }
   letter-spacing:0;
   margin:6px 0 5px;
 }
-.page-head h1::before{
-  content:"BED & WELLNESS FLEVOLAND";
+/* GEEN ::before met een merknaam hier. De pagina's hebben al een eigen
+   opschrift boven de kop ("Waar wil je beginnen", "Locatie Lelystad"),
+   en dat is inhoud die iemand bewust heeft gekozen. Een vaste tekst
+   erboven plakken zet die dubbel. We maken alleen het bestaande
+   opschrift op. */
+.page-head .eyebrow{
   display:block;
-  font-family:var(--f-body);
   font-size:12px;
   font-weight:700;
   letter-spacing:2px;
   color:var(--muted);
+  text-transform:uppercase;
   margin-bottom:2px;
 }
 .page-head p{ color:var(--muted); font-size:14px; margin-top:6px }
