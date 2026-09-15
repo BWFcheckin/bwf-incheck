@@ -4705,6 +4705,7 @@ function cfStatus(f){
 }
 function cfLijstToon(soort){
   const doel = $('#cfLijst'); if(!doel) return;
+  cfSoortNu = soort;                         /* onthouden voor het opnieuw tekenen */
   const rijen = FORMS.filter(f=>f._soort === 'incheckformulier' && cfStatus(f) === soort)
     .sort((a,b)=> String(formDatum(b)).localeCompare(String(formDatum(a))));
   $('#cfHint').textContent = rijen.length + ' ' + (soort === 'concept' ? 'concept' : 'definitief formulier') +
@@ -4718,13 +4719,47 @@ function cfLijstToon(soort){
         ${formLoc(f)?`<span class="pill neutral">${esc(formLoc(f))}</span>`:''}
         ${formRef(f)?`<span class="pill neutral">#${esc(formRef(f))}</span>`:''}
       </div>
-      <div style="margin-top:8px">
+      <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <a class="btn ghost small" href="${esc(FORM_LM)}?id=${encodeURIComponent(f.id)}"
            target="_blank" rel="noopener" style="text-decoration:none">Formulier openen</a>
+        ${soort === 'definitief' ? `
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:400;cursor:pointer">
+          <input type="checkbox" data-betaalok="${esc(f.id)}" ${f.betaling_verwerkt ? 'checked' : ''}
+                 style="width:16px;height:16px;accent-color:var(--accent)">
+          <span>betaling verwerkt${f.betaling_verwerkt && f.betaling_verwerkt_door
+            ? ' · ' + esc(f.betaling_verwerkt_door) : ''}</span>
+        </label>` : ''}
       </div>
     </div>`).join('')
     : `<div class="empty"><strong>Niets gevonden</strong>Er zijn geen ${soort==='concept'?'concepten':'definitieve formulieren'}.</div>`;
 }
+/* Afvinken dat de betaling van een definitief formulier is verwerkt.
+   checkins staat niet in TBL, dus maak/wijzig werken hier niet; we schrijven
+   rechtstreeks met api(), in dezelfde stijl als die functies dat doen.
+   Na het opslaan wordt de lokale kopie bijgewerkt, zodat het vinkje blijft
+   staan zonder de pagina te herladen - anders lijkt het alsof het mislukte. */
+let cfSoortNu = 'definitief';
+document.addEventListener('change', async e=>{
+  const v = e.target.closest('[data-betaalok]'); if(!v) return;
+  const id = v.dataset.betaalok;
+  const aan = v.checked;
+  const f = FORMS.find(x=>String(x.id) === String(id));
+  const patch = {
+    betaling_verwerkt: aan,
+    betaling_verwerkt_op: aan ? new Date().toISOString() : null,
+    betaling_verwerkt_door: aan ? (IK ? IK.naam : null) : null
+  };
+  try{
+    await api('checkins?id=eq.' + encodeURIComponent(id),
+      {method:'PATCH', headers:heads({'Prefer':'return=minimal'}), body: JSON.stringify(patch)});
+    if(f) Object.assign(f, patch);
+    cfLijstToon(cfSoortNu);
+    toast(aan ? 'Betaling op verwerkt gezet.' : 'Vinkje weggehaald.');
+  }catch(err){
+    v.checked = !aan;                       /* terugdraaien: het is niet bewaard */
+    toast('Niet bewaard: ' + err.message);
+  }
+});
 $('#cfNieuw').addEventListener('click', ()=> window.open(FORM_LM, '_blank', 'noopener'));
 $('#cfGast').addEventListener('click', ()=> window.open(FORM_GAST, '_blank', 'noopener'));
 $('#cfConcept').addEventListener('click', ()=> cfLijstToon('concept'));
