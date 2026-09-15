@@ -260,10 +260,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       <div class="raster">
         <label class="veld">Suite <select id="nSuite"></select></label>
         <label class="veld">Kanaal
-          <select id="nKanaal">
-            <option value="handmatig">Handmatig (telefoon, WhatsApp, aan de deur)</option>
-            <option value="eigen">Eigen website</option>
-          </select></label>
+          <!-- Wordt gevuld vanuit KANALEN, zodat alle toegestane kanalen hier
+               verschijnen en er niet twee lijsten uit elkaar kunnen lopen. -->
+          <select id="nKanaal"></select></label>
         <label class="veld">Aankomst <input id="nAankomst" type="date"></label>
         <label class="veld">Vertrek <input id="nVertrek" type="date"></label>
         <label class="veld">Tijdsblok <select id="nBlok"></select></label>
@@ -486,7 +485,8 @@ function resFoto(suite){
   return k ? '<span class="resfoto ' + k + '"></span>' : "";
 }
 const KANALEN = { smg: "Privésauna (SMG)", booking: "Booking.com", oo: "Origineel Overnachten",
-  planyo: "Planyo", eigen: "Eigen website", handmatig: "Handmatig" };
+  planyo: "Planyo", eigen: "Eigen website", telefonisch: "Telefonisch", whatsapp: "WhatsApp",
+  handmatig: "Handmatig" };
 const TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overnachting",
   late_checkin: "Late check-in", honeymoon: "Honeymoon" };
 const STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannuleerd", no_show: "No-show" };
@@ -1339,6 +1339,10 @@ function vulNieuwKeuzes() {
     '<option value="' + esc(w) + '">' + esc(s.naam) + "</option>").join("");
   $("#nType").innerHTML = opties(TYPES, "dagverblijf");
   $("#nBetaal").innerHTML = opties(BETAAL, "open");
+  /* Handmatig blijft de standaard. Zou hier telefonisch staan, dan verandert
+     stilzwijgend de herkomst van elke boeking waarbij niemand die keuze
+     aanraakt. */
+  $("#nKanaal").innerHTML = opties(KANALEN, "handmatig");
   const vandaag = new Date();
   const iso = new Date(vandaag.getTime() - vandaag.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   $("#nAankomst").value = iso;
