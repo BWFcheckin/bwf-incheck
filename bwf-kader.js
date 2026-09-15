@@ -116,7 +116,10 @@
     "body.bwf-vergrendeld #bwfKaderBeeld{display:none!important}",
 
     /* de oude balk uitzetten als die er toch nog is */
-    "#bwfBalk,#bwfPaneel,#bwfLaag,#bwfMenuKnop{display:none!important}",
+    /* Alleen de balk van bwf-shell.js uitzetten. NIET #bwfMenuKnop,
+       #bwfMenu of #bwfHomeKnop: vr2.html heeft een eigen ingebouwd menu
+       met precies die namen, en dat zetten we hiermee uit. */
+    "#bwfBalk,#bwfPaneel,#bwfLaag{display:none!important}",
 
     /* Balken die een pagina zelf bovenaan vastplakt, moeten onder de
        kaderbalk door. Alleen paginabalken: .topbar op klantbeheer en
@@ -124,7 +127,11 @@
        shell gebruikte. NIET th, .v-kop, .detail-kop of .modal-head:
        die plakken binnen een tabel of een venster en horen te blijven
        waar ze zijn. */
-    ".topbar,.menubalk,.tabs,.topbalk,.paginakop{top:var(--bwfkaderbalk)!important}",
+    /* Balken die een pagina zelf bovenaan vastplakt, onder de kaderbalk
+       door schuiven. NIET .tabs: vr2 zet die in een media-regel vast
+       ONDERAAN (position:fixed;top:auto;bottom:10px). Zet je daar een
+       top op, dan rekt het element zich over de volle hoogte uit. */
+    ".topbar,.menubalk,.topbalk,.paginakop{top:var(--bwfkaderbalk)!important}",
 
     /* ---- laag voor het uitschuifmenu op smalle schermen ---- */
     "#bwfKaderLaag{position:fixed;inset:0;z-index:9390;background:rgba(9,44,37,.45);display:none}",
