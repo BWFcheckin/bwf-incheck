@@ -96,6 +96,45 @@ section.blok > h2 a{margin-left:auto;font-size:13px;font-weight:400}
 #slot .fout.open{display:block}
 body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
 .verborgen{display:none!important}
+
+/* ---------- beeldband en cijfertegels, in de vormtaal van de startpagina ----------
+   bwf-kader.js zet zelf al een fotoband met de paginanaam bovenaan de body.
+   Deze pagina krijgt er hieronder een eigen, ruimere band voor terug, dus die
+   van het kader gaat uit: anders staan er twee banden met twee keer een titel.
+   De kaderregel heeft geen !important, dus deze wint ongeacht de volgorde. */
+#bwfKaderBeeld{display:none!important}
+
+.ds-hero{position:relative;min-height:210px;overflow:hidden;border-radius:var(--r-l);
+  margin-bottom:18px;background:var(--accent);box-shadow:var(--shadow);display:flex;align-items:flex-end}
+.ds-hero::before{content:"";position:absolute;inset:0;background-size:cover;background-position:center;
+  background-image:linear-gradient(90deg,rgba(9,44,37,.94) 0%,rgba(9,44,37,.74) 45%,rgba(9,44,37,.18) 100%),
+  var(--foto-hero,none)}
+.ds-hero-tekst{position:relative;z-index:1;width:100%;padding:26px 30px 24px;color:#fff}
+.ds-hero-label{display:block;color:#D8C38F;font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;font-weight:700}
+.ds-hero-tekst h1{font-family:var(--f-display);font-size:clamp(25px,3.4vw,33px);font-weight:500;
+  line-height:1.15;margin:8px 0 6px;color:#fff;letter-spacing:-.01em}
+.ds-hero-tekst p{margin:0;font-size:14px;color:rgba(255,255,255,.76);max-width:62ch}
+.ds-hero .rechts{position:absolute;right:26px;top:22px;z-index:2}
+
+.ds-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:13px;margin-bottom:24px}
+.ds-stat{background:var(--surface);border:2px solid var(--line);border-radius:var(--r-l);
+  box-shadow:var(--shadow);min-height:104px;padding:16px 18px;display:flex;flex-direction:column;gap:3px;
+  transition:transform .18s ease,border-color .18s ease}
+.ds-stat:hover{transform:translateY(-2px);border-color:var(--accent)}
+.ds-stat .sym{color:var(--accent);font-size:17px;line-height:1}
+.ds-stat strong{font-family:var(--f-display);font-size:27px;font-weight:600;line-height:1.1;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+.ds-stat small{color:var(--muted);font-size:12px}
+
+@media(max-width:720px){
+  .ds-hero{min-height:160px}
+  .ds-hero-tekst{padding:20px 16px 18px}
+  .ds-hero .rechts{right:14px;top:14px}
+  .ds-stats{grid-template-columns:1fr 1fr;gap:10px}
+  .ds-stat{min-height:92px;padding:13px 14px}
+  .ds-stat strong{font-size:23px}
+}
 </style>
 <link rel="stylesheet" href="bwf-agenda-stijl.css?v=2">
 </head>
@@ -137,14 +176,30 @@ body.dicht > *:not(#slot){filter:blur(6px);pointer-events:none}
 
 <div class="wrap">
 
-  <div class="kop">
-    <div>
+  <!-- Beeldband met begroeting. De id's groet en datumTekst blijven staan:
+       die worden bij het inloggen gevuld met de groet en de datum van vandaag. -->
+  <div class="ds-hero">
+    <div class="ds-hero-tekst">
+      <span class="ds-hero-label">Vandaag</span>
       <h1 id="groet">Dagstart</h1>
       <p id="datumTekst"></p>
     </div>
     <div class="rechts">
       <button class="btn secondary sm" type="button" id="knopVernieuw">Vernieuwen</button>
     </div>
+  </div>
+
+  <!-- Cijfertegels. Ze worden gevuld vanuit de vier laadfuncties hieronder,
+       zodat zowel het laden als de knop Vernieuwen ze bijwerkt. -->
+  <div class="ds-stats">
+    <div class="ds-stat"><span class="sym">&#10003;</span>
+      <strong id="dsStatTaken">&ndash;</strong><small>Open taken</small></div>
+    <div class="ds-stat"><span class="sym">&#9990;</span>
+      <strong id="dsStatCalls">&ndash;</strong><small>Welkomstcalls te bellen</small></div>
+    <div class="ds-stat"><span class="sym">&#9633;</span>
+      <strong id="dsStatVoorraad">&ndash;</strong><small>Onder het minimum</small></div>
+    <div class="ds-stat"><span class="sym">&#9817;</span>
+      <strong id="dsStatAanmeld">&ndash;</strong><small>Aanmeldingen te koppelen</small></div>
   </div>
 
   <!-- ============ 1. reserveringen ============ -->
@@ -330,6 +385,13 @@ async function haal(pad, naam){
   }
 }
 
+/* Een cijfertegel bovenaan bijwerken. Stil overslaan als de tegel er niet is,
+   zodat het vullen van een blok nooit stukloopt op een ontbrekend element. */
+function dsTegel(id, waarde){
+  const el = document.getElementById(id);
+  if(el) el.textContent = waarde;
+}
+
 /* ---------- de blokken vullen ---------- */
 async function laadTaken(){
   const doel = document.getElementById('takenLijst');
@@ -343,6 +405,7 @@ async function laadTaken(){
   teller.textContent = mijn.length
     ? mijn.length + ' op jouw naam'
     : alles.length + ' open, geen op jouw naam';
+  dsTegel('dsStatTaken', mijn.length || alles.length);
 
   const vandaag = vandaagISO();
   doel.innerHTML = lijst.length
@@ -365,6 +428,7 @@ async function laadCalls(){
   CALLS_RUW = calls;
   const open = calls.filter(c => !/voltooid|afgerond|gedaan/i.test(String(c.status || '')));
   document.getElementById('callsTeller').textContent = open.length + ' te bellen';
+  dsTegel('dsStatCalls', open.length);
   doel.innerHTML = open.length
     ? open.slice(0, 8).map(c => {
         const spoed = c.datum && (new Date(c.datum) - new Date()) < 2 * 86400000;
@@ -388,6 +452,7 @@ async function laadVoorraad(){
   const onderweg = alles.filter(v => v.besteld);
   document.getElementById('voorraadTeller').textContent =
     tekort.length + ' onder het minimum' + (onderweg.length ? ' · ' + onderweg.length + ' onderweg' : '');
+  dsTegel('dsStatVoorraad', tekort.length);
   doel.innerHTML = tekort.length
     ? tekort.slice(0, 8).map(v =>
         '<div class="rij"><b>' + esc(v.naam) + '</b><span>' +
@@ -402,6 +467,7 @@ async function laadAanmeldingen(){
   const rijen = await haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=40', 'aanmeldingen');
   const nieuw = rijen.filter(a => !a.status || a.status === 'nieuw');
   document.getElementById('aanmeldTeller').textContent = nieuw.length + ' wachten op koppeling';
+  dsTegel('dsStatAanmeld', nieuw.length);
   doel.innerHTML = nieuw.length
     ? nieuw.slice(0, 8).map(a =>
         '<div class="rij"><b>' + esc(((a.voornaam || '') + ' ' + (a.achternaam || '')).trim() || 'zonder naam') +
