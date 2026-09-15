@@ -192,6 +192,13 @@
 
   <div class="week" id="weekBalk"></div>
 
+  <div class="card kalender-kaart" id="planningKalenderVak">
+    <div class="card-head">
+      <div><span class="eyebrow">AGENDA</span><h3>Kalender</h3></div>
+    </div>
+    <div id="planningKalender"></div>
+  </div>
+
   <div id="planningLijst"><p class="leeg">Bezig met laden&hellip;</p></div>
 </section>
 
@@ -446,6 +453,7 @@
   <button data-ga="instellingen">&#9881; Instellingen</button>
 </div>
 
+<script src="bwf-kalender.js?v=5"></script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -696,6 +704,26 @@ async function start(){
   tekenBerichten();
   tekenTellers();
   tekenInstellingen(stuk.length === 0);
+  startKalender();
+}
+
+/* Dezelfde gedeelde kalender als dashboard.html en agenda.html, met
+   dezelfde regel voor de weergave: op een telefoon de dag, op een breed
+   scherm de week. De kalender haalt zijn eigen token uit localStorage,
+   onder dezelfde sleutel die supabase-js hier gebruikt. */
+let KALENDER = null;
+function startKalender() {
+  if (KALENDER || !window.BWFKalender) return;
+  const vak = document.getElementById("planningKalender");
+  if (!vak) return;
+  try {
+    KALENDER = window.BWFKalender.maak(vak, {
+      weergave: window.innerWidth < 760 ? "dag" : "week",
+      vrijeBlokken: true
+    });
+  } catch (e) {
+    vak.innerHTML = '<p class="leeg">De kalender kon niet geladen worden.</p>';
+  }
 }
 
 /* ---------- hulpfuncties op de gegevens ---------- */
