@@ -1419,6 +1419,10 @@ div.ag-blok{cursor:default}
           <span class="pijl">›</span><span>Reserveringen inzien</span>
           <span class="pill neutral" id="resAantal">0</span>
         </button>
+        <div class="field" style="margin:0;min-width:180px">
+          <label for="resZoek" class="visueel">Zoeken</label>
+          <input type="search" id="resZoek" placeholder="Zoek gast, suite of nummer...">
+        </div>
         <div class="field" style="margin:0;min-width:200px">
           <label for="resSort" class="visueel">Sorteren</label>
           <select id="resSort">
@@ -4465,6 +4469,14 @@ const LOCATIES = [
   {naam:'Suite Angie Almere', kleur:'ok',    plaats:'Almere'}
 ];
 /* alle schrijfwijzen uit de agenda en de reserveringen naar één naam */
+function resFotoKlasse(suite){
+  const s = String(suite || '').trim().toLowerCase();
+  if(s === 'malina_deluxe')  return 'foto-deluxe';
+  if(s === 'malina_jacuzzi') return 'foto-malina';
+  if(s === 'angie')          return 'foto-angie';
+  return 'foto-angie';
+}
+
 function ovLocNaam(v){
   const t = String(v||'').toLowerCase().replace(/[^a-z]/g,'');
   if(/psmd|psd|deluxe|zwembad/.test(t)) return 'Malina Zwembad';
@@ -6645,7 +6657,7 @@ function renderKalender(){
     '<span class="leg" style="color:var(--muted)">☽ = nacht · ✦ = schoonmaak</span>';
 
   /* de lijst eronder volgt de weergave */
-  const lijst = lijstRes.filter(r=>{
+  let lijst = lijstRes.filter(r=>{
     const d = String(r.start||'').slice(0,10);
     if(kalWeergave === 'dag')  return agOverlapt(r, kalDag || vd);
     if(kalWeergave === 'jaar') return d.slice(0,4) === String(j);
@@ -6657,6 +6669,18 @@ function renderKalender(){
     }
     return d.slice(0,7) === maand;
   });
+
+  /* De foto hangt aan de RUWE suitewaarde uit de database (angie,
+     malina_jacuzzi, malina_deluxe). Niet aan ovLocNaam(): die matcht op
+     losse woorden en gaf eerder de jacuzzifoto bij de deluxe. */
+  /* zoeken: kijkt door gast, suite, bron en reserveringsnummer */
+  const zoekT = (($('#resZoek')||{}).value || '').trim().toLowerCase();
+  if(zoekT){
+    lijst = lijst.filter(r => [
+      (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '',
+      r.locatie || '', r.bron || '', r.ref || '', r.suiteRuw || ''
+    ].join(' ').toLowerCase().includes(zoekT));
+  }
 
   /* sorteren volgens de keuze boven de lijst */
   const sortKeuze = ($('#resSort')||{}).value || 'datum';
@@ -6685,7 +6709,8 @@ function renderKalender(){
     <tr class="resrij" data-res="${i}">
       <td class="name"><span class="pijl">›</span>${esc(dmy(String(r.start||'').slice(0,10)))}${
         l.tijd?`<span class="meta">${esc(l.tijd)}</span>`:''}</td>
-      <td><span class="kal-dot" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'};margin-right:7px"></span>${
+      <td><span class="resfoto ${resFotoKlasse(r.suiteRuw)}"></span><span class="kal-dot" style="--c:${
+        KAL_KLEUR[r.locatie]||'var(--muted)'};margin-right:7px"></span>${
         esc(r.locatie||'onbekend')}</td>
       <td>${esc((r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '—')}</td>
       <td>${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</td>
@@ -6870,6 +6895,7 @@ try{
   }
 }catch(e){}
 $('#resSort').addEventListener('change', renderKalender);
+if($('#resZoek')) $('#resZoek').addEventListener('input', renderKalender);
 
 /* op de telefoon: kalender of lijst */
 $('#kalToon').addEventListener('click', e=>{

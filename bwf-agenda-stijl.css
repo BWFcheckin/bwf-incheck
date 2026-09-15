@@ -187,6 +187,22 @@ th{
 td{ border-bottom:1px solid var(--line-soft) }
 
 /* =========================================================
+   SUITEFOTO IN EEN LIJSTREGEL
+   Gebruikt door het VR-dashboard. De foto's staan als variabele in
+   :root hierboven, dus wijzigen hoeft maar op een plek.
+   ========================================================= */
+
+.resfoto{
+  display:inline-block; vertical-align:middle;
+  width:34px; height:28px; margin-right:9px; flex:none;
+  border-radius:7px; border:1px solid var(--line);
+  background-size:cover; background-position:center; background-color:var(--surface-2);
+}
+.resfoto.foto-angie { background-image:var(--foto-angie) }
+.resfoto.foto-malina{ background-image:var(--foto-malina) }
+.resfoto.foto-deluxe{ background-image:var(--foto-deluxe) }
+
+/* =========================================================
    MENUBALKEN EN TABBLADEN
    ========================================================= */
 
