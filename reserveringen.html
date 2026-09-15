@@ -430,6 +430,7 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
               <option value="50">50% aanbetaling</option>
               <option value="100">Volledig bedrag</option>
               <option value="vrij">Vrij bedrag</option>
+              <option value="locatie">Contant op locatie</option>
             </select></label>
           <label class="veld">Bedrag (&euro;) <input id="vDeelBedrag" type="text" inputmode="decimal"></label>
           <label class="veld breed">Betaallink
@@ -1580,6 +1581,15 @@ function vZetBedrag(r) {
   /* Zonder totaal valt er niets te delen. Het veld dan niet leeg op slot
      zetten: dat lijkt kapot. Openzetten en zeggen waarom. Bij 119 van de
      167 lopende boekingen staat nog geen bedrag. */
+  /* Contant op locatie: er valt niets vooruit te betalen, dus geen bedrag en
+     geen betaallink. Het veld gaat op slot en leeg. */
+  if (keuze === "locatie") {
+    veld.readOnly = true;
+    veld.value = "";
+    if (note) note.textContent = "De gast rekent contant af op locatie; er wordt geen betaallink gemaakt.";
+    return;
+  }
+
   if (!totaal && keuze !== "vrij") {
     veld.readOnly = false;
     veld.value = "";
@@ -1615,7 +1625,19 @@ function vBerichtTekst(r) {
   t.push("");
   t.push("Vul je gegevens alvast in via het incheckformulier:");
   t.push(incheck);
-  if (link) { t.push(""); t.push("Aanbetaling van " + euro(vDeelBedrag()) + ":"); t.push(link); }
+  if ($("#vDeelKeuze").value === "locatie") {
+    t.push("");
+    t.push("Betalen kan contant op locatie bij aankomst.");
+  } else if (link) {
+    t.push("");
+    t.push("Aanbetaling van " + euro(vDeelBedrag()) + ":");
+    t.push(link);
+  }
+  /* Plek voor de annuleringsvoorwaarden. Angela levert de tekst aan; er wordt
+     hier niets verzonnen. Zolang die ontbreekt staat er een zichtbare
+     herinnering, zodat niemand per ongeluk zonder voorwaarden verstuurt. */
+  t.push("");
+  t.push("[ANNULERINGSVOORWAARDEN — nog invullen vóór versturen]");
   t.push("");
   t.push("Tot snel!");
   t.push("Bed & Wellness Flevoland");
@@ -1633,6 +1655,10 @@ function vulBetaalvak(r) {
 async function maakBetaallink() {
   const r = HUIDIG; if (!r) return;
   const note = $("#vBetaalNote"), knop = $("#vMaakLink");
+  if ($("#vDeelKeuze").value === "locatie") {
+    note.textContent = "Bij contant op locatie wordt er geen betaallink gemaakt.";
+    return;
+  }
   const bedrag = vDeelBedrag();
   if (!bedrag || bedrag < 0.01) { note.textContent = "Vul een bedrag van minimaal \u20ac 0,01 in."; return; }
   knop.disabled = true;
