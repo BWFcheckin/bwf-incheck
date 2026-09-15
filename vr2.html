@@ -791,6 +791,11 @@ body::before{display:none}
 .bwf-hero h1{font-family:var(--f-titel);font-size:34px;font-weight:500;margin:0 0 4px;letter-spacing:.01em;
   line-height:1.15;color:#fff}
 .bwf-hero p{margin:0;font-size:14px;color:rgba(255,255,255,.82);max-width:62ch}
+/* bwf-kader.js zet zelf ook een fotoband met de paginanaam bovenaan. Deze pagina
+   heeft die al hierboven, mét begroeting en een titel per tabblad, dus anders
+   staan er twee banden met twee keer een titel. De kaderregel heeft geen
+   !important, dus deze wint ongeacht de volgorde waarin de opmaak binnenkomt. */
+#bwfKaderBeeld{display:none!important}
 
 /* ---------- koppen in de panelen ---------- */
 .panel{animation:none}
