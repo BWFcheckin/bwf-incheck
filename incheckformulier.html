@@ -2477,10 +2477,14 @@ async function laadAgenda(){
     var velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
       'gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,omschrijving,' +
       'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,notitie,checkin_id';
-    var eerder = new Date(); eerder.setDate(eerder.getDate() - 60);
+    /* Geen datumvenster meer. Dat stond op 60 dagen terug, waardoor 80 van de
+       172 boekingen niet te kiezen waren bij het koppelen - waaronder zes van
+       Booking.com. Juist bij een formulier dat achteraf wordt ingevuld wil je
+       een oudere boeking kunnen aanwijzen.
+       De lijst blijft begrensd door de limiet en staat op nieuwste eerst, dus
+       mocht hij ooit vollopen dan vallen de oudste af en niet de actuele. */
     var rijen = await sb('reserveringen?select=' + velden + '&status=neq.geannuleerd' +
-      '&aankomst=gte.' + eerder.toISOString().slice(0,10) +
-      '&order=aankomst.desc&limit=800') || [];
+      '&order=aankomst.desc&limit=1200') || [];
     AGENDA_RES = rijen.map(function(r){
       var a = boekingStuk(r.aankomst), v = boekingStuk(r.vertrek);
       var totaal  = parseFloat(r.bedrag_totaal)  || 0;
@@ -2590,7 +2594,10 @@ function vulKoppelKeuze(){
   var lijst = koppelBronLijst().filter(function(x){
     if(!zoek) return true;
     return (x.label + ' ' + JSON.stringify(x.data)).toLowerCase().indexOf(zoek) !== -1;
-  }).slice(0, 300);
+  /* Ruimer dan de 300 van eerst: nu het datumvenster weg is, zou die grens de
+     oudste boekingen alsnog stilzwijgend afkappen. Gelijkgetrokken met de
+     limiet van de bevraging hierboven. */
+  }).slice(0, 1200);
   if(document.getElementById('k_bron').value === 'handmatig'){
     sel.innerHTML = '<option value="">— je vult alles zelf in —</option>';
     return;
@@ -2601,7 +2608,10 @@ function vulKoppelKeuze(){
 
   var tel = document.getElementById('k_tel');
   if(tel && document.getElementById('k_bron').value === 'reservering'){
-    var stukken = [AGENDA_RES.length + ' uit reserveringen', RESERVERINGEN.length + ' oude eigen boekingen'];
+    /* De oude tabel reservations wordt sinds de migratie niet meer gelezen, dus
+       RESERVERINGEN is altijd leeg. Dat als "0 oude eigen boekingen" tonen gaf
+       de indruk dat er iets ontbrak; die telling is daarom weg. */
+    var stukken = [AGENDA_RES.length + ' reserveringen om uit te kiezen'];
     if(AGENDA_FOUT) stukken.push('reserveringen konden niet worden opgehaald: ' + AGENDA_FOUT);
     tel.textContent = stukken.join(' \u00b7 ');
     tel.style.color = AGENDA_FOUT ? '#c13e50' : '';
