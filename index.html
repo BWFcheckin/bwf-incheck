@@ -590,6 +590,34 @@ async function haalRol(){
   }catch(e){ ROL = ''; }
 }
 
+/* ───── wat mag deze rol zien ─────
+   De database is en blijft de echte grens: de RLS-regels bepalen welke taken
+   en reserveringen iemand terugkrijgt. Dit hier zorgt ervoor dat er geen
+   knoppen in beeld staan die toch niets opleveren, en dat een locatiemanager
+   niet per ongeluk in het VR-dashboard belandt.
+   Gaat op toegangsrol, hetzelfde veld waar de database op werkt, zodat scherm
+   en database elkaar niet kunnen tegenspreken. */
+const VR_ROLLEN = ['eigenaar', 'vr'];
+const magVrDashboard  = () => VR_ROLLEN.indexOf(ROL) > -1;
+const magInstellingen = () => ROL === 'eigenaar';
+
+function pasRechtenToe(){
+  /* Eén regel op body in plaats van losse knoppen verbergen: een deel van de
+     knoppen naar het VR-dashboard wordt pas later getekend (Nu doen, Mijn
+     taken) en zou anders alsnog verschijnen zodra die lijsten laden. */
+  if(!document.getElementById('rechtenStijl')){
+    const st = document.createElement('style');
+    st.id = 'rechtenStijl';
+    st.textContent =
+      'body.zonder-vr a[href="vr2.html"]{display:none!important}' +
+      'body.zonder-instellingen [data-page="instellingen"],' +
+      'body.zonder-instellingen [data-ga="instellingen"]{display:none!important}';
+    document.head.appendChild(st);
+  }
+  document.body.classList.toggle('zonder-vr', !magVrDashboard());
+  document.body.classList.toggle('zonder-instellingen', !magInstellingen());
+}
+
 sb.auth.onAuthStateChange((_e, sessie) => {
   if(sessie){
     $('#login').classList.add('hidden');
@@ -599,7 +627,7 @@ sb.auth.onAuthStateChange((_e, sessie) => {
     const mail = sessie.user.email || '';
     $('#initialen').textContent = mail.replace(/@.*/,'').slice(0,1).toUpperCase() || '?';
     $('#wieNaam').textContent = mail.replace(/@.*/,'');
-    haalRol().then(start);
+    haalRol().then(() => { pasRechtenToe(); start(); });
   }else{
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');
@@ -617,6 +645,11 @@ const paginaNamen = {
 
 function openPage(pagina){
   if(pagina === 'meer'){ $('#moreMenu').classList.toggle('show'); return; }
+
+  /* Alleen verbergen is niet genoeg: de knoppen zijn weg, maar openPage wordt
+     ook aangeroepen vanuit andere plekken. Wie er langs een verborgen knop om
+     heen komt, hoort er alsnog niet in. */
+  if(pagina === 'instellingen' && !magInstellingen()) return;
 
   $$('.page').forEach(s => s.classList.remove('active-page'));
   const doel = document.getElementById('page-' + pagina);

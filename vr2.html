@@ -2853,6 +2853,20 @@ async function naLogin(){
     return;
   }
   IK = mw;
+  /* Slot op het VR-dashboard. Dit scherm is voor de eigenaar en de
+     vr-assistenten; een locatiemanager (Ruth, Jerry, Michel) hoort in
+     dashboard.html en kwam hier voorheen gewoon binnen.
+     Bewust op toegangsrol en niet op rol: toegangsrol is het veld waar de
+     database haar rechten op baseert (bwf_toegangsrol, bwf_mag_suite), dus zo
+     kunnen scherm en database elkaar niet tegenspreken. De echte afscherming
+     zit in de RLS-regels; dit slot voorkomt dat iemand per ongeluk op een
+     pagina belandt waar hij niets te zoeken heeft. */
+  const trol = String(mw.toegangsrol || '').toLowerCase();
+  if(trol !== 'eigenaar' && trol !== 'vr'){
+    bewaarSessie(null);
+    toonSlot('Dit dashboard is voor de eigenaar en de VR-assistenten. Jouw dashboard is het locatiedashboard — open dashboard.html.');
+    return;
+  }
   if(!mw.auth_id && SESSIE.uid) wijzig('medewerkers', mw.id, {auth_id:SESSIE.uid});
   start();
 }

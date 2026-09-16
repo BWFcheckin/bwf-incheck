@@ -1313,6 +1313,39 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <div class="card-body" id="resHouder"></div>
     </div>
 
+    <!-- Reserveringen staan nu bij de planning, in dezelfde kaarten en op
+         dezelfde grootte als op de reserveringenpagina zelf, met alle gegevens
+         erin. De pagina wordt ingebed in plaats van nagebouwd: zo blijft er een
+         plek waar die kaarten worden onderhouden.
+         Wie welke reservering ziet bepaalt de database (bwf_mag_suite), dus een
+         locatiemanager krijgt hier vanzelf alleen de eigen locaties - dit scherm
+         hoeft daar niets voor te filteren, en er valt dus ook niets te omzeilen.
+         Het adres krijgt een versie mee, anders serveert de browser een oude
+         versie van de ingebedde pagina. -->
+    <div class="card">
+      <div class="card-head"><h2>Reserveringen</h2>
+        <span class="hint">alleen de locaties waar jij toegang toe hebt</span></div>
+      <div class="card-body" style="padding:0">
+        <iframe id="planResFrame" data-src="reserveringen.html" title="Reserveringen"
+                style="width:100%;height:78vh;min-height:520px;border:0;display:block"></iframe>
+      </div>
+    </div>
+    <script>
+      /* pas ophalen wanneer de planning echt in beeld komt: de pagina is groot
+         en hoeft niet geladen te worden zolang je op een ander tabblad zit */
+      (function(){
+        function laadResFrame(){
+          var f = document.getElementById('planResFrame');
+          var p = document.getElementById('panel-planning');
+          if(f && p && !p.hidden && !f.src && f.dataset.src){
+            f.src = f.dataset.src + '?v=' + Date.now();
+          }
+        }
+        document.addEventListener('click', function(){ setTimeout(laadResFrame, 60); });
+        setTimeout(laadResFrame, 1200);
+      })();
+    </script>
+
     <div class="card">
       <div class="card-head">
         <h2 id="kalTitel">Maandoverzicht</h2>
