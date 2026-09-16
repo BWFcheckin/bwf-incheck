@@ -2734,6 +2734,10 @@ function maakVrKalender(){
   if(VR_KAL || !window.BWFKalender || !$('#vrKalender')) return;
   VR_KAL = window.BWFKalender.maak($('#vrKalender'), {
     weergave: window.innerWidth < 760 ? 'dag' : 'week',
+    /* In dit dashboard kijk je naar wat er geboekt is; blokkades uit
+       Booking.com en de andere kanalen staan hier standaard uit. Met de vink
+       "niet beschikbaar tonen" in de kalenderbalk zet je ze weer aan. */
+    blokkadesTonen: false,
     /* een taak uit de kalender meteen in de eigen takenlijst zetten */
     naTaak: (taak)=>{
       if(!taak || !Array.isArray(S.taken)) return;

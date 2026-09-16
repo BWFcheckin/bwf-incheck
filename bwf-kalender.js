@@ -296,6 +296,11 @@
       dag: /^\d{4}-\d{2}-\d{2}$/.test(opties.datum || "") ? opties.datum : vandaag(),
       suite: toegestaan.indexOf(opties.suite) >= 0 ? opties.suite : "",
       geannuleerd: opties.geannuleerdTonen !== false,
+      /* Blokkades (niet beschikbaar) kunnen verborgen worden, zodat je alleen
+         ziet wat er echt geboekt is. Standaard blijven ze zichtbaar: een
+         pagina die bezetting toont mag die informatie niet stilzwijgend
+         kwijtraken. Een pagina zet blokkadesTonen:false als dat daar beter is. */
+      blokkades: opties.blokkadesTonen !== false,
       res: [], blok: [], blokken: null, bereik: "", bezig: false, uitgelicht: null, timer: null,
       rol: undefined, sub: null, mijnId: null, medewerkers: null, taakRes: null
     };
@@ -318,6 +323,7 @@
           (toegestaan.length > 1 ? '<select class="bwfk-suite" aria-label="Suite"><option value="">Alle suites</option>' +
             toegestaan.map(function (s) { return '<option value="' + s + '">' + esc(SUITES[s].naam) + '</option>'; }).join("") + '</select>' : '') +
           '<label class="bwfk-vink"><input type="checkbox" class="bwfk-geann"' + (st.geannuleerd ? " checked" : "") + '> geannuleerd tonen</label>' +
+          '<label class="bwfk-vink"><input type="checkbox" class="bwfk-blok"' + (st.blokkades ? " checked" : "") + '> niet beschikbaar tonen</label>' +
           '<button type="button" class="bwfk-knop" data-k="ververs">Verversen</button>' +
         '</div>' +
       '</div>' +
@@ -426,6 +432,7 @@
         lijst.push({ soort: "res", r: r, d: d, sorteer: d.eerste + " " + d.startTijd });
       });
       st.blok.forEach(function (b) {
+        if (!st.blokkades) return;          /* niet beschikbaar wordt niet getekend */
         if (!zichtbaar(b.suite)) return;
         var d = dagenVan(new Date(b.van), new Date(b.tot));
         lijst.push({ soort: "blok", b: b, d: d, sorteer: d.eerste + " " + d.startTijd });
@@ -531,7 +538,11 @@
         return zichtbaar(r.suite) && (st.geannuleerd || (r.status !== "geannuleerd" && r.status !== "no_show")) &&
           Date.parse(r.aankomst) < dagEind && Date.parse(r.vertrek) > dagStart;
       });
-      var blokken = st.blok.filter(function (b) { return zichtbaar(b.suite) && Date.parse(b.van) < dagEind && Date.parse(b.tot) > dagStart; });
+      /* Let op: hier alleen de WEERGAVE. De berekening van vrije tijdsblokken
+         verderop blijft alle blokkades meenemen — een verborgen blokkade houdt
+         de tijd bezet, en zou anders als vrij worden aangeboden. */
+      var blokken = !st.blokkades ? [] :
+        st.blok.filter(function (b) { return zichtbaar(b.suite) && Date.parse(b.van) < dagEind && Date.parse(b.tot) > dagStart; });
       $(".bwfk-lijst>summary").textContent = "Reserveringen op " + dagLang(st.dag) + " (" + rijen.length + ")" + (blokken.length ? " · " + blokken.length + " blokkade" + (blokken.length === 1 ? "" : "s") : "");
 
       function tijdTekst(van, tot) {
@@ -634,6 +645,7 @@
     houder.addEventListener("change", function (e) {
       if (e.target.classList.contains("bwfk-suite")) { st.suite = e.target.value; teken(); }
       if (e.target.classList.contains("bwfk-geann")) { st.geannuleerd = e.target.checked; teken(); }
+      if (e.target.classList.contains("bwfk-blok")) { st.blokkades = e.target.checked; teken(); }
     });
 
     /* ---------- taak aanmaken ---------- */
