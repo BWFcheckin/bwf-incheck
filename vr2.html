@@ -1365,6 +1365,14 @@ div.ag-blok{cursor:default}
         <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
       </div>
 
+      <!-- De planning als kalender, met onder de kalender de uitklaplijst
+           "Reserveringen op <dag>" die de gedeelde kalender zelf meelevert. -->
+      <div class="card" data-dggroep="planning">
+        <div class="card-head"><h2>Planning</h2>
+          <span class="hint">klik een dag aan voor de lijst eronder</span></div>
+        <div class="card-body" style="padding-top:0"><div id="dgPlanKalender"></div></div>
+      </div>
+
       <div class="card" data-dggroep="reserveringen">
         <div class="card-head"><h2>Incheckformulieren</h2>
           <span class="hint" id="cfHint"></span></div>
@@ -2804,6 +2812,38 @@ function maakVrKalender(){
   });
 }
 
+/* Dezelfde gedeelde kalender, maar dan in de Planning-groep van de Dagstart.
+   Angela vroeg op 17-09-2026 om de planning als kalenderweergave met daaronder
+   een uitklapbare lijst van de reserveringen per dag. Die lijst zit al in de
+   kalender zelf (optie lijst, standaard aan), dus hier hoeft alleen een tweede
+   exemplaar te staan. Dat mag: de toestand van een kalender zit binnen maak(),
+   dus twee kalenders op een pagina zitten elkaar niet in de weg.
+   Pas opbouwen wanneer de kaart echt zichtbaar is - in een verborgen kaart
+   krijgt de kalender breedte nul en tekent hij zijn raster verkeerd. */
+let VR_PLAN_KAL = null;
+function maakPlanKalender(){
+  const houder = $('#dgPlanKalender');
+  if(VR_PLAN_KAL || !window.BWFKalender || !houder) return;
+  if(!houder.offsetParent) return;
+  VR_PLAN_KAL = window.BWFKalender.maak(houder, {
+    weergave: window.innerWidth < 760 ? 'dag' : 'maand',
+    /* net als bij de Agenda-kalender: hier kijk je naar wat er geboekt is,
+       niet naar wat er dichtstaat vanuit Booking.com en de andere kanalen */
+    blokkadesTonen: false,
+    lijst: true,
+    naTaak: (taak)=>{
+      if(!taak || !Array.isArray(S.taken)) return;
+      S.taken.unshift(taak);
+      try{ renderTaken(); renderOverzicht(); badges(); }catch(e){}
+    },
+    token: async ()=>{
+      if(!ingelogd()) return null;
+      if(SESSIE.verloopt && Date.now() > SESSIE.verloopt) await vernieuwSessie();
+      return ingelogd() ? SESSIE.token : null;
+    }
+  });
+}
+
 function bewaarLokaal(){ try{ localStorage.setItem(LS.data, JSON.stringify(S)); }catch(e){ console.warn(e); } }
 
 /* elk onderdeel apart ophalen: ontbreekt er één tabel, dan blijft de rest werken */
@@ -3025,6 +3065,11 @@ async function start(){
   wcZetKanaal('whatsapp'); wcToonIncheck(); badges();
   laadOverzicht();
   maakVrKalender();
+  /* Ook hier, en niet alleen vanuit dgFilter: de opstart-setTimeout die de
+     laatst gekozen groep herstelt, loopt al af voordat je bent ingelogd. Bij
+     de standaardgroep "alles" wordt er daarna nooit meer op een groepsknop
+     geklikt, en zou de kalender dus nooit gebouwd worden. */
+  maakPlanKalender();
   if(!window.__ovTimer) window.__ovTimer = setInterval(()=>{ if(!$('#app').hidden) laadOverzicht(); }, 300000);
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   /* Na inloggen begint de dag altijd bij Dagstart. Voorheen opende de pagina
@@ -3806,6 +3851,8 @@ function dgFilter(groep){
     b.setAttribute('aria-pressed', String(b.dataset.dgfilter === groep));
   });
   try{ sessionStorage.setItem('bwf-dgfilter', groep); }catch(e){}
+  /* Is de Planning-groep nu zichtbaar, dan pas de kalender opbouwen. */
+  try{ maakPlanKalender(); }catch(e){}
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('#dgGroepen button[data-dgfilter]'); if(!b) return;
