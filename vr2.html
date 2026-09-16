@@ -1552,6 +1552,26 @@ div.ag-blok{cursor:default}
       <!-- De cijfers over werkzaamheden, uren en overdracht stonden eerst in de
            balk bovenaan. Die balk toont nu de vier dagstartcijfers, dus deze
            hebben hier een eigen kaart gekregen: ze zijn niet verdwenen. -->
+      <!-- Betalingen uit Mollie. De webhook mollie-webhook schrijft elke
+           statuswijziging naar mollie_betalingen, met het reserveringskenmerk
+           uit de metadata erbij. Hier wordt alleen gelezen: de status komt van
+           Mollie zelf en wordt in dit scherm nooit overschreven. -->
+      <div class="card" data-dggroep="reserveringen">
+        <div class="card-head"><h2>Betalingen</h2>
+          <span class="hint" id="btHint">betaalstatus uit Mollie</span></div>
+        <div class="card-body" style="padding-bottom:0">
+          <span class="segment ag-pillen" id="btFilter" role="group" aria-label="Betaalstatus">
+            <button type="button" data-b="alles" aria-pressed="true">Alles</button>
+            <button type="button" data-b="open" aria-pressed="false">Nog niet betaald</button>
+            <button type="button" data-b="paid" aria-pressed="false">Betaald</button>
+          </span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Gast</th><th>Waarvoor</th><th class="num">Bedrag</th><th>Status</th><th>Wanneer</th><th></th></tr></thead>
+          <tbody id="btLijst"></tbody>
+        </table></div>
+      </div>
+
       <div class="card" data-dggroep="werk">
         <div class="card-head"><h2>Mijn werk deze maand</h2>
           <span class="hint">uren, registraties en overdracht</span></div>
@@ -3592,6 +3612,67 @@ document.addEventListener('click', e => {
   kiesGroep(b.dataset.dgnaar);
 });
 
+/* ---------------- betalingen uit Mollie ----------------
+   De webhook schrijft elke statuswijziging naar mollie_betalingen. Hier wordt
+   alleen gelezen en getoond: de status komt van Mollie en wordt nooit door dit
+   scherm overschreven. Zo blijft er één bron van waarheid.
+   Eén keer ophalen, niet bij elke hertekening: het is een losse tabel die niet
+   met de rest meekomt. */
+let BETALINGEN = [], btGeladen = false, btFilterStand = 'alles';
+const BT_STATUS = { paid:'betaald', open:'openstaand', pending:'in behandeling',
+  authorized:'toegezegd', expired:'verlopen', canceled:'geannuleerd', failed:'mislukt' };
+const BT_SOORT = { restant:'restant', extras:"extra's", tijd:'eerder in of later uit', gemengd:'gemengd' };
+
+async function laadBetalingen(){
+  if(btGeladen) return;
+  btGeladen = true;
+  try{
+    BETALINGEN = await api('mollie_betalingen?select=mollie_id,status,bedrag,omschrijving,gast,' +
+      'reservering,reservering_id,soort,betaald_op,checkout_url,bijgewerkt_op' +
+      '&order=bijgewerkt_op.desc&limit=200') || [];
+  }catch(e){ BETALINGEN = []; }
+  renderBetalingen();
+}
+
+function renderBetalingen(){
+  const doel = $('#btLijst'); if(!doel) return;
+  const lijst = BETALINGEN.filter(b => btFilterStand === 'alles' ? true
+    : btFilterStand === 'paid' ? b.status === 'paid'
+    : b.status !== 'paid');
+
+  const hint = $('#btHint');
+  if(hint){
+    const betaald = BETALINGEN.filter(b => b.status === 'paid')
+      .reduce((a,b) => a + (Number(b.bedrag)||0), 0);
+    hint.textContent = BETALINGEN.length
+      ? BETALINGEN.length + ' betalingen · ' + eur(betaald) + ' voldaan'
+      : 'nog geen betalingen';
+  }
+
+  doel.innerHTML = lijst.length ? lijst.map(b => {
+    const st = BT_STATUS[b.status] || b.status || 'onbekend';
+    const klasse = b.status === 'paid' ? 'ok' : (b.status === 'expired' || b.status === 'failed' || b.status === 'canceled') ? 'crit' : 'warn';
+    const wanneer = b.betaald_op || b.bijgewerkt_op;
+    return `<tr>
+      <td class="name">${esc(b.gast || '—')}${b.reservering ? `<span class="meta">${esc(b.reservering)}</span>` : ''}</td>
+      <td>${esc(BT_SOORT[b.soort] || b.soort || b.omschrijving || '—')}</td>
+      <td class="num">${eur(b.bedrag)}</td>
+      <td><span class="pill ${klasse}">${esc(st)}</span></td>
+      <td>${wanneer ? esc(dmy(String(wanneer).slice(0,10))) : '—'}</td>
+      <td class="act">${b.checkout_url && b.status !== 'paid'
+        ? `<a class="btn ghost small" href="${esc(b.checkout_url)}" target="_blank" rel="noopener">Betaallink</a>` : ''}</td>
+    </tr>`;
+  }).join('')
+    : `<tr><td colspan="6"><div class="empty"><strong>Geen betalingen</strong>Er is hier niets in deze selectie.</div></td></tr>`;
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('#btFilter button'); if(!b) return;
+  btFilterStand = b.dataset.b || 'alles';
+  $$('#btFilter button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderBetalingen();
+});
+
 /* Groepsknoppen op de Dagstart: tonen of verbergen de kaarten met het
    bijbehorende data-dggroep. De kaarten zelf worden niet verplaatst, dus deze
    indeling is terug te draaien door de knoppenbalk weg te halen.
@@ -3617,6 +3698,12 @@ setTimeout(() => {
   try{ g = sessionStorage.getItem('bwf-dgfilter') || 'alles'; }catch(e){}
   dgFilter(g);
 }, 300);
+
+/* De betalingen één keer ophalen zodra de pagina staat. Ze komen uit een losse
+   tabel die niet met de rest meekomt, dus zonder deze aanroep blijft de kaart
+   leeg hoe goed de rest ook werkt. laadBetalingen() bewaakt zichzelf tegen
+   dubbel ophalen. */
+setTimeout(laadBetalingen, 1500);
 
 function renderOverzicht(){
   const taken = mijnTaken(), werk = mijnWerk();
