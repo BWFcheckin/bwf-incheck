@@ -4015,6 +4015,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       return (d.email || (d.user_metadata && d.user_metadata.email) || '').toLowerCase();
     }catch(e){ return ''; }
   }
+  /* De suites van de ingelogde medewerker, uit wz_medewerkers. Blijft null als
+     we niet weten wie er kijkt; dan wordt er niets verborgen. Dat is bewust:
+     de echte grens ligt in de database (bwf_mag_suite), dit scherm zorgt er
+     alleen voor dat er geen keuzes in beeld staan die toch niets opleveren. */
+  var MIJN_SUITES = null;
+
   async function bepaalRol(){
     var mail = mailUitToken(), naam = '';
     try{ naam = localStorage.getItem('bw-wie') || ''; }catch(e){}
@@ -4023,7 +4029,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var m = MEDEWERKERS[i];
       var mm = String(m.email||'').toLowerCase().trim();
       var mn = String(veld(m,['naam','voornaam','medewerker'],'')).toLowerCase().trim();
-      if(mail && mm === mail){ rol = String(m.rol||'').toLowerCase(); naam = veld(m,['naam','voornaam'], naam); break; }
+      if(mail && mm === mail){
+        rol = String(m.rol||'').toLowerCase();
+        naam = veld(m,['naam','voornaam'], naam);
+        /* de rij van deze persoon draagt ook zijn suites; die hadden we hier
+           tot nu toe weggegooid */
+        MIJN_SUITES = Array.isArray(m.suites) ? m.suites : null;
+        break;
+      }
       if(!mail && naam && mn && mn === naam.toLowerCase().trim()) rol = String(m.rol||'').toLowerCase();
     }
     if(!rol && naam){
@@ -4041,7 +4054,45 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(b) b.textContent = admin
       ? 'Je bent ingelogd als ' + (naam || 'beheerder') + ' \u2014 je kunt diensten inplannen.'
       : 'Diensten inplannen is voorbehouden aan de eigenaar en de administratie. Je kunt hieronder wel doorgeven wanneer je niet beschikbaar bent.';
+    pasLocatiesToe();
     return admin;
+  }
+
+  /* Almere alleen tonen aan wie er ook echt bij mag. Michel heeft alle drie de
+     suites en houdt Almere; Ruth en Jerry hebben alleen de twee van Lelystad en
+     zien het dus niet meer.
+     Weten we niet wie er kijkt, dan verandert er niets - liever een keuze te
+     veel dan iemand per ongeluk buitensluiten. De database blijft hoe dan ook
+     de echte grens.
+     Opties worden verborgen én uitgezet: op sommige telefoons wordt 'hidden'
+     op een option genegeerd, 'disabled' niet. Staat de verborgen keuze nog
+     geselecteerd, dan valt hij terug op de eerste die wel mag. */
+  function pasLocatiesToe(){
+    if(!MIJN_SUITES) return;
+    if(MIJN_SUITES.indexOf('angie') > -1) return;   /* mag Almere gewoon zien */
+
+    ['ovLocatie','p-loc','o-loc'].forEach(function(id){
+      var sel = document.getElementById(id); if(!sel) return;
+      var moetTerug = false;
+      Array.prototype.forEach.call(sel.options, function(o){
+        if(!/almere|angie/i.test(o.value + ' ' + o.text)) return;
+        o.hidden = true; o.disabled = true;
+        if(sel.value === o.value) moetTerug = true;
+      });
+      if(moetTerug){
+        var eerste = Array.prototype.filter.call(sel.options, function(o){ return !o.disabled; })[0];
+        if(eerste) sel.value = eerste.value;
+      }
+    });
+
+    /* Dit vinkje haalt de Almere-boekingen er echt bij; de keuzelijsten
+       hierboven zijn maar het gevolg. */
+    var vink = document.getElementById('ovAlmere');
+    if(vink){
+      vink.checked = false;
+      var omhulsel = vink.closest('label');
+      if(omhulsel) omhulsel.hidden = true;
+    }
   }
 
   /* ---------- filters ---------- */
