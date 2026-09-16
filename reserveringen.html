@@ -950,7 +950,11 @@ async function vulKoppelingen(r) {
       r.klant_id ? zacht("wz_klantbeheer?select=id,voorletters,achternaam,email&id=eq." + encodeURIComponent(r.klant_id)) : null,
       r.checkin_id ? zacht("checkins?select=id,status,datum&id=eq." + encodeURIComponent(r.checkin_id)) : null,
       zacht("wz_welkomstcalls?select=id,status,datum,medewerker_id,notitie,notities,bijzonderheden," +
-            "allergieen,gelegenheid,regels,totaal,tijd_bedrag,betaalwijze,betaallink" +
+            /* samenvatting, gebeld_op en nodig horen erbij sinds de kaart alleen
+               nog toont óf er gebeld is en wat er kort besproken is. Staan ze
+               hier niet, dan blijft dat leeg hoe goed de rest ook werkt. */
+            "allergieen,gelegenheid,regels,totaal,tijd_bedrag,betaalwijze,betaallink," +
+            "samenvatting,gebeld_op,nodig" +
             "&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("checkins?select=id,status,datum&gekoppelde_reservering=eq." +
@@ -982,13 +986,21 @@ async function vulKoppelingen(r) {
         : "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
       definitief ? "Open pdf" : concept ? "Openen" : "Aanmaken"));
 
+    /* Op de kaart hoort alleen te staan óf er gebeld is en wat er kort is
+       besproken. Het volledige welkomstcall-scherm openen vanuit de kaart is
+       te veel: daarvoor is de samenvatting bedoeld. De knop naar dat scherm
+       blijft daarom alleen staan zolang er nog géén call is. */
     const w = calls && calls[0];
+    const wGebeld = !w ? "nog geen call"
+      : w.nodig === false ? "niet nodig"
+      : (w.gebeld_op || w.status === "gebeld" || w.status === "afgerond") ? "gebeld"
+      : (w.status || "te bellen");
+    const wSamen = w ? String(w.samenvatting || "").trim() : "";
     regels.push(rijKoppeling("Welkomstcall",
-      w ? esc((w.status || "te bellen") + (w.datum ? " · " + w.datum : "") + (w.medewerker_id ? " · " + w.medewerker_id : ""))
-        : "nog geen call",
-      "vr2.html?open=welkomstcall&rid=" + encodeURIComponent(r.id) +
+      esc(wGebeld + (w && w.datum ? " · " + w.datum : "") + (wSamen ? " — " + wSamen : "")),
+      w ? "" : "vr2.html?open=welkomstcall&rid=" + encodeURIComponent(r.id) +
         (naam ? "&gast=" + encodeURIComponent(naam) : "") + "&suite=" + encodeURIComponent(r.suite || ""),
-      w ? "Openen" : "Call maken"));
+      w ? "" : "Call maken"));
 
     /* Wat er tijdens het belletje is besproken en bijgeboekt, hoort hier te
        staan: op locatie heb je daar meer aan dan in het belscherm. */

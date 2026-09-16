@@ -1903,6 +1903,16 @@ div.ag-blok{cursor:default}
             <div class="grid-form" style="margin-top:14px">
               <div class="field wide"><label for="wcNotitie">Notitie</label>
                 <input type="text" id="wcNotitie" placeholder="wat is er afgesproken of opgevallen"></div>
+              <!-- De samenvatting is wat er op de reserveringskaart komt te
+                   staan. Bewust apart van de notitie: die is voor losse
+                   aantekeningen, dit is het verhaal in één alinea. Ook te
+                   gebruiken als er niet gebeld hoefde te worden. -->
+              <div class="field wide"><label for="wcSamenvatting">Samenvatting van het gesprek</label>
+                <textarea id="wcSamenvatting" rows="3"
+                  placeholder="kort wat er is besproken — dit komt op de reserveringskaart"></textarea></div>
+              <div class="field wide" style="margin-top:-6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <button class="btn ghost small" id="wcSamenvatKnop" type="button">Gesprek samenvatten</button>
+                <span class="note" id="wcSamenvatNote">vult een voorstel uit de status en wat er is bijgeboekt</span></div>
             </div>
             <input type="hidden" id="wcNaam">
           </div>
@@ -7921,6 +7931,49 @@ $('#wcKlant').addEventListener('change', vulUitKlant);
   const el = $(s); if(el) el.addEventListener('input', wcHerbereken);
 });
 
+/* "Gesprek samenvatten": stelt een voorstel op uit wat er al bekend is, zodat
+   je niet met een leeg vak begint. Het blijft gewoon tekst die je kunt
+   overschrijven — er wordt niets automatisch bewaard.
+   Werkt ook als er niet gebeld hoefde te worden of als er niets is bijgeboekt:
+   dan komt er juist die zin te staan, want ook dát is een uitkomst die op de
+   reserveringskaart hoort. Bestaande tekst wordt niet zomaar overschreven. */
+function wcStelSamenvattingVoor(){
+  const regels = wcRegels();
+  const totaal = regels.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  const status = ($('#wcStatus') && $('#wcStatus').value) || 'te bellen';
+  const zinnen = [];
+
+  if(status === 'afgerond' || status === 'gebeld') zinnen.push('Gesproken met de gast.');
+  else if(status === 'geen gehoor') zinnen.push('Geen gehoor gekregen.');
+  else if(status === 'terugbellen') zinnen.push('Gast wil teruggebeld worden.');
+  else zinnen.push('Nog niet gebeld.');
+
+  zinnen.push(regels.length
+    ? 'Bijgeboekt: ' + regels.map(x => x.naam + (x.aantal > 1 ? ' ×' + x.aantal : '')).join(', ')
+      + ' (' + eur(totaal) + ').'
+    : 'Niets bijgeboekt.');
+
+  const los = [
+    $('#wcNotitie') ? $('#wcNotitie').value.trim() : '',
+    $('#wcBijz')    ? $('#wcBijz').value.trim()    : '',
+    $('#wcAllergie')? 'Allergie: ' + $('#wcAllergie').value.trim() : ''
+  ].filter(x => x && x !== 'Allergie: ');
+  if(los.length) zinnen.push(los.join(' '));
+
+  return zinnen.join(' ');
+}
+const wcSamenvatKnop = $('#wcSamenvatKnop');
+if(wcSamenvatKnop) wcSamenvatKnop.addEventListener('click', () => {
+  const vak = $('#wcSamenvatting'); if(!vak) return;
+  const note = $('#wcSamenvatNote');
+  if(vak.value.trim() && !confirm('Er staat al een samenvatting. Vervangen door een nieuw voorstel?')){
+    if(note) note.textContent = 'De bestaande samenvatting is blijven staan.';
+    return;
+  }
+  vak.value = wcStelSamenvattingVoor();
+  if(note) note.textContent = 'Voorstel ingevuld — pas het gerust aan.';
+});
+
 function renderExtras(){
   const doel = $('#wcExtras'); if(!doel) return;
   const actief = S.extras.filter(e=>e.actief!==false).sort((a,b)=>(a.sortering||0)-(b.sortering||0));
@@ -8117,6 +8170,8 @@ function wcFormulier(){
     incheck_link: $('#wcIncheckLink') ? $('#wcIncheckLink').value : null,
     status: $('#wcStatus').value,
     notitie: $('#wcNotitie').value.trim() || null,
+    /* de samenvatting is wat er op de reserveringskaart komt te staan */
+    samenvatting: ($('#wcSamenvatting') ? $('#wcSamenvatting').value.trim() : '') || null,
     bijzonderheden: $('#wcBijz') ? ($('#wcBijz').value.trim() || null) : null,
     allergieen: $('#wcAllergie') ? ($('#wcAllergie').value.trim() || null) : null,
     tijd_verzoek: ($('#wcTijdVerzoek') && $('#wcTijdVerzoek').value) || null,
@@ -8735,7 +8790,10 @@ $('#wcNieuw').addEventListener('click', ()=>{
   if($('#wcVrijNaam'))   $('#wcVrijNaam').value = '';
   if($('#wcVrijBedrag')) $('#wcVrijBedrag').value = '';
   ['#wcNaam','#wcVoor','#wcAchter','#wcTel','#wcMail','#wcPlaats','#wcRef','#wcTijd','#wcTijdEind',
-   '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg','#wcBijz','#wcAllergie']
+   '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg','#wcBijz','#wcAllergie',
+   /* ook de samenvatting, anders erft de volgende welkomstcall het verhaal van
+      de vorige - en dat verhaal komt op de reserveringskaart te staan */
+   '#wcSamenvatting']
     .forEach(s=>{ const el=$(s); if(el) el.value=''; });
   if($('#wcTijdVerzoek')){ $('#wcTijdVerzoek').value=''; wcTijdToon(); }
   $('#wcKlant').value=''; $('#wcPers').value=2; $('#wcDatum').value=''; $('#wcDatumEind').value='';
@@ -8979,6 +9037,7 @@ document.addEventListener('click', async e=>{
     wcToonVoorafNote(voorafBron());
     wcSmgVat(); wcHerhaalCheck(); wcZetBetaal(c.betaalwijze==='locatie' ? 'locatie' : 'mollie');
     $('#wcBetaallink').value = c.betaallink||''; $('#wcNotitie').value = c.notitie||'';
+    if($('#wcSamenvatting')) $('#wcSamenvatting').value = c.samenvatting||'';
     if($('#wcBijz'))     $('#wcBijz').value = c.bijzonderheden || '';
     if($('#wcAllergie')) $('#wcAllergie').value = c.allergieen || '';
     if($('#wcTijdVerzoek')){ $('#wcTijdVerzoek').value = c.tijd_verzoek || ''; wcTijdToon(); }
