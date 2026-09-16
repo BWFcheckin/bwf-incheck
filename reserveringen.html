@@ -670,10 +670,31 @@ const gecontroleerd = (r) => !!r.gewijzigd_door && r.gewijzigd_door !== "kanalen
 /* De tijd van de boeking zelf, voor als er geen afwijkende tijd is vastgelegd. */
 const tijdVan = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : fmtTijd.format(d); };
 
+/* De getoonde tijden.
+   AANKOMST: is er een incheck_tijd vastgelegd, dan wint die van de tijdstempel.
+   Bij een import krijgt de tijdstempel het standaard blokbegin (13:00) terwijl
+   de echt afgesproken tijd in incheck_tijd staat. Zonder die voorrang stond er
+   bij een late check-in 13:00 op de kaart en - erger - ook in de bevestiging
+   naar de gast. Het bewerkvenster (#vIncheck) en het VR-dashboard geven
+   incheck_tijd al dezelfde voorrang.
+
+   VERTREK: bewust GEEN voorrang voor uitcheck_tijd. Bij de reserveringen waar
+   die twee uiteenlopen komt uitcheck_tijd vrijwel altijd uit
+   'migratie-oude-gegevens' en is hij onbetrouwbaar: 15:29 in plaats van 15:30,
+   of een standaard 11:00 die op een dagverblijf van 19:00-22:00 is geplakt.
+   Voorrang geven zou daar dertien kaarten raken en er zeven van bederven.
+   Nagekeken op 16-09-2026; de uitzonderingen staan in de wijzigingslog.
+
+   Waarom ze uberhaupt uiteenlopen: formWaarden() schrijft incheck_tijd en
+   uitcheck_tijd, maar werkt de tijdstempels aankomst/vertrek niet bij.
+
+   Beide bronnen staan in Europe/Amsterdam, dus ze zijn vergelijkbaar. */
 function periode(r) {
   const a = new Date(r.aankomst), v = new Date(r.vertrek);
   const dagA = fmtDag.format(a), dagV = fmtDag.format(v);
-  return { dag: dagA, tijd: fmtTijd.format(a) + " – " + (dagA === dagV ? "" : dagV + " ") + fmtTijd.format(v) };
+  const tIn = hhmm(r.incheck_tijd) || fmtTijd.format(a);
+  const tUit = fmtTijd.format(v);
+  return { dag: dagA, tijd: tIn + " – " + (dagA === dagV ? "" : dagV + " ") + tUit };
 }
 function statusPill(s) {
   const cls = s === "bevestigd" ? "ok" : s === "optie" ? "warn" : "crit";
@@ -703,7 +724,9 @@ function rijHtml(r) {
   if (gastOntbreekt(r)) letop.push('<span class="pill warn">gastgegevens ontbreken</span>');
   if (tijdenControleren(r)) letop.push('<span class="pill crit" title="' + esc(r.import_opmerking) + '">tijden controleren</span>');
   else if (r.import_opmerking) letop.push('<span class="pill" title="' + esc(r.import_opmerking) + '">SMG-planningregel</span>');
-  const afwijkend = [r.incheck_tijd ? "in " + hhmm(r.incheck_tijd) : "", r.uitcheck_tijd ? "uit " + hhmm(r.uitcheck_tijd) : ""].filter(Boolean).join(" · ");
+  /* De losse regel "in 20:00 · uit 11:00" is vervallen: periode() toont die
+     tijden nu zelf, dus hij herhaalde alleen wat er al stond - naast een
+     tijdstempel die iets anders beweerde. */
   const contact = [r.gast_telefoon, r.gast_email].filter(Boolean).join(" · ");
   const knop = magBewerken() && r.status !== "geannuleerd" && (!gecontroleerd(r) || r.status === "optie")
     ? '<button type="button" class="knop klein" data-bevestig="' + esc(r.id) + '">Bevestigd</button>' : "";
@@ -747,7 +770,6 @@ function rijHtml(r) {
       '<div class="reskaart-regels">' +
         "<span>Aankomst <b>" + esc(p.dag) + "</b></span>" +
         "<span><b>" + esc(p.tijd) + "</b></span>" +
-        (afwijkend ? "<span>" + esc(afwijkend) + "</span>" : "") +
         "<span><b>" + esc(TYPES[r.type] || r.type) + "</b></span>" +
         (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
       "</div>" +
