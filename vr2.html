@@ -7591,8 +7591,16 @@ async function laadOverzicht(){
     const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
                    'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,' +
                    'bedrag_totaal,betaald_bedrag,betaalstatus,notitie,omschrijving';
+    /* Geen datumvenster meer. Dat stond op 120 dagen terug, waardoor de oudste
+       boekingen niet in deze lijst kwamen - en dus ook niet te kiezen waren bij
+       "formulier koppelen aan reservering". Hetzelfde probleem stond in het
+       incheckformulier, daar met 60 dagen.
+       De lijst blijft begrensd door de limiet. Bewust op nieuwste eerst gezet:
+       raakt de limiet ooit vol, dan vallen de oudste af en niet de actuele.
+       De tellers bovenaan blijven ongemoeid: die kijken zelf al naar vandaag
+       en later. */
     const boekingen = await api('reserveringen?select=' + velden + '&status=neq.geannuleerd' +
-      '&aankomst=gte.' + ovDag(-120) + '&order=aankomst.asc&limit=1000') || [];
+      '&order=aankomst.desc&limit=1200') || [];
     boekingen.forEach(b=>{
       const a = wcLokaal(b.aankomst), v = wcLokaal(b.vertrek);
       const s = a.datum, e = v.datum || s;
