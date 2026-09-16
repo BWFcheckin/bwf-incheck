@@ -315,8 +315,18 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
 
   <section id="pane-reserveringen" class="stack" hidden>
     <div class="card" style="padding:8px">
-      <iframe id="resFrame" src="reserveringen.html" title="Reserveringen"
+      <!-- Het adres wordt hiernaast gezet, mét een versie erachter. Stond het
+           vast in src, dan bleef de browser een oude versie van de ingebedde
+           pagina uit de cache halen terwijl het tabblad eromheen al ververst
+           was. Op 16-09-2026 bleef daardoor een al gerepareerde fout zichtbaar. -->
+      <iframe id="resFrame" data-src="reserveringen.html" title="Reserveringen"
               style="width:100%;height:560px;border:0;display:block"></iframe>
+      <script>
+        (function(){
+          var f = document.getElementById('resFrame');
+          if(f && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
+        })();
+      </script>
     </div>
   </section>
 </main>

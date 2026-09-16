@@ -3008,7 +3008,12 @@ document.addEventListener('DOMContentLoaded', maakReserveringenPaneel);
 function laadResFrameIndienZichtbaar(){
   const f = document.getElementById('resPaginaFrame');
   const p = document.getElementById('panel-respagina');
-  if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src;
+  /* Met een versie achter het adres haalt de browser altijd de nieuwste pagina
+     op. Zonder dat bleef hier een oude versie in de cache hangen terwijl het
+     buitenste tabblad al ververst was: op 16-09-2026 leverde dat een fout op
+     die al gerepareerd was, maar onzichtbaar bleef. De guard hierboven kijkt
+     naar !f.src, en die blijft werken omdat src na toekenning gevuld is. */
+  if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
 }
 document.addEventListener('click', function(){ setTimeout(laadResFrameIndienZichtbaar, 60); });
 setTimeout(laadResFrameIndienZichtbaar, 1500);
