@@ -1552,6 +1552,28 @@ div.ag-blok{cursor:default}
       <!-- De cijfers over werkzaamheden, uren en overdracht stonden eerst in de
            balk bovenaan. Die balk toont nu de vier dagstartcijfers, dus deze
            hebben hier een eigen kaart gekregen: ze zijn niet verdwenen. -->
+      <!-- Betaling per reservering: in één scherm zien of alles betaald is, of
+           het incheckformulier gekoppeld is, of er extra's bijgeboekt zijn en
+           hoe er is afgerekend. De betaalstatus en de betaalwijze zijn hier
+           direct bij te werken; dat schrijft naar de reservering zelf, zodat
+           het overal meteen klopt. -->
+      <div class="card" data-dggroep="reserveringen">
+        <div class="card-head"><h2>Betaling per reservering</h2>
+          <span class="hint" id="bpHint"></span></div>
+        <div class="card-body" style="padding-bottom:0">
+          <span class="segment ag-pillen" id="bpFilter" role="group" aria-label="Betaling">
+            <button type="button" data-b="open" aria-pressed="true">Nog niet rond</button>
+            <button type="button" data-b="betaald" aria-pressed="false">Betaald</button>
+            <button type="button" data-b="alles" aria-pressed="false">Alles</button>
+          </span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Gast</th><th class="num">Totaal</th><th class="num">Open</th>
+            <th>Status</th><th>Betaald via</th><th>Formulier</th><th>Extra's</th></tr></thead>
+          <tbody id="bpLijst"></tbody>
+        </table></div>
+      </div>
+
       <!-- Betalingen uit Mollie. De webhook mollie-webhook schrijft elke
            statuswijziging naar mollie_betalingen, met het reserveringskenmerk
            uit de metadata erbij. Hier wordt alleen gelezen: de status komt van
@@ -3612,6 +3634,104 @@ document.addEventListener('click', e => {
   kiesGroep(b.dataset.dgnaar);
 });
 
+/* ---------------- betaling per reservering ----------------
+   Leest uit RES, dat de reserveringen al bevat inclusief de bedragen, de
+   betaalwijze, de formulierkoppeling en de arrangementen (zie de veldenlijst
+   bij laadOverzicht). Er wordt hier dus niets extra opgehaald.
+   De betaalstatus en de betaalwijze zijn direct bij te werken; dat schrijft
+   naar de reservering zelf, zodat het ook op de reserveringskaart en in het
+   incheckformulier meteen klopt. */
+let bpFilterStand = 'open';
+const BP_WIJZEN = ['Contant','Flatpay','Mollie betaallink','Bankoverschrijving',
+                   'Booking.com','SMG','Anders'];
+const BP_STATUS = { open:'Open', deels:'Deels betaald', aanbetaling:'Aanbetaling gedaan', betaald:'Betaald' };
+
+function bpBedragen(ruw){
+  const totaal  = ruw.bedrag_totaal  != null ? Number(ruw.bedrag_totaal)  : null;
+  const betaald = ruw.betaald_bedrag != null ? Number(ruw.betaald_bedrag) : null;
+  /* restant_bedrag is leidend als het er staat; anders zelf uitrekenen, maar
+     alleen als beide bedragen bekend zijn. Anders zou "0 openstaand" worden
+     getoond bij een boeking waarvan we het bedrag helemaal niet weten. */
+  const open = ruw.restant_bedrag != null ? Number(ruw.restant_bedrag)
+             : (totaal != null && betaald != null ? totaal - betaald : null);
+  return { totaal, betaald, open };
+}
+
+function renderBetaalPerReservering(){
+  const doel = $('#bpLijst'); if(!doel) return;
+  const rijen = RES.filter(r => r && r.ruw && r.resId)
+    .filter(r => {
+      const st = String(r.ruw.betaalstatus || 'open');
+      if(bpFilterStand === 'betaald') return st === 'betaald';
+      if(bpFilterStand === 'open')    return st !== 'betaald';
+      return true;
+    })
+    .sort((a,b) => String(b.start||'').localeCompare(String(a.start||'')))
+    .slice(0, 60);
+
+  const hint = $('#bpHint');
+  if(hint){
+    const nietRond = RES.filter(r => r && r.ruw && String(r.ruw.betaalstatus||'open') !== 'betaald').length;
+    hint.textContent = nietRond + ' nog niet rond';
+  }
+
+  doel.innerHTML = rijen.length ? rijen.map(r => {
+    const ruw = r.ruw, b = bpBedragen(ruw);
+    const st = String(ruw.betaalstatus || 'open');
+    const arr = Array.isArray(ruw.arrangementen) ? ruw.arrangementen : [];
+    const extras = arr.filter(x => x && x.bron === 'welkomstcall').length;
+    return `<tr>
+      <td class="name">${esc(r.naam || 'zonder naam')}<span class="meta">${
+        esc(dmy(String(r.start||'').slice(0,10)))} · ${esc(r.locatie||'')}</span></td>
+      <td class="num">${b.totaal != null ? eur(b.totaal) : '—'}</td>
+      <td class="num">${b.open != null ? eur(b.open) : '—'}</td>
+      <td><select class="bel-status" data-bpstatus="${esc(r.resId)}">${
+        Object.keys(BP_STATUS).map(k =>
+          `<option value="${k}"${st === k ? ' selected' : ''}>${esc(BP_STATUS[k])}</option>`).join('')
+      }</select></td>
+      <td><select class="bel-status" data-bpwijze="${esc(r.resId)}">
+        <option value="">— nog niet bekend —</option>${
+        BP_WIJZEN.map(w =>
+          `<option${String(ruw.betaald_via||'') === w ? ' selected' : ''}>${esc(w)}</option>`).join('')
+      }${ruw.betaald_via && BP_WIJZEN.indexOf(ruw.betaald_via) < 0
+          ? `<option selected>${esc(ruw.betaald_via)}</option>` : ''}</select></td>
+      <td>${ruw.checkin_id ? '<span class="pill ok">gekoppeld</span>'
+                           : '<span class="pill">geen</span>'}</td>
+      <td>${extras ? esc(extras) + '×' : '—'}</td>
+    </tr>`;
+  }).join('')
+    : `<tr><td colspan="7"><div class="empty"><strong>Niets te zien</strong>Geen reserveringen in deze selectie.</div></td></tr>`;
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('#bpFilter button'); if(!b) return;
+  bpFilterStand = b.dataset.b || 'open';
+  $$('#bpFilter button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderBetaalPerReservering();
+});
+
+/* Betaalstatus of betaalwijze aanpassen schrijft meteen naar de reservering.
+   Mislukt dat (bijvoorbeeld omdat je die suite niet mag bewerken), dan komt er
+   een melding en wordt de lijst opnieuw getekend met de echte waarde. */
+document.addEventListener('change', async e => {
+  const s = e.target.closest('[data-bpstatus]'), w = e.target.closest('[data-bpwijze]');
+  if(!s && !w) return;
+  const resId = (s || w).dataset.bpstatus || (s || w).dataset.bpwijze;
+  const patch = s ? { betaalstatus: e.target.value }
+                  : { betaald_via: e.target.value || null };
+  try{
+    await api('reserveringen?id=eq.' + encodeURIComponent(resId),
+      {method:'PATCH', headers:{'Content-Type':'application/json', Prefer:'return=minimal'},
+       body: JSON.stringify(patch)});
+    const rij = RES.find(x => String(x.resId) === String(resId));
+    if(rij && rij.ruw) Object.assign(rij.ruw, patch);
+    toast('Betaling bijgewerkt.');
+  }catch(err){
+    toast('Bijwerken lukte niet: ' + (err.message || 'onbekende fout'));
+    renderBetaalPerReservering();
+  }
+});
+
 /* ---------------- betalingen uit Mollie ----------------
    De webhook schrijft elke statuswijziging naar mollie_betalingen. Hier wordt
    alleen gelezen en getoond: de status komt van Mollie en wordt nooit door dit
@@ -3730,6 +3850,7 @@ function renderOverzicht(){
 
   renderDagstart();
   renderAankomsten();
+  renderBetaalPerReservering();
 
   const komend = open.slice().sort((a,b)=>(a.deadline||'9999')<(b.deadline||'9999')?-1:1).slice(0,8);
   $('#ovTaken').innerHTML = komend.length ? komend.map(t=>`
