@@ -303,6 +303,48 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
             totaalbedrag automatisch bijwerken
           </label>
         </div>
+
+        <!-- Feestpakketten. Een pakket kiezen opent het intakeformulier uit de
+             folder. De losse feestopties (thema, ballonnenboog, taart, cupcakes,
+             fotomoment, sweettable, extra uur) staan gewoon in de lijst
+             hierboven: die komen als categorie Feest uit dezelfde tabel en
+             hoeven hier dus niet herhaald te worden. -->
+        <div class="veld breed" id="nFeestVak">
+          <label class="veld breed" style="margin:0">Feestpakket <select id="nFeest"></select></label>
+          <div id="nFeestForm" style="display:none;margin-top:11px;padding-top:10px;
+               border-top:1px solid var(--line-soft)">
+            <div class="raster">
+              <label class="veld">Tijdsblok <select id="nFeestTijd">
+                <option value="">&mdash; kies &mdash;</option>
+                <option>Woensdag 13:00&ndash;16:00</option>
+                <option>Woensdag 15:00&ndash;18:00</option>
+                <option>Zaterdag 13:00&ndash;16:00</option></select></label>
+              <label class="veld">Naam hoofdboeker <input id="nFeestBoeker" type="text"></label>
+              <label class="veld" data-feestsoort="kids">Naam en leeftijd van de jarige
+                <input id="nFeestJarige" type="text"></label>
+              <label class="veld">Aantal begeleiders
+                <input id="nFeestBegeleiders" type="number" min="0" max="10" step="1"></label>
+              <label class="veld" data-feestsoort="kids">Aantal kinderen
+                <input id="nFeestKinderen" type="number" min="0" max="30" step="1"></label>
+              <label class="veld" data-feestsoort="kids">Kinderen met diploma
+                <input id="nFeestDiploma" type="number" min="0" max="30" step="1"></label>
+              <label class="veld" data-feestsoort="kids">Kinderen zonder diploma
+                <input id="nFeestGeenDiploma" type="number" min="0" max="30" step="1"></label>
+              <label class="veld" data-feestsoort="kids">Zwemvesten nodig <select id="nFeestZwemvest">
+                <option value="">&mdash; kies &mdash;</option>
+                <option>Ja</option><option>Nee</option></select></label>
+              <label class="veld" data-feestsoort="kids">Taart (max. 1 smaak) <select id="nFeestTaart">
+                <option value="">&mdash; kies &mdash;</option>
+                <option>Slagroomtaart</option><option>Chocoladetaart</option></select></label>
+              <!-- de menukeuzes verschillen per soort feest en worden vanuit
+                   toonFeestForm() gevuld -->
+              <label class="veld">Menu (max. 1) <select id="nFeestMenu"></select></label>
+              <label class="veld">Thema versiering <input id="nFeestThema" type="text"
+                placeholder="Tropical, Spider-Man, Unicorn, Marvel of eigen thema"></label>
+              <label class="veld breed">Extra opmerkingen <textarea id="nFeestOpm" rows="2"></textarea></label>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="v-voet" style="position:static;border:0;padding:14px 0 0">
         <span class="v-melding" id="nMelding"></span>
@@ -499,7 +541,7 @@ const TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overn
 const STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannuleerd", no_show: "No-show" };
 const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
 const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
-  "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,betaald_bedrag," +
+  "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,extras,bedrag_totaal,betaald_bedrag," +
   "restant_bedrag,betaalstatus,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
   "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door";
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
@@ -1408,6 +1450,14 @@ function leegNieuw() {
      stilzwijgend de keuzes van de vorige - met geld erin */
   N_KEUZES = {};
   N_BEDRAG_ZELF = false;
+  /* ook het feestformulier leeg, anders erft de volgende boeking stilzwijgend
+     het pakket en de kinderaantallen van de vorige - met geld erin */
+  ["#nFeest", "#nFeestTijd", "#nFeestBoeker", "#nFeestJarige", "#nFeestBegeleiders",
+   "#nFeestKinderen", "#nFeestDiploma", "#nFeestGeenDiploma", "#nFeestZwemvest",
+   "#nFeestTaart", "#nFeestMenu", "#nFeestThema", "#nFeestOpm"].forEach((s) => {
+    const el = $(s); if (el) el.value = "";
+  });
+  if (typeof toonFeestForm === "function") toonFeestForm();
   if (typeof tekenNieuwExtras === "function") tekenNieuwExtras();
   vulNieuwKeuzes();
 }
@@ -1419,6 +1469,111 @@ function leegNieuw() {
    telt het aantal personen in plaats van een eigen aantal.
    ========================================================= */
 let EXTRAS = [], N_KEUZES = {}, N_BEDRAG_ZELF = false;
+
+/* =========================================================
+   Feestpakketten: Kids Poolparty en Bridal-/Babyshower
+   De drie pakketten staan als arrangement in wz_extras, maar krijgen hier een
+   eigen keuzemenu omdat er een intakeformulier bij hoort. Welke vragen erbij
+   horen verschilt: bij een kinderfeest gaat het om diploma's en zwemvesten,
+   bij een shower niet. Vandaar de indeling in "kids" en "shower".
+   De namen komen letterlijk uit de migratie van 16-09-2026.
+   ========================================================= */
+const FEESTPAKKETTEN = {
+  "Kids Poolparty t/m 11 jaar": "kids",
+  "Kids Poolparty 12+ of gemengd": "kids",
+  "Bridal- of Babyshower": "shower"
+};
+const FEEST_MENUS = {
+  kids: ["Hotdog (kip) en patat", "Hamburgers (rund) en patat", "High tea (alleen bij 12+)"],
+  shower: ["High wine met warme snacks", "High tea met broodjes en zoetigheid",
+           "Burger en chickenwings menu"]
+};
+
+function feestPakketVan(naam) { return FEESTPAKKETTEN[String(naam || "").trim()] || ""; }
+
+function feestGekozen() {
+  const sel = $("#nFeest");
+  if (!sel || !sel.value) return null;
+  return EXTRAS.find((e) => String(e.id) === String(sel.value)) || null;
+}
+
+/* Het pakket telt als eigen regel mee in de opsomming en in het totaalbedrag. */
+function feestRegels() {
+  const e = feestGekozen();
+  return e ? [{ naam: e.naam, aantal: 1, bedrag: Number(e.prijs) || 0 }] : [];
+}
+
+/* De ingevulde antwoorden. Alleen wat echt is ingevuld wordt bewaard, zodat er
+   geen lege velden in de database belanden. */
+function feestAntwoorden() {
+  const e = feestGekozen();
+  if (!e) return null;
+  const soort = feestPakketVan(e.naam);
+  const lees = (id) => { const el = $(id); return el ? String(el.value || "").trim() : ""; };
+  const a = { pakket: e.naam, soort, tijdsblok: lees("#nFeestTijd"),
+    hoofdboeker: lees("#nFeestBoeker"), begeleiders: lees("#nFeestBegeleiders"),
+    menu: lees("#nFeestMenu"), thema: lees("#nFeestThema"), opmerkingen: lees("#nFeestOpm") };
+  if (soort === "kids") {
+    a.jarige = lees("#nFeestJarige");
+    a.kinderen = lees("#nFeestKinderen");
+    a.met_diploma = lees("#nFeestDiploma");
+    a.zonder_diploma = lees("#nFeestGeenDiploma");
+    a.zwemvesten = lees("#nFeestZwemvest");
+    a.taart = lees("#nFeestTaart");
+  }
+  Object.keys(a).forEach((k) => { if (a[k] === "") delete a[k]; });
+  return a;
+}
+
+/* Dezelfde antwoorden als leesbare tekst, voor in de omschrijving. */
+const FEEST_LABELS = {
+  pakket: "Pakket", tijdsblok: "Tijdsblok", hoofdboeker: "Hoofdboeker", jarige: "Jarige",
+  begeleiders: "Begeleiders", kinderen: "Aantal kinderen", met_diploma: "Met diploma",
+  zonder_diploma: "Zonder diploma", zwemvesten: "Zwemvesten", taart: "Taart",
+  menu: "Menu", thema: "Thema", opmerkingen: "Opmerkingen"
+};
+function feestSamenvatting() {
+  const a = feestAntwoorden();
+  if (!a) return "";
+  return Object.keys(FEEST_LABELS).filter((k) => a[k])
+    .map((k) => FEEST_LABELS[k] + ": " + a[k]).join("\n");
+}
+
+function vulFeestKeuze() {
+  const sel = $("#nFeest");
+  if (!sel) return;
+  const nu = sel.value;
+  const lijst = feestPakketten();
+  sel.innerHTML = '<option value="">&mdash; geen feestpakket &mdash;</option>' +
+    lijst.map((e) => '<option value="' + esc(e.id) + '">' +
+      esc(e.naam) + " &mdash; € " + esc(euro(Number(e.prijs) || 0)) + "</option>").join("");
+  /* Wisselt iemand naar een suite waar het gekozen pakket niet bestaat, dan
+     valt de keuze terug op geen pakket in plaats van stilzwijgend te blijven
+     staan met een bedrag erin. */
+  sel.value = lijst.some((e) => String(e.id) === String(nu)) ? nu : "";
+  toonFeestForm();
+}
+
+/* Het formulier staat alleen open als er een pakket is gekozen, en de vragen
+   over diploma's en zwemvesten alleen bij een kinderfeest. De velden zijn
+   flexvakken, dus zichtbaarheid gaat via display en niet via hidden. */
+function toonFeestForm() {
+  const e = feestGekozen();
+  const soort = e ? feestPakketVan(e.naam) : "";
+  const vak = $("#nFeestForm");
+  if (vak) vak.style.display = e ? "" : "none";
+  document.querySelectorAll("[data-feestsoort]").forEach((el) => {
+    el.style.display = (soort && el.dataset.feestsoort === soort) ? "" : "none";
+  });
+  const menu = $("#nFeestMenu");
+  if (menu) {
+    const nu = menu.value;
+    const opties = FEEST_MENUS[soort] || [];
+    menu.innerHTML = '<option value="">&mdash; kies &mdash;</option>' +
+      opties.map((m) => "<option>" + esc(m) + "</option>").join("");
+    menu.value = opties.indexOf(nu) > -1 ? nu : "";
+  }
+}
 
 function nExtraRegels() {
   const personen = parseInt($("#nPersonen").value, 10) || 1;
@@ -1434,14 +1589,31 @@ function nExtraRegels() {
 /* De keuzelijst toont alleen wat bij de gekozen suite hoort. Een leeg
    locatieveld betekent: overal beschikbaar. De omschrijving uit de database
    staat eronder, zodat zichtbaar is wat de gast krijgt. */
-function zichtbareExtras() {
+function opLocatie(lijst) {
   const hier = SUITE_LOCATIE[$("#nSuite").value];
-  return EXTRAS.filter((e) => !e.locatie || e.locatie === hier);
+  return lijst.filter((e) => !e.locatie || e.locatie === hier);
+}
+
+/* De aanvinklijst. De feestpakketten zitten er bewust NIET in: die hebben een
+   eigen keuzemenu met het intakeformulier eronder. Stonden ze in allebei, dan
+   kon hetzelfde pakket twee keer geboekt en twee keer gerekend worden. */
+function zichtbareExtras() {
+  return opLocatie(EXTRAS).filter((e) => !feestPakketVan(e.naam));
+}
+
+/* De pakketten voor het keuzemenu, op dezelfde locatie gefilterd. */
+function feestPakketten() {
+  return opLocatie(EXTRAS).filter((e) => feestPakketVan(e.naam));
 }
 
 function tekenNieuwExtras() {
   const vak = $("#nExtras");
   if (!vak) return;
+  /* De feestpakketten hangen aan dezelfde locatie als de rest, dus het
+     keuzemenu moet mee bijwerken zodra er van suite gewisseld wordt. Dit staat
+     vóór de vroege uitstap hieronder: ook als er voor deze suite geen losse
+     extra's zijn, kan er wel een feestpakket bestaan. */
+  vulFeestKeuze();
   const lijst = zichtbareExtras();
 
   /* Wisselt iemand van suite, dan kan een eerder aangevinkt item verdwijnen uit
@@ -1559,7 +1731,8 @@ function nHerbereken() {
   const verblijf = verblijfRegels();
   const toeslag = toeslagRegels();
   const extras = nExtraRegels();
-  const alles = verblijf.concat(toeslag, extras);
+  /* het feestpakket is een eigen regel: het staat niet in de aanvinklijst */
+  const alles = verblijf.concat(toeslag, feestRegels(), extras);
   const totaal = alles.reduce((a, x) => a + x.bedrag, 0);
 
   const som = $("#nExtrasSom");
@@ -1592,6 +1765,9 @@ document.addEventListener("change", (e) => {
   }
   const a = e.target.closest("[data-nextraaantal]");
   if (a) { N_KEUZES[a.dataset.nextraaantal] = Math.max(1, Number(a.value) || 1); nHerbereken(); return; }
+  /* een ander feestpakket kiezen wisselt de vragen en het menu, en verandert
+     het bedrag */
+  if (e.target.id === "nFeest") { toonFeestForm(); nHerbereken(); return; }
   /* Een bestaande klant kiezen vult de gastvelden. Kiest iemand "geen
      bestaande klant", dan blijft er staan wat er staat: getypte gegevens
      worden niet gewist. */
@@ -1825,8 +2001,14 @@ async function maakReservering() {
     arrangementen: $("#nArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }))
       .concat(verblijfRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
       .concat(toeslagRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
+      .concat(feestRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
       .concat(nExtraRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag }))),
-    omschrijving: $("#nOms").value.trim() || null,
+    /* De antwoorden uit het feestformulier worden twee keer bewaard: apart in
+       extras, zodat er later per vraag op gezocht kan worden, en als leesbare
+       tekst in de omschrijving, zodat ze meteen bij de reservering zichtbaar
+       zijn. Zonder feest blijft extras een lege lijst, zoals de tabel verwacht. */
+    extras: feestAntwoorden() || [],
+    omschrijving: [$("#nOms").value.trim(), feestSamenvatting()].filter(Boolean).join("\n\n") || null,
     bedrag_totaal: bedrag,
     betaalstatus: $("#nBetaal").value,
     aangemaakt_door: NAAM, gewijzigd_door: NAAM
