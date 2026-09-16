@@ -735,6 +735,17 @@ function rijHtml(r) {
      tijden nu zelf, dus hij herhaalde alleen wat er al stond - naast een
      tijdstempel die iets anders beweerde. */
   const contact = [r.gast_telefoon, r.gast_email].filter(Boolean).join(" · ");
+  /* Wat er is bijgeboekt hoort meteen op de kaart te staan en niet pas in het
+     bewerkvenster: daar kijkt de VR-assistent naar als ze een gast belt.
+     Let op: arrangementen bevat ook de verblijf- en toeslagregels, niet alleen
+     bijgeboekte extra's. Daarom beknopt, met een maximum van vier namen en een
+     telling van de rest. Het bedrag staat al in het geldblok eronder. */
+  const arrNamen = (Array.isArray(r.arrangementen) ? r.arrangementen : [])
+    .map((a) => (typeof a === "string" ? a : a && a.naam))
+    .filter(Boolean);
+  const arrTekst = arrNamen.length
+    ? arrNamen.slice(0, 4).join(" · ") + (arrNamen.length > 4 ? " + " + (arrNamen.length - 4) + " meer" : "")
+    : "";
   const knop = magBewerken() && r.status !== "geannuleerd" && (!gecontroleerd(r) || r.status === "optie")
     ? '<button type="button" class="knop klein" data-bevestig="' + esc(r.id) + '">Bevestigd</button>' : "";
   /* Bedragen komen alle drie uit KOLOMMEN, dus zonder extra bevraging.
@@ -781,6 +792,7 @@ function rijHtml(r) {
         (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
       "</div>" +
       (contact ? '<div class="reskaart-regels"><span>' + esc(contact) + "</span></div>" : "") +
+      (arrTekst ? '<div class="reskaart-regels"><span>Geboekt <b>' + esc(arrTekst) + "</b></span></div>" : "") +
       geld +
       '<div class="reskaart-voet">' + letop.join("") +
         (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +

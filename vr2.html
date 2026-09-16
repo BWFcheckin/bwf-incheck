@@ -8807,6 +8807,32 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
   $('#wcNote').textContent = f.status === 'afgerond'
     ? 'Welkomstcall bewaard en afgerond.'
     : 'Welkomstcall bewaard. Hij staat bij de openstaande welkomstcalls.';
+
+  /* Wat er tijdens de call is bijgeboekt hoort ook op de reservering te komen,
+     zodat het meteen op de reserveringskaart staat. Alleen als deze call aan
+     een reservering hangt.
+     De regels krijgen het merkteken bron:'welkomstcall'. Bij een volgende keer
+     opslaan worden de eerder gemerkte regels eerst weggehaald en opnieuw
+     gezet; zonder dat merkteken zou elke keer opslaan de lijst verdubbelen.
+     Wat er buiten de call om op de reservering staat blijft ongemoeid.
+     Mislukt dit, dan blijft de welkomstcall gewoon bewaard - dit mag het
+     opslaan niet onderuithalen. */
+  if(wcResId){
+    try{
+      const nu = await api('reserveringen?select=arrangementen&id=eq.' + encodeURIComponent(wcResId));
+      const bestaand = (nu && nu[0] && Array.isArray(nu[0].arrangementen)) ? nu[0].arrangementen : [];
+      const zonderOud = bestaand.filter(a => !(a && a.bron === 'welkomstcall'));
+      const uitCall = (f.regels || []).map(x => ({
+        naam: x.naam, aantal: x.aantal, bedrag: x.bedrag, bron: 'welkomstcall' }));
+      await api('reserveringen?id=eq.' + encodeURIComponent(wcResId),
+        {method:'PATCH', headers:{'Content-Type':'application/json', Prefer:'return=minimal'},
+         body: JSON.stringify({ arrangementen: zonderOud.concat(uitCall) })});
+    }catch(e){
+      $('#wcNote').innerHTML = '<strong>Let op:</strong> de welkomstcall is bewaard, maar de extra&#39;s '
+        + 'konden niet op de reservering worden gezet (' + esc(e.message || 'onbekende fout') + ').';
+    }
+  }
+
   renderCalls(); renderTaken(); badges(); toast('Welkomstcall bewaard.');
 });
 let wcFilterStand = 'open';
