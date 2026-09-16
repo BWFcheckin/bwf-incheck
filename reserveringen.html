@@ -1700,6 +1700,25 @@ function tijdsblokBij(b) {
    tabel tijdsblokken verwijst. De waarde van de optie is dus NIET bruikbaar;
    de bijbehorende uuid staat klaar in data-tijdsblok. Heeft een tariefblok
    geen tegenhanger, dan blijft het veld leeg - dat mag, het is optioneel. */
+/* De avond-inchecktijd van een suite. Bewust NIET als getal in de code: hij
+   komt uit de tijdsblokken zelf, namelijk de laatste begintijd van de blokken
+   die een overnachting zijn. Gemeten 17-09-2026 levert dat op: Angie 20:00,
+   Malina Jacuzzi 20:00, Malina Deluxe 19:00.
+   Angela koos op 17-09-2026 uitdrukkelijk "wel de tijd, niet het tarief": een
+   overnachting zonder opgegeven tijd begint voortaan 's avonds, maar het
+   goedkopere Late check-in-blok kies je nog steeds zelf. Honeymoon staat er
+   niet bij; dat blok begint om 01:00 en is geen avondincheck. */
+const NACHTTYPES = ["overnachting", "late_checkin"];
+function avondtijdVoor(suite, type) {
+  if (NACHTTYPES.indexOf(type) < 0) return "";
+  const tijden = BLOKKEN
+    .filter((b) => b.suite === suite && NACHTTYPES.indexOf(b.type) >= 0)
+    .map((b) => hhmm(b.begin))
+    .filter(Boolean)
+    .sort();
+  return tijden.length ? tijden[tijden.length - 1] : "";
+}
+
 function nGekozenTijdsblok() {
   const o = $("#nBlok").selectedOptions[0];
   return (o && o.dataset.tijdsblok) || null;
@@ -2282,7 +2301,7 @@ async function maakReservering() {
   const bedrag = leesBedrag($("#nBedrag").value);
   if (Number.isNaN(bedrag)) { m.textContent = "Het totaalbedrag is geen geldig bedrag."; return; }
 
-  const tIn = $("#nIncheck").value || "15:00";
+  const tIn = $("#nIncheck").value || avondtijdVoor($("#nSuite").value, $("#nType").value) || "15:00";
   const tUit = $("#nUitcheck").value || "11:00";
   const aank = lokaalNaarIso($("#nAankomst").value, tIn);
   let vert = lokaalNaarIso($("#nVertrek").value || $("#nAankomst").value, tUit);
