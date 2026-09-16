@@ -438,6 +438,19 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <label class="veld breed">Arrangementen <textarea id="vArr" rows="3" placeholder="Eén arrangement of extra per regel"></textarea></label>
           <label class="veld">Totaalbedrag (€) <input id="vBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
           <label class="veld">Betaalstatus <select id="vBetaal"></select></label>
+          <!-- Hoe er is afgerekend. Dezelfde woorden als in het
+               incheckformulier, anders sluit de automatische overname vanuit
+               een definitief formulier nooit aan. -->
+          <label class="veld">Betaald via <select id="vBetaaldVia">
+            <option value="">— nog niet bekend —</option>
+            <option>Contant</option>
+            <option>Flatpay</option>
+            <option>Mollie betaallink</option>
+            <option>Bankoverschrijving</option>
+            <option>Booking.com</option>
+            <option>SMG</option>
+            <option>Anders</option>
+          </select></label>
         </div>
       </fieldset>
 
@@ -549,7 +562,7 @@ const STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannu
 const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
 const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
   "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,extras,bedrag_totaal,betaald_bedrag," +
-  "restant_bedrag,betaalstatus,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
+  "restant_bedrag,betaalstatus,betaald_via,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
   "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door";
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
 
@@ -895,6 +908,19 @@ function openVenster(id) {
   $("#vArr").value = ARR_START;
   $("#vBedrag").value = r.bedrag_totaal == null ? "" : euro(r.bedrag_totaal);
   $("#vBetaal").innerHTML = opties(BETAAL, r.betaalstatus || "open");
+  /* De opgeslagen betaalwijze terugzetten. Zonder deze regel staat het menu bij
+     elk openen weer op "nog niet bekend" en wist het eerstvolgende opslaan de
+     wijze die er stond. Komt de bewaarde tekst niet in de lijst voor — een
+     gesplitste betaling uit het incheckformulier bijvoorbeeld — dan wordt hij
+     als extra keuze toegevoegd, zodat hij zichtbaar blijft en niet stilzwijgend
+     verdwijnt bij het volgende opslaan. */
+  const bvVak = $("#vBetaaldVia");
+  if (bvVak) {
+    const bv = String(r.betaald_via || "");
+    const kent = Array.from(bvVak.options).some((o) => o.value === bv || o.text === bv);
+    if (bv && !kent) bvVak.add(new Option(bv, bv));
+    bvVak.value = bv;
+  }
   const statussen = Object.fromEntries(Object.entries(STATUSSEN).filter(([w]) => w !== "no_show" || r.status === "no_show"));
   $("#vStatus").innerHTML = opties(statussen, r.status);
   $("#vOms").value = r.omschrijving || "";
@@ -1230,6 +1256,9 @@ function formWaarden() {
     uitcheck_tijd: leeg($("#vUitcheck").value),
     bedrag_totaal: bedrag,
     betaalstatus: $("#vBetaal").value,
+    /* Leeg betekent "nog niet bekend" en wordt als null bewaard, niet als lege
+       tekst: zo is het verschil met een bewust gekozen wijze zichtbaar. */
+    betaald_via: $("#vBetaaldVia") ? ($("#vBetaaldVia").value || null) : null,
     status: $("#vStatus").value,
     omschrijving: leeg($("#vOms").value),
     gewijzigd_door: NAAM

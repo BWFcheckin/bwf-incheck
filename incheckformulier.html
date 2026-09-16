@@ -578,11 +578,15 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
     <div id="betaalwijzeNormaal">
       <label>Betaalwijze restbedrag</label>
+      <!-- Booking.com en SMG erbij: die kanalen rekenen vooraf af, en zonder
+           die keuze kon "vooraf betaald via Booking.com" nergens heen. -->
       <select id="c_betaalwijze">
         <option>Contant</option>
         <option>Flatpay</option>
         <option>Mollie betaallink</option>
         <option>Bankoverschrijving</option>
+        <option>Booking.com</option>
+        <option>SMG</option>
         <option>Anders</option>
       </select>
     </div>
@@ -591,13 +595,13 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <div class="split-row">
         <div><label>Deel 1 &mdash; bedrag (&euro;)</label><input type="number" id="c_split1bedrag" step="0.01" min="0"></div>
         <div><label>Deel 1 &mdash; wijze</label>
-          <select id="c_split1wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Anders</option></select>
+          <select id="c_split1wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Booking.com</option><option>SMG</option><option>Anders</option></select>
         </div>
       </div>
       <div class="split-row">
         <div><label>Deel 2 &mdash; bedrag (&euro;)</label><input type="number" id="c_split2bedrag" step="0.01" min="0"></div>
         <div><label>Deel 2 &mdash; wijze</label>
-          <select id="c_split2wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Anders</option></select>
+          <select id="c_split2wijze"><option>Contant</option><option>Flatpay</option><option>Mollie betaallink</option><option>Bankoverschrijving</option><option>Booking.com</option><option>SMG</option><option>Anders</option></select>
         </div>
       </div>
     </div>
@@ -1768,8 +1772,17 @@ async function saveCheckin(alsConcept){
         /* Een geweigerde koppeling geeft geen foutmelding maar een leeg
            antwoord. Dat overkomt een locatiemanager: die mag het formulier wel
            opslaan, maar de reservering niet koppelen. */
+        var terug = { checkin_id: data.id };
+        /* Bij een DEFINITIEF formulier gaat de betaalwijze mee naar de
+           reservering, zodat daar te zien is hoe er is afgerekend. Bij een
+           concept niet: dan staat het nog niet vast en zou het de reservering
+           alvast een wijze opdringen die nog kan veranderen. */
+        if(!alsConcept){
+          var wijze = betaalwijzeTekst(data);
+          if(wijze) terug.betaald_via = wijze;
+        }
         var gekop = await sb('reserveringen?id=eq.' + encodeURIComponent(gekoppeld.resId) + '&select=id',
-          { method:'PATCH', body: JSON.stringify({ checkin_id: data.id }) });
+          { method:'PATCH', body: JSON.stringify(terug) });
         if(!gekop || !gekop.length) koppelMelding = true;
       }catch(e){ koppelMelding = true; console.warn('koppelen aan de reservering lukte niet:', e.message); }
     }
@@ -1798,6 +1811,18 @@ async function saveCheckin(alsConcept){
     throw err;
   }
 }
+/* De betaalwijze in één regel, in dezelfde bewoording als de e-mail en het
+   detailscherm. Bij een gesplitste betaling worden beide delen genoemd, zodat
+   "deel contant, deel bank" op de reservering terug te lezen is. */
+function betaalwijzeTekst(data){
+  if(!data) return null;
+  if(data.split_betaling){
+    return 'Gesplitst: ' + euro(data.split_bedrag1) + ' (' + (data.split_wijze1 || '?') + ') + '
+         + euro(data.split_bedrag2) + ' (' + (data.split_wijze2 || '?') + ')';
+  }
+  return data.betaalwijze || null;
+}
+
 function checkinEmailBody(data){
   const betaalRegel = data.split_betaling
     ? `Betaalwijze: Gesplitst — deel 1: ${euro(data.split_bedrag1)} (${data.split_wijze1}), deel 2: ${euro(data.split_bedrag2)} (${data.split_wijze2})`
