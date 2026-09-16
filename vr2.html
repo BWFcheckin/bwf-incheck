@@ -1894,6 +1894,19 @@ div.ag-blok{cursor:default}
           <div class="note" id="wcBetaalNote" style="margin-top:8px"></div>
         </div>
         <div id="wcExtras"></div>
+        <!-- Vrije regel: iets bijboeken dat niet in de lijst met extra's staat,
+             met een eigen bedrag. Telt gewoon mee in het totaal. -->
+        <div class="wcbijlage" style="margin-top:14px">
+          <div class="card-head" style="padding:0;border:0;margin-bottom:8px">
+            <h3 style="margin:0;font-size:13px">Anders, namelijk</h3>
+            <span class="hint">staat het er niet bij? vul het hier vrij in</span></div>
+          <div class="grid-form">
+            <div class="field wide"><label for="wcVrijNaam">Wat wordt er bijgeboekt</label>
+              <input type="text" id="wcVrijNaam" placeholder="bijv. late check-out tot 13:00"></div>
+            <div class="field"><label for="wcVrijBedrag">Bedrag (&euro;)</label>
+              <input type="number" id="wcVrijBedrag" min="0" step="0.01" placeholder="0,00"></div>
+          </div>
+        </div>
       </div>
       <div class="card-foot"><span id="wcTotaalTekst"></span>
         <span><button class="btn ghost small" id="wcExtraNieuw" type="button" hidden>+ Extra beheren</button></span></div>
@@ -7832,6 +7845,10 @@ function vulUitKlant(){
   wcHerbereken();
 }
 $('#wcKlant').addEventListener('change', vulUitKlant);
+/* de vrije regel telt direct mee in het totaal, net als een aangevinkte extra */
+['#wcVrijNaam', '#wcVrijBedrag'].forEach(s => {
+  const el = $(s); if(el) el.addEventListener('input', wcHerbereken);
+});
 
 function renderExtras(){
   const doel = $('#wcExtras'); if(!doel) return;
@@ -7857,14 +7874,30 @@ function renderExtras(){
   $('#wcExtraHint').textContent = isEigenaar() ? 'je kunt de prijzen hier direct aanpassen' : '';
   wcHerbereken();
 }
+/* De vrije regel: iets dat niet in wz_extras staat, met een eigen bedrag.
+   Bewust ZONDER id, zodat hij nooit verward kan worden met een echte extra —
+   het terugladen hieronder kijkt op id, en zou een vrije regel anders aan een
+   willekeurige extra koppelen. Het merkteken vrij:true houdt hem herkenbaar. */
+function wcVrijeRegel(){
+  const n = $('#wcVrijNaam'), b = $('#wcVrijBedrag');
+  if(!n || !b) return null;
+  const naam = String(n.value || '').trim();
+  const bedrag = Number(String(b.value || '').replace(',', '.')) || 0;
+  if(!naam && !bedrag) return null;
+  return { vrij:true, naam: naam || 'Vrije invoer', categorie:'Overig',
+           prijs:+bedrag.toFixed(2), per_persoon:false, aantal:1, bedrag:+bedrag.toFixed(2) };
+}
+
 function wcRegels(){
   const personen = Number($('#wcPers').value)||1;
-  return Object.keys(wcKeuzes).map(id=>{
+  const lijst = Object.keys(wcKeuzes).map(id=>{
     const e = S.extras.find(x=>x.id===id); if(!e) return null;
     const aantal = e.per_persoon ? personen : (Number(wcKeuzes[id])||1);
     return {id, naam:e.naam, categorie:e.categorie, prijs:Number(e.prijs||0), per_persoon:!!e.per_persoon,
             aantal, bedrag:+(Number(e.prijs||0)*aantal).toFixed(2)};
   }).filter(Boolean);
+  const vrij = wcVrijeRegel();
+  return vrij ? lijst.concat(vrij) : lijst;
 }
 function wcSomHtml(){
   const r = wcRegels(), totaal = r.reduce((a,x)=>a+x.bedrag,0);
@@ -8627,6 +8660,9 @@ $('#wcGastform').addEventListener('click', ()=>{
 });
 $('#wcNieuw').addEventListener('click', ()=>{
   wcHuidig = null; wcResId = null; wcKeuzes = {}; wcBijlage = null; wcTekstAangepast = false;
+  /* ook de vrije regel leeg, anders erft de volgende call hem stilzwijgend - met geld erin */
+  if($('#wcVrijNaam'))   $('#wcVrijNaam').value = '';
+  if($('#wcVrijBedrag')) $('#wcVrijBedrag').value = '';
   ['#wcNaam','#wcVoor','#wcAchter','#wcTel','#wcMail','#wcPlaats','#wcRef','#wcTijd','#wcTijdEind',
    '#wcArr','#wcGeleg','#wcBetaallink','#wcNotitie','#wcSmg','#wcBijz','#wcAllergie']
     .forEach(s=>{ const el=$(s); if(el) el.value=''; });
@@ -8822,6 +8858,11 @@ document.addEventListener('click', async e=>{
     vulWcDoor(c.medewerker_id || (IK ? IK.id : ''));
     setTimeout(wcOpenBalkToon, 0);
     (c.regels||[]).forEach(r=>{ if(r && r.id) wcKeuzes[r.id] = r.per_persoon ? 1 : (r.aantal||1); });
+    /* de vrije regel heeft geen id en wordt door de lus hierboven overgeslagen;
+       zonder dit zou hij bij het heropenen van de call verdwijnen */
+    const vrijT = (c.regels||[]).find(r => r && !r.id && (r.vrij || r.naam));
+    if($('#wcVrijNaam'))   $('#wcVrijNaam').value   = vrijT ? (vrijT.naam || '') : '';
+    if($('#wcVrijBedrag')) $('#wcVrijBedrag').value = vrijT && vrijT.bedrag ? vrijT.bedrag : '';
     $('#wcKlant').value = c.klant_id||'';
     if(c.voornaam || c.achternaam){ $('#wcVoor').value = c.voornaam||''; $('#wcAchter').value = c.achternaam||'';
       $('#wcNaam').value = wcVolledigeNaam(); }
