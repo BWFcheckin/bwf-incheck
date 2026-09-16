@@ -1690,11 +1690,16 @@ function vBerichtTekst(r) {
     t.push("Aanbetaling van " + euro(vDeelBedrag()) + ":");
     t.push(link);
   }
-  /* Plek voor de annuleringsvoorwaarden. Angela levert de tekst aan; er wordt
-     hier niets verzonnen. Zolang die ontbreekt staat er een zichtbare
-     herinnering, zodat niemand per ongeluk zonder voorwaarden verstuurt. */
+  /* Annuleringsvoorwaarden, tekst aangeleverd door Angela op 16-09-2026.
+     De drie staffels gaan van ruim van tevoren naar vlak voor aankomst. */
   t.push("");
-  t.push("[ANNULERINGSVOORWAARDEN — nog invullen vóór versturen]");
+  t.push("Annuleringsvoorwaarden");
+  t.push("Het annuleringstarief en de kosten voor het verzetten hangen af van het moment van annuleren.");
+  t.push("• Vanaf de bevestiging van je reservering: 25% van het totaalbedrag, omboeken € 15.");
+  t.push("• Binnen 14 dagen voor check-in: 50% van het totaalbedrag, omboeken € 15.");
+  t.push("• Binnen 2 dagen voor check-in: 100% van het totaalbedrag, omboeken is niet mogelijk.");
+  t.push("De kamerhuur is het huurbedrag van de accommodatie plus eventueel geboekte extra’s. " +
+         "Reserveringskosten blijven hierbij buiten beschouwing.");
   t.push("");
   t.push("Tot snel!");
   t.push("Bed & Wellness Flevoland");
