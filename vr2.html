@@ -1172,6 +1172,30 @@ div.ag-blok{cursor:default}
   .bwf-hero-knop{padding:8px 14px;font-size:12px}
 }
 
+/* ---------- groepsknoppen op de Dagstart ----------
+   Met elf losse kaarten werd de Dagstart een lange lap. Deze knoppen tonen of
+   verbergen de kaarten per onderwerp. De kaarten zijn daarvoor NIET verplaatst,
+   alleen gemerkt met data-dggroep: zo blijft alles op zijn plek en is de
+   indeling terug te draaien door deze balk weg te halen. */
+.dg-groepen{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 16px}
+.dg-groepen button{position:relative;overflow:hidden;min-height:62px;flex:1 1 150px;
+  border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface);
+  color:var(--ink);cursor:pointer;padding:0;text-align:left;
+  background-size:cover;background-position:center}
+.dg-groepen button::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to right, rgba(20,52,42,.88) 0%, rgba(20,52,42,.52) 100%)}
+.dg-groepen button span{position:relative;z-index:1;display:block;padding:12px 14px;
+  color:#fff;font-size:13.5px;font-weight:600;line-height:1.25}
+.dg-groepen button[aria-pressed="true"]{border-color:var(--goud);box-shadow:0 0 0 2px var(--goud-zacht)}
+.dg-groepen button.foto-angie {background-image:var(--foto-angie)}
+.dg-groepen button.foto-malina{background-image:var(--foto-malina)}
+.dg-groepen button.foto-deluxe{background-image:var(--foto-deluxe)}
+@media (max-width:620px){
+  .dg-groepen{gap:8px}
+  .dg-groepen button{flex:1 1 calc(50% - 4px);min-height:54px}
+  .dg-groepen button span{padding:10px 11px;font-size:12.5px}
+}
+
 @media print{
   .bwf-merkbalk,.bwf-hero{display:none!important}
 }
@@ -1298,12 +1322,29 @@ div.ag-blok{cursor:default}
       <button class="btn ghost small" id="ovAllesIn" type="button">Alles inklappen</button>
     </div>
 
+    <!-- Groepsknoppen: kiezen welk onderwerp je wilt zien. De kaarten hieronder
+         staan nog op dezelfde plek; ze zijn alleen gemerkt met data-dggroep.
+         De foto's komen uit de suites — er zijn geen aparte plaatjes per
+         onderwerp, dus dit is wat er beschikbaar is. -->
+    <div class="dg-groepen" id="dgGroepen" role="group" aria-label="Onderdelen van de dagstart">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="planning" aria-pressed="false" class="foto-malina">
+        <span>Planning &amp; aankomsten</span></button>
+      <button type="button" data-dgfilter="reserveringen" aria-pressed="false" class="foto-deluxe">
+        <span>Reserveringen &amp; incheck</span></button>
+      <button type="button" data-dgfilter="calls" aria-pressed="false" class="foto-angie">
+        <span>Calls, taken &amp; overdracht</span></button>
+      <button type="button" data-dgfilter="werk" aria-pressed="false" class="foto-malina">
+        <span>Mijn werk</span></button>
+    </div>
+
     <!-- elke kaart is een tegel: klik om te openen of te sluiten, de knop gaat naar de bijbehorende pagina -->
     <div class="dg-tegels" id="dgTegels">
       <!-- Aankomsten stond hier nog niet: er waren alleen aantallen per locatie.
            Openstaande taken en welkomstcalls hebben hieronder al een eigen kaart,
            dus die worden hier bewust niet herhaald. -->
-      <div class="card">
+      <div class="card" data-dggroep="planning">
         <div class="card-head"><h2>Aankomsten</h2><span class="hint" id="ovAankHint"></span></div>
         <div class="card-body" style="padding-bottom:0">
           <span class="segment ag-pillen" id="ovAankFilter" role="group" aria-label="Periode">
@@ -1318,13 +1359,13 @@ div.ag-blok{cursor:default}
         </table></div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="planning">
         <div class="card-head"><h2>De drie locaties</h2>
           <span class="hint" id="ovLocHint">reserveringen vanaf vandaag</span></div>
         <div class="card-body"><div class="stats" id="ovLocaties" style="margin:0"></div></div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="reserveringen">
         <div class="card-head"><h2>Incheckformulieren</h2>
           <span class="hint" id="cfHint"></span></div>
         <div class="card-body">
@@ -1340,7 +1381,7 @@ div.ag-blok{cursor:default}
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="reserveringen">
         <div class="card-head"><h2>Formulier koppelen aan reservering</h2>
           <span class="hint" id="kpHint">voor gasten die geen reserveringsnummer invulden</span></div>
         <div class="card-body">
@@ -1371,7 +1412,7 @@ div.ag-blok{cursor:default}
           <button class="btn" id="kpKoppel" type="button">Koppelen</button></div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="reserveringen">
         <div class="card-head"><h2>Reservering zoeken</h2>
           <span class="hint" id="rzHint">uit de agenda en de eigen reserveringen</span></div>
         <div class="card-body">
@@ -1389,7 +1430,7 @@ div.ag-blok{cursor:default}
             <button class="btn ghost small" id="rzNaarWijziging" type="button">Wijziging doorgeven</button></span></div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="calls">
         <div class="card-head"><h2>Welkomstcalls te doen</h2><span class="hint" id="wtHint"></span></div>
         <div class="card-body" style="padding-bottom:0">
           <div class="filters" style="margin-bottom:0">
@@ -1415,7 +1456,7 @@ div.ag-blok{cursor:default}
         </table></div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="reserveringen">
         <div class="card-head"><h2>Wijziging doorgeven</h2>
           <span class="hint">naar de groepsapp of per e-mail</span></div>
         <div class="card-body">
@@ -1447,7 +1488,7 @@ div.ag-blok{cursor:default}
         </div>
 
       </div>
-      <div class="card">
+      <div class="card" data-dggroep="calls">
         <div class="card-head"><h2>Gesprekslog</h2><span class="hint" id="clHint"></span></div>
         <div class="card-body">
           <div class="grid-form">
@@ -1483,14 +1524,14 @@ div.ag-blok{cursor:default}
           <button class="btn" id="clOpslaan" type="button">Gesprek vastleggen</button></div>
       </div>
 
-      <div class="card">
+      <div class="card" data-dggroep="calls">
         <div class="card-head"><h2>Openstaande taken</h2><span class="hint" id="ovTakenHint"></span></div>
         <div class="table-wrap"><table>
           <thead><tr><th>Taak</th><th>Voor</th><th>Deadline</th><th></th></tr></thead>
           <tbody id="ovTaken"></tbody>
         </table></div>
       </div>
-      <div class="card">
+      <div class="card" data-dggroep="calls">
         <div class="card-head"><h2>Overdracht aanmaken</h2><span class="hint">voor de volgende dienst</span></div>
         <div class="card-body">
           <div class="grid-form">
@@ -1511,7 +1552,7 @@ div.ag-blok{cursor:default}
       <!-- De cijfers over werkzaamheden, uren en overdracht stonden eerst in de
            balk bovenaan. Die balk toont nu de vier dagstartcijfers, dus deze
            hebben hier een eigen kaart gekregen: ze zijn niet verdwenen. -->
-      <div class="card">
+      <div class="card" data-dggroep="werk">
         <div class="card-head"><h2>Mijn werk deze maand</h2>
           <span class="hint">uren, registraties en overdracht</span></div>
         <div class="card-body"><div class="stats" id="ovWerkStats" style="margin:0"></div></div>
@@ -3536,6 +3577,32 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-dgnaar]'); if(!b) return;
   kiesGroep(b.dataset.dgnaar);
 });
+
+/* Groepsknoppen op de Dagstart: tonen of verbergen de kaarten met het
+   bijbehorende data-dggroep. De kaarten zelf worden niet verplaatst, dus deze
+   indeling is terug te draaien door de knoppenbalk weg te halen.
+   Het verbergen gaat via display op de kaart zelf; het bestaande in- en
+   uitklappen werkt op de inhoud binnen een kaart en blijft dus gewoon werken. */
+function dgFilter(groep){
+  document.querySelectorAll('#dgTegels > .card[data-dggroep]').forEach(k => {
+    k.style.display = (groep === 'alles' || k.dataset.dggroep === groep) ? '' : 'none';
+  });
+  document.querySelectorAll('#dgGroepen button[data-dgfilter]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.dgfilter === groep));
+  });
+  try{ sessionStorage.setItem('bwf-dgfilter', groep); }catch(e){}
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('#dgGroepen button[data-dgfilter]'); if(!b) return;
+  dgFilter(b.dataset.dgfilter);
+});
+/* de laatst gekozen groep blijft binnen deze sessie staan; standaard alles */
+setTimeout(() => {
+  if(!document.getElementById('dgGroepen')) return;
+  let g = 'alles';
+  try{ g = sessionStorage.getItem('bwf-dgfilter') || 'alles'; }catch(e){}
+  dgFilter(g);
+}, 300);
 
 function renderOverzicht(){
   const taken = mijnTaken(), werk = mijnWerk();
