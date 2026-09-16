@@ -407,6 +407,11 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
     <div class="v-inhoud">
       <div class="opmerking" id="vOpmerking" hidden></div>
 
+      <!-- De kaart voor personeel. Een locatiemanager krijgt hier de reservering
+           per onderdeel te lezen in plaats van het bewerkscherm eronder; dat
+           wordt dan verborgen. Alleen afronden blijft mogelijk, in de voet. -->
+      <div id="vPersoneelKaart" hidden></div>
+
       <fieldset>
         <legend>Gast</legend>
         <div class="raster">
@@ -513,6 +518,27 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <button type="button" class="knop sec" id="vMail">E-mail opstellen</button>
         </div>
       </fieldset>
+    </div>
+
+    <!-- Afronden door personeel: het enige dat een locatiemanager zelf invult.
+         Staat buiten de fieldsets hierboven, want die worden voor hem verborgen. -->
+    <div id="vAfrondVak" hidden style="padding:14px 18px;border-top:1px solid var(--line-soft)">
+      <strong style="display:block;margin-bottom:8px">Boeking afronden</strong>
+      <div class="raster">
+        <label class="veld">Betaalstatus <select id="vAfrondStatus"></select></label>
+        <label class="veld">Betaald via <select id="vAfrondVia">
+          <option value="">&mdash; nog niet bekend &mdash;</option>
+          <option>Contant</option>
+          <option>Flatpay</option>
+          <option>Mollie betaallink</option>
+          <option>Bankoverschrijving</option>
+          <option>Booking.com</option>
+          <option>SMG</option>
+          <option>Anders</option>
+        </select></label>
+      </div>
+      <div style="margin-top:10px"><button type="button" class="knop" id="vAfrondOpslaan">Afronden</button>
+        <span class="v-melding" id="vAfrondNote"></span></div>
     </div>
 
     <div class="v-voet">
@@ -951,12 +977,24 @@ function openVenster(id) {
   const bewerk = magBewerken();
   const beperkt = !bewerk && magBeperkt();
   $("#formulier").querySelectorAll("input,select,textarea").forEach((el) => {
-    el.disabled = !(bewerk || (beperkt && BEPERKTE_VELDEN.includes(el.id)));
+    el.disabled = !bewerk;
   });
-  $("#vOpslaan").hidden = !(bewerk || beperkt);
-  $("#vHerken").hidden  = !(bewerk || beperkt);
+  $("#vOpslaan").hidden = !bewerk;
+  $("#vHerken").hidden  = !bewerk;
   $("#vBevestig").hidden = !bewerk;
   $("#vVerwijder").hidden = !bewerk;
+
+  /* Personeel krijgt de reservering als kaart te lezen, niet als bewerkscherm.
+     Angela koos "alleen afronden": de velden die een locatiemanager tot nu toe
+     mocht aanvullen (naam, contact, personen, in- en uitchecktijd, plakveld)
+     staan daarmee ook op slot. Terugdraaien kan door BEPERKTE_VELDEN hierboven
+     weer mee te wegen. */
+  $("#vPersoneelKaart").hidden = !beperkt;
+  $("#vAfrondVak").hidden = !beperkt;
+  /* Deze pagina heeft geen $$-hulpfunctie; die bestaat alleen in het
+     VR-dashboard. Daarom rechtstreeks querySelectorAll. */
+  document.querySelectorAll("#formulier fieldset").forEach((fs) => { fs.hidden = beperkt; });
+  if (beperkt) tekenPersoneelKaart(r);
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
   $("#vBestandNote").textContent = "";
@@ -968,6 +1006,154 @@ function openVenster(id) {
 }
 
 function sluitVenster() { $("#venster").close(); HUIDIG = null; }
+
+/* ==========================================================
+   De reservering als kaart, voor personeel
+   ==========================================================
+   Bedragen die niet in de reservering staan worden uit de brontekst gelezen en
+   als zodanig gemerkt. Er wordt daarbij NIETS opgeslagen: de brontekst is vrije
+   tekst van het kanaal, en een verkeerd gelezen bedrag mag nooit stilzwijgend
+   in de boeking terechtkomen. Angela koos hier bewust voor tonen, niet vullen.
+   Dit is een ingekorte versie van de lezer in het VR-dashboard: alleen bedrag,
+   betaalstatus en arrangementen, zonder de afhankelijkheden die daar wel en
+   hier niet bestaan. */
+function leesUitBron(tekst) {
+  const t = String(tekst || "");
+  if (!t) return {};
+  const uit = {};
+  const bedragen = [...t.matchAll(/€\s?(\d{1,5}(?:[.,]\d{2})?)/g)]
+    .map((x) => Number(x[1].replace(".", "").replace(",", ".")))
+    .filter((n) => Number.isFinite(n));
+  const totaalRegel = t.match(/totaal[^\d€]{0,20}€?\s?(\d{1,5}(?:[.,]\d{2})?)/i);
+  if (totaalRegel) uit.bedrag = Number(totaalRegel[1].replace(".", "").replace(",", "."));
+  else if (bedragen.length) uit.bedrag = Math.max(...bedragen);
+  const open = /openstaand|nog te betalen|niet betaald|onbetaald|te voldoen/i.test(t);
+  const dicht = /\bbetaald\b|voldaan|volledig betaald|paid/i.test(t);
+  uit.betaald = open ? false : (dicht ? true : null);
+  return uit;
+}
+
+function kaartVak(kop, regels) {
+  const inhoud = regels.filter(Boolean).join("");
+  if (!inhoud) return "";
+  return '<section style="margin:0 0 14px"><h3 style="font-size:13px;letter-spacing:.06em;' +
+    'text-transform:uppercase;color:var(--muted);margin:0 0 6px">' + esc(kop) + "</h3>" +
+    '<div style="font-size:14px;line-height:1.7">' + inhoud + "</div></section>";
+}
+function kaartRegel(naam, waarde) {
+  if (waarde === "" || waarde == null) return "";
+  return '<div style="display:flex;gap:12px;justify-content:space-between">' +
+    '<span style="color:var(--muted)">' + esc(naam) + "</span><span>" + waarde + "</span></div>";
+}
+
+function tekenPersoneelKaart(r) {
+  const doel = $("#vPersoneelKaart"); if (!doel) return;
+  const p = periode(r);
+  const arr = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+  const naCall = arr.filter((a) => a && a.bron === "welkomstcall");
+  const vooraf = arr.filter((a) => !(a && a.bron === "welkomstcall"));
+  const noem = (a) => esc((a && (a.naam || a)) || "") +
+    (a && Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
+    (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "");
+
+  /* bedragen: eerst wat er echt is vastgelegd, anders afgeleid uit de brontekst */
+  const uitBron = leesUitBron(r.brongegevens);
+  const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
+  const betaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : null;
+  const open = r.restant_bedrag != null ? Number(r.restant_bedrag)
+             : (totaal != null && betaald != null ? totaal - betaald : null);
+  const extraNaCall = naCall.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  const afgeleid = totaal == null && uitBron.bedrag != null;
+
+  const tel = String(r.gast_telefoon || "").replace(/\s+/g, "");
+  const app = tel.replace(/[^0-9]/g, "").replace(/^0/, "31");
+
+  doel.innerHTML =
+    kaartVak("Reserveringsgegevens", [
+      kaartRegel("Nummer", esc(resNummer(r))),
+      kaartRegel("Suite", esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite)),
+      kaartRegel("Geboekt via", esc(KANALEN[r.kanaal] || r.kanaal)),
+      kaartRegel("Aankomst", esc(p.dag + " " + p.tijd)),
+      kaartRegel("Soort", esc(TYPES[r.type] || r.type)),
+      kaartRegel("Personen", r.personen ? esc(r.personen) : ""),
+      kaartRegel("Status", esc(STATUSSEN[r.status] || r.status))
+    ]) +
+    kaartVak("Gastgegevens", [
+      kaartRegel("Naam", esc(gastNaam(r) || "—")),
+      kaartRegel("Telefoon", tel
+        ? '<a href="tel:' + esc(tel) + '">' + esc(r.gast_telefoon) + "</a>" +
+          (app ? ' &middot; <a href="https://wa.me/' + esc(app) + '" target="_blank" rel="noopener">WhatsApp</a>' : "")
+        : ""),
+      kaartRegel("E-mail", r.gast_email
+        ? '<a href="mailto:' + esc(r.gast_email) + '">' + esc(r.gast_email) + "</a>" : "")
+    ]) +
+    kaartVak("Betalingsgegevens", [
+      kaartRegel("Totaalbedrag", totaal != null ? "&euro; " + esc(euro(totaal))
+        : afgeleid ? "&euro; " + esc(euro(uitBron.bedrag)) +
+            ' <span style="color:var(--muted)">(afgelezen uit de boekingstekst)</span>' : "—"),
+      kaartRegel("Betaald", betaald != null ? "&euro; " + esc(euro(betaald))
+        : uitBron.betaald === true ? 'volgens de boekingstekst voldaan' : "—"),
+      kaartRegel("Nog te betalen", open != null ? "&euro; " + esc(euro(open)) : "—"),
+      extraNaCall
+        ? kaartRegel("Nog te betalen na arrangementen",
+            "&euro; " + esc(euro((open != null ? open : 0) + extraNaCall)))
+        : "",
+      kaartRegel("Betaald via", esc(r.betaald_via || "nog niet bekend"))
+    ]) +
+    kaartVak("Arrangementen vooraf geboekt",
+      vooraf.length ? vooraf.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    kaartVak("Arrangementen geboekt na de welkomstcall",
+      naCall.length ? naCall.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    kaartVak("Bijzonderheden en opmerkingen", [
+      r.omschrijving ? "<div>" + esc(r.omschrijving) + "</div>" : "",
+      r.notitie ? "<div>" + esc(r.notitie) + "</div>" : "",
+      r.import_opmerking ? '<div style="color:var(--muted)">Import: ' + esc(r.import_opmerking) + "</div>" : "",
+      (!r.omschrijving && !r.notitie && !r.import_opmerking) ? "<div>Geen</div>" : ""
+    ]) +
+    kaartVak("Incheckformulier", [
+      '<div id="vKaartIncheck" style="color:var(--muted)">wordt geladen&hellip;</div>'
+    ]);
+
+  /* De koppelingen worden apart geladen; die vullen dit blok zodra ze binnen zijn. */
+  const vak = $("#vKaartIncheck");
+  if (vak) vak.innerHTML = '<a class="knop sec klein" href="incheckformulier.html?reservering=' +
+    esc(encodeURIComponent(r.id)) + '" target="_blank" rel="noopener">Incheckformulier bekijken of aanpassen</a>';
+
+  /* het afrondblok vullen met wat er nu staat */
+  $("#vAfrondStatus").innerHTML = opties(BETAAL, r.betaalstatus || "open");
+  const via = $("#vAfrondVia");
+  if (via) {
+    const bv = String(r.betaald_via || "");
+    const kent = Array.from(via.options).some((o) => o.value === bv || o.text === bv);
+    if (bv && !kent) via.add(new Option(bv, bv));
+    via.value = bv;
+  }
+  $("#vAfrondNote").textContent = "";
+}
+
+/* Afronden door personeel: alleen de betaalstatus en de betaalwijze. */
+document.addEventListener("click", async (e) => {
+  if (!e.target.closest("#vAfrondOpslaan")) return;
+  const r = HUIDIG; if (!r) return;
+  const note = $("#vAfrondNote");
+  const d = {
+    betaalstatus: $("#vAfrondStatus").value,
+    betaald_via: $("#vAfrondVia").value || null,
+    gewijzigd_door: NAAM
+  };
+  note.textContent = "Bezig met opslaan…";
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: d });
+    if (!rij || !rij.length) throw new Error("je mag deze reservering niet bijwerken");
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    HUIDIG = rij[0];
+    note.textContent = "Afgerond en opgeslagen.";
+    teken();
+  } catch (err) {
+    note.textContent = "Opslaan lukte niet: " + err.message;
+  }
+});
 
 /* ---------- koppelingen, bijlagen en wijzigingslog ---------- */
 const BIJLAGE_BUCKET = "reservering-bijlagen";
