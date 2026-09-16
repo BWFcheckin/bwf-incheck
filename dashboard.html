@@ -1356,6 +1356,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         </span>
       </div>
       <div class="card-body">
+        <!-- De planning in kalenderweergave: reserveringen en blokkades uit de
+             gedeelde kalender, beperkt tot de twee suites van Lelystad.
+             Het maandrooster hieronder blijft staan: dat toont de diensten van
+             het team, en dat is iets anders dan de boekingen. -->
+        <div id="planKalender" style="margin-bottom:16px"></div>
         <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
         <div class="legend" id="kalLegend"></div>
       </div>
@@ -5882,6 +5887,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       suites: ['malina_jacuzzi', 'malina_deluxe']
     });
   }
+
+  /* De planning in kalenderweergave, ook alleen de twee suites van Lelystad.
+     Pas opbouwen wanneer het tabblad Planning echt in beeld komt: een kalender
+     in een verborgen paneel krijgt geen breedte mee en haalt onnodig gegevens
+     op zolang je er niet naar kijkt. */
+  (function(){
+    var gemaakt = false;
+    function maakPlanKalender(){
+      if(gemaakt || !window.BWFKalender) return;
+      var houder = document.getElementById('planKalender');
+      var paneel = document.getElementById('panel-planning');
+      if(!houder || !paneel || paneel.hidden) return;
+      gemaakt = true;
+      window.BWFKalender.maak(houder, {
+        weergave: window.innerWidth < 760 ? 'dag' : 'maand',
+        suites: ['malina_jacuzzi', 'malina_deluxe']
+      });
+    }
+    document.addEventListener('click', function(){ setTimeout(maakPlanKalender, 80); });
+    setTimeout(maakPlanKalender, 1500);
+  })();
 
   /* ---------- gedeelde verversing (BWFSync) ----------
      Zelfde mechanisme als in bwf-planyo.js: een wijziging op een andere
