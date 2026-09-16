@@ -961,8 +961,14 @@ async function vulKoppelingen(r) {
       definitief ? esc("definitief" + (definitief.datum ? " · " + definitief.datum : ""))
         : concept ? esc("klaargezet, nog niet afgerond" + (concept.datum ? " · " + concept.datum : ""))
         : "nog geen formulier",
-      "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
-      (definitief || concept) ? "Openen" : "Aanmaken"));
+      /* Is er een formulier gekoppeld, dan opent de knop dát formulier en niet
+         de algemene pagina. Bij een definitief formulier gaat hij meteen naar
+         de afdrukweergave, waar de browser hem als pdf kan opslaan. Zonder
+         formulier blijft het zoals het was: een nieuw formulier aanmaken. */
+      definitief ? "incheckformulier.html?pdf=" + encodeURIComponent(definitief.id)
+        : concept ? "incheckformulier.html?formulier=" + encodeURIComponent(concept.id)
+        : "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
+      definitief ? "Open pdf" : concept ? "Openen" : "Aanmaken"));
 
     const w = calls && calls[0];
     regels.push(rijKoppeling("Welkomstcall",

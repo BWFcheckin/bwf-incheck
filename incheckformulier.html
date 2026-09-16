@@ -876,6 +876,19 @@ function startApp(){
   springNaarAnker();
 }
 function springNaarAnker(){
+  /* Een link vanuit Reserveringen kan ook één bepaald formulier openen:
+     ?formulier=<id> opent dat formulier zelf, ?pdf=<id> opent meteen de
+     afdrukweergave van een definitief formulier. De formulieren moeten eerst
+     geladen zijn, vandaar de wachttijd — net als bij het ankerspringen. */
+  const q = new URLSearchParams(location.search);
+  const form = q.get('formulier'), pdf = q.get('pdf');
+  if(form || pdf){
+    setTimeout(function(){
+      if(pdf && typeof window.bwfAfdrukken === 'function'){ window.bwfAfdrukken(pdf); return; }
+      if(form && typeof openCheckinDetail === 'function') openCheckinDetail(form);
+    }, 900);
+    return;
+  }
   const h = (location.hash || '').replace('#','');
   if(h !== 'concepten' && h !== 'definitief') return;
   setTimeout(function(){
@@ -4594,6 +4607,12 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
 
   /* ---------- afdrukken of opslaan als pdf ---------- */
+  /* Deze functie staat in een besloten blok en was daardoor alleen van
+     binnenuit bruikbaar. De reserveringenpagina moet hem ook kunnen
+     aanroepen: bij een definitief formulier staat daar de knop "Open pdf".
+     Daarom wordt hij hier onder een eigen naam bekendgemaakt. De declaratie
+     hieronder wordt gehesen, dus de verwijzing werkt ook al staat hij boven. */
+  window.bwfAfdrukken = function(id){ return afdrukken(id); };
   function afdrukken(id){
     var c = (alleCheckins()).find(function(x){ return x.id === id; });
     if(!c) return;
