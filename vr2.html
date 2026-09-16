@@ -2917,8 +2917,12 @@ async function start(){
   maakVrKalender();
   if(!window.__ovTimer) window.__ovTimer = setInterval(()=>{ if(!$('#app').hidden) laadOverzicht(); }, 300000);
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
-  let t = null; try{ t = sessionStorage.getItem(LS.tab); }catch(e){}
-  kiesGroep(t && GROEPEN[t] ? t : (GROEP_VAN[t] || 'overzicht'));
+  /* Na inloggen begint de dag altijd bij Dagstart. Voorheen opende de pagina
+     op het onderdeel waar je de vorige keer was gebleven; dat kwam erop neer
+     dat je willekeurig ergens binnenviel. Wisselen van tabblad blijft binnen
+     de sessie gewoon bewaard (kiesGroep schrijft LS.tab), alleen het opstarten
+     begint voortaan vast bovenaan. */
+  kiesGroep('overzicht');
 }
 
 /* ---------------- tabs ---------------- */
@@ -9215,7 +9219,10 @@ $('#whoBtn').addEventListener('click', ()=>{
       { naam:"Gastenlink",         bestand:"gast.html" }
     ]},
     { groep:"Werken", items:[
-      { naam:"Personeelsdashboard", bestand:"dashboard.html" },
+      /* Het personeelsdashboard stond hier ook in. Dat werkte verwarrend: de
+         VR-assistent hoort in dit dashboard te blijven en het personeelsdeel
+         is van de locatiemanagers. Voorraad staat er nog wel in, want dat is
+         een eigen taak en geen ander dashboard. */
       { naam:"Virtual Assistent Dashboard", bestand:"vr2.html" },
       { naam:"Klantbeheer",         bestand:"klantbeheer.html" },
       { naam:"Voorraad & bestellingen", bestand:"dashboard.html#voorraad" }

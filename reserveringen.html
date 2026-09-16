@@ -272,6 +272,13 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <!-- Bestaande klant kiezen vult de vier velden hieronder. Leeg laten mag:
              dan wordt er geen klant aan de reservering gekoppeld. -->
         <label class="veld breed">Bestaande klant <select id="nKlant"></select></label>
+        <!-- Staat de klant er nog niet tussen, dan kan hij hiervandaan meteen
+             worden aangemaakt in klantbeheer. Opent in een nieuw tabblad, zodat
+             de half ingevulde reservering blijft staan. -->
+        <div class="veld breed" style="margin-top:-6px">
+          <a class="knop sec klein" id="nNieuweKlant" target="_blank" rel="noopener"
+             href="klantbeheer.html?tab=klanten&amp;nieuw=1">+ Klant aanmaken in klantbeheer</a>
+        </div>
         <label class="veld">Voornaam <input id="nVoornaam" type="text"></label>
         <label class="veld">Achternaam <input id="nAchternaam" type="text"></label>
         <label class="veld">E-mail <input id="nEmail" type="email" inputmode="email"></label>

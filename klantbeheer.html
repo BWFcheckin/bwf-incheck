@@ -1663,6 +1663,19 @@ function pasLinkKlantToe(){
   }catch(e){}
 }
 
+/* Rechtstreeks een nieuwe klant aanmaken: klantbeheer.html?nieuw=1
+   De reserveringenpagina heeft daar een knop voor, zodat een klant die er nog
+   niet tussen staat meteen kan worden aangelegd zonder zoeken en overtypen.
+   nieuweKlant() maakt het formulier leeg en opent het venster; er hoeven geen
+   gegevens geladen te zijn, dus een tweede poging is hier niet nodig. */
+function pasLinkNieuwToe(){
+  try{
+    if(new URLSearchParams(location.search).get("nieuw") !== "1") return;
+    if(typeof nieuweKlant !== "function") return;
+    nieuweKlant();
+  }catch(e){}
+}
+
 function pasLinkZoekToe(){
   try{
     var q = new URLSearchParams(location.search).get("zoek");
@@ -1927,6 +1940,8 @@ setTimeout(pasLinkZoekToe, 2500);
    klantgegevens nog aan het laden zijn */
 setTimeout(pasLinkKlantToe, 900);
 setTimeout(pasLinkKlantToe, 2600);
+/* het venster voor een nieuwe klant, als de link daarom vraagt */
+setTimeout(pasLinkNieuwToe, 1000);
 </script>
 
 <script>
