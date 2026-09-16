@@ -1670,9 +1670,26 @@ function pasLinkKlantToe(){
    gegevens geladen te zijn, dus een tweede poging is hier niet nodig. */
 function pasLinkNieuwToe(){
   try{
-    if(new URLSearchParams(location.search).get("nieuw") !== "1") return;
+    var q = new URLSearchParams(location.search);
+    if(q.get("nieuw") !== "1") return;
     if(typeof nieuweKlant !== "function") return;
     nieuweKlant();
+    /* Meegegeven gastgegevens alvast invullen. Dit moet ná nieuweKlant(), want
+       die maakt het formulier eerst leeg.
+       Voorletters worden bewust niet afgeleid uit een voornaam: dat gaat te
+       vaak mis bij dubbele namen en tussenvoegsels. De voornaam gaat naar de
+       notitie, zodat hij niet verloren gaat. */
+    var vul = { achternaam:"cAchternaam", woonplaats:"cWoonplaats",
+                email:"cEmail", telefoon:"cTelefoon" };
+    Object.keys(vul).forEach(function(sleutel){
+      var waarde = q.get(sleutel); if(!waarde) return;
+      var el = $(vul[sleutel]); if(el) el.value = waarde;
+    });
+    var voor = q.get("voornaam");
+    if(voor){
+      var n = $("cNotitie");
+      if(n && !n.value) n.value = "Voornaam: " + voor;
+    }
   }catch(e){}
 }
 

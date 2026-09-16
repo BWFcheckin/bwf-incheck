@@ -518,6 +518,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
     <div class="v-voet">
       <span class="v-melding" id="vMelding"></span>
       <a class="knop sec" id="vKlantkaart" target="_blank" rel="noopener" hidden>Klantkaart</a>
+      <!-- Staat de gast nog niet in het klantenbestand, dan kan hij hiervandaan
+           worden aangelegd met wat er al bekend is. -->
+      <a class="knop sec" id="vGastNaarKlant" target="_blank" rel="noopener" hidden>Gast toevoegen aan klantbeheer</a>
       <button type="button" class="knop sec" id="vVerwijder"
         style="border-color:var(--crit);color:var(--crit)" hidden>Verwijderen</button>
       <button type="button" class="knop sec" id="vAnnuleer">Annuleren</button>
@@ -872,6 +875,21 @@ function openVenster(id) {
      sleutel is dezelfde die klantbeheer zelf maakt: achternaam, voorletters en
      woonplaats in kleine letters, gescheiden door een verticale streep. Zonder
      koppeling valt het terug op zoeken op de achternaam van de gast. */
+  /* Gast toevoegen aan het klantenbestand, met de gegevens die hier al staan.
+     Alleen zichtbaar zolang er nog géén klant gekoppeld is - bestaat die al,
+     dan hoort de knop Klantkaart ernaast en zou dit een dubbele klant maken.
+     Zonder naam heeft het geen zin, dus dan blijft hij ook weg. */
+  const gk = $("#vGastNaarKlant");
+  if (gk) {
+    const p = new URLSearchParams({ nieuw: "1" });
+    if (r.gast_achternaam) p.set("achternaam", r.gast_achternaam);
+    if (r.gast_voornaam)   p.set("voornaam",   r.gast_voornaam);
+    if (r.gast_email)      p.set("email",      r.gast_email);
+    if (r.gast_telefoon)   p.set("telefoon",   r.gast_telefoon);
+    gk.href = "klantbeheer.html?" + p.toString();
+    gk.hidden = !!r.klant_id || !(r.gast_achternaam || r.gast_voornaam);
+  }
+
   const kk = $("#vKlantkaart");
   const klant = KLANTEN.find((k) => String(k.id) === String(r.klant_id || ""));
   const kkZoek = (r.gast_achternaam || r.gast_voornaam || "").trim();
@@ -980,7 +998,10 @@ async function vulKoppelingen(r) {
                nog toont óf er gebeld is en wat er kort besproken is. Staan ze
                hier niet, dan blijft dat leeg hoe goed de rest ook werkt. */
             "allergieen,gelegenheid,regels,totaal,tijd_bedrag,betaalwijze,betaallink," +
-            "samenvatting,gebeld_op,nodig" +
+            /* automatisch erbij: het dashboard zet voor elke komende boeking
+               vast een call klaar op "te bellen". Zonder dit veld is niet te
+               zien of er echt iemand gebeld heeft of dat hij alleen klaarstaat. */
+            "samenvatting,gebeld_op,nodig,automatisch" +
             "&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("checkins?select=id,status,datum&gekoppelde_reservering=eq." +
@@ -1017,9 +1038,16 @@ async function vulKoppelingen(r) {
        te veel: daarvoor is de samenvatting bedoeld. De knop naar dat scherm
        blijft daarom alleen staan zolang er nog géén call is. */
     const w = calls && calls[0];
+    /* Het VR-dashboard zet voor elke komende boeking automatisch een call klaar
+       met status "te bellen". Van de 62 calls met die status zijn er 58 zo
+       ontstaan en bij geen daarvan is ooit gebeld. Die onvertaald tonen wekt de
+       indruk dat er iets geregistreerd is; daarom apart benoemd. */
+    const wKlaargezet = !!w && !w.gebeld_op && w.automatisch === true
+      && (!w.status || w.status === "te bellen");
     const wGebeld = !w ? "nog geen call"
       : w.nodig === false ? "niet nodig"
       : (w.gebeld_op || w.status === "gebeld" || w.status === "afgerond") ? "gebeld"
+      : wKlaargezet ? "nog niet gebeld"
       : (w.status || "te bellen");
     const wSamen = w ? String(w.samenvatting || "").trim() : "";
     regels.push(rijKoppeling("Welkomstcall",

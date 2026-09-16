@@ -7588,9 +7588,14 @@ async function laadOverzicht(){
   try{
     /* De boekingen komen uit `reserveringen`: alle kanalen bij elkaar. De Google
        Agenda wordt niet meer gelezen. */
+    /* betaald_via, restant_bedrag, checkin_id en arrangementen zijn erbij
+       gekomen voor het betaaloverzicht per reservering: daarmee is te zien hoe
+       er is afgerekend, wat er nog openstaat, of het incheckformulier gekoppeld
+       is en of er extra's zijn bijgeboekt. Ze komen via ruw mee in RES. */
     const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
                    'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,' +
-                   'bedrag_totaal,betaald_bedrag,betaalstatus,notitie,omschrijving';
+                   'bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,betaald_via,' +
+                   'checkin_id,arrangementen,notitie,omschrijving';
     /* Geen datumvenster meer. Dat stond op 120 dagen terug, waardoor de oudste
        boekingen niet in deze lijst kwamen - en dus ook niet te kiezen waren bij
        "formulier koppelen aan reservering". Hetzelfde probleem stond in het
