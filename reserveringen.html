@@ -1392,6 +1392,17 @@ function tijdsblokBij(b) {
   return t ? t.id : "";
 }
 
+/* Het gekozen tijdsblok als uuid, voor de kolom tijdsblok_id.
+   Let op het verschil: de keuzelijst draait op bwf_tariefblokken en die id's
+   zijn bigint (1, 2, 8 ...), terwijl tijdsblok_id een uuid is die naar de
+   tabel tijdsblokken verwijst. De waarde van de optie is dus NIET bruikbaar;
+   de bijbehorende uuid staat klaar in data-tijdsblok. Heeft een tariefblok
+   geen tegenhanger, dan blijft het veld leeg - dat mag, het is optioneel. */
+function nGekozenTijdsblok() {
+  const o = $("#nBlok").selectedOptions[0];
+  return (o && o.dataset.tijdsblok) || null;
+}
+
 function vulNieuwBlokken() {
   const suite = $("#nSuite").value;
   const tsuite = SUITE_TARIEF[suite];
@@ -1986,7 +1997,7 @@ async function maakReservering() {
     aankomst: aank, vertrek: vert,
     incheck_tijd: $("#nIncheck").value || null,
     uitcheck_tijd: $("#nUitcheck").value || null,
-    tijdsblok_id: $("#nBlok").value || null,
+    tijdsblok_id: nGekozenTijdsblok(),
     /* Leeg moet null zijn: klant_id verwijst hard naar wz_klantbeheer, en een
        lege tekst bestaat daar niet, waardoor de hele reservering geweigerd zou
        worden. */
