@@ -1830,8 +1830,12 @@ div.ag-blok{cursor:default}
 
     <div class="card" data-dggroep="gesprek" style="margin-bottom:18px">
       <div class="card-head"><h2>Welkomstcalls</h2>
+        <!-- Angela, 17-09-2026: drie bakken in plaats van open/alles.
+             "Alles" blijft er bewust bij staan, want dat kon al. -->
         <div class="segment" id="wcFilter">
-          <button type="button" data-f="open" aria-pressed="true">Open</button>
+          <button type="button" data-f="open" aria-pressed="true">Op te volgen</button>
+          <button type="button" data-f="gebeld" aria-pressed="false">Gedaan</button>
+          <button type="button" data-f="afgerond" aria-pressed="false">Afgerond</button>
           <button type="button" data-f="alles" aria-pressed="false">Alles</button>
         </div>
       </div>
@@ -6014,7 +6018,10 @@ function arFormDetail(){
 
 /* Elk genummerd kopje in het welkomstcallformulier wordt een uitklapbare sectie.
    De eerste twee staan open, de rest dicht; wat jij openlaat wordt onthouden. */
-const WCSECTIE_SLEUTEL = 'bwf_wc_secties';
+/* Versie 2: de standaard welke kaarten dichtgeklapt beginnen is op 17-09-2026
+   veranderd. Zonder een nieuwe sleutel zou de onthouden stand van vroeger die
+   nieuwe standaard overrulen en bleven de formulierkaarten openstaan. */
+const WCSECTIE_SLEUTEL = 'bwf_wc_secties2';
 function wcSectieStand(){ try{ return JSON.parse(localStorage.getItem(WCSECTIE_SLEUTEL)||'{}'); }catch(e){ return {}; } }
 function wcSectiesKlaar(){
   const paneel = document.getElementById('panel-welkomstcall'); if(!paneel) return;
@@ -6051,7 +6058,12 @@ function wcSectiesKlaar(){
 function wcKaartenKlaar(){
   const paneel = document.getElementById('panel-welkomstcall'); if(!paneel) return;
   const stand = wcSectieStand();
-  const standaardDicht = ["Extra's bijboeken", 'Welkomstcall afronden', 'Afgerond per assistent', 'Laatst afgerond'];
+  /* Angela, 17-09-2026: dit scherm is een lijst met welkomstcalls. Bijboeken en
+     bevestigingen sturen gaan via het reserveringenscherm. Het gespreksformulier
+     en het belscript beginnen daarom dichtgeklapt; ze zijn niet weggehaald en
+     klappen vanzelf open zodra je op "Welkomstcall openen" drukt. */
+  const standaardDicht = ['Gesprek voorbereiden', 'Belscript', "Extra's bijboeken",
+    'Welkomstcall afronden', 'Afgerond per assistent', 'Laatst afgerond'];
   paneel.querySelectorAll('.card').forEach(kaart=>{
     const kop = kaart.querySelector('.card-head'); if(!kop) return;
     const h2 = kop.querySelector('h2'); if(!h2) return;
@@ -6068,6 +6080,18 @@ function wcKaartenKlaar(){
         try{ localStorage.setItem(WCSECTIE_SLEUTEL, JSON.stringify(st)); }catch(e){}
       });
     }
+  });
+}
+/* Klapt het gespreksformulier weer open. Nodig omdat de kaarten sinds
+   17-09-2026 dicht beginnen: kom je hier via "Welkomstcall openen", dan hoort
+   het formulier juist open te staan, anders lijkt die knop niets te doen.
+   Alleen de twee kaarten die ik heb dichtgezet; de andere houden hun
+   bestaande gedrag. */
+function wcFormToon(){
+  const paneel = document.getElementById('panel-welkomstcall'); if(!paneel) return;
+  const open = ['Gesprek voorbereiden', 'Belscript'];
+  paneel.querySelectorAll('.card[data-inklap]').forEach(kaart=>{
+    if(open.includes(kaart.dataset.inklap)) kaart.classList.remove('dicht');
   });
 }
 document.addEventListener('DOMContentLoaded', ()=>{ wcSectiesKlaar(); wcKaartenKlaar(); });
@@ -6947,6 +6971,10 @@ document.addEventListener('click', e=>{
   /* naar het belscript met het invoerformulier springen */
   setTimeout(()=>{
     wcSectiesKlaar(); wcKaartenKlaar(); wcOpenBalkToon();
+    /* wcKaartenKlaar zet het gespreksformulier weer dicht, want zo begint dit
+       scherm sinds 17-09-2026. Kom je hier via "Welkomstcall openen", dan wil
+       je het juist zien - anders lijkt die knop niets te doen. */
+    wcFormToon();
     const doel = document.getElementById('wcOpenBalk') || document.getElementById('wcVoor');
     if(doel) doel.scrollIntoView({behavior:'smooth', block:'center'});
   }, 120);
@@ -9323,9 +9351,16 @@ $('#wcFilter').addEventListener('click', e=>{ const b=e.target.closest('button')
   wcFilterStand = b.dataset.f;
   $$('#wcFilter button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
   renderCalls(); });
+/* Drie bakken zoals Angela ze noemt, plus Alles. Gemeten 17-09-2026 over 80
+   calls: te bellen 63, afgerond 15, geen gehoor 1, gebeld 1. "terugbellen"
+   staat wel in de keuzelijst maar komt nergens voor; die valt onder op te
+   volgen, net als geen gehoor. Voedt ook de CSV-export hieronder, dus die
+   volgt vanzelf wat je op het scherm hebt staan. */
 function wcSelectie(){
   let lijst = isEigenaar() ? S.calls : S.calls.filter(c=>!c.medewerker_id || c.medewerker_id===IK.id);
-  if(wcFilterStand==='open') lijst = lijst.filter(c=>c.status!=='afgerond' && c.status!=='gebeld');
+  if(wcFilterStand==='open')          lijst = lijst.filter(c=>c.status!=='afgerond' && c.status!=='gebeld');
+  else if(wcFilterStand==='gebeld')   lijst = lijst.filter(c=>c.status==='gebeld');
+  else if(wcFilterStand==='afgerond') lijst = lijst.filter(c=>c.status==='afgerond');
   return lijst;
 }
 function renderCalls(){
