@@ -230,20 +230,40 @@ async function start() {
   $("#slot").hidden = true;
   const deel = jwtDeel(SESSIE.access_token);
   $("#wieBen").textContent = deel.email || "";
+  /* Buiten het try-blok, want de suites hieronder hebben deze rij nodig en een
+     const binnen try leeft alleen daarbinnen. */
+  let MEDEWERKER = null;
   try {
     const [rol, mw] = await Promise.all([
       api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
-      api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || ""))
+      api("wz_medewerkers?select=naam,suites&auth_id=eq." + encodeURIComponent(deel.sub || ""))
     ]);
     ROL = rol || null;
     NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
+    MEDEWERKER = (mw && mw[0]) || null;
   } catch (e) { /* kalender toont zelf een melding */ }
   if (!ROL) { const m = $("#melding"); m.hidden = false; m.textContent = "Je account heeft geen toegang tot de agenda. Vraag Angela om een toegangsrol."; }
   const magBeheren = ROL === "eigenaar" || ROL === "vr";
   $("#knopBlok").hidden = !magBeheren;
 
+  /* Welke suites je hier ziet, hangt voortaan aan je eigen rechten en niet meer
+     aan het webadres. Angela vroeg op 17-09-2026 om Almere weg te halen bij het
+     personeel; met alleen een ?loc=lelystad in de link zou Angie terugkomen
+     zodra iemand de agenda via een omweg opent. Nu komen de suites uit
+     wz_medewerkers: Ruth en Jerry hebben daar alleen de twee Lelystad-suites
+     staan, Michel houdt Almere zoals eerder afgesproken, en eigenaar en VR
+     zien alles.
+     De ?loc in het adres blijft werken om verder in te zoomen, maar kan nooit
+     méér tonen dan je mag zien. Weten we niet wie er kijkt, dan verbergen we
+     niets: de echte grens ligt in de database (bwf_mag_suite), dit scherm
+     voorkomt alleen dat er lege kolommen in beeld staan. */
+  const MIJN_SUITES = (MEDEWERKER && Array.isArray(MEDEWERKER.suites) && MEDEWERKER.suites.length)
+    ? MEDEWERKER.suites : null;
   const loc = (URLP.get("loc") || "").toLowerCase();
-  const suites = loc === "lelystad" ? ["malina_jacuzzi", "malina_deluxe"] : loc === "almere" ? ["angie"] : null;
+  const uitAdres = loc === "lelystad" ? ["malina_jacuzzi", "malina_deluxe"] : loc === "almere" ? ["angie"] : null;
+  const suites = MIJN_SUITES
+    ? (uitAdres ? MIJN_SUITES.filter((s) => uitAdres.indexOf(s) > -1) : MIJN_SUITES)
+    : uitAdres;
   kalender = window.BWFKalender.maak($("#agendaKalender"), {
     /* Op een smal scherm opende de agenda in dagweergave: een lijst per suite.
        Angela vroeg op 17-09-2026 om daar een kalenderweergave te zien in plaats
@@ -255,7 +275,11 @@ async function start() {
     suite: URLP.get("suite") || undefined,
     suites,
     token: geldigToken,
-    vrijeBlokken: true,
+    /* "Nog vrij op deze dag" is een plannershulpje: het laat zien welke
+       tijdsblokken nog te verkopen zijn. Angela vroeg op 17-09-2026 om dat weg
+       te halen voor het personeel - zij hoeven alleen de echte boekingen te
+       zien. Eigenaar en VR houden het, want die vullen de agenda. */
+    vrijeBlokken: magBeheren,
     blokkadeOpheffen: magBeheren ? blokkadeOpheffen : null
   });
   const kiesVeld = () => document.querySelector('#agendaKalender [data-gekozen="1"]');
