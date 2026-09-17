@@ -1726,7 +1726,16 @@ div.ag-blok{cursor:default}
       <p>Zet een taak klaar, wijs hem toe aan jezelf of aan een collega, en vink hem af zodra hij klaar is.</p>
     </div>
     <div class="linkstrook" data-linktab="taken"></div>
-<div class="card">
+
+    <div class="dg-groepen" data-dgvak="taken" role="group" aria-label="Onderdelen van taken">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="aanmaken" aria-pressed="false" class="foto-malina">
+        <span>Taak aanmaken</span></button>
+      <button type="button" data-dgfilter="lijst" aria-pressed="false" class="foto-deluxe">
+        <span>Takenlijst</span></button>
+    </div>
+<div class="card" data-dggroep="aanmaken">
       <div class="card-head"><h2>Nieuwe taak</h2><span class="hint">verschijnt direct bij de juiste persoon</span></div>
       <div class="card-body">
         <div class="grid-form">
@@ -1745,7 +1754,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="aanmaken">
       <div class="card-head"><h2>E-mail als taak</h2>
         <span class="hint">sleep een opgeslagen e-mail hierin of plak de tekst</span></div>
       <div class="card-body">
@@ -1766,7 +1775,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="lijst">
       <div class="card-head"><h2>Takenlijst</h2>
         <div class="segment" id="tkFilter">
           <button type="button" data-f="open" aria-pressed="true">Open</button>
@@ -2132,7 +2141,16 @@ div.ag-blok{cursor:default}
     </div>
     <div class="linkstrook" data-linktab="klanten"></div>
 
-    <div class="card">
+    <div class="dg-groepen" data-dgvak="klanten" role="group" aria-label="Onderdelen van klanten en gasten">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="reserveringen" aria-pressed="false" class="foto-malina">
+        <span>Reserveringen &amp; formulieren</span></button>
+      <button type="button" data-dgfilter="klanten" aria-pressed="false" class="foto-deluxe">
+        <span>Klanten</span></button>
+    </div>
+
+    <div class="card" data-dggroep="reserveringen">
       <div class="card-head"><h2>Alle reserveringen &amp; formulieren</h2>
         <span class="hint" id="arHint"></span></div>
       <div class="card-body">
@@ -2149,7 +2167,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="klanten">
       <div class="card-head"><h2>Nieuwe klant</h2><span class="hint">alleen naam is verplicht</span></div>
       <div class="card-body">
         <div class="grid-form">
@@ -2175,7 +2193,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="klanten">
       <div class="card-head"><h2>Klantenbestand</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <div class="field" style="min-width:190px"><input type="text" id="klZoek" placeholder="zoek op naam, telefoon of e-mail"></div>
@@ -2455,7 +2473,16 @@ div.ag-blok{cursor:default}
       <p>Wat de volgende dienst moet weten. Iedereen kan hier een bericht achterlaten en afhandelen.</p>
     </div>
     <div class="linkstrook" data-linktab="overdracht"></div>
-<div class="card">
+
+    <div class="dg-groepen" data-dgvak="overdracht" role="group" aria-label="Onderdelen van overdracht">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="schrijven" aria-pressed="false" class="foto-malina">
+        <span>Bericht achterlaten</span></button>
+      <button type="button" data-dgfilter="berichten" aria-pressed="false" class="foto-deluxe">
+        <span>Berichten</span></button>
+    </div>
+<div class="card" data-dggroep="schrijven">
       <div class="card-head"><h2>Bericht achterlaten</h2><span class="hint">zichtbaar voor het hele team</span></div>
       <div class="card-body">
         <div class="grid-form">
@@ -2477,12 +2504,12 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="berichten">
       <div class="card-head"><h2>Openstaand</h2><span class="hint" id="odHint"></span></div>
       <div class="card-body" id="odOpen"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="berichten">
       <div class="card-head"><h2>Afgehandeld</h2><span class="hint">laatste 20</span></div>
       <div class="card-body" id="odKlaar"></div>
     </div>
