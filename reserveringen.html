@@ -454,6 +454,14 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <label class="veld breed">Arrangementen <textarea id="vArr" rows="3" placeholder="Eén arrangement of extra per regel"></textarea></label>
           <label class="veld">Totaalbedrag (€) <input id="vBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
           <label class="veld">Betaalstatus <select id="vBetaal"></select></label>
+          <!-- Betaald en nog te betalen stonden wel in de database maar werden
+               bij het opslaan nooit meegestuurd; daardoor waren ze bij vrijwel
+               elke boeking leeg. Angela vroeg op 17-09-2026 om ze hier te zien
+               en te kunnen bijstellen, met het restant dat zichzelf uitrekent
+               zodra je de status, het totaal of het betaalde bedrag wijzigt. -->
+          <label class="veld">Betaald (&euro;) <input id="vBetaald" type="text" inputmode="decimal" placeholder="0,00"></label>
+          <label class="veld">Nog te betalen (&euro;) <input id="vRestant" type="text" inputmode="decimal" placeholder="0,00">
+            <small>rekent zichzelf uit; je kunt hem overschrijven</small></label>
           <!-- Hoe er is afgerekend. Dezelfde woorden als in het
                incheckformulier, anders sluit de automatische overname vanuit
                een definitief formulier nooit aan. -->
@@ -971,6 +979,12 @@ function openVenster(id) {
   $("#vArr").value = ARR_START;
   $("#vBedrag").value = r.bedrag_totaal == null ? "" : euro(r.bedrag_totaal);
   $("#vBetaal").innerHTML = opties(BETAAL, r.betaalstatus || "open");
+  /* Wat er is vastgelegd terugzetten; is een van de twee nog leeg, dan vult
+     vBetaalstand hem af uit de status. Niet herberekenen: wat er staat is
+     bewust ingevoerd en mag niet bij elk openen overschreven worden. */
+  $("#vBetaald").value = r.betaald_bedrag == null ? "" : euro(r.betaald_bedrag);
+  $("#vRestant").value = r.restant_bedrag == null ? "" : euro(r.restant_bedrag);
+  vBetaalstand(false);
   /* De opgeslagen betaalwijze terugzetten. Zonder deze regel staat het menu bij
      elk openen weer op "nog niet bekend" en wist het eerstvolgende opslaan de
      wijze die er stond. Komt de bewaarde tekst niet in de lijst voor — een
@@ -1483,6 +1497,13 @@ function formWaarden() {
   const leeg = (v) => { v = String(v ?? "").trim(); return v === "" ? null : v; };
   const bedrag = leesBedrag($("#vBedrag").value);
   if (Number.isNaN(bedrag)) throw new Error("Het totaalbedrag is geen geldig bedrag.");
+  /* Leeg blijft leeg: leesBedrag geeft dan null, en null betekent in de
+     database "nog niet bekend". Een nul zou zeggen dat er echt nul euro
+     betaald is, en dat is iets anders. */
+  const betaaldBedrag = $("#vBetaald") ? leesBedrag($("#vBetaald").value) : null;
+  if (Number.isNaN(betaaldBedrag)) throw new Error("Het betaalde bedrag is geen geldig bedrag.");
+  const restantBedrag = $("#vRestant") ? leesBedrag($("#vRestant").value) : null;
+  if (Number.isNaN(restantBedrag)) throw new Error("Het openstaande bedrag is geen geldig bedrag.");
   const personen = $("#vPersonen").value === "" ? null : parseInt($("#vPersonen").value, 10);
   if (personen !== null && !(personen >= 1 && personen <= 20)) throw new Error("Vul bij personen een aantal tussen 1 en 20 in.");
   const d = {
@@ -1500,6 +1521,8 @@ function formWaarden() {
     uitcheck_tijd: leeg($("#vUitcheck").value),
     bedrag_totaal: bedrag,
     betaalstatus: $("#vBetaal").value,
+    betaald_bedrag: betaaldBedrag,
+    restant_bedrag: restantBedrag,
     /* Leeg betekent "nog niet bekend" en wordt als null bewaard, niet als lege
        tekst: zo is het verschil met een bewust gekozen wijze zichtbaar. */
     betaald_via: $("#vBetaaldVia") ? ($("#vBetaaldVia").value || null) : null,
@@ -2160,6 +2183,42 @@ document.addEventListener("input", (e) => {
    ========================================================= */
 const MOLLIE_URL = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-payment";
 
+/* De betaalstand: totaal, betaald en nog te betalen bij elkaar.
+   De database kent alle drie de velden, maar het venster stuurde
+   betaald_bedrag en restant_bedrag nooit mee. Daardoor waren ze bij vrijwel
+   elke boeking leeg en moest de kaart de betaalstatus als leidend nemen.
+   Angela vroeg op 17-09-2026 om ze hier te zien en te kunnen bijstellen.
+
+   De regel: de status bepaalt wat er hoort te staan, en dat wordt ingevuld
+   zodra je de status, het totaal of het betaalde bedrag wijzigt. Bij "deels
+   betaald" vul je zelf het betaalde bedrag in en volgt het restant. Wat jij
+   daarna in het restantveld typt blijft staan - daarom vult hij bij het openen
+   alleen wat leeg is, en rekent hij pas echt opnieuw bij een wijziging. */
+function vBetaalstand(herbereken) {
+  const bVeld = $("#vBetaald"), rVeld = $("#vRestant");
+  if (!bVeld || !rVeld) return;
+  const leeg = (el) => String(el.value).trim() === "";
+  const totaal = leesBedrag($("#vBedrag").value);
+  const status = $("#vBetaal").value;
+
+  let betaald = leesBedrag(bVeld.value);
+  if (Number.isNaN(betaald)) betaald = null;
+
+  /* Volledig betaald of nog niets betaald laat zich afleiden; bij deels
+     betaald weet alleen jij het bedrag, dus dat blijft staan. */
+  if (herbereken || leeg(bVeld)) {
+    if (status === "betaald") betaald = totaal;
+    else if (status === "open") betaald = totaal == null ? null : 0;
+    if (betaald != null) bVeld.value = euro(betaald);
+  }
+
+  if (herbereken || leeg(rVeld)) {
+    const rest = (totaal == null || betaald == null) ? null
+               : Math.round((totaal - betaald) * 100) / 100;
+    rVeld.value = rest == null ? "" : euro(rest);
+  }
+}
+
 function vDeelBedrag() {
   return Math.round((leesBedrag($("#vDeelBedrag").value) || 0) * 100) / 100;
 }
@@ -2298,9 +2357,14 @@ document.addEventListener("change", (e) => {
     vZetBedrag(HUIDIG);
     $("#vBericht").value = vBerichtTekst(HUIDIG);
   }
+  /* Status of betaald bedrag gewijzigd: de stand opnieuw uitrekenen. */
+  if (["vBetaal", "vBetaald", "vBedrag"].includes(e.target.id) && HUIDIG) vBetaalstand(true);
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "vBedrag" && HUIDIG) vZetBedrag(HUIDIG);
+  /* Tijdens het typen meerekenen, maar het restantveld met rust laten zodra je
+     daar zelf in bezig bent - anders typ je tegen de berekening in. */
+  if (["vBedrag", "vBetaald"].includes(e.target.id) && HUIDIG) vBetaalstand(true);
 });
 document.addEventListener("click", (e) => {
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
