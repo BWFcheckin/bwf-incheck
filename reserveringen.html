@@ -2523,8 +2523,29 @@ async function bijboeken() {
     const bestaand = Array.isArray(r.arrangementen) ? r.arrangementen : [];
     const samen = bestaand.concat(nieuw.map((x) =>
       ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag, bron: "bijgeboekt" })));
+    const erbij = Math.round(nieuw.reduce((a, x) => a + x.bedrag, 0) * 100) / 100;
+
+    /* Angela, 17-09-2026: wat je bijboekt hoort meteen bij het totaalbedrag te
+       komen. Er is niets extra betaald, dus het openstaande bedrag stijgt met
+       hetzelfde bedrag mee en het betaalde bedrag blijft staan.
+       Staat er nog geen totaalbedrag, dan wordt er niets opgeteld: een totaal
+       dat alleen uit extra's bestaat zou de boeking veel te goedkoop laten
+       lijken. Gemeten: 119 van de 174 lopende boekingen hebben nog geen
+       bedrag. Je krijgt daarover een melding in plaats van een stil verkeerd
+       getal. */
+    const d = { arrangementen: samen, gewijzigd_door: NAAM };
+    const hadTotaal = r.bedrag_totaal != null;
+    if (hadTotaal) {
+      d.bedrag_totaal = Math.round((Number(r.bedrag_totaal) + erbij) * 100) / 100;
+      const nuOpen = r.restant_bedrag != null ? Number(r.restant_bedrag)
+        : (r.betaalstatus === "betaald" ? 0
+          : r.betaalstatus === "open" ? Number(r.bedrag_totaal) : null);
+      if (nuOpen != null) d.restant_bedrag = Math.round((nuOpen + erbij) * 100) / 100;
+      /* Stond de boeking op betaald, dan is hij dat nu niet meer. */
+      if (r.betaalstatus === "betaald" && erbij > 0) d.betaalstatus = "deels";
+    }
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
-      { method: "PATCH", body: { arrangementen: samen, gewijzigd_door: NAAM } });
+      { method: "PATCH", body: d });
     if (!rij || !rij.length) throw new Error("Bijboeken lukte niet: je hebt geen rechten om deze reservering te wijzigen.");
     HUIDIG = rij[0];
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
@@ -2533,10 +2554,22 @@ async function bijboeken() {
     $("#vVrijBedrag").value = "";
     tekenBijboek(rij[0]);
     tekenAlBijgeboekt(rij[0]);
+    /* De bedragvelden in het scherm meteen bijwerken. Zonder dit staat er nog
+       het oude totaal, en dan zou jouw eerstvolgende druk op Opslaan de
+       verhoging weer terugdraaien: het formulier stuurt die drie velden mee. */
+    $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
+    $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
+    $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    $("#vBetaal").value = rij[0].betaalstatus || "open";
     teken();
-    const som = nieuw.reduce((a, x) => a + x.bedrag, 0);
     note.textContent = nieuw.length + (nieuw.length === 1 ? " regel" : " regels") +
-      " bijgeboekt, € " + euro(som) + ". De bestaande arrangementen zijn ongewijzigd.";
+      " bijgeboekt, € " + euro(erbij) + ". " +
+      (hadTotaal
+        ? "Het totaalbedrag staat nu op € " + euro(rij[0].bedrag_totaal) +
+          (rij[0].restant_bedrag != null ? " en er staat € " + euro(rij[0].restant_bedrag) + " open." : ".")
+        : "Er staat nog geen totaalbedrag bij deze reservering, dus er is niets opgeteld — " +
+          "vul het totaalbedrag hierboven in.") +
+      " De bestaande arrangementen zijn ongewijzigd.";
   } catch (e) {
     note.textContent = e.message;
   }
