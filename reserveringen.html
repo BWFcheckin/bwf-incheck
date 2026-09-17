@@ -519,6 +519,33 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         </div>
       </fieldset>
 
+      <!-- De welkomstcall vanuit de reservering (Angela, 17-09-2026). Stond
+           alleen in het VR-dashboard; hier kun je de stand zetten en het
+           gesprek samenvatten zonder dat scherm te openen. Opslaan raakt
+           uitsluitend de welkomstcall, niet de reservering. -->
+      <fieldset id="vWcVak">
+        <legend>Welkomstcall</legend>
+        <div class="raster">
+          <label class="veld">Stand van de call <select id="vWcStatus">
+            <option value="te bellen">Nog te bellen</option>
+            <option value="afgerond">Afgerond</option>
+            <option value="nvt">Niet van toepassing</option>
+          </select></label>
+        </div>
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;font-weight:600">Samenvatting van het gesprek</summary>
+          <div id="vWcBijgeboekt" style="margin-top:9px;font-size:13px"></div>
+          <label class="veld breed" style="margin-top:9px">Wat is er besproken
+            <textarea id="vWcSamen" rows="3" placeholder="korte samenvatting, komt ook op de reserveringskaart"></textarea></label>
+          <label class="veld breed">Eigen aantekening
+            <textarea id="vWcNotitie" rows="3" placeholder="wat je zelf wilt onthouden over dit gesprek"></textarea></label>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button type="button" class="knop sec klein" id="vWcOpslaan">Welkomstcall bewaren</button>
+            <span class="v-melding" id="vWcNote" style="color:var(--muted)"></span>
+          </div>
+        </details>
+      </fieldset>
+
       <fieldset>
         <legend>Status en notities</legend>
         <div class="raster">
@@ -1302,7 +1329,11 @@ async function vulKoppelingen(r) {
             /* automatisch erbij: het dashboard zet voor elke komende boeking
                vast een call klaar op "te bellen". Zonder dit veld is niet te
                zien of er echt iemand gebeld heeft of dat hij alleen klaarstaat. */
-            "samenvatting,gebeld_op,nodig,automatisch" +
+            /* afgerond_op erbij sinds de status hier ook te wijzigen is: zonder
+               dat veld is niet terug te zien wanneer een call is afgerond.
+               uitkomst blijft er bewust buiten; dat veld wordt door
+               vandaag.html gebruikt en daar blijven we vanaf. */
+            "samenvatting,gebeld_op,nodig,automatisch,afgerond_op" +
             "&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("checkins?select=id,status,datum&gekoppelde_reservering=eq." +
@@ -1339,6 +1370,8 @@ async function vulKoppelingen(r) {
        te veel: daarvoor is de samenvatting bedoeld. De knop naar dat scherm
        blijft daarom alleen staan zolang er nog géén call is. */
     const w = calls && calls[0];
+    /* Het bewerkbare welkomstcall-blok vullen met dezelfde gegevens. */
+    vulWelkomstcall(w, r);
     /* Het VR-dashboard zet voor elke komende boeking automatisch een call klaar
        met status "te bellen". Van de 62 calls met die status zijn er 58 zo
        ontstaan en bij geen daarvan is ooit gebeld. Die onvertaald tonen wekt de
@@ -1396,6 +1429,104 @@ async function vulKoppelingen(r) {
   } catch (e) {
     doel.textContent = "Koppelingen konden niet worden geladen: " + e.message;
   }
+}
+
+/* ---------- welkomstcall vanuit de reservering ----------
+   De koppeling loopt via wz_welkomstcalls.reservering_id, niet via
+   reserveringen.welkomstcall_id: gemeten 17-09-2026 wijzen 40 calls naar een
+   reservering en maar 3 reserveringen terug naar een call.
+   "Niet van toepassing" is geen status maar het veld nodig=false; zo staat het
+   ook in het VR-dashboard. */
+let WC_HUIDIG = null;
+
+function vulWelkomstcall(w, r) {
+  WC_HUIDIG = w || null;
+  const vak = $("#vWcStatus");
+  if (!vak) return;
+  vak.value = !w ? "te bellen"
+    : w.nodig === false ? "nvt"
+    : (w.gebeld_op || w.status === "afgerond" || w.status === "gebeld") ? "afgerond"
+    : "te bellen";
+  $("#vWcSamen").value = (w && w.samenvatting) || "";
+  $("#vWcNotitie").value = (w && (w.notities || w.notitie)) || "";
+  $("#vWcNote").textContent = "";
+
+  /* Wat er is bijgeboekt: eerst wat er tijdens de call is vastgelegd, en
+     daarnaast de regels die op de reservering zelf een merkteken dragen. */
+  const doel = $("#vWcBijgeboekt");
+  if (!doel) return;
+  const uitCall = (w && Array.isArray(w.regels) ? w.regels : []).map((x) => ({
+    naam: (x && (x.naam || x.omschrijving)) || "", aantal: x && x.aantal, bedrag: x && x.bedrag }));
+  const opRes = (r && Array.isArray(r.arrangementen) ? r.arrangementen : []).filter((a) => a && a.bron);
+  const alles = uitCall.concat(opRes).filter((x) => x.naam);
+  const totaal = alles.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  doel.innerHTML = alles.length
+    ? '<strong style="display:block;margin-bottom:5px">Bijgeboekt</strong>' +
+      alles.map((x) =>
+        '<div style="display:flex;justify-content:space-between;gap:12px"><span>' + esc(x.naam) +
+          (Number(x.aantal) > 1 ? " &times; " + esc(x.aantal) : "") + "</span><span>" +
+          (Number(x.bedrag) ? "&euro; " + esc(euro(x.bedrag)) : "") + "</span></div>").join("") +
+      (totaal ? '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
+        "<span>Totaal</span><span>&euro; " + esc(euro(totaal)) + "</span></div>" : "")
+    : '<span style="color:var(--muted)">Er is nog niets bijgeboekt.</span>';
+}
+
+/* Bewaren raakt alleen de welkomstcall. Bestaat er nog geen, dan wordt hij
+   aangemaakt met dezelfde velden die het VR-dashboard gebruikt, zodat hij daar
+   volwaardig in beeld komt. */
+async function bewaarWelkomstcall() {
+  const r = HUIDIG, note = $("#vWcNote"), knop = $("#vWcOpslaan");
+  if (!r || !note || !knop) return;
+  const keuze = $("#vWcStatus").value;
+  const d = {
+    status: keuze === "nvt" ? "te bellen" : keuze === "afgerond" ? "afgerond" : "te bellen",
+    nodig: keuze !== "nvt",
+    samenvatting: $("#vWcSamen").value.trim() || null,
+    notities: $("#vWcNotitie").value.trim() || null
+  };
+  if (keuze === "afgerond") {
+    if (!(WC_HUIDIG && WC_HUIDIG.gebeld_op)) d.gebeld_op = new Date().toISOString();
+    d.afgerond_op = new Date().toISOString();
+  }
+  knop.disabled = true;
+  note.textContent = "Bezig met bewaren…";
+  try {
+    let rij;
+    if (WC_HUIDIG && WC_HUIDIG.id) {
+      rij = await api("wz_welkomstcalls?id=eq." + encodeURIComponent(WC_HUIDIG.id) +
+        "&select=id,status,nodig,samenvatting,notities,gebeld_op,afgerond_op,regels,automatisch",
+        { method: "PATCH", body: d });
+    } else {
+      const a = new Date(r.aankomst), v = new Date(r.vertrek);
+      const dag = (x) => (isNaN(x) ? null : x.toISOString().slice(0, 10));
+      rij = await api("wz_welkomstcalls?select=id,status,nodig,samenvatting,notities,gebeld_op,afgerond_op,regels,automatisch",
+        { method: "POST", body: Object.assign({
+          reservering_id: r.id,
+          naam: gastNaam(r) || null,
+          voornaam: r.gast_voornaam || null, achternaam: r.gast_achternaam || null,
+          telefoon: r.gast_telefoon || null, email: r.gast_email || null,
+          locatie: SUITE_LOCATIE[r.suite] || null,
+          verblijftype: r.type === "dagverblijf" ? "Dagverblijf" : "Overnachting",
+          datum: dag(a), datum_eind: dag(v),
+          tijd: hhmm(r.incheck_tijd) || null, tijd_eind: hhmm(r.uitcheck_tijd) || null,
+          personen: r.personen || null, referentie: r.kanaal_ref || null,
+          bron: KANALEN[r.kanaal] || r.kanaal || null,
+          smg_bedrag: r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null,
+          smg_betaald: r.betaalstatus === "betaald",
+          automatisch: false
+        }, d) });
+    }
+    if (!rij || !rij.length) throw new Error("Bewaren lukte niet: je hebt geen rechten om welkomstcalls te wijzigen.");
+    WC_HUIDIG = rij[0];
+    vulWelkomstcall(rij[0], r);
+    vulKoppelingen(r);
+    note.textContent = keuze === "nvt" ? "Genoteerd: voor deze boeking is geen call nodig."
+      : keuze === "afgerond" ? "Welkomstcall afgerond en bewaard."
+      : "Bewaard; de call staat nog open.";
+  } catch (e) {
+    note.textContent = e.message;
+  }
+  knop.disabled = false;
 }
 
 function rijKoppeling(kop, waarde, link, knop) {
@@ -2615,6 +2746,7 @@ document.addEventListener("change", (e) => {
 });
 document.addEventListener("click", (e) => {
   if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(); }
+  if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
 });
 document.addEventListener("click", (e) => {
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
