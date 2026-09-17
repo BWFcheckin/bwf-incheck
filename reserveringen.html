@@ -686,7 +686,10 @@ const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
 const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
   "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,extras,bedrag_totaal,betaald_bedrag," +
   "restant_bedrag,betaalstatus,betaald_via,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
-  "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door";
+  /* review_verstuurd hoort erbij sinds de controlebalk: dat veld bestaat in de
+     database maar werd niet opgehaald, waardoor die stap altijd rood zou staan
+     hoe vaak je de link ook verstuurd had. */
+  "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door,review_verstuurd";
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
 
 let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = null, ARR_START = "";
@@ -2535,15 +2538,21 @@ async function bijboeken() {
        getal. */
     const d = { arrangementen: samen, gewijzigd_door: NAAM };
     const hadTotaal = r.bedrag_totaal != null;
-    if (hadTotaal) {
-      d.bedrag_totaal = Math.round((Number(r.bedrag_totaal) + erbij) * 100) / 100;
-      const nuOpen = r.restant_bedrag != null ? Number(r.restant_bedrag)
-        : (r.betaalstatus === "betaald" ? 0
-          : r.betaalstatus === "open" ? Number(r.bedrag_totaal) : null);
-      if (nuOpen != null) d.restant_bedrag = Math.round((nuOpen + erbij) * 100) / 100;
-      /* Stond de boeking op betaald, dan is hij dat nu niet meer. */
-      if (r.betaalstatus === "betaald" && erbij > 0) d.betaalstatus = "deels";
-    }
+    /* Het bijgeboekte bedrag komt altijd bij het totaal. Stond er nog geen
+       totaalbedrag, dan wordt het totaal gelijk aan wat je bijboekt: er is dan
+       niets om bij op te tellen, en het openstaande bedrag is precies dat
+       bedrag. Eerst sloeg ik dat geval over, maar 119 van de 174 lopende
+       boekingen hebben geen bedrag - dan lijkt het alsof bijboeken niets doet.
+       Angela, 17-09-2026. */
+    const oudTotaal = hadTotaal ? Number(r.bedrag_totaal) : 0;
+    d.bedrag_totaal = Math.round((oudTotaal + erbij) * 100) / 100;
+    const nuOpen = r.restant_bedrag != null ? Number(r.restant_bedrag)
+      : !hadTotaal ? 0
+      : r.betaalstatus === "betaald" ? 0
+      : r.betaalstatus === "open" ? oudTotaal : null;
+    if (nuOpen != null) d.restant_bedrag = Math.round((nuOpen + erbij) * 100) / 100;
+    /* Stond de boeking op betaald, dan is hij dat nu niet meer. */
+    if (r.betaalstatus === "betaald" && erbij > 0) d.betaalstatus = "deels";
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
       { method: "PATCH", body: d });
     if (!rij || !rij.length) throw new Error("Bijboeken lukte niet: je hebt geen rechten om deze reservering te wijzigen.");
@@ -2564,11 +2573,9 @@ async function bijboeken() {
     teken();
     note.textContent = nieuw.length + (nieuw.length === 1 ? " regel" : " regels") +
       " bijgeboekt, € " + euro(erbij) + ". " +
-      (hadTotaal
-        ? "Het totaalbedrag staat nu op € " + euro(rij[0].bedrag_totaal) +
-          (rij[0].restant_bedrag != null ? " en er staat € " + euro(rij[0].restant_bedrag) + " open." : ".")
-        : "Er staat nog geen totaalbedrag bij deze reservering, dus er is niets opgeteld — " +
-          "vul het totaalbedrag hierboven in.") +
+      (hadTotaal ? "Het totaalbedrag staat nu op € " : "Er stond nog geen totaalbedrag; dat staat nu op € ") +
+      euro(rij[0].bedrag_totaal) +
+      (rij[0].restant_bedrag != null ? " en er staat € " + euro(rij[0].restant_bedrag) + " open." : ".") +
       " De bestaande arrangementen zijn ongewijzigd.";
   } catch (e) {
     note.textContent = e.message;
