@@ -1810,7 +1810,16 @@ div.ag-blok{cursor:default}
     </div>
     <div class="linkstrook" data-linktab="welkomstcall"></div>
 
-    <div class="card" style="margin-bottom:18px">
+    <div class="dg-groepen" data-dgvak="welkomstcall" role="group" aria-label="Onderdelen van welkomstcalls">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="gesprek" aria-pressed="false" class="foto-malina">
+        <span>Het gesprek</span></button>
+      <button type="button" data-dgfilter="resultaat" aria-pressed="false" class="foto-deluxe">
+        <span>Resultaten</span></button>
+    </div>
+
+    <div class="card" data-dggroep="gesprek" style="margin-bottom:18px">
       <div class="card-head"><h2>Welkomstcalls</h2>
         <div class="segment" id="wcFilter">
           <button type="button" data-f="open" aria-pressed="true">Open</button>
@@ -1982,7 +1991,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="gesprek">
       <div class="card-head"><h2>Extra's bijboeken</h2><span class="hint" id="wcExtraHint"></span></div>
       <div class="card-body">
         <div class="wcbijlage" style="margin-bottom:14px">
@@ -2013,7 +2022,7 @@ div.ag-blok{cursor:default}
         <span><button class="btn ghost small" id="wcExtraNieuw" type="button" hidden>+ Extra beheren</button></span></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="gesprek">
       <div class="card-head"><h2>Welkomstcall afronden</h2>
         <span class="hint">gegevens verwerken, bericht versturen en de formulieren openen</span></div>
       <div class="card-body">
@@ -2090,7 +2099,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="resultaat">
       <div class="card-head"><h2>Afgerond per assistent</h2>
         <div class="segment" id="afFilter">
           <button type="button" data-p="maand" aria-pressed="true">Deze maand</button>
@@ -2107,7 +2116,7 @@ div.ag-blok{cursor:default}
         <button class="btn ghost small" id="afExport" type="button">Exporteer CSV</button></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="resultaat">
       <div class="card-head"><h2>Laatst afgerond</h2>
         <span class="hint">status, wat er is bijgeboekt en de notities</span></div>
       <div class="card-body" id="afRecent"></div>
@@ -2271,7 +2280,16 @@ div.ag-blok{cursor:default}
       <p>Je bellijsten en de bijbehorende scripts staan hier naast elkaar: lijst afwerken links, script afvinken rechts.</p>
     </div>
     <div class="linkstrook" data-linktab="bellen"></div>
-<div class="card">
+
+    <div class="dg-groepen" data-dgvak="bellen" role="group" aria-label="Onderdelen van bellen">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="lijsten" aria-pressed="false" class="foto-malina">
+        <span>Lijsten</span></button>
+      <button type="button" data-dgfilter="scripts" aria-pressed="false" class="foto-deluxe">
+        <span>Gespreksscripts</span></button>
+    </div>
+<div class="card" data-dggroep="lijsten">
       <div class="card-head"><h2>Excel of CSV importeren</h2></div>
       <div class="card-body">
         <div class="dropzone" id="belDrop">
@@ -2295,7 +2313,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="lijsten">
       <div class="card-head"><h2>Bellijsten</h2>
         <div class="field" style="min-width:200px"><select id="belKeuze"></select></div></div>
       <div class="card-body" id="belKop"></div>
@@ -2308,13 +2326,13 @@ div.ag-blok{cursor:default}
         <button class="btn ghost small" id="belWis" type="button">Bellijst verwijderen</button></span></div>
     </div>
     <h2 id="belscriptsKop" style="font-family:var(--f-display);font-size:17px;margin:26px 0 12px;scroll-margin-top:16px">Belscripts</h2>
-<div class="card">
+<div class="card" data-dggroep="scripts">
       <div class="card-head"><h2>Kies een script</h2>
         <button class="btn small" id="scNieuw" type="button" hidden>+ Nieuw script</button></div>
       <div class="card-body"><div class="linkrij" id="scKeuze"></div></div>
     </div>
 
-    <div class="card" id="scKaart">
+    <div class="card" id="scKaart" data-dggroep="scripts">
       <div class="card-head">
         <h2 id="scTitel">—</h2>
         <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -2345,7 +2363,16 @@ div.ag-blok{cursor:default}
       <p id="wzUitleg">Registreer wat je hebt gedaan; het bedrag rolt uit de tarievenlijst onderaan deze pagina.</p>
     </div>
     <div class="linkstrook" data-linktab="werk"></div>
-<div class="card" id="mijnTarievenKaart" hidden>
+
+    <div class="dg-groepen" data-dgvak="werk" role="group" aria-label="Onderdelen van werk en tarieven">
+      <button type="button" data-dgfilter="alles" aria-pressed="true" class="foto-angie">
+        <span>Alles</span></button>
+      <button type="button" data-dgfilter="registreren" aria-pressed="false" class="foto-malina">
+        <span>Registreren</span></button>
+      <button type="button" data-dgfilter="beheer" aria-pressed="false" class="foto-deluxe">
+        <span>Tarieven &amp; mensen</span></button>
+    </div>
+<div class="card" id="mijnTarievenKaart" data-dggroep="registreren" hidden>
       <div class="card-head"><h2>Jouw tarieven</h2><span class="hint" id="mijnUurtarief"></span></div>
       <div class="card-body" style="padding-bottom:6px">
         <p class="note" style="margin:0 0 14px">
@@ -2361,7 +2388,7 @@ div.ag-blok{cursor:default}
       <div class="card-foot"><span class="note" style="margin:0">Klopt er iets niet? Geef het door aan Angela — zij beheert de tarieven.</span></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="registreren">
       <div class="card-head"><h2>Werkzaamheid registreren</h2></div>
       <div class="card-body">
         <div class="grid-form">
@@ -2381,7 +2408,7 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="registreren">
       <div class="card-head"><h2>Geregistreerd</h2><span class="hint" id="wzHint"></span></div>
       <div class="card-body" style="padding-bottom:0">
         <div class="filters">
@@ -2400,7 +2427,7 @@ div.ag-blok{cursor:default}
         <button class="btn ghost small" id="wzExport" type="button">Exporteer CSV</button></span></div>
     </div>
     <h2 style="font-family:var(--f-display);font-size:17px;margin:26px 0 12px" id="tarKop">Tarievenlijst en mensen</h2>
-<div class="card">
+<div class="card" data-dggroep="beheer">
       <div class="card-head"><h2>Tarieven</h2><span class="hint">wijzigingen worden direct bewaard</span></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Werkzaamheid</th><th>Categorie</th><th>Soort</th><th>Eenheid</th><th class="num">Uren</th><th class="num">Stukprijs</th><th>Actief</th><th></th></tr></thead>
@@ -2409,7 +2436,7 @@ div.ag-blok{cursor:default}
       <div class="card-foot"><span id="tarFoot"></span><button class="btn small" id="tarNieuw" type="button">+ Regel toevoegen</button></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-dggroep="beheer">
       <div class="card-head"><h2>Mensen</h2><span class="hint">naam, rol en toegangscode</span></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Naam</th><th>E-mailadres</th><th>Rol</th><th class="num">Uurtarief</th><th>Actief</th><th>Gastenregister</th><th></th></tr></thead>
@@ -3251,6 +3278,7 @@ function kiesGroep(groep){
   });
   $$('#groeptabs .tab').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.groep===groep)));
   try{ sessionStorage.setItem(LS.tab, groep); }catch(e){}
+  try{ dgVakHerstel(); }catch(e){}
   zetKop(groep);
   window.scrollTo({top:0, behavior:'instant'});
   if(groep === 'agenda' && typeof agCentreer === 'function') setTimeout(agCentreer, 0);
@@ -3843,6 +3871,37 @@ document.addEventListener('click', e => {
    indeling is terug te draaien door de knoppenbalk weg te halen.
    Het verbergen gaat via display op de kaart zelf; het bestaande in- en
    uitklappen werkt op de inhoud binnen een kaart en blijft dus gewoon werken. */
+/* Dezelfde groepsknoppen als op de Dagstart, maar dan voor de andere panelen.
+   Bewust generiek en zonder extra container: de knoppenrij draagt
+   data-dgvak="<paneel>" en schakelt de kaarten die directe kinderen van
+   #panel-<paneel> zijn. De Dagstart heeft wel zo'n container (#dgTegels) omdat
+   de tegels daar ook een raster vormen; hier zou een omhullende div alleen maar
+   de bestaande opmaak verstoren.
+   Elk paneel onthoudt zijn eigen keuze. Met een gedeelde sleutel zou een groep
+   kiezen in Bellen ook Werk omschakelen. */
+function dgVakFilter(vak, groep){
+  document.querySelectorAll('#panel-' + vak + ' > .card[data-dggroep]').forEach(k => {
+    k.style.display = (groep === 'alles' || k.dataset.dggroep === groep) ? '' : 'none';
+  });
+  document.querySelectorAll('[data-dgvak="' + vak + '"] button[data-dgfilter]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.dgfilter === groep));
+  });
+  try{ sessionStorage.setItem('bwf-dgfilter-' + vak, groep); }catch(e){}
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-dgvak] button[data-dgfilter]'); if(!b) return;
+  const rij = b.closest('[data-dgvak]');
+  if(rij) dgVakFilter(rij.dataset.dgvak, b.dataset.dgfilter);
+});
+/* De laatst gekozen groep terugzetten zodra de panelen in beeld komen. */
+function dgVakHerstel(){
+  document.querySelectorAll('[data-dgvak]').forEach(rij => {
+    let g = 'alles';
+    try{ g = sessionStorage.getItem('bwf-dgfilter-' + rij.dataset.dgvak) || 'alles'; }catch(e){}
+    dgVakFilter(rij.dataset.dgvak, g);
+  });
+}
+
 function dgFilter(groep){
   document.querySelectorAll('#dgTegels > .card[data-dggroep]').forEach(k => {
     k.style.display = (groep === 'alles' || k.dataset.dggroep === groep) ? '' : 'none';
