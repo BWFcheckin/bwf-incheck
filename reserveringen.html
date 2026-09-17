@@ -545,6 +545,11 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
             <select id="vDeelKeuze">
               <option value="50">50% aanbetaling</option>
               <option value="100">Volledig bedrag</option>
+              <!-- Angela, 17-09-2026: na het bijboeken wil je kunnen kiezen of
+                   de gast alleen de extra's afrekent, of het openstaande bedrag
+                   en de extra's in één keer. -->
+              <option value="extras">Alleen de bijgeboekte extra&#39;s</option>
+              <option value="restant_extras">Nog te betalen plus de extra&#39;s</option>
               <option value="vrij">Vrij bedrag</option>
               <option value="locatie">Contant op locatie</option>
             </select></label>
@@ -2438,6 +2443,29 @@ function vZetBedrag(r) {
   veld.readOnly = keuze !== "vrij";
   if (keuze === "100") veld.value = euro(totaal);
   else if (keuze === "50") veld.value = euro(Math.round(totaal * 50) / 100);
+  else if (keuze === "extras" || keuze === "restant_extras") {
+    /* De bijgeboekte extra's zijn de regels met een merkteken: wat via dit
+       scherm of via een welkomstcall is toegevoegd. Het openstaande bedrag komt
+       uit het veld hierboven, zodat een handmatige correctie daar meetelt. */
+    const extras = (Array.isArray(r.arrangementen) ? r.arrangementen : [])
+      .filter((a) => a && a.bron)
+      .reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+    /* Niet "open" noemen: dat is de ingebouwde window.open, die elders in deze
+       pagina wordt gebruikt voor de e-mail- en WhatsApp-knoppen. Een const met
+       die naam schaduwt hem en brak bovendien elke poging om deze berekening
+       los na te rekenen. */
+    const openstaand = leesBedrag($("#vRestant") ? $("#vRestant").value : "");
+    const som = keuze === "extras" ? extras
+      : Math.round((extras + (openstaand && !Number.isNaN(openstaand) ? openstaand : 0)) * 100) / 100;
+    veld.value = som ? euro(som) : "";
+    if (note) {
+      note.textContent = !extras
+        ? "Er is nog niets bijgeboekt op deze reservering."
+        : keuze === "extras"
+          ? "De betaallink gaat alleen over de bijgeboekte extra's."
+          : "Openstaand bedrag en de bijgeboekte extra's bij elkaar opgeteld.";
+    }
+  }
 }
 
 function vBerichtTekst(r) {
