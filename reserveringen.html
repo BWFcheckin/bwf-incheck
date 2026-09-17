@@ -452,6 +452,30 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <legend>Arrangement en betaling</legend>
         <div class="raster">
           <label class="veld breed">Arrangementen <textarea id="vArr" rows="3" placeholder="Eén arrangement of extra per regel"></textarea></label>
+
+          <!-- Wat er al is bijgeboekt, met bedrag. Staat los van het tekstvak
+               hierboven: die regels worden nooit overschreven. -->
+          <div class="veld breed" id="vAlBijgeboekt" style="font-size:13px"></div>
+
+          <!-- Bijboeken vanuit het reserveringsscherm (Angela, 17-09-2026).
+               Deze regels krijgen bron:"bijgeboekt" en komen ONDER de bestaande
+               arrangementen te staan; het tekstvak blijft van de vooraf geboekte
+               regels. Bijboeken schrijft alleen de arrangementen weg, zodat
+               notities, bedragen, tijden en gastgegevens onaangeroerd blijven. -->
+          <details class="veld breed" id="vBijboekVak">
+            <summary style="cursor:pointer;font-weight:600">Extra&#39;s bijboeken</summary>
+            <div id="vBijLijst" style="display:grid;gap:5px;margin-top:9px"></div>
+            <div class="raster" style="margin-top:9px">
+              <label class="veld">Eigen arrangement <input id="vVrijNaam" type="text" placeholder="bijv. late check-out tot 13:00"></label>
+              <label class="veld">Bedrag (&euro;) <input id="vVrijBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
+            </div>
+            <div id="vBijSom" style="margin-top:11px;padding-top:9px;border-top:1px solid var(--line-soft);
+                 font-size:13px;display:grid;gap:3px"></div>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button type="button" class="knop sec klein" id="vBijBoek">Bijboeken op deze reservering</button>
+              <span class="v-melding" id="vBijNote" style="color:var(--muted)"></span>
+            </div>
+          </details>
           <label class="veld">Totaalbedrag (€) <input id="vBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
           <label class="veld">Betaalstatus <select id="vBetaal"></select></label>
           <!-- Betaald en nog te betalen stonden wel in de database maar werden
@@ -974,8 +998,14 @@ function openVenster(id) {
      tijd van de boeking zelf. Zo staat er nooit een leeg tijdveld. */
   $("#vIncheck").value = hhmm(r.incheck_tijd) || tijdVan(r.aankomst);
   $("#vUitcheck").value = hhmm(r.uitcheck_tijd) || tijdVan(r.vertrek);
-  ARR_START = (Array.isArray(r.arrangementen) ? r.arrangementen : []).map((a) =>
-    typeof a === "string" ? a : [a.aantal > 1 ? a.aantal + "× " : "", a.naam || a.tekst || ""].join("")).join("\n");
+  /* Dit tekstvak beheert alleen de arrangementen zónder merkteken: dat zijn de
+     regels die vooraf geboekt zijn. Wat later is bijgeboekt draagt een bron
+     (welkomstcall of bijgeboekt) en hoort in de eigen lijst eronder. Stond het
+     ook hier, dan kwam het bij opslaan dubbel in de reservering te staan. */
+  ARR_START = (Array.isArray(r.arrangementen) ? r.arrangementen : [])
+    .filter((a) => !(a && a.bron))
+    .map((a) => typeof a === "string" ? a
+      : [a.aantal > 1 ? a.aantal + "× " : "", a.naam || a.tekst || ""].join("")).join("\n");
   $("#vArr").value = ARR_START;
   $("#vBedrag").value = r.bedrag_totaal == null ? "" : euro(r.bedrag_totaal);
   $("#vBetaal").innerHTML = opties(BETAAL, r.betaalstatus || "open");
@@ -985,6 +1015,15 @@ function openVenster(id) {
   $("#vBetaald").value = r.betaald_bedrag == null ? "" : euro(r.betaald_bedrag);
   $("#vRestant").value = r.restant_bedrag == null ? "" : euro(r.restant_bedrag);
   vBetaalstand(false);
+  /* Het bijboekblok opnieuw opbouwen voor deze reservering: de keuzelijst hoort
+     bij de suite, en de al bijgeboekte regels staan eronder. */
+  V_KEUZES = {};
+  if ($("#vVrijNaam")) $("#vVrijNaam").value = "";
+  if ($("#vVrijBedrag")) $("#vVrijBedrag").value = "";
+  if ($("#vBijNote")) $("#vBijNote").textContent = "";
+  if ($("#vBijboekVak")) $("#vBijboekVak").open = false;
+  tekenBijboek(r);
+  tekenAlBijgeboekt(r);
   /* De opgeslagen betaalwijze terugzetten. Zonder deze regel staat het menu bij
      elk openen weer op "nog niet bekend" en wist het eerstvolgende opslaan de
      wijze die er stond. Komt de bewaarde tekst niet in de lijst voor — een
@@ -1083,8 +1122,14 @@ function tekenPersoneelKaart(r) {
   const doel = $("#vPersoneelKaart"); if (!doel) return;
   const p = periode(r);
   const arr = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+  /* Drie groepen. Vooraf geboekt is alles zonder merkteken - dat zijn de regels
+     die met de boeking zijn meegekomen. Gemeten 17-09-2026: geen enkele van de
+     63 bestaande regels had een merkteken, dus tot nu toe viel alles onder
+     "vooraf". Sinds vandaag krijgen bijgeboekte regels bron:"bijgeboekt" en
+     regels uit een welkomstcall bron:"welkomstcall". */
   const naCall = arr.filter((a) => a && a.bron === "welkomstcall");
-  const vooraf = arr.filter((a) => !(a && a.bron === "welkomstcall"));
+  const bijgeboekt = arr.filter((a) => a && a.bron === "bijgeboekt");
+  const vooraf = arr.filter((a) => !(a && a.bron));
   const noem = (a) => esc((a && (a.naam || a)) || "") +
     (a && Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
     (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "");
@@ -1146,6 +1191,8 @@ function tekenPersoneelKaart(r) {
     ]) +
     kaartVak("Arrangementen vooraf geboekt",
       vooraf.length ? vooraf.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    kaartVak("Arrangementen bijgeboekt bij de reservering",
+      bijgeboekt.length ? bijgeboekt.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
     kaartVak("Arrangementen geboekt na de welkomstcall",
       naCall.length ? naCall.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
     kaartVak("Bijzonderheden en opmerkingen", [
@@ -1532,7 +1579,16 @@ function formWaarden() {
   };
   /* arrangementen alleen meesturen als ze echt gewijzigd zijn */
   if ($("#vArr").value !== ARR_START) {
-    d.arrangementen = $("#vArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }));
+    /* Angela, 17-09-2026: bijgeboekte extra's mogen de bestaande arrangementen
+       niet overschrijven maar komen eronder. Het tekstvak vervangt daarom
+       alleen de ongemerkte regels; alles met een bron blijft staan. Zonder deze
+       samenvoeging wiste één aanraking van dit vak alle bedragen, want de oude
+       regel schreef de hele lijst weg als kale namen. */
+    const uitTekst = $("#vArr").value.split("\n").map((x) => x.trim()).filter(Boolean)
+      .map((naam) => ({ naam }));
+    const bijgeboekt = (HUIDIG && Array.isArray(HUIDIG.arrangementen) ? HUIDIG.arrangementen : [])
+      .filter((a) => a && a.bron);
+    d.arrangementen = uitTekst.concat(bijgeboekt);
   }
   /* geplakte tekst toevoegen, bestaande brongegevens blijven staan */
   const plak = $("#vPlak").value.trim();
@@ -1974,16 +2030,19 @@ function nExtraRegels() {
 /* De keuzelijst toont alleen wat bij de gekozen suite hoort. Een leeg
    locatieveld betekent: overal beschikbaar. De omschrijving uit de database
    staat eronder, zodat zichtbaar is wat de gast krijgt. */
-function opLocatie(lijst) {
-  const hier = SUITE_LOCATIE[$("#nSuite").value];
+function opLocatie(lijst, suite) {
+  /* De suite mag meegegeven worden, zodat het bewerkvenster dezelfde filter
+     gebruikt als het nieuwe-reserveringsformulier. Zonder waarde valt hij terug
+     op het nieuwe formulier, precies zoals voorheen. */
+  const hier = SUITE_LOCATIE[suite || $("#nSuite").value];
   return lijst.filter((e) => !e.locatie || e.locatie === hier);
 }
 
 /* De aanvinklijst. De feestpakketten zitten er bewust NIET in: die hebben een
    eigen keuzemenu met het intakeformulier eronder. Stonden ze in allebei, dan
    kon hetzelfde pakket twee keer geboekt en twee keer gerekend worden. */
-function zichtbareExtras() {
-  return opLocatie(EXTRAS).filter((e) => !feestPakketVan(e.naam));
+function zichtbareExtras(suite) {
+  return opLocatie(EXTRAS, suite).filter((e) => !feestPakketVan(e.naam));
 }
 
 /* De pakketten voor het keuzemenu, op dezelfde locatie gefilterd. */
@@ -2194,6 +2253,129 @@ const MOLLIE_URL = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-pay
    betaald" vul je zelf het betaalde bedrag in en volgt het restant. Wat jij
    daarna in het restantveld typt blijft staan - daarom vult hij bij het openen
    alleen wat leeg is, en rekent hij pas echt opnieuw bij een wijziging. */
+/* ---------- extra's bijboeken vanuit de reservering ----------
+   Angela vroeg op 17-09-2026 om het bijboeken uit de welkomstcall hierheen te
+   halen. Twee regels staan vast: de bijgeboekte regels komen ONDER de bestaande
+   arrangementen (het tekstvak wordt nooit overschreven), en bijboeken raakt
+   alleen het veld arrangementen - notities, bedragen, tijden en gastgegevens
+   blijven staan.
+   Dezelfde rekenwijze als elders in de pagina: prijs maal aantal, waarbij een
+   per-persoon-item het aantal personen aanhoudt. */
+let V_KEUZES = {};
+
+function vBijRegels() {
+  const personen = parseInt($("#vPersonen").value, 10) || 1;
+  const uit = Object.keys(V_KEUZES).map((id) => {
+    const e = EXTRAS.find((x) => String(x.id) === String(id));
+    if (!e) return null;
+    const aantal = e.per_persoon ? personen : (Number(V_KEUZES[id]) || 1);
+    const prijs = Number(e.prijs) || 0;
+    return { naam: e.naam, aantal, bedrag: Math.round(prijs * aantal * 100) / 100 };
+  }).filter(Boolean);
+  const naam = String($("#vVrijNaam").value || "").trim();
+  const bedrag = leesBedrag($("#vVrijBedrag").value);
+  if (naam && bedrag != null && !Number.isNaN(bedrag)) uit.push({ naam, aantal: 1, bedrag });
+  return uit;
+}
+
+function tekenBijboek(r) {
+  const vak = $("#vBijLijst");
+  if (!vak || !r) return;
+  const lijst = zichtbareExtras(r.suite);
+  if (!lijst.length) {
+    vak.innerHTML = '<span style="color:var(--muted)">Geen extra\'s voor deze suite.</span>';
+    vBijSom();
+    return;
+  }
+  const groepen = {};
+  lijst.forEach((e) => { (groepen[e.categorie || "Overig"] ||= []).push(e); });
+  vak.innerHTML = Object.keys(groepen).sort().map((cat) =>
+    '<div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:6px">' +
+      esc(cat) + "</div>" +
+    groepen[cat].map((e) => {
+      const aan = V_KEUZES[e.id] !== undefined;
+      return '<label style="display:flex;align-items:flex-start;gap:9px;font-weight:400;font-size:13.5px">' +
+        '<input type="checkbox" data-vextra="' + esc(e.id) + '"' + (aan ? " checked" : "") + ">" +
+        "<span style=\"flex:1\">" + esc(e.naam) +
+          (e.omschrijving ? '<small style="display:block;color:var(--muted)">' + esc(e.omschrijving) + "</small>" : "") +
+        "</span>" +
+        (e.per_persoon ? '<span style="color:var(--muted)">p.p.</span>' : "") +
+        (aan && !e.per_persoon
+          ? '<input type="number" min="1" step="1" style="width:62px" value="' + esc(V_KEUZES[e.id]) +
+            '" data-vaantal="' + esc(e.id) + '">' : "") +
+        '<span style="min-width:74px;text-align:right">&euro; ' + esc(euro(e.prijs)) + "</span></label>";
+    }).join("")).join("");
+  vBijSom();
+}
+
+function vBijSom() {
+  const vak = $("#vBijSom");
+  if (!vak) return;
+  const regels = vBijRegels();
+  const totaal = regels.reduce((a, x) => a + x.bedrag, 0);
+  vak.innerHTML = regels.length
+    ? regels.map((x) =>
+        '<div style="display:flex;justify-content:space-between;gap:12px"><span>' + esc(x.naam) +
+          (x.aantal > 1 ? " &times; " + esc(x.aantal) : "") + "</span><span>&euro; " +
+          esc(euro(x.bedrag)) + "</span></div>").join("") +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
+        "<span>Bij te boeken</span><span>&euro; " + esc(euro(totaal)) + "</span></div>"
+    : '<span style="color:var(--muted)">Nog niets aangevinkt.</span>';
+}
+
+/* Wat er al bijgeboekt is, met bedrag. Puur ter informatie; deze regels worden
+   door het tekstvak nooit aangeraakt. */
+function tekenAlBijgeboekt(r) {
+  const vak = $("#vAlBijgeboekt");
+  if (!vak) return;
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter((a) => a && a.bron);
+  if (!arr.length) { vak.hidden = true; vak.innerHTML = ""; return; }
+  vak.hidden = false;
+  const totaal = arr.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  vak.innerHTML = '<strong style="display:block;margin-bottom:5px">Bijgeboekt</strong>' +
+    arr.map((a) =>
+      '<div style="display:flex;justify-content:space-between;gap:12px"><span>' + esc(a.naam || "") +
+        (Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
+        (a.bron === "welkomstcall" ? ' <span style="color:var(--muted)">(welkomstcall)</span>' : "") +
+        "</span><span>" + (Number(a.bedrag) ? "&euro; " + esc(euro(a.bedrag)) : "") + "</span></div>").join("") +
+    (totaal ? '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
+      "<span>Totaal bijgeboekt</span><span>&euro; " + esc(euro(totaal)) + "</span></div>" : "");
+}
+
+/* Bijboeken: alleen het veld arrangementen wordt weggeschreven. De bestaande
+   regels blijven staan, de nieuwe komen eronder. */
+async function bijboeken() {
+  const r = HUIDIG;
+  const note = $("#vBijNote"), knop = $("#vBijBoek");
+  if (!r || !note || !knop) return;
+  const nieuw = vBijRegels();
+  if (!nieuw.length) { note.textContent = "Vink eerst iets aan, of vul een eigen arrangement met bedrag in."; return; }
+  knop.disabled = true;
+  note.textContent = "Bezig met bijboeken…";
+  try {
+    const bestaand = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+    const samen = bestaand.concat(nieuw.map((x) =>
+      ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag, bron: "bijgeboekt" })));
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { arrangementen: samen, gewijzigd_door: NAAM } });
+    if (!rij || !rij.length) throw new Error("Bijboeken lukte niet: je hebt geen rechten om deze reservering te wijzigen.");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    V_KEUZES = {};
+    $("#vVrijNaam").value = "";
+    $("#vVrijBedrag").value = "";
+    tekenBijboek(rij[0]);
+    tekenAlBijgeboekt(rij[0]);
+    teken();
+    const som = nieuw.reduce((a, x) => a + x.bedrag, 0);
+    note.textContent = nieuw.length + (nieuw.length === 1 ? " regel" : " regels") +
+      " bijgeboekt, € " + euro(som) + ". De bestaande arrangementen zijn ongewijzigd.";
+  } catch (e) {
+    note.textContent = e.message;
+  }
+  knop.disabled = false;
+}
+
 function vBetaalstand(herbereken) {
   const bVeld = $("#vBetaald"), rVeld = $("#vRestant");
   if (!bVeld || !rVeld) return;
@@ -2365,6 +2547,27 @@ document.addEventListener("input", (e) => {
   /* Tijdens het typen meerekenen, maar het restantveld met rust laten zodra je
      daar zelf in bezig bent - anders typ je tegen de berekening in. */
   if (["vBedrag", "vBetaald"].includes(e.target.id) && HUIDIG) vBetaalstand(true);
+  /* eigen arrangement: de som meteen meerekenen */
+  if (["vVrijNaam", "vVrijBedrag"].includes(e.target.id) && HUIDIG) vBijSom();
+});
+
+/* Aanvinken en aantallen in het bijboekblok. */
+document.addEventListener("change", (e) => {
+  const vink = e.target.closest ? e.target.closest("[data-vextra]") : null;
+  if (vink && HUIDIG) {
+    const id = vink.dataset.vextra;
+    if (vink.checked) V_KEUZES[id] = 1; else delete V_KEUZES[id];
+    tekenBijboek(HUIDIG);
+    return;
+  }
+  const aantal = e.target.closest ? e.target.closest("[data-vaantal]") : null;
+  if (aantal && HUIDIG) {
+    V_KEUZES[aantal.dataset.vaantal] = Math.max(1, Number(aantal.value) || 1);
+    vBijSom();
+  }
+});
+document.addEventListener("click", (e) => {
+  if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(); }
 });
 document.addEventListener("click", (e) => {
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
