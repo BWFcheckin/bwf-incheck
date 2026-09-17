@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Beheer extra's — Bed &amp; Wellness Flevoland</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{ --bg:#F4F1ED; --surface:#FFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1; --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
+  --accent:#483C34; --accent-ink:#FFF; --accent-soft:#E8DFD5; --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2; --crit:#A34434; --crit-soft:#F7E2DC; --warn:#8F6420;
+  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30); --r-s:6px; --r-m:10px; --r-l:16px;
+  --f-display:"Bricolage Grotesque",system-ui,sans-serif; --f-body:"Public Sans",Arial,sans-serif; --f-mono:"IBM Plex Mono",Menlo,monospace; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#141110; --surface:#1D1917; --surface-2:#251F1C; --line:#38302A; --line-soft:#2B2421; --ink:#F1EBE4; --ink-2:#D8CEC4; --muted:#A2958A; --accent:#D7BFA6; --accent-ink:#241E19; --accent-soft:#33291F; --brass:#E0BE86; --ok:#79C08F; --ok-soft:#16301F; --crit:#E89383; --crit-soft:#361B16; } }
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:14.5px; line-height:1.5; padding-bottom:90px; }
+h1,h2,h3{ font-family:var(--f-display); margin:0; letter-spacing:-.015em; }
+.wrap{ max-width:900px; margin:0 auto; padding:0 18px 30px; }
+header{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:20px 0 14px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap; }
+header .brand{ display:flex; align-items:center; gap:12px; } header img{ height:40px; }
+header h1{ font-size:19px; } header p{ margin:0; font-size:12.5px; color:var(--muted); }
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:16px; }
+.card h2{ font-size:17px; margin-bottom:10px; }
+label{ display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin:10px 0 4px; }
+input,select,textarea{ width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-s); padding:8px 10px; font:inherit; color:inherit; }
+textarea{ min-height:60px; resize:vertical; }
+input:focus,select:focus,textarea:focus{ outline:2px solid var(--accent); outline-offset:-1px; }
+.btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); padding:8px 14px; border-radius:var(--r-s); font:inherit; font-size:13.5px; font-weight:600; }
+.btn.secondary{ background:var(--surface); color:var(--ink); border-color:var(--line); }
+.btn.danger{ background:var(--surface); color:var(--crit); border-color:var(--crit); }
+.btn.sm{ padding:5px 10px; font-size:12.5px; } .btn:disabled{ opacity:.45; cursor:not-allowed; }
+.groep-kop{ display:flex; align-items:center; justify-content:space-between; margin:22px 0 10px; }
+.groep-kop h2{ font-size:18px; }
+.item{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-m); margin-bottom:10px; overflow:hidden; }
+.item .kop{ display:flex; align-items:center; gap:12px; padding:10px 14px; cursor:pointer; }
+.item .kop img,.item .kop .nofoto{ width:56px; height:42px; object-fit:cover; border-radius:4px; background:var(--line-soft); flex:none; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted); }
+.item .kop .t{ flex:1; min-width:0; } .item .kop .t b{ font-family:var(--f-display); font-size:15px; } .item .kop .t span{ color:var(--brass); font-family:var(--f-mono); font-size:12.5px; margin-left:8px; }
+.item .kop .acts{ display:flex; gap:4px; } .item .kop .acts button{ border:1px solid var(--line); background:var(--surface); border-radius:4px; width:30px; height:30px; cursor:pointer; color:var(--ink-2); font-size:14px; }
+.item.uit .kop{ opacity:.5; }
+.item .body{ display:none; padding:4px 14px 16px; border-top:1px solid var(--line-soft); }
+.item.open .body{ display:block; }
+.g2{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; } .g3{ display:grid; grid-template-columns:2fr 1fr 1fr; gap:0 14px; }
+@media(max-width:600px){ .g2,.g3{ grid-template-columns:1fr; } }
+.foto{ display:flex; gap:14px; align-items:flex-start; margin-top:10px; }
+.foto img{ width:160px; aspect-ratio:4/3; object-fit:cover; border-radius:var(--r-s); background:var(--line-soft); border:1px solid var(--line); }
+.foto .knoppen{ display:flex; flex-direction:column; gap:6px; }
+.chk{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; } .chk label{ display:flex; align-items:center; gap:6px; margin:0; padding:6px 10px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); font-weight:500; cursor:pointer; }
+.chk input{ width:15px; height:15px; accent-color:var(--accent); }
+.varianten{ border:1px solid var(--line); border-radius:var(--r-s); padding:10px 12px; margin-top:6px; background:var(--surface-2); }
+.var{ display:grid; grid-template-columns:1fr 110px 34px; gap:8px; align-items:center; margin-bottom:6px; }
+.var input{ background:var(--surface); } .var button{ border:1px solid var(--line); background:var(--surface); border-radius:4px; height:34px; cursor:pointer; color:var(--crit); }
+.hint{ font-size:12px; color:var(--muted); margin-top:4px; }
+.bar{ position:fixed; left:0; right:0; bottom:0; background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -6px 24px -14px rgba(0,0,0,.4); z-index:10; }
+.bar .in{ max-width:900px; margin:0 auto; padding:11px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.status{ font-size:13px; font-weight:600; } .status.ok{ color:var(--ok); } .status.err{ color:var(--crit); } .status.busy{ color:var(--warn); }
+
+/* Inlogscherm. Zelfde opzet als agenda.html en reserveringen.html, maar in de
+   taal van deze pagina: die kent geen --groen en geen .knop, dus dat zou hier
+   een doorzichtige achtergrond en een ongestileerde knop geven. */
+.slot[hidden]{ display:none; }
+.slot:not([hidden]){ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background:var(--accent); }
+.slot .doos{ background:var(--surface); border-radius:var(--r-l); padding:30px 28px; width:min(380px,100%); box-shadow:0 30px 80px -30px rgba(0,0,0,.5); }
+.slot .merk{ font-family:var(--f-display); font-size:20px; font-weight:700; margin-bottom:6px; }
+.slot .merk small{ display:block; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+.slot label{ margin:14px 0 5px; }
+.slot .btn{ width:100%; margin-top:18px; justify-content:center; }
+.slot .fout{ color:var(--crit); font-size:13px; min-height:1.2em; margin-top:10px; }
+body.bwf-vergrendeld > .wrap, body.bwf-vergrendeld > .bar{ filter:blur(6px); pointer-events:none; user-select:none; }
+</style>
+</head>
+<body class="bwf-vergrendeld">
+
+<div class="slot" id="slot">
+  <div class="doos">
+    <div class="merk">Bed &amp; Wellness<small>Flevoland</small></div>
+    <label for="lgMail">E-mailadres</label>
+    <input id="lgMail" type="email" inputmode="email" autocomplete="username">
+    <label for="lgWw">Wachtwoord</label>
+    <input id="lgWw" type="password" autocomplete="current-password">
+    <button type="button" class="btn" id="lgKnop">Inloggen</button>
+    <p style="margin:14px 0 0;font-size:13px"><a href="#" id="bwfVergeten">Wachtwoord vergeten?</a></p>
+    <div class="fout" id="lgFout"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt=""><div><h1>Beheer extra's gastenformulier</h1><p>Arrangementen, menukaart, dranken en services die gasten kiezen op gast-incheck.html</p></div></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="hint" id="wieBen" style="margin:0"></span>
+      <a class="btn secondary sm" href="gast-incheck.html?loc=deluxe" target="_blank">Gastenpagina bekijken</a>
+      <button class="btn secondary sm" type="button" id="uitloggen">Uitloggen</button>
+    </div>
+  </header>
+
+  <div id="lijst"></div>
+
+  <div class="card" style="margin-top:20px" id="nieuwCard">
+    <h2>Nieuw item toevoegen</h2>
+    <div class="g3">
+      <div><label>Naam</label><input id="nwNaam" placeholder="Bijv. Rozen beer"></div>
+      <div><label>Prijs (€)</label><input id="nwPrijs" type="number" step="0.5" min="0" placeholder="25"></div>
+      <div><label>Rubriek</label><select id="nwGroep"><option value="arr">Arrangementen</option><option value="menu" selected>Eten</option><option value="drank">Dranken</option><option value="srv">Services</option></select></div>
+    </div>
+    <button class="btn" style="margin-top:12px" onclick="nieuwItem()">Toevoegen</button>
+  </div>
+</div>
+
+<div class="bar"><div class="in">
+  <span class="status" id="status">Catalogus wordt geladen…</span>
+  <div style="display:flex;gap:8px">
+    <button class="btn secondary" onclick="herstelStandaard()">Terug naar ingebouwde lijst</button>
+    <button class="btn" id="opslaanBtn" onclick="opslaan()">Opslaan en publiceren</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+/* =========================================================
+   Beheer extra's gastenformulier.
+
+   Werkte tot 17-09-2026 met de Supabase service_role-sleutel, die je zelf
+   moest plakken en die in localStorage bleef staan. Die sleutel omzeilt alle
+   rechten in de database; stond hij op een apparaat, dan kon daarmee alles.
+   Nu logt dit scherm gewoon in, net als de agenda en de reserveringen.
+
+   Let op: opslaan vereist schrijfrechten op gast_catalogus. Die tabel had
+   alleen een leesregel, want schrijven ging vroeger met de service_role.
+   Zonder de bijbehorende migratie kun je hier wel lezen maar niets bewaren.
+   ========================================================= */
+const CFG = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  ls:  "sb-iuyjvtlauktnjprbmbjj-auth-token"
+};
+const IMG = 'img/';
+const GROEPEN = { arr:'Arrangementen', menu:'Eten', drank:'Dranken', srv:'Services' };
+const SUITES = [ {id:'angie',naam:'Suite Angie'}, {id:'jacuzzi',naam:'Malina Jacuzzi'}, {id:'deluxe',naam:'Malina Deluxe Zwembad'} ];
+
+/* Ingebouwde lijst = dezelfde als in gast-incheck.html. Wordt gebruikt zolang er niets is opgeslagen. */
+const STANDAARD = [
+  { id:'arr_romantisch', groep:'arr', naam:'Romantisch', prijs:75, img:'arr-romantisch.jpg', suites:['jacuzzi','deluxe'], maxAantal:1, oms:'Wellness romantisch versierd met ballonnen, rozen, rozenblaadjes, Ferrero Rocher bonbons en 2 zeeprozen cadeau.' },
+  { id:'arr_verjaardag', groep:'arr', naam:'Verjaardag', prijs:75, img:'arr-verjaardag.jpg', suites:['jacuzzi','deluxe'], maxAantal:1, oms:'Versierd met ballonnen en taart met fruit.', varianten:[ {id:'standaard',naam:'Standaard',prijs:75}, {id:'deluxe',naam:'Deluxe: romantische versiering, 2 glazen prosecco, borrelplank en bonbons',prijs:125} ] },
+  { id:'arr_vip', groep:'arr', naam:'VIP arrangement', prijs:250, img:'arr-vip.jpg', suites:['jacuzzi','deluxe'], maxAantal:1, oms:'Versierd met ballonnen, fles Champagne Moët & Chandon Ice en keuze uit een sushi schaal of chicken burger menu.', varianten:[ {id:'sushi',naam:'Met luxe sushi schaal',prijs:250}, {id:'burger',naam:'Met chicken burger menu',prijs:250} ] },
+  { id:'arr_valentine', groep:'arr', naam:'365 Valentine', prijs:299, img:'arr-valentine.jpg', suites:['jacuzzi','deluxe'], maxAantal:1, oms:'Over-the-top romantisch versierd met heliumballonnen, rozen en hartjes — het hele jaar door Valentijn.' },
+  { id:'menu_ontbijt', groep:'menu', naam:'Ontbijt / lunch', prijs:39, img:'menu-ontbijt.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Belegde broodjes, gekookt eitje, croissants met jam en boter, yoghurt, vers fruit en jus d\'orange (halal).', varianten:[ {id:'ontbijt',naam:'Ontbijt',prijs:39}, {id:'lunch',naam:'Lunch',prijs:39}, {id:'vegetarisch',naam:'Vegetarisch',prijs:39} ] },
+  { id:'menu_borrelplank', groep:'menu', naam:'Borrelplank', prijs:30, img:'menu-borrelplank.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Wisselend assortiment met o.a. chicken wings, chili cheese bites en loempia\'s (halal).' },
+  { id:'menu_wings', groep:'menu', naam:'Chicken wings menu', prijs:35, img:'menu-wings.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Portie kippenvleugels met frietjes en saus.' },
+  { id:'menu_burger', groep:'menu', naam:'Chicken burger menu', prijs:39, img:'menu-burger.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Burgerbroodje met crispy chicken, sla, tomaat, komkommer en saus. Met frietmandje, mayonaise en ketchup.' },
+  { id:'menu_sushi', groep:'menu', naam:'Luxe sushi schaal', prijs:75, img:'menu-sushi.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:3, oms:'Sushi schotel met verschillende soorten vers bereide sushi, geserveerd met sojasaus en wasabi. Goed voor 2 tot 4 personen.' },
+  { id:'drank_wijn', groep:'drank', naam:'Wijn en bubbels', prijs:30, img:'menu-wijn.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Per fles, gekoeld klaargezet.', varianten:[ {id:'prosecco',naam:'Prosecco',prijs:30}, {id:'chardonnay',naam:'Chardonnay',prijs:30}, {id:'champagne',naam:'Champagne',prijs:50} ] },
+  { id:'drank_moet', groep:'drank', naam:'Moët & Chandon Ice', prijs:125, img:'drank-moet.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:3, oms:'Fles champagne met speciale glazen en wijnkoeler. Geserveerd met ijs en fruit.' },
+  { id:'drank_mocktail', groep:'drank', naam:'Mocktail karaf', prijs:30, img:'drank-mocktail.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Wisselend assortiment, bijvoorbeeld aardbei of tropical.' },
+  { id:'srv_waterpijp', groep:'srv', naam:'Waterpijp', prijs:30, img:'srv-waterpijp.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:2, oms:'Diverse smaken.', varianten:[ {id:'love66',naam:'Love 66',prijs:30}, {id:'miamore',naam:'Mi Amore',prijs:30}, {id:'dubbelappel',naam:'Dubbel Appel',prijs:30} ] },
+  { id:'srv_massagetafel', groep:'srv', naam:'Massagetafel', prijs:25, img:'srv-massagetafel.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:1, oms:'Gebruik van massagetafel incl. extra handdoek en olie.' },
+  { id:'srv_blinddoek', groep:'srv', naam:'Blinddoek', prijs:2.5, img:'srv-blinddoek.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Verras iemand tijdens het spabezoek.' },
+];
+
+let CAT = [];
+let SESSIE = null, ROL = null, NAAM = "";
+const uitgeklapt = new Set();
+const $ = (s) => document.querySelector(s);
+const eur = n => '€' + Number(n||0).toFixed(2).replace('.', ',');
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') || 'item';
+function status(t,s){ const el=$('#status'); el.textContent=t; el.className='status '+(s||''); }
+
+/* ---------- sessie en inloggen (zelfde opzet als agenda.html) ---------- */
+function jwtDeel(t) { try { return JSON.parse(atob(String(t).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch (e) { return {}; } }
+function leesSessie() { try { return JSON.parse(localStorage.getItem(CFG.ls) || "null"); } catch (e) { return null; } }
+function bewaarSessie(d) { try { localStorage.setItem(CFG.ls, JSON.stringify(d)); } catch (e) {} SESSIE = d; }
+let verversBezig = null;
+async function geldigToken() {
+  SESSIE = leesSessie();
+  if (!SESSIE || !SESSIE.access_token) return null;
+  if (((jwtDeel(SESSIE.access_token).exp || 0) * 1000) - Date.now() > 60000) return SESSIE.access_token;
+  if (!SESSIE.refresh_token) return null;
+  if (!verversBezig) {
+    verversBezig = fetch(CFG.url + "/auth/v1/token?grant_type=refresh_token", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: SESSIE.refresh_token })
+    }).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (!d || !d.access_token) return null;
+      bewaarSessie(d); return d.access_token;
+    }).catch(() => null).finally(() => { verversBezig = null; });
+  }
+  return verversBezig;
+}
+function toonSlot(tekst) {
+  document.body.classList.add("bwf-vergrendeld");
+  $("#slot").hidden = false;
+  $("#lgFout").textContent = tekst || "";
+  setTimeout(() => $("#lgMail").focus(), 60);
+}
+function verbergSlot() { document.body.classList.remove("bwf-vergrendeld"); $("#slot").hidden = true; }
+async function inloggen() {
+  const k = $("#lgKnop"), f = $("#lgFout");
+  f.textContent = ""; k.disabled = true; k.textContent = "Bezig…";
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=password", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("#lgMail").value.trim().toLowerCase(), password: $("#lgWw").value })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) throw new Error(d.error_description === "Invalid login credentials" ? "E-mailadres of wachtwoord klopt niet." : (d.error_description || d.msg || "Inloggen lukte niet."));
+    bewaarSessie(d);
+    location.reload();
+  } catch (e) { f.textContent = e.message; }
+  k.disabled = false; k.textContent = "Inloggen";
+}
+
+/* ---------- database ---------- */
+async function sb(pad, opt = {}) {
+  const token = await geldigToken();
+  if (!token) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  const headers = { apikey: CFG.key, Authorization: "Bearer " + token, "Content-Type": "application/json" };
+  if (opt.prefer) headers.Prefer = opt.prefer;
+  const res = await fetch(CFG.url + "/rest/v1/" + pad, { method: opt.method || "GET", headers, body: opt.body });
+  const t = await res.text();
+  if (res.status === 401) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  if (!res.ok) { let d = t; try { d = JSON.parse(t).message || t; } catch (e) {} throw new Error(d || ('Serverfout ' + res.status)); }
+  return t ? JSON.parse(t) : null;
+}
+
+/* ---------- laden ---------- */
+async function laad(){
+  try{
+    const r = await sb('gast_catalogus?id=eq.standaard&select=data,beheer',{prefer:'return=representation'});
+    const lijst = r && r[0] && (Array.isArray(r[0].beheer)&&r[0].beheer.length ? r[0].beheer : r[0].data);
+    if(Array.isArray(lijst) && lijst.length){ CAT = lijst; status('Opgeslagen catalogus geladen.','ok'); }
+    else { CAT = JSON.parse(JSON.stringify(STANDAARD)); status('Nog niets opgeslagen — ingebouwde lijst getoond. Sla op om te publiceren.',''); }
+  }catch(e){ CAT = JSON.parse(JSON.stringify(STANDAARD)); status('Laden mislukt ('+e.message+'). Ingebouwde lijst getoond.','err'); }
+  render();
+}
+
+/* ---------- renderen ---------- */
+function render(){
+  const out=[];
+  for(const [g,naam] of Object.entries(GROEPEN)){
+    const items = CAT.filter(i=>i.groep===g);
+    out.push(`<div class="groep-kop"><h2>${naam} <span style="color:var(--muted);font-size:13px;font-weight:400">(${items.length})</span></h2></div>`);
+    if(!items.length) out.push('<p class="hint">Nog geen items in deze rubriek.</p>');
+    for(const it of items) out.push(itemHTML(it));
+  }
+  $('#lijst').innerHTML = out.join('');
+}
+function itemHTML(it){
+  const i = CAT.indexOf(it);
+  const foto = it.foto || (it.img ? IMG+it.img : '');
+  const vars = (it.varianten||[]).map((v,j)=>`<div class="var">
+      <input value="${esc(v.naam)}" placeholder="Naam optie" oninput="CAT[${i}].varianten[${j}].naam=this.value">
+      <input type="number" step="0.5" min="0" value="${v.prijs}" oninput="CAT[${i}].varianten[${j}].prijs=+this.value||0">
+      <button type="button" title="Optie verwijderen" onclick="CAT[${i}].varianten.splice(${j},1);render()">✕</button></div>`).join('');
+  return `<div class="item ${uitgeklapt.has(it.id)?'open':''} ${it.actief===false?'uit':''}" id="item_${it.id}">
+    <div class="kop" onclick="toggle('${it.id}')">
+      ${foto?`<img src="${foto}" alt="">`:'<div class="nofoto">geen foto</div>'}
+      <div class="t"><b>${esc(it.naam)}</b><span>${eur(it.prijs)}</span>${it.actief===false?'<span style="color:var(--crit)">verborgen</span>':''}${it.varianten&&it.varianten.length?`<div class="hint">${it.varianten.length} opties in keuzemenu</div>`:''}</div>
+      <div class="acts" onclick="event.stopPropagation()">
+        <button title="Omhoog" onclick="verplaats(${i},-1)">↑</button><button title="Omlaag" onclick="verplaats(${i},1)">↓</button>
+        <button title="Verwijderen" style="color:var(--crit)" onclick="verwijderItem(${i})">🗑</button>
+      </div>
+    </div>
+    <div class="body">
+      <div class="g3">
+        <div><label>Naam</label><input value="${esc(it.naam)}" oninput="CAT[${i}].naam=this.value"></div>
+        <div><label>Prijs (€)</label><input type="number" step="0.5" min="0" value="${it.prijs}" oninput="CAT[${i}].prijs=+this.value||0"></div>
+        <div><label>Rubriek</label><select onchange="CAT[${i}].groep=this.value;render()">${Object.entries(GROEPEN).map(([k,n])=>`<option value="${k}" ${k===it.groep?'selected':''}>${n}</option>`).join('')}</select></div>
+      </div>
+      <label>Omschrijving</label><textarea oninput="CAT[${i}].oms=this.value">${esc(it.oms||'')}</textarea>
+      <div class="g2">
+        <div><label>Maximaal aantal per gast</label><input type="number" min="1" max="20" value="${it.maxAantal||1}" oninput="CAT[${i}].maxAantal=Math.max(1,+this.value||1)"><div class="hint">1 = aan/uit-knop, hoger = aantal kiezen met + en −</div></div>
+        <div><label>Zichtbaar</label><div class="chk"><label><input type="checkbox" ${it.actief!==false?'checked':''} onchange="CAT[${i}].actief=this.checked;render()"> Item tonen aan gasten</label></div></div>
+      </div>
+      <label>Beschikbaar voor</label>
+      <div class="chk">${SUITES.map(s=>`<label><input type="checkbox" ${(it.suites||[]).includes(s.id)?'checked':''} onchange="zetSuite(${i},'${s.id}',this.checked)"> ${s.naam}</label>`).join('')}</div>
+
+      <label>Keuzemenu (opties met eigen prijs)</label>
+      <div class="varianten">
+        ${vars || '<p class="hint" style="margin:0 0 6px">Geen keuzemenu. Voeg opties toe, bijv. Ontbijt / Lunch of Prosecco / Champagne.</p>'}
+        <button type="button" class="btn secondary sm" onclick="(CAT[${i}].varianten=CAT[${i}].varianten||[]).push({id:'optie'+Date.now(),naam:'',prijs:CAT[${i}].prijs});render()">+ Optie toevoegen</button>
+      </div>
+
+      <label>Foto</label>
+      <div class="foto">
+        ${foto?`<img src="${foto}" alt="">`:'<div class="nofoto" style="width:160px;aspect-ratio:4/3;border-radius:6px"></div>'}
+        <div class="knoppen">
+          <label class="btn secondary sm" style="margin:0;cursor:pointer">Foto kiezen<input type="file" accept="image/*" style="display:none" onchange="fotoUpload(${i},this.files[0])"></label>
+          ${it.foto?`<button type="button" class="btn secondary sm" onclick="delete CAT[${i}].foto;render()">Eigen foto weghalen</button>`:''}
+          <div class="hint">Wordt verkleind tot 800 px en opgeslagen in de database. Geen foto? Dan wordt ${it.img?'img/'+it.img:'geen afbeelding'} gebruikt.</div>
+        </div>
+      </div>
+    </div></div>`;
+}
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+function toggle(id){ uitgeklapt.has(id)?uitgeklapt.delete(id):uitgeklapt.add(id); render(); }
+function zetSuite(i,s,aan){ const set=new Set(CAT[i].suites||[]); aan?set.add(s):set.delete(s); CAT[i].suites=[...set]; }
+function verplaats(i,d){ const it=CAT[i]; const zelfde=CAT.filter(x=>x.groep===it.groep); const j=zelfde.indexOf(it)+d; if(j<0||j>=zelfde.length) return; const ander=zelfde[j]; const k=CAT.indexOf(ander); CAT[i]=ander; CAT[k]=it; render(); }
+function verwijderItem(i){ if(!confirm('"'+CAT[i].naam+'" verwijderen?')) return; CAT.splice(i,1); render(); }
+function nieuwItem(){
+  const naam=$('#nwNaam').value.trim(); const prijs=+$('#nwPrijs').value||0; const groep=$('#nwGroep').value;
+  if(!naam){ status('Geef het item een naam.','err'); return; }
+  let id=groep+'_'+slug(naam); while(CAT.some(x=>x.id===id)) id+='_'+Math.random().toString(36).slice(2,4);
+  const it={ id, groep, naam, prijs, oms:'', suites:['angie','jacuzzi','deluxe'], maxAantal: groep==='arr'?1:4 };
+  CAT.push(it); uitgeklapt.add(id); $('#nwNaam').value=''; $('#nwPrijs').value='';
+  render(); document.getElementById('item_'+id).scrollIntoView({behavior:'smooth',block:'center'});
+}
+function fotoUpload(i,file){
+  if(!file) return;
+  const img=new Image(); img.onload=()=>{
+    const max=800, s=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    CAT[i].foto=c.toDataURL('image/jpeg',.82); URL.revokeObjectURL(img.src); render();
+  }; img.src=URL.createObjectURL(file);
+}
+function herstelStandaard(){ if(!confirm('Alle wijzigingen weggooien en de ingebouwde lijst terugzetten? (Pas definitief na Opslaan.)')) return; CAT=JSON.parse(JSON.stringify(STANDAARD)); render(); }
+
+/* ---------- opslaan ---------- */
+async function opslaan(){
+  if(ROL !== 'eigenaar'){ status('Alleen de eigenaar mag de catalogus wijzigen.','err'); return; }
+  const fout = CAT.find(x=>!x.naam.trim()) ; if(fout){ status('Er is een item zonder naam.','err'); return; }
+  for(const it of CAT){ for(const v of (it.varianten||[])){ if(!v.id) v.id='optie'+Date.now(); } if(it.varianten && !it.varianten.length) delete it.varianten; }
+  const data = CAT.filter(x=>x.actief!==false).map(x=>{ const y={...x}; delete y.actief; return y; });   /* verborgen items niet naar gasten */
+  $('#opslaanBtn').disabled=true; status('Opslaan…','busy');
+  try{
+    await sb('gast_catalogus', { method:'POST', prefer:'resolution=merge-duplicates,return=minimal',
+      body: JSON.stringify({ id:'standaard', data, beheer:CAT, bijgewerkt:new Date().toISOString() }) });
+    status('Opgeslagen — gasten zien nu de nieuwe lijst.','ok');
+  }catch(e){ status('Opslaan mislukt: '+e.message,'err'); }
+  $('#opslaanBtn').disabled=false;
+}
+
+/* ---------- start ---------- */
+async function start(){
+  if (!(await geldigToken())) { toonSlot(); return; }
+  verbergSlot();
+  const deel = jwtDeel(SESSIE.access_token);
+  try {
+    /* Zelfde aanroep als in agenda.html en reserveringen.html: de rol komt uit
+       bwf_toegangsrol(), dat leest wz_medewerkers.toegangsrol. */
+    const [rol, mw] = await Promise.all([
+      sb("rpc/bwf_toegangsrol", { method: "POST", body: "{}" }),
+      sb("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || ""))
+    ]);
+    ROL = rol || null;
+    NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
+  } catch (e) { /* de melding hieronder vertelt wat er aan de hand is */ }
+  $('#wieBen').textContent = NAAM + (ROL ? ' · ' + ROL : '');
+
+  /* Lezen mag iedereen die is ingelogd; wijzigen is aan de eigenaar. De database
+     bewaakt dat ook, dit scherm maakt het alleen zichtbaar. */
+  if (ROL !== 'eigenaar') {
+    $('#opslaanBtn').disabled = true;
+    $('#nieuwCard').hidden = true;
+    status(ROL ? 'Je kunt de catalogus bekijken, maar alleen de eigenaar mag hem wijzigen.'
+               : 'Je account heeft geen toegangsrol. Vraag Angela om er een.', 'err');
+    await laad();
+    if (ROL) status('Je kunt de catalogus bekijken, maar alleen de eigenaar mag hem wijzigen.', '');
+    return;
+  }
+  await laad();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('#lgKnop').addEventListener('click', inloggen);
+  $('#lgWw').addEventListener('keydown', (e) => { if (e.key === 'Enter') inloggen(); });
+  $('#uitloggen').addEventListener('click', () => {
+    try { localStorage.removeItem(CFG.ls); } catch (e) {}
+    location.reload();
+  });
+  start();
+});
+</script>
+<script src="bwf-account.js?v=1"></script>
+</body>
+</html>
