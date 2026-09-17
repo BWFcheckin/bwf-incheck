@@ -876,12 +876,21 @@ function rijHtml(r) {
      Let op: arrangementen bevat ook de verblijf- en toeslagregels, niet alleen
      bijgeboekte extra's. Daarom beknopt, met een maximum van vier namen en een
      telling van de rest. Het bedrag staat al in het geldblok eronder. */
-  const arrNamen = (Array.isArray(r.arrangementen) ? r.arrangementen : [])
-    .map((a) => (typeof a === "string" ? a : a && a.naam))
-    .filter(Boolean);
+  const arrAlles = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
+  const naam1 = (a) => (typeof a === "string" ? a : a && a.naam);
+  /* Vooraf geboekt: de regels zonder merkteken. Beknopt houden, want daar zitten
+     ook verblijf- en toeslagregels tussen. */
+  const arrNamen = arrAlles.filter((a) => !(a && a.bron)).map(naam1).filter(Boolean);
   const arrTekst = arrNamen.length
     ? arrNamen.slice(0, 4).join(" · ") + (arrNamen.length > 4 ? " + " + (arrNamen.length - 4) + " meer" : "")
     : "";
+  /* Bijgeboekt: alles met een merkteken, dus wat er via het reserveringsscherm
+     of een welkomstcall bij is gekomen. Angela vroeg op 17-09-2026 om hier
+     álle items te zien - geen afkapping - of anders "niks bijgeboekt". Het
+     bedrag staat erbij waar het bekend is. */
+  const bijTekst = arrAlles.filter((a) => a && a.bron).map((a) =>
+    (naam1(a) || "") + (Number(a.aantal) > 1 ? " ×" + a.aantal : "") +
+    (Number(a.bedrag) ? " (€ " + euro(a.bedrag) + ")" : "")).filter(Boolean).join(" · ");
   const knop = magBewerken() && r.status !== "geannuleerd" && (!gecontroleerd(r) || r.status === "optie")
     ? '<button type="button" class="knop klein" data-bevestig="' + esc(r.id) + '">Bevestigd</button>' : "";
   /* Bedragen komen alle drie uit KOLOMMEN, dus zonder extra bevraging.
@@ -937,6 +946,9 @@ function rijHtml(r) {
          antwoord, en een ontbrekende regel laat je twijfelen of het klopt. */
       '<div class="reskaart-regels"><span>Geboekt <b>' +
         (arrTekst ? esc(arrTekst) : "geen") + "</b></span></div>" +
+      /* Eigen regel voor wat er ná de boeking is bijgekomen. */
+      '<div class="reskaart-regels"><span>Bijgeboekt <b>' +
+        (bijTekst ? esc(bijTekst) : "niks bijgeboekt") + "</b></span></div>" +
       geld +
       '<div class="reskaart-voet">' + letop.join("") +
         (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +
