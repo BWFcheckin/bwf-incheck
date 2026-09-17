@@ -2573,6 +2573,24 @@ function aanmeldLabel(a){
 function klantLabel(k){
   return ((k.voornaam||'') + ' ' + (k.achternaam||'')).trim() + (k.email ? ' — ' + k.email : '');
 }
+/* Het zoekveld belooft "naam, nummer of datum", maar de datum staat in de lijst
+   als 2026-09-17. Wie 17-09 typt — de gewone Nederlandse schrijfwijze, en precies
+   wat de placeholder suggereert — vond dus niets. Angela liep daarop vast op
+   18-09-2026. Hier komen de Nederlandse vormen erbij, zodat 17-09, 17-09-2026,
+   17/09 en 17/09/2026 allemaal raak zijn naast de ISO-vorm.
+   Op window, want dit bestand heeft vijftien scriptblokken en het tweede
+   zoekvak zit in een eigen blok; zo doet koppelBronLijst hieronder het ook. */
+window.zoekTekstVan = zoekTekstVan;
+function zoekTekstVan(x){
+  var basis = String(x && x.label || '') + ' ' + JSON.stringify((x && x.data) || {});
+  var extra = [];
+  (basis.match(/\d{4}-\d{2}-\d{2}/g) || []).forEach(function(iso){
+    var j = iso.slice(0, 4), m = iso.slice(5, 7), d = iso.slice(8, 10);
+    extra.push(d + '-' + m, d + '-' + m + '-' + j, d + '/' + m, d + '/' + m + '/' + j);
+  });
+  return (basis + ' ' + extra.join(' ')).toLowerCase();
+}
+
 window.koppelBronLijst = koppelBronLijst;
 function koppelBronLijst(){
   var bron = document.getElementById('k_bron').value;
@@ -2593,7 +2611,7 @@ function vulKoppelKeuze(){
   var zoek = (document.getElementById('k_zoek').value || '').toLowerCase().trim();
   var lijst = koppelBronLijst().filter(function(x){
     if(!zoek) return true;
-    return (x.label + ' ' + JSON.stringify(x.data)).toLowerCase().indexOf(zoek) !== -1;
+    return zoekTekstVan(x).indexOf(zoek) !== -1;
   /* Ruimer dan de 300 van eerst: nu het datumvenster weg is, zou die grens de
      oudste boekingen alsnog stilzwijgend afkappen. Gelijkgetrokken met de
      limiet van de bevraging hierboven. */
@@ -5003,7 +5021,13 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
     var zoek = (document.getElementById("bwfOvZoek")||{}).value || "";
     zoek = zoek.toLowerCase().trim();
-    if(zoek) lijst = lijst.filter(function(x){ return String(x.label).toLowerCase().indexOf(zoek) > -1; });
+    /* Zocht alleen in het label, terwijl het vak in sectie 1 ook de gegevens
+       erachter doorzocht. Twee zoekvakken die verschillend werken is verwarrend;
+       nu gebruiken ze allebei dezelfde functie, inclusief de datumvormen. */
+    if(zoek) lijst = lijst.filter(function(x){
+      return (window.zoekTekstVan ? window.zoekTekstVan(x)
+                                  : String(x.label).toLowerCase()).indexOf(zoek) > -1;
+    });
 
     var k = document.getElementById("bwfOvKeuze");
     k.innerHTML = lijst.length
