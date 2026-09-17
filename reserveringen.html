@@ -806,7 +806,11 @@ function rijHtml(r) {
   if (totaal != null) {
     geldR = "<span>Totaal <b>&euro; " + esc(euro(totaal)) + "</b></span>";
     if (bstat === "betaald") {
-      geldR += "<span>Voldaan</span>";
+      /* Angela vroeg op 17-09-2026 om het openstaande bedrag ook te zien als
+         het nul is. Dan lees je in één oogopslag dat er niets meer bij komt,
+         in plaats van dat je het uit het woord Voldaan moet afleiden. */
+      geldR += "<span>Voldaan</span>" +
+        "<span>Nog te betalen <b>&euro; " + esc(euro(0)) + "</b></span>";
     } else if (bstat === "open") {
       geldR += '<span class="open">Nog te betalen <b>&euro; ' + esc(euro(totaal)) + "</b></span>";
     } else {
@@ -834,7 +838,11 @@ function rijHtml(r) {
         (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
       "</div>" +
       (contact ? '<div class="reskaart-regels"><span>' + esc(contact) + "</span></div>" : "") +
-      (arrTekst ? '<div class="reskaart-regels"><span>Geboekt <b>' + esc(arrTekst) + "</b></span></div>" : "") +
+      /* Deze regel verdween helemaal als er niets geboekt was. Angela vroeg op
+         17-09-2026 om hem altijd te tonen: "geen arrangementen" is ook een
+         antwoord, en een ontbrekende regel laat je twijfelen of het klopt. */
+      '<div class="reskaart-regels"><span>Geboekt <b>' +
+        (arrTekst ? esc(arrTekst) : "geen") + "</b></span></div>" +
       geld +
       '<div class="reskaart-voet">' + letop.join("") +
         (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +
@@ -1059,8 +1067,19 @@ function tekenPersoneelKaart(r) {
   /* bedragen: eerst wat er echt is vastgelegd, anders afgeleid uit de brontekst */
   const uitBron = leesUitBron(r.brongegevens);
   const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
-  const betaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : null;
+  /* De betaalstatus is leidend, precies zoals op de kaart in de lijst. Het
+     bewerkvenster vult betaald_bedrag en restant_bedrag niet, dus die zijn bij
+     vrijwel elke boeking leeg; daarmee rekenen gaf hier twee streepjes bij een
+     reservering die op Betaald stond. Angela zag dat op 17-09-2026, en ze had
+     gelijk: ik had die afleiding hier opnieuw verzonnen terwijl de juiste
+     versie vijftig regels hoger stond, mét uitleg erbij. */
+  const bstat = String(r.betaalstatus || "open");
+  const betaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag)
+                : bstat === "betaald" ? totaal
+                : bstat === "open" ? 0 : null;
   const open = r.restant_bedrag != null ? Number(r.restant_bedrag)
+             : bstat === "betaald" ? 0
+             : bstat === "open" ? totaal
              : (totaal != null && betaald != null ? totaal - betaald : null);
   const extraNaCall = naCall.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
   const afgeleid = totaal == null && uitBron.bedrag != null;
