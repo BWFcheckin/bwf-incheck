@@ -839,8 +839,11 @@ async function inloggen() {
 
 /* ---------- database ---------- */
 async function api(pad, opties = {}) {
+  /* opties.stil: wél de fout gooien, maar niet het inlogvenster tonen. Nodig voor
+     bijzaken zoals de sjablonen: die mogen het scherm nooit op slot zetten, want
+     toonSlot zet bwf-vergrendeld op de body en dan is niets meer aanklikbaar. */
   const token = await geldigToken();
-  if (!token) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  if (!token) { if (!opties.stil) toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
   const headers = { apikey: CFG.key, Authorization: "Bearer " + token };
   /* Standaard krijgen we de weggeschreven rij terug. Bij het bewaren van instellingen
      hebben we in plaats daarvan resolution=merge-duplicates nodig, anders botst het
@@ -851,7 +854,7 @@ async function api(pad, opties = {}) {
     body: opties.body === undefined ? undefined : JSON.stringify(opties.body)
   });
   const tekst = await r.text();
-  if (r.status === 401) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  if (r.status === 401) { if (!opties.stil) toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
   if (!r.ok) {
     let m = tekst;
     try { m = JSON.parse(tekst).message || tekst; } catch (e) {}
@@ -1066,7 +1069,9 @@ function vulBlokken(suite, gekozen) {
 
 function openVenster(id) {
   const r = RIJEN.find((x) => x.id === id);
-  if (!r) return;
+  /* Stond hier een kale return: dan drukte je op een kaart en gebeurde er niets,
+     zonder enige uitleg. Nu zegt hij wat er aan de hand is. */
+  if (!r) { melding("Deze reservering staat niet meer in de geladen lijst. Druk op Vernieuwen.", "fout"); return; }
   HUIDIG = r;
   const p = periode(r);
   $("#vTitel").textContent = gastNaam(r) || "Reservering zonder naam";
@@ -3332,7 +3337,7 @@ function bhAlleSleutels() {
    zodat er geen tweede kopie kan ontstaan die daarvan afwijkt. */
 async function laadSjablonen() {
   const rijen = await api("instellingen?select=sleutel,waarde&sleutel=in.(" +
-    bhAlleSleutels().map(encodeURIComponent).join(",") + ")");
+    bhAlleSleutels().map(encodeURIComponent).join(",") + ")", { stil: true });
   BEHEER_WAARDEN = {};
   (rijen || []).forEach((r) => { BEHEER_WAARDEN[r.sleutel] = r.waarde || ""; });
 }
@@ -3439,6 +3444,16 @@ async function bhTekstUitBestand(bestand, sleutel) {
   el.value = await bestand.text();
   $("#bhNote").textContent = bestand.name + " is ingelezen. Druk op Alles bewaren om het vast te leggen.";
 }
+
+/* Vangnet: een fout die nergens wordt opgevangen liet het scherm tot nu toe
+   gewoon niets doen. Angela drukte op een reservering en er gebeurde niets,
+   zonder enige aanwijzing. Nu komt hij in beeld. */
+window.addEventListener("error", (e) => {
+  try { melding("Er ging iets mis: " + (e.message || "onbekende fout"), "fout"); } catch (x) {}
+});
+window.addEventListener("unhandledrejection", (e) => {
+  try { melding("Er ging iets mis: " + ((e.reason && e.reason.message) || e.reason || "onbekende fout"), "fout"); } catch (x) {}
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   $("#fSuite").insertAdjacentHTML("beforeend", Object.entries(SUITES).map(([w, s]) => '<option value="' + w + '">' + esc(s.naam) + "</option>").join(""));
