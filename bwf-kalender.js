@@ -554,23 +554,28 @@
         st.blok.filter(function (b) { return zichtbaar(b.suite) && Date.parse(b.van) < dagEind && Date.parse(b.tot) > dagStart; });
       $(".bwfk-lijst>summary").textContent = "Reserveringen op " + dagLang(st.dag) + " (" + rijen.length + ")" + (blokken.length ? " · " + blokken.length + " blokkade" + (blokken.length === 1 ? "" : "s") : "");
 
-      function tijdTekst(van, tot, eigenTijd) {
+      function tijdTekst(van, tot, eigenTijd, isRes) {
         var s = lokaal(new Date(van)), e = lokaal(new Date(tot));
         /* Dezelfde voorrang als in de dagcel: een afgesproken inchecktijd wint
-           van de begintijd van het blok. Alleen de tijd, niet de datum - het
-           soort (aankomst/vertrek/verblijft) hieronder blijft dus kloppen.
-           Blokkades roepen deze functie zonder derde waarde aan en veranderen
-           daardoor niet. */
+           van de begintijd van het blok. Alleen de tijd, niet de datum. */
         if (eigenTijd) s.tijd = hhmm(eigenTijd);
-        var begin = s.datum === st.dag ? s.tijd : dagKort(s.datum) + " " + s.tijd;
-        var eind = e.datum === st.dag ? e.tijd : dagKort(e.datum) + " " + e.tijd;
-        var soort = s.datum === st.dag ? "aankomst" : e.datum === st.dag ? "vertrek" : "verblijft";
-        return esc(begin + " – " + eind) + "<small>" + soort + "</small>";
+        /* Beide momenten krijgen hun eigen woord en hun eigen dag. Er stond
+           eerder alleen "19:00 – vr 18 sep 11:00", en dat laat zich lezen als
+           een incheck op de 18e terwijl de gast op de 17e aankomt. Angela liep
+           daar op 17-09-2026 tegenaan; vandaar de labels en de dag erbij.
+           Een blokkade heeft geen gast, dus daar heet het van en tot. */
+        var beginTekst = (isRes ? "aankomst " : "van ") + dagKort(s.datum) + " " + s.tijd;
+        var eindTekst = (isRes ? "vertrek " : "tot ") + dagKort(e.datum) + " " + e.tijd;
+        /* Valt de gekozen dag tussen aankomst en vertrek in, dan is dat het
+           enige wat je verder nog moet weten. Die aanduiding stond er eerder
+           ook en blijft dus staan. */
+        var midden = (s.datum !== st.dag && e.datum !== st.dag) ? "<small>verblijft</small>" : "";
+        return esc(beginTekst) + "<small>" + esc(eindTekst) + "</small>" + midden;
       }
       var regels = rijen.map(function (r) {
         var kanaal = KANALEN[r.kanaal] || KANALEN.handmatig;
         return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
-          "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd) + "</td>" +
+          "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</td>" +
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[r.suite].kleur + '"></span> ' + esc(SUITES[r.suite].naam) + "<small>" + esc(TYPES[r.type] || r.type) + "</small></td>" +
           '<td class="bwfk-naam" title="' + esc(gastNaam(r) || "gast onbekend") + '">' + (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>') +
             (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") + "</td>" +
