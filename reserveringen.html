@@ -141,8 +141,19 @@ tbody tr.geannuleerd .gast b{text-decoration:line-through}
 .leeg{padding:28px;text-align:center;color:var(--muted)}
 
 /* ---------- venster ---------- */
+/* Let op de hoogte: 100dvh rekent met het venster waarin deze pagina draait.
+   In een eigen tabblad is dat het hele scherm, maar deze pagina wordt ook
+   ingebed in het VR-dashboard en het personeelsdashboard, en daar is het kader
+   maar 78vh hoog. Zonder een scrollende laag viel alles wat niet paste buiten
+   beeld: je zag de bovenkant van de reservering, maar kon niet bij de velden of
+   de Opslaan-knop. Angela liep daar op 17-09-2026 tegenaan, nadat het venster
+   die ochtend langer was geworden. Het formulier is nu de scrollende laag;
+   de kop en de voet blijven plakken. */
 dialog{border:0;border-radius:18px;padding:0;width:min(820px,calc(100vw - 20px));max-height:calc(100dvh - 24px);
+  display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 30px 90px -30px rgba(0,0,0,.45);background:var(--surface);color:var(--ink)}
+dialog > form{display:flex;flex-direction:column;min-height:0;max-height:100%;overflow:auto;
+  -webkit-overflow-scrolling:touch}
 dialog::backdrop{background:rgba(20,52,42,.45)}
 .v-kop{position:sticky;top:0;background:var(--surface);z-index:2;padding:18px 22px 12px;border-bottom:1px solid var(--line);
   display:flex;gap:12px;align-items:flex-start}
