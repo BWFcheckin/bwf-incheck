@@ -21,7 +21,7 @@
       { naam: "Reserveringen",      bestand: "reserveringen.html" },
       { naam: "Reservering aanmaken", bestand: "reserveringen.html?tab=nieuw" },
       { naam: "Incheckformulier",   bestand: "incheckformulier.html" },
-      { naam: "Gastenlink",         bestand: "gast.html" }
+      { naam: "Gastenlink",         bestand: "gast-incheck.html" }
     ]},
     { groep: "Werken", items: [
       { naam: "Virtual Assistent Dashboard", bestand: "vr2.html" },

@@ -982,7 +982,7 @@ function gastLink(x){
   if(x.locatie)  p.set('loc', x.locatie);
   if(x.aankomst) p.set('d', x.aankomst);
   if(x.checkin)  p.set('c', x.checkin.id);   /* koppelt de aanmelding aan dít formulier */
-  return location.href.replace(/[^/]*$/, '') + 'gast.html?' + p.toString();
+  return location.href.replace(/[^/]*$/, '') + 'gast-incheck.html?' + p.toString();
 }
 
 async function bewaarNotitie(x){

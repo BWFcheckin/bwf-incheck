@@ -779,7 +779,7 @@ function gastLinkVan(r) {
   if (GAST_LOC[r.suite]) p.set("loc", GAST_LOC[r.suite]);
   const d = periode(r);
   if (d && d.dag) p.set("d", String(r.aankomst).slice(0, 10));
-  return "gast.html?" + p.toString();
+  return "gast-incheck.html?" + p.toString();
 }
 
 /* ---------- sessie ---------- */

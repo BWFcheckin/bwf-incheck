@@ -2,6 +2,22 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
+<!-- Doorverwijzing naar de nieuwe gastenpagina (17-09-2026, keuze van Angela).
+     Er stonden nog drie verstuurde links naar dit adres open. Die dragen hun
+     eigen ?r=, &loc= en &d= mee, en zonder die vraagtekst komt de gast op een
+     leeg formulier - daarom gaat location.search ongewijzigd mee, inclusief
+     een eventuele ?token= die bwf-gastlink.js afhandelt.
+     location.replace en niet location.href, zodat deze pagina niet in de
+     geschiedenis blijft staan en de terugknop geen lus maakt.
+     De rest van dit bestand blijft staan: haal deze regels weg en de oude
+     pagina werkt weer precies zoals voorheen. -->
+<script>
+(function () {
+  var hier = location.pathname.split("/").pop();
+  if (hier.indexOf("gast-incheck") !== -1) return;   /* nooit naar zichzelf doorsturen */
+  location.replace("gast-incheck.html" + location.search + location.hash);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Inchecken — Bed &amp; Wellness Flevoland</title>

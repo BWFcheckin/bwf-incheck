@@ -1575,7 +1575,7 @@ function openConcept(id){
 
 /* ================= LINK VOOR DE GAST ================= */
 function gastPaginaUrl(){
-  return location.href.replace(/[^/]*$/, '') + 'gast.html';
+  return location.href.replace(/[^/]*$/, '') + 'gast-incheck.html';
 }
 function nieuweCode(){
   const tekens = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -3787,7 +3787,7 @@ if(auth?.access_token){
       { naam:"Dagoverzicht",       bestand:"dagoverzicht.html" },
       { naam:"Reserveringen",      bestand:"reserveringen.html" },
       { naam:"Incheckformulier",   bestand:"incheckformulier.html" },
-      { naam:"Gastenlink",         bestand:"gast.html" }
+      { naam:"Gastenlink",         bestand:"gast-incheck.html" }
     ]},
     { groep:"Werken", items:[
       { naam:"Personeelsdashboard", bestand:"dashboard.html" },
@@ -6017,7 +6017,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
   /* ---------------- gastenlink ---------------- */
   function gastenlink(){
-    var basis = location.href.replace(/[#?].*$/, "").replace(/[^/]*$/, "") + "gast.html";
+    var basis = location.href.replace(/[#?].*$/, "").replace(/[^/]*$/, "") + "gast-incheck.html";
     var p = new URLSearchParams();
     var c = w("c_id");
     if(c) p.set("c", c);

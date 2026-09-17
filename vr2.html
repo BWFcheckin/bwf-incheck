@@ -2073,7 +2073,7 @@ div.ag-blok{cursor:default}
               <button class="btn ghost small" id="wcGastlink" type="button">Gastlink kopiëren</button>
               <button class="btn ghost small" id="wcFormInstel" type="button" hidden>Ander formulier instellen</button>
             </div>
-            <div class="note" id="wcFormNote" style="margin-top:8px">Twee formulieren: <strong>Gastformulier openen</strong> is de versie voor de gast (gast.html) &mdash; die link stuur je mee in het bericht. <strong>Locatiemanager-formulier openen</strong> is het volledige incheckformulier dat de locatiemanager invult.</div>
+            <div class="note" id="wcFormNote" style="margin-top:8px">Twee formulieren: <strong>Gastformulier openen</strong> is de versie voor de gast (gast-incheck.html) &mdash; die link stuur je mee in het bericht. <strong>Locatiemanager-formulier openen</strong> is het volledige incheckformulier dat de locatiemanager invult.</div>
           </div>
 
           <div class="wcbijlage">
@@ -5390,7 +5390,7 @@ inklapKlaar();
    Dezelfde drie knoppen als in het locatiedashboard: nieuw, concepten en
    definitieve formulieren. De lijsten komen uit de tabel checkins. */
 const FORM_LM   = 'incheckformulier.html';
-const FORM_GAST = 'gast.html';
+const FORM_GAST = 'gast-incheck.html';
 function cfStatus(f){
   const s = String(f.status || f.fase || '').toLowerCase();
   if(s) return /def|klaar|afgerond|final/.test(s) ? 'definitief' : 'concept';
@@ -8279,7 +8279,7 @@ let wcKeuzes = {};      /* extraId -> aantal */
 let wcHuidig = null;    /* id van een opgeslagen call die je bewerkt */
 let wcResId  = null;    /* reserveringen.id waar deze call bij hoort (vaste koppeling) */
 const INCHECK_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
-const GAST_URL    = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
+const GAST_URL    = 'https://bwfcheckin.github.io/bwf-incheck/gast-incheck.html';
 /* de eigenaar kan een ander formulier instellen; dat wordt bewaard als link met tab 'instelling' */
 const incheckRij = () => S.links.find(l => l.tab === 'instelling' && l.titel === 'Incheckformulier');
 function incheckBasis(){ const r = incheckRij(); return (r && r.url) || INCHECK_URL; }
@@ -8837,7 +8837,7 @@ function wcSmgOvernemen(){
     : 'Gegevens overgenomen — loop ze even na.');
 }
 
-/* link voor de GAST: gast.html — de gast vult alleen de eigen gegevens in */
+/* link voor de GAST: gast-incheck.html — de gast vult alleen de eigen gegevens in */
 function gastLink(f){
   const q = new URLSearchParams();
   if(f.referentie) q.set('r', f.referentie);
@@ -9802,7 +9802,7 @@ $('#whoBtn').addEventListener('click', ()=>{
     { groep:"Dagelijks", items:[
       { naam:"Dagoverzicht",       bestand:"dagoverzicht.html" },
       { naam:"Reserveringen &amp; incheck", bestand:"reserveringen.html" },
-      { naam:"Gastenlink",         bestand:"gast.html" }
+      { naam:"Gastenlink",         bestand:"gast-incheck.html" }
     ]},
     { groep:"Werken", items:[
       /* Het personeelsdashboard stond hier ook in. Dat werkte verwarrend: de

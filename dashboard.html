@@ -2115,7 +2115,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       kaart.hidden = false;
     } catch (e) {}
   }
-  var GAST_FORM_URL = "https://bwfcheckin.github.io/bwf-incheck/gast.html";
+  var GAST_FORM_URL = "https://bwfcheckin.github.io/bwf-incheck/gast-incheck.html";
   var LM_FORM_URL   = "https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html";
   function renderIncheck(){
     var houder = document.getElementById("incheckHouder");
@@ -2764,7 +2764,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       { naam:"Dagoverzicht",       bestand:"dagoverzicht.html" },
       { naam:"Reserveringen",      bestand:"reserveringen.html" },
       { naam:"Incheckformulier",   bestand:"incheckformulier.html" },
-      { naam:"Gastenlink",         bestand:"gast.html" }
+      { naam:"Gastenlink",         bestand:"gast-incheck.html" }
     ]},
     { groep:"Werken", items:[
       { naam:"Personeelsdashboard", bestand:"dashboard.html" },
@@ -2857,7 +2857,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     { id:"dagoverzicht", titel:"Dagoverzicht reserveringen", eyebrow:"Vandaag",    sub:"Wie komt er vandaag",             soort:"link", standaard:"dagoverzicht.html", kleur:"" },
     { id:"reserveringen",titel:"Reserveringen",              eyebrow:"Boekingen",  sub:"Alle reserveringen",              soort:"link", standaard:"reserveringen.html",kleur:"" },
     { id:"taken",        titel:"Taken &amp; overdracht",         eyebrow:"Team",       sub:"Openstaande punten",              soort:"tab",  tab:"overdracht", badge:"badge-overdracht", kleur:"ok" },
-    { id:"gasten",       titel:"Gastaanmeldingen",           eyebrow:"Inchecken",  sub:"Gasten die online inchecken",     soort:"link", standaard:"gast.html",         kleur:"brass" },
+    { id:"gasten",       titel:"Gastaanmeldingen",           eyebrow:"Inchecken",  sub:"Gasten die online inchecken",     soort:"link", standaard:"gast-incheck.html",         kleur:"brass" },
     { id:"planning",     titel:"Planning",                   eyebrow:"Rooster",    sub:"Wie werkt wanneer",               soort:"tab",  tab:"planning",   badge:"badge-planning",   kleur:"" }
   ];
 
@@ -2961,7 +2961,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* De boekingen komen uit de tabel reserveringen; de Google Agenda is hier geen bron meer. */
   var VR_URL      = 'https://bwfcheckin.github.io/bwf-incheck/vr2.html';
   var FORM_LM_URL = 'https://bwfcheckin.github.io/bwf-incheck/incheckformulier.html';
-  var FORM_GAST   = 'https://bwfcheckin.github.io/bwf-incheck/gast.html';
+  var FORM_GAST   = 'https://bwfcheckin.github.io/bwf-incheck/gast-incheck.html';
   var COMMUNICATIE_SLEUTEL = 'bwf-review-menu-instellingen';
   var REVIEW_TEKST_STANDAARD = 'Beste {voornaam}, bedankt voor je verblijf bij Bed & Wellness Flevoland. We hopen dat je hebt genoten! Zou je jouw ervaring met ons willen delen via deze link? {reviewlink} Alvast heel erg bedankt!';
 
