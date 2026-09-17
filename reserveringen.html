@@ -178,6 +178,15 @@ dialog::backdrop{background:rgba(20,52,42,.45)}
 .v-kop .sluit:hover{background:var(--groen-2)}
 .v-kop .sluit:active{transform:scale(.94)}
 .v-kop .sluit:focus-visible{outline:3px solid var(--goud);outline-offset:2px}
+/* De controlebalk. Groen is gedaan, rood moet nog. Op een smal scherm wikkelen
+   de stappen door; ze blijven leesbaar omdat elke stap zijn eigen regel krijgt
+   zodra er geen ruimte meer is. */
+.v-balk{display:flex;flex-wrap:wrap;gap:6px;padding:10px 22px 2px}
+.v-balk .stap{display:inline-flex;align-items:center;gap:6px;border-radius:999px;
+  padding:5px 11px;font-size:12.5px;font-weight:600;border:1px solid transparent}
+.v-balk .stap.ja{background:var(--ok-zacht);color:var(--ok);border-color:var(--ok)}
+.v-balk .stap.nee{background:var(--crit-zacht);color:var(--crit);border-color:var(--crit)}
+.v-balk .stap i{font-style:normal;font-size:13px;line-height:1}
 .v-inhoud{padding:6px 22px 8px}
 .v-inhoud fieldset{border:0;padding:0;margin:14px 0 6px}
 .v-inhoud legend{font-family:var(--f-titel);font-size:19px;color:var(--groen);padding:0;margin-bottom:8px}
@@ -431,6 +440,11 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       </div>
       <button type="button" class="sluit" id="vSluit" aria-label="Sluiten">&times;</button>
     </div>
+
+    <!-- Controlebalk: zes stappen, groen als het gedaan is en rood als het nog
+         moet. Angela, 17-09-2026. Staat onder de kop, die blijft plakken, dus
+         je ziet de stand terwijl je door de reservering scrollt. -->
+    <div id="vBalk" class="v-balk"></div>
 
     <div class="v-inhoud">
       <div class="opmerking" id="vOpmerking" hidden></div>
@@ -1081,6 +1095,9 @@ function openVenster(id) {
   $("#vBetaald").value = r.betaald_bedrag == null ? "" : euro(r.betaald_bedrag);
   $("#vRestant").value = r.restant_bedrag == null ? "" : euro(r.restant_bedrag);
   vBetaalstand(false);
+  /* De controlebalk meteen tekenen met wat de reservering zelf weet. De
+     welkomstcall komt later binnen; vulKoppelingen tekent hem dan opnieuw. */
+  tekenBalk(r, undefined);
   /* Het bijboekblok opnieuw opbouwen voor deze reservering: de keuzelijst hoort
      bij de suite, en de al bijgeboekte regels staan eronder. */
   V_KEUZES = {};
@@ -1441,6 +1458,8 @@ async function vulKoppelingen(r) {
       "", ""));
 
     doel.innerHTML = regels.join("");
+    /* Nu de welkomstcall bekend is, de balk opnieuw tekenen. */
+    tekenBalk(r, w);
   } catch (e) {
     doel.textContent = "Koppelingen konden niet worden geladen: " + e.message;
   }
@@ -1542,6 +1561,47 @@ async function bewaarWelkomstcall() {
     note.textContent = e.message;
   }
   knop.disabled = false;
+}
+
+/* ---------- controlebalk ----------
+   Zes stappen, alle zes afgeleid uit wat er al in de database staat; er was
+   geen migratie voor nodig. De welkomstcall komt apart binnen (vulKoppelingen),
+   dus de balk tekent twee keer: eerst met wat de reservering zelf weet, en
+   opnieuw zodra de call bekend is. Zonder die tweede keer staat stap 2 even
+   ten onrechte rood.
+   Gemeten 17-09-2026 over 174 lopende boekingen: 53 met gecontroleerde
+   gegevens, 11 met een gedane call, 4 met een gekoppeld incheckformulier,
+   11 met de betaling rond en 0 met een verstuurde reviewlink. De balk staat
+   dus bij de meeste boekingen overwegend rood - dat is het overzicht dat
+   Angela vroeg, geen fout. */
+function balkStand(r, w) {
+  const gegevens = !gastOntbreekt(r) && gecontroleerd(r);
+  /* w === undefined betekent: de call is nog niet opgehaald. Dan tonen we die
+     stap als "nog niet", niet als fout. */
+  const call = !!w && (w.nodig === false || !!w.afgerond_op || !!w.gebeld_op ||
+    w.status === "afgerond" || w.status === "gebeld");
+  const incheck = !!r.checkin_id;
+  const betaling = r.betaalstatus === "betaald";
+  const review = !!r.review_verstuurd;
+  const stappen = [
+    ["Gegevens gecontroleerd", gegevens],
+    ["Welkomstcall gedaan", call],
+    ["Incheckformulier gekoppeld", incheck],
+    ["Betaling rond", betaling],
+    ["Reviewlink verstuurd", review]
+  ];
+  /* Volledig afgerond is geen apart veld: het is waar zodra de vijf stappen
+     hierboven alle vijf groen zijn. */
+  stappen.push(["Volledig afgerond", stappen.every((x) => x[1])]);
+  return stappen;
+}
+
+function tekenBalk(r, w) {
+  const doel = $("#vBalk");
+  if (!doel || !r) return;
+  doel.innerHTML = balkStand(r, w).map(([naam, ja]) =>
+    '<span class="stap ' + (ja ? "ja" : "nee") + '"><i>' + (ja ? "&#10003;" : "&#10007;") +
+    "</i>" + esc(naam) + "</span>").join("");
 }
 
 function rijKoppeling(kop, waarde, link, knop) {
