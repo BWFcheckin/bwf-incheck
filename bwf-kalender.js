@@ -429,6 +429,15 @@
         if (!zichtbaar(r.suite)) return;
         if (!st.geannuleerd && (r.status === "geannuleerd" || r.status === "no_show")) return;
         var d = dagenVan(new Date(r.aankomst), new Date(r.vertrek));
+        /* Is er een eigen inchecktijd afgesproken, dan wint die van het
+           tijdstempel. Het tijdstempel houdt de begintijd van het geboekte blok
+           vast (meestal 13:00), terwijl de werkelijk afgesproken tijd in
+           incheck_tijd staat. Alleen de TIJD volgt mee; de datum blijft uit
+           aankomst komen, anders zou een reservering naar een andere dag
+           verspringen. Gemeten 17-09-2026: vijf reserveringen liepen hierdoor
+           uiteen, waaronder een boeking die 19:00 was afgesproken maar in de
+           kalender als 13:00 stond. */
+        if (r.incheck_tijd) d.startTijd = hhmm(r.incheck_tijd);
         lijst.push({ soort: "res", r: r, d: d, sorteer: d.eerste + " " + d.startTijd });
       });
       st.blok.forEach(function (b) {
@@ -545,8 +554,14 @@
         st.blok.filter(function (b) { return zichtbaar(b.suite) && Date.parse(b.van) < dagEind && Date.parse(b.tot) > dagStart; });
       $(".bwfk-lijst>summary").textContent = "Reserveringen op " + dagLang(st.dag) + " (" + rijen.length + ")" + (blokken.length ? " · " + blokken.length + " blokkade" + (blokken.length === 1 ? "" : "s") : "");
 
-      function tijdTekst(van, tot) {
+      function tijdTekst(van, tot, eigenTijd) {
         var s = lokaal(new Date(van)), e = lokaal(new Date(tot));
+        /* Dezelfde voorrang als in de dagcel: een afgesproken inchecktijd wint
+           van de begintijd van het blok. Alleen de tijd, niet de datum - het
+           soort (aankomst/vertrek/verblijft) hieronder blijft dus kloppen.
+           Blokkades roepen deze functie zonder derde waarde aan en veranderen
+           daardoor niet. */
+        if (eigenTijd) s.tijd = hhmm(eigenTijd);
         var begin = s.datum === st.dag ? s.tijd : dagKort(s.datum) + " " + s.tijd;
         var eind = e.datum === st.dag ? e.tijd : dagKort(e.datum) + " " + e.tijd;
         var soort = s.datum === st.dag ? "aankomst" : e.datum === st.dag ? "vertrek" : "verblijft";
@@ -555,7 +570,7 @@
       var regels = rijen.map(function (r) {
         var kanaal = KANALEN[r.kanaal] || KANALEN.handmatig;
         return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
-          "<td>" + tijdTekst(r.aankomst, r.vertrek) + "</td>" +
+          "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd) + "</td>" +
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[r.suite].kleur + '"></span> ' + esc(SUITES[r.suite].naam) + "<small>" + esc(TYPES[r.type] || r.type) + "</small></td>" +
           '<td class="bwfk-naam" title="' + esc(gastNaam(r) || "gast onbekend") + '">' + (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>') +
             (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") + "</td>" +
