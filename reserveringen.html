@@ -242,6 +242,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
     <button type="button" role="tab" data-tab="lijst"   aria-selected="true">Lijst</button>
     <button type="button" role="tab" data-tab="nieuw"   aria-selected="false">Nieuwe reservering</button>
     <button type="button" role="tab" data-tab="incheck" aria-selected="false">Incheck</button>
+    <!-- Beheer: alleen voor de eigenaar. Wie de sjablonen aanpast bepaalt wat er
+         naar álle gasten gaat, dus strenger dan de rest van dit scherm. -->
+    <button type="button" role="tab" data-tab="beheer" aria-selected="false" id="tabBeheer" hidden>Sjablonen &amp; documenten</button>
   </div>
 
   <div class="melding" id="melding" hidden></div>
@@ -399,6 +402,40 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
   </section>
 
   <!-- ============ tab: incheck ============ -->
+  <!-- ============ Sjablonen en documenten (alleen eigenaar) ============
+       Hier beheer je wat er naar gasten gaat: de incheckinformatie per
+       locatie, de reviewlink per locatie, en de sjablonen voor bevestiging,
+       factuur en bijgeboekte extra's. Per sjabloon twee vormen: een
+       berichttekst voor WhatsApp en e-mail, en opmaakcode voor afdrukken en
+       bijlagen. Beide kun je typen of als bestand uploaden. -->
+  <section id="sectie-beheer" hidden>
+    <div class="card" style="padding:18px 20px;margin-bottom:14px">
+      <h2 style="margin-top:0">Incheckinformatie per locatie</h2>
+      <p class="uitleg">Het document dat de gast bij de bevestiging krijgt. Upload een pdf of plak een link.</p>
+      <div class="raster" id="bhDocs"></div>
+      <p class="uitleg" id="bhDocNote"></p>
+    </div>
+
+    <div class="card" style="padding:18px 20px;margin-bottom:14px">
+      <h2 style="margin-top:0">Reviewlink per locatie</h2>
+      <p class="uitleg">De link die je na afloop naar de gast stuurt om een beoordeling te vragen.</p>
+      <div class="raster" id="bhReviews"></div>
+    </div>
+
+    <div class="card" style="padding:18px 20px">
+      <h2 style="margin-top:0">Sjablonen</h2>
+      <p class="uitleg">De berichttekst gaat naar WhatsApp en e-mail; sterretjes maken een woord *vet* in
+        WhatsApp en vallen bij e-mail vanzelf weg. De opmaakcode is een webpagina om af te drukken of als
+        bijlage mee te sturen. Invulvelden zoals {voornaam}, {suite}, {aankomst}, {totaal} en {openstaand}
+        worden per reservering ingevuld; een regel met een leeg veld valt vanzelf weg.</p>
+      <div id="bhSjablonen"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="knop" id="bhBewaar">Alles bewaren</button>
+        <span class="uitleg" id="bhNote"></span>
+      </div>
+    </div>
+  </section>
+
   <section id="sectie-incheck" hidden>
     <div class="card filters">
       <label class="veld">Periode
@@ -614,6 +651,17 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <label class="veld">Bedrag (&euro;) <input id="vDeelBedrag" type="text" inputmode="decimal"></label>
           <label class="veld breed">Betaallink
             <input id="vBetaallink" type="text" readonly placeholder="nog niet aangemaakt"></label>
+          <!-- Welk bericht je stuurt. Staat er voor dit soort een sjabloon onder
+               Sjablonen &amp; documenten, dan wordt dat ingevuld met de gegevens van
+               deze reservering. Staat er geen, dan krijg je exact de vaste tekst
+               die hier altijd al uitkwam. -->
+          <label class="veld">Soort bericht
+            <select id="vSjabKeuze">
+              <option value="bevestiging">Bevestiging</option>
+              <option value="factuur">Factuur</option>
+              <option value="extras">Bijgeboekte extra&#39;s</option>
+              <option value="review">Reviewlink</option>
+            </select></label>
           <label class="veld breed">Bericht aan de gast
             <textarea id="vBericht" rows="9"></textarea></label>
         </div>
@@ -794,7 +842,10 @@ async function api(pad, opties = {}) {
   const token = await geldigToken();
   if (!token) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
   const headers = { apikey: CFG.key, Authorization: "Bearer " + token };
-  if (opties.body !== undefined) { headers["Content-Type"] = "application/json"; headers.Prefer = "return=representation"; }
+  /* Standaard krijgen we de weggeschreven rij terug. Bij het bewaren van instellingen
+     hebben we in plaats daarvan resolution=merge-duplicates nodig, anders botst het
+     op de primaire sleutel in plaats van de bestaande rij bij te werken. */
+  if (opties.body !== undefined) { headers["Content-Type"] = "application/json"; headers.Prefer = opties.prefer || "return=representation"; }
   const r = await fetch(CFG.url + "/rest/v1/" + pad, {
     method: opties.method || "GET", headers,
     body: opties.body === undefined ? undefined : JSON.stringify(opties.body)
@@ -1971,13 +2022,14 @@ function pasHerkenningToe() {
    Tabs: lijst, nieuwe reservering, incheck
    ========================================================= */
 function toonTab(naam) {
-  ["lijst", "nieuw", "incheck"].forEach((t) => {
+  ["lijst", "nieuw", "incheck", "beheer"].forEach((t) => {
     const sec = document.getElementById("sectie-" + t);
     if (sec) sec.hidden = (t !== naam);
   });
   document.querySelectorAll(".tabs button").forEach((b) =>
     b.setAttribute("aria-selected", String(b.dataset.tab === naam)));
   if (naam === "incheck" && !ICHECK_GELADEN) laadIncheck();
+  if (naam === "beheer" && !BEHEER_GELADEN) laadBeheer();
 }
 
 /* =========================================================
@@ -2730,7 +2782,124 @@ function vZetBedrag(r) {
   }
 }
 
+/* De invulvelden voor de sjablonen. De bedragen komen uit de velden op het
+   scherm en niet uit een eigen berekening: wat jij ziet staan is wat de gast
+   leest. Een tweede berekening ernaast liep vanavond al een keer uit de pas. */
+function vstVelden(r) {
+  const p = periode(r);
+  const loc = SUITE_LOCATIE[r.suite] || "";
+  const alle = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+  const vooraf = alle.filter((a) => !(a && a.bron))
+    .map((a) => (typeof a === "string" ? a : a.naam)).filter(Boolean);
+  const bij = alle.filter((a) => a && a.bron)
+    .map((a) => (a.aantal > 1 ? a.aantal + "× " : "") + a.naam +
+      (a.bedrag != null ? " — " + euro(a.bedrag) : ""));
+  const veld = (id) => ($(id) ? String($(id).value).trim() : "");
+  const inTijd = hhmm(r.incheck_tijd), uitTijd = hhmm(r.uitcheck_tijd);
+  const voor = (r.gast_voornaam || "").trim();
+  const link = new URL(gastLinkVan(r), location.href).href;
+  const alsTekst = vooraf.join(", ");
+  const vertrekDag = r.vertrek ? fmtDag.format(new Date(r.vertrek)) : "";
+  return {
+    /* Dezelfde namen als velden() in incheckformulier.html, zodat een sjabloon
+       dat je daar al gebruikt hier zonder aanpassing werkt. */
+    aanhef: "Beste " + (voor || "gast") + ",",
+    bedrijf: "Bed & Wellness Flevoland",
+    contact: "info@bedenwellnessflevoland.nl",
+    voornaam: voor,
+    achternaam: (r.gast_achternaam || "").trim(),
+    naam: gastNaam(r) || "",
+    email: (r.gast_email || "").trim(),
+    telefoon: (r.gast_telefoon || "").trim(),
+    suite: SUITES[r.suite] ? SUITES[r.suite].naam : r.suite,
+    locatie: loc,
+    resnr: resNummer(r),
+    boekingvia: KANALEN[r.kanaal] || r.kanaal || "",
+    datum: p.dag,
+    aankomst: p.dag + (inTijd ? " vanaf " + inTijd + " uur" : ""),
+    vertrek: vertrekDag + (uitTijd ? (vertrekDag ? " om " : "om ") + uitTijd + " uur" : ""),
+    incheck: inTijd,
+    uitcheck: uitTijd,
+    tijd: p.tijd,
+    personen: r.personen || "",
+    arrangementen: alsTekst,
+    totaal: veld("#vBedrag") || (r.bedrag_totaal != null ? euro(r.bedrag_totaal) : ""),
+    betaald: veld("#vBetaald") || (r.betaald_bedrag != null ? euro(r.betaald_bedrag) : ""),
+    openstaand: veld("#vRestant") || (r.restant_bedrag != null ? euro(r.restant_bedrag) : ""),
+    betaalwijze: r.betaald_via || "",
+    gastenlink: link,
+    incheckinfo: BEHEER_WAARDEN[bhDocSleutel(loc)] || "",
+    /* Deze drie horen bij de opmaakcode van de factuur; zonder waarde zou
+       {factuurnr} er letterlijk in blijven staan. */
+    factuurnr: resNummer(r),
+    vandaag: new Date().toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }),
+    regels: alle.map((a) => {
+      const an = typeof a === "string" ? a : a.naam;
+      const ab = (a && a.bedrag != null) ? euro(a.bedrag) : "";
+      return "<tr><td>" + esc(an) + "</td><td>" + esc(ab) + "</td></tr>";
+    }).join(""),
+
+    /* Eigen aan dit scherm. */
+    geboekt: alsTekst,
+    bijgeboekt: bij.join("\n"),
+    betaallink: veld("#vBetaallink"),
+    incheckformulier: link,
+    resnummer: resNummer(r),
+    reviewlink: BEHEER_WAARDEN[bhRevSleutel(loc)] || ""
+  };
+}
+
+/* Een regel waarin alleen lege invulvelden staan valt weg, zodat er geen kale
+   opsommingstekens of losse dubbele punten in het bericht achterblijven. */
+function vulSjabloon(sjabloon, v) {
+  /* Exact dezelfde regel als vul() in incheckformulier.html, zodat een sjabloon
+     zich op beide schermen hetzelfde gedraagt. Eerst per alinea, dan per regel:
+     iets valt weg zodra álle invulvelden die wij kénnen daarin leeg zijn. Een
+     veld dat wij niet kennen telt niet mee en blijft zichtbaar staan, zodat een
+     typefout opvalt in plaats van jouw regel stil te laten verdwijnen. */
+  const leeg = (stuk) => {
+    const ph = (stuk.match(/\{(\w+)\}/g) || [])
+      .filter((p) => Object.prototype.hasOwnProperty.call(v, p.slice(1, -1)));
+    return ph.length > 0 && ph.every((p) => !v[p.slice(1, -1)]);
+  };
+  return String(sjabloon || "").replace(/\r/g, "").split(/\n\s*\n/).map((alinea) => {
+    if (leeg(alinea)) return "";
+    return alinea.split("\n").filter((regel) => !leeg(regel)).join("\n")
+      .replace(/\{(\w+)\}/g, (heel, sleutel) =>
+        Object.prototype.hasOwnProperty.call(v, sleutel) ? v[sleutel] : heel);
+  }).filter((x) => x.trim()).join("\n\n");
+}
+
+/* Zolang je nog geen eigen reviewsjabloon hebt opgeslagen. */
+function vstReviewTekst(r) {
+  const v = vstVelden(r);
+  const t = [];
+  t.push("Beste " + (v.voornaam || "gast") + ",");
+  t.push("");
+  t.push("Bedankt voor je verblijf bij Bed & Wellness Flevoland.");
+  if (v.reviewlink) {
+    t.push("");
+    t.push("Wil je een beoordeling achterlaten? Dat kan hier:");
+    t.push(v.reviewlink);
+  }
+  t.push("");
+  t.push("Hartelijke groet,");
+  t.push("Bed & Wellness Flevoland");
+  return t.join("\n");
+}
+
 function vBerichtTekst(r) {
+  /* Heb je voor dit soort bericht een sjabloon opgeslagen, dan gaat dat voor.
+     Zo niet, dan blijft hieronder exact de tekst staan die er altijd al was,
+     annuleringsvoorwaarden en al. */
+  const keuze = $("#vSjabKeuze");
+  const soort = keuze ? keuze.value : "bevestiging";
+  const sleutel = { bevestiging: "bericht_bevestiging", factuur: "bericht_factuur",
+    extras: "bericht_extras" }[soort];
+  const eigen = sleutel ? String(BEHEER_WAARDEN[sleutel] || "").trim() : "";
+  if (eigen) return vulSjabloon(eigen, vstVelden(r));
+  if (soort === "review") return vstReviewTekst(r);
+
   const voor = (r.gast_voornaam || "").trim();
   const p = periode(r);
   const incheck = new URL(gastLinkVan(r), location.href).href;
@@ -2843,6 +3012,8 @@ document.addEventListener("input", (e) => {
 
 /* Aanvinken en aantallen in het bijboekblok. */
 document.addEventListener("change", (e) => {
+  /* Ander soort bericht gekozen: het berichtveld opnieuw opbouwen. */
+  if (e.target.id === "vSjabKeuze" && HUIDIG) { $("#vBericht").value = vBerichtTekst(HUIDIG); return; }
   const vink = e.target.closest ? e.target.closest("[data-vextra]") : null;
   if (vink && HUIDIG) {
     const id = vink.dataset.vextra;
@@ -2860,15 +3031,40 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
 });
+/* Heb je de reviewlink verstuurd, dan mag die stap in de controlebalk groen
+   worden. review_verstuurd is een datumkolom, dus alleen de datum eruit. */
+async function vstReviewGestuurd() {
+  const r = HUIDIG;
+  if (!r || r.review_verstuurd || !magBewerken()) return;
+  if (!$("#vSjabKeuze") || $("#vSjabKeuze").value !== "review") return;
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { review_verstuurd: new Date().toISOString().slice(0, 10), gewijzigd_door: NAAM } });
+    if (rij && rij.length) {
+      RIJEN = RIJEN.map((x) => (x.id === r.id ? rij[0] : x));
+      HUIDIG = rij[0];
+      teken();
+    }
+  } catch (e) {
+    $("#vBetaalNote").textContent = "Het bericht is klaargezet, maar de reviewstatus kon niet worden bijgewerkt: " + e.message;
+  }
+}
+
 document.addEventListener("click", (e) => {
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
   if (e.target.id === "vMail" && HUIDIG) {
     e.preventDefault();
     const adres = (HUIDIG.gast_email || "").trim();
     if (!adres) { $("#vBetaalNote").textContent = "Er staat geen e-mailadres bij deze gast."; return; }
-    const onderwerp = "Bevestiging reservering " + resNummer(HUIDIG) + " \u2014 Bed & Wellness Flevoland";
+    /* Het onderwerp volgt het soort bericht dat je hebt gekozen. */
+    const keuze = $("#vSjabKeuze") ? $("#vSjabKeuze").value : "bevestiging";
+    const kop = { bevestiging: "Bevestiging reservering", factuur: "Factuur reservering",
+      extras: "Bijgeboekte extra's bij reservering", review: "Bedankt voor je verblijf \u2014 reservering" }[keuze] ||
+      "Bevestiging reservering";
+    const onderwerp = kop + " " + resNummer(HUIDIG) + " \u2014 Bed & Wellness Flevoland";
     window.open("mailto:" + encodeURIComponent(adres) + "?subject=" + encodeURIComponent(onderwerp) +
       "&body=" + encodeURIComponent($("#vBericht").value), "_blank", "noopener");
+    vstReviewGestuurd();
     return;
   }
   if (e.target.id === "vApp" && HUIDIG) {
@@ -2876,6 +3072,7 @@ document.addEventListener("click", (e) => {
     const tel = String(HUIDIG.gast_telefoon || "").replace(/[^0-9]/g, "").replace(/^0/, "31");
     window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent($("#vBericht").value), "_blank", "noopener");
     if (!tel) $("#vBetaalNote").textContent = "Geen telefoonnummer bekend \u2014 kies zelf een contact in WhatsApp.";
+    vstReviewGestuurd();
   }
 });
 
@@ -3063,10 +3260,17 @@ async function start() {
   if (!magBewerken()) {
     $("#sectie-nieuw").querySelectorAll("input,select,textarea,button").forEach((el) => { el.disabled = true; });
   }
+  /* Wie de sjablonen aanpast bepaalt wat er naar álle gasten gaat. Dat tabblad
+     blijft daarom dicht voor VR en locatiemanager, ook al mogen die wel bewerken. */
+  if (ROL === "eigenaar") $("#tabBeheer").hidden = false;
+  /* De sjablonen zijn ook in het reserveringsvenster nodig, niet alleen op het
+     beheertabblad. Lukt het ophalen niet, dan valt het berichtveld gewoon terug
+     op de vaste tekst en blijft de rest van het scherm werken. */
+  try { await laadSjablonen(); } catch (e) {}
   await laad();
   await openUitLink();
   const tab = new URLSearchParams(location.search).get("tab");
-  if (["nieuw", "incheck"].includes(tab)) toonTab(tab);
+  if (["nieuw", "incheck"].includes(tab) || (tab === "beheer" && ROL === "eigenaar")) toonTab(tab);
 }
 
 /* reservering-beheer.html?id=<uuid> opent meteen die reservering (bijv. vanuit de agenda),
@@ -3082,6 +3286,158 @@ async function openUitLink() {
     } catch (e) { melding("Reservering kon niet worden geopend: " + e.message, "fout"); return; }
   }
   openVenster(id);
+}
+
+/* =========================================================
+   Sjablonen en documenten (tabblad Beheer, alleen eigenaar)
+   ========================================================= */
+let BEHEER_GELADEN = false, BEHEER_WAARDEN = {};
+
+/* De locaties komen uit SUITE_LOCATIE, zodat hier geen tweede lijst ontstaat
+   die uit de pas kan gaan lopen met de rest van het scherm. */
+const BH_LOCATIES = Array.from(new Set(Object.values(SUITE_LOCATIE)));
+
+/* Per sjabloon twee vormen: een berichttekst voor WhatsApp en e-mail, en
+   opmaakcode om af te drukken of als bijlage mee te sturen. De opmaaksleutels
+   bevestiging en factuur bestaan al en worden ook door incheckformulier.html
+   gelezen; we hergebruiken ze, zodat beide schermen dezelfde tekst tonen in
+   plaats van ieder een eigen kopie bij te houden. */
+const BH_SJABLONEN = [
+  { titel: "Bevestiging",          bericht: "bericht_bevestiging", opmaak: "sjabloon_bevestiging" },
+  { titel: "Factuur",              bericht: "bericht_factuur",     opmaak: "sjabloon_factuur" },
+  { titel: "Bijgeboekte extra's",  bericht: "bericht_extras",      opmaak: "sjabloon_extras" }
+];
+
+/* Voorgevuld met de links die Angela heeft aangeleverd; pas na Alles bewaren
+   staan ze echt in de database. */
+const BH_REVIEW_STANDAARD = {
+  Almere: "https://app.reviewplus.io/review/angies-enterprises",
+  Lelystad: "https://app.reviewplus.io/review/angies-enterprises-2"
+};
+
+/* incheckinfo_pdf bestaat al, maar bevat een gastenlink van één boeking.
+   Die laten we met rust; deze nieuwe sleutels staan er los naast. */
+const bhDocSleutel = (loc) => "incheckinfo_" + loc.toLowerCase();
+const bhRevSleutel = (loc) => "reviewlink_" + loc.toLowerCase();
+
+function bhAlleSleutels() {
+  const s = [];
+  BH_LOCATIES.forEach((l) => { s.push(bhDocSleutel(l), bhRevSleutel(l)); });
+  BH_SJABLONEN.forEach((t) => { s.push(t.bericht, t.opmaak); });
+  return s;
+}
+
+/* Eén plek waar de sjablonen en documenten vandaan komen. Het beheertabblad en
+   het berichtveld in het reserveringsvenster lezen allebei uit BEHEER_WAARDEN,
+   zodat er geen tweede kopie kan ontstaan die daarvan afwijkt. */
+async function laadSjablonen() {
+  const rijen = await api("instellingen?select=sleutel,waarde&sleutel=in.(" +
+    bhAlleSleutels().map(encodeURIComponent).join(",") + ")");
+  BEHEER_WAARDEN = {};
+  (rijen || []).forEach((r) => { BEHEER_WAARDEN[r.sleutel] = r.waarde || ""; });
+}
+
+async function laadBeheer() {
+  const note = $("#bhNote");
+  note.textContent = "Laden…";
+  try {
+    await laadSjablonen();
+    BEHEER_GELADEN = true;
+    tekenBeheer();
+    note.textContent = "";
+  } catch (e) {
+    note.textContent = "";
+    melding("De sjablonen konden niet worden geladen: " + e.message, "fout");
+  }
+}
+
+function tekenBeheer() {
+  $("#bhDocs").innerHTML = BH_LOCATIES.map((l) => {
+    const s = bhDocSleutel(l);
+    return '<label class="veld">' + esc(l) + ' — link naar het document' +
+        '<input type="url" id="bh-' + esc(s) + '" placeholder="https://…"></label>' +
+      '<label class="veld">of upload een bestand voor ' + esc(l) +
+        '<input type="file" accept="application/pdf,image/*" data-bhupload="' + esc(s) + '"></label>';
+  }).join("");
+
+  $("#bhReviews").innerHTML = BH_LOCATIES.map((l) =>
+    '<label class="veld">' + esc(l) +
+      '<input type="url" id="bh-' + esc(bhRevSleutel(l)) + '" placeholder="https://…"></label>').join("");
+
+  $("#bhSjablonen").innerHTML = BH_SJABLONEN.map((t) =>
+    '<details style="margin-top:10px"><summary style="cursor:pointer;padding:6px 0"><b>' + esc(t.titel) + "</b></summary>" +
+      '<label class="veld">Berichttekst voor WhatsApp en e-mail' +
+        '<textarea id="bh-' + esc(t.bericht) + '" rows="6"></textarea></label>' +
+      '<label class="veld">Opmaakcode om af te drukken of als bijlage mee te sturen' +
+        '<textarea id="bh-' + esc(t.opmaak) + '" rows="8" spellcheck="false"></textarea></label>' +
+      '<label class="veld">of upload een bestand met de opmaakcode' +
+        '<input type="file" accept=".html,.htm,text/html,text/plain" data-bhtekst="' + esc(t.opmaak) + '"></label>' +
+    "</details>").join("");
+
+  /* De waarden zetten we ná het tekenen als .value, niet in de HTML. Een sjabloon
+     van duizenden tekens gaat zo nooit door de HTML-ontleder heen en kan dus ook
+     niet stukgaan aan een teken dat daar een betekenis heeft. */
+  bhAlleSleutels().forEach((s) => {
+    const el = document.getElementById("bh-" + s);
+    if (!el) return;
+    el.value = BEHEER_WAARDEN[s] || "";
+  });
+  BH_LOCATIES.forEach((l) => {
+    const el = document.getElementById("bh-" + bhRevSleutel(l));
+    if (el && !el.value) el.value = BH_REVIEW_STANDAARD[l] || "";
+  });
+}
+
+async function bewaarBeheer() {
+  const note = $("#bhNote");
+  note.textContent = "Bewaren…";
+  try {
+    const rijen = [];
+    bhAlleSleutels().forEach((s) => {
+      const el = document.getElementById("bh-" + s);
+      if (!el) return;
+      /* Alleen wegschrijven wat echt veranderd is, zodat een sjabloon dat je niet
+         hebt aangeraakt precies blijft zoals het was. */
+      if (el.value === (BEHEER_WAARDEN[s] || "")) return;
+      rijen.push({ sleutel: s, waarde: el.value });
+    });
+    if (!rijen.length) { note.textContent = "Er was niets gewijzigd."; return; }
+    await api("instellingen", { method: "POST", body: rijen,
+      prefer: "resolution=merge-duplicates,return=minimal" });
+    rijen.forEach((r) => { BEHEER_WAARDEN[r.sleutel] = r.waarde; });
+    note.textContent = (rijen.length === 1 ? "1 onderdeel" : rijen.length + " onderdelen") + " bewaard.";
+  } catch (e) {
+    note.textContent = "";
+    melding("Bewaren lukte niet: " + e.message, "fout");
+  }
+}
+
+/* De bucket documenten is openbaar leesbaar: de gast opent de link zonder in te
+   loggen. Zet er dus alleen in wat iedereen mag zien. Geen schuine streep in de
+   naam, dan is er ook geen twijfel over de link die we terugkrijgen. */
+async function bhUpload(bestand, sleutel) {
+  const note = $("#bhDocNote");
+  note.textContent = "Bezig met " + bestand.name + "…";
+  const token = await geldigToken();
+  const veilig = bestand.name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-");
+  const pad = "incheckinfo-" + Date.now() + "-" + veilig;
+  const r = await fetch(CFG.url + "/storage/v1/object/documenten/" + encodeURIComponent(pad), {
+    method: "POST",
+    headers: { apikey: CFG.key, Authorization: "Bearer " + token,
+      "Content-Type": bestand.type || "application/octet-stream", "x-upsert": "true" },
+    body: bestand
+  });
+  if (!r.ok) { note.textContent = "Uploaden van " + bestand.name + " lukte niet (" + r.status + ")."; return; }
+  const el = document.getElementById("bh-" + sleutel);
+  if (el) el.value = CFG.url + "/storage/v1/object/public/documenten/" + pad;
+  note.textContent = bestand.name + " staat klaar. Druk op Alles bewaren om het vast te leggen.";
+}
+
+async function bhTekstUitBestand(bestand, sleutel) {
+  const el = document.getElementById("bh-" + sleutel);
+  if (!el) return;
+  el.value = await bestand.text();
+  $("#bhNote").textContent = bestand.name + " is ingelezen. Druk op Alles bewaren om het vast te leggen.";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -3172,6 +3528,21 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#formulier").addEventListener("submit", (e) => e.preventDefault());
   $("#vAnnuleer").addEventListener("click", sluitVenster);
   $("#vSluit").addEventListener("click", sluitVenster);
+
+  $("#bhBewaar").addEventListener("click", bewaarBeheer);
+  /* Eén luisteraar op de hele sectie: de velden worden pas bij het openen van het
+     tabblad getekend, dus per veld aankoppelen kan hier nog niet. */
+  $("#sectie-beheer").addEventListener("change", (e) => {
+    const t = e.target;
+    const bestand = t.files && t.files[0];
+    if (!bestand) return;
+    t.value = "";
+    if (t.dataset.bhupload) {
+      bhUpload(bestand, t.dataset.bhupload).catch((err) => { $("#bhDocNote").textContent = err.message; });
+    } else if (t.dataset.bhtekst) {
+      bhTekstUitBestand(bestand, t.dataset.bhtekst).catch((err) => { $("#bhNote").textContent = err.message; });
+    }
+  });
 
   start();
 });
