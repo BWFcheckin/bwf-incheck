@@ -157,8 +157,19 @@ dialog{border:0;border-radius:18px;padding:0;width:min(820px,calc(100vw - 20px))
    het kruisje niets deed; dat kwam hierdoor, ingeslopen met de scrolreparatie
    van diezelfde ochtend. Geen enkele andere pagina in dit project zet een
    vaste display op dialog; dat was hier dus een eigen misstap. */
-dialog[open]{display:flex;flex-direction:column}
-dialog > form{display:flex;flex-direction:column;min-height:0;max-height:100%;overflow:auto;
+/* Ondergrens als vangnet: gaat de hoogteberekening ooit weer mis, dan is het
+   venster nog altijd groot genoeg om de kop en het kruisje te tonen, in plaats
+   van een onaanraakbare streep te worden. */
+dialog[open]{display:flex;flex-direction:column;min-height:min(220px,calc(100dvh - 24px))}
+/* Het formulier is het ENIGE kind van de dialog. Zonder flex-grow kreeg het geen
+   opdracht om te groeien, terwijl min-height:0 het wél tot nul liet krimpen, en
+   max-height:100% is betekenisloos tegen een ouder met height:auto. Op iOS kwam
+   die berekening op nul uit: het venster opende wel, maar als een streep met
+   alleen de plakkende kop erin. Angela zag een groene waas (de backdrop) waarin
+   niets meer aanklikbaar was, 17-09-2026. Nu groeit het formulier en rekent het
+   met het scherm in plaats van met de ouder. */
+dialog > form{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;
+  max-height:calc(100dvh - 24px);overflow:auto;
   -webkit-overflow-scrolling:touch}
 dialog::backdrop{background:rgba(20,52,42,.45)}
 /* De kop blijft boven in beeld terwijl de inhoud eronder schuift. Titel en
