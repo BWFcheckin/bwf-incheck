@@ -114,7 +114,7 @@ dialog input,dialog select{padding:9px 11px;border:1px solid var(--line);border-
   </form>
 </dialog>
 
-<script src="bwf-kalender.js?v=5"></script>
+<script src="bwf-kalender.js?v=6"></script>
 <script>
 "use strict";
 /* =========================================================
@@ -245,7 +245,12 @@ async function start() {
   const loc = (URLP.get("loc") || "").toLowerCase();
   const suites = loc === "lelystad" ? ["malina_jacuzzi", "malina_deluxe"] : loc === "almere" ? ["angie"] : null;
   kalender = window.BWFKalender.maak($("#agendaKalender"), {
-    weergave: URLP.get("weergave") || (window.innerWidth < 760 ? "dag" : "week"),
+    /* Op een smal scherm opende de agenda in dagweergave: een lijst per suite.
+       Angela vroeg op 17-09-2026 om daar een kalenderweergave te zien in plaats
+       van die lijst, dus op de telefoon begint de agenda nu bij de maand. Op een
+       breed scherm blijft de week staan, die is daar al een raster. De knoppen
+       Dag, Week en Maand blijven gewoon werken. */
+    weergave: URLP.get("weergave") || (window.innerWidth < 760 ? "maand" : "week"),
     datum: URLP.get("datum") || undefined,
     suite: URLP.get("suite") || undefined,
     suites,
