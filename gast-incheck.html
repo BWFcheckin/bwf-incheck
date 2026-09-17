@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#F4F1ED">
+<title>Inchecken & extra's — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
+  --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;
+  --accent:#483C34; --accent-ink:#FFFFFF; --accent-soft:#E8DFD5;
+  --brass:#9A7B4F; --ok:#3F7A55; --ok-soft:#DFEDE2; --warn:#8F6420; --warn-soft:#F6EBD9;
+  --crit:#A34434; --crit-soft:#F7E2DC;
+  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
+  --r-s:6px; --r-m:10px; --r-l:16px;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141110; --surface:#1D1917; --surface-2:#251F1C; --line:#38302A; --line-soft:#2B2421;
+    --ink:#F1EBE4; --ink-2:#D8CEC4; --muted:#A2958A;
+    --accent:#D7BFA6; --accent-ink:#241E19; --accent-soft:#33291F;
+    --brass:#E0BE86; --ok:#79C08F; --ok-soft:#16301F; --warn:#E0B26A; --warn-soft:#33260F;
+    --crit:#E89383; --crit-soft:#361B16;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 28px -18px rgba(0,0,0,.85);
+  }
+}
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; scroll-behavior:smooth; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; padding-bottom:88px; }
+h1,h2,h3{ font-family:var(--f-display); font-weight:700; letter-spacing:-.015em; margin:0; }
+button,input,select,textarea{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+@media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
+
+.wrap{ max-width:760px; margin:0 auto; padding:0 18px 40px; }
+header.topbar{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:26px 0 18px; }
+header.topbar img.merk{ height:54px; width:auto; }
+header.topbar h1{ font-size:26px; }
+header.topbar p{ margin:0; color:var(--muted); font-size:14px; max-width:48ch; }
+.chip{ display:none; font-family:var(--f-mono); font-size:11.5px; letter-spacing:.06em; padding:5px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); }
+
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); box-shadow:var(--shadow); padding:20px 20px 22px; margin-bottom:18px; }
+.card h2{ font-size:20px; }
+.card p.desc{ font-size:13.5px; color:var(--muted); margin:4px 0 14px; max-width:60ch; }
+.stepnr{ display:inline-flex; width:26px; height:26px; align-items:center; justify-content:center; border-radius:50%; background:var(--accent); color:var(--accent-ink); font-family:var(--f-mono); font-size:12px; margin-right:9px; vertical-align:middle; }
+
+form label, .lbl{ display:block; font-size:12.5px; font-weight:600; color:var(--ink-2); margin:12px 0 5px; }
+input, select, textarea{ width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-s); padding:10px 11px; font-size:15px; }
+textarea{ resize:vertical; min-height:70px; }
+input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outline-offset:-1px; background:var(--surface); }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+@media(max-width:560px){ .grid2{ grid-template-columns:1fr; } }
+.hint{ font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
+
+.radio-row{ display:flex; gap:10px; flex-wrap:wrap; margin:6px 0; }
+.radio-row label{ display:flex; align-items:center; gap:8px; font-size:14px; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-s); padding:9px 14px; cursor:pointer; margin:0; font-weight:500; }
+.radio-row input[type=radio]{ width:16px; height:16px; accent-color:var(--accent); }
+.radio-row label:has(input:checked){ border-color:var(--accent); background:var(--accent-soft); }
+
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:7px; cursor:pointer; border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); padding:10px 16px; border-radius:var(--r-s); font-size:14px; font-weight:600; text-decoration:none; }
+.btn:hover{ filter:brightness(1.12); }
+.btn.secondary{ background:var(--surface); color:var(--ink); border-color:var(--line); }
+.btn.secondary:hover{ border-color:var(--accent); color:var(--accent); filter:none; }
+.btn.sm{ padding:6px 11px; font-size:12.5px; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
+
+/* ---- product cards ---- */
+.section-sub{ font-family:var(--f-display); font-size:16px; font-weight:600; margin:22px 0 10px; padding-top:16px; border-top:1px solid var(--line-soft); }
+.section-sub:first-of-type{ border-top:0; padding-top:0; margin-top:10px; }
+.products{ display:grid; grid-template-columns:repeat(auto-fill, minmax(215px,1fr)); gap:12px; }
+.prod{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-m); overflow:hidden; display:flex; flex-direction:column; transition:border-color .15s; }
+.prod.in{ border-color:var(--brass); box-shadow:0 0 0 2px var(--accent-soft); }
+.prod img{ width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:var(--line-soft); }
+.prod .body{ padding:11px 12px 12px; display:flex; flex-direction:column; gap:5px; flex:1; }
+.prod .naam{ font-family:var(--f-display); font-weight:700; font-size:15.5px; line-height:1.25; }
+.prod .prijs{ font-family:var(--f-mono); color:var(--brass); font-size:13.5px; }
+.prod .oms{ font-size:12.5px; color:var(--muted); line-height:1.45; flex:1; }
+.prod select{ padding:7px 9px; font-size:13.5px; margin-top:4px; }
+.prod .ctl{ margin-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.qty{ display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface); }
+.qty button{ width:34px; height:34px; border:0; background:none; cursor:pointer; font-size:18px; color:var(--ink-2); }
+.qty button:hover{ color:var(--accent); }
+.qty span{ min-width:26px; text-align:center; font-family:var(--f-mono); font-size:14px; }
+.prod .add{ border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:var(--r-s); padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer; }
+.prod.in .add{ background:var(--accent); color:var(--accent-ink); }
+.prod .subt{ font-family:var(--f-mono); font-size:12.5px; color:var(--ink-2); }
+
+/* ---- overzicht / calculator ---- */
+.somlijst{ border:1px solid var(--line); border-radius:var(--r-m); overflow:hidden; }
+.somrij{ display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:10px 13px; border-bottom:1px solid var(--line-soft); font-size:14px; }
+.somrij:last-child{ border-bottom:0; }
+.somrij .n{ font-family:var(--f-mono); color:var(--muted); font-size:12.5px; }
+.somrij .p{ font-family:var(--f-mono); }
+.somrij button{ border:0; background:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 6px; }
+.somrij button:hover{ color:var(--crit); }
+.somleeg{ padding:16px; color:var(--muted); font-size:13.5px; text-align:center; }
+.totaal{ display:flex; justify-content:space-between; align-items:baseline; padding:13px 13px; background:var(--accent-soft); font-weight:700; }
+.totaal .bedrag{ font-family:var(--f-display); font-size:22px; }
+
+/* ---- sticky bar ---- */
+.bar{ position:fixed; left:0; right:0; bottom:0; z-index:20; background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -6px 24px -14px rgba(36,30,25,.35); }
+.bar .in{ max-width:760px; margin:0 auto; padding:11px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.bar .l{ font-size:13px; color:var(--muted); }
+.bar .l b{ display:block; color:var(--ink); font-family:var(--f-display); font-size:18px; }
+
+/* ---- huisregels / handtekening ---- */
+.doc{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--line-soft); }
+.doc:last-of-type{ border-bottom:0; }
+.doc label{ margin:0; display:flex; align-items:center; gap:9px; font-size:14px; font-weight:500; cursor:pointer; }
+.doc input[type=checkbox]{ width:18px; height:18px; accent-color:var(--accent); }
+.sig{ width:100%; height:170px; background:var(--surface-2); border:1px dashed var(--line); border-radius:var(--r-m); touch-action:none; display:block; }
+.status{ margin-top:12px; font-size:13.5px; font-weight:600; min-height:1.4em; }
+.status.ok{ color:var(--ok); } .status.err{ color:var(--crit); } .status.busy{ color:var(--warn); }
+
+.done{ text-align:center; padding:36px 22px; }
+.done .mark{ width:62px; height:62px; margin:0 auto 14px; border-radius:50%; background:var(--ok-soft); color:var(--ok); font-size:32px; line-height:62px; }
+.done h2{ font-size:24px; margin-bottom:8px; }
+.done p{ color:var(--ink-2); max-width:46ch; margin:0 auto 12px; }
+.done .somlijst{ text-align:left; margin:18px auto 0; max-width:440px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <img class="merk" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed & Wellness Flevoland">
+    <h1>Welkom. Fijn dat je komt.</h1>
+    <p>Vul je gegevens vast in en kies alvast je extra's. Dan staat alles klaar als je aankomt.</p>
+    <span class="chip" id="resChip"></span>
+  </header>
+
+  <div id="formCard">
+
+  <!-- ===== 1. Gegevens ===== -->
+  <section class="card">
+    <h2><span class="stepnr">1</span>Jouw gegevens</h2>
+    <p class="desc">Velden met een * zijn verplicht. Je gegevens gebruiken we alleen voor je verblijf en het wettelijk verplichte nachtregister.</p>
+    <form onsubmit="return false" autocomplete="on">
+      <div id="verblijfWrap" class="grid2">
+        <div><label for="g_locatie">Welke suite heb je geboekt? *</label><select id="g_locatie" onchange="renderCatalogus()"></select></div>
+        <div><label for="g_datum">Datum van je verblijf *</label><input type="date" id="g_datum"></div>
+      </div>
+      <div class="grid2">
+        <div><label for="g_voornaam">Voornaam *</label><input id="g_voornaam" autocomplete="given-name"></div>
+        <div><label for="g_achternaam">Achternaam *</label><input id="g_achternaam" autocomplete="family-name"></div>
+        <div><label for="g_woonplaats">Woonplaats *</label><input id="g_woonplaats" autocomplete="address-level2"></div>
+        <div><label for="g_nationaliteit">Nationaliteit *</label><input id="g_nationaliteit" autocomplete="country-name"></div>
+        <div><label for="g_telefoon">Telefoonnummer *</label><input id="g_telefoon" type="tel" autocomplete="tel"></div>
+        <div><label for="g_email">E-mailadres *</label><input id="g_email" type="email" autocomplete="email"></div>
+      </div>
+      <label>Wil je gratis lid worden (10% korting)? *</label>
+      <div class="radio-row">
+        <label><input type="radio" name="g_lid" value="ja"> Ja, graag</label>
+        <label><input type="radio" name="g_lid" value="nee"> Nee</label>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== 2. Arrangementen ===== -->
+  <section class="card" id="secArr">
+    <h2><span class="stepnr">2</span>Arrangementen</h2>
+    <p class="desc">Wij maken de suite klaar vóór je binnenkomt. Tot 24 uur vóór je reservering bij te boeken; daarna in overleg via WhatsApp 085-8001404.</p>
+    <div class="products" id="arrGrid"></div>
+  </section>
+
+  <!-- ===== 3. Menukaart ===== -->
+  <section class="card" id="secMenu">
+    <h2><span class="stepnr">3</span>Menukaart &amp; dranken</h2>
+    <p class="desc">Alles wordt vers bereid, daarom graag vooraf bestellen. Prijzen zijn per portie (voor 2 personen).</p>
+    <div class="section-sub">Eten</div>
+    <div class="products" id="menuGrid"></div>
+    <div class="section-sub">Dranken</div>
+    <div class="products" id="drankGrid"></div>
+    <div class="section-sub">Services</div>
+    <div class="products" id="srvGrid"></div>
+  </section>
+
+  <!-- ===== 4. Overzicht ===== -->
+  <section class="card" id="secSom">
+    <h2><span class="stepnr">4</span>Overzicht van je extra's</h2>
+    <p class="desc">Dit bedrag komt bovenop je reservering en reken je af bij aankomst.</p>
+    <div class="somlijst">
+      <div id="somRijen"><div class="somleeg">Je hebt nog geen extra's gekozen. Dat hoeft ook niet.</div></div>
+      <div class="totaal"><span>Totaal extra's</span><span class="bedrag" id="somTotaal">€0,00</span></div>
+    </div>
+    <div id="betaalWrap">
+      <label>Hoe wil je de extra's betalen?</label>
+      <div class="radio-row">
+        <label><input type="radio" name="g_betaal" value="ideal_locatie" checked> iDeal QR-code op locatie</label>
+        <label><input type="radio" name="g_betaal" value="contant"> Contant op locatie</label>
+        <label><input type="radio" name="g_betaal" value="betaallink"> Stuur mij een betaallink</label>
+      </div>
+    </div>
+    <label for="g_opmerking">Wensen, allergieën of een bijzondere gelegenheid?</label>
+    <textarea id="g_opmerking" placeholder="Bijv. notenallergie, naam op de taart, tijdstip waarop het eten klaar mag staan…"></textarea>
+  </section>
+
+  <!-- ===== 5. Akkoord & handtekening ===== -->
+  <section class="card">
+    <h2><span class="stepnr">5</span>Huisregels &amp; handtekening</h2>
+    <p class="desc">Bij het inchecken begint je gereserveerde tijd direct. Lees de huisregels even door; de locatiemanager geeft je bij aankomst een korte rondleiding.</p>
+    <div class="doc">
+      <label><input type="checkbox" id="g_akkoord"> Ik heb de huisregels gelezen en ga akkoord *</label>
+      <button class="btn secondary sm" type="button" onclick="viewDocument('huisregels')">Bekijken</button>
+    </div>
+    <div class="doc">
+      <label><input type="checkbox" id="g_akkoordvw"> Ik ga akkoord met de algemene voorwaarden *</label>
+      <button class="btn secondary sm" type="button" onclick="viewDocument('voorwaarden')">Bekijken</button>
+    </div>
+    <label>Handtekening *</label>
+    <canvas class="sig" id="g_sigpad" width="700" height="170"></canvas>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+      <span class="hint" style="margin:0">Teken met je vinger of muis in het vak.</span>
+      <button class="btn secondary sm" type="button" onclick="clearSignature()">Wissen</button>
+    </div>
+    <div class="status" id="formStatus" aria-live="polite"></div>
+    <button class="btn" type="button" id="submitBtn" style="width:100%;margin-top:14px;padding:14px;font-size:16px;" onclick="verstuur()">Inchecken en extra's versturen</button>
+    <p class="hint" style="text-align:center">Wees 15 minuten vóór je incheck­tijd aanwezig · gratis parkeren op de oprit · neem een geldig legitimatiebewijs mee.</p>
+  </section>
+
+  </div><!-- /formCard -->
+
+  <!-- ===== Bedankt ===== -->
+  <section class="card done" id="doneCard" style="display:none;">
+    <div class="mark">✓</div>
+    <h2>Bedankt, <span id="doneNaam"></span>!</h2>
+    <p>Je gegevens zijn ontvangen. Bij aankomst rondt de locatiemanager het inchecken met je af.</p>
+    <p id="doneExtraTekst"></p>
+    <div class="somlijst" id="doneSom" style="display:none;"></div>
+    <p style="margin-top:18px">Tot snel bij Bed &amp; Wellness Flevoland.</p>
+  </section>
+
+</div>
+
+<!-- sticky totaal -->
+<div class="bar" id="bar">
+  <div class="in">
+    <div class="l"><span id="barItems">Nog geen extra's gekozen</span><b id="barTotaal">€0,00</b></div>
+    <a class="btn secondary" href="#secSom">Overzicht</a>
+  </div>
+</div>
+
+<script src="bwf-gastlink.js?v=1"></script>
+<script>
+/* ================= CONFIG ================= */
+const SUPABASE_URL = 'https://iuyjvtlauktnjprbmbjj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
+const IMG = 'img/';   /* map met de foto's, naast dit bestand in de repo */
+
+const LOCATIONS = [
+  { id:'angie',   naam:'Suite Angie — Almere' },
+  { id:'jacuzzi', naam:'Malina Jacuzzi Suite — Lelystad' },
+  { id:'deluxe',  naam:'Malina Deluxe Zwembad Suite — Lelystad' },
+];
+function locGroup(id){ return id === 'angie' ? 'almere' : 'lelystad'; }
+
+/* ================= CATALOGUS =================
+   Pas hier prijzen, teksten en beschikbaarheid aan.
+   suites: voor welke suites het item te kiezen is.
+   maxAantal: 1 = aan/uit-knop, hoger = aantal kiezen.
+   varianten: keuzelijst met eigen prijs (bv. standaard / upgrade). */
+let CATALOGUS = [
+  /* --- Arrangementen --- */
+  { id:'arr_romantisch', groep:'arr', naam:'Romantisch', prijs:75, img:'arr-romantisch.jpg', suites:['jacuzzi','deluxe'], maxAantal:1,
+    oms:'Wellness romantisch versierd met ballonnen, rozen, rozenblaadjes, Ferrero Rocher bonbons en 2 zeeprozen cadeau.' },
+  { id:'arr_verjaardag', groep:'arr', naam:'Verjaardag', prijs:75, img:'arr-verjaardag.jpg', suites:['jacuzzi','deluxe'], maxAantal:1,
+    oms:'Versierd met ballonnen en taart met fruit.',
+    varianten:[ {id:'standaard', naam:'Standaard', prijs:75}, {id:'deluxe', naam:'Deluxe: romantische versiering, 2 glazen prosecco, borrelplank en bonbons', prijs:125} ] },
+  { id:'arr_vip', groep:'arr', naam:'VIP arrangement', prijs:250, img:'arr-vip.jpg', suites:['jacuzzi','deluxe'], maxAantal:1,
+    oms:'Versierd met ballonnen, fles Champagne Moët & Chandon Ice en keuze uit een sushi schaal of chicken burger menu.',
+    varianten:[ {id:'sushi', naam:'Met luxe sushi schaal', prijs:250}, {id:'burger', naam:'Met chicken burger menu', prijs:250} ] },
+  { id:'arr_valentine', groep:'arr', naam:'365 Valentine', prijs:299, img:'arr-valentine.jpg', suites:['jacuzzi','deluxe'], maxAantal:1,
+    oms:'Over-the-top romantisch versierd met heliumballonnen, rozen en hartjes — het hele jaar door Valentijn.' },
+
+  /* --- Menukaart --- */
+  { id:'menu_ontbijt', groep:'menu', naam:'Ontbijt / lunch', prijs:39, img:'menu-ontbijt.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Belegde broodjes, gekookt eitje, croissants met jam en boter, yoghurt, vers fruit en jus d\'orange (halal).',
+    varianten:[ {id:'ontbijt', naam:'Ontbijt', prijs:39}, {id:'lunch', naam:'Lunch', prijs:39}, {id:'vegetarisch', naam:'Vegetarisch', prijs:39} ] },
+  { id:'menu_borrelplank', groep:'menu', naam:'Borrelplank', prijs:30, img:'menu-borrelplank.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Wisselend assortiment met o.a. chicken wings, chili cheese bites en loempia\'s (halal).' },
+  { id:'menu_wings', groep:'menu', naam:'Chicken wings menu', prijs:35, img:'menu-wings.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Portie kippenvleugels met frietjes en saus.' },
+  { id:'menu_burger', groep:'menu', naam:'Chicken burger menu', prijs:39, img:'menu-burger.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Burgerbroodje met crispy chicken, sla, tomaat, komkommer en saus. Met frietmandje, mayonaise en ketchup.' },
+  { id:'menu_sushi', groep:'menu', naam:'Luxe sushi schaal', prijs:75, img:'menu-sushi.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:3,
+    oms:'Sushi schotel met verschillende soorten vers bereide sushi, geserveerd met sojasaus en wasabi. Goed voor 2 tot 4 personen.' },
+
+  /* --- Dranken --- */
+  { id:'drank_wijn', groep:'drank', naam:'Wijn en bubbels', prijs:30, img:'menu-wijn.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Per fles, gekoeld klaargezet.',
+    varianten:[ {id:'prosecco', naam:'Prosecco', prijs:30}, {id:'chardonnay', naam:'Chardonnay', prijs:30}, {id:'champagne', naam:'Champagne', prijs:50} ] },
+  { id:'drank_moet', groep:'drank', naam:'Moët & Chandon Ice', prijs:125, img:'drank-moet.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:3,
+    oms:'Fles champagne met speciale glazen en wijnkoeler. Geserveerd met ijs en fruit.' },
+  { id:'drank_mocktail', groep:'drank', naam:'Mocktail karaf', prijs:30, img:'drank-mocktail.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Wisselend assortiment, bijvoorbeeld aardbei of tropical.' },
+
+  /* --- Services --- */
+  { id:'srv_waterpijp', groep:'srv', naam:'Waterpijp', prijs:30, img:'srv-waterpijp.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:2,
+    oms:'Diverse smaken.',
+    varianten:[ {id:'love66', naam:'Love 66', prijs:30}, {id:'miamore', naam:'Mi Amore', prijs:30}, {id:'dubbelappel', naam:'Dubbel Appel', prijs:30} ] },
+  { id:'srv_massagetafel', groep:'srv', naam:'Massagetafel', prijs:25, img:'srv-massagetafel.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:1,
+    oms:'Gebruik van massagetafel incl. extra handdoek en olie.' },
+  { id:'srv_blinddoek', groep:'srv', naam:'Blinddoek', prijs:2.5, img:'srv-blinddoek.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Verras iemand tijdens het spabezoek.' },
+];
+
+/* ================= CATALOGUS UIT BEHEER ================= */
+/* Als je in gast-incheck-beheer.html iets hebt opgeslagen, wint die versie
+   van de ingebouwde lijst hierboven. */
+async function laadCatalogus(){
+  try{
+    const r = await sb('gast_catalogus?id=eq.standaard&select=data', { prefer:'return=representation' });
+    if(r && r[0] && Array.isArray(r[0].data) && r[0].data.length){ CATALOGUS = r[0].data; renderCatalogus(); }
+  }catch(e){ console.warn('Catalogus uit beheer niet geladen, ingebouwde lijst gebruikt:', e.message); }
+}
+
+/* ================= SUPABASE ================= */
+/* Deze pagina leest nooit gegevens van andere gasten: er wordt uitsluitend
+   verstuurd (POST) naar gast_aanmeldingen en gelezen uit documenten. */
+async function sb(path, options={}){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: options.method || 'GET',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': options.prefer || 'return=minimal' },
+    body: options.body
+  });
+  if(!res.ok){ let d=''; try{ d=(await res.json()).message; }catch(e){} throw new Error(d || `Serverfout (${res.status})`); }
+  if(res.status === 204) return null;
+  const t = await res.text(); return t ? JSON.parse(t) : null;
+}
+
+/* ================= LINK-PARAMETERS ================= */
+const params = new URLSearchParams(location.search);
+let   resCode   = (params.get('r') || '').trim();
+const linkLoc   = (params.get('loc') || '').trim();
+const linkDatum = (params.get('d') || '').trim();
+const conceptId = (params.get('c') || '').trim();
+const veiligToken = (params.get('token') || '').trim();
+
+function initLink(){
+  const sel = document.getElementById('g_locatie');
+  sel.innerHTML = '<option value="">— Kies je suite —</option>' + LOCATIONS.map(l=>`<option value="${l.id}">${l.naam}</option>`).join('');
+  const known = LOCATIONS.some(l=>l.id===linkLoc);
+  if(known) sel.value = linkLoc;
+  if(linkDatum) document.getElementById('g_datum').value = linkDatum;
+  if(known && linkDatum) document.getElementById('verblijfWrap').style.display = 'none';
+  const chip = document.getElementById('resChip'); const st=[];
+  if(resCode) st.push('Reservering ' + resCode);
+  if(known) st.push(LOCATIONS.find(l=>l.id===linkLoc).naam);
+  if(linkDatum) st.push(dmy(linkDatum));
+  if(st.length){ chip.textContent = st.join(' · '); chip.style.display='inline-block'; }
+}
+async function laadVeiligeLink(){
+  if(!veiligToken || typeof BWFGastlink === 'undefined') return;
+  try{
+    const g = await BWFGastlink.resolve(veiligToken);
+    resCode = String(g.reservation_id||'');
+    const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
+    if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
+    if(g.arrival) document.getElementById('g_datum').value=g.arrival;
+    const zetAls=(id,w)=>{ const el=document.getElementById(id); if(el && w && !String(el.value).trim()) el.value=w; };
+    zetAls('g_voornaam',g.first_name); zetAls('g_achternaam',g.last_name); zetAls('g_email',g.email); zetAls('g_telefoon',g.phone);
+    document.getElementById('verblijfWrap').style.display='none';
+    const chip=document.getElementById('resChip'); chip.textContent='Reservering '+g.reservation_id; chip.style.display='inline-block';
+    renderCatalogus();
+  }catch(e){ toon(e.message,'err'); }
+}
+
+/* ================= CATALOGUS RENDEREN ================= */
+const keuze = {};   /* id -> { aantal, variant } */
+const eur = n => '€' + n.toFixed(2).replace('.', ',').replace(',00', ',-');
+const dmy = d => { const [y,m,dd]=String(d).split('-'); return dd&&m ? `${dd}-${m}-${y}` : d; };
+
+function huidigeSuite(){ return document.getElementById('g_locatie').value || linkLoc; }
+
+function itemPrijs(it){
+  const k = keuze[it.id];
+  if(it.varianten){ const v = it.varianten.find(x=>x.id===(k?k.variant:it.varianten[0].id)) || it.varianten[0]; return v.prijs; }
+  return it.prijs;
+}
+function prodHTML(it){
+  const k = keuze[it.id] || { aantal:0, variant: it.varianten ? it.varianten[0].id : null };
+  const prijsLabel = it.varianten && it.varianten.some(v=>v.prijs!==it.varianten[0].prijs) ? 'v.a. ' + eur(Math.min(...it.varianten.map(v=>v.prijs))) : eur(it.prijs);
+  const varSel = it.varianten ? `<select onchange="zetVariant('${it.id}', this.value)">${it.varianten.map(v=>`<option value="${v.id}" ${v.id===k.variant?'selected':''}>${v.naam}${v.prijs!==it.varianten[0].prijs||it.varianten.some(x=>x.prijs!==v.prijs)?' — '+eur(v.prijs):''}</option>`).join('')}</select>` : '';
+  const ctl = it.maxAantal > 1
+    ? `<div class="qty"><button type="button" aria-label="Minder" onclick="wijzigAantal('${it.id}',-1)">−</button><span>${k.aantal}</span><button type="button" aria-label="Meer" onclick="wijzigAantal('${it.id}',1)">+</button></div>
+       <span class="subt">${k.aantal ? eur(k.aantal*itemPrijs(it)) : ''}</span>`
+    : `<button type="button" class="add" onclick="wijzigAantal('${it.id}', ${k.aantal?-1:1})">${k.aantal ? '✓ Gekozen' : 'Toevoegen'}</button>`;
+  return `<div class="prod ${k.aantal?'in':''}" id="prod_${it.id}">
+    ${it.foto || it.img ? `<img src="${it.foto || (IMG+it.img)}" alt="${it.naam}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="body">
+      <div class="naam">${it.naam}</div>
+      <div class="prijs">${prijsLabel}</div>
+      <div class="oms">${it.oms}</div>
+      ${varSel}
+      <div class="ctl">${ctl}</div>
+    </div></div>`;
+}
+function renderCatalogus(){
+  const suite = huidigeSuite();
+  const zichtbaar = it => !suite || it.suites.includes(suite);
+  const grids = { arr:'arrGrid', menu:'menuGrid', drank:'drankGrid', srv:'srvGrid' };
+  for(const [g,id] of Object.entries(grids)){
+    const items = CATALOGUS.filter(it=>it.groep===g && zichtbaar(it));
+    document.getElementById(id).innerHTML = items.map(prodHTML).join('') || '<div class="somleeg" style="grid-column:1/-1">Niet beschikbaar voor deze suite.</div>';
+  }
+  /* arrangementen-kaart verbergen als er niets te kiezen valt */
+  document.getElementById('secArr').style.display = CATALOGUS.some(it=>it.groep==='arr' && zichtbaar(it)) ? '' : 'none';
+  /* keuzes die niet bij deze suite horen opruimen */
+  for(const id of Object.keys(keuze)){ const it = CATALOGUS.find(x=>x.id===id); if(it && !zichtbaar(it)) delete keuze[id]; }
+  renderSom();
+}
+function wijzigAantal(id, delta){
+  const it = CATALOGUS.find(x=>x.id===id);
+  const k = keuze[id] || { aantal:0, variant: it.varianten ? it.varianten[0].id : null };
+  k.aantal = Math.max(0, Math.min(it.maxAantal, k.aantal + delta));
+  if(k.aantal) keuze[id] = k; else delete keuze[id];
+  const el = document.getElementById('prod_'+id); if(el) el.outerHTML = prodHTML(it);
+  renderSom();
+}
+function zetVariant(id, variant){
+  const it = CATALOGUS.find(x=>x.id===id);
+  const k = keuze[id] || { aantal:0, variant };
+  k.variant = variant; if(k.aantal) keuze[id] = k;
+  const el = document.getElementById('prod_'+id); if(el) el.outerHTML = prodHTML(it);
+  renderSom();
+}
+
+/* ================= CALCULATOR ================= */
+function regels(){
+  return Object.entries(keuze).map(([id,k])=>{
+    const it = CATALOGUS.find(x=>x.id===id);
+    const v = it.varianten ? it.varianten.find(x=>x.id===k.variant) : null;
+    const prijs = v ? v.prijs : it.prijs;
+    return { id, naam: it.naam + (v && it.varianten.length>1 ? ' — ' + v.naam.split(':')[0] : ''), variant: v ? v.id : null, aantal: k.aantal, prijs, subtotaal: +(k.aantal*prijs).toFixed(2), groep: it.groep };
+  });
+}
+function totaal(){ return +regels().reduce((s,r)=>s+r.subtotaal,0).toFixed(2); }
+function somHTML(rs, metVerwijder){
+  return rs.map(r=>`<div class="somrij"><span>${r.naam}<span class="n"> ${r.aantal}×</span></span><span class="p">${eur(r.subtotaal)}</span>${metVerwijder?`<button type="button" aria-label="Verwijderen" onclick="verwijder('${r.id}')">✕</button>`:'<span></span>'}</div>`).join('');
+}
+function renderSom(){
+  const rs = regels(); const t = totaal();
+  document.getElementById('somRijen').innerHTML = rs.length ? somHTML(rs,true) : '<div class="somleeg">Je hebt nog geen extra\'s gekozen. Dat hoeft ook niet.</div>';
+  document.getElementById('somTotaal').textContent = eur(t);
+  document.getElementById('barTotaal').textContent = eur(t);
+  const n = rs.reduce((s,r)=>s+r.aantal,0);
+  document.getElementById('barItems').textContent = n ? `${n} extra${n>1?"'s":''} gekozen` : 'Nog geen extra\'s gekozen';
+  document.getElementById('betaalWrap').style.display = rs.length ? '' : 'none';
+}
+function verwijder(id){ delete keuze[id]; renderCatalogus(); }
+
+/* ================= HUISREGELS & VOORWAARDEN ================= */
+let documenten = [];
+async function loadDocumenten(){ try{ documenten = await sb('documenten?select=*', { prefer:'return=representation' }) || []; }catch(e){ console.error(e); } }
+function viewDocument(type){
+  const locatie = huidigeSuite();
+  const groep = type === 'voorwaarden' ? 'algemeen' : locGroup(locatie);
+  if(type !== 'voorwaarden' && !locatie){ toon('Kies eerst je suite, dan laden we de juiste huisregels.', 'err'); return; }
+  const doc = documenten.find(d=>d.id === `${type}_${groep}`);
+  if(!doc){ toon('Dit document staat er nog niet bij. Vraag het even op bij aankomst.', 'err'); return; }
+  const chars = atob(doc.data); const bytes = new Uint8Array(chars.length);
+  for(let i=0;i<chars.length;i++) bytes[i] = chars.charCodeAt(i);
+  window.open(URL.createObjectURL(new Blob([bytes], { type:'application/pdf' })), '_blank');
+}
+
+/* ================= HANDTEKENING ================= */
+let sigCtx, sigDrawing=false, sigHasContent=false;
+function setupSignaturePad(){
+  const c = document.getElementById('g_sigpad'); sigCtx = c.getContext('2d');
+  sigCtx.lineWidth = 2; sigCtx.lineCap = 'round'; sigCtx.strokeStyle = '#2b2620';
+  const pos = e => { const r=c.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return { x:(p.clientX-r.left)*(c.width/r.width), y:(p.clientY-r.top)*(c.height/r.height) }; };
+  const start = e => { sigDrawing=true; sigHasContent=true; const p=pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); e.preventDefault(); };
+  const move  = e => { if(!sigDrawing) return; const p=pos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); e.preventDefault(); };
+  const end   = () => { sigDrawing=false; };
+  c.addEventListener('mousedown',start); c.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  c.addEventListener('touchstart',start,{passive:false}); c.addEventListener('touchmove',move,{passive:false}); c.addEventListener('touchend',end);
+}
+function clearSignature(){ const c=document.getElementById('g_sigpad'); sigCtx.clearRect(0,0,c.width,c.height); sigHasContent=false; }
+
+/* ================= VERSTUREN ================= */
+function toon(t, soort){ const el=document.getElementById('formStatus'); el.textContent=t; el.className='status '+soort; }
+let bezig=false;
+async function verstuur(){
+  if(bezig) return;
+  const v = id => document.getElementById(id).value.trim();
+  const locatie=document.getElementById('g_locatie').value, datum=document.getElementById('g_datum').value;
+  const voornaam=v('g_voornaam'), achternaam=v('g_achternaam'), woonplaats=v('g_woonplaats'), nationaliteit=v('g_nationaliteit'), telefoon=v('g_telefoon'), email=v('g_email');
+  const lidEl=document.querySelector('input[name="g_lid"]:checked');
+  const akkoord=document.getElementById('g_akkoord').checked, akkoordvw=document.getElementById('g_akkoordvw').checked;
+  const rs = regels(); const t = totaal();
+  const betaalEl = document.querySelector('input[name="g_betaal"]:checked');
+
+  const mist=[];
+  if(!locatie) mist.push('Suite'); if(!datum) mist.push('Datum'); if(!voornaam) mist.push('Voornaam'); if(!achternaam) mist.push('Achternaam');
+  if(!woonplaats) mist.push('Woonplaats'); if(!nationaliteit) mist.push('Nationaliteit'); if(!telefoon) mist.push('Telefoonnummer'); if(!email) mist.push('E-mailadres');
+  if(!lidEl) mist.push('Wel of geen lid'); if(!akkoord) mist.push('Akkoord huisregels'); if(!akkoordvw) mist.push('Akkoord voorwaarden'); if(!sigHasContent) mist.push('Handtekening');
+  if(mist.length){ toon('Vul nog in: '+mist.join(', '), 'err'); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toon('Controleer je e-mailadres.', 'err'); return; }
+
+  bezig=true; document.getElementById('submitBtn').disabled=true; toon('Bezig met versturen…','busy');
+
+  const rij = {
+    id: 'g' + Date.now() + Math.random().toString(36).slice(2,6),
+    code: resCode || null, checkin_id: conceptId || null,
+    locatie, datum, voornaam, achternaam, woonplaats, nationaliteit, telefoon, email,
+    lid: lidEl.value==='ja', akkoord, akkoord_voorwaarden: akkoordvw,
+    handtekening: document.getElementById('g_sigpad').toDataURL('image/png'),
+    status:'nieuw',
+    /* nieuw: extra's uit de calculator */
+    extras: rs,                                   /* jsonb */
+    extras_totaal: t,                             /* numeric */
+    betaalwijze: rs.length && betaalEl ? betaalEl.value : null,
+    opmerking: v('g_opmerking') || null,
+  };
+  try{
+    await sb('gast_aanmeldingen', { method:'POST', body: JSON.stringify(rij), prefer:'return=minimal' });
+    /* De taak voor het dashboard (wz_taken) wordt in Supabase aangemaakt door een trigger
+       op gast_aanmeldingen (zie gast-incheck-setup.sql), zodat deze pagina zelf niet in de
+       takentabel hoeft te schrijven. */
+    document.getElementById('doneNaam').textContent = voornaam;
+    if(rs.length){
+      document.getElementById('doneExtraTekst').textContent = `Je extra's (${eur(t)}) zijn doorgegeven aan de locatiemanager en staan klaar bij aankomst.`;
+      const ds = document.getElementById('doneSom'); ds.style.display=''; ds.innerHTML = somHTML(rs,false) + `<div class="totaal"><span>Totaal extra's</span><span class="bedrag">${eur(t)}</span></div>`;
+    }
+    document.getElementById('formCard').style.display='none'; document.getElementById('bar').style.display='none';
+    document.getElementById('doneCard').style.display='block'; document.body.style.paddingBottom='0';
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }catch(err){
+    console.error(err); bezig=false; document.getElementById('submitBtn').disabled=false;
+    toon('Versturen is niet gelukt: '+err.message+'. Probeer het opnieuw, of laat het weten bij aankomst.', 'err');
+  }
+}
+
+/* ================= START ================= */
+initLink(); renderCatalogus(); laadCatalogus(); laadVeiligeLink(); setupSignaturePad(); loadDocumenten();
+</script>
+<script src="bwf-shell.js"></script>
+</body>
+</html>
