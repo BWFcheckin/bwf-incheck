@@ -1784,6 +1784,23 @@ function collectVoorafGereserveerd(){
   return VOORAF_ITEMS.filter((it,i)=> document.getElementById(`voor_${i}`)?.checked).map(it=>it.naam);
 }
 /* Dode kopie van collectCheckinData verwijderd; verderop staat de versie die telt. */
+/* Zoekt de reservering bij een reserveringsnummer. Gemeten 18-09-2026: dit is
+   een zuivere sleutel. Van de 101 definitieve formulieren matchen er 13 op
+   nummer, en bij alle 13 klopt ook de datum én de suite - nul afwijkingen, nul
+   dubbelingen, en geen enkele die een bestaande koppeling zou overschrijven.
+   Op naam plus datum matchen er meer (30), maar daar zitten aantoonbaar foute
+   bij: er staan 12 dubbele reserveringen in de database, dezelfde boeking uit
+   twee kanalen. Daarom alleen op nummer, en alleen bij precies één treffer:
+   weten we het niet zeker, dan koppelen we niet. */
+function resIdBijNummer(nr){
+  var zoek = String(nr == null ? '' : nr).trim();
+  if(!zoek) return null;
+  var treffers = (AGENDA_RES || []).filter(function(r){
+    return String(r.reserveringsnummer == null ? '' : r.reserveringsnummer).trim() === zoek;
+  });
+  return treffers.length === 1 ? (treffers[0].resId || null) : null;
+}
+
 async function saveCheckin(alsConcept){
   const statusEl = document.getElementById('checkinStatus');
   if(!alsConcept && !guestData){
@@ -1806,7 +1823,13 @@ async function saveCheckin(alsConcept){
     }
     /* het formulier ook aan de reservering hangen, zodat de dagoverzichten en
        de reserveringskaart meteen zien dat er is ingecheckt */
-    if(gekoppeld && gekoppeld.resId){
+    /* Heb je zelf geen reservering gekozen, maar staat er wel een
+       reserveringsnummer in het formulier? Dan zoeken we de boeking erbij. Zo
+       hoeft het koppelen niet meer met de hand, en verschijnt de pdf-knop op de
+       reserveringskaart vanzelf. Gemeten 18-09-2026: 100 definitieve
+       formulieren, maar slechts 6 reserveringen hadden een koppeling. */
+    var resId = (gekoppeld && gekoppeld.resId) || resIdBijNummer(data.resnr);
+    if(resId){
       try{
         /* Een geweigerde koppeling geeft geen foutmelding maar een leeg
            antwoord. Dat overkomt een locatiemanager: die mag het formulier wel
@@ -1820,7 +1843,9 @@ async function saveCheckin(alsConcept){
           var wijze = betaalwijzeTekst(data);
           if(wijze) terug.betaald_via = wijze;
         }
-        var gekop = await sb('reserveringen?id=eq.' + encodeURIComponent(gekoppeld.resId) + '&select=id',
+        /* resId en niet gekoppeld.resId: bij een automatische koppeling is
+           gekoppeld null, en dan zou dit stil stuklopen in de catch hieronder. */
+        var gekop = await sb('reserveringen?id=eq.' + encodeURIComponent(resId) + '&select=id',
           { method:'PATCH', body: JSON.stringify(terug) });
         if(!gekop || !gekop.length) koppelMelding = true;
       }catch(e){ koppelMelding = true; console.warn('koppelen aan de reservering lukte niet:', e.message); }
