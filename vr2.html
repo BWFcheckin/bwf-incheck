@@ -6089,7 +6089,12 @@ function wcKaartenKlaar(){
    bestaande gedrag. */
 function wcFormToon(){
   const paneel = document.getElementById('panel-welkomstcall'); if(!paneel) return;
-  const open = ['Gesprek voorbereiden', 'Belscript'];
+  /* "Welkomstcall afronden" moet hier bij, en dat is 18-09-2026 hard gebleken:
+     daar zitten de statuskeuze, de OPSLAANKNOP en de meldingsregel wcNote. Bleef
+     die kaart dicht, dan vulde Angela het gesprek in zonder zichtbare knop om te
+     bewaren. En de naamvelden in "Gesprek voorbereiden" waren óók onzichtbaar,
+     waardoor de poortwachter in de opslaanknop afhaakte op een lege naam. */
+  const open = ['Gesprek voorbereiden', 'Belscript', 'Welkomstcall afronden'];
   paneel.querySelectorAll('.card[data-inklap]').forEach(kaart=>{
     if(open.includes(kaart.dataset.inklap)) kaart.classList.remove('dicht');
   });
@@ -9187,6 +9192,10 @@ $('#wcNieuw').addEventListener('click', ()=>{
   wcToonVoorafNote(false);
   wcSmgVat(); wcHerhaalCheck(); wcZetBetaal('mollie');
   $('#wcNote').textContent=''; wcToonBijlage(); renderExtras(); wcVersTekst(true);
+  /* Dit is het tweede pad naar het formulier, naast "Welkomstcall openen". Zonder
+     deze regel maakt Leeg formulier alle velden leeg terwijl de kaarten dicht
+     staan: je ziet geen naamveld om in te vullen en geen knop om te bewaren. */
+  wcFormToon();
 });
 
 /* Vanuit de kalender (knop Welkomstcall) komt ?rid=<reserveringen.id> mee.
@@ -9282,7 +9291,21 @@ function wcBestaandeCall(f){
 
 $('#wcOpslaan').addEventListener('click', async ()=>{
   const f = wcFormulier();
-  if(!f.naam && !f.klant_id){ toast('Vul een naam in of kies een klant.'); return; }
+  if(!f.naam && !f.klant_id){
+    /* De naamvelden staan in de kaart "Gesprek voorbereiden". Is die dichtgeklapt,
+       dan zijn ze onzichtbaar en lijkt opslaan zonder reden te mislukken - precies
+       wat Angela op 18-09-2026 meldde. Dus: kaarten openklappen, naar het naamveld
+       springen, en de melding laten STAAN. Een toast verdwijnt na 2,4 seconde en
+       wcNote zat zelf in een dichtgeklapte kaart, dus die zag ze geen van beide. */
+    wcFormToon();
+    const note = $('#wcNote');
+    if(note) note.innerHTML = '<strong style="color:var(--crit)">Nog niet bewaard.</strong> ' +
+      'Vul een naam in of kies een klant — dat veld staat hierboven bij Gesprek voorbereiden.';
+    const voor = $('#wcVoor');
+    if(voor){ voor.scrollIntoView({behavior:'smooth', block:'center'}); try{ voor.focus(); }catch(e){} }
+    toast('Vul een naam in of kies een klant.');
+    return;
+  }
   f.incheck_link = gastLink(f);
   if(f.status==='gebeld' || f.status==='afgerond') f.gebeld_op = new Date().toISOString();
   LAATSTE_FOUT = '';
