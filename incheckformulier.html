@@ -4569,6 +4569,24 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     .replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   function naamVan(c){ return ((c.voornaam||"") + " " + (c.achternaam||"")).trim() || "Onbekende gast"; }
 
+  /* ---------- fase 1 en fase 2 ----------
+     Angela, 18-09-2026: de formulieren van vóór de gastenlink wil ze apart
+     bewaren onder een eigen knop. De gastenlink bestaat sinds 03-09-2026 en de
+     eerste gastaanmelding is van 04-09-2026; die datum is dus de grens.
+     Gemeten op dat moment: 77 formulieren ervóór (allemaal definitief, en géén
+     enkele met een gekoppelde aanmelding - de scheiding is dus zuiver) en 23
+     definitieve erna, plus 14 concepten.
+     We kijken naar created_at, wannéér het formulier is ingevuld, en niet naar
+     datum, wanneer de gast er was. Dat scheelt één formulier: een verblijf van
+     eind augustus dat pas in september is ingevoerd hoort bij fase 2, want toen
+     bestond de gastenlink al. */
+  var FASE_GRENS = "2026-09-04";
+  var FASE_STAND = "nu";   /* "nu" = sinds de gastenlink, "fase1" = daarvoor */
+  function faseVan(c){
+    var d = String((c && (c.created_at || c.datum)) || "").slice(0, 10);
+    return (d && d < FASE_GRENS) ? "fase1" : "nu";
+  }
+
   /* ---------- filters boven de tabel ---------- */
   function bouwFilters(){
     var tabel = document.getElementById("checkinTableBody");
@@ -4597,6 +4615,8 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     var balk = document.createElement("div");
     balk.id = "defBalk";
     balk.innerHTML =
+      '<button class="btn sm" type="button" id="defFase2">Sinds de gastenlink</button>' +
+      '<button class="btn secondary sm" type="button" id="defFase1">Definitieve formulieren fase 1</button>' +
       '<button class="btn secondary sm" type="button" id="defWis">Filter wissen</button>' +
       '<button class="btn sm" type="button" id="defBulk">Alle afgeronde verblijven doorzetten</button>' +
       '<span id="defTel"></span>';
@@ -4614,6 +4634,25 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
       teken();
     };
     document.getElementById("defBulk").onclick = bulk;
+
+    /* De twee stapels. Zonder deze bedrading staan er twee dode knoppen. */
+    document.getElementById("defFase2").onclick = function(){ toonFase("nu"); };
+    document.getElementById("defFase1").onclick = function(){ toonFase("fase1"); };
+    merkFase();
+  }
+
+  /* Welke knop ingedrukt oogt. De actieve krijgt de volle stijl, de andere de
+     rustige - zo zie je in één oogopslag welke stapel je bekijkt. */
+  function merkFase(){
+    var k2 = document.getElementById("defFase2"), k1 = document.getElementById("defFase1");
+    if(!k1 || !k2) return;
+    k2.className = "btn sm"        + (FASE_STAND === "nu"    ? "" : " secondary");
+    k1.className = "btn sm"        + (FASE_STAND === "fase1" ? "" : " secondary");
+  }
+  function toonFase(welke){
+    FASE_STAND = welke;
+    merkFase();
+    teken();
   }
 
   /* ---------- staat de gast al in het klantenbestand? ---------- */
@@ -4644,6 +4683,9 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
     return (alleCheckins()).filter(function(c){
       if(c.status === "concept") return false;
+      /* De twee stapels: vóór de gastenlink en daarna. Zonder deze regel doen de
+         knoppen niets aan de inhoud. */
+      if(faseVan(c) !== FASE_STAND) return false;
       if(loc && c.locatie !== loc) return false;
       var d = String(c.datum||"").slice(0,10);
       if(van && d && d < van) return false;
@@ -4668,11 +4710,16 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     var tel = document.getElementById("defTel");
     if(tel){
       var open = lijst.filter(function(c){ return !isKlant(c); }).length;
-      tel.textContent = lijst.length + " formulier" + (lijst.length === 1 ? "" : "en") +
+      tel.textContent = (FASE_STAND === "fase1" ? "Fase 1 \u00b7 " : "Sinds de gastenlink \u00b7 ") +
+        lijst.length + " formulier" + (lijst.length === 1 ? "" : "en") +
         (open ? " \u00b7 " + open + " nog niet in het klantenbestand" : "");
     }
     if(!lijst.length){
-      body.innerHTML = '<tr><td colspan="7" class="hint" style="padding:14px 4px;">Geen formulieren die aan dit filter voldoen.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="hint" style="padding:14px 4px;">' +
+        (FASE_STAND === "fase1"
+          ? "Geen formulieren van vóór 4 september die aan dit filter voldoen."
+          : "Geen formulieren sinds de gastenlink die aan dit filter voldoen.") +
+        '</td></tr>';
       return;
     }
     body.innerHTML = lijst.map(function(c){
