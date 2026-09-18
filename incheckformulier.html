@@ -288,14 +288,57 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="rekenlijst" id="k_gevonden" style="display:none;"></div>
   </div>
 
-  <!-- ================= 2 · AANMELDINGEN VAN GASTEN ================= -->
+  <!-- ================= RESERVERINGSGEGEVENS (bovenaan) =================
+       Angela, 18-09-2026: bovenaan wil je in één oogopslag zien waar het om
+       gaat - suite, dagverblijf of overnachting, datum en inchecktijd, de naam
+       van de gast, en wie de locatiemanager is. Daaronder de pdf.
+       Dit zijn SPIEGELS van de bestaande velden verderop in het formulier, net
+       zoals Suite en Datum dat al waren. Het opslaan leest de échte velden, dus
+       hieraan verandert niets: dit is alleen een venster erop. -->
+  <div class="card" id="bwfBovenBlok">
+    <h2>Reserveringsgegevens</h2>
+    <p class="desc">Ingevuld zodra je hierboven een reservering koppelt. Aanpassen kan hier of verderop
+      in het formulier &mdash; het is hetzelfde veld.</p>
+    <div class="formgrid3">
+      <div><label for="c_locatieTop">Suite <span class="req-mark">*</span></label>
+        <select id="c_locatieTop"></select></div>
+      <div><label for="c_typeTop">Type verblijf</label>
+        <select id="c_typeTop">
+          <option value="dagverblijf">Dagverblijf</option>
+          <option value="overnachting">Overnachting</option>
+        </select></div>
+      <div><label for="c_manager">Locatiemanager <span class="req-mark">*</span></label>
+        <select id="c_manager"></select></div>
+    </div>
+    <div class="formgrid3">
+      <div><label for="c_datumTop">Datum <span class="req-mark">*</span></label>
+        <input type="date" id="c_datumTop"></div>
+      <div><label for="c_tijdTop">Inchecktijd</label>
+        <input type="time" id="c_tijdTop"></div>
+      <div><label>Gast</label>
+        <div class="guest-status empty" id="c_gastTop" style="margin:0">Nog geen gast gekoppeld.</div></div>
+    </div>
+    <div class="linkbox" style="margin-top:10px">
+      <button class="btn secondary sm" type="button" id="c_pdfTop">Openen of opslaan als pdf</button>
+    </div>
+    <div class="status" id="c_pdfStatus"></div>
+  </div>
+
+  <!-- ================= AANMELDING VAN DE GAST KOPPELEN =================
+       Stond eerst verderop; hoort bij de bovenkant omdat hieraan het
+       gastenformulier hangt: naam, contactgegevens en handtekening komen
+       daaruit in dit incheckformulier terecht. -->
   <div class="card">
-    <h3>Aanmeldingen van gasten</h3>
+    <h3>Koppel gastaanmelding</h3>
     <p class="desc">Gasten die hun gegevens vooraf hebben ingestuurd. Koppel er een aanmelding aan
       een reservering: naam, contactgegevens en handtekening komen dan meteen in dit incheckformulier
       te staan, onder Gastgegevens.</p>
     <div class="aanmeld-lijst" id="aanmeldLijst"></div>
   </div>
+
+  <!-- De kaart Aanmeldingen van gasten stond hier; die staat sinds 18-09-2026
+       direct onder Reserveringsgegevens, omdat het koppelen van de aanmelding
+       bij de bovenkant hoort. -->
 
   <!-- ================= 3 · KLAARGEZETTE FORMULIEREN ================= -->
   <div class="card" id="concepten">
@@ -336,14 +379,10 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <h3>Boekingsgegevens</h3>
     <p class="desc">Suite, datum en locatiemanager zijn verplicht. De rest vult zich vanzelf als je
       een reservering koppelt; handmatig invullen kan altijd.</p>
-    <div class="formgrid3" id="verplichteVelden">
-      <div><label for="c_locatieTop">Suite <span class="req-mark">*</span></label>
-        <select id="c_locatieTop"></select></div>
-      <div><label for="c_datumTop">Datum <span class="req-mark">*</span></label>
-        <input type="date" id="c_datumTop"></div>
-      <div><label for="c_manager">Locatiemanager <span class="req-mark">*</span></label>
-        <select id="c_manager"></select></div>
-    </div>
+    <!-- Suite, datum en locatiemanager stonden hier als spiegelvelden. Ze staan
+         sinds 18-09-2026 bovenaan in het blok Reserveringsgegevens. Ze hier laten
+         staan zou dezelfde id twee keer opleveren, en dan pakt getElementById de
+         eerste en koppelt koppelSpiegel de verkeerde. -->
     <div class="formgrid3">
       <div><label for="c_pakket">Tijdblok of pakket</label>
         <select id="c_pakket" onchange="kiesPakket()"><option value="">&mdash; kies eerst suite en verblijf &mdash;</option></select>
@@ -5827,8 +5866,84 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     if(!document.getElementById("c_locatieTop")) { setTimeout(start, 500); return; }
     koppelSpiegel("c_locatieTop", "c_locatie");
     koppelSpiegel("c_datumTop", "c_datum");
+    /* Inchecktijd is een gewoon invoerveld, dus dezelfde spiegel volstaat. */
+    koppelSpiegel("c_tijdTop", "c_checkin");
+    koppelRadioSpiegel("c_typeTop", "verblijftype");
+    vulGastNaamTop();
+    setInterval(vulGastNaamTop, 1500);
+    koppelPdfKnop();
     document.getElementById("c_manager").addEventListener("change", merk);
     merk();
+
+    /* Type verblijf staat verderop als twee radioknoppen. Die hebben geen
+       gezamenlijke .value, dus koppelSpiegel werkt daar niet: dit is een eigen
+       spiegel die beide kanten op loopt. */
+    function koppelRadioSpiegel(topId, radioNaam){
+      var top = document.getElementById(topId);
+      if(!top) return;
+      var kies = 'input[name="' + radioNaam + '"]';
+      function uitRadio(){
+        var aan = document.querySelector(kies + ":checked");
+        if(aan && top.value !== aan.value) top.value = aan.value;
+      }
+      top.addEventListener("change", function(){
+        var doel = document.querySelector(kies + '[value="' + top.value + '"]');
+        if(doel && !doel.checked){
+          doel.checked = true;
+          doel.dispatchEvent(new Event("change", { bubbles:true }));
+        }
+      });
+      document.querySelectorAll(kies).forEach(function(r){ r.addEventListener("change", uitRadio); });
+      uitRadio();
+      setInterval(uitRadio, 1500);
+    }
+
+    /* De naam van de gast komt uit de gastaanmelding, niet uit een invoerveld.
+       guestData is de getekende versie, voorinvulling wat er klaarstaat. */
+    function vulGastNaamTop(){
+      var el = document.getElementById("c_gastTop");
+      if(!el) return;
+      var g = null;
+      try { if(typeof guestData !== "undefined" && guestData) g = guestData; } catch(e){}
+      try { if(!g && typeof voorinvulling !== "undefined" && voorinvulling) g = voorinvulling; } catch(e){}
+      var naam = g ? ((g.voornaam || "") + " " + (g.achternaam || "")).trim() : "";
+      if(naam){
+        el.className = "guest-status filled";
+        el.textContent = naam;
+      } else {
+        el.className = "guest-status empty";
+        el.textContent = "Nog geen gast gekoppeld.";
+      }
+    }
+
+    /* De pdf bestaat al: window.bwfAfdrukken wordt gezet in bwf-definitief-js,
+       dat eerder in de pagina staat dan dit blok. Hij heeft het id van een
+       opgeslagen formulier nodig - dat staat in het verborgen veld c_id. */
+    function koppelPdfKnop(){
+      var knop = document.getElementById("c_pdfTop");
+      if(!knop) return;
+      knop.addEventListener("click", function(){
+        var melding = document.getElementById("c_pdfStatus");
+        var veld = document.getElementById("c_id");
+        var id = veld ? veld.value : "";
+        if(!id){
+          if(melding){
+            melding.className = "status err";
+            melding.textContent = "✕ Sla het formulier eerst op; daarna kun je er een pdf van maken.";
+          }
+          return;
+        }
+        if(typeof window.bwfAfdrukken !== "function"){
+          if(melding){
+            melding.className = "status err";
+            melding.textContent = "✕ De afdrukfunctie is nog niet geladen. Wacht even en probeer opnieuw.";
+          }
+          return;
+        }
+        if(melding){ melding.className = "status"; melding.textContent = ""; }
+        window.bwfAfdrukken(id);
+      });
+    }
 
     /* controleren bij definitief opslaan */
     if(typeof window.saveCheckin === "function" && !window.saveCheckin.__verplicht){
@@ -5844,9 +5959,13 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
             var st = document.getElementById("checkinStatus");
             if(st){
               st.className = "status err";
-              st.textContent = "\u2715 Vul eerst in: " + mist.join(", ") + ". Die velden staan bovenaan bij Boekingsgegevens.";
+              st.textContent = "\u2715 Vul eerst in: " + mist.join(", ") + ". Die velden staan bovenaan bij Reserveringsgegevens.";
             }
-            if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
+            /* Verwees naar Boekingsgegevens; suite, datum en locatiemanager staan
+               sinds 18-09-2026 bovenaan in Reserveringsgegevens. */
+            var boven = document.getElementById("bwfBovenBlok");
+            if(boven) boven.scrollIntoView({ behavior:"smooth", block:"start" });
+            else if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
             return Promise.reject(new Error("verplichte velden"));
           }
         }
