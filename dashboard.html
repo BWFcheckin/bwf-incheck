@@ -3626,6 +3626,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       try{ DIENSTEN = await sbPubliek('planning?select=*&order=datum.asc&limit=4000') || []; }catch(e3){}
     }
     try{ VOORRAAD = await sb('voorraad?select=*&limit=2000') || []; }catch(e){ VOORRAAD=[]; }
+    /* De catalogus met extra's, voor het bijboeken op locatie. Zelfde bron als
+       het reserveringenscherm gebruikt, zodat prijzen niet uiteen lopen. */
+    try{ EXTRAS_CAT = await sb('wz_extras?select=id,naam,categorie,prijs,per_persoon,omschrijving,locatie,actief&actief=eq.true&order=sortering.asc,naam.asc') || []; }
+    catch(e){ EXTRAS_CAT = []; }
     try{ AANMELDINGEN = await sb('gast_aanmeldingen?select=*&order=created_at.desc&limit=300') || []; }
     catch(e){ AANMELDINGEN=[]; }
     teamLijst().forEach(function(m,i){ DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
@@ -5058,6 +5062,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       (k.betaalwijze ? '<div class="rij" style="opacity:.7"><span>Betaalwijze</span><span>'+esc(k.betaalwijze)+'</span></div>' : '')+
       '</div>';
 
+    /* Extra's bijboeken op locatie (Angela, 19-09-2026). Wat hier wordt
+       bijgeboekt krijgt het merkteken bron:'bijgeboekt', net als in het
+       reserveringenscherm, zodat het daar onder "Bijgeboekt" verschijnt en
+       het vooraf geboekte niet overschrijft. */
+    var opLocatie = bijgeboekteVan(r);
+    var opLocatieTekst = opLocatie.map(function(x){
+      return (Number(x.aantal) > 1 ? x.aantal + '× ' : '') + (x.naam || '') +
+             (Number(x.bedrag) ? ' (' + euro(x.bedrag) + ')' : '') +
+             (x.betaalwijze ? ' · ' + x.betaalwijze : '') +
+             (x.betaald ? ' · afgerekend' : '');
+    }).filter(Boolean).join(', ');
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Extra\'s bijboeken op locatie</b>'+
+        '<span class="rechts" style="margin-left:auto">'+
+          '<button class="knop klein vol" type="button" id="rkExtraOpen">Extra\'s bijboeken</button>'+
+        '</span></div>'+
+      (opLocatieTekst ? '<div style="margin-top:8px;font-size:13.5px"><b>Bijgeboekt:</b> '+esc(opLocatieTekst)+'</div>' : '')+
+      '<div id="rkExtras" hidden style="margin-top:10px"></div>'+
+      '</div>';
+
     /* De kaart toont de echte stand van de call, niet alleen gedaan of niet, en
        laat meteen zien wat er besproken is. */
     var kaartCall = callVanRes(r);
@@ -5181,6 +5206,31 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     h += '<div class="actie"><b>Taak bij deze reservering</b>'+
       '<span class="rechts"><button class="knop klein" type="button" id="rkTaak">Taak aanmaken</button></span></div>';
 
+    /* Betaling met de klant afronden (Angela, 19-09-2026). Staat onderaan,
+       want het is de laatste handeling bij het uitchecken. */
+    var ruwSt = (r.ruw && r.ruw.betaalstatus) || '';
+    var ruwVia = (r.ruw && r.ruw.betaald_via) || '';
+    var laatsteBetaling = arrVan(r).filter(function(x){ return x && x.bron === 'betaling'; }).pop();
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Betaling met de klant afronden</b>'+
+        (ruwSt === 'betaald'
+          ? '<span class="vlag ja">Betaald'+(ruwVia ? ' · '+esc(ruwVia) : '')+'</span>'
+          : ruwSt === 'deels'
+            ? '<span class="vlag klant">Deels betaald'+(ruwVia ? ' · '+esc(ruwVia) : '')+'</span>'
+            : '<span class="vlag nee">Nog niet afgerekend</span>')+
+        '<span class="rechts" style="margin-left:auto">'+
+          '<button class="knop klein vol" type="button" id="rkBetaalOpen">Betaling afronden</button>'+
+        '</span></div>'+
+      (laatsteBetaling
+        ? '<div style="margin-top:8px;font-size:13.5px">Laatst afgerekend: '+
+          esc(euro(laatsteBetaling.betaald_bedrag))+' via '+esc(laatsteBetaling.betaalwijze||'onbekend')+
+          (laatsteBetaling.door ? ' door '+esc(laatsteBetaling.door) : '')+
+          (laatsteBetaling.tijdstip ? ' op '+esc(dtKort(laatsteBetaling.tijdstip)) : '')+'</div>'
+        : '')+
+      '<div id="rkBetaling" hidden style="margin-top:10px"></div>'+
+      '</div>';
+
     h += '<div class="actie"><b>Uit het overzicht halen</b>'+
       '<span class="rechts"><button class="knop klein" type="button" id="rkWeg" '+
       'style="border-color:#C13E50;color:#C13E50">Verwijderen</button></span></div>';
@@ -5214,8 +5264,298 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function terugLink(r){
     return location.origin+location.pathname+'?tab=overzicht&res='+encodeURIComponent(sleutel(r));
   }
+  /* ============================================================
+     Afrekenen op locatie (Angela, 19-09-2026)
+     Extra's bijboeken met Pin of Contant, en de betaling met de klant
+     afronden. Alles gaat naar de reservering zelf, zodat het
+     reserveringenscherm en het VR-dashboard hetzelfde zien - en niet naar
+     res_koppeling, waar de borg wel belandt maar nergens anders opduikt.
+     ============================================================ */
+  var EXTRAS_CAT = [];
+  var EXTRA_KEUZE = {};
+
+  function wieRekentAf(){
+    try{ return localStorage.getItem('bw-wie') || ''; }catch(e){ return ''; }
+  }
+  /* wz_extras kent locatie 'Almere' of 'Lelystad'; hoofdnaam() geeft de
+     suitenaam zonder plaats, dus die vertaling staat hier. */
+  function plaatsVanSuite(loc){
+    var n = hoofdnaam(loc);
+    if(n === 'Suite Angie') return 'Almere';
+    if(n === 'Malina Jacuzzi' || n === 'Malina Deluxe') return 'Lelystad';
+    return '';
+  }
+  function extrasVoor(r){
+    var plaats = plaatsVanSuite(r.locatie);
+    return EXTRAS_CAT.filter(function(e){
+      if(!e || e.actief === false) return false;
+      if(!e.locatie) return true;                 /* geldt op elke locatie */
+      return !plaats || String(e.locatie) === plaats;
+    });
+  }
+  function arrVan(r){
+    return (r.ruw && Array.isArray(r.ruw.arrangementen)) ? r.ruw.arrangementen : [];
+  }
+  /* Wat er op locatie is bijgeboekt: alles met een merkteken bron. Zonder
+     merkteken is het vooraf geboekt en dat laten we met rust. */
+  function bijgeboekteVan(r){
+    return arrVan(r).filter(function(x){ return x && x.bron === 'bijgeboekt'; });
+  }
+  function nogNietAfgerekend(r){
+    return bijgeboekteVan(r).filter(function(x){ return !x.betaald; });
+  }
+  function extraRegels(r){
+    var pers = parseInt(kop(r).personen || naw(r).personen || 2, 10) || 2;
+    return Object.keys(EXTRA_KEUZE).map(function(id){
+      var e = null;
+      for(var i=0;i<EXTRAS_CAT.length;i++) if(String(EXTRAS_CAT[i].id) === String(id)) { e = EXTRAS_CAT[i]; break; }
+      if(!e) return null;
+      var aantal = e.per_persoon ? pers : (parseInt(EXTRA_KEUZE[id],10) || 1);
+      return { naam: e.naam, aantal: aantal,
+               bedrag: Math.round((parseFloat(e.prijs)||0) * aantal * 100)/100 };
+    }).filter(Boolean);
+  }
+  function extraSom(r){
+    return extraRegels(r).reduce(function(a,x){ return a + x.bedrag; }, 0);
+  }
+
+  function tekenExtraKeuze(r){
+    var vak = document.getElementById('rkExtras');
+    if(!vak) return;
+    var lijst = extrasVoor(r);
+    if(!lijst.length){
+      vak.innerHTML = '<p class="note" style="margin:0">De lijst met extra\'s kon niet worden geladen. Ververs de pagina.</p>';
+      return;
+    }
+    var pers = parseInt(kop(r).personen || naw(r).personen || 2, 10) || 2;
+    var groepen = {};
+    lijst.forEach(function(e){ (groepen[e.categorie || 'Overig'] = groepen[e.categorie || 'Overig'] || []).push(e); });
+    var h = '';
+    Object.keys(groepen).forEach(function(cat){
+      h += '<div style="margin-top:10px"><b style="font-size:13px;opacity:.7">'+esc(cat)+'</b></div>';
+      groepen[cat].forEach(function(e){
+        var aan = EXTRA_KEUZE[e.id] !== undefined;
+        var prijs = parseFloat(e.prijs)||0;
+        h += '<label style="display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap;cursor:pointer">'+
+          '<input type="checkbox" data-xextra="'+esc(e.id)+'"'+(aan?' checked':'')+' style="width:20px;height:20px">'+
+          '<span style="flex:1;min-width:150px">'+esc(e.naam)+
+            (e.per_persoon ? ' <small style="opacity:.6">per persoon ('+pers+')</small>' : '')+'</span>'+
+          (e.per_persoon || !aan ? '' :
+            '<input type="number" min="1" step="1" data-xaantal="'+esc(e.id)+'" value="'+
+              esc(EXTRA_KEUZE[e.id])+'" style="width:64px">')+
+          '<span style="min-width:80px;text-align:right">'+esc(euro(prijs))+'</span>'+
+          '</label>';
+      });
+    });
+    h += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line,#e3dad0)">'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">'+
+        '<b>Betaalwijze</b>'+
+        '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">'+
+          '<input type="radio" name="rkExtraWijze" value="Pin" style="width:20px;height:20px"> Pin</label>'+
+        '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">'+
+          '<input type="radio" name="rkExtraWijze" value="Contant" style="width:20px;height:20px"> Contant</label>'+
+        '<span style="margin-left:auto;font-weight:700" id="rkExtraSom">'+esc(euro(extraSom(r)))+'</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">'+
+        '<button class="knop vol" type="button" id="rkExtraOk">Bijboeken</button>'+
+        '<span id="rkExtraMeld" style="font-size:13.5px"></span>'+
+      '</div></div>';
+    vak.innerHTML = h;
+  }
+
+  async function boekExtrasBij(r){
+    var meld = document.getElementById('rkExtraMeld');
+    var gekozen = document.querySelector('input[name="rkExtraWijze"]:checked');
+    var wijze = gekozen ? gekozen.value : '';
+    var regels = extraRegels(r);
+    if(!regels.length){ meld.textContent = '✕ Kies eerst een of meer extra\'s.'; return; }
+    if(!wijze){ meld.textContent = '✕ Kies Pin of Contant — dat is verplicht.'; return; }
+    if(!r.resId){
+      meld.textContent = '✕ Deze boeking staat niet in de reserveringen, dus bijboeken kan hier niet.';
+      return;
+    }
+    var knop = document.getElementById('rkExtraOk');
+    if(knop) knop.disabled = true;
+    meld.textContent = 'Bezig met bijboeken…';
+    var nu = new Date().toISOString();
+    var nieuw = regels.map(function(x){
+      return { naam:x.naam, aantal:x.aantal, bedrag:x.bedrag, bron:'bijgeboekt',
+               betaalwijze:wijze, tijdstip:nu, door:wieRekentAf() };
+    });
+    var erbij = Math.round(regels.reduce(function(a,x){ return a+x.bedrag; },0)*100)/100;
+    var ruw = r.ruw || {};
+    var hadTotaal = ruw.bedrag_totaal != null;
+    var oudTotaal = hadTotaal ? (parseFloat(ruw.bedrag_totaal)||0) : 0;
+    var d = { arrangementen: arrVan(r).concat(nieuw),
+              bedrag_totaal: Math.round((oudTotaal + erbij)*100)/100,
+              gewijzigd_door: wieRekentAf() || 'dashboard' };
+    /* Het openstaande bedrag loopt mee op: bijboeken is nog niet afrekenen.
+       Dat gebeurt met "Betaling met de klant afronden" hieronder. */
+    var nuOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0)
+      : !hadTotaal ? 0
+      : ruw.betaalstatus === 'betaald' ? 0
+      : ruw.betaalstatus === 'open' ? oudTotaal : null;
+    if(nuOpen != null) d.restant_bedrag = Math.round((nuOpen + erbij)*100)/100;
+    if(ruw.betaalstatus === 'betaald' && erbij > 0) d.betaalstatus = 'deels';
+    try{
+      var terug = await sb('reserveringen?id=eq.'+encodeURIComponent(r.resId)+'&select=id,arrangementen,bedrag_totaal,restant_bedrag,betaalstatus',
+        { method:'PATCH', body: JSON.stringify(d) });
+      if(!terug || !terug.length) throw new Error('geen rechten om deze reservering te wijzigen');
+      /* Kwam alles er echt doorheen? De database kan velden stil terugzetten;
+         dan is de knop niet gelukt en moet dat hier staan, niet verzwegen. */
+      var aantalNa = Array.isArray(terug[0].arrangementen) ? terug[0].arrangementen.length : 0;
+      if(aantalNa < d.arrangementen.length){
+        meld.textContent = '✕ De database heeft het bijboeken teruggedraaid. Vraag Angela om de rechten.';
+        if(knop) knop.disabled = false;
+        return;
+      }
+      Object.assign(ruw, terug[0]);
+      EXTRA_KEUZE = {};
+      openKaart(sleutel(r));
+    }catch(e){
+      meld.textContent = '✕ Bijboeken mislukt: ' + e.message;
+      if(knop) knop.disabled = false;
+    }
+  }
+
+  function tekenBetaalVak(r){
+    var vak = document.getElementById('rkBetaling');
+    if(!vak) return;
+    var b = bedragen(r);
+    var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
+    var ruwOpen = (r.ruw && r.ruw.restant_bedrag != null) ? (parseFloat(r.ruw.restant_bedrag)||0) : b.open;
+    vak.innerHTML =
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">'+
+        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
+          '<input type="radio" name="rkBetaalWat" value="alles" checked style="width:20px;height:20px">'+
+          '<span>Alles openstaand <b>'+esc(euro(ruwOpen))+'</b></span></label>'+
+        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
+          '<input type="radio" name="rkBetaalWat" value="extras" style="width:20px;height:20px">'+
+          '<span>Alleen de extra\'s <b>'+esc(euro(openExtras))+'</b></span></label>'+
+      '</div>'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:12px">'+
+        '<b>Betaalwijze</b>'+
+        '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">'+
+          '<input type="radio" name="rkBetaalWijze" value="Pin" style="width:20px;height:20px"> Pin</label>'+
+        '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">'+
+          '<input type="radio" name="rkBetaalWijze" value="Contant" style="width:20px;height:20px"> Contant</label>'+
+        '<span style="margin-left:auto;font-weight:700" id="rkBetaalSom">'+esc(euro(ruwOpen))+'</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">'+
+        '<button class="knop vol" type="button" id="rkBetaalOk">Betaling afronden</button>'+
+        '<span id="rkBetaalMeld" style="font-size:13.5px"></span>'+
+      '</div>';
+  }
+
+  async function rondBetalingAf(r){
+    var meld = document.getElementById('rkBetaalMeld');
+    var wat = (document.querySelector('input[name="rkBetaalWat"]:checked')||{}).value || 'alles';
+    var gekozen = document.querySelector('input[name="rkBetaalWijze"]:checked');
+    var wijze = gekozen ? gekozen.value : '';
+    if(!wijze){ meld.textContent = '✕ Kies Pin of Contant.'; return; }
+    if(!r.resId){ meld.textContent = '✕ Deze boeking staat niet in de reserveringen.'; return; }
+    var b = bedragen(r);
+    var ruw = r.ruw || {};
+    var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
+    var ruwOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0) : b.open;
+    var bedrag = wat === 'extras' ? openExtras : ruwOpen;
+    bedrag = Math.round(bedrag*100)/100;
+    if(!(bedrag > 0)){ meld.textContent = '✕ Er staat niets open om af te rekenen.'; return; }
+    var knop = document.getElementById('rkBetaalOk');
+    if(knop) knop.disabled = true;
+    meld.textContent = 'Bezig met afronden…';
+    var nu = new Date().toISOString(), door = wieRekentAf();
+    /* De afgerekende extra's krijgen een merkteken, zodat ze niet een tweede
+       keer in "Alleen de extra's" meetellen. */
+    var arr = arrVan(r).map(function(x){
+      if(x && x.bron === 'bijgeboekt' && !x.betaald && (wat === 'extras' || wat === 'alles')){
+        return Object.assign({}, x, { betaald:true, betaald_op:nu, betaald_via:wijze, betaald_door:door });
+      }
+      return x;
+    });
+    arr = arr.concat([{ naam:'Afgerekend op locatie', aantal:1, bedrag:0, bron:'betaling',
+                        betaald_bedrag:bedrag, betaalwijze:wijze, tijdstip:nu, door:door }]);
+    var oudBetaald = parseFloat(ruw.betaald_bedrag)||0;
+    var nieuwBetaald = Math.round((oudBetaald + bedrag)*100)/100;
+    var nieuwOpen = Math.round(Math.max(0, ruwOpen - bedrag)*100)/100;
+    var d = { arrangementen: arr,
+              betaald_bedrag: nieuwBetaald,
+              restant_bedrag: nieuwOpen,
+              betaalstatus: nieuwOpen > 0 ? 'deels' : 'betaald',
+              betaald_via: wijze,
+              gewijzigd_door: door || 'dashboard' };
+    try{
+      var terug = await sb('reserveringen?id=eq.'+encodeURIComponent(r.resId)+'&select=id,arrangementen,betaald_bedrag,restant_bedrag,betaalstatus,betaald_via',
+        { method:'PATCH', body: JSON.stringify(d) });
+      if(!terug || !terug.length) throw new Error('geen rechten om deze reservering te wijzigen');
+      if(String(terug[0].betaalstatus||'') !== d.betaalstatus){
+        meld.textContent = '✕ De database heeft de betaling teruggedraaid. Vraag Angela om de rechten.';
+        if(knop) knop.disabled = false;
+        return;
+      }
+      Object.assign(ruw, terug[0]);
+      openKaart(sleutel(r));
+    }catch(e){
+      meld.textContent = '✕ Afronden mislukt: ' + e.message;
+      if(knop) knop.disabled = false;
+    }
+  }
+
+  function bindAfrekenen(r){
+    var open = document.getElementById('rkExtraOpen');
+    if(open) open.onclick = function(){
+      var vak = document.getElementById('rkExtras');
+      if(!vak) return;
+      vak.hidden = !vak.hidden;
+      open.textContent = vak.hidden ? 'Extra\'s bijboeken' : 'Sluiten';
+      if(!vak.hidden) tekenExtraKeuze(r);
+    };
+    /* Aanvinken en aantallen: één luisteraar op het vak, want de regels worden
+       pas getekend als je het openklapt. */
+    var vak = document.getElementById('rkExtras');
+    if(vak) vak.onchange = function(e){
+      var vink = e.target.closest ? e.target.closest('[data-xextra]') : null;
+      if(vink){
+        var id = vink.getAttribute('data-xextra');
+        if(vink.checked) EXTRA_KEUZE[id] = 1; else delete EXTRA_KEUZE[id];
+        tekenExtraKeuze(r);
+        return;
+      }
+      var aantal = e.target.closest ? e.target.closest('[data-xaantal]') : null;
+      if(aantal){
+        EXTRA_KEUZE[aantal.getAttribute('data-xaantal')] = Math.max(1, parseInt(aantal.value,10)||1);
+        var som = document.getElementById('rkExtraSom');
+        if(som) som.textContent = euro(extraSom(r));
+      }
+    };
+    if(vak) vak.onclick = function(e){
+      if(e.target && e.target.id === 'rkExtraOk'){ e.preventDefault(); boekExtrasBij(r); }
+    };
+    var bOpen = document.getElementById('rkBetaalOpen');
+    if(bOpen) bOpen.onclick = function(){
+      var bv = document.getElementById('rkBetaling');
+      if(!bv) return;
+      bv.hidden = !bv.hidden;
+      bOpen.textContent = bv.hidden ? 'Betaling afronden' : 'Sluiten';
+      if(!bv.hidden) tekenBetaalVak(r);
+    };
+    var bv = document.getElementById('rkBetaling');
+    if(bv) bv.onchange = function(){
+      var wat = (document.querySelector('input[name="rkBetaalWat"]:checked')||{}).value || 'alles';
+      var b = bedragen(r), ruw = r.ruw || {};
+      var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
+      var ruwOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0) : b.open;
+      var som = document.getElementById('rkBetaalSom');
+      if(som) som.textContent = euro(wat === 'extras' ? openExtras : ruwOpen);
+    };
+    if(bv) bv.onclick = function(e){
+      if(e.target && e.target.id === 'rkBetaalOk'){ e.preventDefault(); rondBetalingAf(r); }
+    };
+  }
+
   function bindKaart(r){
     var k = kop(r);
+    bindAfrekenen(r);
     var huidigKanaal = k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || '';
     var call = document.getElementById('rkCall');
     if(call) call.onclick = function(){
