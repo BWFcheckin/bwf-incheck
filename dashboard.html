@@ -5254,6 +5254,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<div id="rkBetaling" hidden style="margin-top:10px"></div>'+
       '</div>';
 
+    /* Overdracht aanmaken (Angela, 19-09-2026, stap 4). Een uitklapmenu, want
+       het is alleen nodig als er echt iets over te dragen valt. De tabel
+       overdracht heeft geen koppelveld naar een reservering, dus de verwijzing
+       staat als eerste regel in het bericht - daar kan de collega mee verder. */
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Overdracht aanmaken</b>'+
+        '<span style="font-size:13px;opacity:.7">alleen als er iets over te dragen is</span>'+
+        '<span class="rechts" style="margin-left:auto">'+
+          '<button class="knop klein" type="button" id="rkOverOpen">Overdracht aanmaken</button>'+
+        '</span></div>'+
+      '<div id="rkOver" hidden style="margin-top:10px"></div>'+
+      '</div>';
+
     h += '<div class="actie"><b>Uit het overzicht halen</b>'+
       '<span class="rechts"><button class="knop klein" type="button" id="rkWeg" '+
       'style="border-color:#C13E50;color:#C13E50">Verwijderen</button></span></div>';
@@ -5677,6 +5691,91 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }
   }
 
+  /* ============================================================
+     Overdracht aanmaken bij een reservering (Angela, 19-09-2026, stap 4)
+     ============================================================ */
+  function tekenOverdracht(r){
+    var vak = document.getElementById('rkOver');
+    if(!vak) return;
+    var mensen = (MEDEWERKERS || []).filter(function(m){ return m && m.naam && m.actief !== false; });
+    var ik = wieRekentAf();
+    vak.innerHTML =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+
+        '<div class="field" style="min-width:170px"><label for="rkOverAan">Overdragen aan</label>'+
+          '<select id="rkOverAan"><option value="">— iedereen —</option>'+
+          mensen.map(function(m){
+            return '<option'+(m.naam === ik ? '' : '')+'>'+esc(m.naam)+'</option>'; }).join('')+
+          '</select></div>'+
+        '<div class="field" style="min-width:150px"><label for="rkOverSoort">Soort</label>'+
+          '<select id="rkOverSoort">'+
+            '<option value="info">Informatie</option>'+
+            '<option value="storing">Storing</option>'+
+            '<option value="schoonmaak">Schoonmaak</option>'+
+            '<option value="gast">Gast</option>'+
+          '</select></div>'+
+      '</div>'+
+      '<div class="field" style="margin-top:10px"><label for="rkOverTekst">Bijzonderheden</label>'+
+        '<textarea id="rkOverTekst" rows="3" placeholder="Wat moet de volgende dienst weten over deze boeking?"></textarea></div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">'+
+        '<button class="knop vol" type="button" id="rkOverOk">Overdracht opslaan</button>'+
+        '<span id="rkOverMeld" style="font-size:13.5px"></span>'+
+      '</div>';
+  }
+  async function bewaarOverdracht(r){
+    var meld = document.getElementById('rkOverMeld');
+    var veldTekst = document.getElementById('rkOverTekst');
+    var tekst = veldTekst ? veldTekst.value.trim() : '';
+    if(!tekst){ if(meld) meld.textContent = '✕ Schrijf eerst op wat er over te dragen is.'; return; }
+    var knop = document.getElementById('rkOverOk');
+    if(knop) knop.disabled = true;
+    if(meld) meld.textContent = 'Bezig met opslaan…';
+    var aan = (document.getElementById('rkOverAan')||{}).value || '';
+    var soort = (document.getElementById('rkOverSoort')||{}).value || 'info';
+    var n2 = naw(r);
+    /* De verwijzing naar de boeking als eerste regel, zodat de collega in het
+       overdrachtscherm meteen ziet waar het over gaat. */
+    var verwijzing = 'Reservering: ' + gastnaam(r) + ' · ' + hoofdnaam(r.locatie) +
+      ' · ' + (r.aankomst || 'zonder datum') +
+      (r.tijdIn ? ' om ' + r.tijdIn : '') +
+      (n2.nummer ? ' · #' + n2.nummer : '');
+    var rij = {
+      id: 'od-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      ts: Date.now(),
+      auteur: wieRekentAf() || 'dashboard',
+      aan: aan,
+      locatie: hoofdnaam(r.locatie),
+      cat: soort,
+      tekst: verwijzing + '\n' + tekst,
+      klaar: false,
+      datum: r.aankomst || new Date().toISOString().slice(0,10)
+    };
+    try{
+      var terug = await sb('overdracht', { method:'POST', body: JSON.stringify(rij) });
+      if(!terug || !terug.length) throw new Error('de overdracht is niet opgeslagen');
+      if(veldTekst) veldTekst.value = '';
+      if(meld) meld.textContent = '✓ Overdracht opgeslagen' + (aan ? ' voor ' + aan : '') +
+        '. Hij staat op het tabblad Overdracht.';
+      if(knop) knop.disabled = false;
+    }catch(e){
+      if(meld) meld.textContent = '✕ Opslaan mislukt: ' + e.message;
+      if(knop) knop.disabled = false;
+    }
+  }
+  function bindOverdracht(r){
+    var open = document.getElementById('rkOverOpen');
+    if(open) open.onclick = function(){
+      var vak = document.getElementById('rkOver');
+      if(!vak) return;
+      vak.hidden = !vak.hidden;
+      open.textContent = vak.hidden ? 'Overdracht aanmaken' : 'Sluiten';
+      if(!vak.hidden) tekenOverdracht(r);
+    };
+    var vak = document.getElementById('rkOver');
+    if(vak) vak.onclick = function(e){
+      if(e.target && e.target.id === 'rkOverOk'){ e.preventDefault(); bewaarOverdracht(r); }
+    };
+  }
+
   function bindAfrekenen(r){
     var open = document.getElementById('rkExtraOpen');
     if(open) open.onclick = function(){
@@ -5733,6 +5832,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var k = kop(r);
     bindAfrekenen(r);
     bindKlant(r);
+    bindOverdracht(r);
     var huidigKanaal = k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || '';
     var call = document.getElementById('rkCall');
     if(call) call.onclick = function(){
