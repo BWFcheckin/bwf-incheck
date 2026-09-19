@@ -5148,11 +5148,17 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<span id="rkWcMeld" style="font-size:13px;opacity:.7"></span>'+
       '</div></div>';
 
-    h += '<div class="actie"><b>Reserveringsformulier</b>'+
+    /* Incheckformulier (Angela, 19-09-2026, stap 3). Is er een formulier
+       gekoppeld, dan opent "Open PDF" meteen de afdrukweergave. Is er er geen,
+       dan maakt "Nieuw formulier" er een aan die zichzelf vult uit de
+       reservering en bij het opslaan vanzelf koppelt. */
+    h += '<div class="actie"><b>Incheckformulier</b>'+
       '<span class="vlag '+(ci?'ja':'nee')+'">'+(ci?'Ingevuld':'Niet ingevuld')+'</span>'+
       '<span class="rechts">'+
         '<button class="knop klein" type="button" id="rkGast">Gastversie</button>'+
-        '<button class="knop klein vol" type="button" id="rkForm">'+(ci?'Bekijken en wijzigen':'Aanmaken')+'</button>'+
+        (ci ? '<button class="knop klein" type="button" id="rkForm">Bekijken en wijzigen</button>'+
+              '<button class="knop klein vol" type="button" id="rkPdf">Open PDF</button>'
+            : '<button class="knop klein vol" type="button" id="rkNieuwForm">Nieuw formulier</button>')+
       '</span></div>';
 
     var bBedrag = parseFloat(k.borg_bedrag)||0;
@@ -5769,17 +5775,37 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var info = document.getElementById('rkCallInfo');
     if(info) info.onclick = function(){ openCall(r); };
 
+    /* Stap 3 (Angela, 19-09-2026). Het formulier werd geopend met ?res=<sleutel>,
+       maar incheckformulier.html leest die parameter niet - het luistert naar
+       ?formulier=<id>, ?pdf=<id> en ?reservering=<id>. Daarom koppelde een
+       formulier vanaf dit scherm nooit vanzelf. Nu de juiste parameters. */
     var form = document.getElementById('rkForm');
     if(form) form.onclick = function(){
       var ci = checkinVan(r);
-      var u = FORM_LM_URL+'?res='+encodeURIComponent(sleutel(r))+
-        (ci ? '&id='+encodeURIComponent(ci.id) : '')+
-        '&gast='+encodeURIComponent(gastnaam(r))+
-        '&locatie='+encodeURIComponent(hoofdnaam(r.locatie))+
-        '&aankomst='+encodeURIComponent(r.aankomst||'')+
-        '&vertrek='+encodeURIComponent(r.vertrek||'')+
-        '&terug='+encodeURIComponent(terugLink(r));
+      var u = ci ? FORM_LM_URL+'?formulier='+encodeURIComponent(ci.id)
+                 : FORM_LM_URL+'?reservering='+encodeURIComponent(r.resId || sleutel(r));
       window.open(u,'_blank','noopener');
+    };
+    /* Open PDF: de afdrukweergave van het gekoppelde formulier. Die bestaat al
+       in incheckformulier.html (window.bwfAfdrukken) en luistert naar ?pdf=. */
+    var pdf = document.getElementById('rkPdf');
+    if(pdf) pdf.onclick = function(){
+      var ci = checkinVan(r);
+      if(!ci) return;
+      window.open(FORM_LM_URL+'?pdf='+encodeURIComponent(ci.id),'_blank','noopener');
+    };
+    /* Nieuw formulier: alleen ?reservering=<id> meegeven. incheckformulier.html
+       zoekt de boeking er dan bij, neemt suite, datums, tijden, personen en
+       bedragen over, en koppelt bij het opslaan vanzelf aan deze reservering.
+       Geef je er prefill-velden bij, dan slaat hij juist die koppelstap over -
+       dus bewust alleen dit ene adres. */
+    var nieuwForm = document.getElementById('rkNieuwForm');
+    if(nieuwForm) nieuwForm.onclick = function(){
+      if(!r.resId){
+        alert('Deze boeking staat niet in de reserveringen, dus een formulier kan hier niet automatisch worden gekoppeld. Gebruik Gastversie.');
+        return;
+      }
+      window.open(FORM_LM_URL+'?reservering='+encodeURIComponent(r.resId),'_blank','noopener');
     };
     var gast = document.getElementById('rkGast');
     if(gast) gast.onclick = function(){
