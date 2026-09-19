@@ -5053,6 +5053,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       (k.notitie ? rij('Notitie', k.notitie) : '') +
       '</dl>';
 
+    /* Klant koppelen (Angela, 19-09-2026, stap 2). Is er een klant gekoppeld,
+       dan opent "Klantgegevens" meteen díe klantkaart in klantbeheer. */
+    var klantRij = klantVanRes(r);
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Klant</b>'+
+        (klantRij
+          ? '<span class="vlag klant">'+esc(klantNaamVan(klantRij))+'</span>'
+          : '<span class="vlag nee">Niet gekoppeld</span>')+
+        '<span class="rechts" style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">'+
+          (klantRij ? '<button class="knop klein" type="button" id="rkKlantOpen">Klantgegevens</button>' : '')+
+          '<button class="knop klein'+(klantRij?'':' vol')+'" type="button" id="rkKlantKoppel">'+
+            (klantRij ? 'Andere klant koppelen' : 'Klant koppelen')+'</button>'+
+        '</span></div>'+
+      '<div id="rkKlant" hidden style="margin-top:10px"></div>'+
+      '</div>';
+
     h += '<div class="geld">'+
       '<div class="rij"><span>Totaalbedrag</span><span>'+euro(b.totaal)+'</span></div>'+
       '<div class="rij"><span>Reeds betaald</span><span>'+euro(b.betaald)+'</span></div>'+
@@ -5501,6 +5518,159 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }
   }
 
+  /* ============================================================
+     Klant koppelen (Angela, 19-09-2026, stap 2)
+     Er was alleen "Nieuw · klant aanmaken", dat blind een klant aanlegde
+     zonder te kijken of die er al stond - bij elke herhaalbezoeker een
+     dubbele. Nu eerst zoeken, dan kiezen of aanmaken.
+     ============================================================ */
+  function klantSleutel(c){
+    return [c.achternaam || '', c.voorletters || '', c.woonplaats || '']
+      .join('|').toLowerCase();
+  }
+  function klantNaamVan(c){
+    if(!c) return '';
+    var n = [c.voorletters || c.voornaam || '', c.achternaam || ''].filter(Boolean).join(' ').trim();
+    return n || c.email || c.telefoon || 'zonder naam';
+  }
+  function klantVanRes(r){
+    var id = kop(r).klant_id || (r.ruw && r.ruw.klant_id) || '';
+    if(!id) return null;
+    for(var i=0;i<KLANTEN.length;i++) if(String(KLANTEN[i].id) === String(id)) return KLANTEN[i];
+    return null;
+  }
+  function zoekKlanten(term){
+    var t = String(term||'').toLowerCase().trim();
+    var cijfers = t.replace(/\D/g,'');
+    if(!t) return [];
+    return KLANTEN.filter(function(c){
+      var hooi = [c.voornaam, c.voorletters, c.achternaam, c.woonplaats, c.email]
+        .filter(Boolean).join(' ').toLowerCase();
+      if(hooi.indexOf(t) > -1) return true;
+      if(cijfers.length > 5 && String(c.telefoon||'').replace(/\D/g,'').indexOf(cijfers) > -1) return true;
+      return false;
+    }).slice(0, 10);
+  }
+  function tekenKlantZoek(r){
+    var vak = document.getElementById('rkKlant');
+    if(!vak) return;
+    var zoekveld = document.getElementById('rkKlantZoek');
+    var term = zoekveld ? zoekveld.value : '';
+    if(!zoekveld){
+      /* eerste keer tekenen: zoekveld en knoppen neerzetten, met de achternaam
+         van de gast als beginwaarde zodat de lijst meteen klopt */
+      var d = String(gastnaam(r)).split(' ');
+      var achter = d.length > 1 ? d.slice(1).join(' ') : (d[0] || '');
+      vak.innerHTML =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+
+          '<div class="field" style="flex:1;min-width:200px">'+
+            '<label for="rkKlantZoek">Zoeken op naam, e-mail of telefoon</label>'+
+            '<input type="text" id="rkKlantZoek" value="'+esc(achter)+'" placeholder="naam, e-mail of telefoon"></div>'+
+          '<button class="knop klein" type="button" id="rkKlantNieuw">Nieuwe klant van deze gast</button>'+
+        '</div>'+
+        '<div id="rkKlantLijst" style="margin-top:10px"></div>'+
+        '<div id="rkKlantMeld" style="font-size:13.5px;margin-top:8px"></div>';
+      term = achter;
+    }
+    var lijst = zoekKlanten(term);
+    var doel = document.getElementById('rkKlantLijst');
+    if(!doel) return;
+    if(!term.trim()){
+      doel.innerHTML = '<p class="note" style="margin:0">Typ een naam, e-mail of telefoonnummer om te zoeken.</p>';
+      return;
+    }
+    if(!lijst.length){
+      doel.innerHTML = '<p class="note" style="margin:0">Geen klant gevonden. Maak er een aan met de knop hierboven.</p>';
+      return;
+    }
+    doel.innerHTML = lijst.map(function(c){
+      var regel = [c.woonplaats, c.email, c.telefoon].filter(Boolean).join(' · ');
+      return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 0;'+
+        'border-bottom:1px solid var(--line-soft,#efe8e1)">'+
+        '<div style="flex:1;min-width:170px"><b>'+esc(klantNaamVan(c))+'</b>'+
+          (c.member ? ' <span class="vlag member">Member</span>' : '')+
+          (regel ? '<div style="font-size:12.5px;opacity:.7">'+esc(regel)+'</div>' : '')+'</div>'+
+        '<button class="knop klein vol" type="button" data-kkoppel="'+esc(c.id)+'">Koppelen</button>'+
+        '</div>';
+    }).join('');
+  }
+  async function koppelKlant(r, id){
+    var meld = document.getElementById('rkKlantMeld');
+    if(meld) meld.textContent = 'Bezig met koppelen…';
+    try{
+      await bewaarKoppeling(r, { klant_id: String(id) });
+      /* Kwam het er echt doorheen? De database kan het stil terugzetten. */
+      var na = await sb('reserveringen?id=eq.'+encodeURIComponent(r.resId)+'&select=klant_id');
+      if(r.resId && (!na || !na.length || String(na[0].klant_id||'') !== String(id))){
+        if(meld) meld.textContent = '✕ De database heeft de koppeling teruggedraaid. Vraag Angela om de rechten.';
+        return;
+      }
+      openKaart(sleutel(r)); tekenVandaag();
+    }catch(e){
+      if(meld) meld.textContent = '✕ Koppelen mislukt: ' + e.message;
+    }
+  }
+  async function maakKlantVanGast(r){
+    var meld = document.getElementById('rkKlantMeld');
+    var knop = document.getElementById('rkKlantNieuw');
+    if(knop) knop.disabled = true;
+    if(meld) meld.textContent = 'Bezig met aanmaken…';
+    try{
+      var d = String(gastnaam(r)).split(' ');
+      var voor = d.shift() || '';
+      var n2 = naw(r), k = kop(r);
+      var nn = nachten(r.aankomst, r.vertrek);
+      var rec = {
+        voornaam: voor,
+        voorletters: voor ? voor.charAt(0).toUpperCase()+'.' : '',
+        achternaam: d.join(' ') || voor,
+        email: k.email || n2.email || r.email || '',
+        telefoon: k.telefoon || n2.telefoon || r.telefoon || '',
+        woonplaats: n2.woonplaats || '',
+        locatie: hoofdnaam(r.locatie), datum: r.aankomst || null,
+        type: nn > 0 ? 'overnachting' : 'dagverblijf',
+        nachten: nn, personen: parseInt(k.personen || n2.personen || r.personen, 10) || 1,
+        totaal: bedragen(r).totaal, member: false, bron: 'reservering',
+        notitie: voor ? 'Voornaam: '+voor : '' };
+      var res = await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
+      var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
+      if(!id) throw new Error('de klant is niet aangemaakt');
+      KLANTEN = await sb('wz_klantbeheer?select=*&limit=4000') || KLANTEN;
+      await koppelKlant(r, id);
+    }catch(e){
+      if(knop) knop.disabled = false;
+      if(meld) meld.textContent = '✕ Aanmaken mislukt: ' + e.message;
+    }
+  }
+  function bindKlant(r){
+    var open = document.getElementById('rkKlantKoppel');
+    if(open) open.onclick = function(){
+      var vak = document.getElementById('rkKlant');
+      if(!vak) return;
+      vak.hidden = !vak.hidden;
+      open.textContent = vak.hidden ? 'Klant koppelen' : 'Sluiten';
+      if(!vak.hidden) tekenKlantZoek(r);
+    };
+    var kaart = document.getElementById('rkKlantOpen');
+    if(kaart) kaart.onclick = function(){
+      var c = klantVanRes(r);
+      if(!c) return;
+      window.open('klantbeheer.html?klant=' + encodeURIComponent(klantSleutel(c)),
+        '_blank', 'noopener');
+    };
+    var vak = document.getElementById('rkKlant');
+    if(vak){
+      vak.oninput = function(e){
+        if(e.target && e.target.id === 'rkKlantZoek') tekenKlantZoek(r);
+      };
+      vak.onclick = function(e){
+        var kn = e.target.closest ? e.target.closest('[data-kkoppel]') : null;
+        if(kn){ e.preventDefault(); koppelKlant(r, kn.getAttribute('data-kkoppel')); return; }
+        if(e.target && e.target.id === 'rkKlantNieuw'){ e.preventDefault(); maakKlantVanGast(r); }
+      };
+    }
+  }
+
   function bindAfrekenen(r){
     var open = document.getElementById('rkExtraOpen');
     if(open) open.onclick = function(){
@@ -5556,6 +5726,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function bindKaart(r){
     var k = kop(r);
     bindAfrekenen(r);
+    bindKlant(r);
     var huidigKanaal = k.kanaal || kanaalUitTekst((r.titel||'')+' '+(r.omschrijving||'')) || '';
     var call = document.getElementById('rkCall');
     if(call) call.onclick = function(){
