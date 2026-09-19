@@ -5447,8 +5447,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         return;
       }
       Object.assign(ruw, terug[0]);
+      /* Ook KOPPEL bijwerken: het geldblok bovenaan leest bedragen(r), en die
+         haalt totaal en betaald uit KOPPEL, niet uit de rauwe reservering.
+         Zonder deze regel zie je de nieuwe regel wél verschijnen maar blijft
+         het totaal erboven op de oude waarde staan - alsof het niet opsloeg. */
+      var slE = sleutel(r);
+      KOPPEL[slE] = Object.assign({}, KOPPEL[slE] || {}, { totaal: terug[0].bedrag_totaal });
       EXTRA_KEUZE = {};
-      openKaart(sleutel(r));
+      openKaart(slE);
     }catch(e){
       meld.textContent = '✕ Bijboeken mislukt: ' + e.message;
       if(knop) knop.disabled = false;
@@ -5531,7 +5537,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         return;
       }
       Object.assign(ruw, terug[0]);
-      openKaart(sleutel(r));
+      /* Zie boven: het geldblok leest betaald uit KOPPEL. */
+      var slB = sleutel(r);
+      KOPPEL[slB] = Object.assign({}, KOPPEL[slB] || {}, { betaald: terug[0].betaald_bedrag });
+      openKaart(slB);
     }catch(e){
       meld.textContent = '✕ Afronden mislukt: ' + e.message;
       if(knop) knop.disabled = false;
