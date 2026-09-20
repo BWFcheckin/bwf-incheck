@@ -757,7 +757,11 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       <a class="knop sec" id="vKlantkaart" target="_blank" rel="noopener" hidden>Klantkaart</a>
       <!-- Staat de gast nog niet in het klantenbestand, dan kan hij hiervandaan
            worden aangelegd met wat er al bekend is. -->
-      <a class="knop sec" id="vGastNaarKlant" target="_blank" rel="noopener" hidden>Gast toevoegen aan klantbeheer</a>
+      <!-- Angela, 20-09-2026: was een link naar klantbeheer, waar je de klant
+           met de hand moest aanmaken en daarna zelf koppelen. Nu een knop die
+           de klant aanmaakt uit de gegevens van deze boeking en hem meteen aan
+           de reservering hangt, zonder dit scherm te verlaten. -->
+      <button type="button" class="knop sec" id="vGastNaarKlant" hidden>Klant aanmaken en koppelen</button>
       <button type="button" class="knop sec" id="vVerwijder"
         style="border-color:var(--crit);color:var(--crit)" hidden>Verwijderen</button>
       <!-- Heette "Annuleren", maar de knop gooit niets weg: hij sluit alleen
@@ -1151,13 +1155,9 @@ function openVenster(id) {
      Zonder naam heeft het geen zin, dus dan blijft hij ook weg. */
   const gk = $("#vGastNaarKlant");
   if (gk) {
-    const p = new URLSearchParams({ nieuw: "1" });
-    if (r.gast_achternaam) p.set("achternaam", r.gast_achternaam);
-    if (r.gast_voornaam)   p.set("voornaam",   r.gast_voornaam);
-    if (r.gast_email)      p.set("email",      r.gast_email);
-    if (r.gast_telefoon)   p.set("telefoon",   r.gast_telefoon);
-    gk.href = "klantbeheer.html?" + p.toString();
     gk.hidden = !!r.klant_id || !(r.gast_achternaam || r.gast_voornaam);
+    gk.disabled = false;
+    gk.textContent = "Klant aanmaken en koppelen";
   }
 
   const kk = $("#vKlantkaart");
@@ -2627,6 +2627,77 @@ const MOLLIE_URL = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-pay
 const MOLLIE_STATUS = { paid: "betaald", open: "openstaand", pending: "in behandeling",
   authorized: "toegezegd", expired: "verlopen", canceled: "geannuleerd", failed: "mislukt" };
 
+/* Klant aanmaken uit de gegevens van deze boeking en hem meteen koppelen.
+   Angela, 20-09-2026: de oude knop opende klantbeheer in een nieuw tabblad,
+   waar je de klant met de hand moest aanmaken en daarna zelf terugkoppelen.
+   Nu blijft alles op dit scherm. Zoeken of de klant er al is doe je met de
+   knop Klantkaart ernaast; deze knop verschijnt alleen als er nog geen klant
+   aan de reservering hangt. */
+async function maakKlantEnKoppel() {
+  const r = HUIDIG, knop = $("#vGastNaarKlant"), note = $("#vMelding");
+  if (!r || !knop) return;
+  const voor = (r.gast_voornaam || "").trim();
+  const achter = (r.gast_achternaam || "").trim();
+  if (!voor && !achter) { if (note) note.textContent = "Deze boeking heeft nog geen naam."; return; }
+  knop.disabled = true;
+  const oud = knop.textContent;
+  knop.textContent = "Bezig…";
+  if (note) note.textContent = "";
+  try {
+    /* Eerst kijken of deze gast er al staat: op e-mail, anders op telefoon.
+       Zonder die controle krijg je bij elke herhaalbezoeker een dubbele. */
+    const mail = (r.gast_email || "").trim().toLowerCase();
+    const tel = String(r.gast_telefoon || "").replace(/\D/g, "");
+    let bestaand = null;
+    for (const k of KLANTEN) {
+      if (mail && String(k.email || "").trim().toLowerCase() === mail) { bestaand = k; break; }
+      if (tel.length > 6 && String(k.telefoon || "").replace(/\D/g, "") === tel) { bestaand = k; break; }
+    }
+    let id = bestaand ? String(bestaand.id) : "";
+    if (!id) {
+      const nieuw = await api("wz_klantbeheer", { method: "POST", body: {
+        voornaam: voor,
+        voorletters: voor ? voor.charAt(0).toUpperCase() + "." : "",
+        achternaam: achter || voor,
+        email: r.gast_email || "", telefoon: r.gast_telefoon || "",
+        /* De veldnamen van wz_klantbeheer, nagemeten op 20-09-2026: locatie_id,
+           datum_in en datum_uit, en totaal_betaald. Met locatie, datum of
+           totaal zou PostgREST de hele rij weigeren. */
+        locatie_id: SUITE_LOCATIE[r.suite] || null,
+        datum_in: r.aankomst ? String(r.aankomst).slice(0, 10) : null,
+        datum_uit: r.vertrek ? String(r.vertrek).slice(0, 10) : null,
+        type: r.type === "dagverblijf" ? "dagverblijf" : "overnachting",
+        personen: r.personen != null ? Number(r.personen) : null,
+        member: false, bron: "reservering",
+        referentie: resNummer(r) || null,
+        aangemaakt_door: NAAM || null,
+        notitie: "Aangemaakt vanuit reservering " + (resNummer(r) || "")
+      } });
+      if (!nieuw || !nieuw.length) throw new Error("de klant is niet aangemaakt");
+      id = String(nieuw[0].id);
+      KLANTEN.push(nieuw[0]);
+    }
+    /* En meteen aan de reservering hangen. */
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { klant_id: id, gewijzigd_door: NAAM } });
+    if (!rij || !rij.length) throw new Error("koppelen aan de reservering lukte niet");
+    if (String(rij[0].klant_id || "") !== id) {
+      throw new Error("de database heeft de koppeling teruggedraaid");
+    }
+    RIJEN = RIJEN.map((x) => (x.id === r.id ? rij[0] : x));
+    HUIDIG = rij[0];
+    teken();
+    openVenster(r.id);
+    if (note) note.textContent = bestaand
+      ? "Deze gast stond al in het klantenbestand en is nu gekoppeld."
+      : "Klant aangemaakt en gekoppeld.";
+  } catch (e) {
+    knop.disabled = false;
+    knop.textContent = oud;
+    if (note) note.textContent = "Klant aanmaken lukte niet: " + e.message;
+  }
+}
+
 /* ---------- gesprekslog bij deze reservering (Angela, 20-09-2026) ----------
    De tabel wz_gesprekken bestond al en wordt door het VR-dashboard gebruikt;
    sinds vandaag heeft hij een reservering_id, zodat telefoontjes aan een
@@ -3248,6 +3319,7 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(false); }
   if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken(true); }
   if (e.target.id === "vGesprekOk") { e.preventDefault(); bewaarGesprek(); }
+  if (e.target.id === "vGastNaarKlant") { e.preventDefault(); maakKlantEnKoppel(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
 });
 /* Heb je de reviewlink verstuurd, dan mag die stap in de controlebalk groen
