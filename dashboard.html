@@ -3630,6 +3630,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
        het reserveringenscherm gebruikt, zodat prijzen niet uiteen lopen. */
     try{ EXTRAS_CAT = await sb('wz_extras?select=id,naam,categorie,prijs,per_persoon,omschrijving,locatie,actief&actief=eq.true&order=sortering.asc,naam.asc') || []; }
     catch(e){ EXTRAS_CAT = []; }
+    /* De overdrachten worden ook in blok 2 geladen (state.overdracht), maar dat
+       is een ander bereik: de reserveringskaart hier kan er niet bij. Daarom
+       hier apart, zodat de kaart kan tonen wat er bij een boeking speelt. */
+    try{ OVERDRACHTEN = await sb('overdracht?select=id,ts,auteur,aan,cat,tekst,klaar,datum,reservering_id&order=ts.desc&limit=500') || []; }
+    catch(e){ OVERDRACHTEN = []; }
     try{ AANMELDINGEN = await sb('gast_aanmeldingen?select=*&order=created_at.desc&limit=300') || []; }
     catch(e){ AANMELDINGEN=[]; }
     teamLijst().forEach(function(m,i){ DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
@@ -5258,13 +5263,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
        het is alleen nodig als er echt iets over te dragen valt. De tabel
        overdracht heeft geen koppelveld naar een reservering, dus de verwijzing
        staat als eerste regel in het bericht - daar kan de collega mee verder. */
+    var mijnOver = overdrachtenVan(r);
+    var overOpen = mijnOver.filter(function(o){ return !o.klaar; }).length;
     h += '<div class="actie" style="display:block">'+
       '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
-        '<b>Overdracht aanmaken</b>'+
-        '<span style="font-size:13px;opacity:.7">alleen als er iets over te dragen is</span>'+
+        '<b>Overdracht</b>'+
+        (mijnOver.length
+          ? '<span class="vlag '+(overOpen?'nee':'ja')+'">'+mijnOver.length+' bij deze boeking'+
+            (overOpen ? ' · '+overOpen+' open' : ' · afgehandeld')+'</span>'
+          : '<span style="font-size:13px;opacity:.7">alleen als er iets over te dragen is</span>')+
         '<span class="rechts" style="margin-left:auto">'+
           '<button class="knop klein" type="button" id="rkOverOpen">Overdracht aanmaken</button>'+
         '</span></div>'+
+      (mijnOver.length
+        ? '<div style="margin-top:8px;font-size:13.5px">'+
+          mijnOver.slice(0,3).map(function(o){
+            /* de eerste regel is de verwijzing die wij erbij zetten; toon de rest */
+            var stukken = String(o.tekst||'').split('\n');
+            var kern = stukken.length > 1 ? stukken.slice(1).join(' ') : stukken[0];
+            return '<div style="padding:3px 0'+(o.klaar?';opacity:.55':'')+'">'+
+              (o.klaar ? '✓ ' : '• ')+esc(kern.slice(0,140))+
+              (o.aan ? ' <small style="opacity:.7">voor '+esc(o.aan)+'</small>' : '')+
+              '</div>';
+          }).join('')+
+          (mijnOver.length > 3 ? '<div style="opacity:.6">… en nog '+(mijnOver.length-3)+'</div>' : '')+
+          '</div>'
+        : '')+
       '<div id="rkOver" hidden style="margin-top:10px"></div>'+
       '</div>';
 
@@ -5703,6 +5727,17 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* ============================================================
      Overdracht aanmaken bij een reservering (Angela, 19-09-2026, stap 4)
      ============================================================ */
+  var OVERDRACHTEN = [];
+  /* Wat er bij deze boeking is overgedragen. Sinds 20-09-2026 heeft de tabel
+     een koppelveld; oudere regels hebben dat niet, die blijven dus buiten
+     beeld - hun verwijzing staat wel in de tekst. */
+  function overdrachtenVan(r){
+    if(!r.resId) return [];
+    return (OVERDRACHTEN || []).filter(function(o){
+      return o && String(o.reservering_id || '') === String(r.resId);
+    });
+  }
+
   function tekenOverdracht(r){
     var vak = document.getElementById('rkOver');
     if(!vak) return;
@@ -5758,13 +5793,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       klaar: false,
       datum: r.aankomst || new Date().toISOString().slice(0,10)
     };
+    /* Sinds 20-09-2026 heeft overdracht een koppelveld. Alleen meesturen als
+       deze regel een echte reservering is; een agendablok heeft geen id en
+       dan blijft het veld leeg - dat mag. */
+    if(r.resId) rij.reservering_id = r.resId;
     try{
       var terug = await sb('overdracht', { method:'POST', body: JSON.stringify(rij) });
       if(!terug || !terug.length) throw new Error('de overdracht is niet opgeslagen');
       if(veldTekst) veldTekst.value = '';
+      /* Meteen in de lijst zetten, zodat de kaart hem toont zonder herladen. */
+      OVERDRACHTEN.unshift(terug[0]);
       if(meld) meld.textContent = '✓ Overdracht opgeslagen' + (aan ? ' voor ' + aan : '') +
         '. Hij staat op het tabblad Overdracht.';
       if(knop) knop.disabled = false;
+      openKaart(sleutel(r));
     }catch(e){
       if(meld) meld.textContent = '✕ Opslaan mislukt: ' + e.message;
       if(knop) knop.disabled = false;
