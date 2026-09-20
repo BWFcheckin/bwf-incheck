@@ -5684,7 +5684,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         type: nn > 0 ? 'overnachting' : 'dagverblijf',
         nachten: nn, personen: parseInt(k.personen || n2.personen || r.personen, 10) || 1,
         totaal: bedragen(r).totaal, member: false, bron: 'reservering',
-        notitie: voor ? 'Voornaam: '+voor : '' };
+        /* Het reserveringsnummer erbij, zodat in het klantenbestand te zien is
+           uit welke boeking deze klant is ontstaan. Angela, 20-09-2026. */
+        referentie: n2.nummer || r.nummer || '',
+        aangemaakt_door: wieRekentAf() || 'dashboard',
+        notitie: (voor ? 'Voornaam: '+voor : '') +
+          (n2.nummer || r.nummer ? (voor ? ' · ' : '') + 'Uit reservering ' + (n2.nummer || r.nummer) : '') };
       var res = await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
       var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
       if(!id) throw new Error('de klant is niet aangemaakt');
@@ -6047,29 +6052,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var sch = document.getElementById('rkSchade');
     if(sch) sch.onclick = function(){ openSchade(r); };
 
+    /* De vlag "Nieuw \u00b7 klant aanmaken" maakte blind een klant aan, zonder te
+       kijken of die er al stond - bij elke herhaalbezoeker een dubbele. En hij
+       las telefoon en e-mail uit r in plaats van uit de koppeling, dus die
+       bleven vaak leeg. Angela, 20-09-2026: hij brengt je nu naar het
+       Klant-blok op deze kaart, waar je eerst zoekt en dan koppelt of aanmaakt.
+       Aanmaken gebeurt daar vanuit de reservering, met alle gegevens erbij. */
     var nieuw = document.getElementById('rkNieuw');
-    if(nieuw) nieuw.onclick = async function(){
-      nieuw.disabled = true; nieuw.textContent = 'Bezig\u2026';
-      try{
-        var d = String(gastnaam(r)).split(' ');
-        var voor = d.shift() || '';
-        var nn = nachten(r.aankomst, r.vertrek);
-        var rec = {
-          voorletters: voor ? voor.charAt(0).toUpperCase()+'.' : '',
-          achternaam: d.join(' ') || voor,
-          email: r.email||'', telefoon: r.telefoon||'',
-          locatie: hoofdnaam(r.locatie), datum: r.aankomst || null,
-          type: nn > 0 ? 'overnachting' : 'dagverblijf',
-          nachten: nn, personen: parseInt(r.personen,10) || 1,
-          totaal: bedragen(r).totaal, member: false,
-          bron: 'reservering',
-          notitie: voor ? 'Voornaam: '+voor : '' };
-        var res = await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
-        var id = (res&&res[0]&&res[0].id) ? String(res[0].id) : '';
-        await bewaarKoppeling(r, { klant_id:id });
-        KLANTEN = await sb('wz_klantbeheer?select=*&limit=4000') || KLANTEN;
-        openKaart(sleutel(r)); tekenVandaag();
-      }catch(e){ nieuw.disabled=false; nieuw.textContent='Aanmaken lukte niet'; }
+    if(nieuw) nieuw.onclick = function(){
+      var vak = document.getElementById('rkKlant');
+      var knop = document.getElementById('rkKlantKoppel');
+      if(!vak || !knop) return;
+      if(vak.hidden){
+        vak.hidden = false;
+        knop.textContent = 'Sluiten';
+        tekenKlantZoek(r);
+      }
+      vak.scrollIntoView({ behavior:'smooth', block:'center' });
     };
     var taak = document.getElementById('rkTaak');
     if(taak) taak.onclick = function(){
