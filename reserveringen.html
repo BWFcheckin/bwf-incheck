@@ -550,10 +550,16 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
             </div>
             <div id="vBijSom" style="margin-top:11px;padding-top:9px;border-top:1px solid var(--line-soft);
                  font-size:13px;display:grid;gap:3px"></div>
+            <!-- Angela, 20-09-2026: twee knoppen, zodat vooraf en op locatie
+                 gescheiden blijven. Beide regels krijgen wie en wanneer mee, dus
+                 je kunt later terugzien wie wat heeft bijgeboekt. -->
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button type="button" class="knop sec klein" id="vBijBoek">Bijboeken op deze reservering</button>
+              <button type="button" class="knop sec klein" id="vBijBoek">Vooraf bijboeken</button>
+              <button type="button" class="knop sec klein" id="vBijBoekLoc">Extra&#39;s bijboeken op locatie</button>
               <span class="v-melding" id="vBijNote" style="color:var(--muted)"></span>
             </div>
+            <p class="uitleg" style="margin:6px 0 0">Vooraf is wat de gast erbij boekt v&oacute;&oacute;r aankomst.
+              Op locatie is wat er tijdens het verblijf bij komt; dat wordt apart bijgehouden.</p>
           </details>
           <label class="veld">Totaalbedrag (€) <input id="vBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
           <label class="veld">Betaalstatus <select id="vBetaal"></select></label>
@@ -645,9 +651,12 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       </fieldset>
 
       <fieldset id="vBetaalVak">
-        <legend>Bevestiging en aanbetaling</legend>
+        <legend>Bevestiging en betaling</legend>
         <div class="raster">
-          <label class="veld">Aanbetaling
+          <!-- Angela, 20-09-2026: heette "Aanbetaling", maar je kunt hier ook het
+               volledige bedrag of alleen de extra's afrekenen. De keuzelijst gaat
+               over wát er betaald wordt, dus dat is nu ook het label. -->
+          <label class="veld">Wat wordt er betaald
             <select id="vDeelKeuze">
               <option value="50">50% aanbetaling</option>
               <option value="100">Volledig bedrag</option>
@@ -1279,10 +1288,22 @@ function tekenPersoneelKaart(r) {
      regels uit een welkomstcall bron:"welkomstcall". */
   const naCall = arr.filter((a) => a && a.bron === "welkomstcall");
   const bijgeboekt = arr.filter((a) => a && a.bron === "bijgeboekt");
+  /* Angela, 20-09-2026: op locatie bijgeboekt blijft gescheiden van vooraf. */
+  const opLocatie = arr.filter((a) => a && a.bron === "op_locatie");
   const vooraf = arr.filter((a) => !(a && a.bron));
+  /* Wie het heeft bijgeboekt en wanneer, als dat is vastgelegd. Regels van
+     vóór 20-09-2026 hebben dat niet; daar blijft het gewoon weg. */
+  const doorWie = (a) => {
+    if (!a || (!a.door && !a.tijdstip)) return "";
+    const d = a.tijdstip ? new Date(a.tijdstip) : null;
+    const wanneer = d && !isNaN(d) ? fmtGeplakt.format(d) : "";
+    return ' <span style="color:var(--muted);font-size:12px">' +
+      esc([a.door, wanneer].filter(Boolean).join(" · ")) + "</span>";
+  };
   const noem = (a) => esc((a && (a.naam || a)) || "") +
     (a && Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
-    (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "");
+    (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "") +
+    doorWie(a);
 
   /* bedragen: eerst wat er echt is vastgelegd, anders afgeleid uit de brontekst */
   const uitBron = leesUitBron(r.brongegevens);
@@ -1345,6 +1366,10 @@ function tekenPersoneelKaart(r) {
       bijgeboekt.length ? bijgeboekt.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
     kaartVak("Arrangementen geboekt na de welkomstcall",
       naCall.length ? naCall.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    /* Angela, 20-09-2026: apart vak, zodat je ziet wat er tijdens het verblijf
+       is bijgekomen en door wie. */
+    kaartVak("Extra's bijgeboekt op locatie",
+      opLocatie.length ? opLocatie.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
     kaartVak("Bijzonderheden en opmerkingen", [
       r.omschrijving ? "<div>" + esc(r.omschrijving) + "</div>" : "",
       r.notitie ? "<div>" + esc(r.notitie) + "</div>" : "",
@@ -2642,9 +2667,15 @@ function tekenAlBijgeboekt(r) {
 
 /* Bijboeken: alleen het veld arrangementen wordt weggeschreven. De bestaande
    regels blijven staan, de nieuwe komen eronder. */
-async function bijboeken() {
+/* Angela, 20-09-2026: vooraf bijboeken en op locatie bijboeken blijven
+   gescheiden. Het merkteken zegt welke van de twee het was, en elke regel
+   krijgt wie en wanneer mee - zonder dat kun je later niet terugzien wie iets
+   heeft bijgeboekt. Oudere regels hebben dat niet; die blijven staan zoals ze
+   zijn. */
+async function bijboeken(opLocatie) {
   const r = HUIDIG;
-  const note = $("#vBijNote"), knop = $("#vBijBoek");
+  const note = $("#vBijNote");
+  const knop = opLocatie ? $("#vBijBoekLoc") : $("#vBijBoek");
   if (!r || !note || !knop) return;
   const nieuw = vBijRegels();
   if (!nieuw.length) { note.textContent = "Vink eerst iets aan, of vul een eigen arrangement met bedrag in."; return; }
@@ -2652,8 +2683,11 @@ async function bijboeken() {
   note.textContent = "Bezig met bijboeken…";
   try {
     const bestaand = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+    const nu = new Date().toISOString();
     const samen = bestaand.concat(nieuw.map((x) =>
-      ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag, bron: "bijgeboekt" })));
+      ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag,
+         bron: opLocatie ? "op_locatie" : "bijgeboekt",
+         door: NAAM, tijdstip: nu })));
     const erbij = Math.round(nieuw.reduce((a, x) => a + x.bedrag, 0) * 100) / 100;
 
     /* Angela, 17-09-2026: wat je bijboekt hoort meteen bij het totaalbedrag te
@@ -3044,7 +3078,8 @@ document.addEventListener("change", (e) => {
   }
 });
 document.addEventListener("click", (e) => {
-  if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(); }
+  if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(false); }
+  if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken(true); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
 });
 /* Heb je de reviewlink verstuurd, dan mag die stap in de controlebalk groen
