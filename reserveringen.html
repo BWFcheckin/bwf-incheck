@@ -671,6 +671,10 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <label class="veld">Bedrag (&euro;) <input id="vDeelBedrag" type="text" inputmode="decimal"></label>
           <label class="veld breed">Betaallink
             <input id="vBetaallink" type="text" readonly placeholder="nog niet aangemaakt"></label>
+          <!-- Angela, 20-09-2026: de stand van de Mollie-betaallinks bij deze
+               boeking. De webhook schrijft elke statuswijziging naar
+               mollie_betalingen; hier lezen we die alleen. -->
+          <div class="veld breed" id="vMollieStand" style="font-size:13px"></div>
           <!-- Welk bericht je stuurt. Staat er voor dit soort een sjabloon onder
                Sjablonen &amp; documenten, dan wordt dat ingevuld met de gegevens van
                deze reservering. Staat er geen, dan krijg je exact de vaste tekst
@@ -1137,6 +1141,9 @@ function openVenster(id) {
   }
 
   vulBetaalvak(r);
+  /* De stand van de betaallinks erbij. Mag niets blokkeren, dus zonder await
+     en met een eigen vangnet. */
+  toonMollieStand(r).catch(function () {});
   $("#vSub").textContent = [SUITES[r.suite] ? SUITES[r.suite].naam : r.suite, KANALEN[r.kanaal] || r.kanaal,
     r.kanaal === "smg" && r.kanaal_ref ? "nr. " + r.kanaal_ref : "", p.dag + " " + p.tijd].filter(Boolean).join(" · ");
   const opm = $("#vOpmerking");
@@ -2564,6 +2571,45 @@ document.addEventListener("input", (e) => {
    knoppen zetten het bericht klaar, versturen doe je zelf.
    ========================================================= */
 const MOLLIE_URL = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-payment";
+
+/* De stand van de betaallinks bij deze reservering. Angela, 20-09-2026.
+   Dezelfde woorden als in het VR-dashboard, zodat beide schermen hetzelfde
+   zeggen. Gemeten op die dag: 20 betalingen, waarvan 4 betaald en 16 verlopen -
+   dat laatste is precies wat je wilt zien voordat je een gast belt. */
+const MOLLIE_STATUS = { paid: "betaald", open: "openstaand", pending: "in behandeling",
+  authorized: "toegezegd", expired: "verlopen", canceled: "geannuleerd", failed: "mislukt" };
+
+async function toonMollieStand(r) {
+  const vak = $("#vMollieStand");
+  if (!vak) return;
+  vak.innerHTML = "";
+  if (!r || !r.id) return;
+  let rijen = [];
+  try {
+    /* stil: een mislukte ophaal mag het venster niet op slot zetten */
+    rijen = await api("mollie_betalingen?select=status,bedrag,soort,betaald_op,bijgewerkt_op,checkout_url" +
+      "&reservering_id=eq." + encodeURIComponent(r.id) +
+      "&order=bijgewerkt_op.desc&limit=10", { stil: true }) || [];
+  } catch (e) { return; }
+  if (!rijen.length) return;
+  vak.innerHTML = '<div style="margin-bottom:4px;color:var(--muted)">Betaallinks</div>' +
+    rijen.map((b) => {
+      const woord = MOLLIE_STATUS[b.status] || b.status || "onbekend";
+      const kleur = b.status === "paid" ? "var(--ok)"
+        : (b.status === "expired" || b.status === "failed" || b.status === "canceled") ? "var(--crit)"
+        : "var(--warn, var(--ink-2))";
+      const wanneer = b.betaald_op || b.bijgewerkt_op;
+      const dag = wanneer ? fmtGeplakt.format(new Date(wanneer)) : "";
+      return '<div style="padding:2px 0">' +
+        '<b style="color:' + kleur + '">' + esc(woord) + "</b>" +
+        (b.bedrag != null ? " &euro; " + esc(euro(b.bedrag)) : "") +
+        (b.soort ? ' <span style="color:var(--muted)">' + esc(b.soort) + "</span>" : "") +
+        (dag ? ' <span style="color:var(--muted)">' + esc(dag) + "</span>" : "") +
+        (b.checkout_url && b.status !== "paid"
+          ? ' &middot; <a href="' + esc(b.checkout_url) + '" target="_blank" rel="noopener">link openen</a>' : "") +
+        "</div>";
+    }).join("");
+}
 
 /* De betaalstand: totaal, betaald en nog te betalen bij elkaar.
    De database kent alle drie de velden, maar het venster stuurde
