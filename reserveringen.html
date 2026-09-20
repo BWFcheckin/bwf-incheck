@@ -2779,28 +2779,59 @@ async function toonMollieStand(r) {
   let rijen = [];
   try {
     /* stil: een mislukte ophaal mag het venster niet op slot zetten */
-    rijen = await api("mollie_betalingen?select=status,bedrag,soort,betaald_op,bijgewerkt_op,checkout_url" +
+    rijen = await api("mollie_betalingen?select=status,bedrag,soort,betaald_op,bijgewerkt_op,checkout_url,verlopen_op" +
       "&reservering_id=eq." + encodeURIComponent(r.id) +
       "&order=bijgewerkt_op.desc&limit=10", { stil: true }) || [];
   } catch (e) { return; }
   if (!rijen.length) return;
+  const nu = Date.now();
+  /* Een link die betaald is of verlopen kun je niet meer sturen. Mollie meldt
+     het verlopen niet altijd, dus we kijken ook zelf naar de vervaldatum:
+     staat hij nog op "open" maar is de tijd om, dan is hij verlopen.
+     Angela, 20-09-2026. */
+  let bruikbaar = 0;
+  const regels = rijen.map((b) => {
+    const verlooptOp = b.verlopen_op ? new Date(b.verlopen_op) : null;
+    const overTijd = !!(verlooptOp && !isNaN(verlooptOp) && verlooptOp.getTime() < nu);
+    const betaald = b.status === "paid";
+    const verlopen = !betaald &&
+      (b.status === "expired" || b.status === "canceled" || b.status === "failed" || overTijd);
+    if (!betaald && !verlopen) bruikbaar++;
+
+    const woord = betaald ? "betaald"
+      : verlopen ? (overTijd && b.status === "open" ? "verlopen" : (MOLLIE_STATUS[b.status] || "verlopen"))
+      : (MOLLIE_STATUS[b.status] || b.status || "onbekend");
+    const kleur = betaald ? "var(--ok)" : verlopen ? "var(--crit)" : "var(--ink-2)";
+
+    const wanneer = b.betaald_op || b.bijgewerkt_op;
+    const dag = wanneer ? fmtGeplakt.format(new Date(wanneer)) : "";
+    /* Bij een openstaande link is het nuttigst om te zien tot wanneer hij nog
+       geldig is; die vervalt 48 uur na het aanmaken. */
+    const tot = (!betaald && !verlopen && verlooptOp && !isNaN(verlooptOp))
+      ? "geldig tot " + fmtGeplakt.format(verlooptOp) : "";
+
+    return '<div style="padding:2px 0">' +
+      '<b style="color:' + kleur + '">' + esc(woord) + "</b>" +
+      (b.bedrag != null ? " &euro; " + esc(euro(b.bedrag)) : "") +
+      (b.soort ? ' <span style="color:var(--muted)">' + esc(b.soort) + "</span>" : "") +
+      (dag ? ' <span style="color:var(--muted)">' + esc(dag) + "</span>" : "") +
+      (tot ? ' <span style="color:var(--muted)">' + esc(tot) + "</span>" : "") +
+      (b.checkout_url && !betaald && !verlopen
+        ? ' &middot; <a href="' + esc(b.checkout_url) + '" target="_blank" rel="noopener">link openen</a>' : "") +
+      "</div>";
+  }).join("");
+
+  /* Is er geen bruikbare link meer - alles betaald of verlopen - dan heeft het
+     zin om er een nieuwe te maken. De knop doet hetzelfde als "Betaallink
+     maken", maar staat hier waar je de reden ziet. */
+  const knop = (!bruikbaar && magBewerken())
+    ? '<div style="margin-top:6px">' +
+      '<button type="button" class="knop sec klein" id="vNieuweLink">Nieuwe link maken</button>' +
+      "</div>"
+    : "";
+
   vak.innerHTML = '<div style="margin-bottom:4px;color:var(--muted)">Betaallinks</div>' +
-    rijen.map((b) => {
-      const woord = MOLLIE_STATUS[b.status] || b.status || "onbekend";
-      const kleur = b.status === "paid" ? "var(--ok)"
-        : (b.status === "expired" || b.status === "failed" || b.status === "canceled") ? "var(--crit)"
-        : "var(--warn, var(--ink-2))";
-      const wanneer = b.betaald_op || b.bijgewerkt_op;
-      const dag = wanneer ? fmtGeplakt.format(new Date(wanneer)) : "";
-      return '<div style="padding:2px 0">' +
-        '<b style="color:' + kleur + '">' + esc(woord) + "</b>" +
-        (b.bedrag != null ? " &euro; " + esc(euro(b.bedrag)) : "") +
-        (b.soort ? ' <span style="color:var(--muted)">' + esc(b.soort) + "</span>" : "") +
-        (dag ? ' <span style="color:var(--muted)">' + esc(dag) + "</span>" : "") +
-        (b.checkout_url && b.status !== "paid"
-          ? ' &middot; <a href="' + esc(b.checkout_url) + '" target="_blank" rel="noopener">link openen</a>' : "") +
-        "</div>";
-    }).join("");
+    regels + knop;
 }
 
 /* De betaalstand: totaal, betaald en nog te betalen bij elkaar.
@@ -3240,9 +3271,11 @@ function vulBetaalvak(r) {
   $("#vBericht").value = vBerichtTekst(r);
 }
 
-async function maakBetaallink() {
+/* bron: de knop waarop gedrukt is. Dat kan "Betaallink maken" zijn of
+   "Nieuwe link maken" bij de stand; degene die je indrukt gaat op slot. */
+async function maakBetaallink(bron) {
   const r = HUIDIG; if (!r) return;
-  const note = $("#vBetaalNote"), knop = $("#vMaakLink");
+  const note = $("#vBetaalNote"), knop = bron || $("#vMaakLink");
   if ($("#vDeelKeuze").value === "locatie") {
     note.textContent = "Bij contant op locatie wordt er geen betaallink gemaakt.";
     return;
@@ -3271,6 +3304,17 @@ async function maakBetaallink() {
     } else {
       $("#vBetaallink").value = d.checkoutUrl;
       $("#vBericht").value = vBerichtTekst(r);
+      /* De stand meteen opnieuw tekenen, zodat de nieuwe link erbij staat en
+         de knop "Nieuwe link maken" verdwijnt. */
+      toonMollieStand(r).catch(function () {});
+      /* De link is aangemaakt maar kon niet bij de reservering worden
+         vastgelegd: dan verwerkt de webhook een betaling niet automatisch.
+         Dat hoort niet stil te blijven. */
+      if (d.waarschuwing) {
+        note.innerHTML = '<strong style="color:var(--crit)">Let op:</strong> ' + esc(d.waarschuwing);
+        knop.disabled = false;
+        return;
+      }
       note.innerHTML = String(d.mode) === "test"
         ? "Link van " + esc(euro(bedrag)) + " aangemaakt. <strong style=\"color:var(--crit)\">Let op: dit is een TESTbetaling</strong> \u2014 in Supabase staat nog een testsleutel."
         : "Link van " + esc(euro(bedrag)) + " aangemaakt. Dit is een echte betaling.";
@@ -3342,7 +3386,11 @@ async function vstReviewGestuurd() {
 }
 
 document.addEventListener("click", (e) => {
-  if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(); return; }
+  if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(e.target); return; }
+  /* Staat er alleen nog een betaalde of verlopen link, dan verschijnt deze
+     knop bij de stand. Hij doet hetzelfde als "Betaallink maken", maar de
+     knop die je indrukt moet ook degene zijn die op slot gaat. */
+  if (e.target.id === "vNieuweLink") { e.preventDefault(); maakBetaallink(e.target); return; }
   if (e.target.id === "vMail" && HUIDIG) {
     e.preventDefault();
     const adres = (HUIDIG.gast_email || "").trim();

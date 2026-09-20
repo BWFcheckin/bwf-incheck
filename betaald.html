@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Bedankt voor je betaling — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{ --bg:#F4F1ED; --surface:#FFFFFF; --line:#E3DAD0; --ink:#241E19; --ink-2:#4B4239;
+  --muted:#7B6E62; --accent:#483C34; --ok:#3F7A55; --ok-soft:#DFEDE2;
+  --shadow:0 1px 2px rgba(36,30,25,.06), 0 8px 24px -16px rgba(36,30,25,.30);
+  --f-display:"Bricolage Grotesque",system-ui,sans-serif; --f-body:"Public Sans",Arial,sans-serif; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141110; --surface:#1D1917; --line:#38302A; --ink:#F1EBE4; --ink-2:#D8CEC4;
+  --muted:#A2958A; --accent:#D7BFA6; --ok:#79C08F; --ok-soft:#16301F; } }
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--f-body);
+  font-size:15px; line-height:1.55; display:flex; align-items:center; justify-content:center;
+  min-height:100dvh; padding:20px; }
+.kaart{ background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  box-shadow:var(--shadow); padding:34px 30px; width:min(520px,100%); text-align:center; }
+img.logo{ height:46px; margin-bottom:18px; }
+.vink{ width:66px; height:66px; border-radius:50%; background:var(--ok-soft); color:var(--ok);
+  display:flex; align-items:center; justify-content:center; font-size:34px; margin:0 auto 18px; }
+h1{ font-family:var(--f-display); font-size:25px; margin:0 0 10px; letter-spacing:-.015em; }
+p{ margin:0 0 12px; color:var(--ink-2); }
+p.klein{ font-size:13.5px; color:var(--muted); margin-top:20px; }
+a{ color:var(--accent); }
+.streep{ height:1px; background:var(--line); margin:22px 0 0; }
+</style>
+</head>
+<body>
+<!-- Openbare bedankpagina. Hier komt de gast terecht na het betalen van een
+     Mollie-betaallink (redirectUrl). Bewust openbaar en zonder gegevens: de
+     gast hoeft niet in te loggen, en er staat niets op wat niet voor hem is.
+     Mollie stuurt de gast hierheen ongeacht de afloop, dus de tekst belooft
+     niet dat de betaling gelukt is - dat leest Angela in het dashboard.
+     Angela, 20-09-2026. -->
+<div class="kaart">
+  <img class="logo" src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="Bed &amp; Wellness Flevoland">
+  <div class="vink" aria-hidden="true">&#10003;</div>
+  <h1>Bedankt!</h1>
+  <p>Je betaling is afgerond. Je ontvangt van Mollie een bevestiging per e-mail.</p>
+  <p>Wij zien je graag bij <strong>Bed &amp; Wellness Flevoland</strong>. Je kunt dit venster sluiten.</p>
+  <div class="streep"></div>
+  <p class="klein">Klopt er iets niet, of heb je een vraag over je boeking?<br>
+    Mail ons op <a href="mailto:info@bedenwellnessflevoland.nl">info@bedenwellnessflevoland.nl</a>.</p>
+</div>
+</body>
+</html>
