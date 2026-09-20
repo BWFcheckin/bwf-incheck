@@ -614,6 +614,36 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         </details>
       </fieldset>
 
+      <!-- Gesprekslog (Angela, 20-09-2026). Elk telefoontje over deze boeking,
+           inkomend of uitgaand, met wie het aannam en wanneer. Het bestaande
+           gesprekslog in het VR-dashboard toont alles; dit toont alleen wat bij
+           deze reservering hoort en legt nieuwe gesprekken er meteen aan vast. -->
+      <fieldset id="vGesprekVak">
+        <legend>Gesprekslog</legend>
+        <div id="vGesprekLijst" style="font-size:13.5px;margin-bottom:10px"></div>
+        <div class="raster">
+          <label class="veld">Soort gesprek
+            <select id="vGesprekSoort">
+              <option value="inkomend">Inkomend telefoontje</option>
+              <option value="uitgaand">Uitgaand gesprek</option>
+              <option value="terugbel">Terugbelverzoek</option>
+            </select></label>
+          <label class="veld">Afloop
+            <select id="vGesprekStatus">
+              <option value="afgehandeld">Afgehandeld</option>
+              <option value="geen gehoor">Geen gehoor</option>
+              <option value="terugbellen">Terugbellen</option>
+              <option value="doorgezet">Doorgezet</option>
+            </select></label>
+          <label class="veld breed">Waar ging het over
+            <input id="vGesprekNotitie" type="text" placeholder="kort wat er is besproken of afgesproken"></label>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="knop sec klein" id="vGesprekOk">Gesprek vastleggen</button>
+          <span class="v-melding" id="vGesprekNote" style="color:var(--muted)"></span>
+        </div>
+      </fieldset>
+
       <fieldset>
         <legend>Status en notities</legend>
         <div class="raster">
@@ -1144,6 +1174,10 @@ function openVenster(id) {
   /* De stand van de betaallinks erbij. Mag niets blokkeren, dus zonder await
      en met een eigen vangnet. */
   toonMollieStand(r).catch(function () {});
+  /* Gesprekslog erbij; ook dit mag het openen nooit ophouden. */
+  if ($("#vGesprekNotitie")) $("#vGesprekNotitie").value = "";
+  if ($("#vGesprekNote")) $("#vGesprekNote").textContent = "";
+  tekenGesprekken(r).catch(function () {});
   $("#vSub").textContent = [SUITES[r.suite] ? SUITES[r.suite].naam : r.suite, KANALEN[r.kanaal] || r.kanaal,
     r.kanaal === "smg" && r.kanaal_ref ? "nr. " + r.kanaal_ref : "", p.dag + " " + p.tijd].filter(Boolean).join(" · ");
   const opm = $("#vOpmerking");
@@ -1232,6 +1266,17 @@ function openVenster(id) {
   /* Deze pagina heeft geen $$-hulpfunctie; die bestaat alleen in het
      VR-dashboard. Daarom rechtstreeks querySelectorAll. */
   document.querySelectorAll("#formulier fieldset").forEach((fs) => { fs.hidden = beperkt; });
+  /* Het gesprekslog is de uitzondering: juist de locatiemanager neemt de
+     telefoon aan, dus die moet een telefoontje kunnen vastleggen en zien wat er
+     eerder is besproken. Angela, 20-09-2026. Het is een log, geen
+     bewerkscherm - er valt niets mee te wijzigen aan de boeking. */
+  const gv = $("#vGesprekVak");
+  if (gv) {
+    gv.hidden = false;
+    /* De regel hierboven zet álle invoervelden op slot voor wie niet mag
+       bewerken. Die van het gesprekslog moeten juist bruikbaar blijven. */
+    gv.querySelectorAll("input,select,textarea,button").forEach((el) => { el.disabled = false; });
+  }
   if (beperkt) tekenPersoneelKaart(r);
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
@@ -2579,6 +2624,79 @@ const MOLLIE_URL = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-pay
 const MOLLIE_STATUS = { paid: "betaald", open: "openstaand", pending: "in behandeling",
   authorized: "toegezegd", expired: "verlopen", canceled: "geannuleerd", failed: "mislukt" };
 
+/* ---------- gesprekslog bij deze reservering (Angela, 20-09-2026) ----------
+   De tabel wz_gesprekken bestond al en wordt door het VR-dashboard gebruikt;
+   sinds vandaag heeft hij een reservering_id, zodat telefoontjes aan een
+   boeking kunnen hangen. Dat log toont alles, dit alleen wat hierbij hoort. */
+const GESPREK_SOORT = { inkomend: "Inkomend", uitgaand: "Uitgaand",
+  terugbel: "Terugbelverzoek", welkomstcall: "Welkomstcall" };
+
+async function tekenGesprekken(r) {
+  const vak = $("#vGesprekLijst");
+  if (!vak) return;
+  vak.innerHTML = '<span style="color:var(--muted)">Bezig met ophalen…</span>';
+  if (!r || !r.id) { vak.innerHTML = ""; return; }
+  let rijen = [];
+  try {
+    rijen = await api("wz_gesprekken?select=soort,status,naam,telefoon,notitie,aangemaakt,medewerker_id" +
+      "&reservering_id=eq." + encodeURIComponent(r.id) +
+      "&order=aangemaakt.desc&limit=25", { stil: true }) || [];
+  } catch (e) {
+    vak.innerHTML = '<span style="color:var(--muted)">De gesprekken konden niet worden opgehaald.</span>';
+    return;
+  }
+  if (!rijen.length) {
+    vak.innerHTML = '<span style="color:var(--muted)">Nog geen gesprekken vastgelegd.</span>';
+    return;
+  }
+  vak.innerHTML = rijen.map((g) => {
+    const d = g.aangemaakt ? new Date(g.aangemaakt) : null;
+    const wanneer = d && !isNaN(d) ? fmtGeplakt.format(d) : "";
+    const soort = GESPREK_SOORT[g.soort] || g.soort || "gesprek";
+    const kleur = g.status === "afgehandeld" ? "var(--ok)"
+      : g.status === "geen gehoor" ? "var(--crit)" : "var(--ink-2)";
+    return '<div style="padding:3px 0;border-bottom:1px solid var(--line-soft)">' +
+      '<b style="color:' + kleur + '">' + esc(soort) + "</b>" +
+      (g.status ? ' <span style="color:var(--muted)">' + esc(g.status) + "</span>" : "") +
+      (g.notitie ? " &mdash; " + esc(g.notitie) : "") +
+      '<div style="color:var(--muted);font-size:12px">' +
+        esc([g.medewerker_id, wanneer].filter(Boolean).join(" · ")) + "</div>" +
+      "</div>";
+  }).join("");
+}
+
+async function bewaarGesprek() {
+  const r = HUIDIG, note = $("#vGesprekNote"), knop = $("#vGesprekOk");
+  if (!r || !note || !knop) return;
+  const notitie = $("#vGesprekNotitie").value.trim();
+  if (!notitie) { note.textContent = "Schrijf eerst kort op waar het gesprek over ging."; return; }
+  knop.disabled = true;
+  note.textContent = "Bezig met vastleggen…";
+  try {
+    const rij = await api("wz_gesprekken", { method: "POST", body: {
+      reservering_id: r.id,
+      soort: $("#vGesprekSoort").value,
+      status: $("#vGesprekStatus").value,
+      naam: gastNaam(r) || null,
+      telefoon: r.gast_telefoon || null,
+      locatie: SUITE_LOCATIE[r.suite] || null,
+      /* medewerker_id is een uuid en wij kennen hier alleen de naam van de
+         ingelogde medewerker. Die zetten we daarom vóór de notitie, zodat
+         altijd te zien is wie het gesprek heeft gelogd - dat was precies de
+         vraag van Angela. */
+      notitie: (NAAM ? NAAM + ": " : "") + notitie,
+      aangemaakt: new Date().toISOString()
+    } });
+    if (!rij || !rij.length) throw new Error("het gesprek is niet opgeslagen");
+    $("#vGesprekNotitie").value = "";
+    note.textContent = "Gesprek vastgelegd.";
+    await tekenGesprekken(r);
+  } catch (e) {
+    note.textContent = "Vastleggen mislukt: " + e.message;
+  }
+  knop.disabled = false;
+}
+
 async function toonMollieStand(r) {
   const vak = $("#vMollieStand");
   if (!vak) return;
@@ -3126,6 +3244,7 @@ document.addEventListener("change", (e) => {
 document.addEventListener("click", (e) => {
   if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(false); }
   if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken(true); }
+  if (e.target.id === "vGesprekOk") { e.preventDefault(); bewaarGesprek(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
 });
 /* Heb je de reviewlink verstuurd, dan mag die stap in de controlebalk groen
