@@ -2989,23 +2989,132 @@ function vBijSom() {
     : '<span style="color:var(--muted)">Nog niets aangevinkt.</span>';
 }
 
-/* Wat er al bijgeboekt is, met bedrag. Puur ter informatie; deze regels worden
-   door het tekstvak nooit aangeraakt. */
+/* Alle arrangementen op de boeking, in drie groepen (Angela, 21-09-2026):
+
+     1. Vooraf geboekt        - zit al in de prijs van de boeking
+     2. Via de welkomstcall   - komt bovenop de prijs
+     3. Bijgeboekt op locatie - komt bovenop de prijs
+
+   Het merkteken bron zegt tot welke groep een regel hoort: geen merkteken is
+   vooraf geboekt, "welkomstcall" komt uit een call, en "op_locatie" en
+   "bijgeboekt" zijn er later bij gekomen via een scherm.
+
+   Elke regel is te verwijderen. Bij de twee groepen die optellen gaat het
+   bedrag ook van het totaal af; bij vooraf geboekte regels niet, want die
+   zitten in het geboekte bedrag dat met de hand is ingevuld. */
+const ARR_GROEPEN = [
+  { sleutel: "vooraf", titel: "Vooraf geboekt", uitleg: "zit al in de prijs",
+    telt: false, bij: (a) => !(a && a.bron) },
+  { sleutel: "welkomstcall", titel: "Geboekt via de welkomstcall", uitleg: "komt bovenop de prijs",
+    telt: true, bij: (a) => a && a.bron === "welkomstcall" },
+  { sleutel: "locatie", titel: "Bijgeboekt op locatie", uitleg: "komt bovenop de prijs",
+    telt: true, bij: (a) => a && (a.bron === "op_locatie" || a.bron === "bijgeboekt") }
+];
+
 function tekenAlBijgeboekt(r) {
   const vak = $("#vAlBijgeboekt");
   if (!vak) return;
-  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter((a) => a && a.bron);
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
   if (!arr.length) { vak.hidden = true; vak.innerHTML = ""; return; }
   vak.hidden = false;
-  const totaal = arr.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
-  vak.innerHTML = '<strong style="display:block;margin-bottom:5px">Bijgeboekt</strong>' +
-    arr.map((a) =>
-      '<div style="display:flex;justify-content:space-between;gap:12px"><span>' + esc(a.naam || "") +
-        (Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
-        (a.bron === "welkomstcall" ? ' <span style="color:var(--muted)">(welkomstcall)</span>' : "") +
-        "</span><span>" + (Number(a.bedrag) ? "&euro; " + esc(euro(a.bedrag)) : "") + "</span></div>").join("") +
-    (totaal ? '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
-      "<span>Totaal bijgeboekt</span><span>&euro; " + esc(euro(totaal)) + "</span></div>" : "");
+  const mag = magBewerken() && r.status !== "geannuleerd";
+  let erbij = 0;
+
+  const blokken = ARR_GROEPEN.map((groep) => {
+    /* De plek in de oorspronkelijke lijst onthouden: daarop verwijdert de knop,
+       zodat twee regels met dezelfde naam niet door elkaar lopen. */
+    const regels = arr.map((a, i) => ({ a, i })).filter((x) => groep.bij(x.a));
+    if (!regels.length) return "";
+    const som = regels.reduce((t, x) => t + (Number(x.a.bedrag) || 0), 0);
+    if (groep.telt) erbij += som;
+    return '<div style="margin-top:8px">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">' +
+        "<strong>" + esc(groep.titel) + "</strong>" +
+        '<span style="color:var(--muted);font-size:12px">' + esc(groep.uitleg) + "</span></div>" +
+      regels.map((x) => {
+        const a = x.a;
+        const wie = (a.door || a.tijdstip)
+          ? ' <span style="color:var(--muted);font-size:12px">' +
+            esc([a.door, a.tijdstip ? fmtGeplakt.format(new Date(a.tijdstip)) : ""]
+              .filter(Boolean).join(" · ")) + "</span>"
+          : "";
+        return '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:2px 0">' +
+          "<span>" + esc(a.naam || a.tekst || a) +
+            (Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") + wie + "</span>" +
+          '<span style="white-space:nowrap">' +
+            (Number(a.bedrag) ? "&euro; " + esc(euro(a.bedrag)) : "") +
+            (mag ? ' <button type="button" class="knop sec klein" data-arrweg="' + x.i +
+                   '" title="Deze regel verwijderen" aria-label="Verwijderen">&#10007;</button>' : "") +
+          "</span></div>";
+      }).join("") +
+      (som ? '<div style="display:flex;justify-content:space-between;gap:10px;color:var(--muted)">' +
+        "<span>samen</span><span>&euro; " + esc(euro(som)) + "</span></div>" : "") +
+      "</div>";
+  }).join("");
+
+  vak.innerHTML = '<strong style="display:block;margin-bottom:2px">Arrangementen</strong>' + blokken +
+    (erbij
+      ? '<div style="display:flex;justify-content:space-between;gap:10px;font-weight:700;margin-top:6px;' +
+        'border-top:1px solid var(--lijn,#eee);padding-top:5px">' +
+        "<span>Bovenop de prijs</span><span>&euro; " + esc(euro(erbij)) + "</span></div>"
+      : "") +
+    '<p class="uitleg" style="margin-top:6px">Vooraf geboekte arrangementen zitten in het geboekte bedrag. ' +
+    "Wat via de welkomstcall of op locatie is bijgeboekt, is bij het totaalbedrag opgeteld.</p>";
+}
+
+/* Een arrangementregel weghalen. Telde de regel op bij de prijs, dan gaat het
+   bedrag er ook weer af - anders blijft de gast voor iets betalen dat is
+   geschrapt. Bij een vooraf geboekte regel blijft het bedrag staan: dat is het
+   bedrag waarvoor geboekt is, en dat verandert niet doordat je een regel uit
+   de omschrijving haalt. */
+async function verwijderArrangement(index) {
+  const r = HUIDIG;
+  if (!r) return;
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
+  const weg = arr[index];
+  if (!weg) return;
+  const telt = !!weg.bron;
+  const bedrag = Number(weg.bedrag) || 0;
+  const naam = weg.naam || weg.tekst || "deze regel";
+  if (!confirm("“" + naam + "” verwijderen?" +
+      (telt && bedrag ? "\n\nHet bedrag van € " + euro(bedrag) +
+        " gaat van het totaalbedrag af." : ""))) return;
+
+  const over = arr.filter((_, i) => i !== index);
+  const d = { arrangementen: over, gewijzigd_door: NAAM };
+  if (telt && bedrag) {
+    const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
+    if (totaal != null) d.bedrag_totaal = Math.max(0, Math.round((totaal - bedrag) * 100) / 100);
+    const open = r.restant_bedrag != null ? Number(r.restant_bedrag) : null;
+    if (open != null) d.restant_bedrag = Math.max(0, Math.round((open - bedrag) * 100) / 100);
+  }
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: d });
+    if (!rij || !rij.length) throw new Error("je hebt geen rechten om deze reservering te wijzigen");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    tekenAlBijgeboekt(rij[0]);
+    /* De bedragvelden meteen bijwerken, net als bij bijboeken: staat het oude
+       totaal er nog, dan zet de eerstvolgende druk op Opslaan de verlaging
+       weer terug - het formulier stuurt die drie velden mee. */
+    $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
+    $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
+    $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    /* Was de regel vooraf geboekt, dan staat hij ook in het tekstvak; dat moet
+       mee, anders zet Opslaan hem zo terug. */
+    if (!telt) {
+      ARR_START = (Array.isArray(rij[0].arrangementen) ? rij[0].arrangementen : [])
+        .filter((a) => !(a && a.bron))
+        .map((a) => typeof a === "string" ? a
+          : [a.aantal > 1 ? a.aantal + "× " : "", a.naam || a.tekst || ""].join("")).join("\n");
+      $("#vArr").value = ARR_START;
+    }
+    teken();
+    melding("“" + naam + "” is verwijderd.", "ok");
+  } catch (e) {
+    melding("Verwijderen lukte niet: " + e.message, "fout");
+  }
 }
 
 /* Bijboeken: alleen het veld arrangementen wordt weggeschreven. De bestaande
@@ -3460,6 +3569,13 @@ async function vstReviewGestuurd() {
 }
 
 document.addEventListener("click", (e) => {
+  /* Een arrangementregel weghalen. De knop draagt de plek in de lijst. */
+  const weg = e.target.closest("[data-arrweg]");
+  if (weg) {
+    e.preventDefault();
+    verwijderArrangement(Number(weg.getAttribute("data-arrweg")));
+    return;
+  }
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(e.target); return; }
   /* Staat er alleen nog een betaalde of verlopen link, dan verschijnt deze
      knop bij de stand. Hij doet hetzelfde als "Betaallink maken", maar de

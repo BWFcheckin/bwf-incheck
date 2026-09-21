@@ -9507,14 +9507,42 @@ $('#wcOpslaan').addEventListener('click', async ()=>{
      opslaan niet onderuithalen. */
   if(wcResId){
     try{
-      const nu = await api('reserveringen?select=arrangementen&id=eq.' + encodeURIComponent(wcResId));
-      const bestaand = (nu && nu[0] && Array.isArray(nu[0].arrangementen)) ? nu[0].arrangementen : [];
+      const nu = await api('reserveringen?select=arrangementen,bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus&id=eq.' + encodeURIComponent(wcResId));
+      const rij = (nu && nu[0]) || {};
+      const bestaand = Array.isArray(rij.arrangementen) ? rij.arrangementen : [];
       const zonderOud = bestaand.filter(a => !(a && a.bron === 'welkomstcall'));
       const uitCall = (f.regels || []).map(x => ({
         naam: x.naam, aantal: x.aantal, bedrag: x.bedrag, bron: 'welkomstcall' }));
+
+      /* Wat tijdens de call is bijgeboekt hoort bovenop de prijs te komen, net
+         zoals bijboeken op locatie dat doet. Tot 21-09-2026 werden alleen de
+         regels weggeschreven en bleef het totaalbedrag staan; dan zag je de
+         extra's wel op de kaart, maar betaalde de gast er niet voor.
+
+         Er wordt gerekend met het verschil: de oude call-regels gaan eraf en
+         de nieuwe erbij. Zo levert twee keer opslaan niet twee keer een
+         verhoging op, en verlaagt het schrappen van een regel het bedrag weer.
+         Angela, 21-09-2026. */
+      const som = (lijst) => Math.round(lijst.reduce((t, x) => t + (Number(x.bedrag) || 0), 0) * 100) / 100;
+      const verschil = Math.round((som(uitCall) - som(bestaand.filter(a => a && a.bron === 'welkomstcall'))) * 100) / 100;
+
+      const d = { arrangementen: zonderOud.concat(uitCall) };
+      if(verschil !== 0){
+        const oudTotaal = rij.bedrag_totaal != null ? Number(rij.bedrag_totaal) : 0;
+        d.bedrag_totaal = Math.max(0, Math.round((oudTotaal + verschil) * 100) / 100);
+        /* Het openstaande bedrag beweegt mee; er is bij de call niets betaald. */
+        const open = rij.restant_bedrag != null ? Number(rij.restant_bedrag)
+          : rij.bedrag_totaal == null ? 0
+          : rij.betaalstatus === 'betaald' ? 0
+          : rij.betaalstatus === 'open' ? oudTotaal : null;
+        if(open != null) d.restant_bedrag = Math.max(0, Math.round((open + verschil) * 100) / 100);
+        /* Stond de boeking op betaald en komt er iets bij, dan is hij dat niet meer. */
+        if(rij.betaalstatus === 'betaald' && verschil > 0) d.betaalstatus = 'deels';
+      }
+
       await api('reserveringen?id=eq.' + encodeURIComponent(wcResId),
         {method:'PATCH', headers:{'Content-Type':'application/json', Prefer:'return=minimal'},
-         body: JSON.stringify({ arrangementen: zonderOud.concat(uitCall) })});
+         body: JSON.stringify(d)});
     }catch(e){
       $('#wcNote').innerHTML = '<strong>Let op:</strong> de welkomstcall is bewaard, maar de extra&#39;s '
         + 'konden niet op de reservering worden gezet (' + esc(e.message || 'onbekende fout') + ').';
