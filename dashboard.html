@@ -5605,7 +5605,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         wijze('Pin', '')+
         wijze('Contant', '')+
         wijze('Flatpay', 'Betaald via Flatpay')+
+        wijze('Splitsen', 'De gast betaalt een deel met pin en een deel contant')+
         '<span style="margin-left:auto;font-weight:700" id="rkBetaalSom">'+esc(euro(ruwOpen))+'</span>'+
+      '</div>'+
+      /* Splitsen: de gast betaalt een deel met pin en een deel contant, of
+         met Flatpay erbij. Je vult in wat er per wijze binnenkomt; samen moet
+         dat kloppen met het bedrag hierboven. Angela, 21-09-2026. */
+      '<div id="rkSplit" hidden style="margin-top:10px;padding:10px 12px;border-radius:10px;'+
+        'background:var(--surface-2,#f8fafd)">'+
+        '<div style="font-size:13px;margin-bottom:8px">Verdeel het bedrag over de betaalwijzen:</div>'+
+        '<div style="display:flex;gap:12px;flex-wrap:wrap">'+
+          ['Pin','Contant','Flatpay'].map(function(w){
+            return '<label style="display:flex;align-items:center;gap:6px;font-size:13px">'+w+
+              ' &euro; <input type="text" inputmode="decimal" data-split="'+w+'" placeholder="0,00" '+
+              'style="width:90px">'+'</label>';
+          }).join('')+
+        '</div>'+
+        '<div style="margin-top:8px;font-size:13px" id="rkSplitStand"></div>'+
       '</div>'+
       /* Notitieveld: waarom er is afgeweken, of wat er is afgesproken. Komt bij
          de betaalregel te staan, zodat je het later terugziet. */
@@ -5621,6 +5637,47 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '</div>'+
       '<div id="rkNaBetaling" hidden style="margin-top:12px;padding-top:10px;'+
         'border-top:1px solid var(--line,#e3dad0)"></div>';
+  }
+
+  /* Het bedrag dat bij de gekozen optie hoort. Stond op drie plekken los in de
+     code; nu op één plek, zodat het keuzevak, de meegetelde som en het
+     afrekenen niet uit elkaar kunnen lopen. */
+  function teBetalen(r, wat){
+    var b = bedragen(r), ruw = r.ruw || {};
+    var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
+    var ruwOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0) : b.open;
+    var ex = Math.min(openExtras, ruwOpen);
+    var bedrag = wat === 'extras' ? ex
+               : wat === 'verblijf' ? Math.max(0, ruwOpen - ex)
+               : ruwOpen;
+    return Math.round(bedrag*100)/100;
+  }
+
+  /* De ingevulde verdeling bij een gesplitste betaling. Komma's mogen. */
+  function splitDelen(){
+    var uit = [];
+    document.querySelectorAll('[data-split]').forEach(function(el){
+      var n = parseFloat(String(el.value).replace(/\s/g,'').replace(',', '.')) || 0;
+      if(n > 0) uit.push({ wijze: el.getAttribute('data-split'), bedrag: Math.round(n*100)/100 });
+    });
+    return uit;
+  }
+  function splitSom(){
+    return Math.round(splitDelen().reduce(function(a,x){ return a + x.bedrag; }, 0)*100)/100;
+  }
+  /* De stand onder de invulvelden: wat is er verdeeld, en klopt het al? */
+  function tekenSplitStand(r){
+    var vak = document.getElementById('rkSplitStand');
+    if(!vak) return;
+    var wat = (document.querySelector('input[name="rkBetaalWat"]:checked')||{}).value || 'alles';
+    var doel = teBetalen(r, wat), som = splitSom();
+    var verschil = Math.round((doel - som)*100)/100;
+    vak.innerHTML = 'Verdeeld: <b>' + esc(euro(som)) + '</b> van ' + esc(euro(doel)) +
+      (Math.abs(verschil) < 0.005
+        ? ' <span style="color:var(--ok,#2E8B57)">&#10003; klopt</span>'
+        : verschil > 0
+          ? ' <span style="color:var(--crit,#b3261e)">nog ' + esc(euro(verschil)) + ' te verdelen</span>'
+          : ' <span style="color:var(--crit,#b3261e)">' + esc(euro(-verschil)) + ' te veel</span>');
   }
 
   /* Wat er ná het afrekenen nog moet gebeuren (Angela, 21-09-2026): de klant
@@ -5703,7 +5760,25 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var wat = (document.querySelector('input[name="rkBetaalWat"]:checked')||{}).value || 'alles';
     var gekozen = document.querySelector('input[name="rkBetaalWijze"]:checked');
     var wijze = gekozen ? gekozen.value : '';
-    if(!wijze){ meld.textContent = '✕ Kies Pin, Contant of Flatpay.'; return; }
+    if(!wijze){ meld.textContent = '✕ Kies een betaalwijze.'; return; }
+    /* Bij een gesplitste betaling telt de verdeling; die moet precies kloppen
+       met het bedrag, anders zou het betaalde bedrag niet stroken met wat er
+       in de la ligt. Angela, 21-09-2026. */
+    var delen = wijze === 'Splitsen' ? splitDelen() : null;
+    if(wijze === 'Splitsen'){
+      if(!delen.length){ meld.textContent = '✕ Vul in hoeveel er met pin en hoeveel contant wordt betaald.'; return; }
+      var verdeeld = splitSom();
+      var doelBedrag = teBetalen(r, wat);
+      if(Math.abs(verdeeld - doelBedrag) >= 0.005){
+        meld.textContent = '✕ De verdeling is € ' + euro(verdeeld) + ' en het bedrag is € ' +
+          euro(doelBedrag) + '. Dat moet gelijk zijn.';
+        return;
+      }
+      /* De betaalwijze wordt de verdeling zelf, bijvoorbeeld
+         "Pin € 60,00 + Contant € 40,00". Zo lees je later terug hoe het is
+         betaald, zonder een extra kolom in de database. */
+      wijze = delen.map(function(x){ return x.wijze + ' € ' + euro(x.bedrag); }).join(' + ');
+    }
     if(!r.resId){ meld.textContent = '✕ Deze boeking staat niet in de reserveringen.'; return; }
     var b = bedragen(r);
     var ruw = r.ruw || {};
@@ -5733,7 +5808,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     arr = arr.concat([{ naam:'Afgerekend op locatie'+(notitie ? ' — '+notitie : ''),
                         aantal:1, bedrag:0, bron:'betaling',
                         betaald_bedrag:bedrag, betaalwijze:wijze, tijdstip:nu, door:door,
-                        notitie: notitie || null }]);
+                        notitie: notitie || null,
+                        /* Bij een gesplitste betaling ook de verdeling zelf bewaren,
+                           zodat de kas later na te rekenen is. */
+                        verdeling: delen && delen.length ? delen : null }]);
     var oudBetaald = parseFloat(ruw.betaald_bedrag)||0;
     var nieuwBetaald = Math.round((oudBetaald + bedrag)*100)/100;
     var nieuwOpen = Math.round(Math.max(0, ruwOpen - bedrag)*100)/100;
@@ -6071,16 +6149,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var bv = document.getElementById('rkBetaling');
     if(bv) bv.onchange = function(){
       var wat = (document.querySelector('input[name="rkBetaalWat"]:checked')||{}).value || 'alles';
-      var b = bedragen(r), ruw = r.ruw || {};
-      var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
-      var ruwOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0) : b.open;
       var som = document.getElementById('rkBetaalSom');
-      /* Zelfde drie bedragen als in het keuzevak, inclusief de begrenzing. */
-      var extrasTeBetalen = Math.min(openExtras, ruwOpen);
-      if(som) som.textContent = euro(
-        wat === 'extras' ? extrasTeBetalen
-        : wat === 'verblijf' ? Math.max(0, ruwOpen - extrasTeBetalen)
-        : ruwOpen);
+      if(som) som.textContent = euro(teBetalen(r, wat));
+      /* Het splitsvak verschijnt alleen als je voor Splitsen kiest. */
+      var gekozen = document.querySelector('input[name="rkBetaalWijze"]:checked');
+      var split = document.getElementById('rkSplit');
+      if(split){
+        split.hidden = !(gekozen && gekozen.value === 'Splitsen');
+        if(!split.hidden) tekenSplitStand(r);
+      }
+    };
+    /* Tijdens het typen in de verdeelvelden meerekenen; onchange komt pas als
+       je het veld verlaat en dan zie je te laat of het klopt. */
+    if(bv) bv.oninput = function(e){
+      if(e.target && e.target.hasAttribute && e.target.hasAttribute('data-split')) tekenSplitStand(r);
     };
     if(bv) bv.onclick = function(e){
       if(e.target && e.target.id === 'rkBetaalOk'){ e.preventDefault(); rondBetalingAf(r); }
