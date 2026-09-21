@@ -391,6 +391,22 @@ body.gate-open{overflow:hidden}
 #panel-overzicht .lm-leeg{font-size:14px;opacity:.6}
 #panel-overzicht .lm-morgen{margin-left:auto;font-size:13px;opacity:.7}
 @media(max-width:620px){#panel-overzicht .lm-morgen{margin-left:0;width:100%}}
+/* Belletje bij een nieuwe boeking voor Lelystad. Angela, 21-09-2026. */
+#lmNieuweBoeking{border:1px solid #9A7B4F;border-left:5px solid #9A7B4F;background:#faf4e8;
+  border-radius:14px;padding:13px 16px;margin-bottom:16px}
+#lmNieuweBoeking .nb-kop{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-weight:700;font-size:15px}
+#lmNieuweBoeking .nb-bel{font-size:18px;line-height:1}
+#lmNieuweBoeking .nb-tel{background:#B3261E;color:#fff;border-radius:999px;font-size:12px;
+  font-weight:700;padding:1px 8px;min-width:20px;text-align:center}
+#lmNieuweBoeking ul{list-style:none;margin:9px 0 0;padding:0;display:grid;gap:6px}
+#lmNieuweBoeking li{font-size:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+#lmNieuweBoeking li small{opacity:.7;font-size:12.5px}
+#lmNieuweBoeking .nb-spoed{background:#B3261E;color:#fff;border-radius:6px;font-size:11px;
+  font-weight:700;padding:1px 6px;letter-spacing:.04em}
+#lmNieuweBoeking .nb-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+#lmNieuweBoeking .nb-knoppen a,#lmNieuweBoeking .nb-knoppen button{font-size:13px;padding:7px 13px;
+  border-radius:9px;border:1px solid #9A7B4F;background:#fff;color:#4a3b28;text-decoration:none;cursor:pointer}
+#lmNieuweBoeking .nb-knoppen a.wa{background:#167b5d;border-color:#167b5d;color:#fff}
 #panel-overzicht .ov-tegel.vr{position:relative;overflow:hidden;padding-left:22px}
 #panel-overzicht .ov-tegel.vr:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--s)}
 
@@ -920,6 +936,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <h1>Vandaag</h1>
       <p>Aankomsten en vertrekken van vandaag, met de welkomstcall en de bijzonderheden erbij.</p>
     </div>
+
+    <!-- Melding bij een nieuwe boeking voor Lelystad die net is binnengekomen.
+         Angela, 21-09-2026: die moet opvallen, ook als de gast pas later komt. -->
+    <div id="lmNieuweBoeking" hidden></div>
 
     <!-- Fase 3: de dagweergave komt uit de gedeelde kalender (bwf-kalender.js), gelezen uit reserveringen en
          blokkades. Het vandaag-scherm met de welkomstcall-knoppen blijft bereikbaar via de link. -->
@@ -3600,7 +3620,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         'gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,omschrijving,' +
         'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,notitie,medewerker,' +
         'borg_bedrag,borg_wijze,borg_ontvangen,borg_terug,borg_ingehouden,borg_afgehandeld,borg_notitie,' +
-        'welkomstcall_id,checkin_id,klant_id,geannuleerd_op,review_taak_id,review_verstuurd,gastlink_verstuurd';
+        'welkomstcall_id,checkin_id,klant_id,geannuleerd_op,review_taak_id,review_verstuurd,gastlink_verstuurd,' +
+        'created_at';
       var dv = new Date(); dv.setDate(dv.getDate()-365);
       boekingen = (await sb('reserveringen?select='+velden+'&status=neq.geannuleerd' +
         '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000')||[]).map(uitReservering);
@@ -3740,7 +3761,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulSoorten(); vulMedewerkers(); tekenLM(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -4189,6 +4210,87 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var m = MEDEWERKERS.filter(function(x){
       return veld(x,['naam','voornaam','medewerker','email'],'') === naam; })[0];
     return m ? String(m.id) : '';
+  }
+
+  /* ---------- belletje bij een nieuwe boeking voor Lelystad ----------
+     Angela, 21-09-2026: reserveringen die binnen 24 uur zijn binnengekomen
+     moeten hier opvallen, ook als de gast pas over een maand komt. Komt de
+     gast binnen 24 uur aan, dan is het spoed en zegt de regel dat erbij.
+     Het bolletje telt alleen wat nog niet is weggeklikt; dat onthoudt de
+     tablet zelf, zodat twee mensen elkaar niet in de weg zitten. */
+  var NB_SLEUTEL = 'bwf-gezien-lelystad-nieuw';
+  function nbGezien(){
+    try{ var l = JSON.parse(localStorage.getItem(NB_SLEUTEL)||'[]');
+      return Object.prototype.toString.call(l)==='[object Array]' ? l : []; }
+    catch(e){ return []; }
+  }
+  function nbBewaarGezien(ids){
+    try{ localStorage.setItem(NB_SLEUTEL, JSON.stringify(ids.slice(-400))); }catch(e){}
+  }
+  function nbNieuw(){
+    var grens = Date.now() - 24*60*60*1000;
+    return ALLES.filter(function(r){
+      if(r.soort!=='reservering') return false;
+      if(!isLelystad(r.locatie)) return false;
+      var t = Date.parse(((r.ruw||{}).created_at)||'');
+      return !!t && t >= grens;
+    }).sort(function(a,b){
+      return String((b.ruw||{}).created_at).localeCompare(String((a.ruw||{}).created_at)); });
+  }
+  /* Komt de gast zelf ook binnen 24 uur? Dan is het spoed. */
+  function nbIsSpoed(r){
+    if(!r.aankomst) return false;
+    var t = Date.parse(r.start || (r.aankomst+'T15:00:00'));
+    if(!t) return false;
+    return t - Date.now() < 24*60*60*1000;
+  }
+  function nbBericht(lijst){
+    var regels = lijst.map(function(r){
+      return (nbIsSpoed(r) ? 'SPOED - ' : '') + gastnaam(r) + ' · ' +
+        suiteKort(r.locatie) + ' · ' + dmyKort(r.aankomst) +
+        (r.tijdIn ? ' ' + r.tijdIn : '') +
+        (r.kanaal ? ' · ' + r.kanaal : '');
+    });
+    return 'Nieuwe boeking Lelystad:\n' + regels.join('\n');
+  }
+  function tekenNieuweBoekingen(){
+    var vak = document.getElementById('lmNieuweBoeking');
+    if(!vak) return;
+    var lijst = nbNieuw();
+    if(!lijst.length){ vak.hidden = true; vak.innerHTML = ''; return; }
+    var gezien = nbGezien();
+    var open = lijst.filter(function(r){ return gezien.indexOf(String(r.id)) < 0; });
+
+    var team = (CONTACT.filter(function(x){
+      return x.soort==='whatsapp' && /team/i.test(x.naam||''); })[0] || {}).waarde || '';
+    var nr = waNummer(team);
+    var wa = 'https://wa.me/' + nr + '?text=' + encodeURIComponent(nbBericht(lijst));
+
+    vak.innerHTML =
+      '<div class="nb-kop"><span class="nb-bel">🔔</span>' +
+      '<span>Nieuwe boeking' + (lijst.length===1?'':'en') + ' voor Lelystad</span>' +
+      (open.length ? '<span class="nb-tel">'+open.length+'</span>' : '') +
+      '<small style="font-weight:400;opacity:.7">binnengekomen in de afgelopen 24 uur</small></div>' +
+      '<ul>' + lijst.map(function(r){
+        return '<li>' + (nbIsSpoed(r) ? '<span class="nb-spoed">SPOED</span>' : '') +
+          '<strong>'+esc(gastnaam(r))+'</strong>' +
+          '<span>'+esc(suiteKort(r.locatie))+'</span>' +
+          '<small>aankomst '+esc(dmyKort(r.aankomst))+(r.tijdIn?' '+esc(r.tijdIn):'')+
+          (r.kanaal ? ' · '+esc(r.kanaal) : '')+'</small></li>';
+      }).join('') + '</ul>' +
+      '<div class="nb-knoppen">' +
+        (nr ? '<a class="wa" href="'+esc(wa)+'" target="_blank" rel="noopener">Doorsturen via WhatsApp</a>'
+            : '<span style="font-size:12.5px;opacity:.75;align-self:center">Zet eerst een nummer bij '+
+              '&laquo;WhatsApp team&raquo; onder Contact.</span>') +
+        (open.length ? '<button type="button" id="nbGezienKnop">Gezien</button>' : '') +
+      '</div>';
+
+    var knop = document.getElementById('nbGezienKnop');
+    if(knop) knop.addEventListener('click', function(){
+      nbBewaarGezien(nbGezien().concat(lijst.map(function(r){ return String(r.id); })));
+      tekenNieuweBoekingen();
+    });
+    vak.hidden = false;
   }
 
   /* ---------- tegels ---------- */

@@ -1197,6 +1197,9 @@ div.ag-blok{cursor:default}
 .dg-spoedtijd{min-width:54px;font-family:var(--f-mono,monospace);font-size:12px;font-weight:700;
   color:var(--groen,#14342A);padding-top:2px}
 .dg-spoedregel.taak .dg-spoedtijd{color:var(--crit,#B3261E)}
+/* Net binnengekomen boeking: opvallend, want die moet nog nagekeken. */
+.dg-spoedregel.nieuwbinnen{background:var(--goud-zacht,#faf4e8)}
+.dg-spoedregel.nieuwbinnen .dg-spoedtijd{color:var(--goud,#9A7B4F);text-transform:uppercase;font-size:10.5px}
 .dg-spoedregel strong{display:block;font-size:14px;line-height:1.3}
 .dg-spoedregel small{display:block;color:var(--muted,#7B6E62);font-size:12.5px;margin-top:2px}
 .dg-tijdlijn{padding:2px 18px 18px}
@@ -3953,6 +3956,19 @@ function renderDagstart(){
     const vandaagAank = RES
       .filter(r => String(r.start || '').slice(0,10) === vd && !r.geannuleerd)
       .sort((a,b) => String(a.start).localeCompare(String(b.start)));
+    /* Net binnengekomen boekingen zijn ook spoed, ook als de gast pas later
+       komt: die moeten nog nagekeken en bevestigd worden. Gemeten aan
+       created_at, niet aan de aankomstdatum. Angela, 21-09-2026. */
+    const grens = Date.now() - 24 * 60 * 60 * 1000;
+    const netBinnen = RES
+      .filter(r => {
+        if(r.geannuleerd) return false;
+        const t = Date.parse((r.ruw || {}).created_at || '');
+        if(!t || t < grens) return false;
+        /* niet dubbel: staat hij al bij de aankomsten van vandaag, dan niet nog eens */
+        return String(r.start || '').slice(0,10) !== vd;
+      })
+      .sort((a,b) => String(a.start || '').localeCompare(String(b.start || '')));
     const spoedTaken = open.filter(t =>
       (t.prioriteit || '').toLowerCase() === 'hoog' &&
       (!t.deadline || t.deadline <= vd));
@@ -3964,6 +3980,14 @@ function renderDagstart(){
         soort: 'aankomst',
         resId: r.resId || ''
       })))
+      .concat(netBinnen.map(r => ({
+        tijd: 'nieuw',
+        titel: r.naam || 'zonder naam',
+        sub: ['net binnengekomen', 'aankomst ' + dmy(String(r.start || '').slice(0,10)),
+          r.locatie, r.bron].filter(Boolean).join(' · '),
+        soort: 'nieuw',
+        resId: r.resId || ''
+      })))
       .concat(spoedTaken.map(t => ({
         tijd: '',
         titel: t.titel || 'Zonder titel',
@@ -3972,7 +3996,8 @@ function renderDagstart(){
         resId: ''
       })));
     spoed.innerHTML = regels.length
-      ? regels.slice(0,8).map(r => `<div class="dg-spoedregel${r.soort === 'taak' ? ' taak' : ''}"${
+      ? regels.slice(0,8).map(r => `<div class="dg-spoedregel${
+          r.soort === 'taak' ? ' taak' : r.soort === 'nieuw' ? ' nieuwbinnen' : ''}"${
           r.resId ? ` data-resopen="${esc(r.resId)}"` : ''}>
           <span class="dg-spoedtijd">${esc(r.tijd || (r.soort === 'taak' ? 'taak' : '—'))}</span>
           <div><strong>${esc(r.titel)}</strong><small>${esc(r.sub)}</small></div>
@@ -8382,7 +8407,10 @@ async function laadOverzicht(){
                       gewijzigd_door is daarvoor ongeschikt: dat vult de import sinds
                       diezelfde migratie niet meer. Angela, 21-09-2026. */
                    'checkin_id,arrangementen,notitie,omschrijving,gewijzigd_door,' +
-                   'handmatig_gewijzigd_op,aangemaakt_door';
+                   /* created_at zegt wanneer de boeking binnenkwam. Een boeking die
+                      net is binnengekomen vraagt aandacht, ook als de gast pas over
+                      weken komt. Angela, 21-09-2026. */
+                   'handmatig_gewijzigd_op,aangemaakt_door,created_at';
     /* Geen datumvenster meer. Dat stond op 120 dagen terug, waardoor de oudste
        boekingen niet in deze lijst kwamen - en dus ook niet te kiezen waren bij
        "formulier koppelen aan reservering". Hetzelfde probleem stond in het
