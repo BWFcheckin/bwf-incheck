@@ -150,7 +150,26 @@ async function stuurWati(w: Wati, nummer: string, parameters: Param[]) {
   } catch (e) {
     ruw = "netwerkfout: " + String(e).slice(0, 300);
   }
-  return { http, ruw, gelukt };
+  return { http, ruw, gelukt, blijvend: blijvendeFout(ruw) };
+}
+
+/* Heeft opnieuw proberen nog zin?
+
+   Dit onderscheid is belangrijk. Toen het sjabloon nog bij Meta lag ter
+   goedkeuring, antwoordde Wati met "Template is not approved." Zou dat als
+   gewone mislukking tellen, dan was een echte boeking na vijf rondes - een
+   half uur - voorgoed opgegeven, terwijl Meta er soms een dag over doet. Die
+   melding was dan nooit verstuurd en niemand had het gemerkt.
+
+   Dus: alleen een fout die niet vanzelf overgaat telt als definitief. Een
+   nummer zonder WhatsApp verandert niet, en een sjabloon dat niet bestaat ook
+   niet. Wachten op goedkeuring, een storing bij Wati of een vol quotum gaan
+   wel vanzelf over; die blijven we proberen zolang de gast nog moet komen. */
+function blijvendeFout(ruw: string): boolean {
+  const s = ruw.toLowerCase();
+  if (/"validwhatsappnumber"\s*:\s*false/.test(s)) return true;
+  if (/template.*(not found|does not exist|doesn't exist)/.test(s)) return true;
+  return false;
 }
 
 Deno.serve(async (req) => {
@@ -258,13 +277,14 @@ Deno.serve(async (req) => {
 
     const eerder = pogingen.get(b.id) || 0;
 
-    // Geen nummer voor deze locatie? Vastleggen dat we hem gezien hebben, maar
-    // met gelukt=false: wordt het nummer later alsnog ingevuld, dan pakt de
-    // volgende ronde hem op. Na MAX_POGINGEN houdt het op.
+    // Vastleggen dat we hem gezien hebben, maar niet als afgehandeld. Is het
+    // nummer nog niet ingevuld, dan kan dat elk moment gebeuren; de teller gaat
+    // dan bewust niet omhoog, zodat de volgende ronde hem gewoon weer oppakt.
+    // Een onbekende locatie verandert wél nooit meer: die geven we op.
     if (!plaats || !nummer) {
       await db.from("meldingen_verstuurd").upsert({
         reservering_id: b.id, soort: SOORT, locatie: plaats || null,
-        nummer: null, gelukt: false, pogingen: eerder + 1,
+        nummer: null, gelukt: false, pogingen: plaats ? eerder : MAX_POGINGEN,
         antwoord: plaats ? "geen nummer ingesteld voor " + plaats : "locatie onbekend",
         verstuurd_op: new Date().toISOString(),
       }, { onConflict: "reservering_id,soort" });
@@ -284,16 +304,24 @@ Deno.serve(async (req) => {
       { name: "4", value: via },
     ];
 
-    const { http, ruw, gelukt } = await stuurWati(
+    const { http, ruw, gelukt, blijvend } = await stuurWati(
       { endpoint, token, sjabloon }, nummer, parameters);
+
+    // Gelukt: klaar. Blijvende fout: meteen opgeven, want herhalen helpt niet
+    // en in antwoord staat waarom. Tijdelijk (wachten op goedkeuring, storing):
+    // de teller niet ophogen, zodat we blijven proberen tot de gast er is.
+    const staat = gelukt ? eerder : blijvend ? MAX_POGINGEN : eerder;
 
     await db.from("meldingen_verstuurd").upsert({
       reservering_id: b.id, soort: SOORT, locatie: plaats, nummer,
-      gelukt, pogingen: eerder + 1, antwoord: "http " + http + " " + ruw,
+      gelukt, pogingen: staat, antwoord: "http " + http + " " + ruw,
       verstuurd_op: new Date().toISOString(),
     }, { onConflict: "reservering_id,soort" });
 
-    uit.push({ id: b.id, locatie: plaats, gelukt, http, poging: eerder + 1 });
+    uit.push({
+      id: b.id, locatie: plaats, gelukt, http,
+      ...(gelukt ? {} : { nogmaals: !blijvend }),
+    });
   }
 
   return Response.json({
