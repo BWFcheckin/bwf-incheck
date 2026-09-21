@@ -3338,7 +3338,7 @@ function kiesTab(naam){
      bovenkant; kwam daar een glijdende beweging achteraan, dan zag je de
      pagina twee keer verschuiven bij het openen van een tabblad. Nu staat hij
      in één keer op de goede plek. Angela, 21-09-2026. */
-  if(paneel && GROEPEN[groepNu].length > 1) paneel.scrollIntoView({block:'start'});
+  if(paneel && GROEPEN[groepNu].length > 1) paneel.scrollIntoView({ block:'start', behavior:'instant' });
 }
 $('#groeptabs').addEventListener('click', e=>{
   /* links (zoals Reserveringen (nieuw)) gewoon laten openen */
@@ -3951,7 +3951,11 @@ document.addEventListener('click', e => {
   const voor = rij.getBoundingClientRect().top;
   dgVakFilter(rij.dataset.dgvak, b.dataset.dgfilter);
   const na = rij.getBoundingClientRect().top;
-  if(na !== voor) window.scrollBy(0, na - voor);
+  /* behavior:'instant' is hier niet optioneel: deze pagina heeft
+     html{scroll-behavior:smooth}, en zonder dit zou juist deze correctie als
+     een zichtbare glijbeweging over het scherm lopen - precies het
+     verspringen dat hij moet voorkomen. Angela, 21-09-2026. */
+  if(na !== voor) window.scrollBy({ top: na - voor, behavior:'instant' });
 });
 /* De laatst gekozen groep terugzetten zodra de panelen in beeld komen. */
 function dgVakHerstel(){
@@ -3986,7 +3990,8 @@ document.addEventListener('click', e => {
   dgFilter(b.dataset.dgfilter);
   if(rij){
     const na = rij.getBoundingClientRect().top;
-    if(na !== voor) window.scrollBy(0, na - voor);
+    /* instant, om dezelfde reden als hierboven. */
+    if(na !== voor) window.scrollBy({ top: na - voor, behavior:'instant' });
   }
 });
 /* de laatst gekozen groep blijft binnen deze sessie staan; standaard alles */
@@ -4158,7 +4163,9 @@ function renderTaken(){
     ? lijst.length+' van '+alles+' taken · filter actief'
     : lijst.length+' taken getoond';
   tkVak.style.minHeight = '';
-  if(window.scrollY !== tkY) window.scrollTo(0, tkY);
+  /* instant: met scroll-behavior:smooth zou het terugzetten zelf een
+     zichtbare beweging worden. */
+  if(window.scrollY !== tkY) window.scrollTo({ top: tkY, behavior:'instant' });
 }
 
 document.addEventListener('click', async e=>{
