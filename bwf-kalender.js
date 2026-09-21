@@ -105,6 +105,15 @@
     });
   }
   function gastNaam(r) { return [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" "); }
+  /* Een boeking zonder naam, e-mail én telefoon is in de praktijk geen gast
+     maar een dichtgezette dag: zo komen ze binnen uit Booking.com, uit
+     Origineel Overnachten zonder naam in de titel, en als handmatige regel in
+     de SMG-planning. Geannuleerde regels tellen niet mee - die hebben hun
+     eigen weergave. Angela, 21-09-2026. */
+  function geenGast(r) {
+    if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;
+    return !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
+  }
 
   /* ---------- sessie (standaard: de gewone Supabase-sessie van de site) ---------- */
   function jwtDeel(t) {
@@ -172,7 +181,11 @@
       ".bwfk-item b{font-weight:600}",
       ".bwfk-item.optie{border-left-style:dashed;outline:1px dashed color-mix(in srgb,var(--kk) 55%,transparent);outline-offset:-1px}",
       ".bwfk-item.geannuleerd,.bwfk-item.no_show{--kk:#A7AEAA;color:var(--k-muted);text-decoration:line-through;background:var(--k-bg2)}",
-      ".bwfk-item.blokkade{--kk:#8B8F8C;color:var(--k-ink);background:repeating-linear-gradient(135deg,var(--k-bg2) 0 6px,color-mix(in srgb,#8B8F8C 22%,var(--k-bg)) 6px 12px)}",
+      /* Blokkades in het rood (Angela, 21-09-2026). Stonden eerst in grijs en
+         waren daardoor nauwelijks te onderscheiden van een geannuleerde
+         boeking. Het streepjespatroon blijft: daarmee zie je in één oogopslag
+         dat er niemand komt, ook als je de kleur niet meeweegt. */
+      ".bwfk-item.blokkade{--kk:#B3261E;color:#8C1D18;font-weight:600;background:repeating-linear-gradient(135deg,var(--k-bg2) 0 6px,color-mix(in srgb,#B3261E 20%,var(--k-bg)) 6px 12px)}",
       ".bwfk-item.uitgelicht{box-shadow:0 0 0 2px var(--k-goud)}",
       /* dagweergave */
       ".bwfk-dagkolommen{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0}",
@@ -193,7 +206,9 @@
       ".bwfk-lijst th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--k-muted);padding:8px 12px;border-top:1px solid var(--k-line);border-bottom:1px solid var(--k-line);white-space:nowrap}",
       ".bwfk-lijst td{padding:9px 12px;border-bottom:1px solid var(--k-soft);vertical-align:top}",
       ".bwfk-lijst tr.geannuleerd td,.bwfk-lijst tr.no_show td{color:var(--k-muted)}",
-      ".bwfk-lijst tr.blokkade td{background:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,#8B8F8C 10%,transparent) 8px 16px)}",
+      ".bwfk-lijst tr.blokkade td{color:#8C1D18;background:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,#B3261E 10%,transparent) 8px 16px)}",
+      /* Het woord "blokkade" erbij, zodat het ook zonder kleur duidelijk is. */
+      ".bwfk-blokmerk{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#B3261E;border-radius:999px;padding:1px 7px;margin-right:6px;vertical-align:1px}",
       ".bwfk-lijst tr.uitgelicht td{background:color-mix(in srgb,var(--k-goud) 14%,transparent)}",
       ".bwfk-lijst td small{display:block;color:var(--k-muted);font-size:12px}",
       ".bwfk-naam{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
@@ -323,7 +338,10 @@
           (toegestaan.length > 1 ? '<select class="bwfk-suite" aria-label="Suite"><option value="">Alle suites</option>' +
             toegestaan.map(function (s) { return '<option value="' + s + '">' + esc(SUITES[s].naam) + '</option>'; }).join("") + '</select>' : '') +
           '<label class="bwfk-vink"><input type="checkbox" class="bwfk-geann"' + (st.geannuleerd ? " checked" : "") + '> geannuleerd tonen</label>' +
-          '<label class="bwfk-vink"><input type="checkbox" class="bwfk-blok"' + (st.blokkades ? " checked" : "") + '> niet beschikbaar tonen</label>' +
+          /* Angela, 21-09-2026: dit vinkje heette "niet beschikbaar tonen" en
+             daarmee was niet duidelijk dat het de blokkades aan- en uitzet. */
+          '<label class="bwfk-vink" title="Blokkades zijn dagen waarop er niemand komt: gesloten, onderhoud of via een kanaal dichtgezet.">' +
+            '<input type="checkbox" class="bwfk-blok"' + (st.blokkades ? " checked" : "") + '> blokkades tonen</label>' +
           '<button type="button" class="bwfk-knop" data-k="ververs">Verversen</button>' +
         '</div>' +
       '</div>' +
@@ -331,7 +349,7 @@
       '<div class="bwfk-rooster"></div>' +
       '<div class="bwfk-legenda">' +
         Object.keys(KANALEN).map(function (k) { return '<span><i style="background:' + KANALEN[k].kleur + '"></i>' + esc(KANALEN[k].kort) + '</span>'; }).join("") +
-        '<span><i style="background:repeating-linear-gradient(135deg,#eee 0 3px,#bbb 3px 6px)"></i>blokkade</span>' +
+        '<span><i style="background:repeating-linear-gradient(135deg,#f7dedc 0 3px,#B3261E 3px 6px)"></i>blokkade</span>' +
         '<span><i style="background:#ddd"></i>geannuleerd</span>' +
         '<span><i style="border:1px dashed #999"></i>optie</span>' +
       '</div>' +
@@ -428,6 +446,9 @@
       st.res.forEach(function (r) {
         if (!zichtbaar(r.suite)) return;
         if (!st.geannuleerd && (r.status === "geannuleerd" || r.status === "no_show")) return;
+        /* Regels zonder gastgegevens gedragen zich als blokkade en vallen dus
+           ook onder het vinkje "blokkades tonen". Angela, 21-09-2026. */
+        if (!st.blokkades && geenGast(r)) return;
         var d = dagenVan(new Date(r.aankomst), new Date(r.vertrek));
         /* Is er een eigen inchecktijd afgesproken, dan wint die van het
            tijdstempel. Het tijdstempel houdt de begintijd van het geboekte blok
@@ -454,19 +475,35 @@
 
     function itemHtml(x, datum, groot) {
       if (x.soort === "blok") {
+        /* Het woord BLOKKADE staat er letterlijk bij. Angela wilde dat je niet
+           op kleur alleen hoeft af te gaan: er komt niemand, dus het mag niet
+           met een boeking te verwarren zijn. Angela, 21-09-2026. */
         var tekstB = (x.d.eerste === datum && x.d.startTijd !== "00:00" ? x.d.startTijd + " " : "") +
-          SUITES[x.b.suite].kort + " · " + (x.b.reden || "Blokkade");
+          SUITES[x.b.suite].kort + " · " + (x.b.reden || "gesloten");
         return '<button type="button" class="bwfk-item blokkade" data-blok="' + esc(x.b.id) + '" data-dag="' + datum + '" title="' +
-          esc(SUITES[x.b.suite].naam + " — blokkade: " + (x.b.reden || "") + " (" + dagKort(x.d.eerste) + " " + x.d.startTijd + " – " + dagKort(x.d.eindDatum) + " " + x.d.eindTijd + ")") + '">' +
-          esc(tekstB) + '</button>';
+          esc(SUITES[x.b.suite].naam + " — BLOKKADE: " + (x.b.reden || "gesloten") + " (" + dagKort(x.d.eerste) + " " + x.d.startTijd + " – " + dagKort(x.d.eindDatum) + " " + x.d.eindTijd + ")") + '">' +
+          '<span class="bwfk-blokmerk">blokkade</span>' + esc(tekstB) + '</button>';
       }
       var r = x.r, kanaal = KANALEN[r.kanaal] || KANALEN.handmatig;
-      var naam = gastNaam(r) || "gast onbekend";
+      /* Een regel uit een kanaalfeed zonder gastgegevens is geen gast maar een
+         dichtgezette dag: Booking.com levert geen naam mee, en de handmatige
+         regels uit de SMG-planning al helemaal niet. Die kregen "gast
+         onbekend" en zagen eruit als een boeking. Ze worden nu als blokkade
+         getoond, in het rood en met het woord erbij. De boeking zelf blijft
+         gewoon bestaan - dit is alleen hoe hij in de agenda oogt.
+         Angela, 21-09-2026. */
+      var zonderGast = geenGast(r);
+      var naam = gastNaam(r) || (zonderGast ? (r.import_opmerking || kanaal.naam) : "gast onbekend");
       var tijd = x.d.eerste === datum ? x.d.startTijd : "vervolg";
-      var klassen = ["bwfk-item", r.status, st.uitgelicht === r.id ? "uitgelicht" : ""].join(" ");
-      var titel = SUITES[r.suite].naam + " · " + naam + " · " + kanaal.naam + " · " + (TYPES[r.type] || r.type) + " · " +
+      var klassen = ["bwfk-item", r.status, zonderGast ? "blokkade" : "",
+        st.uitgelicht === r.id ? "uitgelicht" : ""].join(" ");
+      var titel = SUITES[r.suite].naam + " · " + (zonderGast ? "BLOKKADE, geen gastgegevens" : naam) +
+        " · " + kanaal.naam + " · " + (TYPES[r.type] || r.type) + " · " +
         dagKort(x.d.eerste) + " " + x.d.startTijd + " – " + dagKort(x.d.eindDatum) + " " + x.d.eindTijd + " · " + (STATUSSEN[r.status] || r.status);
-      return '<button type="button" class="' + klassen + '" style="--kk:' + kanaal.kleur + '" data-res="' + esc(r.id) + '" data-dag="' + datum + '" title="' + esc(titel) + '">' +
+      return '<button type="button" class="' + klassen + '" style="--kk:' +
+        (zonderGast ? "#B3261E" : kanaal.kleur) + '" data-res="' + esc(r.id) + '" data-dag="' + datum +
+        '" title="' + esc(titel) + '">' +
+        (zonderGast ? '<span class="bwfk-blokmerk">blokkade</span>' : '') +
         '<b>' + esc(tijd) + '</b> ' + (groot ? '' : esc(SUITES[r.suite].kort) + ' · ') + esc(naam) + '</button>';
     }
 
@@ -574,10 +611,16 @@
       }
       var regels = rijen.map(function (r) {
         var kanaal = KANALEN[r.kanaal] || KANALEN.handmatig;
-        return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
+        /* Zie geenGast(): een regel zonder gastgegevens is een dichtgezette dag
+           en krijgt dezelfde rode opmaak als een echte blokkade. */
+        var zonderGast = geenGast(r);
+        return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
           "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</td>" +
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[r.suite].kleur + '"></span> ' + esc(SUITES[r.suite].naam) + "<small>" + esc(TYPES[r.type] || r.type) + "</small></td>" +
-          '<td class="bwfk-naam" title="' + esc(gastNaam(r) || "gast onbekend") + '">' + (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>') +
+          '<td class="bwfk-naam" title="' + esc(zonderGast ? "Blokkade: geen gastgegevens" : (gastNaam(r) || "gast onbekend")) + '">' +
+            (zonderGast
+              ? '<span class="bwfk-blokmerk">blokkade</span>' + esc(r.import_opmerking || kanaal.naam)
+              : (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>')) +
             (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") + "</td>" +
           '<td><span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span>" + (resNummer(r) ? "<small>nr. " + esc(resNummer(r)) + "</small>" : "") + "</td>" +
           '<td><span class="bwfk-pil ' + esc(r.status) + '">' + esc(STATUSSEN[r.status] || r.status) + "</span></td>" +
@@ -589,7 +632,8 @@
         return { sorteer: b.van, html: '<tr class="blokkade">' +
           "<td>" + tijdTekst(b.van, b.tot) + "</td>" +
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[b.suite].kleur + '"></span> ' + esc(SUITES[b.suite].naam) + "<small>blokkade</small></td>" +
-          '<td class="bwfk-naam" title="' + esc(b.reden || "") + '">' + esc(b.reden || "Blokkade") + "</td>" +
+          '<td class="bwfk-naam" title="' + esc(b.reden || "") + '">' +
+            '<span class="bwfk-blokmerk">blokkade</span>' + esc(b.reden || "gesloten") + "</td>" +
           "<td>" + esc(b.bron === "handmatig" ? "Handmatig" : b.bron === "ics-booking" ? "Booking.com" : b.bron === "ics-smg" ? "SMG-planning" : b.bron) + "</td>" +
           '<td><span class="bwfk-pil">Gesloten</span></td>' +
           '<td><div class="bwfk-acties">' + (opties.blokkadeOpheffen && b.bron === "handmatig" ? '<button type="button" data-opheffen="' + esc(b.id) + '">Opheffen</button>' : "") + "</div></td></tr>" };
