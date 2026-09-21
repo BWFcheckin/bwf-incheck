@@ -462,12 +462,29 @@
           }
         }
         if (!st.mw) {
-          try {
-            st.mw = await haal("wz_medewerkers?select=id,naam") || [];
-          } catch (e) {
-            st.mw = [];
-            st.roosterFout = (st.roosterFout ? st.roosterFout + " · " : "") +
-              "namen: " + (e && e.message ? e.message : "onbekende fout");
+          /* De namen bij het rooster komen uit de tabel medewerkers, niet uit
+             wz_medewerkers: planning.medewerker_id verwijst naar de eerste.
+             Dat is ook wat vr2 en het locatiedashboard doen. Stond hier alleen
+             wz_medewerkers, en dan werd elke dienst "onbekend".
+             Allebei ophalen en samenvoegen, zodat het klopt welke van de twee
+             er ook in het rooster staat. Angela, 21-09-2026. */
+          var samen = [];
+          var fouten = [];
+          for (var t = 0; t < 2; t++) {
+            try {
+              var deel = await haal((t === 0 ? "medewerkers" : "wz_medewerkers") + "?select=id,naam") || [];
+              deel.forEach(function (m) {
+                if (m && m.id && !samen.some(function (x) { return String(x.id) === String(m.id); })) samen.push(m);
+              });
+            } catch (e) {
+              fouten.push((t === 0 ? "medewerkers" : "wz_medewerkers") + ": " + (e && e.message ? e.message : "fout"));
+            }
+          }
+          st.mw = samen;
+          /* Alleen melden als er helemaal geen namen zijn opgehaald; lukt een
+             van de twee, dan is dat genoeg. */
+          if (!samen.length && fouten.length) {
+            st.roosterFout = (st.roosterFout ? st.roosterFout + " · " : "") + "namen: " + fouten.join(" / ");
           }
         }
         st.bereik = bereik;
