@@ -166,6 +166,11 @@ td.name{font-weight:600}
 td .meta{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
 tr.done td:not(.act){opacity:.55}
 td.act{white-space:nowrap;text-align:right}
+/* Een taakregel is aanklikbaar: dat opent hem om te wijzigen. Nodig omdat het
+   potloodje in de laatste kolom staat en de tabel op een telefoon horizontaal
+   schuift - daar zie je die knop niet. Angela, 21-09-2026. */
+tr.tk-rij{cursor:pointer}
+tr.tk-rij:hover td{background:var(--surface-2)}
 td input[type="text"],td input[type="number"],td select{width:100%;background:transparent;border:1px solid transparent;
   border-radius:var(--r-s);padding:5px 7px;font-size:13.5px}
 td input[type="text"]{min-width:112px}
@@ -1777,6 +1782,10 @@ div.ag-blok{cursor:default}
 
     <div class="card" data-dggroep="lijst">
       <div class="card-head"><h2>Takenlijst</h2>
+        <!-- Rechtstreeks naar het aanmaakformulier. Dat staat onder de tegel
+             "Taak aanmaken", en wie in de lijst kijkt moet daar niet eerst
+             naar terug hoeven zoeken. Angela, 21-09-2026. -->
+        <button class="btn small" type="button" id="tkNieuwSnel">+ Nieuwe taak</button>
         <div class="segment" id="tkFilter">
           <button type="button" data-f="open" aria-pressed="true">Open</button>
           <button type="button" data-f="klaar" aria-pressed="false">Klaar</button>
@@ -4092,7 +4101,7 @@ function renderTaken(){
   const kort = s => { s = String(s||'').replace(/\s+/g,' ').trim(); return s.length>150 ? s.slice(0,150)+'…' : s; };
   const bijlagenVan = id => S.docs.filter(d=>d.taak_id===id);
   $('#tkLijst').innerHTML = lijst.length ? lijst.map(t=>`
-    <tr class="${t.status==='klaar'?'done':''}">
+    <tr class="${t.status==='klaar'?'done':''} tk-rij" data-taakrij="${t.id}" title="Tik om te openen en te wijzigen">
       <td class="name">${esc(t.titel)} ${prio(t.prioriteit)}
         ${t.bron==='email'?'<span class="pill accent">e-mail</span>':''}
         ${tkSuite(t)?`<span class="pill neutral">${esc(tkSuite(t))}</span>`:''}
@@ -4139,9 +4148,12 @@ document.addEventListener('click', async e=>{
    opslaat, bewaakt de database: mag je de taak niet wijzigen, dan gebeurt er
    niets en blijft de oude tekst staan. */
 let tkbId = null;
-document.addEventListener('click', e=>{
-  const b = e.target.closest('[data-taakopen]'); if(!b) return;
-  const t = (S.taken||[]).find(x=>x.id === b.dataset.taakopen); if(!t) return;
+/* Het bewerkvenster openen. Zat eerst alleen achter het potloodje in de
+   laatste kolom, en die staat op een telefoon buiten beeld: de tabel is
+   minstens 640px breed en schuift horizontaal. Daarom opent nu ook een tik op
+   de regel zelf. Angela, 21-09-2026. */
+function taakOpenen(id){
+  const t = (S.taken||[]).find(x=>x.id === id); if(!t) return;
   tkbId = t.id;
   $('#tkbTitel').value = t.titel || '';
   $('#tkbOms').value = tkOms(t) || '';
@@ -4152,6 +4164,30 @@ document.addEventListener('click', e=>{
   $('#tkbPrio').value = t.prioriteit || '';
   $('#tkbNote').textContent = t.bron==='agenda' && t.link ? 'Deze taak hoort bij een reservering.' : '';
   $('#dlgTaak').showModal();
+}
+/* De knop "+ Nieuwe taak" bij de lijst: zet de tegel op "aanmaken", brengt het
+   formulier in beeld en zet de cursor in het titelveld. */
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#tkNieuwSnel')) return;
+  try{ dgVakFilter('taken', 'aanmaken'); }catch(err){}
+  const veld = $('#tkTitel');
+  if(veld){
+    const kaart = veld.closest('.card') || veld;
+    if(kaart.scrollIntoView) kaart.scrollIntoView({ block:'start' });
+    /* Op een smal scherm niet vanzelf het toetsenbord openklappen: dat laat de
+       pagina wegspringen. Daar tikt ze zelf in het veld. */
+    if(window.innerWidth >= 760){ try{ veld.focus({ preventScroll:true }); }catch(err){ veld.focus(); } }
+  }
+});
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-taakopen]');
+  if(b){ taakOpenen(b.dataset.taakopen); return; }
+  /* Een tik op de regel opent dezelfde taak. Niet als je op een knop of een
+     link in die regel tikt - dan bedoel je dat knopje. */
+  const rij = e.target.closest('tr[data-taakrij]');
+  if(!rij) return;
+  if(e.target.closest('button,a,input,select,textarea,label')) return;
+  taakOpenen(rij.dataset.taakrij);
 });
 $('#dlgTaak').addEventListener('close', async ()=>{
   const id = tkbId; tkbId = null;
