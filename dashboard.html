@@ -4135,28 +4135,49 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       return '<option value="'+esc(k)+'">'+esc(SOORTNAAM[k]||k)+'</option>'; }).join('');
     sel.value = h;
   }
+  /* De tabel wz_taken bewaart de toegewezen persoon als wz_medewerkers.id in
+     de kolom medewerker_id - niet als naam. De keuzemenu's tonen dus de naam
+     maar dragen het id als waarde, en tkNaam() zoekt er weer een naam bij.
+     Angela, 21-09-2026. */
+  function tkNaam(id){
+    if(!id) return '';
+    var m = MEDEWERKERS.filter(function(x){ return String(x.id)===String(id); })[0];
+    return m ? veld(m,['naam','voornaam','medewerker','email'],'') : '';
+  }
   function vulMedewerkers(){
-    var namen = MEDEWERKERS.map(function(m){ return veld(m,['naam','voornaam','medewerker','email'],''); })
-      .filter(Boolean).sort();
-    var opts = namen.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
+    var lijst = MEDEWERKERS.map(function(m){
+        return { id: m.id, naam: veld(m,['naam','voornaam','medewerker','email'],'') };
+      })
+      .filter(function(m){ return m.id && m.naam; })
+      .sort(function(x,y){ return x.naam.localeCompare(y.naam); });
+    var opts = lijst.map(function(m){
+      return '<option value="'+esc(m.id)+'">'+esc(m.naam)+'</option>'; }).join('');
     var a = document.getElementById('tkWie'), b = document.getElementById('tkFilter');
     var ha=a.value, hb=b.value;
     a.innerHTML = '<option value="">Nog niet toegewezen</option>'+opts; a.value=ha;
     /* Een locatiemanager ziet alleen zijn eigen taken \u2014 die van collega's
        gaan hem niet aan. Alleen de eigenaar kan alles zien. */
-    var mij = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
+    var mij = tkMijnId();
     var alles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
     if(alles){
       b.innerHTML = '<option value="">Iedereen</option>' + opts;
       if(hb) b.value = hb;
-      else if(mij && namen.indexOf(mij) > -1) b.value = mij;
+      else if(mij) b.value = mij;
     }else{
-      b.innerHTML = mij ? '<option>' + esc(mij) + '</option>'
+      b.innerHTML = mij ? '<option value="'+esc(mij)+'">' + esc(tkNaam(mij)) + '</option>'
                         : '<option value="">Nog niet toegewezen</option>';
       b.value = mij;
       b.disabled = true;
       b.title = 'Je ziet de taken die op jouw naam staan.';
     }
+  }
+  /* Wie ben ik? window.BWF geeft een naam door; de taken werken met id's. */
+  function tkMijnId(){
+    var naam = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
+    if(!naam) return '';
+    var m = MEDEWERKERS.filter(function(x){
+      return veld(x,['naam','voornaam','medewerker','email'],'') === naam; })[0];
+    return m ? String(m.id) : '';
   }
 
   /* ---------- tegels ---------- */
@@ -6466,29 +6487,29 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var wie = document.getElementById('tkFilter').value;
     /* voor de zekerheid ook hier: geen eigenaar, dan altijd de eigen naam */
     var magAlles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
-    if(!magAlles) wie = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : wie;
+    if(!magAlles) wie = tkMijnId() || wie;
     var open = TAKEN.filter(function(t){ return (t.status||'open')==='open'; })
-      .filter(function(t){ return !wie || String(t.toegewezen||'')===wie; });
+      .filter(function(t){ return !wie || String(t.medewerker_id||'')===String(wie); });
     var el = document.getElementById('tkLijst');
     var teller = document.getElementById('tkTeller');
     if(teller){
-      var mij = window.BWF && window.BWF.medewerker ? window.BWF.medewerker : '';
+      var mij = tkMijnId();
       var opMijnNaam = TAKEN.filter(function(t){
-        return (t.status||'open')==='open' && String(t.toegewezen||'')===mij; }).length;
+        return (t.status||'open')==='open' && mij && String(t.medewerker_id||'')===mij; }).length;
       teller.textContent = wie
-        ? open.length + ' op naam van ' + wie
+        ? open.length + ' op naam van ' + (tkNaam(wie) || 'onbekend')
         : open.length + ' in totaal' + (mij ? ' \u00b7 ' + opMijnNaam + ' op jouw naam' : '');
     }
     if(!open.length){
       el.innerHTML = '<p style="opacity:.55;font-size:14px">' +
-        (wie ? 'Geen openstaande taken voor ' + esc(wie) + '. Zet het filter op Iedereen om alles te zien.'
+        (wie ? 'Geen openstaande taken voor ' + esc(tkNaam(wie) || 'deze persoon') + '. Zet het filter op Iedereen om alles te zien.'
              : 'Geen openstaande taken.') + '</p>';
       return;
     }
     el.innerHTML = open.map(function(t){
       return '<div class="taak"><input type="checkbox" data-taak="'+esc(t.id)+'" style="margin-top:4px">'+
         '<div class="op"><b>'+esc(t.titel||'Zonder titel')+'</b>'+
-        '<small>'+esc([t.locatie, t.toegewezen||'niet toegewezen', t.deadline?('voor '+String(t.deadline).slice(0,10)):'']
+        '<small>'+esc([t.locatie, tkNaam(t.medewerker_id)||'niet toegewezen', t.deadline?('voor '+String(t.deadline).slice(0,10)):'']
           .filter(Boolean).join(' \u00b7 '))+'</small>'+
         (t.omschrijving ? '<div style="font-size:13.5px;opacity:.8;margin-top:4px">'+esc(t.omschrijving)+'</div>' : '')+
         '</div></div>';
@@ -6588,10 +6609,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       titel: '['+soort+'] '+titel,
       omschrijving: document.getElementById('tkTekst').value.trim(),
       locatie: document.getElementById('tkLocatie').value,
-      toegewezen: document.getElementById('tkWie').value || null,
+      /* wz_taken kent geen kolom "toegewezen" - de toegewezen persoon staat
+         als wz_medewerkers.id in medewerker_id. Met de oude naam weigerde
+         PostgREST de hele rij en lukte het aanmaken niet meer. */
+      medewerker_id: document.getElementById('tkWie').value || null,
       deadline: document.getElementById('tkDeadline').value || null,
-      status: 'open'
+      status: 'open',
+      aangemaakt: new Date().toISOString()
     };
+    /* Wie hem aanmaakt mag hem later ook afvinken; dat leunt op deze kolom. */
+    var ik = tkMijnId(); if(ik) obj.aangemaakt_door = ik;
     el.textContent = 'Bezig\u2026';
     try{
       var res = await sb('wz_taken', { method:'POST', body:JSON.stringify(obj) });
