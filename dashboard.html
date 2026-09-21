@@ -1103,6 +1103,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
             <option>Malina Jacuzzi</option>
             <option>Malina Deluxe</option>
             <option>Beide locaties</option>
+            <option>Suite Angie</option>
           </select></div>
         <div class="veld"><label for="tkWie">Toewijzen aan</label>
           <select id="tkWie"><option value="">Nog niet toegewezen</option></select></div>
@@ -4171,6 +4172,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       b.title = 'Je ziet de taken die op jouw naam staan.';
     }
   }
+  /* Van suitekeuze naar de plaats die wz_taken.locatie accepteert. Alleen
+     'Almere' en 'Lelystad' zijn toegestaan; alles wat naar Suite Angie wijst
+     is Almere, de rest is Lelystad. Leeg blijft leeg: zo'n taak is dan alleen
+     zichtbaar voor de eigenaar en voor wie hem aanmaakte. */
+  function tkPlaats(keuze){
+    if(!keuze) return null;
+    return hoofdnaam(keuze) === 'Suite Angie' ? 'Almere' : 'Lelystad';
+  }
   /* Wie ben ik? window.BWF geeft een naam door; de taken werken met id's. */
   function tkMijnId(){
     var naam = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
@@ -6099,7 +6108,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       document.getElementById('tkLocatie').value = hoofdnaam(r.locatie);
       document.getElementById('tkTekst').value =
         'Bij reservering '+(r.nummer||sleutel(r))+' \u2014 '+gastnaam(r)+', '+hoofdnaam(r.locatie)+' '+(r.aankomst||'');
-      document.getElementById('tkTitel').focus();
+      /* Op een telefoon of tablet laat focus() de pagina wegspringen en klapt
+         het toetsenbord over het formulier heen. Daar brengen we het formulier
+         rustig in beeld; op een breed scherm blijft de cursor gewoon staan.
+         Angela, 21-09-2026. */
+      var titelVeld = document.getElementById('tkTitel');
+      if(window.innerWidth >= 760){
+        try{ titelVeld.focus({ preventScroll:true }); }catch(e){ titelVeld.focus(); }
+      }else if(titelVeld.scrollIntoView){
+        titelVeld.scrollIntoView({ behavior:'smooth', block:'center' });
+      }
     };
   }
   /* ---------- formulier aan een reservering koppelen ---------- */
@@ -6605,10 +6623,17 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var el = document.getElementById('tkMelding');
     if(!titel){ el.textContent = 'Vul eerst een korte omschrijving in.'; return; }
     var soort = document.getElementById('tkSoort').value;
+    var suite = document.getElementById('tkLocatie').value;
+    var toelichting = document.getElementById('tkTekst').value.trim();
     var obj = {
       titel: '['+soort+'] '+titel,
-      omschrijving: document.getElementById('tkTekst').value.trim(),
-      locatie: document.getElementById('tkLocatie').value,
+      /* De suite staat in de tekst, want in de kolom locatie past hij niet. */
+      omschrijving: (suite ? 'Suite: '+suite+(toelichting ? '\n' : '') : '') + toelichting,
+      /* wz_taken.locatie mag alleen 'Almere' of 'Lelystad' bevatten - daar
+         kijkt de zichtbaarheidsregel naar om te bepalen wie de taak ziet. Een
+         suitenaam als 'Malina Jacuzzi' wordt door de database geweigerd, en
+         dan verdwijnt de hele taak. */
+      locatie: tkPlaats(suite),
       /* wz_taken kent geen kolom "toegewezen" - de toegewezen persoon staat
          als wz_medewerkers.id in medewerker_id. Met de oude naam weigerde
          PostgREST de hele rij en lukte het aanmaken niet meer. */
