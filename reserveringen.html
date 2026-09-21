@@ -877,6 +877,10 @@ let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = nul
    Sleutel is reservering_id. Leeg zolang ze nog niet opgehaald zijn.
    Angela, 21-09-2026. */
 let CALLS_LIJST = {};
+/* Betaalde Mollie-links per reservering. Angela wil op de kaart zien dat er
+   via een betaallink is betaald, ook als de reservering zelf nog niet is
+   bijgewerkt - dan is de melding van Mollie niet aangekomen. */
+let MOLLIE_LIJST = {};
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1128,6 +1132,21 @@ function rijHtml(r) {
     }
   }
   const geld = geldR ? '<div class="reskaart-geld">' + geldR + "</div>" : "";
+  /* Is er via een Mollie-betaallink betaald? Dat hoort op de kaart te staan.
+     Klopt het niet met wat de boeking zelf zegt - betaald bij Mollie, maar de
+     reservering staat nog open - dan is de melding van Mollie niet aangekomen
+     en moet dat opvallen. Angela, 21-09-2026. */
+  const mollie = MOLLIE_LIJST[r.id];
+  let mollieR = "";
+  if (mollie && mollie.bedrag > 0) {
+    const verwerkt = bstat === "betaald" ||
+      (r.betaald_bedrag != null && Number(r.betaald_bedrag) >= mollie.bedrag - 0.005);
+    mollieR = '<div class="reskaart-regels"><span class="pill ' + (verwerkt ? "ok" : "crit") + '">' +
+      (verwerkt
+        ? "Mollie betaald &euro; " + esc(euro(mollie.bedrag))
+        : "Mollie betaald &euro; " + esc(euro(mollie.bedrag)) + " &mdash; nog niet verwerkt") +
+      "</span></div>";
+  }
   /* Dezelfde zes stappen als in het venster, maar dan op de kaart - Angela
      wilde ze zien zonder elke reservering te hoeven openen. Korte woorden,
      want er staan er zes naast elkaar; de volledige naam staat in de title. */
@@ -1161,7 +1180,7 @@ function rijHtml(r) {
       /* Eigen regel voor wat er ná de boeking is bijgekomen. */
       '<div class="reskaart-regels"><span>Bijgeboekt <b>' +
         (bijTekst ? esc(bijTekst) : "niks bijgeboekt") + "</b></span></div>" +
-      geld + stappen +
+      geld + mollieR + stappen +
       '<div class="reskaart-voet">' + letop.join("") +
         (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +
         knop +
@@ -1212,6 +1231,9 @@ async function laad() {
        blijft de lijst gewoon staan; stap 2 toont dan "nog niet".
        Angela, 21-09-2026. */
     vulCallsVoorLijst().then(teken, function () {});
+    /* En de betaalde Mollie-links, zodat de kaart laat zien dat er betaald is
+       - ook als de melding van Mollie niet is aangekomen. */
+    vulMollieVoorLijst().then(teken, function () {});
   } catch (e) {
     $("#telling").textContent = "";
     melding("Reserveringen konden niet worden geladen: " + e.message, "fout");
@@ -1240,6 +1262,32 @@ async function vulCallsVoorLijst() {
     });
   }
   CALLS_LIJST = nieuw;
+}
+
+/* De betaalde Mollie-links van de geladen reserveringen ophalen. Net als bij
+   de welkomstcalls in blokken van 80, en stil: mislukt het, dan blijft de
+   lijst gewoon staan. Angela, 21-09-2026. */
+async function vulMollieVoorLijst() {
+  const ids = RIJEN.map((r) => r.id).filter(Boolean);
+  if (!ids.length) { MOLLIE_LIJST = {}; return; }
+  const nieuw = {};
+  for (let i = 0; i < ids.length; i += 80) {
+    const deel = ids.slice(i, i + 80);
+    const rijen = await api("mollie_betalingen?select=reservering_id,status,bedrag,betaald_op" +
+      "&status=eq.paid&reservering_id=in.(" + deel.map(encodeURIComponent).join(",") + ")",
+      { stil: true }) || [];
+    rijen.forEach((b) => {
+      if (!b.reservering_id) return;
+      const bestaand = nieuw[b.reservering_id];
+      /* Meerdere betaalde links bij één boeking: bij elkaar optellen, dat is
+         wat er in totaal via Mollie is binnengekomen. */
+      nieuw[b.reservering_id] = {
+        bedrag: Math.round(((bestaand ? bestaand.bedrag : 0) + (Number(b.bedrag) || 0)) * 100) / 100,
+        laatste: bestaand && bestaand.laatste > (b.betaald_op || "") ? bestaand.laatste : (b.betaald_op || "")
+      };
+    });
+  }
+  MOLLIE_LIJST = nieuw;
 }
 
 /* ---------- venster ---------- */
@@ -3148,8 +3196,70 @@ async function toonMollieStand(r) {
       "</div>"
     : "";
 
+  /* Betaald bij Mollie, maar de boeking weet het nog niet. Dat gebeurt als de
+     melding van Mollie niet is aangekomen - bijvoorbeeld omdat de betaling
+     buiten de webhook om is afgerond. Dan kun je het hier alsnog overnemen,
+     zodat je niet met de hand bedragen hoeft bij te werken.
+     Angela, 21-09-2026. */
+  const betaaldBijMollie = rijen
+    .filter((b) => b.status === "paid")
+    .reduce((a, b) => a + (Number(b.bedrag) || 0), 0);
+  const alVerwerkt = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+  const teVerwerken = Math.round((betaaldBijMollie - alVerwerkt) * 100) / 100;
+  const overnemen = (teVerwerken > 0.005 && String(r.betaalstatus || "") !== "betaald" && magBewerken())
+    ? '<div style="margin-top:8px;padding:8px 10px;border-radius:9px;background:var(--crit-zacht);color:var(--crit)">' +
+      "<strong>Bij Mollie is &euro; " + esc(euro(betaaldBijMollie)) + " betaald</strong>, " +
+      "maar bij deze boeking staat &euro; " + esc(euro(alVerwerkt)) + " verwerkt." +
+      '<div style="margin-top:6px"><button type="button" class="knop sec klein" id="vMollieOvernemen">' +
+      "Betaling overnemen (&euro; " + esc(euro(teVerwerken)) + ")</button></div></div>"
+    : "";
+
   vak.innerHTML = '<div style="margin-bottom:4px;color:var(--muted)">Betaallinks</div>' +
-    regels + knop;
+    regels + knop + overnemen;
+}
+
+/* Wat er bij Mollie is betaald alsnog bij de boeking verwerken. Zelfde
+   rekenwijze als het afrekenen op locatie: bijschrijven, restant verlagen en
+   de status bijwerken, met een regel erbij zodat je later ziet waar het
+   vandaan komt. */
+async function mollieOvernemen(bedrag) {
+  const r = HUIDIG;
+  if (!r || !(bedrag > 0)) return;
+  if (!confirm("€ " + euro(bedrag) + " bij deze boeking verwerken als betaald via Mollie?")) return;
+  const b = afrBedragen(r);
+  const nu = new Date().toISOString();
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).concat([{
+    naam: "Betaald via Mollie-betaallink", aantal: 1, bedrag: 0, bron: "betaling",
+    betaald_bedrag: bedrag, betaalwijze: "Mollie betaallink", tijdstip: nu, door: NAAM
+  }]);
+  const nieuwBetaald = Math.round(((r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0) + bedrag) * 100) / 100;
+  const nieuwOpen = Math.round(Math.max(0, b.open - bedrag) * 100) / 100;
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN, {
+      method: "PATCH",
+      body: {
+        arrangementen: arr,
+        betaald_bedrag: nieuwBetaald,
+        restant_bedrag: nieuwOpen,
+        betaalstatus: nieuwOpen > 0 ? "deels" : "betaald",
+        betaald_via: "Mollie betaallink",
+        gewijzigd_door: NAAM
+      }
+    });
+    if (!rij || !rij.length) throw new Error("je mag deze reservering niet bijwerken");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
+    $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
+    $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    $("#vBetaal").value = rij[0].betaalstatus || "open";
+    toonMollieStand(rij[0]).catch(function () {});
+    tekenBalk(rij[0]);
+    teken();
+    melding("De betaling van € " + euro(bedrag) + " is verwerkt.", "ok");
+  } catch (e) {
+    melding("Verwerken lukte niet: " + e.message, "fout");
+  }
 }
 
 /* De betaalstand: totaal, betaald en nog te betalen bij elkaar.
@@ -3855,6 +3965,13 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken("locatie"); }
   if (e.target.id === "vArrToevoegen") { e.preventDefault(); arrangementToevoegen(); }
   if (e.target.id === "vAfrekenOk") { e.preventDefault(); afrekenenMetGast(); }
+  if (e.target.id === "vMollieOvernemen") {
+    e.preventDefault();
+    /* Het bedrag staat in de knoptekst; opnieuw uitrekenen uit de stand zou
+       een tweede bevraging vragen. */
+    const m = /([0-9]+[.,][0-9]{2})/.exec(e.target.textContent || "");
+    mollieOvernemen(m ? parseFloat(m[1].replace(",", ".")) : 0);
+  }
   if (e.target.id === "vGesprekOk") { e.preventDefault(); bewaarGesprek(); }
   if (e.target.id === "vGastNaarKlant") { e.preventDefault(); maakKlantEnKoppel(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
