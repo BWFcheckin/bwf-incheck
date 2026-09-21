@@ -114,35 +114,6 @@
     if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;
     return !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
   }
-  /* Wie er op een dag staat ingeroosterd, als korte tekst. Angela wilde dat
-     boven aan de dag zien: dan weet je meteen wie je moet hebben.
-     Angela, 21-09-2026. */
-  function roosterVan(datum) {
-    if (!st.rooster || !st.rooster.length) return [];
-    var namen = {};
-    (st.mw || []).forEach(function (m) { namen[String(m.id)] = m.naam; });
-    return st.rooster
-      .filter(function (p) { return String(p.datum || "").slice(0, 10) === datum; })
-      .map(function (p) {
-        return {
-          naam: namen[String(p.medewerker_id)] || "onbekend",
-          dienst: p.dienst || "",
-          locatie: p.locatie || ""
-        };
-      });
-  }
-  function roosterHtml(datum, kort) {
-    var lijst = roosterVan(datum);
-    if (!lijst.length) return "";
-    var tekst = lijst.map(function (x) {
-      return kort ? x.naam.split(" ")[0] : x.naam + (x.dienst ? " (" + x.dienst + ")" : "");
-    }).join(", ");
-    var titel = lijst.map(function (x) {
-      return x.naam + (x.dienst ? " — " + x.dienst : "") + (x.locatie ? " — " + x.locatie : "");
-    }).join("\n");
-    return '<div class="bwfk-rooster-dag" title="' + esc("Ingeroosterd:\n" + titel) + '">' +
-      '<span class="bwfk-rooster-merk">dienst</span>' + esc(tekst) + "</div>";
-  }
 
   /* ---------- sessie (standaard: de gewone Supabase-sessie van de site) ---------- */
   function jwtDeel(t) {
@@ -485,6 +456,36 @@
       } finally {
         st.bezig = false;
       }
+    }
+
+    /* Wie er op een dag staat ingeroosterd, als korte tekst. Angela wilde dat
+       boven aan de dag zien: dan weet je meteen wie je moet hebben.
+       Angela, 21-09-2026. */
+    function roosterVan(datum) {
+      if (!st.rooster || !st.rooster.length) return [];
+      var namen = {};
+      (st.mw || []).forEach(function (m) { namen[String(m.id)] = m.naam; });
+      return st.rooster
+        .filter(function (p) { return String(p.datum || "").slice(0, 10) === datum; })
+        .map(function (p) {
+          return {
+            naam: namen[String(p.medewerker_id)] || "onbekend",
+            dienst: p.dienst || "",
+            locatie: p.locatie || ""
+          };
+        });
+    }
+    function roosterHtml(datum, kort) {
+      var lijst = roosterVan(datum);
+      if (!lijst.length) return "";
+      var tekst = lijst.map(function (x) {
+        return kort ? x.naam.split(" ")[0] : x.naam + (x.dienst ? " (" + x.dienst + ")" : "");
+      }).join(", ");
+      var titel = lijst.map(function (x) {
+        return x.naam + (x.dienst ? " — " + x.dienst : "") + (x.locatie ? " — " + x.locatie : "");
+      }).join("\n");
+      return '<div class="bwfk-rooster-dag" title="' + esc("Ingeroosterd:\n" + titel) + '">' +
+        '<span class="bwfk-rooster-merk">dienst</span>' + esc(tekst) + "</div>";
     }
 
     /* ---------- items per dag ---------- */
