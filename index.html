@@ -752,9 +752,11 @@ async function start(){
 }
 
 /* Dezelfde gedeelde kalender als dashboard.html en agenda.html, met
-   dezelfde regel voor de weergave: op een telefoon de dag, op een breed
-   scherm de week. De kalender haalt zijn eigen token uit localStorage,
-   onder dezelfde sleutel die supabase-js hier gebruikt. */
+   dezelfde regel voor de weergave: op een telefoon de maand, op een breed
+   scherm de week. Angela, 21-09-2026: overal beginnen bij een kalender, niet
+   bij de dagweergave - dat is een lijst per suite en geen kalender.
+   De kalender haalt zijn eigen token uit localStorage, onder dezelfde sleutel
+   die supabase-js hier gebruikt. */
 let KALENDER = null;
 function startKalender() {
   if (KALENDER || !window.BWFKalender) return;
@@ -762,7 +764,7 @@ function startKalender() {
   if (!vak) return;
   try {
     KALENDER = window.BWFKalender.maak(vak, {
-      weergave: window.innerWidth < 760 ? "dag" : "week",
+      weergave: window.innerWidth < 760 ? "maand" : "week",
       vrijeBlokken: true
     });
   } catch (e) {

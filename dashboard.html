@@ -6928,7 +6928,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   /* Fase 3: de zichtbare dagweergave voor Lelystad uit de gedeelde kalender (reserveringen + blokkades) */
   if(window.BWFKalender && document.getElementById('lelystadKalender')){
     window.BWFKalender.maak(document.getElementById('lelystadKalender'), {
-      weergave: window.innerWidth < 760 ? 'dag' : 'week',
+      weergave: window.innerWidth < 760 ? 'maand' : 'week',
       suites: ['malina_jacuzzi', 'malina_deluxe']
     });
   }
@@ -6946,7 +6946,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       if(!houder || !paneel || paneel.hidden) return;
       gemaakt = true;
       window.BWFKalender.maak(houder, {
-        weergave: window.innerWidth < 760 ? 'dag' : 'maand',
+        weergave: 'maand',
         suites: ['malina_jacuzzi', 'malina_deluxe']
       });
     }

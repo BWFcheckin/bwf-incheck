@@ -2877,7 +2877,7 @@ let VR_KAL = null;
 function maakVrKalender(){
   if(VR_KAL || !window.BWFKalender || !$('#vrKalender')) return;
   VR_KAL = window.BWFKalender.maak($('#vrKalender'), {
-    weergave: window.innerWidth < 760 ? 'dag' : 'week',
+    weergave: window.innerWidth < 760 ? 'maand' : 'week',
     /* In dit dashboard kijk je naar wat er geboekt is; blokkades uit
        Booking.com en de andere kanalen staan hier standaard uit. Met de vink
        "niet beschikbaar tonen" in de kalenderbalk zet je ze weer aan. */
@@ -2910,7 +2910,7 @@ function maakPlanKalender(){
   if(VR_PLAN_KAL || !window.BWFKalender || !houder) return;
   if(!houder.offsetParent) return;
   VR_PLAN_KAL = window.BWFKalender.maak(houder, {
-    weergave: window.innerWidth < 760 ? 'dag' : 'maand',
+    weergave: 'maand',
     /* net als bij de Agenda-kalender: hier kijk je naar wat er geboekt is,
        niet naar wat er dichtstaat vanuit Booking.com en de andere kanalen */
     blokkadesTonen: false,
