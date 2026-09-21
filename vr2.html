@@ -3452,8 +3452,14 @@ function kiesGroep(groep){
   try{ dgVakHerstel(); }catch(e){}
   zetKop(groep);
   /* De kalender op de dagstart kan pas getekend worden als het paneel in
-     beeld staat; daarom hier nog een poging. Angela, 21-09-2026. */
-  if(groep === 'overzicht'){ try{ maakStartKalender(); }catch(e){} }
+     beeld staat; daarom hier nog een poging. De teller gaat terug naar nul:
+     tijdens het inloggen is het paneel nog verborgen en raken de pogingen op,
+     en zonder deze reset zou er daarna nooit meer geprobeerd worden - dan
+     bleef de kalender leeg. Angela, 21-09-2026. */
+  if(groep === 'overzicht'){
+    window.__startKalPogingen = 0;
+    try{ maakStartKalender(); }catch(e){}
+  }
   window.scrollTo({top:0, behavior:'instant'});
   if(groep === 'agenda' && typeof agCentreer === 'function') setTimeout(agCentreer, 0);
 }
@@ -8366,6 +8372,12 @@ async function laadOverzicht(){
   resPasKoppelingToe();
   renderLocaties(); renderKalender(); renderDiensten(); rzVul(); renderGesprekken();
   kpVulFormulieren(); wcHaalVul(); arVul();
+  /* De dagstart opnieuw tekenen nu de reserveringen en formulieren binnen zijn.
+     Hij werd alleen vanuit renderOverzicht() gevuld, en dat gebeurde hier niet -
+     daardoor bleven "Nog te verwerken", "Bijgeboekt via het incheckformulier"
+     en "Formulieren nog te koppelen" leeg, ook als er wel degelijk iets stond.
+     Angela, 21-09-2026. */
+  try{ renderDagstart(); }catch(e){}
   wcAutoAanmaken();
 
   /* gastaanmeldingen — ingevulde incheckformulieren */
