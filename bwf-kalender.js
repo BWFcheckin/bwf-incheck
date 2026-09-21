@@ -112,6 +112,12 @@
      eigen weergave. Angela, 21-09-2026. */
   function geenGast(r) {
     if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;
+    /* Een boeking met een reserveringsnummer van het kanaal is een echte
+       boeking, ook zonder naam: Booking.com levert vaak alleen een nummer en
+       een @booking.com-adres mee. Die stonden onterecht als blokkade in de
+       agenda. Alleen regels zonder naam, zonder contactgegevens én zonder
+       nummer zijn een dichtgezette dag. Angela, 21-09-2026. */
+    if (r.kanaal_ref) return false;
     return !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
   }
 

@@ -2819,7 +2819,7 @@ div.ag-blok{cursor:default}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
-<script src="bwf-kalender.js?v=15"></script>
+<script src="bwf-kalender.js?v=16"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -2965,9 +2965,19 @@ let VR_START_KAL = null;
 function maakStartKalender(){
   const houder = $('#dgStartKalender');
   if(VR_START_KAL || !window.BWFKalender || !houder) return;
-  /* Zonder breedte tekent de kalender zijn raster verkeerd; wachten tot het
-     paneel echt in beeld staat. */
-  if(!houder.offsetParent) return;
+  /* Zonder breedte tekent de kalender zijn raster verkeerd, dus wachten tot
+     het paneel echt in beeld staat. Bij het opstarten is dat nog niet zo, en
+     dan bleef de kalender leeg omdat er daarna niets meer probeerde. Nu volgt
+     er een tweede poging zodra de dagstart getoond wordt, en anders een paar
+     keer kort achter elkaar. Angela, 21-09-2026. */
+  if(!houder.offsetParent){
+    if(!window.__startKalPogingen) window.__startKalPogingen = 0;
+    if(window.__startKalPogingen < 20){
+      window.__startKalPogingen++;
+      setTimeout(maakStartKalender, 400);
+    }
+    return;
+  }
   VR_START_KAL = window.BWFKalender.maak(houder, {
     weergave: 'maand',
     blokkadesTonen: false,
@@ -3415,6 +3425,9 @@ function kiesGroep(groep){
   try{ sessionStorage.setItem(LS.tab, groep); }catch(e){}
   try{ dgVakHerstel(); }catch(e){}
   zetKop(groep);
+  /* De kalender op de dagstart kan pas getekend worden als het paneel in
+     beeld staat; daarom hier nog een poging. Angela, 21-09-2026. */
+  if(groep === 'overzicht'){ try{ maakStartKalender(); }catch(e){} }
   window.scrollTo({top:0, behavior:'instant'});
   if(groep === 'agenda' && typeof agCentreer === 'function') setTimeout(agCentreer, 0);
 }
@@ -3895,9 +3908,14 @@ function renderDagstart(){
     const nietVerwerkt = RES
       .filter(r => {
         if(r.verleden || r.geannuleerd) return false;
-        const door = String((r.ruw || {}).gewijzigd_door || '');
-        return !door || door === 'kanalen-sync';
+        const b = r.ruw || {};
+        /* Heeft een medewerker de boeking aangeraakt, dan is hij verwerkt. */
+        if(b.handmatig_gewijzigd_op) return false;
+        const door = String(b.gewijzigd_door || '');
+        if(door && door !== 'kanalen-sync') return false;
+        return true;
       })
+      /* Eerst wat het eerst aankomt: daar moet je het snelst iets mee. */
       .sort((a,b) => String(a.start || '').localeCompare(String(b.start || '')));
     nieuw.innerHTML = nietVerwerkt.length
       ? nietVerwerkt.slice(0,8).map(r => {
@@ -8219,11 +8237,15 @@ async function laadOverzicht(){
     const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
                    'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,' +
                    'bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,betaald_via,' +
-                   /* gewijzigd_door zegt of een boeking al door iemand is nagelopen:
-                      staat er niets of nog "kanalen-sync", dan komt hij net uit de
-                      koppeling en is er nog niets mee gedaan. Dat is precies het
-                      blok "Nog te verwerken" op de dagstart. Angela, 21-09-2026. */
-                   'checkin_id,arrangementen,notitie,omschrijving,gewijzigd_door';
+                   /* handmatig_gewijzigd_op wordt gezet zodra een ingelogde
+                      medewerker iets aan de boeking wijzigt (trigger
+                      bwf_reservering_handmatig, migratie 20260911140000). De import
+                      draait als service role en zet hem dus niet. Leeg = nog door
+                      niemand nagelopen, en dat is het blok "Nog te verwerken".
+                      gewijzigd_door is daarvoor ongeschikt: dat vult de import sinds
+                      diezelfde migratie niet meer. Angela, 21-09-2026. */
+                   'checkin_id,arrangementen,notitie,omschrijving,gewijzigd_door,' +
+                   'handmatig_gewijzigd_op,aangemaakt_door';
     /* Geen datumvenster meer. Dat stond op 120 dagen terug, waardoor de oudste
        boekingen niet in deze lijst kwamen - en dus ook niet te kiezen waren bij
        "formulier koppelen aan reservering". Hetzelfde probleem stond in het
