@@ -3922,7 +3922,14 @@ function dgVakFilter(vak, groep){
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-dgvak] button[data-dgfilter]'); if(!b) return;
   const rij = b.closest('[data-dgvak]');
-  if(rij) dgVakFilter(rij.dataset.dgvak, b.dataset.dgfilter);
+  if(!rij) return;
+  dgVakFilter(rij.dataset.dgvak, b.dataset.dgfilter);
+  /* Door het verbergen van kaarten wordt de pagina korter. Stond je lager op
+     de pagina, dan klopt je plek daarna niet meer en schiet het beeld weg -
+     je komt dan weer boven bij de tegels uit in plaats van bij het formulier
+     dat je net koos. Daarom de knoppenrij zelf in beeld houden: het gekozen
+     onderdeel staat er direct onder. Angela, 21-09-2026. */
+  if(rij.scrollIntoView) rij.scrollIntoView({ block:'start' });
 });
 /* De laatst gekozen groep terugzetten zodra de panelen in beeld komen. */
 function dgVakHerstel(){
@@ -3947,6 +3954,10 @@ function dgFilter(groep){
 document.addEventListener('click', e => {
   const b = e.target.closest('#dgGroepen button[data-dgfilter]'); if(!b) return;
   dgFilter(b.dataset.dgfilter);
+  /* Zelfde reden als bij dgVakFilter: kaarten verbergen maakt de pagina
+     korter en laat het beeld wegschieten. De tegelrij blijft nu staan. */
+  const rij = document.getElementById('dgGroepen');
+  if(rij && rij.scrollIntoView) rij.scrollIntoView({ block:'start' });
 });
 /* de laatst gekozen groep blijft binnen deze sessie staan; standaard alles */
 setTimeout(() => {
