@@ -540,7 +540,22 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       <fieldset>
         <legend>Arrangement en betaling</legend>
         <div class="raster">
-          <label class="veld breed">Arrangementen <textarea id="vArr" rows="3" placeholder="Eén arrangement of extra per regel"></textarea></label>
+          <!-- Vooraf geboekte arrangementen. Angela, 21-09-2026: kiezen uit de
+               lijst in plaats van typen. Het tekstvak blijft eronder staan -
+               het is wat er bij Opslaan wordt weggeschreven, en oude regels
+               die niet in de lijst voorkomen blijven er gewoon in staan. -->
+          <div class="veld breed">
+            <label for="vArrKeuze">Vooraf geboekte arrangementen</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+              <select id="vArrKeuze" style="flex:1 1 220px;min-width:0">
+                <option value="">&mdash; kies een arrangement &mdash;</option>
+              </select>
+              <button type="button" class="knop sec klein" id="vArrToevoegen">+ Toevoegen</button>
+            </div>
+            <textarea id="vArr" rows="3" placeholder="Eén arrangement of extra per regel"></textarea>
+            <p class="uitleg" style="margin:4px 0 0">Kies hierboven, of typ zelf een regel.
+              Deze arrangementen zitten in de prijs van de boeking.</p>
+          </div>
 
           <!-- Wat er al is bijgeboekt, met bedrag. Staat los van het tekstvak
                hierboven: die regels worden nooit overschreven. -->
@@ -568,6 +583,7 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
                  je kunt later terugzien wie wat heeft bijgeboekt. -->
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button type="button" class="knop sec klein" id="vBijBoek">Vooraf bijboeken</button>
+              <button type="button" class="knop sec klein" id="vBijBoekCall">Geboekt via welkomstcall</button>
               <button type="button" class="knop sec klein" id="vBijBoekLoc">Extra&#39;s bijboeken op locatie</button>
               <span class="v-melding" id="vBijNote" style="color:var(--muted)"></span>
             </div>
@@ -1300,6 +1316,7 @@ function openVenster(id) {
   if ($("#vBijNote")) $("#vBijNote").textContent = "";
   if ($("#vBijboekVak")) $("#vBijboekVak").open = false;
   tekenBijboek(r);
+  vulArrKeuze(r);
   tekenAlBijgeboekt(r);
   /* De opgeslagen betaalwijze terugzetten. Zonder deze regel staat het menu bij
      elk openen weer op "nog niet bekend" en wist het eerstvolgende opslaan de
@@ -3005,10 +3022,18 @@ function vBijSom() {
 const ARR_GROEPEN = [
   { sleutel: "vooraf", titel: "Vooraf geboekt", uitleg: "zit al in de prijs",
     telt: false, bij: (a) => !(a && a.bron) },
+  { sleutel: "bijgeboekt", titel: "Vooraf bijgeboekt", uitleg: "komt bovenop de prijs",
+    telt: true, bij: (a) => a && a.bron === "bijgeboekt" },
   { sleutel: "welkomstcall", titel: "Geboekt via de welkomstcall", uitleg: "komt bovenop de prijs",
     telt: true, bij: (a) => a && a.bron === "welkomstcall" },
   { sleutel: "locatie", titel: "Bijgeboekt op locatie", uitleg: "komt bovenop de prijs",
-    telt: true, bij: (a) => a && (a.bron === "op_locatie" || a.bron === "bijgeboekt") }
+    telt: true, bij: (a) => a && a.bron === "op_locatie" },
+  /* Vangnet voor een merkteken dat hier niet bij staat - bijvoorbeeld
+     bron:"betaling" of iets uit een later scherm. Zonder deze regel zou zo'n
+     arrangement helemaal niet in beeld komen en ook niet te verwijderen zijn. */
+  { sleutel: "overig", titel: "Overig bijgeboekt", uitleg: "komt bovenop de prijs",
+    telt: true, bij: (a) => a && a.bron &&
+      ["bijgeboekt", "welkomstcall", "op_locatie"].indexOf(a.bron) < 0 }
 ];
 
 function tekenAlBijgeboekt(r) {
@@ -3060,6 +3085,47 @@ function tekenAlBijgeboekt(r) {
       : "") +
     '<p class="uitleg" style="margin-top:6px">Vooraf geboekte arrangementen zitten in het geboekte bedrag. ' +
     "Wat via de welkomstcall of op locatie is bijgeboekt, is bij het totaalbedrag opgeteld.</p>";
+}
+
+/* De keuzelijst met vooraf geboekte arrangementen vullen. Dezelfde bron als
+   het bijboekvak eronder: de extra's van wz_extras die bij deze suite horen,
+   gegroepeerd per categorie. Angela wilde kiezen in plaats van typen; het
+   tekstvak eronder blijft wel bestaan, want daar staan ook regels in die niet
+   in de lijst voorkomen. Angela, 21-09-2026. */
+function vulArrKeuze(r) {
+  const sel = $("#vArrKeuze");
+  if (!sel) return;
+  const lijst = (typeof zichtbareExtras === "function" && r) ? zichtbareExtras(r.suite) : [];
+  const houd = sel.value;
+  const groepen = {};
+  lijst.forEach((e) => { (groepen[e.categorie || "Overig"] ||= []).push(e); });
+  sel.innerHTML = '<option value="">&mdash; kies een arrangement &mdash;</option>' +
+    Object.keys(groepen).sort().map((cat) =>
+      '<optgroup label="' + esc(cat) + '">' +
+      groepen[cat].map((e) =>
+        '<option value="' + esc(e.naam) + '">' + esc(e.naam) +
+        (Number(e.prijs) ? " (€ " + esc(euro(e.prijs)) + ")" : "") + "</option>").join("") +
+      "</optgroup>").join("");
+  if (houd) sel.value = houd;
+}
+
+/* De gekozen regel onderaan het tekstvak zetten. Het tekstvak blijft wat er
+   bij Opslaan wordt weggeschreven, dus je moet nog wel opslaan. */
+function arrangementToevoegen() {
+  const sel = $("#vArrKeuze");
+  const vak = $("#vArr");
+  if (!sel || !vak) return;
+  const keuze = sel.value.trim();
+  if (!keuze) { melding("Kies eerst een arrangement uit de lijst.", "fout"); return; }
+  const regels = vak.value.split("\n").map((x) => x.trim()).filter(Boolean);
+  if (regels.some((x) => x.toLowerCase() === keuze.toLowerCase())) {
+    melding("“" + keuze + "” staat er al bij.", "fout");
+    return;
+  }
+  regels.push(keuze);
+  vak.value = regels.join("\n");
+  sel.value = "";
+  melding("“" + keuze + "” toegevoegd. Druk op Opslaan om het vast te leggen.", "ok");
 }
 
 /* Een arrangementregel weghalen. Telde de regel op bij de prijs, dan gaat het
@@ -3124,10 +3190,22 @@ async function verwijderArrangement(index) {
    krijgt wie en wanneer mee - zonder dat kun je later niet terugzien wie iets
    heeft bijgeboekt. Oudere regels hebben dat niet; die blijven staan zoals ze
    zijn. */
-async function bijboeken(opLocatie) {
+/* soort: "vooraf", "welkomstcall" of "locatie". Angela, 21-09-2026: er is een
+   derde knop bij gekomen, zodat je ook hier kunt vastleggen dat iets tijdens
+   de welkomstcall is geboekt - dat hoort bij dezelfde groep als in vr2. */
+const BIJBOEK_SOORT = {
+  vooraf:       { bron: "bijgeboekt",   knop: "#vBijBoek",     woord: "vooraf bijgeboekt" },
+  welkomstcall: { bron: "welkomstcall", knop: "#vBijBoekCall", woord: "geboekt via de welkomstcall" },
+  locatie:      { bron: "op_locatie",   knop: "#vBijBoekLoc",  woord: "op locatie bijgeboekt" }
+};
+async function bijboeken(soort) {
+  /* Bleef ergens een oude aanroep met true/false staan, dan blijft die werken. */
+  if (soort === true) soort = "locatie";
+  if (soort === false || !soort) soort = "vooraf";
+  const opzet = BIJBOEK_SOORT[soort] || BIJBOEK_SOORT.vooraf;
   const r = HUIDIG;
   const note = $("#vBijNote");
-  const knop = opLocatie ? $("#vBijBoekLoc") : $("#vBijBoek");
+  const knop = $(opzet.knop);
   if (!r || !note || !knop) return;
   const nieuw = vBijRegels();
   if (!nieuw.length) { note.textContent = "Vink eerst iets aan, of vul een eigen arrangement met bedrag in."; return; }
@@ -3138,7 +3216,7 @@ async function bijboeken(opLocatie) {
     const nu = new Date().toISOString();
     const samen = bestaand.concat(nieuw.map((x) =>
       ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag,
-         bron: opLocatie ? "op_locatie" : "bijgeboekt",
+         bron: opzet.bron,
          door: NAAM, tijdstip: nu })));
     const erbij = Math.round(nieuw.reduce((a, x) => a + x.bedrag, 0) * 100) / 100;
 
@@ -3176,6 +3254,7 @@ async function bijboeken(opLocatie) {
     $("#vVrijNaam").value = "";
     $("#vVrijBedrag").value = "";
     tekenBijboek(rij[0]);
+    vulArrKeuze(rij[0]);
     tekenAlBijgeboekt(rij[0]);
     /* De bedragvelden in het scherm meteen bijwerken. Zonder dit staat er nog
        het oude totaal, en dan zou jouw eerstvolgende druk op Opslaan de
@@ -3185,8 +3264,8 @@ async function bijboeken(opLocatie) {
     $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
     $("#vBetaal").value = rij[0].betaalstatus || "open";
     teken();
-    note.textContent = nieuw.length + (nieuw.length === 1 ? " regel" : " regels") +
-      " bijgeboekt, € " + euro(erbij) + ". " +
+    note.textContent = nieuw.length + (nieuw.length === 1 ? " regel " : " regels ") +
+      opzet.woord + ", € " + euro(erbij) + ". " +
       (hadTotaal ? "Het totaalbedrag staat nu op € " : "Er stond nog geen totaalbedrag; dat staat nu op € ") +
       euro(rij[0].bedrag_totaal) +
       (rij[0].restant_bedrag != null ? " en er staat € " + euro(rij[0].restant_bedrag) + " open." : ".") +
@@ -3534,6 +3613,7 @@ document.addEventListener("change", (e) => {
     const id = vink.dataset.vextra;
     if (vink.checked) V_KEUZES[id] = 1; else delete V_KEUZES[id];
     tekenBijboek(HUIDIG);
+    vulArrKeuze(HUIDIG);
     return;
   }
   const aantal = e.target.closest ? e.target.closest("[data-vaantal]") : null;
@@ -3543,8 +3623,10 @@ document.addEventListener("change", (e) => {
   }
 });
 document.addEventListener("click", (e) => {
-  if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken(false); }
-  if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken(true); }
+  if (e.target.id === "vBijBoek") { e.preventDefault(); bijboeken("vooraf"); }
+  if (e.target.id === "vBijBoekCall") { e.preventDefault(); bijboeken("welkomstcall"); }
+  if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken("locatie"); }
+  if (e.target.id === "vArrToevoegen") { e.preventDefault(); arrangementToevoegen(); }
   if (e.target.id === "vGesprekOk") { e.preventDefault(); bewaarGesprek(); }
   if (e.target.id === "vGastNaarKlant") { e.preventDefault(); maakKlantEnKoppel(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
