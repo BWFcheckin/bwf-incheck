@@ -3473,11 +3473,61 @@ function bedragWaarschuwing(r) {
   if (totaal == null || betaald == null) return "";
   const teveel = Math.round((betaald - totaal) * 100) / 100;
   if (teveel <= 0.005) return "";
-  return '<p class="uitleg" style="margin-top:6px;color:#B3261E;font-weight:600">' +
-    "Let op: er staat &euro; " + esc(euro(betaald)) + " betaald terwijl het totaalbedrag &euro; " +
-    esc(euro(totaal)) + " is &mdash; &euro; " + esc(euro(teveel)) + " te veel. " +
-    "Meestal is er dan wel afgerekend voor bijgeboekte extra&#39;s, maar zijn die niet bij " +
-    "het totaalbedrag opgeteld. Zet het totaalbedrag hieronder goed en sla op.</p>";
+  /* Het verschil is meestal precies wat er is bijgeboekt: dan is er wél
+     afgerekend maar is het totaal niet meegegroeid, en is ophogen de juiste
+     correctie. Loopt het niet gelijk, dan is er iets anders aan de hand - een
+     gast die te veel heeft overgemaakt en geld terug moet, bijvoorbeeld. Dan
+     zou het totaal ophogen die fout juist wegpoetsen. Daarom staat het bedrag
+     van de extra's erbij en is het een knop en geen automatische correctie.
+     Angela, 21-09-2026. */
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
+  const bijgeboekt = Math.round(arr.reduce((t, a) =>
+    t + (a && a.bron ? (Number(a.bedrag) || 0) : 0), 0) * 100) / 100;
+  const sluitAan = Math.abs(bijgeboekt - teveel) < 0.005;
+  const nieuw = Math.round((totaal + teveel) * 100) / 100;
+
+  return '<div class="uitleg" style="margin-top:6px;color:#B3261E">' +
+    '<p style="margin:0;font-weight:600">Let op: er staat &euro; ' + esc(euro(betaald)) +
+      " betaald terwijl het totaalbedrag &euro; " + esc(euro(totaal)) + " is &mdash; &euro; " +
+      esc(euro(teveel)) + " te veel.</p>" +
+    "<p style=\"margin:4px 0 0\">" +
+      (sluitAan
+        ? "Dat is precies het bedrag dat is bijgeboekt, dus er is wel afgerekend maar is " +
+          "het totaalbedrag niet meegegroeid."
+        : "Er is &euro; " + esc(euro(bijgeboekt)) + " bijgeboekt, dus dit verschil komt " +
+          "ergens anders vandaan. Kijk het na voor je het bedrag aanpast &mdash; misschien " +
+          "heeft de gast te veel betaald en moet er geld terug.") +
+    "</p>" +
+    '<p style="margin:6px 0 0"><button type="button" class="knop sec klein" data-totaalgoed="' +
+      esc(nieuw) + '">Totaalbedrag op &euro; ' + esc(euro(nieuw)) + " zetten</button></p></div>";
+}
+
+/* Het totaalbedrag in één tik gelijktrekken met wat er betaald is. Schrijft
+   meteen weg, zodat je het niet alsnog vergeet op te slaan. */
+async function totaalGelijktrekken(nieuw) {
+  const r = HUIDIG;
+  if (!r) return;
+  const oud = r.bedrag_totaal == null ? 0 : Number(r.bedrag_totaal);
+  if (!confirm("Het totaalbedrag van € " + euro(oud) + " wordt € " + euro(nieuw) +
+      ".\n\nHet betaalde bedrag blijft staan; er komt dan € 0,00 open te staan.")) return;
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { bedrag_totaal: nieuw, restant_bedrag: 0,
+        betaalstatus: "betaald", gewijzigd_door: NAAM } });
+    if (!rij || !rij.length) throw new Error("je hebt geen rechten om deze reservering te wijzigen");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
+    $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
+    $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    if ($("#vBetaal")) $("#vBetaal").value = rij[0].betaalstatus || "betaald";
+    onthoudBedragen();   /* vanaf nu is dit de stand waarmee Opslaan vergelijkt */
+    tekenAlBijgeboekt(rij[0]);
+    teken();
+    melding("Het totaalbedrag staat nu op € " + euro(nieuw) + ".", "ok");
+  } catch (e) {
+    melding("Aanpassen lukte niet: " + e.message, "fout");
+  }
 }
 
 /* De keuzelijst met vooraf geboekte arrangementen vullen. Dezelfde bron als
@@ -4059,6 +4109,14 @@ document.addEventListener("click", (e) => {
   if (weg) {
     e.preventDefault();
     verwijderArrangement(Number(weg.getAttribute("data-arrweg")));
+    return;
+  }
+  /* Het totaalbedrag gelijktrekken met wat er betaald is, vanuit de rode
+     waarschuwing boven de bedragen. */
+  const goed = e.target.closest("[data-totaalgoed]");
+  if (goed) {
+    e.preventDefault();
+    totaalGelijktrekken(Number(goed.getAttribute("data-totaalgoed")));
     return;
   }
   if (e.target.id === "vMaakLink") { e.preventDefault(); maakBetaallink(e.target); return; }
