@@ -869,8 +869,23 @@ html{scroll-padding-top:calc(var(--bwfkaderbalk,0px) + 12px)!important}
    die mogelijkheid helemaal weg; de balk staat gewoon boven aan de pagina en
    het menu blijft bereikbaar via de knop in de kaderbalk.
    Angela, 21-09-2026. */
-@media (max-width:1024px){
-  .bwf-topmenu{position:static!important;top:auto!important}
+/* De menubalk plakt nergens meer vast - op geen enkele schermbreedte. Eerst
+   stond hier een grens van 1024px, maar op een iPad in liggende stand is het
+   scherm breder en deed dat niets. Hij staat nu gewoon boven aan de pagina,
+   zodat er tijdens het invullen nooit een Dagstart-link over het formulier
+   heen ligt. Het menu blijft bereikbaar via de knop in de kaderbalk. */
+.bwf-topmenu{position:static!important;top:auto!important}
+
+/* Zodra je in een veld typt, verdwijnen de zwevende knoppen onderaan. Safari
+   op iPhone probeert elementen met position:fixed bij te houden als het
+   toetsenbord opent, en laat de pagina dan heen en weer schuiven. Ze staan
+   uit de gewone stroom, dus weghalen verschuift de rest niet; zodra je klaar
+   bent met typen komen ze terug. Angela, 21-09-2026. */
+body.bwf-typt .tabs,
+body.bwf-typt #bwfHomeKnop,
+body.bwf-typt #bwfMenuKnop{display:none!important}
+@media (max-width:620px){
+  body.bwf-typt{padding-bottom:24px}
 }
 .bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;
   align-items:center;padding:8px 16px}
@@ -6970,6 +6985,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   window.addEventListener('bwf-ingelogd', wie);
   setTimeout(wie, 800); setInterval(wie, 4000);
+})();
+</script>
+<script>
+/* ---- rust tijdens het typen ----
+   Zodra je in een veld staat, krijgt de body de klasse bwf-typt en verdwijnen
+   de zwevende knoppen onderaan. Safari op iPhone laat elementen met
+   position:fixed meeschuiven als het toetsenbord opent, en dan blijft de
+   pagina heen en weer bewegen. Ze staan buiten de gewone stroom, dus
+   weghalen verschuift niets; zodra je klaar bent komen ze terug.
+   Angela, 21-09-2026. */
+(function(){
+  var VELDEN = 'input,select,textarea';
+  function aan(){ document.body.classList.add('bwf-typt'); }
+  function uit(){
+    var a = document.activeElement;
+    if(!a || !a.matches || !a.matches(VELDEN)) document.body.classList.remove('bwf-typt');
+  }
+  document.addEventListener('focusin', function(e){
+    if(e.target && e.target.matches && e.target.matches(VELDEN)) aan();
+  });
+  document.addEventListener('focusout', function(){ setTimeout(uit, 90); });
 })();
 </script>
 <script src="bwf-kader.js"></script>
