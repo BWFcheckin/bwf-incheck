@@ -1151,6 +1151,15 @@ div.ag-blok{cursor:default}
 /* planning van vandaag */
 /* De dagstart in drie blokken: kalender breed bovenaan, daaronder spoed en
    de boekingen die nagekeken moeten worden. Angela, 21-09-2026. */
+/* De rest van de dagstart staat achter één uitklapknop. */
+.dg-meer{margin-top:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.dg-meer > summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:14px;
+  list-style:none;display:flex;align-items:center;gap:8px}
+.dg-meer > summary::-webkit-details-marker{display:none}
+.dg-meer > summary::before{content:'▸';color:var(--muted);font-size:12px}
+.dg-meer[open] > summary::before{content:'▾'}
+.dg-meer > summary:hover{background:var(--surface-2)}
+.dg-meer[open] > summary{border-bottom:1px solid var(--line)}
 .dg-drie{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .dg-drie .dg-breed{grid-column:1 / -1}
 @media(max-width:860px){ .dg-drie{grid-template-columns:1fr} }
@@ -1360,8 +1369,10 @@ div.ag-blok{cursor:default}
       </div>
 
       <div class="card">
-        <div class="card-head"><div><span class="dg-eyebrow">Nieuw</span><h2>Gegevens controleren</h2></div>
+        <div class="card-head"><div><span class="dg-eyebrow">Nieuw</span><h2>Nog te verwerken</h2></div>
           <button class="dg-link" type="button" data-dgnaar="reserveringen">Alle boekingen &rarr;</button></div>
+        <p class="hint" style="padding:0 16px 6px;margin:0">Binnengekomen via Booking.com, Origineel
+          Overnachten of de privésauna, en nog door niemand nagelopen.</p>
         <div class="dg-lijst" id="dgNieuw"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
       </div>
     </div>
@@ -1374,6 +1385,13 @@ div.ag-blok{cursor:default}
       <div class="dg-lijst" id="dgMijnTaken"></div>
     </div>
 
+    <!-- Alles wat hier eerder los onder de dagstart stond, staat nu achter één
+         uitklapknop. Angela wilde op de dagstart alleen de drie blokken zien.
+         Bewust ingeklapt en niet verwijderd: een deel van deze kaarten bestaat
+         nergens anders - Gesprekslog, Betalingen en Betaling per reservering
+         staan alleen hier. Angela, 21-09-2026. -->
+    <details class="dg-meer">
+      <summary>Alle andere onderdelen van het VR-dashboard</summary>
     <div class="inklapbalk">
       <button class="btn ghost small" id="ovAllesUit" type="button">Alles uitklappen</button>
       <button class="btn ghost small" id="ovAllesIn" type="button">Alles inklappen</button>
@@ -1665,6 +1683,7 @@ div.ag-blok{cursor:default}
         <div class="card-body"><div class="stats" id="ovWerkStats" style="margin:0"></div></div>
       </div>
     </div>
+    </details>
   </section>
 
   <!-- ============ AGENDA ============ -->
@@ -3863,22 +3882,28 @@ function renderDagstart(){
       : '<p class="dg-leeg">Niets met spoed vandaag.</p>';
   }
 
-  /* ---- blok 3: nieuwe boekingen waarvan de gegevens nog nagekeken moeten ----
-     Dezelfde vraag als de taak die sinds 21-09-2026 automatisch voor Kelly
-     wordt aangemaakt: klopt alles wat de gast heeft meegegeven? Een boeking
-     telt als "na te kijken" zolang naam, telefoon of e-mail ontbreekt. */
+  /* ---- blok 3: nieuwe reserveringen die nog niet verwerkt zijn ----
+     Boekingen die via de koppeling binnenkwamen - Booking.com, Origineel
+     Overnachten en de privésauna van SMG - en waar nog niemand iets mee heeft
+     gedaan. Het reserveringenscherm gebruikt daarvoor dezelfde maatstaf:
+     gecontroleerd = gewijzigd_door ingevuld en niet "kanalen-sync". Staat er
+     dus niets of nog kanalen-sync, dan is de boeking nog onaangeroerd.
+     Angela, 21-09-2026: dit was eerst "gegevens ontbreken", maar dat is iets
+     anders dan verwerkt zijn. */
   const nieuw = $('#dgNieuw');
   if(nieuw){
-    const teControleren = RES
+    const nietVerwerkt = RES
       .filter(r => {
         if(r.verleden || r.geannuleerd) return false;
-        const b = r.ruw || {};
-        return !r.naam || !(b.gast_telefoon || b.telefoon) || !(b.gast_email || b.email);
+        const door = String((r.ruw || {}).gewijzigd_door || '');
+        return !door || door === 'kanalen-sync';
       })
       .sort((a,b) => String(a.start || '').localeCompare(String(b.start || '')));
-    nieuw.innerHTML = teControleren.length
-      ? teControleren.slice(0,8).map(r => {
+    nieuw.innerHTML = nietVerwerkt.length
+      ? nietVerwerkt.slice(0,8).map(r => {
           const b = r.ruw || {};
+          /* Wat er nog mist is nuttig om erbij te zien, maar bepaalt niet of
+             de boeking in deze lijst staat. */
           const mist = [
             r.naam ? '' : 'naam',
             (b.gast_telefoon || b.telefoon) ? '' : 'telefoon',
@@ -3887,10 +3912,11 @@ function renderDagstart(){
           return `<div class="dg-spoedregel"${r.resId ? ` data-resopen="${esc(r.resId)}"` : ''}>
             <span class="dg-spoedtijd">${esc(dmy(String(r.start || '').slice(0,10)))}</span>
             <div><strong>${esc(r.naam || 'zonder naam')}</strong>
-              <small>${esc([r.locatie, mist ? 'mist: ' + mist : ''].filter(Boolean).join(' · '))}</small></div>
+              <small>${esc([r.bron || 'onbekend kanaal', r.locatie,
+                mist ? 'mist: ' + mist : ''].filter(Boolean).join(' · '))}</small></div>
           </div>`;
         }).join('')
-      : '<p class="dg-leeg">Alle boekingen zijn compleet.</p>';
+      : '<p class="dg-leeg">Alles is verwerkt.</p>';
   }
 
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
@@ -8193,7 +8219,11 @@ async function laadOverzicht(){
     const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
                    'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,' +
                    'bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,betaald_via,' +
-                   'checkin_id,arrangementen,notitie,omschrijving';
+                   /* gewijzigd_door zegt of een boeking al door iemand is nagelopen:
+                      staat er niets of nog "kanalen-sync", dan komt hij net uit de
+                      koppeling en is er nog niets mee gedaan. Dat is precies het
+                      blok "Nog te verwerken" op de dagstart. Angela, 21-09-2026. */
+                   'checkin_id,arrangementen,notitie,omschrijving,gewijzigd_door';
     /* Geen datumvenster meer. Dat stond op 120 dagen terug, waardoor de oudste
        boekingen niet in deze lijst kwamen - en dus ook niet te kiezen waren bij
        "formulier koppelen aan reservering". Hetzelfde probleem stond in het
@@ -10282,7 +10312,7 @@ $('#whoBtn').addEventListener('click', ()=>{
 })();
 </script>
 <!-- ================= einde Home-knop ================= -->
-<script src="bwf-menu.js?v=2"></script>
+<script src="bwf-menu.js?v=3"></script>
 <script>
 /* onthouden e-mailadres terugzetten in het inlogscherm */
 (function(){

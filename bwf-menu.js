@@ -25,6 +25,16 @@
     return;
   }
 
+  /* Pagina's met een eigen, volwaardige balk krijgen deze er niet bij. vr2
+     heeft er al een met Wachtwoord en Uitloggen erin; met deze balk erboven
+     stonden er twee onder elkaar. Angela, 21-09-2026. */
+  var EIGEN_BALK = ["vr2.html"];
+  if (EIGEN_BALK.indexOf((location.pathname.split("/").pop() || "").toLowerCase()) > -1) {
+    var dubbel = document.getElementById("bwfTop");
+    if (dubbel) dubbel.remove();
+    return;
+  }
+
   var PAGINAS = [
     ["Dagstart", "dagstart.html"],
     ["Vandaag", "vandaag.html"],
