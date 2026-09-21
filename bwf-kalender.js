@@ -56,7 +56,11 @@
 
   var KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
     "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,bedrag_totaal,restant_bedrag," +
-    "omschrijving,import_opmerking";
+    /* brongegevens is de titel zoals hij uit de feed kwam. Bij een regel uit de
+       SMG-planning staat daar of het een boeking is of een dichtgezette dag -
+       de gastvelden zijn daar namelijk vrijwel altijd leeg, ook bij een echte
+       boeking. Zie geenGast(). Angela, 21-09-2026. */
+    "omschrijving,import_opmerking,brongegevens";
   var MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
 
   /* ---------- datum en tijd, altijd in Amsterdamse tijd ---------- */
@@ -131,14 +135,28 @@
        verder                Booking.com, eigen site, handmatig
 
      Geannuleerde regels tellen niet mee: die hebben hun eigen weergave. */
+  /* Woorden waarmee een regel zegt dat er niemand komt. Nagekeken op 21-09-2026
+     tegen alle regels in de SMG-planning: "Bezet", "Agenda dicht" en
+     "Schoonmaken" staan er zo in. Hier hoort alleen in wat onmiskenbaar
+     dichtzetten betekent - staat een gastnaam er los van genoemd, dan wint de
+     gast (zie geenGast). */
+  var DICHT = /niet\s*besch|nietbesch|\bbezet\b|\bvol\b|gesloten|agenda\s*dicht|schoonma|onderhoud|geblokkeerd|blokkade|blokkering|niet\s*boekbaar/i;
+
   function geenGast(r) {
     if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;
     var ref = String((r && r.kanaal_ref) || "");
+    /* Origineel Overnachten zet een blokkade als eigen soort in de feed. Daar
+       staat de feedtekst in het naamveld ("niet beschickbaar"), dus naar de
+       gastgegevens kijken heeft hier geen zin. */
     if (ref.indexOf("blokkering-") === 0) return true;
-    var geenContact = !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
-    if (ref.indexOf("smg-regel:") === 0) return geenContact;
-    if (!ref) return geenContact;
-    return false;
+    /* Is er een gast bekend, dan is het een boeking. Punt. */
+    if (gastNaam(r) || r.gast_email || r.gast_telefoon) return false;
+    /* Anders beslist de tekst. De gastvelden zijn bij een regel uit de
+       SMG-planning vrijwel altijd leeg, óók bij een echte boeking: de naam
+       staat dan in de titel ("Booking.com Antonio Bussolati +39..."). Alleen
+       "geen gastgegevens" als maatstaf nemen maakte 94 boekingen tot blokkade.
+       Angela, 21-09-2026. */
+    return DICHT.test([r.brongegevens, r.omschrijving].filter(Boolean).join(" "));
   }
 
   /* Waar komt deze blokkade vandaan? Er stond eerst import_opmerking bij, maar
