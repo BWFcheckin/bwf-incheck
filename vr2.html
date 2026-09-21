@@ -1335,6 +1335,7 @@ div.ag-blok{cursor:default}
       <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
       <button class="tab" role="tab" data-groep="bellen">Belscripts<span class="badge" id="badge-groep-bellen">0</span></button>
       <button class="tab" role="tab" data-groep="werktarieven">Werk &amp; tarieven<span class="badge" id="badge-groep-werktarieven" hidden>0</span></button>
+      <button class="tab" role="tab" data-groep="chats">WhatsApp</button>
       <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
     </nav>
   </header>
@@ -1362,6 +1363,7 @@ div.ag-blok{cursor:default}
     <button class="tab" role="tab" id="tab-werk" data-tab="werk" aria-selected="false" aria-controls="panel-werk">Werk &amp; tarieven<span class="badge" id="badge-werk">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-uploads" data-tab="uploads" aria-selected="false" aria-controls="panel-uploads">Uploads<span class="badge" id="badge-uploads">0</span></button>
+    <button class="tab" role="tab" id="tab-chats" data-tab="chats" aria-selected="false" aria-controls="panel-chats">WhatsApp</button>
     <button class="tab" role="tab" id="tab-gmail" data-tab="gmail" aria-selected="false" aria-controls="panel-gmail">Gmail</button>
   </nav>
 
@@ -2774,6 +2776,21 @@ div.ag-blok{cursor:default}
     </div>
   </section>
 
+  <!-- ============ WHATSAPP ============
+       Angela, 21-09-2026: "ik wil via het dashboard ook alle chats kunnen
+       openen van Wati." De gesprekken komen via de Edge Function wati-chats;
+       het Wati-token blijft daar en komt niet in deze pagina. -->
+  <section class="panel" id="panel-chats" role="tabpanel" aria-labelledby="tab-chats" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Wati</span>
+      <h1>WhatsApp-gesprekken</h1>
+      <p>Alles wat er met gasten is geappt. Kies links een gesprek om het te lezen.
+         Antwoorden doe je in WhatsApp zelf &mdash; de knop rechtsboven een gesprek
+         opent het daar.</p>
+    </div>
+    <div data-bwf-chats></div>
+  </section>
+
   <section class="panel" id="panel-gmail" role="tabpanel" aria-labelledby="tab-gmail" hidden>
     <div class="page-head">
       <span class="eyebrow">E-mail</span>
@@ -2922,6 +2939,7 @@ div.ag-blok{cursor:default}
 <div class="toast" id="toast"></div>
 <script src="bwf-kalender.js?v=18"></script>
 <script src="bwf-voorraad.js?v=1"></script>
+<script src="bwf-chats.js?v=1"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -3372,7 +3390,8 @@ const GROEPEN = {
   klantbeheer:   ['klantbeheer'],
   bellen:        ['bellen'],             /* in het menu: Belscripts */
   werktarieven:  ['werk'],               /* was onbereikbaar: stond in geen groep */
-  gmail:         ['gmail']
+  gmail:         ['gmail'],
+  chats:         ['chats']          /* WhatsApp-gesprekken uit Wati */
 };
 /* Klantbeheer krijgt een eigen paneel: de kaarten Nieuwe klant en Klantenbestand
    verhuizen daarheen, de rest (gastformulieren, nachtregister) blijft bij
@@ -3478,6 +3497,7 @@ const GROEP_KOP = {
   klantbeheer:   ['Klantbeheer', 'Klanten toevoegen, gegevens bijwerken en dubbelingen samenvoegen.'],
   bellen:        ['Belscripts', 'Werk een bellijst af met het script ernaast en vink de stappen af.'],
   werktarieven:  ['Werk & tarieven', 'Urenregistratie en de tarieven per soort werk.'],
+  chats:         ['WhatsApp', 'Alles wat er met gasten is geappt, rechtstreeks uit Wati.'],
   gmail:         ['Gmail', 'Lees en verstuur e-mail vanuit het dashboard.']
 };
 function zetKop(groep){
