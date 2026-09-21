@@ -135,12 +135,18 @@
        verder                Booking.com, eigen site, handmatig
 
      Geannuleerde regels tellen niet mee: die hebben hun eigen weergave. */
-  /* Woorden waarmee een regel zegt dat er niemand komt. Nagekeken op 21-09-2026
-     tegen alle regels in de SMG-planning: "Bezet", "Agenda dicht" en
-     "Schoonmaken" staan er zo in. Hier hoort alleen in wat onmiskenbaar
-     dichtzetten betekent - staat een gastnaam er los van genoemd, dan wint de
-     gast (zie geenGast). */
-  var DICHT = /niet\s*besch|nietbesch|\bbezet\b|\bvol\b|gesloten|agenda\s*dicht|schoonma|onderhoud|geblokkeerd|blokkade|blokkering|niet\s*boekbaar/i;
+  /* Woorden waarmee een regel zegt dat er geen betalende gast komt. Nagekeken
+     op 21-09-2026 tegen alle regels in de SMG-planning, en Angela heeft de
+     twijfelgevallen aangewezen: "Bezet", "Agenda dicht", "Schoonmaken",
+     "content ochtend", "prive event" en "innershift day retreat" zijn alle zes
+     dichtzetten. Hier hoort alleen in wat onmiskenbaar dichtzetten betekent -
+     staat er een gastnaam bij, dan wint de gast (zie geenGast).
+
+     LET OP: dezelfde lijst staat in de import, in supabase/functions/
+     kanalen-sync/index.ts (DICHT). Pas je hier iets aan, pas het daar ook aan,
+     anders wordt een regel wel als blokkade getoond maar toch als lege
+     reservering aangemaakt. */
+  var DICHT = /niet\s*besch|nietbesch|\bbezet\b|\bvol\b|gesloten|agenda\s*dicht|schoonma|onderhoud|geblokkeerd|blokkade|blokkering|niet\s*boekbaar|content|\bevent\b|retreat|fotoshoot|\bshoot\b|opname/i;
 
   function geenGast(r) {
     if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;

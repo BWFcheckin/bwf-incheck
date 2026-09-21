@@ -197,6 +197,29 @@ function reservering(
 
 /* ---------- importregels per suite ---------- */
 
+/* Wanneer zegt een regel in de SMG-planning dat er geen betalende gast komt?
+   Dan hoort er een blokkade te komen en geen lege reservering.
+
+   Angela, 21-09-2026: "ik wil dat reserveringen wel worden aangemaakt, maar als
+   het puur om een agenda tijdblokkering gaat wil ik niet dat die als
+   reservering aangemaakt wordt." Er stonden 89 van die lege reserveringen; ze
+   vulden de lijst "nog te verwerken" (8 van de 17) en telden mee als boeking.
+
+   Deze lijst stond eerder op alleen "niet beschikbaar" en "vol", en ving
+   daardoor "Bezet", "Agenda dicht" en "Schoonmaken" niet. De drie
+   twijfelgevallen - "content ochtend", "prive event", "innershift day retreat"
+   - heeft Angela zelf aangewezen als dichtzetten.
+
+   Nagelopen tegen alle regels die er stonden: deze woorden vangen precies de
+   acht bedoelde regels en geen enkele echte boeking. Dat laatste is het risico:
+   de naam van een gast staat bij deze regels in de titel, dus een te ruim woord
+   maakt een boeking onzichtbaar.
+
+   LET OP: dezelfde lijst staat in bwf-kalender.js (DICHT), die bepaalt hoe het
+   in de agenda getoond wordt. Pas ze samen aan. */
+const DICHT =
+  /niet\s*besch|nietbesch|\bbezet\b|\bvol\b|gesloten|agenda\s*dicht|schoonma|onderhoud|geblokkeerd|blokkade|blokkering|niet\s*boekbaar|content|\bevent\b|retreat|fotoshoot|\bshoot\b|opname/i;
+
 function verwerkSuite(suite: string, feeds: Record<string, Ev[]>, blokken: Tijdsblok[]) {
   const res: Record<string, Rij[]> = { smg: [], booking: [], oo: [] };
   const blk: Record<string, Rij[]> = { smg: [], booking: [], oo: [] };
@@ -208,7 +231,7 @@ function verwerkSuite(suite: string, feeds: Record<string, Ev[]>, blokken: Tijds
   for (const ev of feeds.smg ?? []) {
     if (ev.status === "CANCELLED" || lokaal(ev.eind) <= lokaal(ev.start)) { telling.overgeslagen++; continue; }
     if (veld(ev.description, "Reserveringsnummer")) smgEcht.push(ev);
-    else if (/niet beschikbaar|\bvol\b/i.test(ev.summary)) smgBlok.push(ev);
+    else if (DICHT.test(ev.summary)) smgBlok.push(ev);
     else smgRegels.push(ev);
   }
   const gebruikt = new Set<Ev>();
