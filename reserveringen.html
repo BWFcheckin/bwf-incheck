@@ -873,6 +873,18 @@ const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,v
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
 
 let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = null, ARR_START = "";
+/* Wat er in de drie bedragvelden stond toen het venster openging. Opslaan
+   stuurt een bedrag alleen mee als jij het zelf hebt veranderd.
+
+   Waarom dat nodig is (Angela, 21-09-2026): Opslaan stuurde bedrag_totaal,
+   betaald_bedrag en restant_bedrag altijd mee, uit de invoervelden. Boekte er
+   ondertussen iemand iets bij - in de welkomstcall, op locatie, of jijzelf in
+   een tweede tabblad - dan stond hier nog het oude totaal, en zette één druk
+   op Opslaan die verhoging stil terug. De extra's bleven wel op de kaart
+   staan, dus je zag niet dat de gast er niet meer voor betaalde. Zo is het bij
+   Jan van Briemen misgegaan: drie regels van samen € 108 op de kaart, maar het
+   totaalbedrag stond nog op het bedrag van voor het bijboeken. */
+let BEDRAG_START = { totaal: "", betaald: "", restant: "" };
 /* De welkomstcall per reservering, voor de stappen op de kaart in de lijst.
    Sleutel is reservering_id. Leeg zolang ze nog niet opgehaald zijn.
    Angela, 21-09-2026. */
@@ -1383,6 +1395,7 @@ function openVenster(id) {
      bewust ingevoerd en mag niet bij elk openen overschreven worden. */
   $("#vBetaald").value = r.betaald_bedrag == null ? "" : euro(r.betaald_bedrag);
   $("#vRestant").value = r.restant_bedrag == null ? "" : euro(r.restant_bedrag);
+  onthoudBedragen();
   vBetaalstand(false);
   /* De controlebalk meteen tekenen met wat de reservering zelf weet. De
      welkomstcall komt later binnen; vulKoppelingen tekent hem dan opnieuw. */
@@ -2309,10 +2322,7 @@ function formWaarden() {
     type: $("#vType").value,
     incheck_tijd: leeg($("#vIncheck").value),
     uitcheck_tijd: leeg($("#vUitcheck").value),
-    bedrag_totaal: bedrag,
     betaalstatus: $("#vBetaal").value,
-    betaald_bedrag: betaaldBedrag,
-    restant_bedrag: restantBedrag,
     /* Leeg betekent "nog niet bekend" en wordt als null bewaard, niet als lege
        tekst: zo is het verschil met een bewust gekozen wijze zichtbaar. */
     betaald_via: $("#vBetaaldVia") ? ($("#vBetaaldVia").value || null) : null,
@@ -2320,6 +2330,15 @@ function formWaarden() {
     omschrijving: leeg($("#vOms").value),
     gewijzigd_door: NAAM
   };
+  /* De bedragen net zo behandelen als de arrangementen hieronder: alleen
+     meesturen wat jij zelf hebt veranderd. Stuurden we ze altijd mee, dan
+     overschreef Opslaan een bijboeking die ondertussen ergens anders was
+     gedaan met het verouderde bedrag dat hier nog in beeld stond.
+     Angela, 21-09-2026 - zie BEDRAG_START. */
+  if ($("#vBedrag") && $("#vBedrag").value !== BEDRAG_START.totaal) d.bedrag_totaal = bedrag;
+  if ($("#vBetaald") && $("#vBetaald").value !== BEDRAG_START.betaald) d.betaald_bedrag = betaaldBedrag;
+  if ($("#vRestant") && $("#vRestant").value !== BEDRAG_START.restant) d.restant_bedrag = restantBedrag;
+
   /* arrangementen alleen meesturen als ze echt gewijzigd zijn */
   if ($("#vArr").value !== ARR_START) {
     /* Angela, 17-09-2026: bijgeboekte extra's mogen de bestaande arrangementen
@@ -3252,6 +3271,7 @@ async function mollieOvernemen(bedrag) {
     $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
     $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
     $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    onthoudBedragen();   /* vanaf nu is dit de stand waarmee Opslaan vergelijkt */
     $("#vBetaal").value = rij[0].betaalstatus || "open";
     toonMollieStand(rij[0]).catch(function () {});
     tekenBalk(rij[0]);
@@ -3373,6 +3393,18 @@ const ARR_GROEPEN = [
       ["bijgeboekt", "welkomstcall", "op_locatie"].indexOf(a.bron) < 0 }
 ];
 
+/* De stand van de drie bedragvelden vastleggen als ijkpunt. Wordt aangeroepen
+   zodra het venster opengaat en na elke keer dat de code zelf een bedrag
+   bijwerkt (bijboeken, verwijderen, een betaling verwerken): vanaf dat moment
+   is dát de waarde waarmee vergeleken wordt. */
+function onthoudBedragen() {
+  BEDRAG_START = {
+    totaal:  $("#vBedrag")  ? $("#vBedrag").value  : "",
+    betaald: $("#vBetaald") ? $("#vBetaald").value : "",
+    restant: $("#vRestant") ? $("#vRestant").value : ""
+  };
+}
+
 function tekenAlBijgeboekt(r) {
   const vak = $("#vAlBijgeboekt");
   if (!vak) return;
@@ -3421,7 +3453,31 @@ function tekenAlBijgeboekt(r) {
         "<span>Bovenop de prijs</span><span>&euro; " + esc(euro(erbij)) + "</span></div>"
       : "") +
     '<p class="uitleg" style="margin-top:6px">Vooraf geboekte arrangementen zitten in het geboekte bedrag. ' +
-    "Wat via de welkomstcall of op locatie is bijgeboekt, is bij het totaalbedrag opgeteld.</p>";
+    "Wat via de welkomstcall of op locatie is bijgeboekt, is bij het totaalbedrag opgeteld.</p>" +
+    bedragWaarschuwing(r);
+}
+
+/* Er stond hier altijd "is bij het totaalbedrag opgeteld". Bij Jan van Briemen
+   was dat niet waar - er stond € 108 aan extra's op de kaart terwijl het
+   totaalbedrag nog op het bedrag van vóór het bijboeken stond, en betaald
+   daardoor hóger was dan het totaal. Dat kun je van de kaart niet aflezen, dus
+   het bleef onopgemerkt.
+
+   Meer betaald dan het totaal kan niet kloppen: iemand heeft dan te veel
+   afgerekend, of een bijboeking is niet bij het totaal terechtgekomen. Dat
+   zeggen we nu, met het verschil erbij, in plaats van het stil te laten staan.
+   Angela, 21-09-2026. */
+function bedragWaarschuwing(r) {
+  const totaal = r.bedrag_totaal == null ? null : Number(r.bedrag_totaal);
+  const betaald = r.betaald_bedrag == null ? null : Number(r.betaald_bedrag);
+  if (totaal == null || betaald == null) return "";
+  const teveel = Math.round((betaald - totaal) * 100) / 100;
+  if (teveel <= 0.005) return "";
+  return '<p class="uitleg" style="margin-top:6px;color:#B3261E;font-weight:600">' +
+    "Let op: er staat &euro; " + esc(euro(betaald)) + " betaald terwijl het totaalbedrag &euro; " +
+    esc(euro(totaal)) + " is &mdash; &euro; " + esc(euro(teveel)) + " te veel. " +
+    "Meestal is er dan wel afgerekend voor bijgeboekte extra&#39;s, maar zijn die niet bij " +
+    "het totaalbedrag opgeteld. Zet het totaalbedrag hieronder goed en sla op.</p>";
 }
 
 /* De keuzelijst met vooraf geboekte arrangementen vullen. Dezelfde bron als
@@ -3504,6 +3560,7 @@ async function verwijderArrangement(index) {
     $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
     $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
     $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    onthoudBedragen();   /* vanaf nu is dit de stand waarmee Opslaan vergelijkt */
     /* Was de regel vooraf geboekt, dan staat hij ook in het tekstvak; dat moet
        mee, anders zet Opslaan hem zo terug. */
     if (!telt) {
@@ -3599,6 +3656,7 @@ async function bijboeken(soort) {
     $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
     $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
     $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+    onthoudBedragen();   /* vanaf nu is dit de stand waarmee Opslaan vergelijkt */
     $("#vBetaal").value = rij[0].betaalstatus || "open";
     teken();
     note.textContent = nieuw.length + (nieuw.length === 1 ? " regel " : " regels ") +
