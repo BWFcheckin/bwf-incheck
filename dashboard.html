@@ -705,6 +705,14 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;background:line
 .btn:not(.ghost),.knop.vol{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important;box-shadow:0 7px 16px rgba(var(--accent-rgb),.18)}
 .btn:hover,.knop:hover{transform:translateY(-1px)}
 input,select,textarea{min-height:42px!important;border-color:#dce4ef!important;border-radius:10px!important;background:#f8fafd!important}
+/* Safari op iPhone en iPad zoomt vanzelf in zodra je een invoerveld aanraakt
+   dat kleiner is dan 16px, en springt daarna niet terug. De pagina staat op
+   15px en de velden erven dat via font:inherit, dus dat gebeurde bij elk veld
+   van het takenformulier. Op smalle schermen zetten we ze daarom op 16px;
+   op een breed scherm blijft alles zoals het was. Angela, 21-09-2026. */
+@media (max-width:860px){
+  input,select,textarea{font-size:16px!important}
+}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 4px rgba(var(--accent-rgb),.1)!important;background:#fff!important}
 .table-wrap{border-radius:0 0 20px 20px}
 th{background:#f8fafd;color:#68768d;padding-block:12px}
