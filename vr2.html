@@ -1149,6 +1149,21 @@ div.ag-blok{cursor:default}
 .dg-knop:hover{background:var(--groen-2)}
 
 /* planning van vandaag */
+/* De dagstart in drie blokken: kalender breed bovenaan, daaronder spoed en
+   de boekingen die nagekeken moeten worden. Angela, 21-09-2026. */
+.dg-drie{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.dg-drie .dg-breed{grid-column:1 / -1}
+@media(max-width:860px){ .dg-drie{grid-template-columns:1fr} }
+.dg-spoedregel{display:flex;gap:11px;align-items:flex-start;padding:9px 16px;
+  border-bottom:1px solid var(--line-soft,#efe8e1)}
+.dg-spoedregel:last-child{border-bottom:0}
+.dg-spoedregel[data-resopen]{cursor:pointer}
+.dg-spoedregel[data-resopen]:hover{background:var(--surface-2,#f7f5f2)}
+.dg-spoedtijd{min-width:54px;font-family:var(--f-mono,monospace);font-size:12px;font-weight:700;
+  color:var(--groen,#14342A);padding-top:2px}
+.dg-spoedregel.taak .dg-spoedtijd{color:var(--crit,#B3261E)}
+.dg-spoedregel strong{display:block;font-size:14px;line-height:1.3}
+.dg-spoedregel small{display:block;color:var(--muted,#7B6E62);font-size:12.5px;margin-top:2px}
 .dg-tijdlijn{padding:2px 18px 18px}
 /* Wie er vandaag werkt, boven de tijdlijn van de dagstart. */
 .dg-dienstbalk{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
@@ -1323,26 +1338,40 @@ div.ag-blok{cursor:default}
          tonen stond uit. -->
     <div id="ovStats"></div>
 
-    <!-- Dezelfde indeling als de startpagina van het dashboard: links de
-         eerstvolgende taak met een foto, rechts de planning van vandaag met de
-         eigen taken eronder. renderDagstart() vult ze.
-         De hulpmiddelen hieronder blijven gewoon staan. -->
-    <div class="dg-home">
-      <div class="card dg-groot">
-        <div class="card-head"><div><span class="dg-eyebrow">Prioriteit</span><h2>Nu doen</h2></div>
-          <button class="dg-link" type="button" data-dgnaar="takencalls">Alle taken &rarr;</button></div>
-        <div id="dgNuDoen"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+    <!-- De dagstart toont drie blokken (Angela, 21-09-2026): de planning als
+         kalender, wat er vandaag met spoed moet, en de nieuwe boekingen
+         waarvan de gastgegevens nog nagekeken moeten worden. Alles wat hier
+         eerder stond - Nu doen, de tijdlijn van vandaag en Mijn taken - is
+         bereikbaar gebleven via de tegels en het menu.
+
+         De blokken 2 en 3 worden gevuld door renderDagstart(); de kalender
+         door maakStartKalender() verderop. -->
+    <div class="dg-drie">
+      <div class="card dg-breed">
+        <div class="card-head"><div><span class="dg-eyebrow">Planning</span><h2>Kalender</h2></div>
+          <button class="dg-link" type="button" data-dgnaar="planning">Hele agenda &rarr;</button></div>
+        <div class="card-body" style="padding-top:0"><div id="dgStartKalender"></div></div>
       </div>
+
       <div class="card">
-        <div class="card-head"><div><span class="dg-eyebrow">Vandaag</span><h2>Planning</h2></div>
-          <button class="dg-link" type="button" data-dgnaar="planning">Meer &rarr;</button></div>
-        <div class="dg-tijdlijn" id="dgTijdlijn"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+        <div class="card-head"><div><span class="dg-eyebrow">Vandaag</span><h2>Spoed</h2></div>
+          <button class="dg-link" type="button" data-dgnaar="planning">Aankomsten &rarr;</button></div>
+        <div class="dg-lijst" id="dgSpoed"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
       </div>
+
       <div class="card">
-        <div class="card-head"><div><span class="dg-eyebrow">Actie</span><h2>Mijn taken</h2></div>
-          <button class="dg-link" type="button" data-dgnaar="takencalls">Alles &rarr;</button></div>
-        <div class="dg-lijst" id="dgMijnTaken"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+        <div class="card-head"><div><span class="dg-eyebrow">Nieuw</span><h2>Gegevens controleren</h2></div>
+          <button class="dg-link" type="button" data-dgnaar="reserveringen">Alle boekingen &rarr;</button></div>
+        <div class="dg-lijst" id="dgNieuw"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
       </div>
+    </div>
+
+    <!-- De oude blokken blijven bestaan maar staan niet meer op de dagstart;
+         renderDagstart() vult ze alleen als ze er zijn. -->
+    <div class="dg-home" hidden>
+      <div id="dgNuDoen"></div>
+      <div class="dg-tijdlijn" id="dgTijdlijn"></div>
+      <div class="dg-lijst" id="dgMijnTaken"></div>
     </div>
 
     <div class="inklapbalk">
@@ -2910,6 +2939,28 @@ function maakVrKalender(){
    dus twee kalenders op een pagina zitten elkaar niet in de weg.
    Pas opbouwen wanneer de kaart echt zichtbaar is - in een verborgen kaart
    krijgt de kalender breedte nul en tekent hij zijn raster verkeerd. */
+/* De kalender in het eerste blok van de dagstart. Aparte instantie, want de
+   planningkalender verderop hangt aan een andere houder en die kan in beeld
+   zijn terwijl deze dat niet is. Angela, 21-09-2026. */
+let VR_START_KAL = null;
+function maakStartKalender(){
+  const houder = $('#dgStartKalender');
+  if(VR_START_KAL || !window.BWFKalender || !houder) return;
+  /* Zonder breedte tekent de kalender zijn raster verkeerd; wachten tot het
+     paneel echt in beeld staat. */
+  if(!houder.offsetParent) return;
+  VR_START_KAL = window.BWFKalender.maak(houder, {
+    weergave: 'maand',
+    blokkadesTonen: false,
+    lijst: true,
+    token: async ()=>{
+      if(!ingelogd()) return null;
+      if(SESSIE.verloopt && Date.now() > SESSIE.verloopt) await vernieuwSessie();
+      return ingelogd() ? SESSIE.token : null;
+    }
+  });
+}
+
 let VR_PLAN_KAL = null;
 function maakPlanKalender(){
   const houder = $('#dgPlanKalender');
@@ -3160,6 +3211,8 @@ async function start(){
      de standaardgroep "alles" wordt er daarna nooit meer op een groepsknop
      geklikt, en zou de kalender dus nooit gebouwd worden. */
   maakPlanKalender();
+  /* De kalender in het eerste blok van de dagstart hoort er meteen te staan. */
+  maakStartKalender();
   if(!window.__ovTimer) window.__ovTimer = setInterval(()=>{ if(!$('#app').hidden) laadOverzicht(); }, 300000);
   if(magGasten()){ await zorgVoorBelastingtarieven(); vulSelects(); renderGasten(); }
   /* Na inloggen begint de dag altijd bij Dagstart. Voorheen opende de pagina
@@ -3774,6 +3827,72 @@ function renderDagstart(){
       </div>`).join('')
     : '<p class="dg-leeg">Vandaag staat er niets gepland.</p>');
 
+  /* ---- blok 2: spoed vandaag ----
+     Wat er vandaag gebeurt en aandacht vraagt: aankomsten van vandaag en de
+     taken met prioriteit hoog die vandaag of eerder af moeten.
+     Angela, 21-09-2026. */
+  const spoed = $('#dgSpoed');
+  if(spoed){
+    const vandaagAank = RES
+      .filter(r => String(r.start || '').slice(0,10) === vd && !r.geannuleerd)
+      .sort((a,b) => String(a.start).localeCompare(String(b.start)));
+    const spoedTaken = open.filter(t =>
+      (t.prioriteit || '').toLowerCase() === 'hoog' &&
+      (!t.deadline || t.deadline <= vd));
+    const regels = []
+      .concat(vandaagAank.map(r => ({
+        tijd: String(r.start || '').slice(11,16),
+        titel: r.naam || 'zonder naam',
+        sub: [r.locatie, r.bron].filter(Boolean).join(' · '),
+        soort: 'aankomst',
+        resId: r.resId || ''
+      })))
+      .concat(spoedTaken.map(t => ({
+        tijd: '',
+        titel: t.titel || 'Zonder titel',
+        sub: t.deadline ? ('deadline ' + dmy(t.deadline)) : 'hoge prioriteit',
+        soort: 'taak',
+        resId: ''
+      })));
+    spoed.innerHTML = regels.length
+      ? regels.slice(0,8).map(r => `<div class="dg-spoedregel${r.soort === 'taak' ? ' taak' : ''}"${
+          r.resId ? ` data-resopen="${esc(r.resId)}"` : ''}>
+          <span class="dg-spoedtijd">${esc(r.tijd || (r.soort === 'taak' ? 'taak' : '—'))}</span>
+          <div><strong>${esc(r.titel)}</strong><small>${esc(r.sub)}</small></div>
+        </div>`).join('')
+      : '<p class="dg-leeg">Niets met spoed vandaag.</p>';
+  }
+
+  /* ---- blok 3: nieuwe boekingen waarvan de gegevens nog nagekeken moeten ----
+     Dezelfde vraag als de taak die sinds 21-09-2026 automatisch voor Kelly
+     wordt aangemaakt: klopt alles wat de gast heeft meegegeven? Een boeking
+     telt als "na te kijken" zolang naam, telefoon of e-mail ontbreekt. */
+  const nieuw = $('#dgNieuw');
+  if(nieuw){
+    const teControleren = RES
+      .filter(r => {
+        if(r.verleden || r.geannuleerd) return false;
+        const b = r.ruw || {};
+        return !r.naam || !(b.gast_telefoon || b.telefoon) || !(b.gast_email || b.email);
+      })
+      .sort((a,b) => String(a.start || '').localeCompare(String(b.start || '')));
+    nieuw.innerHTML = teControleren.length
+      ? teControleren.slice(0,8).map(r => {
+          const b = r.ruw || {};
+          const mist = [
+            r.naam ? '' : 'naam',
+            (b.gast_telefoon || b.telefoon) ? '' : 'telefoon',
+            (b.gast_email || b.email) ? '' : 'e-mail'
+          ].filter(Boolean).join(', ');
+          return `<div class="dg-spoedregel"${r.resId ? ` data-resopen="${esc(r.resId)}"` : ''}>
+            <span class="dg-spoedtijd">${esc(dmy(String(r.start || '').slice(0,10)))}</span>
+            <div><strong>${esc(r.naam || 'zonder naam')}</strong>
+              <small>${esc([r.locatie, mist ? 'mist: ' + mist : ''].filter(Boolean).join(' · '))}</small></div>
+          </div>`;
+        }).join('')
+      : '<p class="dg-leeg">Alle boekingen zijn compleet.</p>';
+  }
+
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
   const mijn = open.filter(t => IK && t.medewerker_id === IK.id);
   const lijst = mijn.length ? mijn : open;
@@ -3787,6 +3906,17 @@ function renderDagstart(){
       </div>`).join('')
     : '<p class="dg-leeg">Geen openstaande taken.</p>';
 }
+
+/* Een regel in Spoed of Gegevens controleren opent die reservering. Het
+   reserveringenscherm leest de id uit de adresregel (zie reserveringen.html,
+   "new URLSearchParams(location.search).get('id')"). Angela, 21-09-2026. */
+document.addEventListener('click', e => {
+  const rij = e.target.closest('[data-resopen]');
+  if(!rij) return;
+  const id = rij.getAttribute('data-resopen');
+  if(!id) return;
+  location.href = 'reserveringen.html?id=' + encodeURIComponent(id);
+});
 
 /* elke knop met data-dgnaar springt naar dat onderdeel van het menu */
 document.addEventListener('click', e => {
@@ -4016,6 +4146,7 @@ function dgFilter(groep){
   try{ sessionStorage.setItem('bwf-dgfilter', groep); }catch(e){}
   /* Is de Planning-groep nu zichtbaar, dan pas de kalender opbouwen. */
   try{ maakPlanKalender(); }catch(e){}
+  try{ maakStartKalender(); }catch(e){}
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('#dgGroepen button[data-dgfilter]'); if(!b) return;
@@ -10151,7 +10282,7 @@ $('#whoBtn').addEventListener('click', ()=>{
 })();
 </script>
 <!-- ================= einde Home-knop ================= -->
-<script src="bwf-menu.js?v=1"></script>
+<script src="bwf-menu.js?v=2"></script>
 <script>
 /* onthouden e-mailadres terugzetten in het inlogscherm */
 (function(){

@@ -37,6 +37,12 @@
     ["Hulp", "controle.html"]
   ];
 
+  /* Wat op een bepaalde pagina niet in de balk hoort. Angela, 21-09-2026:
+     het personeelsdashboard hoeft niet in het VR-dashboard te staan. */
+  var VERBERG = {
+    "vr2.html": ["dashboard.html"]
+  };
+
   var css = document.createElement("style");
   css.textContent = [
     ".bwf-topmenu{position:static;z-index:8500;background:var(--bwfmenu-kleur,#483C34);",
@@ -67,9 +73,11 @@
     }
 
     var hier = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    var verberg = VERBERG[hier] || [];
     var uit = ['<div class="binnen">',
       '<img src="https://bedenwellnessflevoland.nl/Logo/1_Logo.webp" alt="BWF">'];
     for (var i = 0; i < PAGINAS.length; i++) {
+      if (verberg.indexOf(PAGINAS[i][1].toLowerCase()) > -1) continue;
       var aan = PAGINAS[i][1].toLowerCase() === hier;
       uit.push('<a href="' + PAGINAS[i][1] + '"' + (aan ? ' class="hier"' : "") +
         ">" + PAGINAS[i][0] + "</a>");
