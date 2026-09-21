@@ -198,6 +198,16 @@ dialog::backdrop{background:rgba(20,52,42,.45)}
 .v-balk .stap.ja{background:var(--ok-zacht);color:var(--ok);border-color:var(--ok)}
 .v-balk .stap.nee{background:var(--crit-zacht);color:var(--crit);border-color:var(--crit)}
 .v-balk .stap i{font-style:normal;font-size:13px;line-height:1}
+/* Dezelfde zes stappen, maar dan op de kaart in de lijst - zodat je ze ziet
+   zonder de reservering te openen. Kleiner en met kortere woorden, want er
+   staan er zes naast elkaar; de volledige naam staat in de title.
+   Angela, 21-09-2026. */
+.reskaart-stappen{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 2px}
+.reskaart-stappen .stap{display:inline-flex;align-items:center;gap:4px;border-radius:999px;
+  padding:3px 8px;font-size:11px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.reskaart-stappen .stap.ja{background:var(--ok-zacht);color:var(--ok);border-color:var(--ok)}
+.reskaart-stappen .stap.nee{background:var(--crit-zacht);color:var(--crit);border-color:var(--crit)}
+.reskaart-stappen .stap i{font-style:normal;font-size:11px;line-height:1}
 .v-inhoud{padding:6px 22px 8px}
 .v-inhoud fieldset{border:0;padding:0;margin:14px 0 6px}
 .v-inhoud legend{font-family:var(--f-titel);font-size:19px;color:var(--groen);padding:0;margin-bottom:8px}
@@ -816,6 +826,10 @@ const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,v
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
 
 let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = null, ARR_START = "";
+/* De welkomstcall per reservering, voor de stappen op de kaart in de lijst.
+   Sleutel is reservering_id. Leeg zolang ze nog niet opgehaald zijn.
+   Angela, 21-09-2026. */
+let CALLS_LIJST = {};
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -992,6 +1006,17 @@ function gefilterd() {
       .join(" ").toLowerCase().includes(z)));
 }
 
+/* Kortere woorden voor op de kaart. De volledige naam blijft in de title
+   staan, en in het venster blijven de lange namen gewoon zoals ze waren. */
+const STAP_KORT = {
+  "Gegevens gecontroleerd": "Gegevens",
+  "Welkomstcall gedaan": "Call",
+  "Incheckformulier gekoppeld": "Incheck",
+  "Betaling rond": "Betaling",
+  "Reviewlink verstuurd": "Review",
+  "Volledig afgerond": "Afgerond"
+};
+
 function rijHtml(r) {
   const p = periode(r);
   const naam = gastNaam(r);
@@ -1056,6 +1081,14 @@ function rijHtml(r) {
     }
   }
   const geld = geldR ? '<div class="reskaart-geld">' + geldR + "</div>" : "";
+  /* Dezelfde zes stappen als in het venster, maar dan op de kaart - Angela
+     wilde ze zien zonder elke reservering te hoeven openen. Korte woorden,
+     want er staan er zes naast elkaar; de volledige naam staat in de title. */
+  const stappen = '<div class="reskaart-stappen">' +
+    balkStand(r, CALLS_LIJST[r.id]).map(([naam, ja]) =>
+      '<span class="stap ' + (ja ? "ja" : "nee") + '" title="' + esc(naam) + '"><i>' +
+      (ja ? "&#10003;" : "&#10007;") + "</i>" + esc(STAP_KORT[naam] || naam) + "</span>").join("") +
+    "</div>";
 
   return '<article class="reskaart ' + esc(r.status) + '" data-id="' + esc(r.id) + '" tabindex="0">' +
     '<span class="reskaart-foto ' +
@@ -1081,7 +1114,7 @@ function rijHtml(r) {
       /* Eigen regel voor wat er ná de boeking is bijgekomen. */
       '<div class="reskaart-regels"><span>Bijgeboekt <b>' +
         (bijTekst ? esc(bijTekst) : "niks bijgeboekt") + "</b></span></div>" +
-      geld +
+      geld + stappen +
       '<div class="reskaart-voet">' + letop.join("") +
         (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +
         knop +
@@ -1095,9 +1128,20 @@ function teken() {
   const controleren = lijst.filter(tijdenControleren).length;
   $("#telling").textContent = lijst.length + " van " + RIJEN.length + " reserveringen · " +
     zonderGegevens + " zonder volledige gastgegevens · " + controleren + " met tijden om te controleren";
-  $("#lijst").innerHTML = lijst.length
+  /* De hele lijst wordt in één keer vervangen. Tussen het leegmaken en het
+     opnieuw vullen is de pagina even korter, en dan verschuift de browser je
+     plek - dat is het wegspringen waar Angela last van had. De hoogte wordt
+     daarom vastgezet tijdens het vervangen en de scrollpositie daarna
+     teruggezet. Angela, 21-09-2026. */
+  const vak = $("#lijst");
+  const hoogteVoor = vak.offsetHeight;
+  const yVoor = window.scrollY;
+  vak.style.minHeight = hoogteVoor ? hoogteVoor + "px" : "";
+  vak.innerHTML = lijst.length
     ? lijst.map(rijHtml).join("")
     : '<p class="leeg">Geen reserveringen die aan dit filter voldoen.</p>';
+  vak.style.minHeight = "";
+  if (window.scrollY !== yVoor) window.scrollTo(0, yVoor);
 }
 
 function begin(dagen) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dagen); return d.toISOString(); }
@@ -1115,10 +1159,40 @@ async function laad() {
     RIJEN = await api("reserveringen?select=" + KOLOMMEN + venster +
       "&order=aankomst.asc&limit=1000") || [];
     teken();
+    /* De welkomstcalls erbij halen, zodat stap 2 op de kaart klopt. Dat kan
+       alleen ná de reserveringen, want we vragen ze op per reservering-id.
+       Eén bevraging voor de hele lijst, niet één per kaart. Mislukt hij, dan
+       blijft de lijst gewoon staan; stap 2 toont dan "nog niet".
+       Angela, 21-09-2026. */
+    vulCallsVoorLijst().then(teken, function () {});
   } catch (e) {
     $("#telling").textContent = "";
     melding("Reserveringen konden niet worden geladen: " + e.message, "fout");
   }
+}
+
+/* De welkomstcalls van de geladen reserveringen in één keer ophalen, zodat de
+   kaart kan tonen of stap 2 gedaan is. Dezelfde velden waarmee balkStand()
+   rekent. PostgREST kent een lengtegrens op de URL, dus in blokken van 80
+   id's. Stil: lukt het niet, dan blijft de kaart gewoon staan. */
+async function vulCallsVoorLijst() {
+  const ids = RIJEN.map((r) => r.id).filter(Boolean);
+  if (!ids.length) { CALLS_LIJST = {}; return; }
+  const nieuw = {};
+  for (let i = 0; i < ids.length; i += 80) {
+    const deel = ids.slice(i, i + 80);
+    const rijen = await api("wz_welkomstcalls?select=reservering_id,status,nodig,afgerond_op,gebeld_op" +
+      "&reservering_id=in.(" + deel.map(encodeURIComponent).join(",") + ")", { stil: true }) || [];
+    rijen.forEach((c) => {
+      if (!c.reservering_id) return;
+      /* Staat er meer dan één call bij een boeking, dan telt de afgeronde. */
+      const bestaand = nieuw[c.reservering_id];
+      const gedaan = (x) => !!x && (x.nodig === false || !!x.afgerond_op || !!x.gebeld_op ||
+        x.status === "afgerond" || x.status === "gebeld");
+      if (!bestaand || (!gedaan(bestaand) && gedaan(c))) nieuw[c.reservering_id] = c;
+    });
+  }
+  CALLS_LIJST = nieuw;
 }
 
 /* ---------- venster ---------- */
