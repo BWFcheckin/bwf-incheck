@@ -1151,6 +1151,19 @@ div.ag-blok{cursor:default}
 /* planning van vandaag */
 /* De dagstart in drie blokken: kalender breed bovenaan, daaronder spoed en
    de boekingen die nagekeken moeten worden. Angela, 21-09-2026. */
+/* De twee uitklapmenu's onder de drie blokken. */
+.dg-uitklap{margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.dg-uitklap > summary{cursor:pointer;padding:12px 18px;font-weight:600;font-size:14px;
+  list-style:none;display:flex;align-items:center;gap:8px}
+.dg-uitklap > summary::-webkit-details-marker{display:none}
+.dg-uitklap > summary::before{content:'▸';color:var(--muted);font-size:12px}
+.dg-uitklap[open] > summary::before{content:'▾'}
+.dg-uitklap > summary:hover{background:var(--surface-2)}
+.dg-uitklap[open] > summary{border-bottom:1px solid var(--line)}
+.dg-telling{margin-left:auto;font-weight:700;font-size:12px;color:#fff;background:var(--groen);
+  border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
+.dg-telling:empty{display:none}
+
 /* De rest van de dagstart staat achter één uitklapknop. */
 .dg-meer{margin-top:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
 .dg-meer > summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:14px;
@@ -1376,6 +1389,19 @@ div.ag-blok{cursor:default}
         <div class="dg-lijst" id="dgNieuw"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
       </div>
     </div>
+
+    <!-- Twee uitklapmenu's onder de drie blokken (Angela, 21-09-2026): wat
+         gasten zelf hebben bijgeboekt bij het online inchecken, en welke
+         formulieren nog aan een reservering gekoppeld moeten worden. -->
+    <details class="dg-uitklap" id="dgExtrasVak">
+      <summary>Bijgeboekt via het incheckformulier <span class="dg-telling" id="dgExtrasTel"></span></summary>
+      <div class="dg-lijst" id="dgExtras"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+    </details>
+
+    <details class="dg-uitklap" id="dgLosVak">
+      <summary>Formulieren nog te koppelen <span class="dg-telling" id="dgLosTel"></span></summary>
+      <div class="dg-lijst" id="dgLos"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+    </details>
 
     <!-- De oude blokken blijven bestaan maar staan niet meer op de dagstart;
          renderDagstart() vult ze alleen als ze er zijn. -->
@@ -3935,6 +3961,54 @@ function renderDagstart(){
           </div>`;
         }).join('')
       : '<p class="dg-leeg">Alles is verwerkt.</p>';
+  }
+
+  /* ---- uitklap 1: wat gasten zelf hebben bijgeboekt ----
+     Het gastformulier schrijft de bestelling weg in gast_aanmeldingen.extras
+     (jsonb) met extras_totaal en betaalwijze erbij. Hier staat wat er nog
+     klaargezet moet worden. Angela, 21-09-2026. */
+  const exVak = $('#dgExtras'), exTel = $('#dgExtrasTel');
+  if(exVak){
+    const metExtras = (typeof FORMS !== 'undefined' ? FORMS : [])
+      .filter(f => Array.isArray(f.extras) && f.extras.length)
+      .sort((a,b) => String(b.datum || b.created_at || '').localeCompare(String(a.datum || a.created_at || '')));
+    if(exTel) exTel.textContent = metExtras.length ? String(metExtras.length) : '';
+    exVak.innerHTML = metExtras.length
+      ? metExtras.slice(0,12).map(f => {
+          const wat = f.extras.map(x =>
+            (x && (x.naam || x.titel || x.omschrijving) || '') +
+            (Number(x && x.aantal) > 1 ? ' ×' + x.aantal : '')).filter(Boolean).join(' · ');
+          const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') || 'zonder naam';
+          const bedrag = Number(f.extras_totaal) ? ' — € ' + num(f.extras_totaal) : '';
+          return `<div class="dg-spoedregel">
+            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
+            <div><strong>${esc(naam)}${esc(bedrag)}</strong>
+              <small>${esc([wat, f.locatie, f.betaalwijze ? 'betaalwijze: ' + f.betaalwijze : '']
+                .filter(Boolean).join(' · '))}</small></div>
+          </div>`;
+        }).join('')
+      : '<p class="dg-leeg">Niemand heeft iets bijgeboekt via het formulier.</p>';
+  }
+
+  /* ---- uitklap 2: formulieren die nog aan een boeking moeten hangen ---- */
+  const losVak = $('#dgLos'), losTel = $('#dgLosTel');
+  if(losVak){
+    const los = (typeof FORMS !== 'undefined' ? FORMS : [])
+      .filter(f => typeof formGekoppeld === 'function' ? !formGekoppeld(f) : false)
+      .sort((a,b) => String(b.datum || b.created_at || '').localeCompare(String(a.datum || a.created_at || '')));
+    if(losTel) losTel.textContent = los.length ? String(los.length) : '';
+    losVak.innerHTML = los.length
+      ? los.slice(0,12).map(f => {
+          const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') ||
+            (typeof formNaam === 'function' ? formNaam(f) : '') || 'zonder naam';
+          return `<div class="dg-spoedregel">
+            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
+            <div><strong>${esc(naam)}</strong>
+              <small>${esc([f.locatie, f._soort === 'aanmelding' ? 'gastformulier' : 'incheckformulier']
+                .filter(Boolean).join(' · '))}</small></div>
+          </div>`;
+        }).join('')
+      : '<p class="dg-leeg">Alle formulieren zijn gekoppeld.</p>';
   }
 
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
