@@ -857,11 +857,21 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
    deze menubalk daar half achter. Angela, 21-09-2026. */
 .bwf-topmenu{position:sticky;top:var(--bwfkaderbalk,0px);z-index:8500;background:#483C34;
   box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
-/* Als de browser een invoerveld in beeld scrolt, moet het onder beide balken
-   uitkomen: de kaderbalk plus deze menubalk. Stond dat te laag, dan kwam het
-   veld onder de menubalk te liggen en landde een tik op de eerste link daarin
-   - Dagstart - in plaats van op het veld. */
-html{scroll-padding-top:calc(var(--bwfkaderbalk,0px) + 56px)!important}
+/* Als de browser een invoerveld in beeld scrolt, moet het onder de vaste
+   kaderbalk uitkomen. */
+html{scroll-padding-top:calc(var(--bwfkaderbalk,0px) + 12px)!important}
+
+/* Op telefoon en tablet plakt deze menubalk niet meer vast. Hij stond met
+   position:sticky boven in beeld terwijl je een taak invulde, en Dagstart is
+   de eerste link erin - direct naast het logo, precies waar een duim landt.
+   Zodra de browser een veld in beeld scrolde, kwam dat veld onder de balk en
+   landde de tik op Dagstart in plaats van op het veld. Niet vastplakken haalt
+   die mogelijkheid helemaal weg; de balk staat gewoon boven aan de pagina en
+   het menu blijft bereikbaar via de knop in de kaderbalk.
+   Angela, 21-09-2026. */
+@media (max-width:1024px){
+  .bwf-topmenu{position:static!important;top:auto!important}
+}
 .bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;
   align-items:center;padding:8px 16px}
 .bwf-topmenu img{height:26px;width:auto;flex:none;margin-right:4px}
