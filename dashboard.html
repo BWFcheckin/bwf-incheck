@@ -923,7 +923,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboardonderdelen">
     <button class="tab" role="tab" id="tab-overzicht" data-tab="overzicht" aria-selected="true" aria-controls="panel-overzicht">Overzicht</button>
     <button class="tab" role="tab" id="tab-planning" data-tab="planning" aria-selected="false" aria-controls="panel-planning">Planning<span class="badge" id="badge-planning">0</span></button>
-    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad" hidden style="display:none">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
+    <button class="tab" role="tab" id="tab-voorraad" data-tab="voorraad" aria-selected="false" aria-controls="panel-voorraad">Voorraad &amp; bestellingen<span class="badge" id="badge-voorraad">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-taken" data-tab="taken" aria-selected="false" aria-controls="panel-taken">Vragen &amp; taken</button>
   </nav>
@@ -1444,6 +1444,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <p>Alles is aan te passen: klik in een veld om een naam, aantal, minimum of leverancier te wijzigen. Wat onder het minimum zakt, komt vanzelf op de bestellijst.</p>
       <div style="margin-top:12px"><button class="btn ghost small" type="button" id="vrAllesKnop">Alles uitklappen</button></div>
     </div>
+
+    <!-- Angela, 21-09-2026: de voorraad staat nu in bwf-voorraad.js, zodat
+         hetzelfde scherm op elk dashboard werkt en er één plek is waar het
+         onderhouden wordt. De oude tabel hieronder blijft voorlopig staan
+         achter een uitklapknop: hij werkt nog, en zolang niet zeker is dat er
+         niets gemist wordt, gaat er niets weg. -->
+    <div id="vrNieuw" data-bwf-voorraad></div>
+
+    <details style="margin:18px 0 8px">
+      <summary style="cursor:pointer;font-size:13.5px;opacity:.75">De oude voorraadweergave tonen</summary>
     <div class="stats" id="voorraadStats"></div>
 
     <div class="card">
@@ -1488,6 +1498,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         </form>
       </div>
     </div>
+    </details><!-- einde oude voorraadweergave -->
 
     <div class="card">
       <div class="card-head"><h2>Vaste afspraken</h2></div>
@@ -2728,6 +2739,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     else if (d.delOd) { mutate(function(){ var k = vindIdx(state.overdracht, d.delOd); if (k >= 0) state.overdracht.splice(k, 1); }); }
   });
 
+  /* De voorraad komt uit bwf-voorraad.js, dezelfde module als op het
+     VR-dashboard. Hij haalt zijn eigen gegevens op en schrijft ze zelf weg;
+     de oude tabel hieronder blijft voorlopig bestaan maar staat ingeklapt.
+     Angela, 21-09-2026. */
+
   /* ---------------- init ---------------- */
   document.getElementById("p-datum").value = today();
   document.getElementById("o-datum").value = today();
@@ -2974,6 +2990,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-planyo.js?v=11"></script>
 <script src="bwf-kalender.js?v=18"></script>
+<script src="bwf-voorraad.js?v=1"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
 (function(){

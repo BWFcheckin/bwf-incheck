@@ -1435,6 +1435,19 @@ div.ag-blok{cursor:default}
       <div class="dg-lijst" id="dgLos"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
     </details>
 
+    <!-- Voorraad. Angela, 21-09-2026: "ik wil dat de voorraad op elk dashboard
+         zichtbaar en aanpasbaar is." Dit dashboard had er niets van, alleen een
+         link naar het locatiedashboard. Compact: alleen wat bijgevuld moet
+         worden, met de plus- en minknoppen erbij. De hele lijst staat op het
+         locatiedashboard. -->
+    <details class="dg-uitklap" id="dgVoorraadVak">
+      <summary>Voorraad bijvullen
+        <span class="dg-telling" id="dgVoorraadTel"></span></summary>
+      <div style="padding:10px 14px 14px">
+        <div id="dgVoorraad" data-bwf-voorraad="compact"></div>
+      </div>
+    </details>
+
     <!-- Naar welk nummer gaat de WhatsApp bij een spoedreservering? Angela,
          21-09-2026: instelbaar per locatie, zodat zij het zelf kan wijzigen.
          Alleen de eigenaar ziet dit; het staat in instellingen/spoed_meldingen. -->
@@ -2908,6 +2921,7 @@ div.ag-blok{cursor:default}
 
 <div class="toast" id="toast"></div>
 <script src="bwf-kalender.js?v=18"></script>
+<script src="bwf-voorraad.js?v=1"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -3861,6 +3875,32 @@ document.addEventListener('click', e => {
    hier ingevuld met Welkomstcalls. */
 const dgOpenTaken = () => mijnTaken().filter(t => t.status !== 'klaar');
 
+/* ---- voorraad op de dagstart -------------------------------------------
+   Angela, 21-09-2026: de voorraad moet op elk dashboard bij te werken zijn.
+   Hier staat de compacte lijst - alleen wat bijgevuld moet worden - zodat je
+   vanaf je telefoon een aantal kunt ophogen zonder naar het locatiedashboard
+   te gaan. De hele lijst met bestellen en ontvangen staat daar.
+   De module maakt zichzelf maar één keer aan; hij haalt zijn eigen gegevens op. */
+let VOORRAAD_VAK = null;
+function maakDgVoorraad(){
+  if(VOORRAAD_VAK || !window.BWFVoorraad) return;
+  const vak = $('#dgVoorraad');
+  if(!vak) return;
+  VOORRAAD_VAK = vak.__bwfv || BWFVoorraad.maak(vak, { compact: true });
+  /* De teller in de samenvatting bijwerken zodra de lijst geladen is. Er is
+     geen melding wanneer dat klaar is, dus kijken we een paar keer. */
+  let pogingen = 0;
+  const tel = setInterval(function(){
+    const n = (VOORRAAD_VAK.items() || []).filter(function(v){
+      const s = BWFVoorraad.stand(v).sleutel;
+      return s === 'bestellen' || s === 'op';
+    }).length;
+    const el = $('#dgVoorraadTel');
+    if(el && n) el.textContent = String(n);
+    if(n || ++pogingen > 12) clearInterval(tel);
+  }, 700);
+}
+
 /* ---- meldingen bij spoedreserveringen ----------------------------------
    Angela, 21-09-2026: een boeking voor een gast die binnen 24 uur aankomt
    moet meteen naar de locatie geappt worden. Naar welk nummer dat gaat stelt
@@ -4213,7 +4253,10 @@ function renderDagstart(){
     dgBel('dgBelLos', 'los', los.map(f => f.id || ''));
   }
 
-  /* ---- uitklap 3: naar welk nummer gaat de spoedmelding ---- */
+  /* ---- uitklap 3: voorraad bijvullen ---- */
+  maakDgVoorraad();
+
+  /* ---- uitklap 4: naar welk nummer gaat de spoedmelding ---- */
   dgMeldVul();
 
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
