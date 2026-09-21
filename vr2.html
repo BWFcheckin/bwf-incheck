@@ -1199,6 +1199,13 @@ div.ag-blok{cursor:default}
 .dg-spoedregel.taak .dg-spoedtijd{color:var(--crit,#B3261E)}
 /* Net binnengekomen boeking: opvallend, want die moet nog nagekeken. */
 .dg-spoedregel.nieuwbinnen{background:var(--goud-zacht,#faf4e8)}
+.dg-meldrij{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.dg-meldrij label{flex:0 0 190px;font-size:14px;font-weight:600;display:flex;flex-direction:column}
+.dg-meldrij label small{font-weight:400;opacity:.65;font-size:12px}
+.dg-meldrij input{flex:1 1 180px;min-width:150px;padding:9px 11px;border-radius:9px;
+  border:1px solid var(--lijn,#e3dad0);font:inherit;font-size:14px}
+.dg-meldaan{display:flex;align-items:center;gap:9px;font-size:14px;margin-top:4px}
+@media(max-width:620px){.dg-meldrij label{flex:1 1 100%}}
 .dg-spoedregel.nieuwbinnen .dg-spoedtijd{color:var(--goud,#9A7B4F);text-transform:uppercase;font-size:10.5px}
 .dg-spoedregel strong{display:block;font-size:14px;line-height:1.3}
 .dg-spoedregel small{display:block;color:var(--muted,#7B6E62);font-size:12.5px;margin-top:2px}
@@ -1426,6 +1433,36 @@ div.ag-blok{cursor:default}
           title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
         <span class="dg-telling" id="dgLosTel"></span></summary>
       <div class="dg-lijst" id="dgLos"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+    </details>
+
+    <!-- Naar welk nummer gaat de WhatsApp bij een spoedreservering? Angela,
+         21-09-2026: instelbaar per locatie, zodat zij het zelf kan wijzigen.
+         Alleen de eigenaar ziet dit; het staat in instellingen/spoed_meldingen. -->
+    <details class="dg-uitklap" id="dgMeldVak" hidden>
+      <summary>Meldingen bij spoedreserveringen
+        <span class="dg-telling" id="dgMeldTel"></span></summary>
+      <div style="padding:12px 16px 16px">
+        <p class="hint" style="margin:0 0 12px">Komt er een boeking binnen voor een gast die
+          binnen 24&nbsp;uur aankomt, dan gaat er een WhatsApp naar het nummer van die locatie.
+          Laat een nummer leeg om er voor die locatie geen te versturen.</p>
+        <div class="dg-meldrij">
+          <label for="dgMeldLelystad">Lelystad<small>Malina Jacuzzi &amp; Deluxe</small></label>
+          <input type="tel" id="dgMeldLelystad" placeholder="06 12345678" autocomplete="off">
+        </div>
+        <div class="dg-meldrij">
+          <label for="dgMeldAlmere">Almere<small>Suite Angie</small></label>
+          <input type="tel" id="dgMeldAlmere" placeholder="06 12345678" autocomplete="off">
+        </div>
+        <label class="dg-meldaan"><input type="checkbox" id="dgMeldAan">
+          Automatisch versturen aanzetten</label>
+        <p class="hint" style="margin:8px 0 0">Automatisch versturen werkt pas als de
+          koppeling met Wati is ingesteld. Staat dat vinkje uit, of is de koppeling er
+          nog niet, dan blijft de melding met de WhatsApp-knop op het dashboard staan.</p>
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn" type="button" id="dgMeldBewaar">Bewaren</button>
+          <span class="hint" id="dgMeldStand"></span>
+        </div>
+      </div>
     </details>
 
     <!-- De oude blokken blijven bestaan maar staan niet meer op de dagstart;
@@ -3824,6 +3861,83 @@ document.addEventListener('click', e => {
    hier ingevuld met Welkomstcalls. */
 const dgOpenTaken = () => mijnTaken().filter(t => t.status !== 'klaar');
 
+/* ---- meldingen bij spoedreserveringen ----------------------------------
+   Angela, 21-09-2026: een boeking voor een gast die binnen 24 uur aankomt
+   moet meteen naar de locatie geappt worden. Naar welk nummer dat gaat stelt
+   zij hier zelf in, per locatie; het staat in instellingen onder de sleutel
+   spoed_meldingen. De verzending zelf gebeurt aan de serverkant, zodat het
+   ook doorgaat als er niemand voor een scherm zit.
+   Dit vak is er alleen voor de eigenaar. */
+let MELD = { aan: false, nummers: {} };
+
+/* 0612345678 -> 31612345678. Leeg blijft leeg, zodat "geen melding voor deze
+   locatie" een geldige keuze is. */
+function meldNummer(v){
+  let n = String(v || '').replace(/\D/g, '');
+  if(!n) return '';
+  if(n.slice(0,2) === '00') n = n.slice(2);
+  if(n[0] === '0') n = '31' + n.slice(1);
+  return n;
+}
+async function dgMeldHaal(){
+  try{
+    const r = await api('instellingen?select=waarde&sleutel=eq.spoed_meldingen');
+    if(r && r[0] && r[0].waarde){
+      const l = JSON.parse(r[0].waarde);
+      if(l && typeof l === 'object'){
+        MELD = { aan: !!l.aan, nummers: l.nummers || {} };
+      }
+    }
+  }catch(e){}
+}
+function dgMeldVul(){
+  const vak = $('#dgMeldVak');
+  if(!vak) return;
+  vak.hidden = !isEigenaar();
+  if(vak.hidden) return;
+  const l = $('#dgMeldLelystad'), a = $('#dgMeldAlmere'), aan = $('#dgMeldAan');
+  /* niet overschrijven terwijl iemand aan het typen is */
+  if(l && document.activeElement !== l) l.value = MELD.nummers.Lelystad || '';
+  if(a && document.activeElement !== a) a.value = MELD.nummers.Almere || '';
+  if(aan) aan.checked = !!MELD.aan;
+  const tel = $('#dgMeldTel');
+  if(tel) tel.textContent = MELD.aan
+    ? (Object.keys(MELD.nummers).filter(k => MELD.nummers[k]).length + ' aan')
+    : 'uit';
+}
+async function dgMeldBewaar(){
+  const stand = $('#dgMeldStand');
+  const nieuw = {
+    aan: !!($('#dgMeldAan') && $('#dgMeldAan').checked),
+    nummers: {
+      Lelystad: String(($('#dgMeldLelystad') || {}).value || '').trim(),
+      Almere:   String(($('#dgMeldAlmere')   || {}).value || '').trim()
+    }
+  };
+  /* een nummer dat nergens op slaat liever nu melden dan straks stil laten mislukken */
+  for(const plaats of ['Lelystad','Almere']){
+    const ruw = nieuw.nummers[plaats];
+    if(ruw && meldNummer(ruw).length < 11){
+      if(stand){ stand.textContent = 'Het nummer voor ' + plaats + ' klopt niet.';
+                 stand.style.color = '#B3261E'; }
+      return;
+    }
+  }
+  if(stand){ stand.textContent = 'Bezig met bewaren…'; stand.style.color = ''; }
+  try{
+    await api('instellingen', { method:'POST',
+      headers:{ 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ sleutel:'spoed_meldingen', waarde: JSON.stringify(nieuw) }) });
+    MELD = nieuw;
+    dgMeldVul();
+    if(stand){ stand.textContent = 'Bewaard.'; stand.style.color = ''; }
+  }catch(e){
+    if(stand){ stand.textContent = 'Bewaren lukte niet: ' + (e.message || e);
+               stand.style.color = '#B3261E'; }
+  }
+}
+if($('#dgMeldBewaar')) $('#dgMeldBewaar').addEventListener('click', dgMeldBewaar);
+
 function renderDagstart(){
   const vd = vandaag();
   const open = dgOpenTaken();
@@ -4098,6 +4212,9 @@ function renderDagstart(){
       : '<p class="dg-leeg">Alle formulieren zijn gekoppeld.</p>';
     dgBel('dgBelLos', 'los', los.map(f => f.id || ''));
   }
+
+  /* ---- uitklap 3: naar welk nummer gaat de spoedmelding ---- */
+  dgMeldVul();
 
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
   const mijn = open.filter(t => IK && t.medewerker_id === IK.id);
@@ -8462,6 +8579,7 @@ async function laadOverzicht(){
      daardoor bleven "Nog te verwerken", "Bijgeboekt via het incheckformulier"
      en "Formulieren nog te koppelen" leeg, ook als er wel degelijk iets stond.
      Angela, 21-09-2026. */
+  await dgMeldHaal();
   try{ renderDagstart(); }catch(e){}
   wcAutoAanmaken();
 
