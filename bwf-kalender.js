@@ -628,13 +628,16 @@
       if (legenda) {
         var oud = legenda.querySelector(".bwfk-roosterstand");
         if (oud) oud.remove();
-        /* Alleen melden als er iets mis is. Bij een werkend rooster zie je de
-           namen vanzelf; een regel "3 diensten in beeld" is dan alleen ruis. */
-        if (st.roosterFout) {
+        /* Melden zodra er géén namen te tonen zijn - dan valt er iets uit te
+           zoeken. Zijn er wel diensten, dan zie je ze vanzelf in de dagen en
+           is een telling alleen ruis. Angela, 21-09-2026. */
+        if (st.roosterFout || !(st.rooster && st.rooster.length)) {
           var el = document.createElement("span");
           el.className = "bwfk-roosterstand";
           el.style.cssText = "color:#B3261E";
-          el.textContent = "rooster niet geladen (" + st.roosterFout + ")";
+          el.textContent = st.roosterFout
+            ? "rooster niet geladen (" + st.roosterFout + ")"
+            : "geen diensten tussen " + periode().van + " en " + periode().tot;
           legenda.appendChild(el);
         }
       }
