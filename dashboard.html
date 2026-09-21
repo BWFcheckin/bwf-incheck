@@ -5567,27 +5567,135 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var b = bedragen(r);
     var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
     var ruwOpen = (r.ruw && r.ruw.restant_bedrag != null) ? (parseFloat(r.ruw.restant_bedrag)||0) : b.open;
+    /* Drie keuzes (Angela, 21-09-2026). Let op het verschil met hoe zij het
+       omschreef: wat er op locatie wordt bijgeboekt, verhoogt het openstaande
+       bedrag meteen - dat doet boekExtrasBij hierboven. "Restant plus de
+       extra's" zou dus dubbel tellen. Alles openstaand ís het restant mét de
+       extra's; daarnaast kun je alleen het verblijf of alleen de extra's
+       afrekenen. */
+    /* Je kunt nooit meer afrekenen dan er openstaat. Is er al deels betaald,
+       dan kunnen de bijgeboekte extra's bij elkaar meer zijn dan het restant;
+       dan is het restant wat er te betalen valt. */
+    var extrasTeBetalen = Math.round(Math.min(openExtras, ruwOpen)*100)/100;
+    var alleenVerblijf = Math.round(Math.max(0, ruwOpen - extrasTeBetalen)*100)/100;
+    var keuze = function(waarde, titel, bedrag, aan){
+      return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
+        '<input type="radio" name="rkBetaalWat" value="'+waarde+'"'+(aan?' checked':'')+
+          ' style="width:20px;height:20px">'+
+        '<span>'+titel+' <b>'+esc(euro(bedrag))+'</b></span></label>';
+    };
+    var wijze = function(naam, uitleg){
+      return '<label style="display:flex;align-items:center;gap:7px;cursor:pointer"'+
+        (uitleg ? ' title="'+esc(uitleg)+'"' : '')+'>'+
+        '<input type="radio" name="rkBetaalWijze" value="'+esc(naam)+'" style="width:20px;height:20px"> '+
+        esc(naam)+'</label>';
+    };
     vak.innerHTML =
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">'+
-        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
-          '<input type="radio" name="rkBetaalWat" value="alles" checked style="width:20px;height:20px">'+
-          '<span>Alles openstaand <b>'+esc(euro(ruwOpen))+'</b></span></label>'+
-        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
-          '<input type="radio" name="rkBetaalWat" value="extras" style="width:20px;height:20px">'+
-          '<span>Alleen de extra\'s <b>'+esc(euro(openExtras))+'</b></span></label>'+
+        keuze('alles', 'Alles openstaand', ruwOpen, true)+
+        keuze('verblijf', 'Alleen het verblijf', alleenVerblijf, false)+
+        keuze('extras', 'Alleen de extra\'s', extrasTeBetalen, false)+
       '</div>'+
+      (openExtras > 0
+        ? '<p style="margin:6px 0 0;font-size:12.5px;color:var(--muted,#68768d)">'+
+          'De bijgeboekte extra\'s van '+esc(euro(openExtras))+' zitten al in het openstaande bedrag.</p>'
+        : '')+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:12px">'+
         '<b>Betaalwijze</b>'+
-        '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">'+
-          '<input type="radio" name="rkBetaalWijze" value="Pin" style="width:20px;height:20px"> Pin</label>'+
-        '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">'+
-          '<input type="radio" name="rkBetaalWijze" value="Contant" style="width:20px;height:20px"> Contant</label>'+
+        wijze('Pin', '')+
+        wijze('Contant', '')+
+        wijze('Flatpay', 'Betaald via Flatpay')+
         '<span style="margin-left:auto;font-weight:700" id="rkBetaalSom">'+esc(euro(ruwOpen))+'</span>'+
+      '</div>'+
+      /* Notitieveld: waarom er is afgeweken, of wat er is afgesproken. Komt bij
+         de betaalregel te staan, zodat je het later terugziet. */
+      '<div style="margin-top:12px">'+
+        '<label for="rkBetaalNotitie" style="display:block;font-size:13px;margin-bottom:4px">'+
+          'Notitie <span style="color:var(--muted,#68768d);font-weight:400">(optioneel)</span></label>'+
+        '<input type="text" id="rkBetaalNotitie" placeholder="bijv. korting afgesproken, of contant zonder bon" '+
+          'style="width:100%">'+
       '</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">'+
         '<button class="knop vol" type="button" id="rkBetaalOk">Betaling afronden</button>'+
         '<span id="rkBetaalMeld" style="font-size:13.5px"></span>'+
-      '</div>';
+      '</div>'+
+      '<div id="rkNaBetaling" hidden style="margin-top:12px;padding-top:10px;'+
+        'border-top:1px solid var(--line,#e3dad0)"></div>';
+  }
+
+  /* Wat er ná het afrekenen nog moet gebeuren (Angela, 21-09-2026): de klant
+     moet straks worden uitgelaten door de volgende dienst, of er is iets voor
+     Angela - nabellen over een klacht, of een betaallink sturen. Allebei
+     leunen op wat er al is: het overdrachtblok hierboven en de takenlijst. */
+  function toonNaBetaling(r, sl){
+    var vak = document.getElementById('rkNaBetaling');
+    if(!vak) return;
+    vak.hidden = false;
+    vak.innerHTML =
+      '<b style="display:block;margin-bottom:8px">Nog iets regelen?</b>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<button class="knop klein" type="button" data-na="overdracht">Overdracht voor de volgende dienst</button>'+
+        '<button class="knop klein" type="button" data-na="nabellen">Taak voor Angela: nabellen</button>'+
+        '<button class="knop klein" type="button" data-na="betaallink">Taak voor Angela: betaallink sturen</button>'+
+        '<button class="knop klein sec" type="button" data-na="klaar">Klaar</button>'+
+      '</div>'+
+      '<span id="rkNaMeld" style="display:block;margin-top:8px;font-size:13.5px"></span>';
+    vak.onclick = function(e){
+      var b = e.target.closest ? e.target.closest('[data-na]') : null;
+      if(!b) return;
+      e.preventDefault();
+      var wat = b.getAttribute('data-na');
+      if(wat === 'klaar'){ openKaart(sl); return; }
+      if(wat === 'overdracht'){
+        /* Het bestaande overdrachtblok openen en alvast invullen. */
+        var open = document.getElementById('rkOverOpen');
+        if(open) open.click();
+        var tekst = document.getElementById('rkOverTekst');
+        if(tekst && !tekst.value.trim()){
+          tekst.value = 'Afgerekend. De gast moet nog worden uitgelaten.';
+        }
+        if(tekst && tekst.scrollIntoView) tekst.scrollIntoView({ block:'center' });
+        return;
+      }
+      maakTaakVoorAngela(r, wat);
+    };
+  }
+
+  /* Een taak voor Angela klaarzetten. Gebruikt dezelfde kolommen als het
+     takenblok: medewerker_id met een wz_medewerkers.id, en locatie die alleen
+     Almere of Lelystad mag zijn. */
+  async function maakTaakVoorAngela(r, wat){
+    var meld = document.getElementById('rkNaMeld');
+    var n2 = naw(r);
+    var wie = null;
+    for(var i=0;i<MEDEWERKERS.length;i++){
+      var naam = veld(MEDEWERKERS[i],['naam','voornaam','medewerker','email'],'');
+      if(/angela/i.test(String(naam))){ wie = MEDEWERKERS[i]; break; }
+    }
+    var titel = wat === 'betaallink'
+      ? '[Betaling] Betaallink sturen — ' + gastnaam(r)
+      : '[Klacht] Klant nabellen — ' + gastnaam(r);
+    var obj = {
+      titel: titel,
+      omschrijving: 'Reservering ' + (n2.nummer || sleutel(r)) + ' · ' + hoofdnaam(r.locatie) +
+        ' · ' + (r.aankomst || 'zonder datum') +
+        (wat === 'betaallink' ? '\nEr staat nog een bedrag open na het afrekenen op locatie.'
+                              : '\nDe gast had een klacht bij het uitchecken.'),
+      locatie: tkPlaats(hoofdnaam(r.locatie)),
+      status: 'open',
+      aangemaakt: new Date().toISOString()
+    };
+    if(wie) obj.medewerker_id = wie.id;
+    var ik = tkMijnId(); if(ik) obj.aangemaakt_door = ik;
+    if(meld) meld.textContent = 'Bezig…';
+    try{
+      var res = await sb('wz_taken', { method:'POST', body:JSON.stringify(obj) });
+      if(res && res[0]) TAKEN.unshift(res[0]);
+      if(meld) meld.textContent = '✓ Taak aangemaakt' + (wie ? ' voor ' + veld(wie,['naam','voornaam'],'Angela') : '') + '.';
+      tekenTaken();
+    }catch(e){
+      if(meld) meld.textContent = '✕ Taak aanmaken lukte niet: ' + e.message;
+    }
   }
 
   async function rondBetalingAf(r){
@@ -5595,13 +5703,19 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var wat = (document.querySelector('input[name="rkBetaalWat"]:checked')||{}).value || 'alles';
     var gekozen = document.querySelector('input[name="rkBetaalWijze"]:checked');
     var wijze = gekozen ? gekozen.value : '';
-    if(!wijze){ meld.textContent = '✕ Kies Pin of Contant.'; return; }
+    if(!wijze){ meld.textContent = '✕ Kies Pin, Contant of Flatpay.'; return; }
     if(!r.resId){ meld.textContent = '✕ Deze boeking staat niet in de reserveringen.'; return; }
     var b = bedragen(r);
     var ruw = r.ruw || {};
     var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
     var ruwOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0) : b.open;
-    var bedrag = wat === 'extras' ? openExtras : ruwOpen;
+    var notitieVeld = document.getElementById('rkBetaalNotitie');
+    var notitie = notitieVeld ? notitieVeld.value.trim() : '';
+    /* Zelfde begrenzing als in het keuzevak: nooit meer dan er openstaat. */
+    var extrasTeBetalen = Math.min(openExtras, ruwOpen);
+    var bedrag = wat === 'extras' ? extrasTeBetalen
+               : wat === 'verblijf' ? Math.max(0, ruwOpen - extrasTeBetalen)
+               : ruwOpen;
     bedrag = Math.round(bedrag*100)/100;
     if(!(bedrag > 0)){ meld.textContent = '✕ Er staat niets open om af te rekenen.'; return; }
     var knop = document.getElementById('rkBetaalOk');
@@ -5616,8 +5730,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       }
       return x;
     });
-    arr = arr.concat([{ naam:'Afgerekend op locatie', aantal:1, bedrag:0, bron:'betaling',
-                        betaald_bedrag:bedrag, betaalwijze:wijze, tijdstip:nu, door:door }]);
+    arr = arr.concat([{ naam:'Afgerekend op locatie'+(notitie ? ' — '+notitie : ''),
+                        aantal:1, bedrag:0, bron:'betaling',
+                        betaald_bedrag:bedrag, betaalwijze:wijze, tijdstip:nu, door:door,
+                        notitie: notitie || null }]);
     var oudBetaald = parseFloat(ruw.betaald_bedrag)||0;
     var nieuwBetaald = Math.round((oudBetaald + bedrag)*100)/100;
     var nieuwOpen = Math.round(Math.max(0, ruwOpen - bedrag)*100)/100;
@@ -5640,7 +5756,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       /* Zie boven: het geldblok leest betaald uit KOPPEL. */
       var slB = sleutel(r);
       KOPPEL[slB] = Object.assign({}, KOPPEL[slB] || {}, { betaald: terug[0].betaald_bedrag });
-      openKaart(slB);
+      /* De kaart wordt bewust nog niet opnieuw getekend: dan zou het vervolg
+         hieronder meteen verdwijnen. Dat gebeurt zodra je een van de knoppen
+         kiest of op Klaar drukt. Angela, 21-09-2026. */
+      meld.textContent = '✓ ' + euro(bedrag) + ' afgerekend via ' + wijze + '.' +
+        (terug[0].restant_bedrag > 0 ? ' Er staat nog ' + euro(terug[0].restant_bedrag) + ' open.' : ' Alles is voldaan.');
+      toonNaBetaling(r, slB);
+      return;
     }catch(e){
       meld.textContent = '✕ Afronden mislukt: ' + e.message;
       if(knop) knop.disabled = false;
@@ -5953,7 +6075,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var openExtras = nogNietAfgerekend(r).reduce(function(a,x){ return a + (parseFloat(x.bedrag)||0); }, 0);
       var ruwOpen = ruw.restant_bedrag != null ? (parseFloat(ruw.restant_bedrag)||0) : b.open;
       var som = document.getElementById('rkBetaalSom');
-      if(som) som.textContent = euro(wat === 'extras' ? openExtras : ruwOpen);
+      /* Zelfde drie bedragen als in het keuzevak, inclusief de begrenzing. */
+      var extrasTeBetalen = Math.min(openExtras, ruwOpen);
+      if(som) som.textContent = euro(
+        wat === 'extras' ? extrasTeBetalen
+        : wat === 'verblijf' ? Math.max(0, ruwOpen - extrasTeBetalen)
+        : ruwOpen);
     };
     if(bv) bv.onclick = function(e){
       if(e.target && e.target.id === 'rkBetaalOk'){ e.preventDefault(); rondBetalingAf(r); }
