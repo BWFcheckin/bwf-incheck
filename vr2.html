@@ -5521,8 +5521,19 @@ function inklapAlles(open){
   inklapBewaar(st);
 }
 $('#ovAllesUit').addEventListener('click', ()=>inklapAlles(true));
+/* Alleen de knoppen "ga naar ..." in een tegelkop, herkenbaar aan .dg-naar
+   (hierboven aangemaakt). Zonder die beperking pakte closest() élk element
+   met data-dggroep - en dat attribuut zit ook op 37 gewone kaarten, waar het
+   iets heel anders betekent: bij welk tegelfilter de kaart hoort.
+
+   Gevolg: elke klik in zo'n kaart werd gelezen als "spring naar die groep".
+   Bij de kaart van het formulier Nieuwe taak is dat data-dggroep="aanmaken",
+   en "aanmaken" is geen groep - dan valt kiesGroep() terug op 'overzicht' en
+   sta je ineens op de Dagstart. Dat was het wegspringen waar Angela last van
+   had: niet de pagina die schoof, maar een klik die als navigatie werd
+   opgevat. Angela, 21-09-2026. */
 document.addEventListener('click', e=>{
-  const b = e.target.closest('[data-dggroep], [data-dgtab]'); if(!b) return;
+  const b = e.target.closest('.dg-naar[data-dggroep], .dg-naar[data-dgtab]'); if(!b) return;
   if(b.dataset.dgtab) kiesTab(b.dataset.dgtab); else kiesGroep(b.dataset.dggroep);
 });
 $('#ovAllesIn').addEventListener('click', ()=>inklapAlles(false));
