@@ -437,16 +437,30 @@
            de verzoeken hierboven, zodat de volgorde van uit[] niet verschuift.
            Stil: is er geen rooster of geen leesrecht, dan blijft de agenda
            gewoon werken en staat er alleen niets boven de dag. */
+        /* De twee bevragingen los van elkaar: mislukt de ene, dan houdt de
+           andere zijn uitkomst. Eerder zaten ze in één Promise.all en sleepte
+           een fout in de ene de andere mee. Wat er misgaat komt in
+           st.roosterFout, zodat het zichtbaar gemaakt kan worden in plaats van
+           stil te verdwijnen. Angela, 21-09-2026. */
+        st.roosterFout = "";
         try {
-          var roosterUit = await Promise.all([
-            haal("planning?select=datum,dienst,locatie,medewerker_id" +
-              "&datum=gte." + encodeURIComponent(plusDagen(p.van, -1)) +
-              "&datum=lte." + encodeURIComponent(plusDagen(p.tot, 1)) + "&order=datum.asc"),
-            st.mw ? Promise.resolve(null) : haal("wz_medewerkers?select=id,naam")
-          ]);
-          st.rooster = roosterUit[0] || [];
-          if (roosterUit[1]) st.mw = roosterUit[1];
-        } catch (e) { st.rooster = st.rooster || []; }
+          st.rooster = await haal("planning?select=datum,dienst,locatie,medewerker_id" +
+            "&datum=gte." + encodeURIComponent(plusDagen(p.van, -1)) +
+            "&datum=lte." + encodeURIComponent(plusDagen(p.tot, 1)) +
+            "&order=datum.asc&limit=500") || [];
+        } catch (e) {
+          st.rooster = [];
+          st.roosterFout = "rooster: " + (e && e.message ? e.message : "onbekende fout");
+        }
+        if (!st.mw) {
+          try {
+            st.mw = await haal("wz_medewerkers?select=id,naam") || [];
+          } catch (e) {
+            st.mw = [];
+            st.roosterFout = (st.roosterFout ? st.roosterFout + " · " : "") +
+              "namen: " + (e && e.message ? e.message : "onbekende fout");
+          }
+        }
         st.bereik = bereik;
         status("");
         teken();
@@ -607,6 +621,24 @@
         }).join("") + "</div>";
       }
       $(".bwfk-rooster").innerHTML = html;
+      /* Kort zichtbaar maken hoe het met het rooster staat. Zonder dit is
+         "er staat niemand ingeroosterd" niet te onderscheiden van "het rooster
+         kon niet worden opgehaald". Angela, 21-09-2026. */
+      var legenda = $(".bwfk-legenda");
+      if (legenda) {
+        var oud = legenda.querySelector(".bwfk-roosterstand");
+        if (oud) oud.remove();
+        var tekst = st.roosterFout
+          ? "rooster niet geladen (" + st.roosterFout + ")"
+          : (st.rooster && st.rooster.length
+            ? st.rooster.length + " diensten in beeld"
+            : "geen diensten in deze periode");
+        var el = document.createElement("span");
+        el.className = "bwfk-roosterstand";
+        el.style.cssText = "color:" + (st.roosterFout ? "#B3261E" : "var(--k-muted)");
+        el.textContent = tekst;
+        legenda.appendChild(el);
+      }
       tekenLijst(lijst);
     }
 
