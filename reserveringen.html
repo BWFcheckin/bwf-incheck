@@ -537,7 +537,7 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         </div>
       </fieldset>
 
-      <fieldset>
+      <fieldset id="vArrBetaalVak">
         <legend>Arrangement en betaling</legend>
         <div class="raster">
           <!-- Vooraf geboekte arrangementen. Angela, 21-09-2026: kiezen uit de
@@ -1371,7 +1371,38 @@ function openVenster(id) {
        bewerken. Die van het gesprekslog moeten juist bruikbaar blijven. */
     gv.querySelectorAll("input,select,textarea,button").forEach((el) => { el.disabled = false; });
   }
-  if (beperkt) tekenPersoneelKaart(r);
+  /* Angela, 21-09-2026: een locatiemanager moet op locatie extra's kunnen
+     bijboeken en de boeking kunnen afronden. Dat kon geen van beide:
+
+       - het bijboekvak zit in de fieldset "Arrangement en betaling", en die
+         werd hierboven helemaal verborgen voor wie niet mag bewerken;
+       - de keuzelijsten van het afrondvak stonden op slot, want de regel bij
+         r1345 zet álle velden in het formulier uit.
+
+     Voor een locatiemanager wordt die fieldset daarom weer getoond, maar
+     alleen het bijboekvak en het afrondvak zijn er bruikbaar. De bedragen,
+     het tekstvak met arrangementen en de betaallink blijven op slot: dat
+     blijft werk voor de eigenaar en de VR's. */
+  if (beperkt) {
+    const arrVak = $("#vArrBetaalVak");
+    if (arrVak) {
+      arrVak.hidden = false;
+      /* Eerst alles in deze fieldset op slot, dan de twee vakken weer aan.
+         Zo kan er niets anders in dit blok gewijzigd worden. */
+      arrVak.querySelectorAll("input,select,textarea,button").forEach((el) => { el.disabled = true; });
+    }
+    ["#vBijboekVak", "#vAfrondVak"].forEach((kies) => {
+      const vak = $(kies);
+      if (!vak) return;
+      vak.hidden = false;
+      vak.querySelectorAll("input,select,textarea,button").forEach((el) => { el.disabled = false; });
+    });
+    /* Het uitklapblok staat standaard dicht; voor wie alleen hiervoor komt is
+       het handiger als het meteen openstaat. */
+    const bij = $("#vBijboekVak");
+    if (bij && "open" in bij) bij.open = true;
+    tekenPersoneelKaart(r);
+  }
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
   $("#vBestandNote").textContent = "";
