@@ -628,16 +628,15 @@
       if (legenda) {
         var oud = legenda.querySelector(".bwfk-roosterstand");
         if (oud) oud.remove();
-        var tekst = st.roosterFout
-          ? "rooster niet geladen (" + st.roosterFout + ")"
-          : (st.rooster && st.rooster.length
-            ? st.rooster.length + " diensten in beeld"
-            : "geen diensten in deze periode");
-        var el = document.createElement("span");
-        el.className = "bwfk-roosterstand";
-        el.style.cssText = "color:" + (st.roosterFout ? "#B3261E" : "var(--k-muted)");
-        el.textContent = tekst;
-        legenda.appendChild(el);
+        /* Alleen melden als er iets mis is. Bij een werkend rooster zie je de
+           namen vanzelf; een regel "3 diensten in beeld" is dan alleen ruis. */
+        if (st.roosterFout) {
+          var el = document.createElement("span");
+          el.className = "bwfk-roosterstand";
+          el.style.cssText = "color:#B3261E";
+          el.textContent = "rooster niet geladen (" + st.roosterFout + ")";
+          legenda.appendChild(el);
+        }
       }
       tekenLijst(lijst);
     }
@@ -676,7 +675,16 @@
          de tijd bezet, en zou anders als vrij worden aangeboden. */
       var blokken = !st.blokkades ? [] :
         st.blok.filter(function (b) { return zichtbaar(b.suite) && Date.parse(b.van) < dagEind && Date.parse(b.tot) > dagStart; });
-      $(".bwfk-lijst>summary").textContent = "Reserveringen op " + dagLang(st.dag) + " (" + rijen.length + ")" + (blokken.length ? " · " + blokken.length + " blokkade" + (blokken.length === 1 ? "" : "s") : "");
+      /* Wie er die dag werkt hoort in de kop die je altijd ziet. Hij stond
+         eerst boven de dagkolommen, maar die staan niet in elk scherm in
+         beeld - in het locatiedashboard zie je alleen deze lijst.
+         Angela, 21-09-2026. */
+      var dienstTekst = roosterVan(st.dag).map(function (x) {
+        return x.naam + (x.dienst ? " (" + x.dienst + ")" : "");
+      }).join(", ");
+      $(".bwfk-lijst>summary").textContent = "Reserveringen op " + dagLang(st.dag) + " (" + rijen.length + ")" +
+        (blokken.length ? " · " + blokken.length + " blokkade" + (blokken.length === 1 ? "" : "s") : "") +
+        (dienstTekst ? " · dienst: " + dienstTekst : "");
 
       function tijdTekst(van, tot, eigenTijd, isRes) {
         var s = lokaal(new Date(van)), e = lokaal(new Date(tot));
