@@ -171,6 +171,16 @@ td.act{white-space:nowrap;text-align:right}
    schuift - daar zie je die knop niet. Angela, 21-09-2026. */
 tr.tk-rij{cursor:pointer}
 tr.tk-rij:hover td{background:var(--surface-2)}
+/* Zodra je in een veld typt, verdwijnen de zwevende knoppen onderaan. Op een
+   telefoon staat de tabbalk daar vast, en de eerste knop erin is "Dagstart".
+   Klapt het toetsenbord open, dan schuift die balk over het gebied waar je
+   typt: een tik landt dan op Dagstart in plaats van op je invulveld, en je
+   bent je taak kwijt. Gemeten op 21-09-2026: op een scherm van 390x844 staat
+   de balk op y=783-834 en vangt elementFromPoint(60, 814) de knop Dagstart.
+   Ze staan buiten de gewone stroom, dus weghalen verschuift niets. */
+body.bwf-typt #groeptabs,
+body.bwf-typt #bwfMenuKnop,
+body.bwf-typt #bwfHomeKnop{display:none!important}
 /* Een paneel met tegelknoppen houdt minstens een schermhoogte aan. Kies je
    een tegel, dan verdwijnen de andere kaarten en wordt de pagina korter; is
    er dan te weinig hoogte over, dan kan de browser niet meer op dezelfde plek
@@ -4220,6 +4230,25 @@ function taakVenster(id){
 }
 /* De oude naam blijft werken voor bestaande aanroepen. */
 function taakOpenen(id){ taakVenster(id); }
+
+/* ---- rust tijdens het typen ----
+   De klasse bwf-typt haalt de zwevende knoppen onderaan weg zolang je in een
+   veld staat. Zie de uitleg bij die regel in de stijlen hierboven: de knop
+   Dagstart ligt daar en ving de tik die voor het invulveld bedoeld was.
+   Angela, 21-09-2026. */
+(function(){
+  const VELDEN = 'input,select,textarea';
+  document.addEventListener('focusin', e => {
+    if(e.target && e.target.matches && e.target.matches(VELDEN))
+      document.body.classList.add('bwf-typt');
+  });
+  document.addEventListener('focusout', () => {
+    setTimeout(() => {
+      const a = document.activeElement;
+      if(!a || !a.matches || !a.matches(VELDEN)) document.body.classList.remove('bwf-typt');
+    }, 90);
+  });
+})();
 /* Zowel de knop "+ Nieuwe taak" bij de lijst als de tegel "Taak aanmaken"
    openen het venster. De tegel schakelde eerst de kaarten om; daarbij werd de
    pagina korter en verschoof het beeld. Het venster laat de pagina met rust. */
