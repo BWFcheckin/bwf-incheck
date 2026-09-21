@@ -753,6 +753,11 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .who #whoName{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .fotos{border-radius:18px!important}
   .tabs{top:auto;bottom:10px;position:fixed;left:10px;right:10px;width:auto;max-width:none;margin:0;padding:6px;justify-content:space-between;overflow-x:auto;border-radius:17px;box-shadow:0 14px 40px rgba(20,32,51,.2)}
+  /* De tabbalk zweeft vast onderaan en de Home-knop staat daarboven. Zonder
+     ruimte eronder verdwijnt het laatste stuk van elke pagina eronder - zoals
+     de knop "Taak aanmaken" - en landt een tik op de balk in plaats van op de
+     knop. Angela, 21-09-2026. */
+  body{padding-bottom:120px}
   .tab{flex:1 0 auto;min-width:max-content;padding:10px 12px;font-size:12.5px}
   .tab .badge{margin-left:4px}
   .page-head{margin:22px 2px 18px}
@@ -847,8 +852,16 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
 <meta name="apple-mobile-web-app-title" content="B&amp;W Lelystad">
 <style>
 /* menubalk bovenaan, in plaats van de knop rechtsonder */
-.bwf-topmenu{position:sticky;top:0;z-index:8500;background:#483C34;
+/* Onder de vaste kaderbalk van bwf-kader.js blijven, niet erachter. Die balk
+   is 58px hoog en ligt er met een hogere z-index overheen; met top:0 schoof
+   deze menubalk daar half achter. Angela, 21-09-2026. */
+.bwf-topmenu{position:sticky;top:var(--bwfkaderbalk,0px);z-index:8500;background:#483C34;
   box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}
+/* Als de browser een invoerveld in beeld scrolt, moet het onder beide balken
+   uitkomen: de kaderbalk plus deze menubalk. Stond dat te laag, dan kwam het
+   veld onder de menubalk te liggen en landde een tik op de eerste link daarin
+   - Dagstart - in plaats van op het veld. */
+html{scroll-padding-top:calc(var(--bwfkaderbalk,0px) + 56px)!important}
 .bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;
   align-items:center;padding:8px 16px}
 .bwf-topmenu img{height:26px;width:auto;flex:none;margin-right:4px}
