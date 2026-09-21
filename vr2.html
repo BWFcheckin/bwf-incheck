@@ -3327,7 +3327,11 @@ function kiesGroep(groep){
 function kiesTab(naam){
   kiesGroep(GROEP_VAN[naam] || 'overzicht');
   const paneel = $('#panel-'+naam);
-  if(paneel && GROEPEN[groepNu].length > 1) paneel.scrollIntoView({behavior:'smooth', block:'start'});
+  /* Zonder behavior:'smooth'. kiesGroep() springt hierboven al naar de
+     bovenkant; kwam daar een glijdende beweging achteraan, dan zag je de
+     pagina twee keer verschuiven bij het openen van een tabblad. Nu staat hij
+     in één keer op de goede plek. Angela, 21-09-2026. */
+  if(paneel && GROEPEN[groepNu].length > 1) paneel.scrollIntoView({block:'start'});
 }
 $('#groeptabs').addEventListener('click', e=>{
   /* links (zoals Reserveringen (nieuw)) gewoon laten openen */
@@ -4100,6 +4104,15 @@ function renderTaken(){
   const prio = p => p==='hoog' ? '<span class="pill crit">hoog</span>' : p==='laag' ? '<span class="pill neutral">laag</span>' : '';
   const kort = s => { s = String(s||'').replace(/\s+/g,' ').trim(); return s.length>150 ? s.slice(0,150)+'…' : s; };
   const bijlagenVan = id => S.docs.filter(d=>d.taak_id===id);
+  /* De tabel wordt in één keer vervangen. Tussen leegmaken en opnieuw vullen
+     is de pagina korter, en dan verschuift de browser je plek - dat is het
+     wegspringen bij het openen van de takenpagina. De hoogte wordt daarom
+     vastgehouden tijdens het vervangen en de scrollpositie gaat daarna terug.
+     Angela, 21-09-2026. */
+  const tkVak = $('#tkLijst');
+  const tkHoogte = tkVak.offsetHeight;
+  const tkY = window.scrollY;
+  if(tkHoogte) tkVak.style.minHeight = tkHoogte + 'px';
   $('#tkLijst').innerHTML = lijst.length ? lijst.map(t=>`
     <tr class="${t.status==='klaar'?'done':''} tk-rij" data-taakrij="${t.id}" title="Tik om te openen en te wijzigen">
       <td class="name">${esc(t.titel)} ${prio(t.prioriteit)}
@@ -4127,6 +4140,8 @@ function renderTaken(){
   $('#tkFoot').textContent = gefilterd
     ? lijst.length+' van '+alles+' taken · filter actief'
     : lijst.length+' taken getoond';
+  tkVak.style.minHeight = '';
+  if(window.scrollY !== tkY) window.scrollTo(0, tkY);
 }
 
 document.addEventListener('click', async e=>{
