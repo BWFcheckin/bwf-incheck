@@ -1150,6 +1150,12 @@ div.ag-blok{cursor:default}
 
 /* planning van vandaag */
 .dg-tijdlijn{padding:2px 18px 18px}
+/* Wie er vandaag werkt, boven de tijdlijn van de dagstart. */
+.dg-dienstbalk{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.dg-dienst{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+  padding:3px 10px;border-radius:999px;background:var(--groen-zacht,#e7efe9);color:var(--groen,#14342A)}
+.dg-dienst em{font-style:normal;font-weight:400;opacity:.75}
+.dg-dienst.afw{background:var(--surface-2,#f1efec);color:var(--muted,#7B6E62);text-decoration:line-through}
 .dg-punt{position:relative;min-height:50px;display:grid;grid-template-columns:44px 13px 1fr auto;
   align-items:center;gap:8px;border-top:1px solid var(--line-soft)}
 .dg-punt:first-child{border-top:0}
@@ -3739,14 +3745,34 @@ function renderDagstart(){
     tijd: '', titel: t.titel || 'Taak', sub: t.omschrijving || '', soort: 'taak' }));
   punten.sort((a,b) => String(a.tijd || '99:99').localeCompare(String(b.tijd || '99:99')));
 
+  /* Wie er vandaag werkt, boven de tijdlijn. Stond alleen in de kalender onder
+     Planning > Werk, in een kaart die "Mijn werk deze maand" heet - daar zoek
+     je het teamrooster niet. Hier begin je je dag. Angela, 21-09-2026. */
+  const dienstVandaag = (DIENSTEN || [])
+    .filter(d => String(d.datum || '').slice(0,10) === vd)
+    .map(d => {
+      /* teamNaam() kent de planning-medewerkers en valt terug op mwNaam(). */
+      const naam = typeof teamNaam === 'function' ? teamNaam(d.medewerker_id) : '';
+      const soort = typeof kalSoortLabel === 'function' ? kalSoortLabel(d.dienst) : (d.dienst || '');
+      return { naam, soort, afwezig: d.dienst === 'afwezig' };
+    })
+    /* mwNaam() geeft een streepje als de naam niet bekend is; zo'n regel
+       zegt niets en laten we weg. */
+    .filter(d => d.naam && d.naam !== '—');
+  const dienstBalk = dienstVandaag.length
+    ? `<div class="dg-dienstbalk">${dienstVandaag.map(d =>
+        `<span class="dg-dienst${d.afwezig ? ' afw' : ''}">${esc(d.naam)}${
+          d.soort ? ` <em>${esc(d.soort)}</em>` : ''}</span>`).join('')}</div>`
+    : '';
+
   const tl = $('#dgTijdlijn');
-  if(tl) tl.innerHTML = punten.length
+  if(tl) tl.innerHTML = dienstBalk + (punten.length
     ? punten.slice(0,8).map(p => `<div class="dg-punt">
         <time>${esc(p.tijd || '—')}</time><span class="dg-stip"></span>
         <div><strong>${esc(p.titel)}</strong><small>${esc(p.sub)}</small></div>
         <label class="dg-label${p.soort === 'aankomst' ? ' groen' : ''}">${esc(p.soort)}</label>
       </div>`).join('')
-    : '<p class="dg-leeg">Vandaag staat er niets gepland.</p>';
+    : '<p class="dg-leeg">Vandaag staat er niets gepland.</p>');
 
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
   const mijn = open.filter(t => IK && t.medewerker_id === IK.id);
