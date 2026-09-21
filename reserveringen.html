@@ -774,6 +774,37 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <option>Anders</option>
         </select></label>
       </div>
+      <!-- Afrekenen met de gast, net als in het locatiedashboard (Angela,
+           21-09-2026). Hierboven staat wat er is afgesproken; hieronder wat er
+           daadwerkelijk wordt afgerekend. -->
+      <div id="vAfrekenVak" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft)">
+        <strong style="display:block;margin-bottom:6px">Afrekenen met de gast</strong>
+        <div id="vAfrekenKeuze" style="display:flex;gap:16px;flex-wrap:wrap"></div>
+        <p class="uitleg" id="vAfrekenUitleg" style="margin:6px 0 0"></p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px">
+          <b>Betaalwijze</b>
+          <label><input type="radio" name="vAfrWijze" value="Pin"> Pin</label>
+          <label><input type="radio" name="vAfrWijze" value="Contant"> Contant</label>
+          <label><input type="radio" name="vAfrWijze" value="Flatpay"> Flatpay</label>
+          <label><input type="radio" name="vAfrWijze" value="Splitsen"> Splitsen</label>
+          <span style="margin-left:auto;font-weight:700" id="vAfrekenSom"></span>
+        </div>
+        <div id="vAfrSplit" hidden style="margin-top:9px;padding:9px 11px;border-radius:10px;background:var(--surface-2,#f7f5f2)">
+          <div style="font-size:13px;margin-bottom:7px">Verdeel het bedrag over de betaalwijzen:</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <label style="font-size:13px">Pin &euro; <input type="text" inputmode="decimal" data-vsplit="Pin" placeholder="0,00" style="width:92px"></label>
+            <label style="font-size:13px">Contant &euro; <input type="text" inputmode="decimal" data-vsplit="Contant" placeholder="0,00" style="width:92px"></label>
+            <label style="font-size:13px">Flatpay &euro; <input type="text" inputmode="decimal" data-vsplit="Flatpay" placeholder="0,00" style="width:92px"></label>
+          </div>
+          <div style="margin-top:7px;font-size:13px" id="vAfrSplitStand"></div>
+        </div>
+        <label class="veld" style="margin-top:10px">Notitie <span style="color:var(--muted);font-weight:400">(optioneel)</span>
+          <input type="text" id="vAfrNotitie" placeholder="bijv. korting afgesproken, of contant zonder bon"></label>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="knop vol" id="vAfrekenOk">Betaling afronden</button>
+          <span class="v-melding" id="vAfrekenNote"></span>
+        </div>
+      </div>
       <div style="margin-top:10px"><button type="button" class="knop" id="vAfrondOpslaan">Afronden</button>
         <span class="v-melding" id="vAfrondNote"></span></div>
     </div>
@@ -1402,6 +1433,10 @@ function openVenster(id) {
     const bij = $("#vBijboekVak");
     if (bij && "open" in bij) bij.open = true;
     tekenPersoneelKaart(r);
+    /* Het afrekenvak met de drie keuzes vullen; de bedragen hangen aan deze
+       reservering, dus dat moet bij elk openen opnieuw. */
+    tekenAfrekenVak(r);
+    const note = $("#vAfrekenNote"); if (note) note.textContent = "";
   }
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
@@ -1575,6 +1610,167 @@ function tekenPersoneelKaart(r) {
 }
 
 /* Afronden door personeel: alleen de betaalstatus en de betaalwijze. */
+/* ---------- afrekenen met de gast (Angela, 21-09-2026) ----------
+   Dezelfde drie keuzes en dezelfde rekenregels als in het locatiedashboard.
+   Wat op locatie is bijgeboekt, verhoogt het openstaande bedrag al; "alles
+   openstaand" is dus het restant mét die extra's. Daarnaast kun je alleen het
+   verblijf of alleen de extra's afrekenen. */
+function afrBijgeboekt(r) {
+  return (Array.isArray(r && r.arrangementen) ? r.arrangementen : [])
+    .filter((a) => a && a.bron && a.bron !== "betaling" && !a.betaald);
+}
+function afrBedragen(r) {
+  const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
+  const betaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+  const open = r.restant_bedrag != null ? Number(r.restant_bedrag)
+    : r.betaalstatus === "betaald" ? 0
+    : totaal != null ? Math.max(0, totaal - betaald) : 0;
+  const extras = afrBijgeboekt(r).reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  /* Nooit meer dan er openstaat: is er al deels betaald, dan kunnen de extra's
+     samen meer zijn dan het restant. */
+  const extrasTeBetalen = Math.round(Math.min(extras, open) * 100) / 100;
+  return {
+    open: Math.round(open * 100) / 100,
+    extras: Math.round(extras * 100) / 100,
+    extrasTeBetalen,
+    verblijf: Math.round(Math.max(0, open - extrasTeBetalen) * 100) / 100
+  };
+}
+function afrTeBetalen(r, wat) {
+  const b = afrBedragen(r);
+  return wat === "extras" ? b.extrasTeBetalen : wat === "verblijf" ? b.verblijf : b.open;
+}
+function afrDelen() {
+  const uit = [];
+  document.querySelectorAll("[data-vsplit]").forEach((el) => {
+    const n = parseFloat(String(el.value).replace(/\s/g, "").replace(",", ".")) || 0;
+    if (n > 0) uit.push({ wijze: el.getAttribute("data-vsplit"), bedrag: Math.round(n * 100) / 100 });
+  });
+  return uit;
+}
+function afrSplitSom() {
+  return Math.round(afrDelen().reduce((a, x) => a + x.bedrag, 0) * 100) / 100;
+}
+function afrKeus() {
+  return (document.querySelector('input[name="vAfrWat"]:checked') || {}).value || "alles";
+}
+function tekenAfrekenVak(r) {
+  const vak = $("#vAfrekenKeuze");
+  if (!vak || !r) return;
+  const b = afrBedragen(r);
+  const houd = afrKeus();
+  const optie = (waarde, titel, bedrag) =>
+    '<label style="display:flex;align-items:center;gap:7px;cursor:pointer">' +
+    '<input type="radio" name="vAfrWat" value="' + waarde + '"' +
+      (houd === waarde ? " checked" : "") + "> <span>" + titel +
+      " <b>&euro; " + esc(euro(bedrag)) + "</b></span></label>";
+  vak.innerHTML = optie("alles", "Alles openstaand", b.open) +
+    optie("verblijf", "Alleen het verblijf", b.verblijf) +
+    optie("extras", "Alleen de extra&#39;s", b.extrasTeBetalen);
+  $("#vAfrekenUitleg").textContent = b.extras > 0
+    ? "De bijgeboekte extra's van € " + euro(b.extras) + " zitten al in het openstaande bedrag."
+    : "";
+  const som = $("#vAfrekenSom");
+  if (som) som.textContent = "€ " + euro(afrTeBetalen(r, houd));
+  tekenAfrSplit(r);
+}
+function tekenAfrSplit(r) {
+  const gekozen = document.querySelector('input[name="vAfrWijze"]:checked');
+  const vak = $("#vAfrSplit");
+  if (vak) vak.hidden = !(gekozen && gekozen.value === "Splitsen");
+  const stand = $("#vAfrSplitStand");
+  if (!stand || !vak || vak.hidden) return;
+  const doel = afrTeBetalen(r, afrKeus()), som = afrSplitSom();
+  const verschil = Math.round((doel - som) * 100) / 100;
+  stand.innerHTML = "Verdeeld: <b>&euro; " + esc(euro(som)) + "</b> van &euro; " + esc(euro(doel)) +
+    (Math.abs(verschil) < 0.005
+      ? ' <span style="color:var(--ok)">&#10003; klopt</span>'
+      : verschil > 0
+        ? ' <span style="color:var(--crit)">nog &euro; ' + esc(euro(verschil)) + " te verdelen</span>"
+        : ' <span style="color:var(--crit)">&euro; ' + esc(euro(-verschil)) + " te veel</span>");
+}
+
+/* Het afrekenen zelf: bedrag bijschrijven, restant verlagen, status bijwerken
+   en een betaalregel vastleggen - met wie, wanneer, hoe en de notitie. */
+async function afrekenenMetGast() {
+  const r = HUIDIG;
+  const note = $("#vAfrekenNote");
+  if (!r || !note) return;
+  const wat = afrKeus();
+  const gekozen = document.querySelector('input[name="vAfrWijze"]:checked');
+  let wijze = gekozen ? gekozen.value : "";
+  if (!wijze) { note.textContent = "Kies eerst een betaalwijze."; return; }
+  let bedrag = afrTeBetalen(r, wat);
+  let delen = null;
+  if (wijze === "Splitsen") {
+    delen = afrDelen();
+    if (!delen.length) { note.textContent = "Vul in hoeveel er met pin en hoeveel contant wordt betaald."; return; }
+    const verdeeld = afrSplitSom();
+    if (Math.abs(verdeeld - bedrag) >= 0.005) {
+      note.textContent = "De verdeling is € " + euro(verdeeld) + " en het bedrag is € " +
+        euro(bedrag) + ". Dat moet gelijk zijn.";
+      return;
+    }
+    wijze = delen.map((x) => x.wijze + " € " + euro(x.bedrag)).join(" + ");
+  }
+  if (!(bedrag > 0)) { note.textContent = "Er staat niets open om af te rekenen."; return; }
+  const knop = $("#vAfrekenOk");
+  if (knop) knop.disabled = true;
+  note.textContent = "Bezig met afronden…";
+  const nu = new Date().toISOString();
+  const notitie = ($("#vAfrNotitie").value || "").trim();
+  /* De afgerekende extra's merken, zodat ze niet nog eens meetellen. */
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).map((x) => {
+    if (x && x.bron && x.bron !== "betaling" && !x.betaald && (wat === "extras" || wat === "alles")) {
+      return Object.assign({}, x, { betaald: true, betaald_op: nu, betaald_via: wijze, betaald_door: NAAM });
+    }
+    return x;
+  }).concat([{
+    naam: "Afgerekend op locatie" + (notitie ? " — " + notitie : ""),
+    aantal: 1, bedrag: 0, bron: "betaling",
+    betaald_bedrag: bedrag, betaalwijze: wijze, tijdstip: nu, door: NAAM,
+    notitie: notitie || null, verdeling: delen && delen.length ? delen : null
+  }]);
+  const b = afrBedragen(r);
+  const nieuwBetaald = Math.round(((r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0) + bedrag) * 100) / 100;
+  const nieuwOpen = Math.round(Math.max(0, b.open - bedrag) * 100) / 100;
+  const d = {
+    arrangementen: arr,
+    betaald_bedrag: nieuwBetaald,
+    restant_bedrag: nieuwOpen,
+    betaalstatus: nieuwOpen > 0 ? "deels" : "betaald",
+    betaald_via: wijze,
+    gewijzigd_door: NAAM
+  };
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: d });
+    if (!rij || !rij.length) throw new Error("je mag deze reservering niet bijwerken");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    note.textContent = "€ " + euro(bedrag) + " afgerekend via " + wijze + "." +
+      (nieuwOpen > 0 ? " Er staat nog € " + euro(nieuwOpen) + " open." : " Alles is voldaan.");
+    document.querySelectorAll("[data-vsplit]").forEach((el) => { el.value = ""; });
+    $("#vAfrNotitie").value = "";
+    $("#vAfrondStatus").value = rij[0].betaalstatus || "open";
+    tekenAfrekenVak(rij[0]);
+    tekenAlBijgeboekt(rij[0]);
+    tekenPersoneelKaart(rij[0]);
+    teken();
+  } catch (err) {
+    note.textContent = "Afronden lukte niet: " + err.message;
+  }
+  if (knop) knop.disabled = false;
+}
+
+document.addEventListener("change", (e) => {
+  if (!e.target.closest || !e.target.closest("#vAfrekenVak") || !HUIDIG) return;
+  if (e.target.name === "vAfrWat" || e.target.name === "vAfrWijze") tekenAfrekenVak(HUIDIG);
+});
+document.addEventListener("input", (e) => {
+  if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-vsplit") && HUIDIG) tekenAfrSplit(HUIDIG);
+});
+
 document.addEventListener("click", async (e) => {
   if (!e.target.closest("#vAfrondOpslaan")) return;
   const r = HUIDIG; if (!r) return;
@@ -3658,6 +3854,7 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "vBijBoekCall") { e.preventDefault(); bijboeken("welkomstcall"); }
   if (e.target.id === "vBijBoekLoc") { e.preventDefault(); bijboeken("locatie"); }
   if (e.target.id === "vArrToevoegen") { e.preventDefault(); arrangementToevoegen(); }
+  if (e.target.id === "vAfrekenOk") { e.preventDefault(); afrekenenMetGast(); }
   if (e.target.id === "vGesprekOk") { e.preventDefault(); bewaarGesprek(); }
   if (e.target.id === "vGastNaarKlant") { e.preventDefault(); maakKlantEnKoppel(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
