@@ -105,20 +105,52 @@
     });
   }
   function gastNaam(r) { return [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" "); }
-  /* Een boeking zonder naam, e-mail én telefoon is in de praktijk geen gast
-     maar een dichtgezette dag: zo komen ze binnen uit Booking.com, uit
-     Origineel Overnachten zonder naam in de titel, en als handmatige regel in
-     de SMG-planning. Geannuleerde regels tellen niet mee - die hebben hun
-     eigen weergave. Angela, 21-09-2026. */
+
+  /* Wat is een blokkade en wat is een gast?
+
+     Dit ging twee keer mis omdat ik het aan de gastgegevens probeerde af te
+     lezen. Eerst gold "geen naam, e-mail of telefoon" - toen stonden de
+     Booking.com-boekingen als blokkade in de agenda, want die leveren vaak
+     alleen een nummer. Daarna gold "heeft een kanaal_ref, dus een gast" - maar
+     op 21-09-2026 nagekeken in de database: ÉLKE regel heeft een kanaal_ref.
+     Daarmee werd er dus nooit meer iets als blokkade getoond.
+
+     Het antwoord staat in die kanaal_ref zelf. De import zet er een voorvoegsel
+     voor waaraan je ziet waar de regel vandaan komt:
+
+       blokkering-<uuid>     een blokkade uit de agenda van Origineel
+                             Overnachten. De naam is dan geen gast maar de
+                             tekst uit de feed ("niet beschickbaar"), dus naar
+                             de gastgegevens kijken heeft hier geen zin.
+       boeking-<uuid>        een echte boeking van Origineel Overnachten
+       smg-regel:<suite>:<..> een regel uit de planning van de privésauna.
+                             Zonder gastgegevens is dat een dichtgezette dag;
+                             mét gastgegevens hoort hij bij een echte boeking
+                             en moet hij gewoon als boeking blijven staan.
+       alleen cijfers        een boeking uit de privésauna (SMG)
+       verder                Booking.com, eigen site, handmatig
+
+     Geannuleerde regels tellen niet mee: die hebben hun eigen weergave. */
   function geenGast(r) {
     if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;
-    /* Een boeking met een reserveringsnummer van het kanaal is een echte
-       boeking, ook zonder naam: Booking.com levert vaak alleen een nummer en
-       een @booking.com-adres mee. Die stonden onterecht als blokkade in de
-       agenda. Alleen regels zonder naam, zonder contactgegevens én zonder
-       nummer zijn een dichtgezette dag. Angela, 21-09-2026. */
-    if (r.kanaal_ref) return false;
-    return !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
+    var ref = String((r && r.kanaal_ref) || "");
+    if (ref.indexOf("blokkering-") === 0) return true;
+    var geenContact = !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
+    if (ref.indexOf("smg-regel:") === 0) return geenContact;
+    if (!ref) return geenContact;
+    return false;
+  }
+
+  /* Waar komt deze blokkade vandaan? Er stond eerst import_opmerking bij, maar
+     dat is een aantekening van de import voor zichzelf - "uitchecktijd 19:00
+     wijkt af van tijdsblok 19:00-23:00" zegt niemand iets. Je wilt zien wie de
+     dag heeft dichtgezet. Angela, 21-09-2026. */
+  function blokBron(r) {
+    var ref = String((r && r.kanaal_ref) || "");
+    if (ref.indexOf("blokkering-") === 0) return "Origineel Overnachten";
+    if (ref.indexOf("smg-regel:") === 0) return "privésauna";
+    var k = KANALEN[r && r.kanaal];
+    return (k && k.naam) || "handmatig";
   }
 
   /* ---------- sessie (standaard: de gewone Supabase-sessie van de site) ---------- */
@@ -588,11 +620,11 @@
          gewoon bestaan - dit is alleen hoe hij in de agenda oogt.
          Angela, 21-09-2026. */
       var zonderGast = geenGast(r);
-      var naam = gastNaam(r) || (zonderGast ? (r.import_opmerking || kanaal.naam) : "gast onbekend");
+      var naam = zonderGast ? blokBron(r) : (gastNaam(r) || "gast onbekend");
       var tijd = x.d.eerste === datum ? x.d.startTijd : "vervolg";
       var klassen = ["bwfk-item", r.status, zonderGast ? "blokkade" : "",
         st.uitgelicht === r.id ? "uitgelicht" : ""].join(" ");
-      var titel = SUITES[r.suite].naam + " · " + (zonderGast ? "BLOKKADE, geen gastgegevens" : naam) +
+      var titel = SUITES[r.suite].naam + " · " + (zonderGast ? "BLOKKADE via " + blokBron(r) + ", hier komt geen gast" : naam) +
         " · " + kanaal.naam + " · " + (TYPES[r.type] || r.type) + " · " +
         dagKort(x.d.eerste) + " " + x.d.startTijd + " – " + dagKort(x.d.eindDatum) + " " + x.d.eindTijd + " · " + (STATUSSEN[r.status] || r.status);
       return '<button type="button" class="' + klassen + '" style="--kk:' +
@@ -702,6 +734,12 @@
       var magTaak = knoppen.taak && !!st.rol;
       var dagStart = moment(st.dag, "00:00").getTime(), dagEind = moment(plusDagen(st.dag, 1), "00:00").getTime();
       var rijen = st.res.filter(function (r) {
+        /* "blokkades tonen" moet ook hier gelden. Dat vinkje werkte alleen op
+           de blokkades uit de aparte tabel en op de maand- en weekweergave;
+           in deze lijst bleven de blokkades uit de feeds van Origineel
+           Overnachten en de privésauna gewoon staan als je ze wegklikte.
+           Angela, 21-09-2026. */
+        if (!st.blokkades && geenGast(r)) return false;
         return zichtbaar(r.suite) && (st.geannuleerd || (r.status !== "geannuleerd" && r.status !== "no_show")) &&
           Date.parse(r.aankomst) < dagEind && Date.parse(r.vertrek) > dagStart;
       });
@@ -747,9 +785,9 @@
         return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
           "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</td>" +
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[r.suite].kleur + '"></span> ' + esc(SUITES[r.suite].naam) + "<small>" + esc(TYPES[r.type] || r.type) + "</small></td>" +
-          '<td class="bwfk-naam" title="' + esc(zonderGast ? "Blokkade: geen gastgegevens" : (gastNaam(r) || "gast onbekend")) + '">' +
+          '<td class="bwfk-naam" title="' + esc(zonderGast ? "Blokkade via " + blokBron(r) + " — hier komt geen gast" : (gastNaam(r) || "gast onbekend")) + '">' +
             (zonderGast
-              ? '<span class="bwfk-blokmerk">blokkade</span>' + esc(r.import_opmerking || kanaal.naam)
+              ? '<span class="bwfk-blokmerk">blokkade</span>' + esc(blokBron(r))
               : (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>')) +
             (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") + "</td>" +
           '<td><span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span>" + (resNummer(r) ? "<small>nr. " + esc(resNummer(r)) + "</small>" : "") + "</td>" +
