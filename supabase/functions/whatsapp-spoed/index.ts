@@ -260,10 +260,22 @@ Deno.serve(async (req) => {
   const pogingen = new Map<string, number>();
   if (ids.length) {
     const { data: al } = await db.from("meldingen_verstuurd")
-      .select("reservering_id,gelukt,pogingen").eq("soort", SOORT).in("reservering_id", ids);
+      .select("reservering_id,gelukt,pogingen,nummer,locatie").eq("soort", SOORT).in("reservering_id", ids);
     for (const r of al || []) {
       pogingen.set(r.reservering_id, Number(r.pogingen) || 0);
-      if (r.gelukt || (Number(r.pogingen) || 0) >= MAX_POGINGEN) klaar.add(r.reservering_id);
+      if (r.gelukt) { klaar.add(r.reservering_id); continue; }
+      if ((Number(r.pogingen) || 0) < MAX_POGINGEN) continue;
+      /* Opgegeven, maar staat er inmiddels een ander nummer voor die locatie?
+         Dan is de reden om op te geven vervallen en proberen we het opnieuw.
+
+         Dit kwam meteen aan het licht (21-09-2026): het nummer voor Almere
+         bleek geen WhatsApp te hebben, dus de melding werd terecht opgegeven -
+         maar zou Angela daar een mobiel nummer neerzetten, dan kwam die
+         boeking nooit meer langs. "Ongeldig nummer" is alleen blijvend zolang
+         het nummer hetzelfde blijft. */
+      const nu = watiNummer((nummers[String(r.locatie || "")] || ""));
+      if (nu && nu !== String(r.nummer || "")) { pogingen.set(r.reservering_id, 0); continue; }
+      klaar.add(r.reservering_id);
     }
   }
 
