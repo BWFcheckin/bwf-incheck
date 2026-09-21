@@ -443,14 +443,23 @@
            st.roosterFout, zodat het zichtbaar gemaakt kan worden in plaats van
            stil te verdwijnen. Angela, 21-09-2026. */
         st.roosterFout = "";
-        try {
-          st.rooster = await haal("planning?select=datum,dienst,locatie,medewerker_id" +
-            "&datum=gte." + encodeURIComponent(plusDagen(p.van, -1)) +
-            "&datum=lte." + encodeURIComponent(plusDagen(p.tot, 1)) +
-            "&order=datum.asc&limit=500") || [];
-        } catch (e) {
-          st.rooster = [];
-          st.roosterFout = "rooster: " + (e && e.message ? e.message : "onbekende fout");
+        /* Zonder datumfilter, net als het locatiedashboard dat doet. Met een
+           filter op datum kwam de bevraging leeg terug terwijl het rooster er
+           wel degelijk is; het dashboard haalt alles op en filtert in het
+           geheugen, en dat werkt aantoonbaar. De tabel is klein genoeg.
+           roosterVan() filtert alsnog op de dag die je bekijkt.
+
+           Eén keer ophalen is daarmee genoeg: bij het bladeren naar een andere
+           maand staat alles er al. De knop Verversen maakt st.rooster leeg en
+           haalt het opnieuw op. Angela, 21-09-2026. */
+        if (!(st.rooster && st.rooster.length)) {
+          try {
+            st.rooster = await haal("planning?select=datum,dienst,locatie,medewerker_id" +
+              "&order=datum.asc&limit=4000") || [];
+          } catch (e) {
+            st.rooster = [];
+            st.roosterFout = "rooster: " + (e && e.message ? e.message : "onbekende fout");
+          }
         }
         if (!st.mw) {
           try {
@@ -637,7 +646,7 @@
           el.style.cssText = "color:#B3261E";
           el.textContent = st.roosterFout
             ? "rooster niet geladen (" + st.roosterFout + ")"
-            : "geen diensten tussen " + periode().van + " en " + periode().tot;
+            : "geen diensten in het rooster";
           legenda.appendChild(el);
         }
       }
@@ -794,7 +803,9 @@
         if (k === "vorige") schuif(-1);
         else if (k === "volgende") schuif(1);
         else if (k === "vandaag") { st.dag = vandaag(); st.uitgelicht = null; laad(); }
-        else if (k === "ververs") laad();
+        /* Verversen haalt ook het rooster opnieuw op; verder blijft dat in het
+           geheugen staan, want het wordt in één keer voor alle datums geladen. */
+        else if (k === "ververs") { st.rooster = []; st.mw = null; laad(); }
         return;
       }
       if ((t = e.target.closest("[data-v]"))) { st.weergave = t.getAttribute("data-v"); laad(); return; }
