@@ -114,6 +114,35 @@
     if (!r || r.status === "geannuleerd" || r.status === "no_show") return false;
     return !gastNaam(r) && !r.gast_email && !r.gast_telefoon;
   }
+  /* Wie er op een dag staat ingeroosterd, als korte tekst. Angela wilde dat
+     boven aan de dag zien: dan weet je meteen wie je moet hebben.
+     Angela, 21-09-2026. */
+  function roosterVan(datum) {
+    if (!st.rooster || !st.rooster.length) return [];
+    var namen = {};
+    (st.mw || []).forEach(function (m) { namen[String(m.id)] = m.naam; });
+    return st.rooster
+      .filter(function (p) { return String(p.datum || "").slice(0, 10) === datum; })
+      .map(function (p) {
+        return {
+          naam: namen[String(p.medewerker_id)] || "onbekend",
+          dienst: p.dienst || "",
+          locatie: p.locatie || ""
+        };
+      });
+  }
+  function roosterHtml(datum, kort) {
+    var lijst = roosterVan(datum);
+    if (!lijst.length) return "";
+    var tekst = lijst.map(function (x) {
+      return kort ? x.naam.split(" ")[0] : x.naam + (x.dienst ? " (" + x.dienst + ")" : "");
+    }).join(", ");
+    var titel = lijst.map(function (x) {
+      return x.naam + (x.dienst ? " — " + x.dienst : "") + (x.locatie ? " — " + x.locatie : "");
+    }).join("\n");
+    return '<div class="bwfk-rooster-dag" title="' + esc("Ingeroosterd:\n" + titel) + '">' +
+      '<span class="bwfk-rooster-merk">dienst</span>' + esc(tekst) + "</div>";
+  }
 
   /* ---------- sessie (standaard: de gewone Supabase-sessie van de site) ---------- */
   function jwtDeel(t) {
@@ -209,6 +238,9 @@
       ".bwfk-lijst tr.blokkade td{color:#8C1D18;background:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,#B3261E 10%,transparent) 8px 16px)}",
       /* Het woord "blokkade" erbij, zodat het ook zonder kleur duidelijk is. */
       ".bwfk-blokmerk{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#B3261E;border-radius:999px;padding:1px 7px;margin-right:6px;vertical-align:1px}",
+      /* Wie er die dag werkt, boven aan de dag. */
+      ".bwfk-rooster-dag{font-size:11px;color:var(--k-muted);margin:0 0 4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;line-height:1.35}",
+      ".bwfk-rooster-merk{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--k-ink);background:var(--k-bg2);border:1px solid var(--k-line);border-radius:999px;padding:0 6px}",
       ".bwfk-lijst tr.uitgelicht td{background:color-mix(in srgb,var(--k-goud) 14%,transparent)}",
       ".bwfk-lijst td small{display:block;color:var(--k-muted);font-size:12px}",
       ".bwfk-naam{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
@@ -316,6 +348,8 @@
          pagina die bezetting toont mag die informatie niet stilzwijgend
          kwijtraken. Een pagina zet blokkadesTonen:false als dat daar beter is. */
       blokkades: opties.blokkadesTonen !== false,
+      /* rooster: wie er per dag werkt (tabel planning); mw: de namen erbij. */
+      rooster: [], mw: null,
       res: [], blok: [], blokken: null, bereik: "", bezig: false, uitgelicht: null, timer: null,
       rol: undefined, sub: null, mijnId: null, medewerkers: null, taakRes: null
     };
@@ -428,6 +462,20 @@
         st.res = uit[0] || [];
         st.blok = uit[1] || [];
         if (uit[2]) st.blokken = uit[2];
+        /* Wie er die dagen staat ingeroosterd (Angela, 21-09-2026). Apart van
+           de verzoeken hierboven, zodat de volgorde van uit[] niet verschuift.
+           Stil: is er geen rooster of geen leesrecht, dan blijft de agenda
+           gewoon werken en staat er alleen niets boven de dag. */
+        try {
+          var roosterUit = await Promise.all([
+            haal("planning?select=datum,dienst,locatie,medewerker_id" +
+              "&datum=gte." + encodeURIComponent(plusDagen(p.van, -1)) +
+              "&datum=lte." + encodeURIComponent(plusDagen(p.tot, 1)) + "&order=datum.asc"),
+            st.mw ? Promise.resolve(null) : haal("wz_medewerkers?select=id,naam")
+          ]);
+          st.rooster = roosterUit[0] || [];
+          if (roosterUit[1]) st.mw = roosterUit[1];
+        } catch (e) { st.rooster = st.rooster || []; }
         st.bereik = bereik;
         status("");
         teken();
@@ -526,6 +574,9 @@
             var ds = plusDagen(p.van, w * 7 + i), dag = opDag(lijst, ds);
             html += '<div class="bwfk-cel" role="button" tabindex="0" data-cel="' + ds + '" data-buiten="' + (ds.slice(0, 7) !== p.maand.slice(0, 7) ? 1 : 0) + '"' +
               ' data-vandaag="' + (ds === vd ? 1 : 0) + '" data-gekozen="' + (ds === st.dag ? 1 : 0) + '" data-leeg="' + (dag.length ? 0 : 1) + '">' +
+              /* roosterHtml met kort=true: in een maandcel is alleen de
+                 voornaam leesbaar, de rest staat in de tooltip. */
+              roosterHtml(ds, true) +
               '<div class="bwfk-dagnr"><b>' + Number(ds.slice(8)) + '</b><span class="bwfk-meer">' + (dag.length ? dag.length : "") + '</span></div>' +
               dag.slice(0, 3).map(function (x) { return itemHtml(x, ds); }).join("") +
               (dag.length > 3 ? '<div class="bwfk-meer">+' + (dag.length - 3) + ' meer</div>' : "") + "</div>";
@@ -539,13 +590,16 @@
           var dw = plusDagen(p.van, j), dagW = opDag(lijst, dw);
           html += '<div class="bwfk-cel" role="button" tabindex="0" data-cel="' + dw + '" data-vandaag="' + (dw === vd ? 1 : 0) + '" data-gekozen="' + (dw === st.dag ? 1 : 0) + '" data-leeg="' + (dagW.length ? 0 : 1) + '">' +
             '<div class="bwfk-dagnr"><b>' + esc(dagKort(dw)) + '</b></div>' +
+            roosterHtml(dw, true) +
             (dagW.length ? dagW.map(function (x) { return itemHtml(x, dw); }).join("") : '<div class="bwfk-leeg">—</div>') + "</div>";
         }
         html += "</div>";
       } else {
         var dagD = opDag(lijst, st.dag);
         var suites = toegestaan.filter(function (s) { return !st.suite || s === st.suite; });
-        html = '<div class="bwfk-dagkolommen">' + suites.map(function (s) {
+        /* In de dagweergave is er ruimte voor de volledige naam en de dienst. */
+        html = roosterHtml(st.dag, false) +
+          '<div class="bwfk-dagkolommen">' + suites.map(function (s) {
           var eigen = dagD.filter(function (x) { return (x.r || x.b).suite === s; });
           return '<div class="bwfk-dagkolom"><h4><i style="background:' + SUITES[s].kleur + '"></i>' + esc(SUITES[s].naam) + '</h4>' +
             (eigen.length ? eigen.map(function (x) { return itemHtml(x, st.dag, true); }).join("") : '<div class="bwfk-leeg">Niets geboekt.</div>') + "</div>";
