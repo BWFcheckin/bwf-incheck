@@ -3958,6 +3958,10 @@ function dgVakHerstel(){
   document.querySelectorAll('[data-dgvak]').forEach(rij => {
     let g = 'alles';
     try{ g = sessionStorage.getItem('bwf-dgfilter-' + rij.dataset.dgvak) || 'alles'; }catch(e){}
+    /* "Taak aanmaken" opent sinds 21-09-2026 een venster en is geen filter
+       meer. Stond die keuze nog van een eerdere klik in deze sessie, dan zou
+       je bij het openen alleen het lege formulier zien. */
+    if(rij.dataset.dgvak === 'taken' && g === 'aanmaken') g = 'alles';
     dgVakFilter(rij.dataset.dgvak, g);
   });
 }
@@ -4180,33 +4184,48 @@ let tkbId = null;
    laatste kolom, en die staat op een telefoon buiten beeld: de tabel is
    minstens 640px breed en schuift horizontaal. Daarom opent nu ook een tik op
    de regel zelf. Angela, 21-09-2026. */
-function taakOpenen(id){
-  const t = (S.taken||[]).find(x=>x.id === id); if(!t) return;
-  tkbId = t.id;
-  $('#tkbTitel').value = t.titel || '';
-  $('#tkbOms').value = tkOms(t) || '';
+/* id meegeven opent een bestaande taak; zonder id maak je er een nieuwe.
+   Nieuwe taken gaan bewust ook door dit venster. Het formulier op de pagina
+   zelf komt pas tevoorschijn als de andere kaarten verdwijnen, en daardoor
+   werd de pagina korter en verschoof het beeld. Een venster ligt erover heen:
+   er verandert niets aan de pagina eronder, dus er kan niets verspringen.
+   Angela, 21-09-2026. */
+function taakVenster(id){
+  const t = id ? (S.taken||[]).find(x=>x.id === id) : null;
+  if(id && !t) return;
+  tkbId = t ? t.id : null;
+  const kop = $('#dlgTaak').querySelector('h2');
+  if(kop) kop.textContent = t ? 'Taak bewerken' : 'Nieuwe taak';
+  $('#tkbTitel').value = t ? (t.titel || '') : '';
+  $('#tkbOms').value = t ? (tkOms(t) || '') : '';
+  /* Een nieuwe taak staat standaard op jezelf; dat is verreweg het vaakst wat
+     je bedoelt, en je kunt het in hetzelfde menu omzetten. */
+  const gekozen = t ? t.medewerker_id : (IK ? IK.id : '');
   $('#tkbWie').innerHTML = '<option value="">niemand</option>' +
     S.medewerkers.filter(m=>m.actief!==false).map(m=>
-      `<option value="${m.id}"${m.id===t.medewerker_id?' selected':''}>${esc(m.naam)}</option>`).join('');
-  $('#tkbDeadline').value = t.deadline || '';
-  $('#tkbPrio').value = t.prioriteit || '';
-  $('#tkbNote').textContent = t.bron==='agenda' && t.link ? 'Deze taak hoort bij een reservering.' : '';
+      `<option value="${m.id}"${m.id===gekozen?' selected':''}>${esc(m.naam)}</option>`).join('');
+  $('#tkbDeadline').value = t ? (t.deadline || '') : '';
+  $('#tkbPrio').value = t ? (t.prioriteit || '') : '';
+  $('#tkbNote').textContent = t
+    ? (t.bron==='agenda' && t.link ? 'Deze taak hoort bij een reservering.' : '')
+    : 'De taak verschijnt meteen bij de persoon aan wie je hem toewijst.';
   $('#dlgTaak').showModal();
 }
-/* De knop "+ Nieuwe taak" bij de lijst: zet de tegel op "aanmaken", brengt het
-   formulier in beeld en zet de cursor in het titelveld. */
+/* De oude naam blijft werken voor bestaande aanroepen. */
+function taakOpenen(id){ taakVenster(id); }
+/* Zowel de knop "+ Nieuwe taak" bij de lijst als de tegel "Taak aanmaken"
+   openen het venster. De tegel schakelde eerst de kaarten om; daarbij werd de
+   pagina korter en verschoof het beeld. Het venster laat de pagina met rust. */
 document.addEventListener('click', e=>{
-  if(!e.target.closest('#tkNieuwSnel')) return;
-  try{ dgVakFilter('taken', 'aanmaken'); }catch(err){}
-  const veld = $('#tkTitel');
-  if(veld){
-    const kaart = veld.closest('.card') || veld;
-    if(kaart.scrollIntoView) kaart.scrollIntoView({ block:'start' });
-    /* Op een smal scherm niet vanzelf het toetsenbord openklappen: dat laat de
-       pagina wegspringen. Daar tikt ze zelf in het veld. */
-    if(window.innerWidth >= 760){ try{ veld.focus({ preventScroll:true }); }catch(err){ veld.focus(); } }
-  }
-});
+  const knop = e.target.closest('#tkNieuwSnel');
+  const tegel = e.target.closest('[data-dgvak="taken"] button[data-dgfilter="aanmaken"]');
+  if(!knop && !tegel) return;
+  /* De tegel mag zijn eigen filterwerk niet meer doen. Deze handler staat in
+     de capture-fase (de true hieronder), want de filterhandler is eerder in
+     het bestand aangemeld en zou anders al hebben gedraaid. */
+  if(tegel){ e.preventDefault(); e.stopPropagation(); }
+  taakVenster(null);
+}, true);
 document.addEventListener('click', e=>{
   const b = e.target.closest('[data-taakopen]');
   if(b){ taakOpenen(b.dataset.taakopen); return; }
@@ -4219,16 +4238,29 @@ document.addEventListener('click', e=>{
 });
 $('#dlgTaak').addEventListener('close', async ()=>{
   const id = tkbId; tkbId = null;
-  if($('#dlgTaak').returnValue !== 'ok' || !id) return;
+  if($('#dlgTaak').returnValue !== 'ok') return;
   const titel = $('#tkbTitel').value.trim();
   if(!titel){ toast('Een taak heeft een titel nodig.'); return; }
-  await wijzig('taken', id, {
+  const velden = {
     titel,
     omschrijving: $('#tkbOms').value.trim() || null,
     medewerker_id: $('#tkbWie').value || null,
     deadline: $('#tkbDeadline').value || null,
     prioriteit: $('#tkbPrio').value || null
-  });
+  };
+  /* Zonder id is dit een nieuwe taak. Dezelfde velden als het formulier op de
+     pagina meestuurt, plus wie hem aanmaakte. */
+  if(!id){
+    await maak('taken', Object.assign({}, velden, {
+      prioriteit: velden.prioriteit || 'normaal',
+      status: 'open',
+      aangemaakt_door: IK ? IK.id : null
+    }));
+    renderTaken(); renderOverzicht(); badges();
+    toast('Taak toegevoegd.');
+    return;
+  }
+  await wijzig('taken', id, velden);
   renderTaken(); renderOverzicht(); badges();
   toast('Taak bijgewerkt.');
 });
