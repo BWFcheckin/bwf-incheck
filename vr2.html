@@ -1151,6 +1151,19 @@ div.ag-blok{cursor:default}
 /* planning van vandaag */
 /* De dagstart in drie blokken: kalender breed bovenaan, daaronder spoed en
    de boekingen die nagekeken moeten worden. Angela, 21-09-2026. */
+/* Belletje met teller: hoeveel er nieuw is sinds je er voor het laatst naar
+   keek. Angela, 21-09-2026. */
+.dg-bel{display:inline-flex;align-items:center;gap:5px;margin-left:auto;border:0;cursor:pointer;
+  background:var(--crit,#B3261E);color:#fff;border-radius:999px;padding:2px 10px 2px 8px;
+  font-size:12px;font-weight:700;line-height:1.6}
+.dg-bel:hover{filter:brightness(1.08)}
+.dg-bel:empty,.dg-bel[hidden]{display:none}
+.dg-bel .klok{font-size:12px;line-height:1}
+/* In een kaartkop staat de knop rechts van de titel. */
+.card-head .dg-bel{margin-left:10px}
+@keyframes dgBelTik{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+.dg-bel .klok{animation:dgBelTik 1.4s ease-in-out 2}
+
 /* De twee uitklapmenu's onder de drie blokken. */
 .dg-uitklap{margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
 .dg-uitklap > summary{cursor:pointer;padding:12px 18px;font-weight:600;font-size:14px;
@@ -1383,6 +1396,9 @@ div.ag-blok{cursor:default}
 
       <div class="card">
         <div class="card-head"><div><span class="dg-eyebrow">Nieuw</span><h2>Nog te verwerken</h2></div>
+          <button class="dg-bel" type="button" id="dgBelNieuw" hidden
+            title="Nieuw binnengekomen sinds je hier voor het laatst keek. Klik om af te vinken.">
+            <span class="klok">&#128276;</span><span class="aantal"></span></button>
           <button class="dg-link" type="button" data-dgnaar="reserveringen">Alle boekingen &rarr;</button></div>
         <p class="hint" style="padding:0 16px 6px;margin:0">Binnengekomen via Booking.com, Origineel
           Overnachten of de privésauna, en nog door niemand nagelopen.</p>
@@ -1394,12 +1410,18 @@ div.ag-blok{cursor:default}
          gasten zelf hebben bijgeboekt bij het online inchecken, en welke
          formulieren nog aan een reservering gekoppeld moeten worden. -->
     <details class="dg-uitklap" id="dgExtrasVak">
-      <summary>Bijgeboekt via het incheckformulier <span class="dg-telling" id="dgExtrasTel"></span></summary>
+      <summary>Bijgeboekt via het incheckformulier
+        <button class="dg-bel" type="button" id="dgBelExtras" hidden
+          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
+        <span class="dg-telling" id="dgExtrasTel"></span></summary>
       <div class="dg-lijst" id="dgExtras"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
     </details>
 
     <details class="dg-uitklap" id="dgLosVak">
-      <summary>Formulieren nog te koppelen <span class="dg-telling" id="dgLosTel"></span></summary>
+      <summary>Formulieren nog te koppelen
+        <button class="dg-bel" type="button" id="dgBelLos" hidden
+          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
+        <span class="dg-telling" id="dgLosTel"></span></summary>
       <div class="dg-lijst" id="dgLos"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
     </details>
 
@@ -3891,6 +3913,37 @@ function renderDagstart(){
       </div>`).join('')
     : '<p class="dg-leeg">Vandaag staat er niets gepland.</p>');
 
+  /* ---- de belletjes ----
+     Per blok wordt onthouden welke regels je al gezien hebt; wat daar niet bij
+     staat is nieuw. Bewust op kenmerk en niet op een tijdstip: een boeking kan
+     later binnenkomen dan hij aankomt, en dan zou een tijdvergelijking hem
+     missen. De lijst wordt afgekapt zodat hij niet eindeloos groeit.
+     Wordt onthouden per browser, in localStorage. Angela, 21-09-2026. */
+  const dgGezien = (sleutel) => {
+    try{ return JSON.parse(localStorage.getItem('bwf-gezien-' + sleutel) || '[]'); }
+    catch(e){ return []; }
+  };
+  const dgBewaarGezien = (sleutel, ids) => {
+    try{ localStorage.setItem('bwf-gezien-' + sleutel, JSON.stringify(ids.slice(-400))); }
+    catch(e){}
+  };
+  /* Toont het belletje met het aantal nieuwe regels. Klikken vinkt ze af. */
+  const dgBel = (knopId, sleutel, ids) => {
+    const knop = document.getElementById(knopId);
+    if(!knop) return;
+    const gezien = dgGezien(sleutel);
+    const nieuweIds = ids.filter(id => id && gezien.indexOf(String(id)) < 0);
+    const aantal = knop.querySelector('.aantal');
+    if(aantal) aantal.textContent = nieuweIds.length ? String(nieuweIds.length) : '';
+    knop.hidden = !nieuweIds.length;
+    knop.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dgBewaarGezien(sleutel, gezien.concat(ids.map(String)));
+      knop.hidden = true;
+    };
+  };
+
   /* ---- blok 2: spoed vandaag ----
      Wat er vandaag gebeurt en aandacht vraagt: aankomsten van vandaag en de
      taken met prioriteit hoog die vandaag of eerder af moeten.
@@ -3967,6 +4020,8 @@ function renderDagstart(){
           </div>`;
         }).join('')
       : '<p class="dg-leeg">Alles is verwerkt.</p>';
+    /* Belletje: boekingen die je nog niet gezien hebt. */
+    dgBel('dgBelNieuw', 'nieuw', nietVerwerkt.map(r => r.resId || r.ref || ''));
   }
 
   /* ---- uitklap 1: wat gasten zelf hebben bijgeboekt ----
@@ -3994,6 +4049,7 @@ function renderDagstart(){
           </div>`;
         }).join('')
       : '<p class="dg-leeg">Niemand heeft iets bijgeboekt via het formulier.</p>';
+    dgBel('dgBelExtras', 'extras', metExtras.map(f => f.id || ''));
   }
 
   /* ---- uitklap 2: formulieren die nog aan een boeking moeten hangen ---- */
@@ -4015,6 +4071,7 @@ function renderDagstart(){
           </div>`;
         }).join('')
       : '<p class="dg-leeg">Alle formulieren zijn gekoppeld.</p>';
+    dgBel('dgBelLos', 'los', los.map(f => f.id || ''));
   }
 
   /* ---- mijn taken: de eigen taken, en anders alles wat openstaat ---- */
