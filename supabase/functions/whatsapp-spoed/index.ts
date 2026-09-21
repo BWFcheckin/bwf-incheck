@@ -26,11 +26,12 @@
 //                    Token: het token op de API Docs-pagina verloopt zodra
 //                    Angela haar Wati-wachtwoord wijzigt.
 //   WATI_TEMPLATE  - naam van het goedgekeurde sjabloon. Standaard bwf_spoedboeking.
-//   SPOED_MELDING_TOKEN - waarmee pg_cron zich meldt.
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //
-// "Verify JWT" mag voor deze functie UIT: pg_cron stuurt geen JWT mee. De
-// afscherming loopt via de header x-spoed-token, net als bij kanalen-sync.
+// "Verify JWT" staat voor deze functie UIT: pg_cron stuurt geen JWT mee. De
+// afscherming loopt via de header x-spoed-token. Dat token staat alleen in
+// Vault; deze functie vraagt het op met bwf_spoed_token() en vergelijkt. Zo
+// staat het geheim op één plek en niet ook nog eens als Edge-secret.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -39,6 +40,10 @@ const SOORT = "spoed_whatsapp";
 // Hoeveel meldingen hoogstens per ronde. Een noodrem: gaat er ooit iets mis in
 // de selectie, dan kost dat hoogstens tien appjes en niet honderd.
 const MAX_PER_RONDE = 10;
+
+// Hoe vaak een mislukte melding het opnieuw mag proberen. Daarna blijft hij
+// met gelukt=false in meldingen_verstuurd staan en komt hij niet meer terug.
+const MAX_POGINGEN = 5;
 
 // Alleen boekingen die kort geleden zijn binnengekomen. Zonder deze grens zou
 // de eerste ronde na het aanzetten alles van de afgelopen tijd versturen.
@@ -105,17 +110,29 @@ const KANAAL_NAAM: Record<string, string> = {
   handmatig: "Handmatig",
 };
 
-Deno.serve(async (req) => {
-  const verwacht = Deno.env.get("SPOED_MELDING_TOKEN") || "";
-  if (!verwacht || req.headers.get("x-spoed-token") !== verwacht) {
-    return new Response("nee", { status: 401 });
-  }
+// Twee tekenreeksen vergelijken zonder dat de tijd verraadt hoeveel tekens er
+// klopten. Overdreven voor een taak die alleen vanuit de database komt, maar
+// het kost drie regels.
+function zelfde(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let uit = 0;
+  for (let i = 0; i < a.length; i++) uit |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return uit === 0;
+}
 
+Deno.serve(async (req) => {
   const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
+
+  // Komt deze aanroep echt van de taak in de database?
+  const meegestuurd = req.headers.get("x-spoed-token") || "";
+  const { data: verwacht } = await db.rpc("bwf_spoed_token");
+  if (!verwacht || !meegestuurd || !zelfde(meegestuurd, String(verwacht))) {
+    return new Response("nee", { status: 401 });
+  }
 
   // ---- 1. wat heeft Angela ingesteld ----
   const { data: inst } = await db.from("instellingen")
@@ -156,15 +173,23 @@ Deno.serve(async (req) => {
   }
 
   // ---- 3. wat is al gemeld ----
+  // Alleen een geslaagde melding telt als afgehandeld. Een mislukte poging
+  // mag het opnieuw proberen: het nummer kan alsnog ingevuld zijn en Wati kan
+  // er even uit hebben gelegen. Wel met een teller erbij, anders komt een
+  // boeking met een fout in het sjabloon elke vijf minuten terug.
   const ids = (boekingen || []).map((b) => b.id);
-  const gemeld = new Set<string>();
+  const klaar = new Set<string>();
+  const pogingen = new Map<string, number>();
   if (ids.length) {
     const { data: al } = await db.from("meldingen_verstuurd")
-      .select("reservering_id").eq("soort", SOORT).in("reservering_id", ids);
-    for (const r of al || []) gemeld.add(r.reservering_id);
+      .select("reservering_id,gelukt,pogingen").eq("soort", SOORT).in("reservering_id", ids);
+    for (const r of al || []) {
+      pogingen.set(r.reservering_id, Number(r.pogingen) || 0);
+      if (r.gelukt || (Number(r.pogingen) || 0) >= MAX_POGINGEN) klaar.add(r.reservering_id);
+    }
   }
 
-  const teDoen = (boekingen || []).filter((b) => !gemeld.has(b.id)).slice(0, MAX_PER_RONDE);
+  const teDoen = (boekingen || []).filter((b) => !klaar.has(b.id)).slice(0, MAX_PER_RONDE);
 
   // ---- 4. versturen ----
   const uit: Array<Record<string, unknown>> = [];
@@ -172,13 +197,17 @@ Deno.serve(async (req) => {
     const plaats = locatieVan(b.suite);
     const nummer = watiNummer(nummers[plaats] || "");
 
-    // Geen nummer voor deze locatie? Dan wel vastleggen dat we hem gezien
-    // hebben, anders blijft hij elke ronde opnieuw langskomen.
+    const eerder = pogingen.get(b.id) || 0;
+
+    // Geen nummer voor deze locatie? Vastleggen dat we hem gezien hebben, maar
+    // met gelukt=false: wordt het nummer later alsnog ingevuld, dan pakt de
+    // volgende ronde hem op. Na MAX_POGINGEN houdt het op.
     if (!plaats || !nummer) {
       await db.from("meldingen_verstuurd").upsert({
         reservering_id: b.id, soort: SOORT, locatie: plaats || null,
-        nummer: null, gelukt: false,
+        nummer: null, gelukt: false, pogingen: eerder + 1,
         antwoord: plaats ? "geen nummer ingesteld voor " + plaats : "locatie onbekend",
+        verstuurd_op: new Date().toISOString(),
       }, { onConflict: "reservering_id,soort" });
       uit.push({ id: b.id, overgeslagen: plaats ? "geen nummer" : "locatie onbekend" });
       continue;
@@ -222,10 +251,11 @@ Deno.serve(async (req) => {
 
     await db.from("meldingen_verstuurd").upsert({
       reservering_id: b.id, soort: SOORT, locatie: plaats, nummer,
-      gelukt, antwoord: "http " + http + " " + ruw,
+      gelukt, pogingen: eerder + 1, antwoord: "http " + http + " " + ruw,
+      verstuurd_op: new Date().toISOString(),
     }, { onConflict: "reservering_id,soort" });
 
-    uit.push({ id: b.id, locatie: plaats, gelukt, http });
+    uit.push({ id: b.id, locatie: plaats, gelukt, http, poging: eerder + 1 });
   }
 
   return Response.json({
