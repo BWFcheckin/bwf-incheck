@@ -120,6 +120,39 @@ function zelfde(a: string, b: string): boolean {
   return uit === 0;
 }
 
+type Wati = { endpoint: string; token: string; sjabloon: string };
+type Param = { name: string; value: string };
+
+/* Eén sjabloonbericht naar één nummer. Wati kan http 200 teruggeven met
+   result:false erin, dus allebei nakijken. En een 200 betekent "aangenomen
+   door Wati", nog niet "bij de ontvanger"; dat laatste weet je alleen via hun
+   webhooks, en die hebben we niet. */
+async function stuurWati(w: Wati, nummer: string, parameters: Param[]) {
+  let http = 0, ruw = "", gelukt = false;
+  try {
+    const r = await fetch(
+      w.endpoint + "/api/v1/sendTemplateMessage?whatsappNumber=" + encodeURIComponent(nummer),
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer " + w.token, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template_name: w.sjabloon,
+          broadcast_name: "bwf_spoed_" + Date.now(),
+          parameters,
+        }),
+      },
+    );
+    http = r.status;
+    ruw = (await r.text()).slice(0, 800);
+    let body: { result?: boolean; info?: string } | null = null;
+    try { body = JSON.parse(ruw); } catch { /* geen json */ }
+    gelukt = r.ok && body?.result === true;
+  } catch (e) {
+    ruw = "netwerkfout: " + String(e).slice(0, 300);
+  }
+  return { http, ruw, gelukt };
+}
+
 Deno.serve(async (req) => {
   const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -151,6 +184,32 @@ Deno.serve(async (req) => {
   const sjabloon = Deno.env.get("WATI_TEMPLATE") || "bwf_spoedboeking";
   if (!endpoint || !token) {
     return Response.json({ gedaan: 0, reden: "wati nog niet ingesteld" }, { status: 503 });
+  }
+
+  // ---- proefbericht ----
+  // Met ?test=lelystad of ?test=almere gaat er één bericht met voorbeeldgegevens
+  // naar dat nummer, zonder de boekingen langs te gaan en zonder iets in
+  // meldingen_verstuurd te schrijven. Zo kun je nakijken of het sjabloon is
+  // goedgekeurd en of het nummer WhatsApp heeft, zonder op een echte
+  // spoedboeking te hoeven wachten. Het token is hiervoor nodig, dus dit kan
+  // niet zomaar door een vreemde worden afgevuurd.
+  const test = new URL(req.url).searchParams.get("test");
+  if (test) {
+    const plaats = test.toLowerCase() === "almere" ? "Almere" : "Lelystad";
+    const nummer = watiNummer(nummers[plaats] || "");
+    if (!nummer) {
+      return Response.json({ test: plaats, reden: "geen nummer ingesteld" }, { status: 400 });
+    }
+    const proef = await stuurWati({ endpoint, token, sjabloon }, nummer, [
+      { name: "1", value: "Proefbericht (geen echte gast)" },
+      { name: "2", value: wanneer(new Date(Date.now() + 18 * 3600_000).toISOString(), null) },
+      { name: "3", value: plaats === "Almere" ? "Suite Angie" : "Malina Jacuzzi" },
+      { name: "4", value: "een test vanuit het dashboard" },
+    ]);
+    return Response.json({
+      test: plaats, naar: nummer, sjabloon,
+      gelukt: proef.gelukt, http: proef.http, antwoord: proef.ruw,
+    }, { status: proef.gelukt ? 200 : 502 });
   }
 
   // ---- 2. welke boekingen komen in aanmerking ----
@@ -225,29 +284,8 @@ Deno.serve(async (req) => {
       { name: "4", value: via },
     ];
 
-    let http = 0, ruw = "", gelukt = false;
-    try {
-      const r = await fetch(
-        endpoint + "/api/v1/sendTemplateMessage?whatsappNumber=" + encodeURIComponent(nummer),
-        {
-          method: "POST",
-          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            template_name: sjabloon,
-            broadcast_name: "bwf_spoed_" + Date.now(),
-            parameters,
-          }),
-        },
-      );
-      http = r.status;
-      ruw = (await r.text()).slice(0, 800);
-      // Let op: Wati kan 200 teruggeven met result:false. Allebei nakijken.
-      let body: { result?: boolean; info?: string } | null = null;
-      try { body = JSON.parse(ruw); } catch { /* geen json */ }
-      gelukt = r.ok && body?.result === true;
-    } catch (e) {
-      ruw = "netwerkfout: " + String(e).slice(0, 300);
-    }
+    const { http, ruw, gelukt } = await stuurWati(
+      { endpoint, token, sjabloon }, nummer, parameters);
 
     await db.from("meldingen_verstuurd").upsert({
       reservering_id: b.id, soort: SOORT, locatie: plaats, nummer,
