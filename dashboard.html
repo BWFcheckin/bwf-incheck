@@ -428,6 +428,14 @@ body.gate-open{overflow:hidden}
 .ds-regel small{display:block;opacity:.66;font-size:12.5px}
 .ds-regel.spoed{background:#fdf2f1;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
 .ds-regel.later{background:var(--goud-zacht,#faf4e8);margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
+/* Een regel die de reserveringskaart opent. Geen knopopmaak: het blijft een
+   lijstregel, hij laat alleen merken dat je erop kunt tikken. */
+.ds-regel.klikbaar[data-dskaart],#lmNieuweBoeking li.klikbaar{cursor:pointer}
+.ds-regel.klikbaar[data-dskaart]:hover{background:var(--surface-2,#f6f1ea);
+  margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}
+.ds-regel.klikbaar[data-dskaart]:focus-visible,#lmNieuweBoeking li.klikbaar:focus-visible{
+  outline:2px solid currentColor;outline-offset:2px;border-radius:8px}
+#lmNieuweBoeking li.klikbaar:hover strong{text-decoration:underline}
 .ds-vink{margin-left:auto;flex:none;width:30px;height:30px;border-radius:8px;cursor:pointer;
   border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);font-size:14px;line-height:1;
   color:inherit;opacity:.65}
@@ -4624,12 +4632,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     dsBoekingen().forEach(function(r){
       var nieuw = dsNetBinnenEnSnel(r);
       if(r.aankomst === vandaag){
-        regels.push({ sleutel:'a-'+r.id, soort: nieuw ? 'nieuw' : 'spoed', nieuw:nieuw,
+        regels.push({ sleutel:'a-'+r.id, id:r.id, soort: nieuw ? 'nieuw' : 'spoed', nieuw:nieuw,
           wanneer:(r.tijdIn || 'aankomst'), titel:gastnaam(r),
           sub:[suiteKort(r.locatie), r.kanaal,
                nieuw ? 'NET GEBOEKT — komt vandaag' : 'aankomst vandaag'].filter(Boolean).join(' · ') });
       }else if(r.vertrek === vandaag){
-        regels.push({ sleutel:'v-'+r.id, soort:'', nieuw:false, wanneer:(r.tijdUit || 'vertrek'),
+        regels.push({ sleutel:'v-'+r.id, id:r.id, soort:'', nieuw:false, wanneer:(r.tijdUit || 'vertrek'),
           titel:gastnaam(r), sub:[suiteKort(r.locatie), 'vertrek vandaag'].filter(Boolean).join(' · ') });
       }
     });
@@ -4653,8 +4661,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(tel) tel.textContent = regels.length
       ? (open.length + ' van ' + regels.length + ' te doen') : '';
 
+    /* Angela, 22-09-2026: "ik wil dat de reserveringen op de vandaag-pagina
+       meteen de reserveringskaart openen." De regel zelf is nu de knop; het
+       vinkje ernaast blijft doen wat het deed, want de klikafhandeling kijkt
+       eerst naar het vinkje en pas daarna naar de regel. */
     function regelHtml(x, gedaan){
-      return '<div class="ds-regel ' + esc(gedaan ? 'gedaan' : x.soort) + '">' +
+      return '<div class="ds-regel klikbaar ' + esc(gedaan ? 'gedaan' : x.soort) + '"' +
+        (x.id ? ' data-dskaart="' + esc(String(x.id)) + '" role="button" tabindex="0"' +
+                ' aria-label="Reservering van ' + esc(x.titel) + ' openen"' : '') + '>' +
         '<span class="wanneer">' + esc(x.wanneer) + '</span>' +
         '<div><strong>' + esc(x.titel) + '</strong><small>' + esc(x.sub) + '</small></div>' +
         '<button class="ds-vink" type="button" data-dsvink="' + esc(x.sleutel) + '" ' +
@@ -5085,7 +5099,24 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var k = e.target.closest && e.target.closest('[data-dskaart]');
     if(!k) return;
     var r = ALLES.filter(function(x){ return String(x.id) === k.getAttribute('data-dskaart'); })[0];
-    if(r && typeof openKaart === 'function') openKaart(r);
+    /* openKaart() wil de sleutel, niet de reservering zelf. Stond hier een
+       tijd lang als openKaart(r): vind() vergelijkt dan een string met een
+       object, vindt niets en stopt zonder melding - de kaarten op deze
+       pagina deden dus helemaal niets als je erop tikte. */
+    if(r && typeof openKaart === 'function') openKaart(sleutel(r));
+  });
+  /* Dezelfde regels met het toetsenbord: Enter of spatie opent de kaart. */
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    var k = e.target.closest && e.target.closest('[data-dskaart]');
+    if(!k || k.tagName === 'BUTTON') return;
+    e.preventDefault();
+    var r = ALLES.filter(function(x){ return String(x.id) === k.getAttribute('data-dskaart'); })[0];
+    /* openKaart() wil de sleutel, niet de reservering zelf. Stond hier een
+       tijd lang als openKaart(r): vind() vergelijkt dan een string met een
+       object, vindt niets en stopt zonder melding - de kaarten op deze
+       pagina deden dus helemaal niets als je erop tikte. */
+    if(r && typeof openKaart === 'function') openKaart(sleutel(r));
   });
 
   function tekenNieuweBoekingen(){
@@ -5117,7 +5148,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         var wat = r.aankomst === vandaag
           ? 'aankomst vandaag' + (r.tijdIn ? ' ' + r.tijdIn : '')
           : 'vertrek vandaag' + (r.tijdUit ? ' ' + r.tijdUit : '');
-        return '<li>' + (nbIsSpoed(r) ? '<span class="nb-spoed">SPOED</span>' : '') +
+        return '<li class="klikbaar" data-dskaart="'+esc(String(r.id))+'" role="button" tabindex="0"' +
+          ' aria-label="Reservering van '+esc(gastnaam(r))+' openen">' +
+          (nbIsSpoed(r) ? '<span class="nb-spoed">SPOED</span>' : '') +
           '<strong>'+esc(gastnaam(r))+'</strong>' +
           '<span>'+esc(suiteKort(r.locatie))+'</span>' +
           '<small>'+esc(wat)+(r.kanaal ? ' · '+esc(r.kanaal) : '')+'</small>' +
