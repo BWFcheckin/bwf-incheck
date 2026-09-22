@@ -428,6 +428,7 @@ body.gate-open{overflow:hidden}
 .ds-regel.gedaan strong{text-decoration:line-through}
 .ds-regel.gedaan .ds-vink:hover{border-color:#9A7B4F;color:#9A7B4F}
 .ds-afkop{margin:12px 0 2px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+.ds-regel.nu{background:#e8f3ee;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
 /* Net geboekt en bijna aankomst: dat is het enige waar het belletje voor afgaat. */
 .ds-regel.nieuw{background:#fdf2f1;border-left:4px solid #B3261E;margin:0 -8px;padding:8px 8px 8px 10px;
   border-radius:8px;border-top:0}
@@ -1060,6 +1061,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <div class="ds-uitklap-lijf"><div id="dsTaken"></div></div>
     </details>
 
+    <details class="ds-uitklap" id="dsPlanningVak" open>
+      <summary>Mijn planning
+        <span class="ds-tel" id="dsPlanningTel"></span></summary>
+      <div class="ds-uitklap-lijf"><div id="dsPlanning"></div></div>
+    </details>
+
     <details class="ds-uitklap" id="dsVoorraadVak">
       <summary>Voorraad bijvullen
         <span class="ds-tel" id="dsVoorraadTel"></span></summary>
@@ -1067,7 +1074,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     </details>
 
     <div style="margin:16px 0 10px">
-      <button class="btn secondary" type="button" id="oudOverzichtKnop">+ Het oude overzicht tonen</button>
+      <!-- Angela, 22-09-2026: "ik wil de groene balk weg van foto 2." Dat was
+           deze donkergroene knop. Het oude overzicht blijft in de pagina staan
+           en is nog steeds te openen met dashboard.html#oud, maar hij staat
+           niet meer als balk in beeld. -->
+      <button class="btn secondary" type="button" id="oudOverzichtKnop" hidden
+        style="display:none">+ Het oude overzicht tonen</button>
     </div>
 
     <div id="oudOverzicht" hidden>
@@ -3132,7 +3144,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-planyo.js?v=11"></script>
-<script src="bwf-kalender.js?v=18"></script>
+<script src="bwf-kalender.js?v=19"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
@@ -3202,6 +3214,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   /* Het oude overzicht staat ingeklapt onder de dagweergave. */
   (function(){
+    /* Met #oud achter het adres is het oude overzicht nog te bekijken; de
+       knop zelf is weg op verzoek van Angela (22-09-2026). */
+    if (location.hash === "#oud") {
+      var vakOud = document.getElementById("oudOverzicht");
+      var knopOud = document.getElementById("oudOverzichtKnop");
+      if (vakOud) vakOud.hidden = false;
+      if (knopOud) { knopOud.hidden = false; knopOud.style.display = ""; }
+    }
     var knop = document.getElementById("oudOverzichtKnop");
     var vak = document.getElementById("oudOverzicht");
     if(!knop || !vak) return;
@@ -4632,19 +4652,33 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   /* ---- blok 3: taken voor Lelystad, op datum ----
-     wz_taken.locatie kent alleen 'Almere' en 'Lelystad'. Taken zonder locatie
-     gelden voor iedereen en horen er dus ook bij; alleen die van Almere
-     blijven weg. Op deadline gesorteerd, het oudste bovenaan, en wat al
-     verlopen is valt op. */
+     Angela, 22-09-2026: "vragen en taken Lelystad moeten alleen de taken op
+     naam van Jerry, Michel en Ruth of iedereen laten zien."
+
+     Dat is dus niet op de kolom locatie: van de 68 taken hebben er 65 helemaal
+     geen locatie ingevuld, dus daarop filteren laat bijna alles staan. Het gaat
+     om aan wie de taak hangt. De drie namen staan hier niet hardgecodeerd maar
+     worden opgezocht op toegangsrol 'locatiemanager' in wz_medewerkers - komt
+     er iemand bij of valt er iemand weg, dan klopt de lijst vanzelf nog.
+     Een taak zonder medewerker is voor iedereen en hoort er ook bij.
+     Op deadline gesorteerd, het oudste bovenaan, en wat verlopen is valt op. */
+  function dsLocatieMensen(){
+    return (MEDEWERKERS || []).filter(function(m){
+      return String(veld(m, ['toegangsrol'], '')).toLowerCase() === 'locatiemanager';
+    }).map(function(m){ return String(m.id); });
+  }
   function dsTekenTaken(){
     var vak = document.getElementById('dsTaken');
     if(!vak) return;
     var vandaag = dstr(new Date());
+    var vanHen = dsLocatieMensen();
     var lijst = (TAKEN || []).filter(function(t){
       var st = String(veld(t, ['status'], '')).toLowerCase();
       if(st === 'klaar' || st === 'afgerond') return false;
-      var loc = String(veld(t, ['locatie'], '')).toLowerCase();
-      return loc !== 'almere';
+      if(String(veld(t, ['locatie'], '')).toLowerCase() === 'almere') return false;
+      var wie = String(veld(t, ['medewerker_id'], ''));
+      if(!wie) return true;                      /* voor iedereen */
+      return vanHen.indexOf(wie) > -1;           /* Jerry, Michel of Ruth */
     }).sort(function(a, b){
       var da = String(veld(a, ['deadline'], '') || '9999-99-99');
       var db = String(veld(b, ['deadline'], '') || '9999-99-99');
@@ -4669,10 +4703,67 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
   }
 
+  /* ---- blok: mijn planning ----
+     Angela, 22-09-2026: "nog een toevoeging: mijn planning." De eigen diensten
+     van wie is ingelogd, vanaf vandaag. Kent het scherm de naam niet, dan
+     staan alle diensten er - beter iets tonen dan een leeg vak zonder uitleg.
+     DIENSTEN komt uit de tabel planning en is hier al geladen. */
+  function dsTekenPlanning(){
+    var vak = document.getElementById('dsPlanning');
+    if(!vak) return;
+    var vandaag = dstr(new Date());
+    /* LET OP: de planning hangt aan de tabel `medewerkers`, niet aan
+       `wz_medewerkers` waar de taken aan hangen. tkMijnId() geeft een id uit
+       die tweede tabel; dat matcht hier nooit en liet daardoor iedereens
+       diensten zien. Daarom zoeken we hier op naam in teamLijst(), die wél
+       uit `medewerkers` komt. */
+    var mijnNaam = (window.BWF && window.BWF.medewerker) ? String(window.BWF.medewerker).trim().toLowerCase() : '';
+    var mij = '';
+    if(mijnNaam){
+      /* De twee tabellen spellen dezelfde persoon anders: in wz_medewerkers
+         staat "Ruth", in medewerkers "Ruth Tilburg". Daarom eerst exact
+         proberen en anders op de voornaam. */
+      var team = teamLijst();
+      var gevonden = team.filter(function(m){
+        return String(m.naam || '').trim().toLowerCase() === mijnNaam;
+      })[0];
+      if(!gevonden){
+        var voor = mijnNaam.split(' ')[0];
+        gevonden = team.filter(function(m){
+          return String(m.naam || '').trim().toLowerCase().split(' ')[0] === voor;
+        })[0];
+      }
+      if(gevonden) mij = String(gevonden.id);
+    }
+    var alle = (DIENSTEN || []).filter(function(p){
+      return String(p.datum || '').slice(0, 10) >= vandaag;
+    });
+    var mijn = mij ? alle.filter(function(p){ return String(p.medewerker_id || '') === String(mij); }) : [];
+    var lijst = (mij && mijn.length) ? mijn : alle;
+    var alleen = !!(mij && mijn.length);
+    lijst = lijst.slice().sort(function(a, b){
+      return String(a.datum).localeCompare(String(b.datum));
+    });
+
+    var tel = document.getElementById('dsPlanningTel');
+    if(tel) tel.textContent = lijst.length ? (alleen ? String(lijst.length) : 'iedereen') : '';
+
+    vak.innerHTML = lijst.length ? lijst.slice(0, 14).map(function(p){
+      var d = String(p.datum || '').slice(0, 10);
+      var naam = teamNaam(p.medewerker_id) || '';
+      return '<div class="ds-regel' + (d === vandaag ? ' nu' : '') + '">' +
+        '<span class="wanneer">' + esc(dsDatum(d)) + '</span>' +
+        '<div><strong>' + esc(dienstLabel(p.dienst)) + '</strong><small>' +
+        esc([alleen ? '' : naam, p.locatie, d === vandaag ? 'vandaag' : ''].filter(Boolean).join(' · ')) +
+        '</small></div></div>';
+    }).join('') : '<p class="ds-leeg">Geen diensten ingepland vanaf vandaag.</p>';
+  }
+
   function tekenDagstart(){
     try{ dsTekenSpoed(); }catch(e){}
     try{ dsTekenKaarten(); }catch(e){}
     try{ dsTekenTaken(); }catch(e){}
+    try{ dsTekenPlanning(); }catch(e){}
   }
 
   document.addEventListener('change', function(e){

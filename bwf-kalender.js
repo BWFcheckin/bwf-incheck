@@ -110,6 +110,19 @@
   }
   function gastNaam(r) { return [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" "); }
 
+  /* Angela, 22-09-2026: "de reserveringenlijst onder de kalender moet ook een
+     suitefoto krijgen." De foto's staan als CSS-variabele in
+     bwf-agenda-stijl.css (--foto-angie, --foto-malina, --foto-deluxe); die
+     wordt door elk scherm geladen dat deze kalender gebruikt. Laadt een pagina
+     die stijl niet, dan blijft het bij het gekleurde vlakje dat er al was. */
+  function fotoKlasse(suite) {
+    var s = String(suite || "").toLowerCase();
+    if (s === "malina_deluxe") return "foto-deluxe";
+    if (s === "malina_jacuzzi") return "foto-malina";
+    if (s === "angie") return "foto-angie";
+    return "";
+  }
+
   /* Wat is een blokkade en wat is een gast?
 
      Dit ging twee keer mis omdat ik het aan de gastgegevens probeerde af te
@@ -254,6 +267,13 @@
       ".bwfk-dagkolom{padding:10px;border-right:1px solid var(--k-soft);min-width:0}",
       ".bwfk-dagkolom h4{margin:0 0 8px;font-size:13px;display:flex;align-items:center;gap:6px}",
       ".bwfk-dagkolom h4 i,.bwfk-suitestip{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}",
+      ".bwfk-suitecel{display:flex;align-items:center;gap:9px}",
+      ".bwfk-suitefoto{flex:none;width:44px;height:32px;border-radius:7px;background:var(--sk) center/cover no-repeat;",
+        "box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}",
+      ".bwfk-suitefoto.foto-angie{background-image:var(--foto-angie)}",
+      ".bwfk-suitefoto.foto-malina{background-image:var(--foto-malina)}",
+      ".bwfk-suitefoto.foto-deluxe{background-image:var(--foto-deluxe)}",
+      "@media(max-width:640px){.bwfk-suitefoto{width:34px;height:26px}}",
       ".bwfk-dagkolom .bwfk-item{font-size:13px;padding:5px 8px;margin-bottom:5px}",
       ".bwfk-leeg{color:var(--k-muted);font-size:12.5px}",
       /* legenda */
@@ -808,7 +828,9 @@
         var zonderGast = geenGast(r);
         return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
           "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</td>" +
-          '<td><span class="bwfk-suitestip" style="background:' + SUITES[r.suite].kleur + '"></span> ' + esc(SUITES[r.suite].naam) + "<small>" + esc(TYPES[r.type] || r.type) + "</small></td>" +
+          '<td class="bwfk-suitecel"><span class="bwfk-suitefoto ' + fotoKlasse(r.suite) +
+            '" style="--sk:' + SUITES[r.suite].kleur + '"></span>' +
+            '<span><b>' + esc(SUITES[r.suite].naam) + "</b><small>" + esc(TYPES[r.type] || r.type) + "</small></span></td>" +
           '<td class="bwfk-naam" title="' + esc(zonderGast ? "Blokkade via " + blokBron(r) + " — hier komt geen gast" : (gastNaam(r) || "gast onbekend")) + '">' +
             (zonderGast
               ? '<span class="bwfk-blokmerk">blokkade</span>' + esc(blokBron(r))
