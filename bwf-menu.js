@@ -50,10 +50,19 @@
 
   var PAGINAS = [
     ["Dagstart", "dagstart.html"],
-    ["Vandaag", "vandaag.html"],
+    /* "Vandaag" stond hier als losse pagina, maar op het locatiedashboard is
+       het tabblad Vandaag (eerder "Overzicht") hetzelfde scherm. Twee knoppen
+       met dezelfde naam die naar verschillende plekken gingen, verwarde meer
+       dan het hielp. Angela, 22-09-2026. De pagina zelf blijft bestaan en is
+       nog steeds via een directe link te openen. */
     ["Agenda", "agenda.html"],
     ["Reserveringen", "reserveringen.html"],
-    ["Incheck", "incheckformulier.html"],
+    /* Angela, 22-09-2026: "incheck en reserveringen zijn dezelfde pagina,
+       graag samenvoegen." Klopt: reserveringen.html heeft al een tabblad
+       Incheckformulieren. Deze knop opent dat tabblad in plaats van een apart
+       scherm. incheckformulier.html blijft bestaan - dat is het formulier dat
+       je invult bij een gast - en is van daaruit te openen. */
+    ["Incheck", "reserveringen.html?tab=incheck"],
     ["Klanten", "klantbeheer.html"],
     ["VR", "vr2.html"],
     ["Locatie", "dashboard.html"],
@@ -72,12 +81,10 @@
      Een rol die hier niet in staat krijgt alleen wat iedereen mag zien. */
   var PER_ROL = {
     eigenaar:       null,   /* null = alles */
-    vr:             ["dagstart.html", "vandaag.html", "agenda.html", "reserveringen.html",
+    vr:             ["dagstart.html", "agenda.html", "reserveringen.html",
                      "incheckformulier.html", "klantbeheer.html", "vr2.html", "controle.html"],
-    locatiemanager: ["vandaag.html", "reserveringen.html", "incheckformulier.html",
-                     "dashboard.html"],
-    onbekend:       ["vandaag.html", "reserveringen.html", "incheckformulier.html",
-                     "dashboard.html"]
+    locatiemanager: ["reserveringen.html", "incheckformulier.html", "dashboard.html"],
+    onbekend:       ["reserveringen.html", "incheckformulier.html", "dashboard.html"]
   };
 
   /* De pagina waar je al bent hoeft er niet nog eens in als doorverwijzing.
@@ -91,23 +98,40 @@
       "box-shadow:0 2px 10px -6px rgba(36,30,25,.7)}",
     ".bwf-topmenu .binnen{max-width:1320px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;",
       "align-items:center;padding:8px 16px}",
+    /* GEEN overflow op deze container: het uitklapmenu hangt erbinnen en werd
+       daardoor afgeknipt - je klikte op Menu en er gebeurde zichtbaar niets.
+       Past de balk niet, dan mag hij naar een tweede regel; op smalle schermen
+       schuift alleen de knoppenrij zelf (zie de media-regel onderaan). */
     ".bwf-topmenu img{height:26px;width:auto;flex:none;margin-right:4px}",
     ".bwf-topmenu a,.bwf-topmenu .bwfk-tab{color:rgba(255,255,255,.84);text-decoration:none;font-size:13px;",
       "padding:5px 11px;border-radius:999px;border:1px solid transparent;white-space:nowrap;",
       "background:none;font-family:inherit;cursor:pointer}",
     ".bwf-topmenu a:hover,.bwf-topmenu .bwfk-tab:hover{background:rgba(255,255,255,.14);color:#fff}",
+    /* Het uitklapmenu hangt sinds 22-09-2026 binnen de balk, en erfde daardoor
+       de witte letterkleur van de balk: "Naar de startpagina" stond wit op wit
+       en was onleesbaar. Alles binnen #bwfMenu houdt zijn eigen kleuren. */
+    ".bwf-topmenu #bwfMenu a,.bwf-topmenu #bwfMenu button{color:#241E19}",
+    ".bwf-topmenu #bwfMenu a.thuis{color:#fff}",
+    ".bwf-topmenu #bwfMenu a:hover,.bwf-topmenu #bwfMenu button:hover{background:#F5F2EC;color:#241E19}",
+    ".bwf-topmenu #bwfMenu a.thuis:hover{color:#fff}",
     ".bwf-topmenu a.hier,.bwf-topmenu .bwfk-tab[aria-selected=\"true\"]{background:#fff;",
       "color:var(--bwfmenu-kleur,#483C34);border-color:#fff;font-weight:600}",
     /* De tabbladen van het scherm zelf staan bovenin, de paginalinks eronder,
        gescheiden door een dun streepje over de hele breedte. */
-    ".bwf-topmenu .rij{display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%}",
+    /* Angela, 22-09-2026: "ik heb 2 bruine balken, graag samenvoegen tot 1
+       balk." De tabbladen en de paginalinks stonden op twee regels met een
+       streep ertussen; nu lopen ze door op één regel, met een verticaal
+       streepje als scheiding. Past het niet, dan schuift de rij zijwaarts. */
+    ".bwf-topmenu .rij{display:flex;gap:6px;align-items:center;flex-wrap:wrap}",
     /* De verhuisde tabbalk brengt zijn eigen opmaak van het scherm mee; die
        hoort hier niet meer te gelden. Vandaar dat deze regels hem terugzetten. */
     ".bwf-topmenu [data-bwf-verhuisd]{background:none!important;border:0!important;",
       "box-shadow:none!important;padding:0!important;margin:0!important;overflow:visible!important}",
     ".bwf-topmenu [data-bwf-verhuisd] .bwfk-tab{border-bottom:0!important;box-shadow:none!important}",
-    ".bwf-topmenu .rij.paginas{border-top:1px solid rgba(255,255,255,.16);margin-top:7px;padding-top:7px}",
-    ".bwf-topmenu .rij.paginas a{font-size:12.5px;opacity:.92}",
+    ".bwf-topmenu .rij.paginas{position:relative;padding-left:13px;margin-left:7px}",
+    ".bwf-topmenu .rij.paginas:before{content:\"\";position:absolute;left:0;top:50%;transform:translateY(-50%);",
+      "width:1px;height:20px;background:rgba(255,255,255,.22)}",
+    ".bwf-topmenu .rij.paginas a{font-size:12.5px;opacity:.9}",
     ".bwf-topmenu .bwfk-tab .badge,.bwf-topmenu .bwfk-tab .telling{background:rgba(255,255,255,.22);",
       "border-radius:999px;padding:0 6px;margin-left:5px;font-size:11px}",
     ".bwf-topmenu .bwfk-tab[aria-selected=\"true\"] .badge{background:rgba(0,0,0,.12)}",
@@ -250,8 +274,9 @@
     rij.className = "rij paginas";
     for (var i = 0; i < PAGINAS.length; i++) {
       var bestand = PAGINAS[i][1].toLowerCase();
-      if (bestand === HIER) continue;          /* niet naar jezelf verwijzen */
-      if (!magZien(bestand)) continue;
+      var kaal = bestand.split("?")[0];        /* zonder ?tab=... */
+      if (kaal === HIER && bestand.indexOf("?") < 0) continue;   /* niet naar jezelf */
+      if (!magZien(kaal)) continue;
       var a = document.createElement("a");
       a.href = PAGINAS[i][1];
       a.textContent = PAGINAS[i][0];
@@ -279,7 +304,8 @@
     rij.innerHTML = "";
     for (var i = 0; i < PAGINAS.length; i++) {
       var bestand = PAGINAS[i][1].toLowerCase();
-      if (bestand === HIER || !magZien(bestand)) continue;
+      var kaal = bestand.split("?")[0];
+      if ((kaal === HIER && bestand.indexOf("?") < 0) || !magZien(kaal)) continue;
       var a = document.createElement("a");
       a.href = PAGINAS[i][1];
       a.textContent = PAGINAS[i][0];
