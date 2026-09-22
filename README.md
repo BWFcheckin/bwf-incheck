@@ -16,10 +16,15 @@ Beide tabbladen kun je per maand of over het hele jaar als CSV downloaden.
 1. Open het Supabase-project (of maak een nieuw project aan).
 2. Ga naar **SQL Editor → New query**, plak de inhoud van `supabase-setup.sql` en klik op **Run**.
 3. Ga naar **Authentication → Users → Add user → Create new user** en maak het account aan:
-   - E-mailadres: `michelretz@hotmail.com`
+   - E-mailadres: het eigen adres van degene die deze administratie bijhoudt
    - Wachtwoord: zelf kiezen, minimaal 8 tekens
    - Zet **Auto Confirm User** aan, anders kan er niet worden ingelogd
 4. Maak op dezelfde manier een account voor Angela aan, zodat jullie beiden kunnen inloggen.
+
+   > Zet hier geen echte e-mailadressen in. Deze repository is openbaar — dat
+   > moet, anders werkt GitHub Pages niet — dus alles wat hier staat kan
+   > iedereen lezen. Een adres dat bij een inlog hoort is de helft van een
+   > account.
 
 Werk je in een **nieuw** Supabase-project? Zoek dan in `administratie-michel.html` bovenaan naar `SUPABASE_URL` en `SUPABASE_ANON_KEY` en vervang die twee regels door de waarden uit **Project Settings → API** (Project URL en de publishable/anon key).
 
