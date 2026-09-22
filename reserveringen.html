@@ -76,6 +76,7 @@ h1{font-family:var(--f-titel);font-weight:500;font-size:34px;margin:2px 0 0;colo
 section[hidden]{display:none}
 .melding{padding:11px 14px;border-radius:10px;margin-bottom:12px;font-size:14px;background:var(--groen-zacht);color:var(--groen)}
 .melding.fout{background:var(--crit-zacht);color:var(--crit)}
+.reskop-weergave{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
 .telling{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0 2px 8px}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -276,7 +277,22 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
 
   <!-- ============ tab: lijst ============ -->
   <section id="sectie-lijst">
-    <div class="card filters">
+    <!-- Angela, 22-09-2026: "ik wil ook alle reserveringslijsten in
+         kalenderweergave met toon lijst als dropdown." De kalender staat
+         voorop; de keuze rechts zet hem om naar de kaartenlijst.
+
+         De filters en de telling horen bij de lijst en gaan mee weg: de
+         gedeelde kalender heeft zijn eigen bediening, en twee filtersets naast
+         elkaar laten je raden welke aanstaat. -->
+    <div class="reskop-weergave" id="resWeergaveKop">
+      <h2 style="margin:0;font-size:16px">Reserveringen</h2>
+    </div>
+
+    <div class="card" id="resKalVak">
+      <div id="resKalender"></div>
+    </div>
+
+    <div class="card filters" id="resFilters">
       <label class="veld">Periode
         <select id="fPeriode">
           <option value="30">Vandaag + 30 dagen</option>
@@ -4639,8 +4655,45 @@ document.addEventListener("DOMContentLoaded", () => {
   start();
 });
 </script>
+<script src="bwf-kalender.js?v=19"></script>
+<script src="bwf-planweergave.js?v=1"></script>
 <script src="bwf-menu.js?v=9"></script>
 <script src="bwf-weergave.js?v=2"></script>
 <script src="bwf-account.js?v=1"></script>
+<script>
+/* Kalender of lijst voor de reserveringen. Angela, 22-09-2026: "ik wil ook
+   alle reserveringslijsten in kalenderweergave met toon lijst als dropdown."
+
+   De kalender wordt pas opgebouwd wanneer hij echt zichtbaar is. Een kalender
+   in een verborgen blok krijgt geen breedte mee en tekent zichzelf dan tot een
+   streepje - dezelfde reden waarom de planningkalender op het dashboard ook
+   pas bij het openen van dat tabblad wordt gemaakt. */
+(function(){
+  if(!window.BWFPlanWeergave) return;
+  var gemaakt = false;
+
+  function maakKalender(){
+    if(gemaakt || !window.BWFKalender) return;
+    var houder = document.getElementById('resKalender');
+    if(!houder || !houder.offsetParent) return;   /* nog niet in beeld */
+    window.BWFKalender.maak(houder, {
+      weergave: window.innerWidth < 760 ? 'maand' : 'week'
+    });
+    gemaakt = true;
+  }
+
+  window.BWFPlanWeergave.maak({
+    kop:      '#resWeergaveKop',
+    kalender: '#resKalVak',
+    lijst:    '#lijst',
+    /* De filters en de telling sturen de kaartenlijst aan, niet de kalender. */
+    extra:    ['#resFilters', '#telling'],
+    sleutel:  'bwf-resweergave-reserveringen',
+    bijWissel: function(stand){
+      if(stand === 'kalender') setTimeout(maakKalender, 0);
+    }
+  });
+})();
+</script>
 </body>
 </html>

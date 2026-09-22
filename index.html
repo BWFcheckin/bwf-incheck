@@ -262,7 +262,18 @@
     </div>
   </div>
 
-  <div class="filter-bar">
+  <!-- Angela, 22-09-2026: "ik wil ook alle reserveringslijsten in
+       kalenderweergave met toon lijst als dropdown." De knoppen vandaag /
+       deze week / alle en het zoekveld sturen de kaarten aan, niet de
+       kalender, dus die gaan mee weg als je omzet. -->
+  <div class="card kalender-kaart" id="resKalVak">
+    <div class="card-head">
+      <div><span class="eyebrow">AGENDA</span><h3>Kalender</h3></div>
+    </div>
+    <div id="resKalender"></div>
+  </div>
+
+  <div class="filter-bar" id="resFilterBalk">
     <button class="filter active" data-res="vandaag">Vandaag</button>
     <button class="filter" data-res="week">Deze week</button>
     <button class="filter" data-res="alle">Alle</button>
@@ -521,6 +532,30 @@
     lijst:    "#planningLijst",
     extra:    "#page-planning .res-werkbalk",
     sleutel:  "bwf-planweergave-portaal"
+  });
+
+  /* Dezelfde keuze voor de reserveringen. De kalender wordt pas opgebouwd
+     zodra hij zichtbaar is: in een verborgen blok krijgt hij geen breedte mee
+     en tekent hij zichzelf tot een streepje. */
+  var gemaakt = false;
+  function maakResKalender(){
+    if(gemaakt || !window.BWFKalender) return;
+    var houder = document.getElementById("resKalender");
+    if(!houder || !houder.offsetParent) return;
+    window.BWFKalender.maak(houder, {
+      weergave: window.innerWidth < 760 ? "maand" : "week"
+    });
+    gemaakt = true;
+  }
+  window.BWFPlanWeergave.maak({
+    kop:      "#page-reserveringen .page-heading",
+    kalender: "#resKalVak",
+    lijst:    "#resKaarten",
+    extra:    "#resFilterBalk",
+    sleutel:  "bwf-resweergave-portaal",
+    bijWissel: function(stand){
+      if(stand === "kalender") setTimeout(maakResKalender, 0);
+    }
   });
 })();
 </script>
