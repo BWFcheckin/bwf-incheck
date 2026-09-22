@@ -22,6 +22,16 @@
 // Aanroepen (met het sessietoken van de ingelogde medewerker):
 //   POST { wat: "gesprekken", zoek?: "...", bladzijde?: 1 }
 //   POST { wat: "berichten", nummer: "31612345678", bladzijde?: 1 }
+//   POST { wat: "sturen", nummer: "31612345678", tekst: "..." }
+//
+// HET VENSTER VAN 24 UUR
+// WhatsApp laat een bedrijf alleen een vrij bericht sturen binnen 24 uur nadat
+// de gast zelf iets heeft gestuurd. Daarbuiten moet het via een sjabloon dat
+// Meta vooraf heeft goedgekeurd. Deze functie kijkt daarom eerst naar het
+// laatste bericht van de gast en weigert zelf als het venster dicht is - met
+// een uitleg in plaats van een technische fout. Zou je dat aan Wati overlaten,
+// dan verdwijnt het bericht stil: de verzendfout komt daar pas later via een
+// webhook, en die hebben we niet.
 //
 // Secrets: WATI_ENDPOINT, WATI_TOKEN (al gezet voor whatsapp-spoed),
 //          SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
@@ -70,6 +80,27 @@ function kortBericht(m: Record<string, unknown>) {
     tijd: m.created || m.timestamp,
     status: m.statusString || m.status,
     media: m.data && typeof m.data === "string" ? m.data : null,
+  };
+}
+
+/* Staat het venster van 24 uur nog open? Bepalend is het laatste bericht dat
+   de GAST stuurde (owner is false); wat wij zelf sturen verlengt het niet.
+   Wati geeft de berichten nieuwste eerst, maar daar vertrouwen we niet op: we
+   zoeken gewoon de nieuwste van de gast. */
+function vensterStand(items: Record<string, unknown>[]) {
+  let nieuwste = 0;
+  for (const m of items) {
+    if (m.owner === true || String(m.owner) === "true") continue;   /* van ons */
+    const t = Date.parse(String(m.created || m.timestamp || ""));
+    if (t && t > nieuwste) nieuwste = t;
+  }
+  if (!nieuwste) return { open: false, laatsteGast: null as string | null, urenGeleden: 0, tot: null as string | null };
+  const verstreken = Date.now() - nieuwste;
+  return {
+    open: verstreken < 24 * 3600_000,
+    laatsteGast: new Date(nieuwste).toISOString(),
+    urenGeleden: Math.floor(verstreken / 3600_000),
+    tot: new Date(nieuwste + 24 * 3600_000).toISOString(),
   };
 }
 
@@ -141,12 +172,56 @@ Deno.serve(async (req) => {
       if (!nummer) return antwoord({ fout: "Geen nummer meegegeven." }, 400);
       const d = await bijWati("getMessages/" + nummer + "?pageSize=60&pageNumber=" + bladzijde);
       const items = ((d.messages && d.messages.items) || []) as Record<string, unknown>[];
+      const venster = vensterStand(items);
       /* Wati levert nieuwste eerst; een gesprek leest van boven naar beneden. */
       return antwoord({
         nummer,
         berichten: items.map(kortBericht).reverse(),
         totaal: (d.messages && d.messages.total) || items.length,
+        magSturen: venster.open,
+        vensterTot: venster.tot,
       });
+    }
+
+    if (vraag.wat === "sturen") {
+      const nummer = String(vraag.nummer || "").replace(/\D/g, "");
+      const tekst = String(vraag.tekst || "").trim();
+      if (!nummer) return antwoord({ fout: "Geen nummer meegegeven." }, 400);
+      if (!tekst) return antwoord({ fout: "Het bericht is leeg." }, 400);
+      if (tekst.length > 4096) return antwoord({ fout: "Het bericht is te lang (maximaal 4096 tekens)." }, 400);
+
+      /* Eerst kijken of het venster nog open is. Dat kost een extra aanroep,
+         maar voorkomt dat een bericht stil verdwijnt. */
+      const lopend = await bijWati("getMessages/" + nummer + "?pageSize=30");
+      const venster = vensterStand(((lopend.messages && lopend.messages.items) || []) as Record<string, unknown>[]);
+      if (!venster.open) {
+        return antwoord({
+          fout: venster.laatsteGast
+            ? "Je kunt niet meer vrij antwoorden: de gast stuurde zijn laatste bericht " +
+              venster.urenGeleden + " uur geleden, en WhatsApp staat dat maar 24 uur toe. " +
+              "Stuur een bericht via WhatsApp zelf, of wacht tot de gast weer iets stuurt."
+            : "Deze gast heeft nog nooit iets gestuurd, dus WhatsApp staat een vrij bericht niet toe.",
+          venster: "dicht",
+        }, 409);
+      }
+
+      const r = await fetch(
+        endpoint + "/api/v1/sendSessionMessage/" + encodeURIComponent(nummer),
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ messageText: tekst }),
+        },
+      );
+      const ruw = (await r.text()).slice(0, 600);
+      let body: { result?: boolean; info?: string } | null = null;
+      try { body = JSON.parse(ruw); } catch (_) { /* geen json */ }
+      /* Wati kan http 200 teruggeven met result:false - allebei nakijken. */
+      const gelukt = r.ok && body?.result !== false;
+      if (!gelukt) {
+        return antwoord({ fout: (body && body.info) || ("Wati weigerde het bericht: " + ruw) }, 502);
+      }
+      return antwoord({ gelukt: true, nummer, tekst });
     }
 
     return antwoord({ fout: "Onbekende vraag." }, 400);

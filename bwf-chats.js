@@ -14,10 +14,12 @@
    iedereen kan lezen, en Wati staat geen aanroepen vanuit een browser toe.
    Die functie kijkt zelf of je bent ingelogd en welke rol je hebt.
 
-   Er wordt hier alleen gelezen. Terugsturen kan wel technisch, maar WhatsApp
-   laat een bedrijf alleen een vrij bericht sturen binnen 24 uur nadat de gast
-   zelf iets stuurde; daarbuiten moet het via een goedgekeurd sjabloon. Dat is
-   een apart onderwerp en staat bewust niet in deze eerste versie.
+   ANTWOORDEN KAN, MAAR NIET ALTIJD
+   WhatsApp laat een bedrijf alleen een vrij bericht sturen binnen 24 uur nadat
+   de gast zelf iets heeft gestuurd. Daarbuiten moet het via een sjabloon dat
+   Meta vooraf heeft goedgekeurd. Het antwoordvak gaat daarom vanzelf op slot
+   zodra dat venster dicht is, met de reden erbij - zo ontdek je het niet pas
+   nadat je een heel bericht hebt getypt.
    ============================================================ */
 (function () {
   "use strict";
@@ -137,6 +139,16 @@
     ".bwfc-bericht time{display:block;font-size:11px;opacity:.55;margin-top:3px}",
     ".bwfc-leeg{opacity:.6;padding:22px 16px;font-size:13.5px}",
     ".bwfc-fout{color:#B3261E;padding:14px;font-size:13.5px}",
+    ".bwfc-sturen{border-top:1px solid var(--c-lijn);padding:10px;background:var(--c-vlak);",
+      "border-radius:0 0 12px 12px;display:flex;gap:8px;align-items:flex-end}",
+    ".bwfc-sturen textarea{flex:1;font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--c-lijn);",
+      "border-radius:10px;resize:vertical;min-height:42px;max-height:160px;background:var(--c-zacht);color:inherit}",
+    ".bwfc-sturen button{font:inherit;font-size:14px;padding:10px 18px;border-radius:10px;border:0;",
+      "background:#167b5d;color:#fff;cursor:pointer;white-space:nowrap}",
+    ".bwfc-sturen button[disabled]{opacity:.45;cursor:not-allowed}",
+    ".bwfc-dicht{border-top:1px solid var(--c-lijn);padding:11px 14px;background:#faf4e8;",
+      "border-radius:0 0 12px 12px;font-size:13px;color:#7a5f36;line-height:1.45}",
+    ".bwfc-dicht a{color:inherit}",
     ".bwfc-terug{display:none}",
     "@media(max-width:700px){",
       ".bwfc{grid-template-columns:1fr}",
@@ -161,7 +173,12 @@
     zetCss();
     el.classList.add("bwfc");
 
-    var st = { gesprekken: [], gekozen: null, berichten: [], zoek: "", bezig: false, fout: "" };
+    var st = {
+      gesprekken: [], gekozen: null, berichten: [], zoek: "",
+      bezig: false, fout: "",
+      magSturen: false, vensterTot: null,   /* het venster van 24 uur */
+      concept: "", stuurt: false, stuurFout: ""
+    };
 
     function tekenLijst() {
       var vak = el.querySelector(".bwfc-rollen");
@@ -205,9 +222,31 @@
         var tekst = b.tekst || (b.soort && b.soort !== "text" ? "[" + b.soort + "]" : "");
         return '<div class="bwfc-bericht' + (b.vanOns ? " wij" : "") + '">' +
           esc(tekst) + "<time>" + esc(wanneer(b.tijd)) + "</time></div>";
-      }).join("") + "</div>";
+      }).join("") + "</div>" + stuurHtml();
       var lijst = vak.querySelector(".bwfc-berichten");
       if (lijst) lijst.scrollTop = lijst.scrollHeight;   /* onderaan beginnen, zoals WhatsApp */
+    }
+
+    /* Het antwoordvak, of de uitleg waarom het er niet is. */
+    function stuurHtml() {
+      if (!st.magSturen) {
+        return '<div class="bwfc-dicht">Je kunt hier niet vrij antwoorden. WhatsApp staat dat ' +
+          "alleen toe binnen 24 uur nadat de gast zelf iets heeft gestuurd. " +
+          'Antwoord via <a href="https://wa.me/' + esc(st.gekozen) +
+          '" target="_blank" rel="noopener">WhatsApp zelf</a>, of wacht tot de gast weer iets stuurt.</div>';
+      }
+      var tot = st.vensterTot ? new Date(st.vensterTot) : null;
+      var resterend = tot ? Math.max(0, Math.round((tot - Date.now()) / 3600000)) : null;
+      return '<div class="bwfc-sturen">' +
+        '<textarea data-concept placeholder="Schrijf een antwoord…"' +
+          (st.stuurt ? " disabled" : "") + ">" + esc(st.concept) + "</textarea>" +
+        '<button type="button" data-verstuur' + (st.stuurt || !st.concept.trim() ? " disabled" : "") + ">" +
+          (st.stuurt ? "Bezig…" : "Versturen") + "</button></div>" +
+        (st.stuurFout ? '<div class="bwfc-dicht">' + esc(st.stuurFout) + "</div>"
+          : resterend !== null
+            ? '<div class="bwfc-dicht" style="background:none;color:inherit;opacity:.6;padding-top:0">' +
+              "Vrij antwoorden kan nog ongeveer " + resterend + " uur.</div>"
+            : "");
     }
 
     function teken() {
@@ -245,14 +284,58 @@
       el.classList.add("open");
       teken();
       return vraag({ wat: "berichten", nummer: nummer })
-        .then(function (d) { st.berichten = d.berichten || []; st.bezig = false; teken(); })
+        .then(function (d) {
+          st.berichten = d.berichten || [];
+          st.magSturen = !!d.magSturen;
+          st.vensterTot = d.vensterTot || null;
+          st.concept = ""; st.stuurFout = "";
+          st.bezig = false; teken();
+        })
         .catch(function (e) { st.fout = e.message; st.bezig = false; teken(); });
+    }
+
+    /* Het bericht meteen in het gesprek zetten zodra Wati het heeft aangenomen.
+       Opnieuw alles ophalen zou ook kunnen, maar dan duurt het seconden voor je
+       je eigen bericht ziet staan en lijkt het alsof er niets gebeurd is. */
+    function verstuur() {
+      var tekst = st.concept.trim();
+      if (!tekst || st.stuurt) return;
+      st.stuurt = true; st.stuurFout = ""; teken();
+      vraag({ wat: "sturen", nummer: st.gekozen, tekst: tekst })
+        .then(function () {
+          st.berichten.push({ tekst: tekst, vanOns: true, tijd: new Date().toISOString(), soort: "text" });
+          st.concept = ""; st.stuurt = false; teken();
+        })
+        .catch(function (e) {
+          st.stuurt = false;
+          st.stuurFout = e.message;
+          /* Is het venster inmiddels dicht, dan hoort het vak ook dicht. */
+          if (/24 uur|nooit iets gestuurd/i.test(e.message)) st.magSturen = false;
+          teken();
+        });
     }
 
     el.addEventListener("click", function (e) {
       var g = e.target.closest("[data-nummer]");
       if (g && el.contains(g)) { haalBerichten(g.getAttribute("data-nummer")); return; }
       if (e.target.closest("[data-terug]")) { el.classList.remove("open"); return; }
+      if (e.target.closest("[data-verstuur]")) { verstuur(); return; }
+    });
+
+    /* Tijdens het typen alleen de knop aan- of uitzetten. Het hele venster
+       opnieuw tekenen zou de cursor laten springen en het toetsenbord op een
+       telefoon dichtklappen. */
+    el.addEventListener("input", function (e) {
+      if (e.target.dataset.concept === undefined) return;
+      st.concept = e.target.value;
+      var knop = el.querySelector("[data-verstuur]");
+      if (knop) knop.disabled = st.stuurt || !st.concept.trim();
+    });
+
+    /* Enter verstuurt, shift+enter maakt een nieuwe regel - zoals in WhatsApp. */
+    el.addEventListener("keydown", function (e) {
+      if (e.target.dataset.concept === undefined) return;
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); verstuur(); }
     });
 
     var wacht = null;
