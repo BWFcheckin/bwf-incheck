@@ -504,6 +504,26 @@
 
 <script src="bwf-kalender.js?v=19"></script>
 <script src="bwf-voorraad.js?v=1"></script>
+<script src="bwf-planweergave.js?v=1"></script>
+<script>
+/* Kalender of lijst op de planningpagina. Angela, 22-09-2026: "graag alle
+   planningen in kalenderweergave op elke pagina, met een dropdown voor de
+   lijstweergave."
+
+   De zoek- en sorteerbalk hoort bij de lijst en gaat mee weg; de datumkiezer
+   en de weekbalk erboven blijven staan, want die sturen allebei de weergaven
+   aan. */
+(function(){
+  if(!window.BWFPlanWeergave) return;
+  window.BWFPlanWeergave.maak({
+    kop:      "#page-planning .page-heading",
+    kalender: "#planningKalenderVak",
+    lijst:    "#planningLijst",
+    extra:    "#page-planning .res-werkbalk",
+    sleutel:  "bwf-planweergave-portaal"
+  });
+})();
+</script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 

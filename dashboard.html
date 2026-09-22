@@ -1527,7 +1527,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     </script>
 
     <div class="card">
-      <div class="card-head">
+      <!-- Deze kop blijft in beide weergaven staan: de maandknoppen sturen de
+           kalender én de lijst aan, want allebei tonen ze dezelfde maand. -->
+      <div class="card-head" id="planKop">
         <h2 id="kalTitel">Maandoverzicht</h2>
         <span style="display:flex;gap:6px;align-items:center">
           <button class="btn ghost small" type="button" id="kalPrev" aria-label="Vorige maand">&larr;</button>
@@ -1546,8 +1548,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
              reserveringskalender eruit." Het maandoverzicht met de diensten
              eronder blijft. -->
         <div id="planKalender" hidden></div>
-        <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
-        <div class="legend" id="kalLegend"></div>
+        <div id="planKalVak">
+          <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
+          <div class="legend" id="kalLegend"></div>
+        </div>
       </div>
     </div>
 
@@ -1579,7 +1583,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       </div>
     </div>
 
-    <div class="card">
+    <!-- De lijstweergave van dezelfde maand. Staat standaard uit; de keuze
+         bovenin de kaart "Maandoverzicht" zet hem aan. -->
+    <div class="card" id="planLijstVak">
       <div class="card-head"><h2>Diensten in deze maand</h2><span class="hint" id="planCount"></span></div>
       <div class="table-wrap" id="planTable"></div>
     </div>
@@ -8317,5 +8323,24 @@ bwfInklapbaar("panel-planning", "bw-planning-open", -1);
 </script>
 <script src="bwf-menu.js?v=9"></script>
 <script src="bwf-weergave.js?v=2"></script>
+<script src="bwf-planweergave.js?v=1"></script>
+<script>
+/* Kalender of lijst op de planningpagina. Angela, 22-09-2026: "graag alle
+   planningen in kalenderweergave op elke pagina, met een dropdown voor de
+   lijstweergave." De kalender en de lijst stonden allebei tegelijk op het
+   scherm; nu kies je er een, en de kalender staat voorop.
+
+   De maandknoppen blijven in beide standen staan: renderPlanning() filtert op
+   dezelfde maand, dus ze sturen allebei aan. */
+(function(){
+  if(!window.BWFPlanWeergave) return;
+  window.BWFPlanWeergave.maak({
+    kop:      "#planKop",
+    kalender: "#planKalVak",
+    lijst:    "#planLijstVak",
+    sleutel:  "bwf-planweergave-dashboard"
+  });
+})();
+</script>
 </body>
 </html>

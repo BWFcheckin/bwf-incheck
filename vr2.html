@@ -513,6 +513,30 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
 .dienstregel[data-vandaag]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .dienstregel strong{min-width:86px}
 .dienstregel em{opacity:.7;font-style:normal;font-size:13px}
+
+/* De diensten als maandrooster. Eigen namen met dk-, want vr2 heeft een eigen
+   stijllaag waarin algemene namen als .kal al bezet zijn. */
+.dk-balk{display:flex;align-items:center;gap:9px;margin-bottom:12px;flex-wrap:wrap}
+.dk-balk strong{font-size:15px;min-width:150px;text-align:center}
+.dk-rooster{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dk-kop{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6;
+  text-align:center;padding:4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace}
+.dk-dag{min-height:74px;border:1px solid var(--line);border-radius:9px;padding:5px 6px;
+  background:var(--surface);display:flex;flex-direction:column;gap:3px}
+.dk-dag.leeg{background:transparent;border-color:transparent}
+.dk-dag[data-vandaag]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dk-dag[data-verleden]{opacity:.55}
+.dk-nr{font-size:11.5px;opacity:.6;font-variant-numeric:tabular-nums}
+.dk-dienst{display:flex;align-items:center;gap:5px;font-size:11.5px;line-height:1.25;
+  padding:2px 5px;border-radius:6px;background:var(--surface-2,#f6f1ea);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dk-stip{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c,#9A7B4F)}
+.dk-legenda{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:12px;opacity:.8}
+.dk-legenda span{display:inline-flex;align-items:center;gap:6px}
+@media(max-width:640px){
+  .dk-dag{min-height:58px;padding:4px}
+  .dk-dienst{font-size:10.5px}
+}
 /* De reserveringenlijst als kaarten, in de stijl van de startpagina.
    Eigen namen (reskaart-*) zodat ze niet botsen met de .card, .badge en .stats
    die dit dashboard zelf al gebruikt. */
@@ -1909,7 +1933,22 @@ div.ag-blok{cursor:default}
           </select>
         </div>
       </div>
-      <div class="card-body" id="dienstBlok" hidden><div id="dienstLijst"></div></div>
+      <div class="card-body" id="dienstBlok" hidden>
+        <!-- Twee manieren om naar dezelfde diensten te kijken. De kalender
+             staat voorop; de keuze rechtsboven zet hem om naar een lijst.
+             Angela, 22-09-2026. -->
+        <div id="dienstKalVak">
+          <div class="dk-balk">
+            <button class="btn ghost small" type="button" id="dkVorige" aria-label="Vorige maand">&larr;</button>
+            <strong id="dkTitel">&nbsp;</strong>
+            <button class="btn ghost small" type="button" id="dkVolgende" aria-label="Volgende maand">&rarr;</button>
+            <button class="btn ghost small" type="button" id="dkNu">Deze maand</button>
+          </div>
+          <div class="dk-rooster" id="dienstKalender"></div>
+          <div class="dk-legenda" id="dkLegenda"></div>
+        </div>
+        <div id="dienstLijst"></div>
+      </div>
 
       <div class="reskop" id="resKop">
         <button class="reskopknop" type="button" id="resToggle" aria-expanded="false">
@@ -3002,6 +3041,7 @@ div.ag-blok{cursor:default}
 <script src="bwf-kalender.js?v=19"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script src="bwf-chats.js?v=2"></script>
+<script src="bwf-planweergave.js?v=1"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -6319,17 +6359,111 @@ $('#dienstToggle').addEventListener('click', ()=>{
   const open = knop.getAttribute('aria-expanded') !== 'true';
   knop.setAttribute('aria-expanded', String(open));
   blok.hidden = !open;
-  if(open) renderDiensten();
+  /* Beide tekenen: welke van de twee zichtbaar is bepaalt de weergavekeuze,
+     en de verborgene tekenen kost niets. */
+  if(open){ renderDiensten(); try{ renderDienstKalender(); }catch(e){} }
   try{ localStorage.setItem('bwf_diensten_open', open ? '1' : '0'); }catch(e){}
 });
 ['#dienstWie','#dienstPeriode'].forEach(x=>{
-  const el = $(x); if(el) el.addEventListener('change', renderDiensten);
+  const el = $(x); if(el) el.addEventListener('change', ()=>{
+    renderDiensten();
+    /* De medewerkerkeuze filtert ook het maandrooster; de periode niet, want
+       een kalender toont altijd een hele maand. */
+    try{ renderDienstKalender(); }catch(e){}
+  });
 });
 try{
   if(localStorage.getItem('bwf_diensten_open') === '1'){
     $('#dienstToggle').setAttribute('aria-expanded','true'); $('#dienstBlok').hidden = false;
   }
 }catch(e){}
+
+/* ---------------- DIENSTEN ALS MAANDROOSTER ----------------
+   Angela, 22-09-2026: "graag alle planningen in kalenderweergave op elke
+   pagina, met een dropdown voor de lijstweergave."
+
+   Dezelfde diensten als in de lijst hieronder, maar dan per dag naast elkaar.
+   De maand staat los van de periodekeuze ernaast: die hoort bij de lijst, een
+   kalender toont altijd één maand. */
+let dkMaand = '';
+function dkSleutel(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function dkNuMaand(){ return dkMaand || (dkMaand = dkSleutel(new Date())); }
+function dkSchuif(stap){
+  const p = dkNuMaand().split('-');
+  const d = new Date(+p[0], +p[1] - 1 + stap, 1);
+  dkMaand = dkSleutel(d);
+  renderDienstKalender();
+}
+function dkMaandNaam(ym){
+  const namen = ['januari','februari','maart','april','mei','juni','juli',
+                 'augustus','september','oktober','november','december'];
+  const p = String(ym||'').split('-');
+  const n = namen[Number(p[1]) - 1] || ym;
+  return n.charAt(0).toUpperCase() + n.slice(1) + ' ' + p[0];
+}
+function renderDienstKalender(){
+  const rooster = $('#dienstKalender'); if(!rooster) return;
+  const ym = dkNuMaand(), p = ym.split('-');
+  const jaar = +p[0], maand = +p[1] - 1;
+  const vd = vandaag();
+  const titel = $('#dkTitel'); if(titel) titel.textContent = dkMaandNaam(ym);
+
+  /* Alleen de medewerker die ernaast gekozen is, net als in de lijst - anders
+     wijst de ene weergave iets anders aan dan de andere. */
+  const wie = (($('#dienstWie')||{}).value) || '';
+  const perDag = {};
+  DIENSTEN.forEach(d=>{
+    if(wie && String(d.medewerker_id) !== String(wie)) return;
+    const dag = String(d.datum||'').slice(0,10);
+    if(dag.slice(0,7) !== ym) return;
+    (perDag[dag] = perDag[dag] || []).push(d);
+  });
+
+  const eersteDag = (new Date(jaar, maand, 1).getDay() + 6) % 7;   /* maandag = 0 */
+  const aantal = new Date(jaar, maand + 1, 0).getDate();
+  let html = ['ma','di','wo','do','vr','za','zo']
+    .map(d=>`<div class="dk-kop">${d}</div>`).join('');
+  for(let i = 0; i < eersteDag; i++) html += '<div class="dk-dag leeg"></div>';
+  for(let dag = 1; dag <= aantal; dag++){
+    const datum = ym + '-' + String(dag).padStart(2,'0');
+    const lijst = perDag[datum] || [];
+    html += `<div class="dk-dag"${datum===vd?' data-vandaag="1"':''}` +
+            `${datum<vd?' data-verleden="1"':''}>` +
+      `<span class="dk-nr">${dag}</span>` +
+      lijst.map(d=>`<span class="dk-dienst" title="${esc(teamNaam(d.medewerker_id))} — ` +
+        `${esc(kalSoortLabel(d.dienst))}${d.locatie?' — '+esc(d.locatie):''}">` +
+        `<span class="dk-stip" style="--c:${kalMwKleur(d.medewerker_id)}"></span>` +
+        `${esc(kalVoornaam(teamNaam(d.medewerker_id)))}</span>`).join('') +
+      '</div>';
+  }
+  rooster.innerHTML = html;
+
+  const leg = $('#dkLegenda');
+  if(leg) leg.innerHTML = TEAM.map(m=>
+    `<span><span class="dk-stip" style="--c:${kalMwKleur(m.id)}"></span>${esc(m.naam)}</span>`).join('');
+}
+['#dkVorige','#dkVolgende','#dkNu'].forEach((s,i)=>{
+  const el = $(s); if(!el) return;
+  el.addEventListener('click', ()=>{
+    if(i === 2){ dkMaand = dkSleutel(new Date()); renderDienstKalender(); }
+    else dkSchuif(i === 0 ? -1 : 1);
+  });
+});
+
+/* De keuze kalender/lijst. Staat in de kop van het dienstenblok, zodat hij
+   ook zichtbaar is als het blok is ingeklapt en je weet wat je opent. */
+(function(){
+  if(!window.BWFPlanWeergave) return;
+  window.BWFPlanWeergave.maak({
+    kop:      '#dienstKop',
+    kalender: '#dienstKalVak',
+    lijst:    '#dienstLijst',
+    sleutel:  'bwf-planweergave-vr2',
+    bijWissel: function(stand){
+      if(stand === 'kalender') renderDienstKalender(); else renderDiensten();
+    }
+  });
+})();
 
 /* ---------------- DIENST INPLANNEN ----------------
    Angela, 22-09-2026: "ik wil bij planning bij het vr dashboard ook diensten
@@ -6412,6 +6546,7 @@ if(plnBewaar) plnBewaar.addEventListener('click', async ()=>{
     plnVulWie();
     renderKalender();
     renderDiensten();
+    try{ renderDienstKalender(); }catch(e){}
     $('#plnNotitie').value = '';
     plnMeld(teamNaam(wie) + ' ingepland op ' + dmy(datum) + ' — ' + kalSoortLabel(soort) + '.');
   }catch(e){
