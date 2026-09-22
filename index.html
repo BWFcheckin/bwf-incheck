@@ -666,7 +666,23 @@ sb.auth.onAuthStateChange((_e, sessie) => {
     const mail = sessie.user.email || '';
     $('#initialen').textContent = mail.replace(/@.*/,'').slice(0,1).toUpperCase() || '?';
     $('#wieNaam').textContent = mail.replace(/@.*/,'');
-    haalRol().then(() => { pasRechtenToe(); start(); });
+    haalRol().then(() => {
+      pasRechtenToe();
+      /* Na inloggen meteen naar het dashboard dat bij je rol hoort. Angela,
+         22-09-2026: "als ik inlog kom ik toch op de index pagina uit, ik wil
+         niet op de index pagina uitkomen maar in het dashboard."
+
+         Een locatiemanager werkt op de locatie en hoort in dashboard.html; de
+         eigenaar en de vr-assistenten in het VR-dashboard. Wie hier bewust
+         naartoe komt - met ?portaal=1 achter het adres, of via "Naar de
+         startpagina" in het menu - blijft gewoon hier. Zo is het portaal niet
+         onbereikbaar, het is alleen niet meer de plek waar je vanzelf belandt. */
+      var blijf = new URLSearchParams(location.search).has('portaal');
+      var naar = ROL === 'locatiemanager' ? 'dashboard.html'
+               : (ROL === 'eigenaar' || ROL === 'vr') ? 'vr2.html' : '';
+      if(naar && !blijf){ location.replace(naar); return; }
+      start();
+    });
   }else{
     $('#login').classList.remove('hidden');
     $('#portaal').classList.add('hidden');

@@ -10710,7 +10710,7 @@ $('#whoBtn').addEventListener('click', ()=>{
   var menu = document.createElement("nav");
   menu.id = "bwfMenu"; menu.setAttribute("aria-label","Hoofdmenu");
 
-  var html = '<a class="thuis" href="index.html">Naar de startpagina</a>';
+  var html = '<a class="thuis" href="index.html?portaal=1">Naar de startpagina</a>';
   for(var g=0; g<PAGINAS.length; g++){
     html += '<div class="kop">' + PAGINAS[g].groep + '</div>';
     for(var i=0; i<PAGINAS[g].items.length; i++){
