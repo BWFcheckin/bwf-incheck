@@ -121,7 +121,23 @@
       "cursor:pointer;white-space:nowrap;margin-left:8px}",
     ".bwf-topmenu .bwfsessie:hover{background:rgba(255,255,255,.16);color:#fff}",
     ".bwf-topmenu .bwfsessie.aan{border-color:rgba(255,255,255,.2)}",
-    "@media(max-width:760px){.bwf-topmenu .rij{flex-wrap:nowrap;overflow-x:auto}}",
+    /* Op een telefoon nam de balk een derde van het scherm in: logo, twee
+       rijen knoppen en ruime marges. Angela, 22-09-2026. Hier gaat alles een
+       maat kleiner en schuift elke rij zijwaarts in plaats van door te lopen
+       op een tweede regel. Het logo verdwijnt: je weet wel van wie het
+       dashboard is, en het koste een hele regel. */
+    "@media(max-width:760px){",
+      ".bwf-topmenu .binnen{padding:5px 10px;gap:3px}",
+      ".bwf-topmenu img{display:none}",
+      ".bwf-topmenu .rij{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;",
+        "-webkit-overflow-scrolling:touch}",
+      ".bwf-topmenu .rij::-webkit-scrollbar{display:none}",
+      ".bwf-topmenu a,.bwf-topmenu .bwfk-tab{padding:4px 9px;font-size:12.5px}",
+      ".bwf-topmenu .rij.paginas{margin-top:4px;padding-top:4px}",
+      ".bwf-topmenu .rij.paginas a{font-size:12px}",
+      ".bwf-topmenu .wie{display:none}",
+      ".bwf-topmenu .bwfsessie{padding:3px 9px;font-size:12px;margin-left:4px}",
+    "}",
     "@media print{.bwf-topmenu{display:none}}"
   ].join("");
   (document.head || document.documentElement).appendChild(css);

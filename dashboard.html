@@ -834,7 +834,13 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .who .avatar{width:27px;height:27px}
   .who #whoName{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .fotos{border-radius:18px!important}
-  .tabs{top:auto;bottom:10px;position:fixed;left:10px;right:10px;width:auto;max-width:none;margin:0;padding:6px;justify-content:space-between;overflow-x:auto;border-radius:17px;box-shadow:0 14px 40px rgba(20,32,51,.2)}
+  /* Angela, 22-09-2026: op een telefoon stonden hier drie menu's tegelijk -
+     de balk bovenaan, deze zwevende tabbladenbalk onderaan, en twee losse
+     knoppen die over de inhoud heen lagen. De tabbladen verhuizen al naar de
+     balk bovenaan (bwf-menu.js); deze regel liet ze daarnaast ook nog onderaan
+     zweven. Zelfde ingreep als eerder in vr2. */
+  .tabs{position:static;width:auto;max-width:none;margin:0;padding:6px 0;
+    justify-content:flex-start;overflow-x:auto;border-radius:0;box-shadow:none}
   /* De tabbalk zweeft vast onderaan en de Home-knop staat daarboven. Zonder
      ruimte eronder verdwijnt het laatste stuk van elke pagina eronder - zoals
      de knop "Taak aanmaken" - en landt een tik op de balk in plaats van op de
@@ -2870,7 +2876,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
 <!-- ================= BWF-menu ================= -->
 <style>
-#bwfMenuKnop{position:fixed;right:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
+/* Niet meer zwevend rechtsonder maar in de balk bovenaan; zie plaats(). */
+#bwfMenuKnop{display:inline-flex;align-items:center;gap:8px;
   background:#483C34;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer;
   box-shadow:0 4px 14px rgba(36,30,25,.32)}
@@ -2883,7 +2890,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 #bwfMenuKnop .streep i:after{top:4px}
 #bwfMenuLaag{position:fixed;inset:0;z-index:8990;background:rgba(36,30,25,.35);display:none}
 #bwfMenuLaag.open{display:block}
-#bwfMenu{position:fixed;right:16px;bottom:70px;z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
+#bwfMenu{position:absolute;right:0;top:calc(100% + 8px);z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
   background:#fff;color:#241E19;border:1px solid #E3DAD0;border-radius:14px;display:none;
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:14px;
   box-shadow:0 18px 50px -18px rgba(36,30,25,.5)}
@@ -2995,8 +3002,30 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   function plaats(){
     document.body.appendChild(laag);
-    document.body.appendChild(menu);
-    document.body.appendChild(knop);
+    /* De knop hoort in de menubalk bovenaan, niet zwevend over de pagina.
+       Angela, 22-09-2026 - zelfde ingreep als eerder in vr2. Bestaat die balk
+       niet, dan valt alles terug op de oude plek zodat het menu nooit
+       onbereikbaar wordt. */
+    /* De balk wordt door bwf-menu.js gebouwd, en dat bestand staat verderop
+       in de pagina - op dit moment is hij er dus nog niet. Even wachten tot
+       hij verschijnt; lukt dat niet binnen vier seconden, dan valt de knop
+       terug op de oude zwevende plek zodat het menu nooit onbereikbaar is. */
+    var pogingen = 0;
+    (function zoekBalk(){
+      var plek = document.querySelector(".bwf-topmenu .rij.paginas") ||
+                 document.querySelector(".bwf-topmenu .binnen");
+      if(plek){
+        if(!plek.style.position) plek.style.position = "relative";
+        plek.appendChild(knop);
+        plek.appendChild(menu);
+        return;
+      }
+      if(++pogingen < 40){ setTimeout(zoekBalk, 100); return; }
+      knop.style.cssText += ";position:fixed;right:16px;bottom:16px;z-index:9000";
+      menu.style.cssText += ";position:fixed;right:16px;bottom:70px;top:auto";
+      document.body.appendChild(menu);
+      document.body.appendChild(knop);
+    })();
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", plaats);
   else plaats();
@@ -7602,36 +7631,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 </script>
 
 <!-- ================= Home-knop ================= -->
-<style>
-#bwfHomeKnop{position:fixed;left:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
-  background:#fff;color:#241E19;border:1px solid #dfe6ef;border-radius:999px;padding:10px 16px;
-  font:600 14px/1 "Public Sans","Helvetica Neue",Arial,sans-serif;text-decoration:none;cursor:pointer;
-  box-shadow:0 6px 18px -8px rgba(20,32,51,.45)}
-#bwfHomeKnop:hover{border-color:#165dff;color:#165dff}
-#bwfHomeKnop svg{width:17px;height:17px;display:block}
-@media(max-width:620px){
-  #bwfHomeKnop{bottom:72px;padding:9px 13px}
-  #bwfHomeKnop span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-}
-@media print{#bwfHomeKnop{display:none!important}}
-</style>
-<script>
-(function(){
-  if(window.self !== window.top) return;                 /* niet tonen in een ingesloten pagina */
-  var a = document.createElement('a');
-  a.id = 'bwfHomeKnop'; a.href = 'index.html';
-  a.setAttribute('aria-label','Naar de overzichtspagina');
-  a.title = 'Naar de overzichtspagina';
-  a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.75 20v-5.5h4.5V20"/></svg>' +
-    '<span>Startpagina</span>';
-  function plaats(){ document.body.appendChild(a); }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', plaats);
-  else plaats();
-})();
-</script>
-<!-- ================= einde Home-knop ================= -->
+<!-- De zwevende Startpagina-knop linksonder is op 22-09-2026 weggehaald, net
+     als eerder in vr2. Hij deed hetzelfde als "Naar de startpagina" bovenin
+     het uitklapmenu, en op een telefoon lag hij over de inhoud heen - in de
+     schermafdruk van Angela dekte hij een aankomsttijd af. -->
 <!-- De menubalk komt uit bwf-menu.js; de eigen versie hier is vervallen. -->
 <script>
 /* ---- rust tijdens het typen ----
@@ -7654,6 +7657,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   document.addEventListener('focusout', function(){ setTimeout(uit, 90); });
 })();
 </script>
-<script src="bwf-menu.js?v=5"></script>
+<script src="bwf-menu.js?v=6"></script>
 </body>
 </html>
