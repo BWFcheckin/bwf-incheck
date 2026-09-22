@@ -57,12 +57,10 @@
        nog steeds via een directe link te openen. */
     ["Agenda", "agenda.html"],
     ["Reserveringen", "reserveringen.html"],
-    /* Angela, 22-09-2026: "incheck en reserveringen zijn dezelfde pagina,
-       graag samenvoegen." Klopt: reserveringen.html heeft al een tabblad
-       Incheckformulieren. Deze knop opent dat tabblad in plaats van een apart
-       scherm. incheckformulier.html blijft bestaan - dat is het formulier dat
-       je invult bij een gast - en is van daaruit te openen. */
-    ["Incheck", "reserveringen.html?tab=incheck"],
+    /* "Incheck" stond hier als losse knop, maar het is hetzelfde scherm als
+       Reserveringen - daar staat het als tabblad. Twee knoppen naar dezelfde
+       pagina. Angela, 22-09-2026: "de knop incheck mag je ook verwijderen, dit
+       is hetzelfde als reserveringen." */
     ["Klanten", "klantbeheer.html"],
     ["VR", "vr2.html"],
     ["Locatie", "dashboard.html"],
@@ -135,7 +133,7 @@
     ".bwf-topmenu .bwfk-tab .badge,.bwf-topmenu .bwfk-tab .telling{background:rgba(255,255,255,.22);",
       "border-radius:999px;padding:0 6px;margin-left:5px;font-size:11px}",
     ".bwf-topmenu .bwfk-tab[aria-selected=\"true\"] .badge{background:rgba(0,0,0,.12)}",
-    ".bwf-topmenu .wie{margin-left:auto;color:rgba(255,255,255,.72);font-size:11.5px;",
+    ".bwf-topmenu .wie{color:rgba(255,255,255,.72);font-size:11.5px;",
       "font-family:'IBM Plex Mono',monospace}",
     /* In- en uitloggen hoort in de balk te staan. Angela, 22-09-2026: het zat
        per scherm ergens anders - dagstart en vandaag hadden een eigen knop,
@@ -144,6 +142,10 @@
       "border:1px solid rgba(255,255,255,.34);background:none;color:rgba(255,255,255,.9);",
       "cursor:pointer;white-space:nowrap;margin-left:8px}",
     ".bwf-topmenu .bwfsessie:hover{background:rgba(255,255,255,.16);color:#fff}",
+    ".bwf-topmenu .bwfterug{font:inherit;font-size:12.5px;padding:4px 11px;border-radius:999px;",
+      "border:1px solid rgba(255,255,255,.28);background:none;color:rgba(255,255,255,.88);",
+      "cursor:pointer;white-space:nowrap;margin-left:auto}",
+    ".bwf-topmenu .bwfterug:hover{background:rgba(255,255,255,.16);color:#fff}",
     ".bwf-topmenu .bwfsessie.aan{border-color:rgba(255,255,255,.2)}",
     /* Op een telefoon nam de balk een derde van het scherm in: logo, twee
        rijen knoppen en ruime marges. Angela, 22-09-2026. Hier gaat alles een
@@ -290,7 +292,9 @@
 
     vak.innerHTML = "";
     vak.appendChild(binnen);
+    zetTerugKnop();
     zetSessieKnop();
+    klaarSein();
   }
 
   /* Alleen de paginalinks opnieuw zetten zodra de rol bekend is. De tabbladen
@@ -312,10 +316,19 @@
       rij.appendChild(a);
     }
     if (wie) rij.appendChild(wie);
+    zetTerugKnop();
     zetSessieKnop();
+    klaarSein();
   }
 
   /* Naam en rol van wie er is ingelogd, als de pagina dat weet. */
+  /* Andere modules hangen ook iets in deze balk (bwf-weergave.js). Die
+     verdwenen zodra de balk opnieuw werd opgebouwd; met dit seintje kunnen ze
+     zichzelf opnieuw aanhaken. Angela, 22-09-2026. */
+  function klaarSein() {
+    try { window.dispatchEvent(new CustomEvent("bwf-balk-klaar")); } catch (e) {}
+  }
+
   function wie() {
     var el = document.getElementById("bwfTopWie");
     if (el && window.BWF && (window.BWF.medewerker || window.BWF.email)) {
@@ -351,6 +364,30 @@
        vorige persoon blijft staan. */
     try { localStorage.removeItem("bw-wie"); } catch (e) {}
     location.reload();
+  }
+
+  /* Een knop terug naar het vorige scherm. Angela, 22-09-2026: "plaats een
+     knop terug zodat je terug kan naar de vorige pagina."
+
+     Hij verschijnt alleen als er iets is om naar terug te gaan: kwam je hier
+     rechtstreeks binnen, dan zou hij je de site uit sturen. Net als de
+     sessieknop wordt hij na élke hertekening opnieuw gezet - de rij wordt
+     leeggemaakt zodra de rol bekend is, en anders was hij daarna verdwenen. */
+  function zetTerugKnop() {
+    var rij = document.querySelector(".bwf-topmenu .rij.paginas");
+    if (!rij) return;
+    if (!(window.history && window.history.length > 1)) return;
+    var knop = document.getElementById("bwfTerugKnop");
+    if (!knop) {
+      knop = document.createElement("button");
+      knop.type = "button";
+      knop.id = "bwfTerugKnop";
+      knop.className = "bwfterug";
+      knop.title = "Terug naar het vorige scherm";
+      knop.innerHTML = "&larr; Terug";
+      knop.addEventListener("click", function () { history.back(); });
+    }
+    rij.appendChild(knop);
   }
 
   function zetSessieKnop() {
