@@ -113,6 +113,14 @@
     ".bwf-topmenu .bwfk-tab[aria-selected=\"true\"] .badge{background:rgba(0,0,0,.12)}",
     ".bwf-topmenu .wie{margin-left:auto;color:rgba(255,255,255,.72);font-size:11.5px;",
       "font-family:'IBM Plex Mono',monospace}",
+    /* In- en uitloggen hoort in de balk te staan. Angela, 22-09-2026: het zat
+       per scherm ergens anders - dagstart en vandaag hadden een eigen knop,
+       de andere schermen helemaal geen. */
+    ".bwf-topmenu .bwfsessie{font:inherit;font-size:12.5px;padding:4px 11px;border-radius:999px;",
+      "border:1px solid rgba(255,255,255,.34);background:none;color:rgba(255,255,255,.9);",
+      "cursor:pointer;white-space:nowrap;margin-left:8px}",
+    ".bwf-topmenu .bwfsessie:hover{background:rgba(255,255,255,.16);color:#fff}",
+    ".bwf-topmenu .bwfsessie.aan{border-color:rgba(255,255,255,.2)}",
     "@media(max-width:760px){.bwf-topmenu .rij{flex-wrap:nowrap;overflow-x:auto}}",
     "@media print{.bwf-topmenu{display:none}}"
   ].join("");
@@ -241,6 +249,7 @@
 
     vak.innerHTML = "";
     vak.appendChild(binnen);
+    zetSessieKnop();
   }
 
   /* Alleen de paginalinks opnieuw zetten zodra de rol bekend is. De tabbladen
@@ -261,6 +270,7 @@
       rij.appendChild(a);
     }
     if (wie) rij.appendChild(wie);
+    zetSessieKnop();
   }
 
   /* Naam en rol van wie er is ingelogd, als de pagina dat weet. */
@@ -269,6 +279,59 @@
     if (el && window.BWF && (window.BWF.medewerker || window.BWF.email)) {
       el.textContent = (window.BWF.medewerker || window.BWF.email) + (ROL ? " · " + ROL : "");
     }
+    zetSessieKnop();
+  }
+
+  /* De knop rechts in de balk: uitloggen als je bent ingelogd, anders inloggen.
+     Uitloggen is overal hetzelfde - de sessie staat in localStorage - maar
+     inloggen gebeurt per scherm op een eigen manier. Daarom stuurt die knop je
+     naar de startpagina, waar het inlogscherm staat; dat werkt op elk scherm
+     en gokt nergens naar een knop die er misschien niet is.
+     Angela, 22-09-2026. */
+  function sessieSleutels() {
+    var uit = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k) continue;
+        if ((k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > -1) || k === "wz_sessie") uit.push(k);
+      }
+    } catch (e) {}
+    return uit;
+  }
+
+  function uitloggen() {
+    if (!confirm("Uitloggen?")) return;
+    sessieSleutels().forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+    /* Ook de naam die sommige schermen los bewaren, zodat er niets van de
+       vorige persoon blijft staan. */
+    try { localStorage.removeItem("bw-wie"); } catch (e) {}
+    location.reload();
+  }
+
+  function zetSessieKnop() {
+    var rij = document.querySelector(".bwf-topmenu .rij.paginas");
+    if (!rij) return;
+    var knop = document.getElementById("bwfSessieKnop");
+    var ingelogd = !!token();
+    if (!knop) {
+      knop = document.createElement("button");
+      knop.id = "bwfSessieKnop";
+      knop.type = "button";
+      knop.className = "bwfsessie";
+      knop.addEventListener("click", function () {
+        if (token()) uitloggen();
+        else location.href = "index.html";
+      });
+      rij.appendChild(knop);
+    } else if (knop.parentNode !== rij) {
+      rij.appendChild(knop);        /* na opnieuw tekenen weer achteraan zetten */
+    }
+    knop.textContent = ingelogd ? "Uitloggen" : "Inloggen";
+    knop.className = "bwfsessie" + (ingelogd ? " aan" : "");
+    knop.title = ingelogd ? "Afmelden op dit apparaat" : "Naar het inlogscherm";
   }
 
   function start() {

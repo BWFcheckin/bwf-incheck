@@ -391,6 +391,59 @@ body.gate-open{overflow:hidden}
 #panel-overzicht .lm-leeg{font-size:14px;opacity:.6}
 #panel-overzicht .lm-morgen{margin-left:auto;font-size:13px;opacity:.7}
 @media(max-width:620px){#panel-overzicht .lm-morgen{margin-left:0;width:100%}}
+/* ===== Dagstart van het locatiedashboard. Angela, 22-09-2026. ===== */
+.ds-blok{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;
+  padding:14px 16px;margin:16px 0}
+.ds-kop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ds-kop h2{margin:0;font-size:17px}
+.ds-tel{margin-left:auto;font-size:12.5px;opacity:.6}
+.ds-bel{border:0;background:none;cursor:pointer;font-size:15px;padding:0 2px;position:relative;line-height:1}
+.ds-bel .aantal{position:absolute;top:-6px;right:-9px;background:#B3261E;color:#fff;border-radius:999px;
+  font-size:10px;font-weight:700;padding:0 5px;min-width:15px;text-align:center}
+.ds-uitklap{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;
+  margin:12px 0;overflow:hidden}
+.ds-uitklap>summary{cursor:pointer;padding:12px 16px;font-weight:600;font-size:16px;
+  display:flex;align-items:center;gap:10px;list-style:none}
+.ds-uitklap>summary::-webkit-details-marker{display:none}
+.ds-uitklap>summary::before{content:"\25B8";font-size:12px;opacity:.55;transition:.15s}
+.ds-uitklap[open]>summary::before{content:"\25BE"}
+.ds-uitklap-lijf{padding:0 16px 14px}
+.ds-balk{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ds-balk select,.ds-balk input{font:inherit;font-size:14px;padding:7px 10px;border-radius:9px;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);color:inherit}
+.ds-balk input{flex:1 1 180px;min-width:0}
+.ds-leeg{opacity:.6;font-size:13.5px;margin:6px 0}
+.ds-regel{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line,#e3dad0)}
+.ds-regel:first-child{border-top:0}
+.ds-regel .wanneer{flex:0 0 78px;font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace}
+.ds-regel strong{font-weight:600}
+.ds-regel small{display:block;opacity:.66;font-size:12.5px}
+.ds-regel.spoed{background:#fdf2f1;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
+.ds-regel.later{background:var(--goud-zacht,#faf4e8);margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
+/* Reserveringskaarten met de foto van de suite; de fotovariabelen komen uit
+   bwf-agenda-stijl.css, dat dit scherm al laadt. */
+.ds-kaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ds-kaart{border:1px solid var(--line,#e3dad0);border-radius:14px;overflow:hidden;background:var(--surface,#fff);
+  display:flex;flex-direction:column;text-align:left;font:inherit;color:inherit;padding:0;cursor:pointer}
+.ds-kaart:hover{box-shadow:0 10px 24px -18px rgba(0,0,0,.5)}
+.ds-foto{height:96px;background:var(--k,#6b625a) center/cover no-repeat;position:relative}
+.ds-foto.foto-angie{background-image:var(--foto-angie)}
+.ds-foto.foto-malina{background-image:var(--foto-malina)}
+.ds-foto.foto-deluxe{background-image:var(--foto-deluxe)}
+.ds-foto:after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(20,16,12,.75),rgba(20,16,12,.05))}
+.ds-op{position:absolute;left:11px;right:11px;bottom:8px;z-index:1;color:#fff}
+.ds-op b{display:block;font-size:15px;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.ds-op span{display:block;font-size:11.5px;opacity:.93;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.ds-merk{position:absolute;top:8px;left:11px;z-index:1;background:rgba(255,255,255,.94);color:#2b241d;
+  border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px}
+.ds-merk.nu{background:#0F7B5A;color:#fff}
+.ds-kaartlijf{padding:9px 12px 11px;display:grid;gap:4px;font-size:12.5px}
+.ds-kaartrij{display:flex;justify-content:space-between;gap:8px}
+.ds-kaartrij span:first-child{opacity:.6}
+.ds-open{color:#B3261E;font-weight:700}
+@media(max-width:520px){.ds-kaarten{grid-template-columns:1fr}}
+
 /* Belletje bij een nieuwe boeking voor Lelystad. Angela, 21-09-2026. */
 #lmNieuweBoeking{border:1px solid #9A7B4F;border-left:5px solid #9A7B4F;background:#faf4e8;
   border-radius:14px;padding:13px 16px;margin-bottom:16px}
@@ -945,6 +998,53 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
          blokkades. Het vandaag-scherm met de welkomstcall-knoppen blijft bereikbaar via de link. -->
     <div id="lelystadKalender"></div>
     <p style="margin:10px 2px 0;font-size:13px"><a href="vandaag.html?loc=lelystad" target="_blank" rel="noopener">Vandaag-scherm met welkomstcall-knoppen openen</a></p>
+
+    <!-- ===== Dagstart, Angela 22-09-2026 =====
+         "Personeels dashboard: opent met dagstart, reserveringen kalender, een
+         dropdown menu reserveringen met reserveringskaart en suitefoto, spoed
+         reserveringen met belletje, taken locatie Lelystad gesorteerd op
+         datum." Plus voorraadbeheer, dat ze hier miste.
+         De kalender staat hierboven; de rest volgt hieronder. -->
+
+    <div class="ds-blok" id="dsSpoedVak">
+      <div class="ds-kop">
+        <h2>Spoed vandaag</h2>
+        <button class="ds-bel" type="button" id="dsSpoedBel" hidden
+          title="Nieuw sinds je hier voor het laatst keek. Klik om af te vinken.">
+          <span class="klok">&#128276;</span><span class="aantal"></span></button>
+        <span class="ds-tel" id="dsSpoedTel"></span>
+      </div>
+      <div id="dsSpoed"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
+    </div>
+
+    <details class="ds-uitklap" id="dsResVak">
+      <summary>Reserveringen
+        <span class="ds-tel" id="dsResTel"></span></summary>
+      <div class="ds-uitklap-lijf">
+        <div class="ds-balk">
+          <label class="visueel" for="dsResPeriode">Welke reserveringen</label>
+          <select id="dsResPeriode">
+            <option value="komend">Vanaf vandaag</option>
+            <option value="week">Deze week</option>
+            <option value="alles">Alle reserveringen</option>
+          </select>
+          <input type="search" id="dsResZoek" placeholder="Zoek gast, suite of nummer">
+        </div>
+        <div id="dsResKaarten"></div>
+      </div>
+    </details>
+
+    <details class="ds-uitklap" id="dsTakenVak" open>
+      <summary>Taken Lelystad
+        <span class="ds-tel" id="dsTakenTel"></span></summary>
+      <div class="ds-uitklap-lijf"><div id="dsTaken"></div></div>
+    </details>
+
+    <details class="ds-uitklap" id="dsVoorraadVak">
+      <summary>Voorraad bijvullen
+        <span class="ds-tel" id="dsVoorraadTel"></span></summary>
+      <div class="ds-uitklap-lijf"><div data-bwf-voorraad="compact"></div></div>
+    </details>
 
     <div style="margin:16px 0 10px">
       <button class="btn secondary" type="button" id="oudOverzichtKnop">+ Het oude overzicht tonen</button>
@@ -3778,7 +3878,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -4270,6 +4370,200 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
     return 'Nieuwe boeking Lelystad:\n' + regels.join('\n');
   }
+  /* ============ Dagstart van het locatiedashboard ============
+     Angela, 22-09-2026. Vier blokken onder de kalender: spoed vandaag met een
+     belletje, de reserveringen als kaart met suitefoto achter een uitklapper,
+     de taken voor Lelystad op datum, en de voorraad.
+     Alles leest uit ALLES en TAKEN, die in dit blok al geladen worden - geen
+     extra ophaalronde. */
+
+  function dsDatum(iso){
+    var d = String(iso || '').slice(0,10).split('-');
+    if(d.length !== 3) return '';
+    var dt = new Date(+d[0], +d[1]-1, +d[2]);
+    var dag = ['zo','ma','di','wo','do','vr','za'][dt.getDay()];
+    var mnd = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][+d[1]-1];
+    return dag + ' ' + (+d[2]) + ' ' + mnd;
+  }
+  function dsFotoKlasse(loc){
+    var h = hoofdnaam(loc);
+    return h === 'Malina Deluxe' ? 'foto-deluxe'
+         : h === 'Malina Jacuzzi' ? 'foto-malina' : 'foto-angie';
+  }
+  function dsBoekingen(){
+    return ALLES.filter(function(r){
+      return (r.soort === 'reservering' || r.soort === 'extern' || r.soort === 'handmatig') &&
+             isLelystad(r.locatie);
+    });
+  }
+
+  /* ---- blok 1: spoed vandaag ----
+     Wie er vandaag aankomt of vertrekt, plus wat er net is binnengekomen voor
+     een gast die binnen 24 uur komt. Het belletje telt alleen wat je nog niet
+     hebt weggeklikt; die stand staat op dit apparaat. */
+  function dsTekenSpoed(){
+    var vak = document.getElementById('dsSpoed');
+    if(!vak) return;
+    var vandaag = dstr(new Date());
+    var morgen = dstr(new Date(Date.now() + 86400000));
+    var regels = [];
+
+    dsBoekingen().forEach(function(r){
+      if(r.aankomst === vandaag){
+        regels.push({ sleutel:'a-'+r.id, soort:'spoed', wanneer:(r.tijdIn || 'aankomst'),
+          titel:gastnaam(r), sub:[suiteKort(r.locatie), r.kanaal, 'aankomst vandaag'].filter(Boolean).join(' · ') });
+      }else if(r.vertrek === vandaag){
+        regels.push({ sleutel:'v-'+r.id, soort:'', wanneer:(r.tijdUit || 'vertrek'),
+          titel:gastnaam(r), sub:[suiteKort(r.locatie), 'vertrek vandaag'].filter(Boolean).join(' · ') });
+      }else if(r.aankomst === morgen){
+        regels.push({ sleutel:'m-'+r.id, soort:'later', wanneer:'morgen',
+          titel:gastnaam(r), sub:[suiteKort(r.locatie), r.kanaal, 'aankomst morgen'].filter(Boolean).join(' · ') });
+      }
+    });
+    regels.sort(function(a,b){ return String(a.wanneer).localeCompare(String(b.wanneer)); });
+
+    var tel = document.getElementById('dsSpoedTel');
+    if(tel) tel.textContent = regels.length ? (regels.length + (regels.length===1?' regel':' regels')) : '';
+    vak.innerHTML = regels.length
+      ? regels.map(function(x){
+          return '<div class="ds-regel ' + esc(x.soort) + '">' +
+            '<span class="wanneer">' + esc(x.wanneer) + '</span>' +
+            '<div><strong>' + esc(x.titel) + '</strong><small>' + esc(x.sub) + '</small></div></div>';
+        }).join('')
+      : '<p class="ds-leeg">Vandaag en morgen komt of vertrekt er niemand.</p>';
+
+    dsBel('dsSpoedBel', 'spoed', regels.map(function(x){ return x.sleutel; }));
+  }
+
+  /* Het belletje: laat zien hoeveel er nieuw is sinds je het voor het laatst
+     wegklikte. Dezelfde werkwijze als op de dagstart van het VR-dashboard. */
+  function dsGezien(sleutel){
+    try{
+      var l = JSON.parse(localStorage.getItem('bwf-ds-gezien-' + sleutel) || '[]');
+      return Object.prototype.toString.call(l) === '[object Array]' ? l : [];
+    }catch(e){ return []; }
+  }
+  function dsBel(knopId, sleutel, ids){
+    var knop = document.getElementById(knopId);
+    if(!knop) return;
+    var gezien = dsGezien(sleutel);
+    var nieuw = ids.filter(function(i){ return i && gezien.indexOf(String(i)) < 0; });
+    knop.hidden = !nieuw.length;
+    var t = knop.querySelector('.aantal');
+    if(t) t.textContent = nieuw.length ? String(nieuw.length) : '';
+    knop.onclick = function(){
+      try{
+        localStorage.setItem('bwf-ds-gezien-' + sleutel,
+          JSON.stringify(gezien.concat(ids.map(String)).slice(-400)));
+      }catch(e){}
+      knop.hidden = true;
+    };
+  }
+
+  /* ---- blok 2: reserveringen als kaart met suitefoto ---- */
+  function dsTekenKaarten(){
+    var vak = document.getElementById('dsResKaarten');
+    if(!vak) return;
+    var vandaag = dstr(new Date());
+    var keuze = (document.getElementById('dsResPeriode') || {}).value || 'komend';
+    var zoek = String((document.getElementById('dsResZoek') || {}).value || '').toLowerCase().trim();
+
+    var weekEind = dstr(new Date(Date.now() + 7 * 86400000));
+    var lijst = dsBoekingen().filter(function(r){
+      if(keuze === 'komend' && !(r.aankomst >= vandaag || r.vertrek >= vandaag)) return false;
+      if(keuze === 'week' && !(r.aankomst >= vandaag && r.aankomst <= weekEind)) return false;
+      if(zoek){
+        var alles = [gastnaam(r), r.locatie, r.kanaal, r.nummer].join(' ').toLowerCase();
+        if(alles.indexOf(zoek) < 0) return false;
+      }
+      return true;
+    }).sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
+
+    var tel = document.getElementById('dsResTel');
+    if(tel) tel.textContent = lijst.length ? String(lijst.length) : '';
+
+    vak.className = 'ds-kaarten';
+    vak.innerHTML = lijst.length ? lijst.slice(0, 60).map(function(r){
+      var k = kop(r);
+      var totaal = k.totaal != null ? k.totaal : r.totaal;
+      var open = r.bijAankomst;
+      var merk = r.aankomst === vandaag ? '<span class="ds-merk nu">vandaag</span>'
+               : r.vertrek === vandaag ? '<span class="ds-merk">vertrekt</span>' : '';
+      var regels =
+        '<div class="ds-kaartrij"><span>aankomst</span><b>' + esc(dsDatum(r.aankomst)) +
+          (r.tijdIn ? ' ' + esc(r.tijdIn) : '') + '</b></div>' +
+        '<div class="ds-kaartrij"><span>vertrek</span><b>' + esc(dsDatum(r.vertrek)) +
+          (r.tijdUit ? ' ' + esc(r.tijdUit) : '') + '</b></div>' +
+        (r.kanaal ? '<div class="ds-kaartrij"><span>via</span><span>' + esc(r.kanaal) + '</span></div>' : '') +
+        (totaal ? '<div class="ds-kaartrij"><span>bedrag</span><b>' + esc(euro(totaal)) +
+          (Number(open) > 0 ? ' <span class="ds-open">' + esc(euro(open)) + ' open</span>' : '') +
+          '</b></div>' : '');
+      return '<button class="ds-kaart" type="button" data-dskaart="' + esc(r.id) + '">' +
+        '<div class="ds-foto ' + dsFotoKlasse(r.locatie) + '">' + merk +
+          '<div class="ds-op"><b>' + esc(gastnaam(r)) + '</b><span>' +
+          esc(hoofdnaam(r.locatie)) + '</span></div></div>' +
+        '<div class="ds-kaartlijf">' + regels + '</div></button>';
+    }).join('') : '<p class="ds-leeg">Geen reserveringen in deze selectie.</p>';
+  }
+
+  /* ---- blok 3: taken voor Lelystad, op datum ----
+     wz_taken.locatie kent alleen 'Almere' en 'Lelystad'. Taken zonder locatie
+     gelden voor iedereen en horen er dus ook bij; alleen die van Almere
+     blijven weg. Op deadline gesorteerd, het oudste bovenaan, en wat al
+     verlopen is valt op. */
+  function dsTekenTaken(){
+    var vak = document.getElementById('dsTaken');
+    if(!vak) return;
+    var vandaag = dstr(new Date());
+    var lijst = (TAKEN || []).filter(function(t){
+      var st = String(veld(t, ['status'], '')).toLowerCase();
+      if(st === 'klaar' || st === 'afgerond') return false;
+      var loc = String(veld(t, ['locatie'], '')).toLowerCase();
+      return loc !== 'almere';
+    }).sort(function(a, b){
+      var da = String(veld(a, ['deadline'], '') || '9999-99-99');
+      var db = String(veld(b, ['deadline'], '') || '9999-99-99');
+      return da.localeCompare(db);
+    });
+
+    var tel = document.getElementById('dsTakenTel');
+    if(tel) tel.textContent = lijst.length ? String(lijst.length) : '';
+
+    vak.className = '';
+    vak.innerHTML = lijst.length ? lijst.slice(0, 40).map(function(t){
+      var deadline = String(veld(t, ['deadline'], ''));
+      var laat = deadline && deadline < vandaag;
+      var wie = veld(t, ['medewerker_id'], '');
+      var naam = wie ? (MEDEWERKERS.filter(function(m){ return String(m.id) === String(wie); })[0] || {}) : {};
+      return '<div class="ds-regel' + (laat ? ' spoed' : '') + '">' +
+        '<span class="wanneer">' + esc(deadline ? dsDatum(deadline) : 'geen datum') + '</span>' +
+        '<div><strong>' + esc(veld(t, ['titel'], 'Zonder titel')) + '</strong><small>' +
+        esc([veld(t, ['omschrijving'], ''), veld(naam, ['naam','voornaam'], ''),
+             laat ? 'over tijd' : ''].filter(Boolean).join(' · ').slice(0, 150)) +
+        '</small></div></div>';
+    }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
+  }
+
+  function tekenDagstart(){
+    try{ dsTekenSpoed(); }catch(e){}
+    try{ dsTekenKaarten(); }catch(e){}
+    try{ dsTekenTaken(); }catch(e){}
+  }
+
+  document.addEventListener('change', function(e){
+    if(e.target && (e.target.id === 'dsResPeriode')) dsTekenKaarten();
+  });
+  document.addEventListener('input', function(e){
+    if(e.target && e.target.id === 'dsResZoek') dsTekenKaarten();
+  });
+  /* Een tik op een kaart opent dezelfde reserveringskaart als elders. */
+  document.addEventListener('click', function(e){
+    var k = e.target.closest && e.target.closest('[data-dskaart]');
+    if(!k) return;
+    var r = ALLES.filter(function(x){ return String(x.id) === k.getAttribute('data-dskaart'); })[0];
+    if(r && typeof openKaart === 'function') openKaart(r);
+  });
+
   function tekenNieuweBoekingen(){
     var vak = document.getElementById('lmNieuweBoeking');
     if(!vak) return;
@@ -7262,6 +7556,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   document.addEventListener('focusout', function(){ setTimeout(uit, 90); });
 })();
 </script>
-<script src="bwf-menu.js?v=4"></script>
+<script src="bwf-menu.js?v=5"></script>
 </body>
 </html>
