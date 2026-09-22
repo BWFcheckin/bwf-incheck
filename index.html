@@ -15,7 +15,7 @@
 <meta id="themaKleur" name="theme-color" content="#173C35">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BWF Lelystad">
-<link rel="stylesheet" href="bwf-portaal-stijl.css?v=3">
+<link rel="stylesheet" href="bwf-portaal-stijl.css?v=4">
 </head>
 <body>
 
@@ -132,6 +132,46 @@
       <span class="stat-arrow">&rarr;</span>
     </button>
   </div>
+
+  <!-- ===== De vandaag-pagina, Angela 22-09-2026 =====
+       "Ik wil dat het dashboard waar Jerry, Ruth en Michel op inloggen dezelfde
+       vandaag-pagina heeft als het voorbeeld." Zij loggen hier in, niet op
+       dashboard.html, dus staan die blokken nu ook hier: spoed met een vinkje
+       per regel, de kalender, de reserveringen als kaart met suitefoto, de
+       taken en de voorraad. De tegels en het rooster hieronder blijven. -->
+  <div class="vd-blok" id="vdSpoedVak">
+    <div class="vd-kop">
+      <h2>Spoed vandaag</h2>
+      <span class="vd-tel" id="vdSpoedTel"></span>
+    </div>
+    <div id="vdSpoed"><p class="leeg">Bezig met laden&hellip;</p></div>
+  </div>
+
+  <div class="vd-blok">
+    <div class="vd-kop"><h2>Reserveringen</h2></div>
+    <div id="vdKalender"></div>
+  </div>
+
+  <details class="vd-uitklap" id="vdResVak" open>
+    <summary>Alle reserveringen <span class="vd-tel" id="vdResTel"></span></summary>
+    <div class="vd-lijf">
+      <div class="vd-balk">
+        <label class="vd-verborgen" for="vdPeriode">Welke reserveringen</label>
+        <select id="vdPeriode">
+          <option value="komend">Vanaf vandaag</option>
+          <option value="week">Deze week</option>
+          <option value="alles">Alle reserveringen</option>
+        </select>
+        <input type="search" id="vdZoek" placeholder="Zoek gast, suite of nummer">
+      </div>
+      <div id="vdKaarten"></div>
+    </div>
+  </details>
+
+  <details class="vd-uitklap" id="vdVoorraadVak">
+    <summary>Voorraad bijvullen <span class="vd-tel" id="vdVoorraadTel"></span></summary>
+    <div class="vd-lijf"><div data-bwf-voorraad="compact"></div></div>
+  </details>
 
   <div class="home-grid">
 
@@ -465,6 +505,7 @@
 </div>
 
 <script src="bwf-kalender.js?v=19"></script>
+<script src="bwf-voorraad.js?v=1"></script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -696,7 +737,10 @@ async function start(){
 
   const [res, taken, calls, voorraad, berichten, mw, inst] = await Promise.all([
     sb.from('reserveringen')
-      .select('id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,gast_voornaam,gast_achternaam,gast_telefoon,personen,arrangementen,bedrag_totaal,betaalstatus,notitie')
+      /* restant_bedrag en created_at erbij: het eerste voor het openstaande
+         bedrag op de reserveringskaart, het tweede om te zien of een boeking
+         net is binnengekomen. Angela, 22-09-2026. */
+      .select('id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,gast_voornaam,gast_achternaam,gast_telefoon,personen,arrangementen,bedrag_totaal,restant_bedrag,betaalstatus,notitie,created_at')
       .gte('aankomst', grens + 'T00:00:00')
       .order('aankomst', { ascending:true }).limit(400),
     sb.from('wz_taken')
@@ -802,6 +846,187 @@ function tekenTellers(){
 /* ═══════════════════════════════════════════════════════════
    HOME
    ═══════════════════════════════════════════════════════════ */
+/* ==========================================================================
+   De vandaag-pagina op de startpagina — Angela, 22-09-2026
+   --------------------------------------------------------------------------
+   Dezelfde blokken als op dashboard.html, want Jerry, Ruth en Michel loggen
+   hier in en niet daar. Alles leest uit RESERVERINGEN, dat hierboven al is
+   opgehaald; er komt geen extra ophaalronde bij.
+   ========================================================================== */
+
+const VD_SUITES = [
+  { test:/psmd|psd|deluxe|zwembad/,  naam:'Malina Deluxe',  kort:'Deluxe',  foto:'foto-deluxe', kleur:'#D63A2A' },
+  { test:/psm|jacuzzi|malina/,       naam:'Malina Jacuzzi', kort:'Jacuzzi', foto:'foto-malina', kleur:'#1C6FD0' },
+  { test:/psa|angie|almere/,         naam:'Suite Angie',    kort:'Angie',   foto:'foto-angie',  kleur:'#B5842C' }
+];
+function vdSuite(w){
+  const t = String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+  return VD_SUITES.find(s => s.test.test(t)) ||
+    { naam:String(w || 'Onbekend'), kort:'?', foto:'', kleur:'#6b625a' };
+}
+const VD_KANAAL = { smg:'SMG', booking:'Booking.com', oo:'Origineel Overnachten',
+  planyo:'Planyo', eigen:'Eigen website', handmatig:'Handmatig' };
+
+function vdDatum(iso){
+  const p = String(iso || '').slice(0,10).split('-');
+  if(p.length !== 3) return '';
+  const d = new Date(+p[0], +p[1]-1, +p[2]);
+  return ['zo','ma','di','wo','do','vr','za'][d.getDay()] + ' ' + (+p[2]) + ' ' +
+    ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][+p[1]-1];
+}
+function vdTijd(w){ const m = String(w || '').match(/(\d{2}):(\d{2})/); return m ? m[1]+':'+m[2] : ''; }
+function vdNaam(r){ return [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(' ') || 'zonder naam'; }
+function vdEuro(n){ const x = Number(n); return isFinite(x) ? '€ ' + x.toFixed(2).replace('.', ',') : ''; }
+
+/* Net binnengekomen én binnen 24 uur aankomst: alleen dan is het nieuws. */
+function vdNieuw(r){
+  const gemaakt = Date.parse(r.created_at || '');
+  if(!gemaakt || (Date.now() - gemaakt) > 24*3600*1000) return false;
+  const aan = Date.parse(r.aankomst || '');
+  if(!aan) return false;
+  const straks = aan - Date.now();
+  return straks < 24*3600*1000 && straks > -12*3600*1000;
+}
+
+/* ---- afvinken per regel, per dag bewaard ---- */
+function vdAfSleutel(){ return 'bwf-vd-af-' + vandaag(); }
+function vdAfgevinkt(){
+  try{ const l = JSON.parse(localStorage.getItem(vdAfSleutel()) || '[]');
+    return Array.isArray(l) ? l : []; }catch(e){ return []; }
+}
+function vdVink(sleutel){
+  const l = vdAfgevinkt();
+  const i = l.indexOf(sleutel);
+  if(i > -1) l.splice(i, 1); else l.push(sleutel);
+  try{ localStorage.setItem(vdAfSleutel(), JSON.stringify(l)); }catch(e){}
+  try{
+    Object.keys(localStorage).forEach(k => {
+      if(k.indexOf('bwf-vd-af-') === 0 && k !== vdAfSleutel()) localStorage.removeItem(k);
+    });
+  }catch(e){}
+  vdTekenSpoed();
+}
+
+function vdTekenSpoed(){
+  const vak = $('#vdSpoed'); if(!vak) return;
+  const vd = vandaag();
+  const morgen = dagPlus(vd, 1);
+  const regels = [];
+  (RESERVERINGEN || []).forEach(r => {
+    if(String(r.status) === 'geannuleerd') return;
+    const aan = String(r.aankomst || '').slice(0,10);
+    const uit = String(r.vertrek || '').slice(0,10);
+    const s = vdSuite(r.suite);
+    const nieuw = vdNieuw(r);
+    if(aan === vd){
+      regels.push({ sleutel:'a-'+r.id, nieuw, wanneer: vdTijd(r.incheck_tijd) || vdTijd(r.aankomst) || 'aankomst',
+        titel: vdNaam(r), sub:[s.kort, VD_KANAAL[r.kanaal] || r.kanaal,
+          nieuw ? 'NET GEBOEKT — komt vandaag' : 'aankomst vandaag'].filter(Boolean).join(' · ') });
+    }else if(uit === vd){
+      regels.push({ sleutel:'v-'+r.id, nieuw:false, wanneer: vdTijd(r.uitcheck_tijd) || 'vertrek',
+        titel: vdNaam(r), sub:[s.kort, 'vertrek vandaag'].join(' · ') });
+    }else if(aan === morgen){
+      regels.push({ sleutel:'m-'+r.id, nieuw, wanneer:'morgen', titel: vdNaam(r),
+        sub:[s.kort, VD_KANAAL[r.kanaal] || r.kanaal,
+          nieuw ? 'NET GEBOEKT — komt morgen' : 'aankomst morgen'].filter(Boolean).join(' · ') });
+    }
+  });
+  regels.sort((a,b) => (a.nieuw !== b.nieuw) ? (a.nieuw ? -1 : 1)
+    : String(a.wanneer).localeCompare(String(b.wanneer)));
+
+  const af = vdAfgevinkt();
+  const open = regels.filter(x => af.indexOf(x.sleutel) < 0);
+  const klaar = regels.filter(x => af.indexOf(x.sleutel) > -1);
+  const tel = $('#vdSpoedTel');
+  if(tel) tel.textContent = regels.length ? (open.length + ' van ' + regels.length + ' te doen') : '';
+
+  const rij = (x, gedaan) => `<div class="vd-regel ${gedaan ? 'gedaan' : (x.nieuw ? 'nieuw' : '')}">
+    <span class="wanneer">${esc(x.wanneer)}</span>
+    <div><strong>${esc(x.titel)}</strong><small>${esc(x.sub)}</small></div>
+    <button class="vd-vink" type="button" data-vdvink="${esc(x.sleutel)}"
+      title="${gedaan ? 'Terugzetten' : 'Afvinken'}">${gedaan ? '&#8635;' : '&#10003;'}</button></div>`;
+
+  vak.innerHTML = regels.length
+    ? open.map(x => rij(x, false)).join('') +
+      (open.length ? '' : '<p class="leeg">Alles afgevinkt.</p>') +
+      (klaar.length ? `<p class="vd-afkop">${klaar.length} afgevinkt</p>` +
+        klaar.map(x => rij(x, true)).join('') : '')
+    : '<p class="leeg">Vandaag en morgen komt of vertrekt er niemand.</p>';
+}
+
+function vdTekenKaarten(){
+  const vak = $('#vdKaarten'); if(!vak) return;
+  const vd = vandaag();
+  const keuze = ($('#vdPeriode') || {}).value || 'komend';
+  const zoek = String(($('#vdZoek') || {}).value || '').toLowerCase().trim();
+  const weekEind = dagPlus(vd, 7);
+
+  let lijst = (RESERVERINGEN || []).filter(r => {
+    if(String(r.status) === 'geannuleerd') return false;
+    const aan = String(r.aankomst || '').slice(0,10);
+    const uit = String(r.vertrek || '').slice(0,10);
+    if(keuze === 'komend' && !(aan >= vd || uit >= vd)) return false;
+    if(keuze === 'week' && !(aan >= vd && aan <= weekEind)) return false;
+    if(zoek){
+      const alles = [vdNaam(r), vdSuite(r.suite).naam, VD_KANAAL[r.kanaal] || r.kanaal, r.kanaal_ref]
+        .join(' ').toLowerCase();
+      if(alles.indexOf(zoek) < 0) return false;
+    }
+    return true;
+  }).sort((a,b) => String(a.aankomst).localeCompare(String(b.aankomst)));
+
+  const tel = $('#vdResTel');
+  if(tel) tel.textContent = lijst.length ? String(lijst.length) : '';
+
+  vak.className = 'vd-kaarten';
+  vak.innerHTML = lijst.length ? lijst.slice(0, 60).map(r => {
+    const s = vdSuite(r.suite);
+    const aan = String(r.aankomst || '').slice(0,10);
+    const uit = String(r.vertrek || '').slice(0,10);
+    const merk = aan === vd ? '<span class="vd-merk nu">vandaag</span>'
+               : uit === vd ? '<span class="vd-merk">vertrekt</span>' : '';
+    const open = Number(r.restant_bedrag);
+    return `<button class="vd-kaart" type="button" data-vdkaart="${esc(r.id)}">
+      <div class="vd-foto ${s.foto}" style="--k:${s.kleur}">${merk}
+        <div class="vd-op"><b>${esc(vdNaam(r))}</b><span>${esc(s.naam)}</span></div></div>
+      <div class="vd-kaartlijf">
+        <div class="vd-kaartrij"><span>aankomst</span><b>${esc(vdDatum(aan))} ${esc(vdTijd(r.incheck_tijd) || vdTijd(r.aankomst))}</b></div>
+        <div class="vd-kaartrij"><span>vertrek</span><b>${esc(vdDatum(uit))} ${esc(vdTijd(r.uitcheck_tijd) || vdTijd(r.vertrek))}</b></div>
+        ${r.kanaal ? `<div class="vd-kaartrij"><span>via</span><span>${esc(VD_KANAAL[r.kanaal] || r.kanaal)}</span></div>` : ''}
+        ${r.bedrag_totaal ? `<div class="vd-kaartrij"><span>bedrag</span><b>${esc(vdEuro(r.bedrag_totaal))}${
+          isFinite(open) && open > 0 ? ` <span class="vd-open">${esc(vdEuro(open))} open</span>` : ''}</b></div>` : ''}
+      </div></button>`;
+  }).join('') : '<p class="leeg">Geen reserveringen in deze selectie.</p>';
+}
+
+let VD_KAL = null;
+function vdMaakKalender(){
+  if(VD_KAL || !window.BWFKalender || !$('#vdKalender')) return;
+  VD_KAL = window.BWFKalender.maak($('#vdKalender'), {
+    weergave: window.innerWidth < 760 ? 'maand' : 'week',
+    blokkadesTonen: false
+  });
+}
+
+function vdTekenAlles(){
+  try{ vdTekenSpoed(); }catch(e){}
+  try{ vdTekenKaarten(); }catch(e){}
+  try{ vdMaakKalender(); }catch(e){}
+}
+
+document.addEventListener('click', e => {
+  const v = e.target.closest && e.target.closest('[data-vdvink]');
+  if(v){ vdVink(v.getAttribute('data-vdvink')); return; }
+  const k = e.target.closest && e.target.closest('[data-vdkaart]');
+  if(k){ window.open('reserveringen.html?id=' + encodeURIComponent(k.getAttribute('data-vdkaart')), '_blank'); }
+});
+document.addEventListener('change', e => {
+  if(e.target && e.target.id === 'vdPeriode') vdTekenKaarten();
+});
+document.addEventListener('input', e => {
+  if(e.target && e.target.id === 'vdZoek') vdTekenKaarten();
+});
+
 function tekenHome(){
   const dag = vandaag();
 
@@ -809,6 +1034,8 @@ function tekenHome(){
   $('#sTaken').textContent         = openTaken().length;
   $('#sVoorraad').textContent      = tekortLijst().length;
   $('#sAankomsten').textContent    = aankomstOp(dag).length;
+
+  vdTekenAlles();
 
   /* ---- nu doen: de meest dringende open taak ---- */
   const dringend = openTaken().slice().sort((a,b) => {

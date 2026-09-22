@@ -849,3 +849,66 @@ button:focus-visible,input:focus-visible{ outline:2px solid var(--accent); outli
   .priority-task{ grid-template-columns:78px 1fr }
   .task-photo{ min-height:112px }
 }
+
+
+/* =========================================================
+   Vandaag-blokken op de startpagina van het portaal
+   Angela, 22-09-2026: "ik wil dat het dashboard waar Jerry, Ruth en Michel op
+   inloggen dezelfde vandaag-pagina heeft als het voorbeeld." Zij loggen hier
+   in, niet op dashboard.html.
+   ========================================================= */
+.vd-blok{background:var(--kaart,#fff);border:1px solid var(--lijn,#e8e2d8);border-radius:16px;
+  padding:16px 18px;margin-bottom:16px}
+.vd-kop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.vd-kop h2{margin:0;font-size:18px;font-weight:500}
+.vd-tel{margin-left:auto;font-size:12.5px;opacity:.6}
+.vd-uitklap{background:var(--kaart,#fff);border:1px solid var(--lijn,#e8e2d8);border-radius:16px;
+  margin-bottom:16px;overflow:hidden}
+.vd-uitklap>summary{cursor:pointer;padding:14px 18px;font-weight:600;font-size:16px;
+  display:flex;align-items:center;gap:10px;list-style:none}
+.vd-uitklap>summary::-webkit-details-marker{display:none}
+.vd-uitklap>summary::before{content:"\25B8";font-size:12px;opacity:.5}
+.vd-uitklap[open]>summary::before{content:"\25BE"}
+.vd-uitklap .vd-tel{margin-left:auto}
+.vd-lijf{padding:0 18px 16px}
+.vd-balk{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vd-balk select,.vd-balk input{font:inherit;font-size:14px;padding:8px 11px;border-radius:10px;
+  border:1px solid var(--lijn,#e8e2d8);background:var(--kaart,#fff);color:inherit}
+.vd-balk input{flex:1 1 180px;min-width:0}
+.vd-verborgen{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.vd-regel{display:flex;gap:10px;align-items:baseline;padding:9px 0;border-top:1px solid var(--lijn,#e8e2d8)}
+.vd-regel:first-child{border-top:0}
+.vd-regel .wanneer{flex:0 0 74px;font-size:12px;opacity:.65}
+.vd-regel strong{font-weight:600}
+.vd-regel small{display:block;opacity:.65;font-size:12.5px}
+.vd-regel.nieuw{background:#fdf2f1;border-left:4px solid #B3261E;margin:0 -8px;
+  padding:9px 9px 9px 11px;border-radius:9px;border-top:0}
+.vd-regel.nieuw strong:after{content:"NIEUW";background:#B3261E;color:#fff;border-radius:999px;
+  font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:1px 6px;margin-left:7px;vertical-align:2px}
+.vd-regel.gedaan{opacity:.5}
+.vd-regel.gedaan strong{text-decoration:line-through}
+.vd-vink{margin-left:auto;flex:none;width:30px;height:30px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--lijn,#e8e2d8);background:var(--kaart,#fff);font-size:14px;color:inherit;opacity:.6}
+.vd-vink:hover{opacity:1;border-color:#0F7B5A;color:#0F7B5A}
+.vd-afkop{margin:12px 0 2px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+.vd-kaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.vd-kaart{border:1px solid var(--lijn,#e8e2d8);border-radius:14px;overflow:hidden;background:var(--kaart,#fff);
+  display:flex;flex-direction:column;text-align:left;font:inherit;color:inherit;padding:0;cursor:pointer}
+.vd-kaart:hover{box-shadow:0 10px 24px -18px rgba(0,0,0,.45)}
+.vd-foto{height:94px;background:var(--k,#6b625a) center/cover no-repeat;position:relative}
+.vd-foto.foto-angie{background-image:var(--foto-angie)}
+.vd-foto.foto-malina{background-image:var(--foto-malina)}
+.vd-foto.foto-deluxe{background-image:var(--foto-deluxe)}
+.vd-foto:after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(20,16,12,.75),rgba(20,16,12,.05))}
+.vd-op{position:absolute;left:11px;right:11px;bottom:8px;z-index:1;color:#fff}
+.vd-op b{display:block;font-size:14.5px;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.vd-op span{display:block;font-size:11.5px;opacity:.93;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.vd-merk{position:absolute;top:8px;left:11px;z-index:1;background:rgba(255,255,255,.94);color:#2b241d;
+  border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px}
+.vd-merk.nu{background:#0F7B5A;color:#fff}
+.vd-kaartlijf{padding:9px 12px 11px;display:grid;gap:4px;font-size:12.5px}
+.vd-kaartrij{display:flex;justify-content:space-between;gap:8px}
+.vd-kaartrij span:first-child{opacity:.6}
+.vd-open{color:#B3261E;font-weight:700}
+@media(max-width:520px){.vd-kaarten{grid-template-columns:1fr}}
