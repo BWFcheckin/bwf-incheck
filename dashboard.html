@@ -428,6 +428,11 @@ body.gate-open{overflow:hidden}
 .ds-regel.gedaan strong{text-decoration:line-through}
 .ds-regel.gedaan .ds-vink:hover{border-color:#9A7B4F;color:#9A7B4F}
 .ds-afkop{margin:12px 0 2px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+/* Net geboekt en bijna aankomst: dat is het enige waar het belletje voor afgaat. */
+.ds-regel.nieuw{background:#fdf2f1;border-left:4px solid #B3261E;margin:0 -8px;padding:8px 8px 8px 10px;
+  border-radius:8px;border-top:0}
+.ds-regel.nieuw strong:after{content:"NIEUW";background:#B3261E;color:#fff;border-radius:999px;
+  font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:1px 6px;margin-left:7px;vertical-align:2px}
 /* Reserveringskaarten met de foto van de suite; de fotovariabelen komen uit
    bwf-agenda-stijl.css, dat dit scherm al laadt. */
 .ds-kaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
@@ -4418,18 +4423,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var regels = [];
 
     dsBoekingen().forEach(function(r){
+      var nieuw = dsNetBinnenEnSnel(r);
       if(r.aankomst === vandaag){
-        regels.push({ sleutel:'a-'+r.id, soort:'spoed', wanneer:(r.tijdIn || 'aankomst'),
-          titel:gastnaam(r), sub:[suiteKort(r.locatie), r.kanaal, 'aankomst vandaag'].filter(Boolean).join(' · ') });
+        regels.push({ sleutel:'a-'+r.id, soort: nieuw ? 'nieuw' : 'spoed', nieuw:nieuw,
+          wanneer:(r.tijdIn || 'aankomst'), titel:gastnaam(r),
+          sub:[suiteKort(r.locatie), r.kanaal,
+               nieuw ? 'NET GEBOEKT — komt vandaag' : 'aankomst vandaag'].filter(Boolean).join(' · ') });
       }else if(r.vertrek === vandaag){
-        regels.push({ sleutel:'v-'+r.id, soort:'', wanneer:(r.tijdUit || 'vertrek'),
+        regels.push({ sleutel:'v-'+r.id, soort:'', nieuw:false, wanneer:(r.tijdUit || 'vertrek'),
           titel:gastnaam(r), sub:[suiteKort(r.locatie), 'vertrek vandaag'].filter(Boolean).join(' · ') });
       }else if(r.aankomst === morgen){
-        regels.push({ sleutel:'m-'+r.id, soort:'later', wanneer:'morgen',
-          titel:gastnaam(r), sub:[suiteKort(r.locatie), r.kanaal, 'aankomst morgen'].filter(Boolean).join(' · ') });
+        regels.push({ sleutel:'m-'+r.id, soort: nieuw ? 'nieuw' : 'later', nieuw:nieuw,
+          wanneer:'morgen', titel:gastnaam(r),
+          sub:[suiteKort(r.locatie), r.kanaal,
+               nieuw ? 'NET GEBOEKT — komt morgen' : 'aankomst morgen'].filter(Boolean).join(' · ') });
       }
     });
-    regels.sort(function(a,b){ return String(a.wanneer).localeCompare(String(b.wanneer)); });
+    /* Wat net geboekt is en bijna aankomt, hoort bovenaan te staan. */
+    regels.sort(function(a,b){
+      if(a.nieuw !== b.nieuw) return a.nieuw ? -1 : 1;
+      return String(a.wanneer).localeCompare(String(b.wanneer));
+    });
 
     /* Angela, 22-09-2026: "ik wil dat je spoed meldingen kan afvinken per stuk."
        Eén belletje klikte alles tegelijk weg; wat je nog moest doen raakte zo
@@ -4464,7 +4478,31 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           : '')
       : '<p class="ds-leeg">Vandaag en morgen komt of vertrekt er niemand.</p>';
 
-    dsBel('dsSpoedBel', 'spoed', open.map(function(x){ return x.sleutel; }));
+    /* Het belletje gaat ALLEEN af voor een boeking die net is binnengekomen én
+       binnen 24 uur aankomt. Angela, 22-09-2026: "ik wil alleen nieuwe
+       meldingen zien bij spoed als er een nieuwe reservering binnenkomt die
+       binnen 24 uur van de betreffende dag plaatsvindt."
+
+       Daarvoor was het belletje nog een teller van alles wat vandaag speelde -
+       aankomsten en vertrekken die je allang kende. Dat is geen nieuws en het
+       maakte de melding waardeloos: hij stond altijd aan. De lijst eronder
+       blijft wel alles tonen; alleen het belletje is nu stil tenzij er echt
+       iets nieuws is. */
+    dsBel('dsSpoedBel', 'spoed',
+      open.filter(function(x){ return x.nieuw; }).map(function(x){ return x.sleutel; }));
+  }
+
+  /* Is deze boeking net binnengekomen én komt de gast binnen 24 uur?
+     Allebei nodig: een boeking van vorige week voor vanavond is geen nieuws
+     meer, en een boeking die vanmiddag binnenkwam voor over een maand hoeft
+     hier niet te piepen. created_at zegt wanneer hij binnenkwam. */
+  function dsNetBinnenEnSnel(r){
+    var gemaakt = Date.parse(((r.ruw || {}).created_at) || '');
+    if(!gemaakt || (Date.now() - gemaakt) > 24 * 3600 * 1000) return false;
+    var aan = Date.parse(r.start || (r.aankomst ? r.aankomst + 'T15:00:00' : ''));
+    if(!aan) return false;
+    var straks = aan - Date.now();
+    return straks < 24 * 3600 * 1000 && straks > -12 * 3600 * 1000;
   }
 
   /* Wat er vandaag is afgevinkt. Per dag bewaard: morgen begin je schoon, en
