@@ -1610,21 +1610,53 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <span class="hint" id="urenTel"></span></div>
       <div class="card-body">
         <p class="hint" id="urenMelding" style="margin:0 0 12px"></p>
+        <!-- Angela, 22-09-2026: "ik zie de uren-invoer nog niet zoals ik dat
+             voor Ruth heb ingesteld." Dit formulier vroeg alleen om een
+             aantal uren; je moest zelf uitrekenen wat een overnachting met
+             een arrangement waard was. Nu staat dezelfde rekenbasis erin als
+             in Ruths urenregistratie: je kiest het soort verblijf en wat er
+             bij geboekt is, en de uren volgen vanzelf. Aanpassen mag: het
+             blijft een gewoon veld, en wijkt het af van de richturen dan
+             zegt de regel eronder dat erbij. -->
         <form class="grid-form" id="urenForm">
-          <div class="field"><label for="u-datum">Datum</label>
+          <div class="field"><label for="u-datum">Datum reservering</label>
             <input type="date" id="u-datum" required></div>
+          <div class="field"><label for="u-resnr">Reserveringsnummer</label>
+            <input type="text" id="u-resnr" autocomplete="off" placeholder="bijv. 10482"></div>
+          <div class="field"><label for="u-verblijf">Soort verblijf</label>
+            <select id="u-verblijf">
+              <option value="Overnachting">Overnachting</option>
+              <option value="Dagverblijf">Dagverblijf</option>
+            </select></div>
+          <div class="field"><label for="u-check">In- en uitcheck</label>
+            <select id="u-check">
+              <option value="volledig">Volledig &mdash; in- en uitcheck</option>
+              <option value="incheck">Alleen incheck &mdash; 1 uur</option>
+              <option value="uitcheck">Alleen uitcheck + schoonmaak &mdash; 1,5 uur</option>
+            </select></div>
+          <div class="field"><label for="u-arr">Arrangement <span style="opacity:.7">(leeg = geen)</span></label>
+            <input type="text" id="u-arr" autocomplete="off" placeholder="Bijv. Sauna &amp; bubbels"></div>
+          <div class="field"><label for="u-menu">Menu-optie <span style="opacity:.7">(leeg = geen)</span></label>
+            <input type="text" id="u-menu" autocomplete="off" placeholder="Bijv. sushi voor 2"></div>
           <!-- Bewust geen type="number": zo'n veld weigert een komma, en dan
                verdwijnt "3,5" zonder dat je het ziet. Met inputmode="decimal"
                komt op een telefoon nog steeds het cijfertoetsenbord op, en
                werkt zowel 3,5 als 3.5. Angela, 22-09-2026. -->
-          <div class="field"><label for="u-uren">Aantal uren</label>
+          <div class="field"><label for="u-uren">Actieve uren</label>
             <input type="text" id="u-uren" inputmode="decimal" autocomplete="off"
                    placeholder="bijv. 3,5" required></div>
-          <div class="field" style="grid-column:span 2"><label for="u-notitie">Waar ging het over</label>
-            <input type="text" id="u-notitie" placeholder="Bijv. schoonmaak na vertrek"></div>
+          <div class="field" style="grid-column:span 2"><label for="u-notitie">Nog iets erbij <span style="opacity:.7">(mag leeg)</span></label>
+            <input type="text" id="u-notitie" placeholder="Bijv. extra schoonmaak na vertrek"></div>
           <div class="field"><label>&nbsp;</label>
             <button class="knop vol" type="submit" id="u-bewaar">Uren opslaan</button></div>
         </form>
+        <details class="ds-uitklap" style="margin-top:12px">
+          <summary>Waar komen deze uren vandaan</summary>
+          <div class="ds-uitklap-lijf">
+            <p class="hint" style="margin:0 0 8px">Dezelfde rekenbasis als in de urenregistratie van Ruth.</p>
+            <div id="urenBasis"></div>
+          </div>
+        </details>
         <p class="hint" id="urenBedrag" style="margin:8px 0 0"></p>
         <div id="urenLijst" style="margin-top:14px"></div>
       </div>
@@ -4874,6 +4906,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
      `medewerkers` waar de planning aan hangt. Daarom tkMijnId() en niet de
      omweg via teamLijst() die bij Mijn planning nodig was. */
   var UREN = [];
+  /* Het formulier tekent zichzelf zodra de pagina er staat, maar MEDEWERKERS
+     - en daarmee het uurtarief - komt pas als de database antwoordt. Zonder
+     deze haak las je bij het openen "er staat nog geen uurtarief bij jouw
+     naam" terwijl dat er wel was; hij verdween pas als je iets aanraakte.
+     tekenUren() roept hem aan zodra de gegevens binnen zijn. */
+  var urenToonOpnieuw = null;
 
   function urenMijnId(){ return tkMijnId(); }
 
@@ -4891,10 +4929,62 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     return Number(veld(m || {}, ['uurtarief'], 0)) || 0;
   }
 
+  /* ---- de rekenbasis uit de arbeidsovereenkomst ----
+     Dezelfde getallen als in de urenregistratie van Ruth:
+       art. 3.2  dagverblijf 2,5 u (1 u voorbereiding + 1,5 u schoonmaak)
+       werkafspraak  overnachting 3 u, alleen incheck 1 u, alleen uitcheck 1,5 u
+       art. 3.2  +0,5 u menu-optie, +1 u arrangement
+     Die opslagen komen bovenop de basisuren, niet in plaats daarvan. */
+  var UREN_BASIS = {
+    dag: 2.5, nacht: 3, incheck: 1, uitcheck: 1.5, menu: 0.5, arrangement: 1
+  };
+  function urenBasisUren(check, verblijf){
+    if(check === 'incheck') return UREN_BASIS.incheck;
+    if(check === 'uitcheck') return UREN_BASIS.uitcheck;
+    return verblijf === 'Dagverblijf' ? UREN_BASIS.dag : UREN_BASIS.nacht;
+  }
+  function urenRicht(check, verblijf, heeftArr, heeftMenu){
+    return urenBasisUren(check, verblijf) +
+      (heeftMenu ? UREN_BASIS.menu : 0) + (heeftArr ? UREN_BASIS.arrangement : 0);
+  }
+  /* "1,5 uur" leest prettiger dan "1.5" - zelfde als in urenTekst(). */
+  function urenGetal(n){
+    return (Math.round((Number(n) || 0) * 100) / 100).toString().replace('.', ',');
+  }
+  function urenFormWaarden(){
+    var el = function(id){ return document.getElementById(id) || {}; };
+    var arr = String(el('u-arr').value || '').trim();
+    var menu = String(el('u-menu').value || '').trim();
+    var check = String(el('u-check').value || 'volledig');
+    var verblijf = String(el('u-verblijf').value || 'Overnachting');
+    return {
+      datum: el('u-datum').value || dstr(new Date()),
+      resnr: String(el('u-resnr').value || '').trim(),
+      verblijf: verblijf, check: check, arr: arr, menu: menu,
+      notitie: String(el('u-notitie').value || '').trim(),
+      richt: urenRicht(check, verblijf, !!arr, !!menu),
+      uren: Number(String(el('u-uren').value || '').replace(',', '.')) || 0
+    };
+  }
+  /* Wat er als taaknaam en notitie in de database komt. wz_werkzaamheden
+     heeft geen kolommen voor arrangement of menu-optie, dus die gaan mee in
+     de notitie - leesbaar, en zonder de tabel te hoeven veranderen. */
+  function urenTaakNaam(w){
+    if(w.check === 'incheck') return w.verblijf + ' — alleen incheck';
+    if(w.check === 'uitcheck') return w.verblijf + ' — alleen uitcheck';
+    return w.verblijf;
+  }
+  function urenNotitie(w){
+    return [w.resnr ? 'res. ' + w.resnr : '',
+            w.arr ? 'arrangement: ' + w.arr : '',
+            w.menu ? 'menu: ' + w.menu : '',
+            w.notitie].filter(Boolean).join(' · ') || null;
+  }
+
   async function laadUren(){
     var melding = document.getElementById('urenMelding');
     try{
-      UREN = await sb('wz_werkzaamheden?select=id,datum,uren,notitie,bedrag,betaald,medewerker_id' +
+      UREN = await sb('wz_werkzaamheden?select=id,datum,uren,notitie,bedrag,betaald,medewerker_id,taak_naam' +
         '&order=datum.desc&limit=200') || [];
       if(melding) melding.textContent = '';
     }catch(e){
@@ -4937,12 +5027,21 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       : '';
 
     lijst.innerHTML = toon.length ? toon.slice(0, 40).map(function(w){
+      /* Het soort verblijf vooraan, want daar herken je de regel aan; de
+         uren erachter. Oudere regels hebben nog geen taak_naam - dan blijft
+         het zoals het was, met alleen de uren. */
+      var kop = w.taak_naam
+        ? esc(w.taak_naam) + ' · ' + esc(urenTekst(w.uren))
+        : esc(urenTekst(w.uren));
       return '<div class="ds-regel">' +
         '<span class="wanneer">' + esc(dsDatum(String(w.datum || '').slice(0,10))) + '</span>' +
-        '<div><strong>' + esc(urenTekst(w.uren)) + '</strong><small>' +
+        '<div><strong>' + kop + '</strong><small>' +
         esc([w.notitie || '', w.bedrag ? euro(w.bedrag) : '',
              w.betaald ? 'uitbetaald' : ''].filter(Boolean).join(' · ')) + '</small></div></div>';
     }).join('') : '<p class="ds-leeg">Nog geen uren geregistreerd.</p>';
+
+    /* Nu MEDEWERKERS binnen is, klopt het uurtarief pas. */
+    if(urenToonOpnieuw) try{ urenToonOpnieuw(); }catch(e){}
   }
 
   /* "1,5 uur" leest prettiger dan "1.5". */
@@ -4958,23 +5057,74 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var datum = document.getElementById('u-datum');
     if(datum && !datum.value) datum.value = dstr(new Date());
 
-    /* Meteen laten zien wat het oplevert, terwijl je typt. Zo merk je het
+    /* Meteen laten zien wat het oplevert, terwijl je invult. Zo merk je het
        ook als er nog geen uurtarief is ingesteld. */
-    var uurveld = document.getElementById('u-uren');
-    if(uurveld) uurveld.addEventListener('input', function(){
+    function urenToon(){
       var vak = document.getElementById('urenBedrag');
       if(!vak) return;
-      var n = Number(String(uurveld.value || '').replace(',', '.')) || 0;
+      var w = urenFormWaarden();
       var t = urenTarief();
-      vak.textContent = !n ? ''
-        : t ? (urenTekst(n) + ' × ' + euro(t) + ' = ' + euro(Math.round(n * t * 100) / 100))
-        : 'Er staat nog geen uurtarief bij jouw naam, dus het bedrag blijft leeg.';
-      vak.style.color = (n && !t) ? '#9A7B4F' : '';
+      var delen = [w.check === 'uitcheck' ? '1,5 u uitcheck + schoonmaak'
+                 : w.check === 'incheck'  ? '1 u alleen incheck'
+                 : w.verblijf === 'Dagverblijf' ? '2,5 u dagverblijf' : '3 u overnachting'];
+      if(w.menu) delen.push('+0,5 u menu');
+      if(w.arr) delen.push('+1 u arrangement');
+
+      var tekst = 'Richturen: ' + delen.join(' ') + ' = ' + urenGetal(w.richt) + ' uur';
+      if(t) tekst += ' · ' + euro(Math.round(w.richt * t * 100) / 100);
+      /* Wijkt je eigen invoer af, dan zeg je dat erbij in plaats van het
+         stilletjes te laten staan - anders vraag je je bij het uitbetalen af
+         waarom het bedrag niet klopt met de richturen. */
+      if(w.uren && Math.abs(w.uren - w.richt) > 0.001){
+        tekst += ' · je vult ' + urenGetal(w.uren) + ' uur in' +
+          (t ? ' (' + euro(Math.round(w.uren * t * 100) / 100) + ')' : '');
+      }
+      if(!t) tekst += ' · er staat nog geen uurtarief bij jouw naam, dus het bedrag blijft leeg';
+      vak.textContent = tekst;
+      vak.style.color = t ? '' : '#9A7B4F';
+    }
+
+    /* De uren volgen de keuzes, tot je ze zelf aanpast. Daarna blijft jouw
+       getal staan: anders overschrijft het scherm wat je net hebt ingetikt. */
+    var zelfGetypt = false;
+    function urenBijwerken(){
+      var veldje = document.getElementById('u-uren');
+      if(veldje && !zelfGetypt) veldje.value = urenGetal(urenFormWaarden().richt);
+      urenToon();
+    }
+    ['u-verblijf', 'u-check'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.addEventListener('change', urenBijwerken);
     });
+    ['u-arr', 'u-menu'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.addEventListener('input', urenBijwerken);
+    });
+    var uurveld = document.getElementById('u-uren');
+    if(uurveld) uurveld.addEventListener('input', function(){ zelfGetypt = true; urenToon(); });
+
+    /* De rekenbasis uitgeschreven, zodat je kunt nakijken waar een getal
+       vandaan komt zonder de overeenkomst erbij te pakken. */
+    var basisVak = document.getElementById('urenBasis');
+    if(basisVak) basisVak.innerHTML = [
+      ['Dagverblijf', '2,5 uur', '1 u voorbereiding incl. inchecken + 1,5 u schoonmaak (art. 3.2)'],
+      ['Overnachting', '3 uur', 'werkafspraak: een half uur meer dan een dagverblijf'],
+      ['Alleen incheck', '1 uur', 'wel de voorbereiding en het inchecken, geen uitcheck en schoonmaak'],
+      ['Alleen uitcheck', '1,5 uur', 'alleen de uitcheck en de schoonmaak'],
+      ['Menu-optie', '+0,5 uur', 'komt bovenop de basisuren'],
+      ['Arrangement', '+1 uur', 'komt bovenop de basisuren']
+    ].map(function(r){
+      return '<div class="ds-regel"><span class="wanneer">' + esc(r[1]) + '</span>' +
+        '<div><strong>' + esc(r[0]) + '</strong><small>' + esc(r[2]) + '</small></div></div>';
+    }).join('');
+
+    urenToonOpnieuw = urenToon;
+    urenBijwerken();
     form.addEventListener('submit', async function(e){
       e.preventDefault();
       var melding = document.getElementById('urenMelding');
-      var uren = Number(String((document.getElementById('u-uren') || {}).value || '').replace(',', '.')) || 0;
+      var w = urenFormWaarden();
+      var uren = w.uren;
       if(!(uren > 0)){
         if(melding){ melding.textContent = 'Vul een aantal uren in dat groter is dan nul.'; melding.style.color = '#B3261E'; }
         return;
@@ -4987,17 +5137,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var knop = document.getElementById('u-bewaar');
       if(knop) knop.disabled = true;
       try{
+        /* taak_naam, eenheid en aantal bestaan al in wz_werkzaamheden en
+           worden ook door vr2 gevuld; door dezelfde velden te gebruiken
+           blijft één overzicht van alle werkzaamheden mogelijk. */
         await sb('wz_werkzaamheden', { method: 'POST', body: JSON.stringify({
-          datum: (document.getElementById('u-datum') || {}).value || dstr(new Date()),
+          datum: w.datum,
           medewerker_id: mij,
+          taak_naam: urenTaakNaam(w),
+          eenheid: 'reservering',
+          aantal: 1,
           uren: Math.round(uren * 100) / 100,
           tarief: urenTarief() || null,
           bedrag: urenTarief() ? Math.round(uren * urenTarief() * 100) / 100 : null,
-          notitie: ((document.getElementById('u-notitie') || {}).value || '').trim() || null,
+          notitie: urenNotitie(w),
           betaald: false
         }) });
-        document.getElementById('u-uren').value = '';
-        document.getElementById('u-notitie').value = '';
+        ['u-resnr', 'u-arr', 'u-menu', 'u-notitie'].forEach(function(id){
+          var el = document.getElementById(id); if(el) el.value = '';
+        });
+        var chk = document.getElementById('u-check'); if(chk) chk.value = 'volledig';
+        zelfGetypt = false;
+        urenBijwerken();
         await laadUren();
         /* Pas ná het herladen, anders wist laadUren() de bevestiging meteen weer. */
         if(melding){ melding.textContent = urenTekst(uren) + ' opgeslagen.'; melding.style.color = ''; }
