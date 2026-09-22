@@ -178,6 +178,7 @@ tr.tk-rij:hover td{background:var(--surface-2)}
    bent je taak kwijt. Gemeten op 21-09-2026: op een scherm van 390x844 staat
    de balk op y=783-834 en vangt elementFromPoint(60, 814) de knop Dagstart.
    Ze staan buiten de gewone stroom, dus weghalen verschuift niets. */
+body.bwf-typt .bwf-merkbalk{position:static}
 body.bwf-typt #groeptabs,
 body.bwf-typt #bwfMenuKnop,
 /* Een paneel met tegelknoppen houdt minstens een schermhoogte aan. Kies je
@@ -1082,7 +1083,13 @@ div.ag-blok{cursor:default}
 /* ---------- telefoon ---------- */
 @media (max-width:620px){
   body{background:var(--bg)}
-  .bwf-merkbalk{position:relative;top:auto}
+  /* Angela, 22-09-2026: "zet het zwevende menu vast boven aan de pagina."
+     Op een telefoon scrollde de balk met het menu gewoon mee weg; onderaan de
+     pagina had je geen menu meer. Hij staat nu ook hier vast bovenin.
+     Tijdens het typen gaat hij weg - zie body.bwf-typt hieronder - want een
+     vastgezette balk boven een invoerveld ving eerder de tik die voor dat
+     veld bedoeld was. */
+  .bwf-merkbalk{position:sticky;top:0}
   .bwf-merkrij{padding:10px 14px}
   .bwf-merk{font-size:15px}
   .bwf-merkbalk .who{width:38px;height:38px;padding:0;justify-content:center}
