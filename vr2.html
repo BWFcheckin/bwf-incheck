@@ -180,7 +180,6 @@ tr.tk-rij:hover td{background:var(--surface-2)}
    Ze staan buiten de gewone stroom, dus weghalen verschuift niets. */
 body.bwf-typt #groeptabs,
 body.bwf-typt #bwfMenuKnop,
-body.bwf-typt #bwfHomeKnop{display:none!important}
 /* Een paneel met tegelknoppen houdt minstens een schermhoogte aan. Kies je
    een tegel, dan verdwijnen de andere kaarten en wordt de pagina korter; is
    er dan te weinig hoogte over, dan kan de browser niet meer op dezelfde plek
@@ -680,7 +679,7 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .reskaart-body{padding:12px 4px 4px}
   .reskaart .pijl{position:absolute;top:18px;right:18px;margin-right:0}
   body{background:linear-gradient(180deg,#f8faff 0,#f4f7fb 28rem)}
-  .app{padding:0 14px 96px}
+  .app{padding:0 14px 28px}
   .topbar{padding:18px 2px 14px}
   .mark{width:40px;height:40px;border-radius:13px;font-size:14px}
   .brand-txt strong{font-size:16px;line-height:1.2}
@@ -688,9 +687,10 @@ dialog::backdrop{background:rgba(20,32,51,.38);backdrop-filter:blur(5px)}
   .chip{display:none}
   .who{width:40px;height:40px;padding:0;justify-content:center;border-radius:13px}
   .who #whoName{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  .tabs{position:fixed;top:auto;bottom:10px;left:10px;right:10px;width:auto;max-width:none;
-    margin:0;padding:6px;justify-content:flex-start;overflow-x:auto;border-radius:17px;
-    box-shadow:0 14px 40px rgba(20,32,51,.2)}
+  /* Zie #groeptabs hierboven: niets zweeft meer onderaan. */
+  .tabs{position:static;width:auto;max-width:none;
+    margin:0;padding:6px 0;justify-content:flex-start;overflow-x:auto;border-radius:0;
+    box-shadow:none}
   .tab{flex:1 0 auto;min-width:max-content;padding:10px 12px;font-size:12.5px}
   .page-head{margin:22px 2px 18px}
   .page-head h1{font-size:30px}
@@ -959,8 +959,6 @@ dialog h2{font-family:var(--f-titel);font-size:22px;font-weight:500;letter-spaci
 .slot-kaart .btn.ghost.small:hover{color:var(--groen)}
 
 /* gedeelde knoppen van andere scripts */
-html #bwfHomeKnop{border-color:var(--line);color:var(--groen)}
-html #bwfHomeKnop:hover{border-color:var(--groen-2);color:var(--groen)}
 #bwfTerugBalk{background:var(--groen)!important}
 
 /* ---------- agenda: dagbalk en boekingen per suite ---------- */
@@ -1088,9 +1086,13 @@ div.ag-blok{cursor:default}
   .bwf-merkrij{padding:10px 14px}
   .bwf-merk{font-size:15px}
   .bwf-merkbalk .who{width:38px;height:38px;padding:0;justify-content:center}
-  #groeptabs.tabs{position:fixed;top:auto;bottom:10px;left:10px;right:10px;z-index:45;
-    padding:6px;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;
-    box-shadow:0 14px 40px -18px rgba(20,52,42,.55)}
+  /* Angela, 22-09-2026: het menu zweefde hier onderaan het scherm. Dat legde
+     zich over de inhoud heen, verdween zodra je ging typen, en botste met de
+     twee andere zwevende knoppen. Het staat nu gewoon in de balk bovenaan,
+     die op een telefoon meescrollt in plaats van vast te staan - zo houd je
+     het hele scherm over voor de inhoud zelf. */
+  #groeptabs.tabs{position:static;padding:6px 0 0;gap:4px;background:none;border:0;
+    box-shadow:none;overflow-x:auto;flex-wrap:nowrap}
   #groeptabs .tab{padding:9px 12px;border-bottom:0;margin:0;border-radius:10px;font-size:12.5px}
   #groeptabs .tab:hover{border-bottom:0}
   #groeptabs .tab[aria-selected="true"]{background:var(--groen);color:#fff}
@@ -10522,11 +10524,17 @@ $('#whoBtn').addEventListener('click', ()=>{
 
 <!-- ================= BWF-menu ================= -->
 <style>
-#bwfMenuKnop{position:fixed;right:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
-  background:#483C34;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
-  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer;
-  box-shadow:0 4px 14px rgba(36,30,25,.32)}
-#bwfMenuKnop:hover{background:#5A4B41}
+/* Angela, 22-09-2026: "ik wil het zwevend menu weg en een vast menu boven aan
+   met een dropdown functie." De knop zweefde rechtsonder en dekte daar de
+   knoppen af die eronder stonden; op een telefoon verdween hij zelfs zodra je
+   ging typen. Hij staat nu vast in de merkbalk bovenaan, en het menu klapt
+   eronder uit in plaats van omhoog. */
+#bwfMenuKnop{display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:600;
+  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;cursor:pointer}
+#bwfMenuKnop:hover{background:rgba(255,255,255,.24)}
+#bwfMenuKnop[aria-expanded="true"]{background:#fff;color:#241E19;border-color:#fff}
 #bwfMenuKnop .streep{display:inline-block;width:15px;height:11px;position:relative}
 #bwfMenuKnop .streep i,#bwfMenuKnop .streep i:before,#bwfMenuKnop .streep i:after{
   position:absolute;left:0;width:15px;height:2px;background:#fff;border-radius:2px;content:""}
@@ -10535,7 +10543,7 @@ $('#whoBtn').addEventListener('click', ()=>{
 #bwfMenuKnop .streep i:after{top:4px}
 #bwfMenuLaag{position:fixed;inset:0;z-index:8990;background:rgba(36,30,25,.35);display:none}
 #bwfMenuLaag.open{display:block}
-#bwfMenu{position:fixed;right:16px;bottom:70px;z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
+#bwfMenu{position:absolute;right:0;top:calc(100% + 8px);z-index:9001;width:270px;max-height:72vh;overflow-y:auto;
   background:#fff;color:#241E19;border:1px solid #E3DAD0;border-radius:14px;display:none;
   font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:14px;
   box-shadow:0 18px 50px -18px rgba(36,30,25,.5)}
@@ -10647,8 +10655,24 @@ $('#whoBtn').addEventListener('click', ()=>{
 
   function plaats(){
     document.body.appendChild(laag);
-    document.body.appendChild(menu);
-    document.body.appendChild(knop);
+    /* De knop hoort in de merkbalk, naast de naam van wie is ingelogd - niet
+       meer los zwevend over de pagina heen. Hij dekte daar knoppen af, en op
+       een telefoon verdween hij zodra je ging typen (body.bwf-typt).
+       Het menu hangt in hetzelfde blok, zodat het netjes onder de knop
+       uitklapt. Bestaat die balk niet, dan valt alles terug op de oude plek
+       zodat het menu nooit onbereikbaar wordt. Angela, 22-09-2026. */
+    var plek = document.querySelector(".bwf-merkbalk .topbar-right") ||
+               document.querySelector(".bwf-merkbalk");
+    if(plek){
+      if(!plek.style.position) plek.style.position = "relative";
+      plek.appendChild(knop);
+      plek.appendChild(menu);
+    }else{
+      knop.style.cssText += ";position:fixed;right:16px;bottom:16px;z-index:9000";
+      menu.style.cssText += ";position:fixed;right:16px;bottom:70px;top:auto";
+      document.body.appendChild(menu);
+      document.body.appendChild(knop);
+    }
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", plaats);
   else plaats();
@@ -10656,36 +10680,11 @@ $('#whoBtn').addEventListener('click', ()=>{
 </script>
 <!-- ================= einde BWF-menu ================= -->
 <!-- ================= Home-knop ================= -->
-<style>
-#bwfHomeKnop{position:fixed;left:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;
-  background:#fff;color:#241E19;border:1px solid #dfe6ef;border-radius:999px;padding:10px 16px;
-  font:600 14px/1 "Public Sans","Helvetica Neue",Arial,sans-serif;text-decoration:none;cursor:pointer;
-  box-shadow:0 6px 18px -8px rgba(20,32,51,.45)}
-#bwfHomeKnop:hover{border-color:#165dff;color:#165dff}
-#bwfHomeKnop svg{width:17px;height:17px;display:block}
-@media(max-width:620px){
-  #bwfHomeKnop{bottom:72px;padding:9px 13px}
-  #bwfHomeKnop span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-}
-@media print{#bwfHomeKnop{display:none!important}}
-</style>
-<script>
-(function(){
-  if(window.self !== window.top) return;                 /* niet tonen in een ingesloten pagina */
-  var a = document.createElement('a');
-  a.id = 'bwfHomeKnop'; a.href = 'index.html';
-  a.setAttribute('aria-label','Naar de overzichtspagina');
-  a.title = 'Naar de overzichtspagina';
-  a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.75 20v-5.5h4.5V20"/></svg>' +
-    '<span>Startpagina</span>';
-  function plaats(){ document.body.appendChild(a); }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', plaats);
-  else plaats();
-})();
-</script>
-<!-- ================= einde Home-knop ================= -->
+<!-- De zwevende Startpagina-knop linksonder is op 22-09-2026 weggehaald.
+     Angela wilde het zwevende menu weg; deze knop hoorde daarbij en deed
+     hetzelfde als de regel "Naar de startpagina" die al bovenin het
+     uitklapmenu staat. Twee knoppen voor hetzelfde, en op een telefoon stond
+     hij in de weg van de onderste balk. -->
 <script src="bwf-menu.js?v=4"></script>
 <script>
 /* onthouden e-mailadres terugzetten in het inlogscherm */
