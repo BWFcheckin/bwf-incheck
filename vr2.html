@@ -4471,14 +4471,79 @@ function renderBetalingen(){
       <td class="num">${eur(b.bedrag)}</td>
       <td><span class="pill ${klasse}">${esc(st)}</span></td>
       <td>${wanneer ? esc(dmy(String(wanneer).slice(0,10))) : '—'}</td>
-      <td class="act">${b.checkout_url && b.status !== 'paid'
-        ? `<a class="btn ghost small" href="${esc(b.checkout_url)}" target="_blank" rel="noopener">Betaallink</a>` : ''}</td>
+      <td class="act">${btKnoppen(b)}</td>
     </tr>`;
   }).join('')
     : `<tr><td colspan="6"><div class="empty"><strong>Geen betalingen</strong>Er is hier niets in deze selectie.</div></td></tr>`;
 }
 
+/* Angela, 22-09-2026: "ik wil alle betaallinks van Mollie kunnen versturen en
+   bekijken via vr2." Bekijken kon al; versturen niet - er stond alleen een
+   knop om de link zelf te openen. Nu staat er per betaling ook een knop om
+   hem naar de gast te appen en een om hem te kopiëren.
+
+   Het telefoonnummer staat niet in mollie_betalingen, dus dat wordt bij de
+   reservering opgezocht op reservering_id. Is dat nummer er niet, dan komt de
+   appknop er niet - een wa.me-link zonder nummer opent een leeg venster en
+   dat lijkt alsof er iets stuk is. */
+function btReservering(b){
+  if(!b || !b.reservering_id) return null;
+  return RES.filter(r => String(r.resId) === String(b.reservering_id))[0] || null;
+}
+function btNummer(b){
+  const r = btReservering(b);
+  let n = String((r && r.ruw && r.ruw.gast_telefoon) || '').replace(/[^\d+]/g,'');
+  if(!n) return '';
+  if(n[0] === '+') n = n.slice(1);
+  else if(n.slice(0,2) === '00') n = n.slice(2);
+  else if(n[0] === '0') n = '31' + n.slice(1);
+  return n.length >= 11 ? n : '';
+}
+function btBericht(b){
+  const r = btReservering(b);
+  const naam = (r && r.naam) ? String(r.naam).split(' ')[0] : '';
+  const regels = [];
+  regels.push(naam ? ('Beste ' + naam + ',') : 'Beste gast,');
+  regels.push('');
+  regels.push('Hierbij de betaallink voor je verblijf bij Bed & Wellness Flevoland' +
+    (b.bedrag ? (' — ' + eur(b.bedrag)) : '') + ':');
+  regels.push(b.checkout_url || '');
+  regels.push('');
+  regels.push('Met vriendelijke groet,');
+  regels.push('Bed & Wellness Flevoland');
+  return regels.join('\n');
+}
+function btKnoppen(b){
+  if(!b.checkout_url || b.status === 'paid') return '';
+  const nr = btNummer(b);
+  let h = '';
+  if(nr){
+    h += `<a class="btn ghost small" href="https://wa.me/${esc(nr)}?text=${
+      encodeURIComponent(btBericht(b))}" target="_blank" rel="noopener" title="De link naar de gast appen">App</a> `;
+  }
+  h += `<button class="btn ghost small" type="button" data-btkopie="${esc(b.mollie_id||'')}" title="De link kopiëren">Kopieer</button> `;
+  h += `<a class="btn ghost small" href="${esc(b.checkout_url)}" target="_blank" rel="noopener">Openen</a>`;
+  return h;
+}
+
 document.addEventListener('click', e => {
+  const k = e.target.closest('[data-btkopie]');
+  if(k){
+    const b = BETALINGEN.filter(x => String(x.mollie_id) === k.dataset.btkopie)[0];
+    if(b && b.checkout_url){
+      const klaar = () => { const t = k.textContent; k.textContent = 'Gekopieerd'; setTimeout(()=>{ k.textContent = t; }, 1600); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(b.checkout_url).then(klaar).catch(()=>toast('Kopiëren lukte niet.'));
+      }else{
+        /* oudere browsers, en pagina's zonder https */
+        const v = document.createElement('textarea');
+        v.value = b.checkout_url; document.body.appendChild(v); v.select();
+        try{ document.execCommand('copy'); klaar(); }catch(err){ toast('Kopiëren lukte niet.'); }
+        v.remove();
+      }
+    }
+    return;
+  }
   const b = e.target.closest('#btFilter button'); if(!b) return;
   btFilterStand = b.dataset.b || 'alles';
   $$('#btFilter button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
