@@ -677,9 +677,14 @@ sb.auth.onAuthStateChange((_e, sessie) => {
          naartoe komt - met ?portaal=1 achter het adres, of via "Naar de
          startpagina" in het menu - blijft gewoon hier. Zo is het portaal niet
          onbereikbaar, het is alleen niet meer de plek waar je vanzelf belandt. */
-      var blijf = new URLSearchParams(location.search).has('portaal');
-      var naar = ROL === 'locatiemanager' ? 'dashboard.html'
-               : (ROL === 'eigenaar' || ROL === 'vr') ? 'vr2.html' : '';
+      var p = new URLSearchParams(location.search);
+      var blijf = p.has('portaal') && !p.get('terug');
+      /* Kwam je hier omdat een ander scherm je voor het inloggen terugstuurde,
+         dan ga je daarna terug naar dát scherm. Anders naar het dashboard dat
+         bij je rol hoort. */
+      var naar = p.get('terug') ||
+        (ROL === 'locatiemanager' ? 'dashboard.html'
+         : (ROL === 'eigenaar' || ROL === 'vr') ? 'vr2.html' : '');
       if(naar && !blijf){ location.replace(naar); return; }
       start();
     });

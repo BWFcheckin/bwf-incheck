@@ -2010,9 +2010,56 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     document.body.classList.remove("gate-open");
     laden().then(startVerversen);
   }
+  /* Is er al iemand ingelogd met een geldige sessie? Angela, 22-09-2026: "ik
+     wil dat het toegangscodescherm wordt verwijderd als iemand al is ingelogd,
+     dan is de pagina al beveiligd." Klopt: wie is ingelogd heeft een
+     persoonlijk token, en daar hangen de rechten in de database aan. Een
+     gedeelde teamcode daar bovenop houdt niemand tegen die er niet hoort - die
+     wordt toch met z'n allen gebruikt - en hield de mensen die er wél horen
+     onnodig op.
+
+     De controle staat hier apart omdat token() in een ander scriptblok zit en
+     dus niet bereikbaar is vanaf deze plek; dit bestand heeft tien blokken met
+     elk hun eigen bereik. */
+  function ingelogdMetSessie(){
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k) continue;
+        var rauw = null;
+        if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > -1) {
+          var v = JSON.parse(localStorage.getItem(k) || "null");
+          rauw = v && v.access_token;
+        } else if (k === "wz_sessie") {
+          var w = JSON.parse(localStorage.getItem(k) || "null");
+          rauw = w && w.token;
+        }
+        if (!rauw) continue;
+        /* verlopen tokens tellen niet: dan hoort het slot er juist wél te zijn */
+        var deel = JSON.parse(atob(String(rauw).split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        if (deel && deel.exp && (deel.exp * 1000) > Date.now()) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   function gateStart(){
     var opgeslagen = "";
     try { opgeslagen = localStorage.getItem(GATE_SLEUTEL) || sessionStorage.getItem(GATE_SLEUTEL) || ""; } catch (e) {}
+    /* Wie is ingelogd hoeft geen tweede slot; wie niet is ingelogd hoort naar
+       het inlogscherm.
+
+       Dat laatste moest erbij. api() weigert elke aanvraag zonder sessietoken,
+       dus zonder sessie kon de toegangscode niet eens opgehaald worden: de
+       .then() hieronder draaide nooit en het slot verscheen nooit. Je bleef
+       dan op een leeg scherm staan zonder uitleg. Het slot beschermde in de
+       praktijk dus alleen de mensen die al ingelogd wáren. Gemeten 22-09-2026. */
+    if (ingelogdMetSessie()) { toonApp(); return; }
+    if (!sessieToken()) {
+      location.replace("index.html?portaal=1&terug=" +
+        encodeURIComponent(location.pathname.split("/").pop() || "dashboard.html"));
+      return;
+    }
     if (!SB_ACTIEF) {
       document.getElementById("gate").hidden = true;
       document.body.classList.remove("gate-open");
