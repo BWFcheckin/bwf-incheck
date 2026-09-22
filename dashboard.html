@@ -429,6 +429,14 @@ body.gate-open{overflow:hidden}
 .ds-regel.gedaan .ds-vink:hover{border-color:#9A7B4F;color:#9A7B4F}
 .ds-afkop{margin:12px 0 2px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
 .ds-regel.nu{background:#e8f3ee;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
+/* Wie er tijdens een dienst in huis is. Angela, 22-09-2026. */
+.dienstgasten{display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:6px}
+.dienstgast{font:inherit;font-size:12px;text-align:left;padding:5px 9px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);color:inherit;line-height:1.3}
+.dienstgast:hover{border-color:var(--groen,#0F7B5A)}
+.dienstgast small{display:block;opacity:.6;font-size:11px}
+.dienstleeg{font-size:11.5px;opacity:.5;font-style:normal;align-self:center}
+.dienstregel .pil.weg{background:#fae9e7;color:#B3261E}
 /* Net geboekt en bijna aankomst: dat is het enige waar het belletje voor afgaat. */
 .ds-regel.nieuw{background:#fdf2f1;border-left:4px solid #B3261E;margin:0 -8px;padding:8px 8px 8px 10px;
   border-radius:8px;border-top:0}
@@ -1462,28 +1470,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Reserveringen &amp; links</h2>
-        <button class="btn ghost small" id="resSet" type="button">Links beheren</button></div>
-      <div class="card-body" id="resHouder"></div>
-    </div>
+    <!-- "Reserveringen & links" stond hier; dat was linkbeheer en hoorde niet
+         op een planningspagina thuis. De houder blijft bestaan zodat de code
+         die hem vult niet omvalt, maar hij staat niet meer in beeld.
+         Angela, 22-09-2026: "de pagina Planning moet alleen de
+         personeelsdiensten-planning worden." -->
+    <div hidden id="resHouder"></div>
+    <button hidden id="resSet" type="button"></button>
 
-    <!-- Reserveringen staan nu bij de planning, in dezelfde kaarten en op
-         dezelfde grootte als op de reserveringenpagina zelf, met alle gegevens
-         erin. De pagina wordt ingebed in plaats van nagebouwd: zo blijft er een
-         plek waar die kaarten worden onderhouden.
-         Wie welke reservering ziet bepaalt de database (bwf_mag_suite), dus een
-         locatiemanager krijgt hier vanzelf alleen de eigen locaties - dit scherm
-         hoeft daar niets voor te filteren, en er valt dus ook niets te omzeilen.
-         Het adres krijgt een versie mee, anders serveert de browser een oude
-         versie van de ingebedde pagina. -->
-    <div class="card">
-      <div class="card-head"><h2>Reserveringen</h2>
-        <span class="hint">alleen de locaties waar jij toegang toe hebt</span></div>
-      <div class="card-body" style="padding:0">
-        <iframe id="planResFrame" data-src="reserveringen.html" title="Reserveringen"
-                style="width:100%;height:78vh;min-height:520px;border:0;display:block"></iframe>
-      </div>
+    <!-- Hier stond de hele reserveringenpagina ingebed, 78% van de schermhoogte.
+         Dat dubbelde met het scherm Reserveringen zelf, en op een planningspagina
+         hoor je te zien wie er werkt - niet de volledige boekingenlijst. Wie er
+         tijdens een dienst in huis is, staat nu per dienst bij "Mijn diensten".
+         Het venster blijft in de pagina staan maar wordt niet meer geladen.
+         Angela, 22-09-2026. -->
+    <div hidden>
+      <iframe id="planResFrame" data-src="reserveringen.html" title="Reserveringen"
+              style="width:100%;height:0;border:0"></iframe>
     </div>
     <script>
       /* pas ophalen wanneer de planning echt in beeld komt: de pagina is groot
@@ -5358,6 +5361,28 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function mdNaamNu(){
     try{ return (window.BWFPlanning && window.BWFPlanning.naam) || ''; }catch(e){ return ''; }
   }
+  /* Wie er tijdens een dienst in huis is. Angela, 22-09-2026: "reserveringen
+     die gekoppeld zijn aan de locatiemanager." Een dienst is aan een dag
+     gekoppeld, niet aan een boeking; de koppeling is dus: welke gasten zijn er
+     op die dag. Bij een nachtdienst telt de nacht ván die dag, dus een gast die
+     aankomt telt mee en een gast die 's ochtends vertrekt ook.
+     Bij "niet beschikbaar" heeft het geen zin: dan werk je niet. */
+  function dienstGasten(d, dag){
+    if(!dag || d.dienst === 'afwezig') return '';
+    var gasten = ALLES.filter(function(r){
+      if(r.soort !== 'reservering' && r.soort !== 'extern' && r.soort !== 'handmatig') return false;
+      if(!isLelystad(r.locatie)) return false;
+      return (r.aankomst && r.aankomst <= dag) && (r.vertrek && r.vertrek >= dag);
+    }).sort(function(a,b){ return String(a.aankomst).localeCompare(String(b.aankomst)); });
+    if(!gasten.length) return '<em class="dienstleeg">niemand in huis</em>';
+    return '<div class="dienstgasten">' + gasten.slice(0,6).map(function(r){
+      var wat = r.aankomst === dag ? 'komt' : r.vertrek === dag ? 'vertrekt' : 'verblijft';
+      return '<button type="button" class="dienstgast" data-dskaart="' + esc(r.id) + '">' +
+        esc(gastnaam(r)) + '<small>' + esc(suiteKort(r.locatie)) + ' · ' + wat + '</small></button>';
+    }).join('') + (gasten.length > 6 ? '<span class="dienstleeg">+' + (gasten.length-6) + ' meer</span>' : '') +
+    '</div>';
+  }
+
   function tekenMijnDiensten(){
     var lijst = document.getElementById('mdLijst'); if(!lijst) return;
     var sel = document.getElementById('mdWie');
@@ -5386,12 +5411,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var soort = d.dienst === 'nacht' ? 'Nachtverblijf' : d.dienst === 'schoonmaak' ? 'Schoonmaak'
         : d.dienst === 'afwezig' ? 'Niet beschikbaar' : 'Dagverblijf';
       var naam = (TEAM.filter(function(m){ return String(m.id)===String(d.medewerker_id); })[0]||{}).naam || '—';
-      return '<div class="dienstregel"'+(String(d.datum||'').slice(0,10)===vd?' data-vandaag="1"':'')+'>'+
-        '<strong>'+esc(dmyKort(String(d.datum||'').slice(0,10)))+'</strong>'+
+      var dag = String(d.datum||'').slice(0,10);
+      return '<div class="dienstregel"'+(dag===vd?' data-vandaag="1"':'')+'>'+
+        '<strong>'+esc(dmyKort(dag))+'</strong>'+
         '<span>'+esc(naam)+'</span>'+
-        '<span class="pil">'+esc(soort)+'</span>'+
+        '<span class="pil'+(d.dienst==='afwezig'?' weg':'')+'">'+esc(soort)+'</span>'+
         (d.locatie?'<span>'+esc(d.locatie)+'</span>':'')+
-        (d.notitie?'<em>'+esc(d.notitie)+'</em>':'')+'</div>';
+        (d.notitie?'<em>'+esc(d.notitie)+'</em>':'')+
+        dienstGasten(d, dag)+'</div>';
     }).join('')
       : '<p style="opacity:.55;font-size:14px;margin:0">Geen diensten binnen deze keuze.</p>';
   }
