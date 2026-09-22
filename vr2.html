@@ -1874,6 +1874,20 @@ div.ag-blok{cursor:default}
           <label for="resZoek" class="visueel">Zoeken</label>
           <input type="search" id="resZoek" placeholder="Zoek gast, suite of nummer...">
         </div>
+        <!-- Angela, 22-09-2026: "een dropdown optie voor de reserveringen".
+             De lijst volgde tot nu toe strak de kalender erboven: stond die op
+             week, dan zag je alleen die week. Wie alles wilde zien moest eerst
+             de kalender op jaar zetten. Met deze keuze staat de lijst daar los
+             van. Hij wordt onthouden, zodat je hem niet elke keer opnieuw
+             hoeft te zetten. -->
+        <div class="field" style="margin:0;min-width:190px">
+          <label for="resPeriode" class="visueel">Welke reserveringen</label>
+          <select id="resPeriode">
+            <option value="kalender">Wat in de kalender staat</option>
+            <option value="komend">Alles vanaf vandaag</option>
+            <option value="alles">Alle reserveringen</option>
+          </select>
+        </div>
         <div class="field" style="margin:0;min-width:200px">
           <label for="resSort" class="visueel">Sorteren</label>
           <select id="resSort">
@@ -8235,9 +8249,14 @@ function renderKalender(){
     TEAM.map(m2=>`<span class="leg"><span class="kal-dot" style="--c:${kalMwKleur(m2.id)}"></span>${esc(m2.naam)}</span>`).join('') +
     '<span class="leg" style="color:var(--muted)">☽ = nacht · ✦ = schoonmaak</span>';
 
-  /* de lijst eronder volgt de weergave */
+  /* Welke reserveringen komen in de lijst eronder? Standaard volgt hij de
+     kalender, maar met de keuzelijst kun je alles vanaf vandaag of de hele
+     lijst zien zonder eerst de kalender te verzetten. Angela, 22-09-2026. */
+  const resPer = ($('#resPeriode') || {}).value || 'kalender';
   let lijst = lijstRes.filter(r=>{
     const d = String(r.start||'').slice(0,10);
+    if(resPer === 'alles')  return true;
+    if(resPer === 'komend') return d >= vd;
     if(kalWeergave === 'dag')  return agOverlapt(r, kalDag || vd);
     if(kalWeergave === 'jaar') return d.slice(0,4) === String(j);
     if(kalDag) return d === kalDag;
@@ -8482,13 +8501,30 @@ $('#resToggle').addEventListener('click', ()=>{
   tabel.hidden = !open;
   try{ localStorage.setItem('bwf_reslijst_open', open ? '1' : '0'); }catch(e){}
 });
+/* De reserveringen stonden standaard dichtgeklapt, en daardoor zag je op
+   Planning alleen de kalender. Angela, 22-09-2026: "alle reserveringen moeten
+   weergegeven worden als reserveringskaart met foto in het tabblad planning."
+   Ze staan nu open, tenzij je ze zelf hebt dichtgeklikt - dat onthoudt hij. */
 try{
-  if(localStorage.getItem('bwf_reslijst_open') === '1'){
+  if(localStorage.getItem('bwf_reslijst_open') !== '0'){
     $('#resToggle').setAttribute('aria-expanded','true'); $('#resTabel').hidden = false;
   }
-}catch(e){}
+}catch(e){
+  $('#resToggle').setAttribute('aria-expanded','true'); $('#resTabel').hidden = false;
+}
 $('#resSort').addEventListener('change', renderKalender);
 if($('#resZoek')) $('#resZoek').addEventListener('input', renderKalender);
+/* De keuze welke reserveringen je ziet, onthouden tussen bezoeken door. */
+if($('#resPeriode')){
+  try{
+    const bewaard = localStorage.getItem('bwf_resperiode');
+    if(bewaard) $('#resPeriode').value = bewaard;
+  }catch(e){}
+  $('#resPeriode').addEventListener('change', ()=>{
+    try{ localStorage.setItem('bwf_resperiode', $('#resPeriode').value); }catch(e){}
+    renderKalender();
+  });
+}
 
 /* op de telefoon: kalender of lijst */
 $('#kalToon').addEventListener('click', e=>{
