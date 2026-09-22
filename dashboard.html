@@ -156,12 +156,20 @@ button,input,select,textarea{font:inherit;color:inherit}
 .stat[data-klik]{cursor:pointer;transition:transform .15s ease,border-color .15s ease}
 .stat[data-klik]:hover{transform:translateY(-2px);border-color:var(--accent)}
 .stat[data-klik]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-#panel-voorraad .card-head{cursor:pointer;user-select:none}
-#panel-voorraad .card-head .pijltje{margin-left:auto;flex:none;font-size:13px;color:var(--muted);
+/* In- en uitklappen. Stond eerst alleen op de voorraadpagina; Angela,
+   22-09-2026: "ik wil ook op de planning pagina de dienstenlijst kunnen
+   inklappen." Dezelfde regels gelden nu voor beide pagina's. */
+#panel-voorraad .card-head,
+#panel-planning .card[data-open] .card-head{cursor:pointer;user-select:none}
+#panel-voorraad .card-head .pijltje,
+#panel-planning .card-head .pijltje{margin-left:auto;flex:none;font-size:13px;color:var(--muted);
   transition:transform .18s ease;line-height:1}
-#panel-voorraad .card[data-open="0"] .pijltje{transform:rotate(-90deg)}
-#panel-voorraad .card[data-open="0"] .inklap{display:none}
-#panel-voorraad .card[data-open="0"]{box-shadow:none}
+#panel-voorraad .card[data-open="0"] .pijltje,
+#panel-planning .card[data-open="0"] .pijltje{transform:rotate(-90deg)}
+#panel-voorraad .card[data-open="0"] .inklap,
+#panel-planning .card[data-open="0"] .inklap{display:none}
+#panel-voorraad .card[data-open="0"],
+#panel-planning .card[data-open="0"]{box-shadow:none}
 .stat .label{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .stat .value{font-family:var(--f-display);font-size:26px;font-weight:700;letter-spacing:-.02em;
   font-variant-numeric:tabular-nums;line-height:1.1}
@@ -7918,11 +7926,24 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 </script>
 
 <script>
-/* ================= Voorraad: kaarten in- en uitklappen ================= */
-(function(){
-  var paneel = document.getElementById("panel-voorraad");
+/* ================= Kaarten in- en uitklappen =================
+   Begon op de voorraadpagina. Angela, 22-09-2026: "ik wil ook op de planning
+   pagina de dienstenlijst kunnen inklappen." Daarom is het hier één functie
+   geworden die je per paneel aanroept, in plaats van twee keer bijna
+   hetzelfde stukje code.
+
+   Per paneel een eigen sleutel in localStorage, zodat de ene pagina de stand
+   van de andere niet overschrijft - de koppen heten op beide pagina's anders,
+   maar dat is geluk en geen garantie.
+
+   `dichtVanaf` bepaalt wat er bij een eerste bezoek dichtstaat: op de
+   voorraadpagina alles behalve het eerste blok, op de planningpagina niets -
+   daar stond tot nu toe alles open en dat moet zo blijven, anders lijkt het
+   alsof er iets verdwenen is. */
+function bwfInklapbaar(paneelId, sleutel, dichtVanaf){
+  var paneel = document.getElementById(paneelId);
   if(!paneel) return;
-  var SLEUTEL = "bw-voorraad-open";
+  var SLEUTEL = sleutel;
 
   function bewaardeStand(){
     try { return JSON.parse(localStorage.getItem(SLEUTEL) || "null") || {}; } catch(e){ return {}; }
@@ -7935,6 +7956,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   kaarten.forEach(function(card, i){
     var head = card.querySelector(".card-head");
     if(!head || card.querySelector(".inklap")) return;
+    /* "Mijn diensten" klapt al open en dicht via zijn eigen kop; die hier
+       nog een keer inpakken levert twee pijltjes en twee kliks op. */
+    if(head.classList.contains("uitklapkop")) return;
 
     var titel = (head.querySelector("h2") || {}).textContent || ("blok" + i);
     card.setAttribute("data-titel", titel);
@@ -7953,7 +7977,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     head.setAttribute("role", "button");
     head.setAttribute("tabindex", "0");
 
-    var open = stand.hasOwnProperty(titel) ? !!stand[titel] : (i === 0);
+    var open = stand.hasOwnProperty(titel) ? !!stand[titel]
+             : (dichtVanaf < 0 ? true : i < dichtVanaf);
     card.setAttribute("data-open", open ? "1" : "0");
     head.setAttribute("aria-expanded", open ? "true" : "false");
   });
@@ -7967,19 +7992,30 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     bewaar(stand);
   }
 
+  /* Alleen kaarten die we hierboven daadwerkelijk hebben ingepakt reageren.
+     Zonder die controle zou een klik op de kop van "Mijn diensten" - die zijn
+     eigen uitklapper heeft - hier een data-open zetten en gaan de twee
+     mechanismen elkaar tegenwerken. */
+  function klapbaar(el){
+    var card = el && el.parentElement;
+    return (card && card.classList.contains("card") && card.hasAttribute("data-open")) ? card : null;
+  }
+
   paneel.addEventListener("click", function(e){
     /* knoppen en velden in de kop niet als klapper gebruiken */
     if(e.target.closest(".card-head button, .card-head a, .card-head input, .card-head select")) return;
-    var head = e.target.closest(".card-head");
-    if(head && head.parentElement.classList.contains("card")) wissel(head.parentElement);
+    var card = klapbaar(e.target.closest(".card-head"));
+    if(card) wissel(card);
   });
   paneel.addEventListener("keydown", function(e){
     if(e.key !== "Enter" && e.key !== " ") return;
-    var head = e.target.closest(".card-head");
-    if(head && head.parentElement.classList.contains("card")){ e.preventDefault(); wissel(head.parentElement); }
+    var card = klapbaar(e.target.closest(".card-head"));
+    if(card){ e.preventDefault(); wissel(card); }
   });
 
-  var knop = document.getElementById("vrAllesKnop");
+  /* De knop "alles in-/uitklappen" en het openspringen bij een tegel horen
+     bij de voorraadpagina; daar staan ze ook alleen. */
+  var knop = paneelId === "panel-voorraad" ? document.getElementById("vrAllesKnop") : null;
   if(knop) knop.addEventListener("click", function(){
     var dicht = paneel.querySelectorAll(':scope > .card[data-open="0"]').length;
     var open = dicht > 0;
@@ -7994,7 +8030,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   });
 
   /* een tegel bovenaan opent het bijbehorende blok vanzelf */
-  var oud = window.BWFVoorraad && window.BWFVoorraad.toon;
+  var oud = paneelId === "panel-voorraad" && window.BWFVoorraad && window.BWFVoorraad.toon;
   if(oud){
     window.BWFVoorraad.toon = function(doel){
       var titel = (doel === "bestellen" || doel === "besteld") ? "Bestellijst" : "Voorraad";
@@ -8008,7 +8044,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       oud(doel);
     };
   }
-})();
+}
+
+/* Voorraad: het eerste blok open, de rest dicht - zo was het al.
+   Planning: alles open, want daar stond tot nu toe niets dicht. Je kunt nu
+   wel elk blok zelf dichtklappen, en dat onthoudt de tablet. */
+bwfInklapbaar("panel-voorraad", "bw-voorraad-open", 1);
+bwfInklapbaar("panel-planning", "bw-planning-open", -1);
 </script>
 
 <!-- ================= Home-knop ================= -->
