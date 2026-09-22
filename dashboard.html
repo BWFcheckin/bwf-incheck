@@ -1518,7 +1518,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
              gedeelde kalender, beperkt tot de twee suites van Lelystad.
              Het maandrooster hieronder blijft staan: dat toont de diensten van
              het team, en dat is iets anders dan de boekingen. -->
-        <div id="planKalender" style="margin-bottom:16px"></div>
+        <!-- De reserveringskalender stond hier; die hoort op een
+             personeelsplanning niet thuis en staat al op Vandaag en op
+             Reserveringen. Angela, 22-09-2026: "op de planningpagina mag de
+             reserveringskalender eruit." Het maandoverzicht met de diensten
+             eronder blijft. -->
+        <div id="planKalender" hidden></div>
         <div class="kal-wrap"><div class="kal" id="kalender"></div></div>
         <div class="legend" id="kalLegend"></div>
       </div>
@@ -1569,7 +1574,34 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         </form>
       </div>
     </div>
-  </section>
+  
+    <!-- ===== Urenregistratie, Angela 22-09-2026 =====
+         "Kan je onderaan de pagina urenregistratie toevoegen; iedere gebruiker
+         ziet zijn eigen urenregistratie."
+
+         Wat je hier ziet is wat de database teruggeeft. De regels van een ander
+         komen hier dus niet binnen doordat dit scherm ze wegfiltert, maar
+         doordat de rechten in de database ze niet meesturen - dat is de enige
+         plek waar zoiets betrouwbaar te regelen is. -->
+    <div class="card" id="cardUren">
+      <div class="card-head"><h2>Mijn uren</h2>
+        <span class="hint" id="urenTel"></span></div>
+      <div class="card-body">
+        <p class="hint" id="urenMelding" style="margin:0 0 12px"></p>
+        <form class="grid-form" id="urenForm">
+          <div class="field"><label for="u-datum">Datum</label>
+            <input type="date" id="u-datum" required></div>
+          <div class="field"><label for="u-uren">Aantal uren</label>
+            <input type="number" id="u-uren" min="0" step="0.25" placeholder="0,00" required></div>
+          <div class="field" style="grid-column:span 2"><label for="u-notitie">Waar ging het over</label>
+            <input type="text" id="u-notitie" placeholder="Bijv. schoonmaak na vertrek"></div>
+          <div class="field"><label>&nbsp;</label>
+            <button class="knop vol" type="submit" id="u-bewaar">Uren opslaan</button></div>
+        </form>
+        <div id="urenLijst" style="margin-top:14px"></div>
+      </div>
+    </div>
+</section>
 
   <!-- ============ VOORRAAD ============ -->
   <section class="panel" id="panel-voorraad" role="tabpanel" aria-labelledby="tab-voorraad" hidden>
@@ -4753,6 +4785,121 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
   }
 
+  /* ============ Urenregistratie ============
+     Angela, 22-09-2026: "iedere gebruiker ziet zijn eigen urenregistratie."
+
+     Er wordt hier niets weggefilterd op naam: de database stuurt alleen terug
+     wat je mag zien. Zou dit scherm filteren, dan stond de scheiding op de
+     verkeerde plek - wie het adres van een ander kent zou er dan omheen kunnen.
+
+     Let op de twee medewerkerstabellen: wz_werkzaamheden.medewerker_id wijst
+     naar wz_medewerkers (waar ook de taken aan hangen), niet naar de tabel
+     `medewerkers` waar de planning aan hangt. Daarom tkMijnId() en niet de
+     omweg via teamLijst() die bij Mijn planning nodig was. */
+  var UREN = [];
+
+  function urenMijnId(){ return tkMijnId(); }
+
+  async function laadUren(){
+    var melding = document.getElementById('urenMelding');
+    try{
+      UREN = await sb('wz_werkzaamheden?select=id,datum,uren,notitie,bedrag,betaald,medewerker_id' +
+        '&order=datum.desc&limit=200') || [];
+      if(melding) melding.textContent = '';
+    }catch(e){
+      UREN = [];
+      /* 401/403 betekent: de database laat deze rol er niet bij. Dat is iets
+         anders dan "je hebt nog geen uren", dus dat zeggen we ook. */
+      if(melding){
+        melding.textContent = /40[13]/.test(String(e.message))
+          ? 'Je hebt nog geen toegang tot de urenregistratie. Vraag Angela om die aan te zetten voor jouw rol.'
+          : 'De uren konden niet worden opgehaald: ' + e.message;
+        melding.style.color = '#B3261E';
+      }
+    }
+    tekenUren();
+  }
+
+  function tekenUren(){
+    var lijst = document.getElementById('urenLijst');
+    if(!lijst) return;
+    var mij = urenMijnId();
+    /* De database geeft al alleen de eigen regels terug; dit is een tweede zeef
+       voor het geval iemand met ruimere rechten kijkt en toch zijn eigen
+       overzicht wil. */
+    var eigen = mij ? UREN.filter(function(w){ return String(w.medewerker_id) === String(mij); }) : UREN;
+    var toon = eigen.length ? eigen : UREN;
+
+    var totaal = toon.reduce(function(a, w){ return a + (Number(w.uren) || 0); }, 0);
+    var maand = dstr(new Date()).slice(0, 7);
+    var dezeMaand = toon.filter(function(w){ return String(w.datum || '').slice(0, 7) === maand; })
+      .reduce(function(a, w){ return a + (Number(w.uren) || 0); }, 0);
+    var tel = document.getElementById('urenTel');
+    if(tel) tel.textContent = toon.length
+      ? (urenTekst(dezeMaand) + ' deze maand · ' + urenTekst(totaal) + ' in totaal') : '';
+
+    lijst.innerHTML = toon.length ? toon.slice(0, 40).map(function(w){
+      return '<div class="ds-regel">' +
+        '<span class="wanneer">' + esc(dsDatum(String(w.datum || '').slice(0,10))) + '</span>' +
+        '<div><strong>' + esc(urenTekst(w.uren)) + '</strong><small>' +
+        esc([w.notitie || '', w.bedrag ? euro(w.bedrag) : '',
+             w.betaald ? 'uitbetaald' : ''].filter(Boolean).join(' · ')) + '</small></div></div>';
+    }).join('') : '<p class="ds-leeg">Nog geen uren geregistreerd.</p>';
+  }
+
+  /* "1,5 uur" leest prettiger dan "1.5". */
+  function urenTekst(n){
+    var x = Number(n) || 0;
+    var s = (Math.round(x * 100) / 100).toString().replace('.', ',');
+    return s + (x === 1 ? ' uur' : ' uur');
+  }
+
+  (function(){
+    var form = document.getElementById('urenForm');
+    if(!form) return;
+    var datum = document.getElementById('u-datum');
+    if(datum && !datum.value) datum.value = dstr(new Date());
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      var melding = document.getElementById('urenMelding');
+      var uren = Number((document.getElementById('u-uren') || {}).value || 0);
+      if(!(uren > 0)){
+        if(melding){ melding.textContent = 'Vul een aantal uren in dat groter is dan nul.'; melding.style.color = '#B3261E'; }
+        return;
+      }
+      var mij = urenMijnId();
+      if(!mij){
+        if(melding){ melding.textContent = 'Je naam is niet herkend; log opnieuw in.'; melding.style.color = '#B3261E'; }
+        return;
+      }
+      var knop = document.getElementById('u-bewaar');
+      if(knop) knop.disabled = true;
+      try{
+        await sb('wz_werkzaamheden', { method: 'POST', body: JSON.stringify({
+          datum: (document.getElementById('u-datum') || {}).value || dstr(new Date()),
+          medewerker_id: mij,
+          uren: Math.round(uren * 100) / 100,
+          notitie: ((document.getElementById('u-notitie') || {}).value || '').trim() || null,
+          betaald: false
+        }) });
+        document.getElementById('u-uren').value = '';
+        document.getElementById('u-notitie').value = '';
+        await laadUren();
+        /* Pas ná het herladen, anders wist laadUren() de bevestiging meteen weer. */
+        if(melding){ melding.textContent = urenTekst(uren) + ' opgeslagen.'; melding.style.color = ''; }
+      }catch(err){
+        if(melding){
+          melding.textContent = /40[13]/.test(String(err.message))
+            ? 'Opslaan mag nog niet voor jouw rol. Vraag Angela om de urenregistratie aan te zetten.'
+            : 'Opslaan lukte niet: ' + err.message;
+          melding.style.color = '#B3261E';
+        }
+      }finally{
+        if(knop) knop.disabled = false;
+      }
+    });
+  })();
+
   /* ---- blok: mijn planning ----
      Angela, 22-09-2026: "nog een toevoeging: mijn planning." De eigen diensten
      van wie is ingelogd, vanaf vandaag. Kent het scherm de naam niet, dan
@@ -4814,6 +4961,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     try{ dsTekenKaarten(); }catch(e){}
     try{ dsTekenTaken(); }catch(e){}
     try{ dsTekenPlanning(); }catch(e){}
+    try{ laadUren(); }catch(e){}
   }
 
   document.addEventListener('change', function(e){
@@ -7606,10 +7754,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var paneel = document.getElementById('panel-planning');
       if(!houder || !paneel || paneel.hidden) return;
       gemaakt = true;
-      window.BWFKalender.maak(houder, {
-        weergave: 'maand',
-        suites: ['malina_jacuzzi', 'malina_deluxe']
-      });
+      /* Niet meer opbouwen: de kalender is uit beeld. De functie blijft staan
+         zodat de aanroepen eromheen niet omvallen. */
+      return;
     }
     document.addEventListener('click', function(){ setTimeout(maakPlanKalender, 80); });
     setTimeout(maakPlanKalender, 1500);
