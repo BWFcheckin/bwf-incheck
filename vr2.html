@@ -1851,6 +1851,45 @@ div.ag-blok{cursor:default}
       </div></div>
     </div>
 
+    <!-- Diensten inplannen. Angela, 22-09-2026: "ik wil bij planning bij het
+         vr dashboard ook diensten kunnen inplannen." Tot nu toe kon je hier
+         alleen kijken; inplannen kon alleen in het locatiedashboard.
+
+         Schrijft naar dezelfde tabel `planning` die de kalender hierboven al
+         leest, met dezelfde soorten en locaties als het locatiedashboard -
+         anders krijg je twee planningen die niet op elkaar lijken. -->
+    <div class="card ag-lijsten">
+      <div class="reskop" id="plnKop">
+        <button class="reskopknop" type="button" id="plnToggle" aria-expanded="false">
+          <span class="pijl">›</span><span>Dienst inplannen</span>
+        </button>
+      </div>
+      <div class="card-body" id="plnBlok" hidden>
+        <div class="grid-form">
+          <div class="field"><label for="plnDatum">Datum</label>
+            <input type="date" id="plnDatum"></div>
+          <div class="field"><label for="plnWie">Wie</label>
+            <select id="plnWie"><option value="">Kies een medewerker</option></select></div>
+          <div class="field"><label for="plnLoc">Locatie</label>
+            <select id="plnLoc">
+              <option value="Lelystad Malina">Lelystad Malina</option>
+              <option value="Almere">Almere</option>
+            </select></div>
+          <div class="field"><label for="plnSoort">Soort</label>
+            <select id="plnSoort">
+              <option value="dag">Dagverblijf</option>
+              <option value="nacht">Nachtverblijf</option>
+              <option value="schoonmaak">Alleen schoonmaak</option>
+            </select></div>
+          <div class="field" style="grid-column:span 2"><label for="plnNotitie">Notitie</label>
+            <input type="text" id="plnNotitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
+          <div class="field"><label>&nbsp;</label>
+            <button class="btn groen" type="button" id="plnBewaar">Inplannen</button></div>
+        </div>
+        <p class="note" id="plnMeld" style="margin:10px 0 0"></p>
+      </div>
+    </div>
+
     <div class="card ag-lijsten">
       <div class="reskop" id="dienstKop">
         <button class="reskopknop" type="button" id="dienstToggle" aria-expanded="false">
@@ -6291,6 +6330,98 @@ try{
     $('#dienstToggle').setAttribute('aria-expanded','true'); $('#dienstBlok').hidden = false;
   }
 }catch(e){}
+
+/* ---------------- DIENST INPLANNEN ----------------
+   Angela, 22-09-2026: "ik wil bij planning bij het vr dashboard ook diensten
+   kunnen inplannen."
+
+   Schrijft naar dezelfde tabel `planning` die de kalender hierboven leest, met
+   dezelfde soorten en locaties als het locatiedashboard. Daar wordt het id
+   door de pagina zelf meegegeven (tekst, geen uuid); dat doen we hier ook,
+   zodat beide schermen rijen van dezelfde vorm maken.
+
+   De tabel staat niet open voor de publieke sleutel: lezen lukt alleen met een
+   ingelogde sessie, en schrijven dus ook. Weigert de database het, dan zeggen
+   we dat met zoveel woorden in plaats van een stille mislukking. */
+function plnId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function plnVulWie(){
+  const sel = $('#plnWie'); if(!sel || !TEAM.length) return;
+  const gekozen = sel.value;
+  sel.innerHTML = '<option value="">Kies een medewerker</option>' +
+    TEAM.map(m=>`<option value="${esc(m.id)}">${esc(m.naam)}</option>`).join('');
+  if(gekozen) sel.value = gekozen;
+}
+function plnMeld(tekst, fout){
+  const p = $('#plnMeld'); if(!p) return;
+  p.textContent = tekst || '';
+  p.style.color = fout ? '#B3261E' : '';
+}
+const plnToggle = $('#plnToggle');
+if(plnToggle) plnToggle.addEventListener('click', ()=>{
+  const open = plnToggle.getAttribute('aria-expanded') !== 'true';
+  plnToggle.setAttribute('aria-expanded', String(open));
+  $('#plnBlok').hidden = !open;
+  if(open){
+    plnVulWie();
+    /* De dag die in de kalender is aangeklikt staat al goed; anders vandaag.
+       Zo hoef je na het kiezen van een dag de datum niet nog eens te typen. */
+    const d = $('#plnDatum');
+    if(d && !d.value) d.value = kalDag || vandaag();
+  }
+});
+
+const plnBewaar = $('#plnBewaar');
+if(plnBewaar) plnBewaar.addEventListener('click', async ()=>{
+  const datum = ($('#plnDatum')||{}).value || '';
+  const wie   = ($('#plnWie')||{}).value || '';
+  if(!datum){ plnMeld('Kies eerst een datum.', true); $('#plnDatum').focus(); return; }
+  if(!wie){ plnMeld('Kies eerst wie er werkt.', true); $('#plnWie').focus(); return; }
+
+  const soort = ($('#plnSoort')||{}).value || 'dag';
+  const loc   = ($('#plnLoc')||{}).value || 'Lelystad Malina';
+
+  /* Staat er al een dienst voor deze persoon op deze dag, dan is dat meestal
+     een vergissing - twee keer op Inplannen gedrukt, of iemand anders was je
+     voor. Vragen in plaats van weigeren: soms klopt het wel, bijvoorbeeld een
+     schoonmaak naast een nachtdienst. */
+  const bestaat = DIENSTEN.filter(d =>
+    String(d.datum||'').slice(0,10) === datum && String(d.medewerker_id) === String(wie));
+  if(bestaat.length){
+    const wat = bestaat.map(d=>kalSoortLabel(d.dienst)).join(', ');
+    if(!confirm(teamNaam(wie) + ' staat op ' + dmy(datum) + ' al ingepland: ' + wat +
+                '.\n\nToch nog een dienst erbij zetten?')) { plnMeld(''); return; }
+  }
+
+  plnBewaar.disabled = true;
+  plnMeld('Inplannen…');
+  try{
+    await api('planning', {
+      method: 'POST',
+      headers: heads({'Content-Type':'application/json'}),
+      body: JSON.stringify({
+        id: plnId(), datum: datum, medewerker_id: wie,
+        locatie: loc, dienst: soort,
+        notitie: (($('#plnNotitie')||{}).value || '').trim() || null
+      })
+    });
+    /* Opnieuw ophalen in plaats van de regel er lokaal bij verzinnen: dan zie
+       je wat de database er werkelijk van gemaakt heeft. */
+    await laadDiensten();
+    plnVulWie();
+    renderKalender();
+    renderDiensten();
+    $('#plnNotitie').value = '';
+    plnMeld(teamNaam(wie) + ' ingepland op ' + dmy(datum) + ' — ' + kalSoortLabel(soort) + '.');
+  }catch(e){
+    plnMeld(/40[13]/.test(String(e.message))
+      ? 'Inplannen mag niet met jouw account. Vraag Angela om het recht op de planning aan te zetten.'
+      : 'Inplannen lukte niet: ' + e.message, true);
+  }finally{
+    plnBewaar.disabled = false;
+  }
+});
 
 /* ---------------- RESERVERING ZOEKEN ----------------
    dezelfde reserveringen als in de kalender, doorzoekbaar in één keuzelijst. */
