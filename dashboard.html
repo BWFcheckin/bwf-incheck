@@ -420,6 +420,14 @@ body.gate-open{overflow:hidden}
 .ds-regel small{display:block;opacity:.66;font-size:12.5px}
 .ds-regel.spoed{background:#fdf2f1;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
 .ds-regel.later{background:var(--goud-zacht,#faf4e8);margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
+.ds-vink{margin-left:auto;flex:none;width:30px;height:30px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);font-size:14px;line-height:1;
+  color:inherit;opacity:.65}
+.ds-vink:hover{opacity:1;border-color:#0F7B5A;color:#0F7B5A}
+.ds-regel.gedaan{opacity:.5;background:none}
+.ds-regel.gedaan strong{text-decoration:line-through}
+.ds-regel.gedaan .ds-vink:hover{border-color:#9A7B4F;color:#9A7B4F}
+.ds-afkop{margin:12px 0 2px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
 /* Reserveringskaarten met de foto van de suite; de fotovariabelen komen uit
    bwf-agenda-stijl.css, dat dit scherm al laadt. */
 .ds-kaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
@@ -996,16 +1004,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     <!-- Fase 3: de dagweergave komt uit de gedeelde kalender (bwf-kalender.js), gelezen uit reserveringen en
          blokkades. Het vandaag-scherm met de welkomstcall-knoppen blijft bereikbaar via de link. -->
-    <div id="lelystadKalender"></div>
-    <p style="margin:10px 2px 0;font-size:13px"><a href="vandaag.html?loc=lelystad" target="_blank" rel="noopener">Vandaag-scherm met welkomstcall-knoppen openen</a></p>
-
-    <!-- ===== Dagstart, Angela 22-09-2026 =====
-         "Personeels dashboard: opent met dagstart, reserveringen kalender, een
-         dropdown menu reserveringen met reserveringskaart en suitefoto, spoed
-         reserveringen met belletje, taken locatie Lelystad gesorteerd op
-         datum." Plus voorraadbeheer, dat ze hier miste.
-         De kalender staat hierboven; de rest volgt hieronder. -->
-
     <div class="ds-blok" id="dsSpoedVak">
       <div class="ds-kop">
         <h2>Spoed vandaag</h2>
@@ -1016,6 +1014,17 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       </div>
       <div id="dsSpoed"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
     </div>
+
+    <div id="lelystadKalender"></div>
+    <p style="margin:10px 2px 0;font-size:13px"><a href="vandaag.html?loc=lelystad" target="_blank" rel="noopener">Vandaag-scherm met welkomstcall-knoppen openen</a></p>
+
+    <!-- ===== Dagstart, Angela 22-09-2026 =====
+         "Personeels dashboard: opent met dagstart, reserveringen kalender, een
+         dropdown menu reserveringen met reserveringskaart en suitefoto, spoed
+         reserveringen met belletje, taken locatie Lelystad gesorteerd op
+         datum." Plus voorraadbeheer, dat ze hier miste.
+         De kalender staat hierboven; de rest volgt hieronder. -->
+
 
     <details class="ds-uitklap" id="dsResVak">
       <summary>Reserveringen
@@ -4422,17 +4431,66 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     });
     regels.sort(function(a,b){ return String(a.wanneer).localeCompare(String(b.wanneer)); });
 
+    /* Angela, 22-09-2026: "ik wil dat je spoed meldingen kan afvinken per stuk."
+       Eén belletje klikte alles tegelijk weg; wat je nog moest doen raakte zo
+       samen met de rest uit beeld. Elke regel heeft nu een eigen vinkje. Wat
+       je afvinkt blijft staan, doorgestreept en onderaan, zodat je kunt zien
+       wat je hebt gedaan - en met een tik terug kunt zetten als je te vroeg
+       was. Die stand staat op dit apparaat, per dag. */
+    var af = dsAfgevinkt();
+    var open = regels.filter(function(x){ return af.indexOf(x.sleutel) < 0; });
+    var klaar = regels.filter(function(x){ return af.indexOf(x.sleutel) > -1; });
+
     var tel = document.getElementById('dsSpoedTel');
-    if(tel) tel.textContent = regels.length ? (regels.length + (regels.length===1?' regel':' regels')) : '';
+    if(tel) tel.textContent = regels.length
+      ? (open.length + ' van ' + regels.length + ' te doen') : '';
+
+    function regelHtml(x, gedaan){
+      return '<div class="ds-regel ' + esc(gedaan ? 'gedaan' : x.soort) + '">' +
+        '<span class="wanneer">' + esc(x.wanneer) + '</span>' +
+        '<div><strong>' + esc(x.titel) + '</strong><small>' + esc(x.sub) + '</small></div>' +
+        '<button class="ds-vink" type="button" data-dsvink="' + esc(x.sleutel) + '" ' +
+          'title="' + (gedaan ? 'Terugzetten' : 'Afvinken') + '" aria-label="' +
+          (gedaan ? 'Terugzetten' : 'Afvinken') + '">' + (gedaan ? '&#8635;' : '&#10003;') +
+        '</button></div>';
+    }
+
     vak.innerHTML = regels.length
-      ? regels.map(function(x){
-          return '<div class="ds-regel ' + esc(x.soort) + '">' +
-            '<span class="wanneer">' + esc(x.wanneer) + '</span>' +
-            '<div><strong>' + esc(x.titel) + '</strong><small>' + esc(x.sub) + '</small></div></div>';
-        }).join('')
+      ? open.map(function(x){ return regelHtml(x, false); }).join('') +
+        (open.length ? '' : '<p class="ds-leeg">Alles afgevinkt.</p>') +
+        (klaar.length
+          ? '<p class="ds-afkop">' + klaar.length + ' afgevinkt</p>' +
+            klaar.map(function(x){ return regelHtml(x, true); }).join('')
+          : '')
       : '<p class="ds-leeg">Vandaag en morgen komt of vertrekt er niemand.</p>';
 
-    dsBel('dsSpoedBel', 'spoed', regels.map(function(x){ return x.sleutel; }));
+    dsBel('dsSpoedBel', 'spoed', open.map(function(x){ return x.sleutel; }));
+  }
+
+  /* Wat er vandaag is afgevinkt. Per dag bewaard: morgen begin je schoon, en
+     de lijst blijft niet eindeloos groeien. */
+  function dsAfvinkSleutel(){ return 'bwf-ds-af-' + dstr(new Date()); }
+  function dsAfgevinkt(){
+    try{
+      var l = JSON.parse(localStorage.getItem(dsAfvinkSleutel()) || '[]');
+      return Object.prototype.toString.call(l) === '[object Array]' ? l : [];
+    }catch(e){ return []; }
+  }
+  function dsVink(sleutel){
+    var l = dsAfgevinkt();
+    var i = l.indexOf(sleutel);
+    if(i > -1) l.splice(i, 1); else l.push(sleutel);
+    try{ localStorage.setItem(dsAfvinkSleutel(), JSON.stringify(l)); }catch(e){}
+    /* de opslag van gisteren opruimen, anders blijft er van elke dag iets staan */
+    try{
+      for(var k = localStorage.length - 1; k >= 0; k--){
+        var naam = localStorage.key(k);
+        if(naam && naam.indexOf('bwf-ds-af-') === 0 && naam !== dsAfvinkSleutel()) {
+          localStorage.removeItem(naam);
+        }
+      }
+    }catch(e){}
+    dsTekenSpoed();
   }
 
   /* Het belletje: laat zien hoeveel er nieuw is sinds je het voor het laatst
@@ -4558,6 +4616,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   });
   /* Een tik op een kaart opent dezelfde reserveringskaart als elders. */
   document.addEventListener('click', function(e){
+    var vink = e.target.closest && e.target.closest('[data-dsvink]');
+    if(vink){ dsVink(vink.getAttribute('data-dsvink')); return; }
     var k = e.target.closest && e.target.closest('[data-dskaart]');
     if(!k) return;
     var r = ALLES.filter(function(x){ return String(x.id) === k.getAttribute('data-dskaart'); })[0];
