@@ -1591,13 +1591,19 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <form class="grid-form" id="urenForm">
           <div class="field"><label for="u-datum">Datum</label>
             <input type="date" id="u-datum" required></div>
+          <!-- Bewust geen type="number": zo'n veld weigert een komma, en dan
+               verdwijnt "3,5" zonder dat je het ziet. Met inputmode="decimal"
+               komt op een telefoon nog steeds het cijfertoetsenbord op, en
+               werkt zowel 3,5 als 3.5. Angela, 22-09-2026. -->
           <div class="field"><label for="u-uren">Aantal uren</label>
-            <input type="number" id="u-uren" min="0" step="0.25" placeholder="0,00" required></div>
+            <input type="text" id="u-uren" inputmode="decimal" autocomplete="off"
+                   placeholder="bijv. 3,5" required></div>
           <div class="field" style="grid-column:span 2"><label for="u-notitie">Waar ging het over</label>
             <input type="text" id="u-notitie" placeholder="Bijv. schoonmaak na vertrek"></div>
           <div class="field"><label>&nbsp;</label>
             <button class="knop vol" type="submit" id="u-bewaar">Uren opslaan</button></div>
         </form>
+        <p class="hint" id="urenBedrag" style="margin:8px 0 0"></p>
         <div id="urenLijst" style="margin-top:14px"></div>
       </div>
     </div>
@@ -4465,8 +4471,34 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(!keuze) return null;
     return hoofdnaam(keuze) === 'Suite Angie' ? 'Almere' : 'Lelystad';
   }
-  /* Wie ben ik? window.BWF geeft een naam door; de taken werken met id's. */
+  /* Wie ben ik? De taken, de uren en Mijn planning werken met id's.
+
+     Dit ging lang mis. De oude versie keek alleen naar window.BWF.medewerker,
+     maar die wordt op dit scherm nergens gevuld - alleen dagoverzicht.html zet
+     hem. Op dit dashboard gaf tkMijnId() dus altijd leeg terug. Bij de taken
+     viel dat niet op (leeg = toon alles), bij de urenregistratie wel: geen
+     uurtarief, en opslaan zei "je naam is niet herkend".
+
+     Nu gaat het op het e-mailadres uit het sessietoken. Dat is wat je bij het
+     inloggen intikt, het staat ook in wz_medewerkers, en het is exact - anders
+     dan een naam, waar "Ruth" en "Ruth Tilburg" allebei voorkomen. De naam
+     blijft als terugval staan voor de schermen die BWF.medewerker wél zetten. */
+  function mijnEmail(){
+    try{
+      if(window.BWF && window.BWF.email) return String(window.BWF.email).trim().toLowerCase();
+      var t = token();
+      if(!t || t === SB_KEY) return '';
+      var deel = JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      return String(deel.email || '').trim().toLowerCase();
+    }catch(e){ return ''; }
+  }
   function tkMijnId(){
+    var mail = mijnEmail();
+    if(mail){
+      var opMail = (MEDEWERKERS || []).filter(function(x){
+        return String(veld(x,['email'],'')).trim().toLowerCase() === mail; })[0];
+      if(opMail) return String(opMail.id);
+    }
     var naam = (window.BWF && window.BWF.medewerker) ? window.BWF.medewerker : '';
     if(!naam) return '';
     var m = MEDEWERKERS.filter(function(x){
@@ -4800,6 +4832,20 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   function urenMijnId(){ return tkMijnId(); }
 
+  /* Het uurtarief staat per persoon in wz_medewerkers.uurtarief. Angela,
+     22-09-2026: "graag voor Ruth, Jerry en Michel een eigen urenadministratie
+     met berekening, en Kelly krijgt er ook een."
+
+     Staat er geen tarief, dan wordt er geen bedrag berekend - en dat zeggen we
+     ook. Stilzwijgend nul euro invullen zou erger zijn: dan lijkt het alsof
+     het werk niets waard was, en dat valt pas op bij het uitbetalen. */
+  function urenTarief(){
+    var mij = urenMijnId();
+    if(!mij) return 0;
+    var m = (MEDEWERKERS || []).filter(function(x){ return String(x.id) === String(mij); })[0];
+    return Number(veld(m || {}, ['uurtarief'], 0)) || 0;
+  }
+
   async function laadUren(){
     var melding = document.getElementById('urenMelding');
     try{
@@ -4834,9 +4880,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var maand = dstr(new Date()).slice(0, 7);
     var dezeMaand = toon.filter(function(w){ return String(w.datum || '').slice(0, 7) === maand; })
       .reduce(function(a, w){ return a + (Number(w.uren) || 0); }, 0);
+    var geldMaand = toon.filter(function(w){ return String(w.datum || '').slice(0, 7) === maand; })
+      .reduce(function(a, w){ return a + (Number(w.bedrag) || 0); }, 0);
+    var openstaand = toon.filter(function(w){ return !w.betaald; })
+      .reduce(function(a, w){ return a + (Number(w.bedrag) || 0); }, 0);
     var tel = document.getElementById('urenTel');
     if(tel) tel.textContent = toon.length
-      ? (urenTekst(dezeMaand) + ' deze maand · ' + urenTekst(totaal) + ' in totaal') : '';
+      ? (urenTekst(dezeMaand) + ' deze maand' + (geldMaand ? ' · ' + euro(geldMaand) : '') +
+         ' · ' + urenTekst(totaal) + ' in totaal' +
+         (openstaand ? ' · ' + euro(openstaand) + ' nog niet uitbetaald' : ''))
+      : '';
 
     lijst.innerHTML = toon.length ? toon.slice(0, 40).map(function(w){
       return '<div class="ds-regel">' +
@@ -4859,10 +4912,24 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(!form) return;
     var datum = document.getElementById('u-datum');
     if(datum && !datum.value) datum.value = dstr(new Date());
+
+    /* Meteen laten zien wat het oplevert, terwijl je typt. Zo merk je het
+       ook als er nog geen uurtarief is ingesteld. */
+    var uurveld = document.getElementById('u-uren');
+    if(uurveld) uurveld.addEventListener('input', function(){
+      var vak = document.getElementById('urenBedrag');
+      if(!vak) return;
+      var n = Number(String(uurveld.value || '').replace(',', '.')) || 0;
+      var t = urenTarief();
+      vak.textContent = !n ? ''
+        : t ? (urenTekst(n) + ' × ' + euro(t) + ' = ' + euro(Math.round(n * t * 100) / 100))
+        : 'Er staat nog geen uurtarief bij jouw naam, dus het bedrag blijft leeg.';
+      vak.style.color = (n && !t) ? '#9A7B4F' : '';
+    });
     form.addEventListener('submit', async function(e){
       e.preventDefault();
       var melding = document.getElementById('urenMelding');
-      var uren = Number((document.getElementById('u-uren') || {}).value || 0);
+      var uren = Number(String((document.getElementById('u-uren') || {}).value || '').replace(',', '.')) || 0;
       if(!(uren > 0)){
         if(melding){ melding.textContent = 'Vul een aantal uren in dat groter is dan nul.'; melding.style.color = '#B3261E'; }
         return;
@@ -4879,6 +4946,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           datum: (document.getElementById('u-datum') || {}).value || dstr(new Date()),
           medewerker_id: mij,
           uren: Math.round(uren * 100) / 100,
+          tarief: urenTarief() || null,
+          bedrag: urenTarief() ? Math.round(uren * urenTarief() * 100) / 100 : null,
           notitie: ((document.getElementById('u-notitie') || {}).value || '').trim() || null,
           betaald: false
         }) });
