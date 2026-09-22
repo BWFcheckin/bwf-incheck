@@ -484,6 +484,12 @@ body.gate-open{overflow:hidden}
 #lmNieuweBoeking ul{list-style:none;margin:9px 0 0;padding:0;display:grid;gap:6px}
 #lmNieuweBoeking li{font-size:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
 #lmNieuweBoeking li small{opacity:.7;font-size:12.5px}
+/* Het vinkje staat rechts op de regel en duwt de tekst niet uit de rij:
+   margin-left:auto houdt hem aan de kant, ook als de regel afbreekt. */
+#lmNieuweBoeking .nb-vink{margin-left:auto;flex:none;width:30px;height:30px;border-radius:9px;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);color:inherit;
+  cursor:pointer;font-size:14px;line-height:1;opacity:.75}
+#lmNieuweBoeking .nb-vink:hover{opacity:1;border-color:currentColor}
 #lmNieuweBoeking .nb-spoed{background:#B3261E;color:#fff;border-radius:6px;font-size:11px;
   font-weight:700;padding:1px 6px;letter-spacing:.04em}
 #lmNieuweBoeking .nb-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
@@ -4529,22 +4535,40 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function nbBewaarGezien(ids){
     try{ localStorage.setItem(NB_SLEUTEL, JSON.stringify(ids.slice(-400))); }catch(e){}
   }
+  /* Angela, 22-09-2026: "nieuwe boekingen: daar moeten alleen boekingen komen
+     te staan die voor vandaag binnen zijn gekomen en vandaag gedraaid worden."
+
+     Er stonden aankomsten van oktober en november tussen. Dat klopte met de
+     oude regel - net binnengekomen - maar niet met waar de balk voor is: wat
+     moet ik vandaag nog regelen. Nu moeten het er allebei zijn: kort geleden
+     binnengekomen én vandaag aan de beurt. Een boeking voor volgende maand
+     die vanochtend binnenkwam zie je gewoon in de reserveringenlijst. */
+  function nbDraaitVandaag(r){
+    var vandaag = dstr(new Date());
+    return r.aankomst === vandaag || r.vertrek === vandaag;
+  }
   function nbNieuw(){
     var grens = Date.now() - 24*60*60*1000;
     return ALLES.filter(function(r){
       if(r.soort!=='reservering') return false;
       if(!isLelystad(r.locatie)) return false;
+      if(!nbDraaitVandaag(r)) return false;
       var t = Date.parse(((r.ruw||{}).created_at)||'');
       return !!t && t >= grens;
     }).sort(function(a,b){
       return String((b.ruw||{}).created_at).localeCompare(String((a.ruw||{}).created_at)); });
   }
-  /* Komt de gast zelf ook binnen 24 uur? Dan is het spoed. */
+  /* Komt de gast zelf ook binnen 24 uur? Dan is het spoed.
+
+     De ondergrens is er niet voor niets: zonder die regel is "over min twee
+     dagen" ook kleiner dan 24 uur, en kreeg iemand die vandaag alleen nog
+     uitcheckt het rode SPOED-label alsof hij nog moet komen. */
   function nbIsSpoed(r){
     if(!r.aankomst) return false;
     var t = Date.parse(r.start || (r.aankomst+'T15:00:00'));
     if(!t) return false;
-    return t - Date.now() < 24*60*60*1000;
+    var straks = t - Date.now();
+    return straks < 24*60*60*1000 && straks > -12*60*60*1000;
   }
   function nbBericht(lijst){
     var regels = lijst.map(function(r){
@@ -4583,14 +4607,18 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   /* ---- blok 1: spoed vandaag ----
-     Wie er vandaag aankomt of vertrekt, plus wat er net is binnengekomen voor
-     een gast die binnen 24 uur komt. Het belletje telt alleen wat je nog niet
-     hebt weggeklikt; die stand staat op dit apparaat. */
+     Wie er vandaag aankomt of vertrekt. Het belletje telt alleen wat je nog
+     niet hebt weggeklikt; die stand staat op dit apparaat.
+
+     Angela, 22-09-2026: "spoed vandaag moet alleen aankomst en vertrek
+     vandaag zijn." Hier stonden ook de aankomsten van morgen bij, met
+     "morgen" ervoor. Dat las als werk voor nu terwijl het dat niet was, en
+     bij een lijst van vijf regels waarvan er drie morgen zijn weet je niet
+     meer waar je vandaag aan toe bent. Morgen zie je in de kalender. */
   function dsTekenSpoed(){
     var vak = document.getElementById('dsSpoed');
     if(!vak) return;
     var vandaag = dstr(new Date());
-    var morgen = dstr(new Date(Date.now() + 86400000));
     var regels = [];
 
     dsBoekingen().forEach(function(r){
@@ -4603,11 +4631,6 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       }else if(r.vertrek === vandaag){
         regels.push({ sleutel:'v-'+r.id, soort:'', nieuw:false, wanneer:(r.tijdUit || 'vertrek'),
           titel:gastnaam(r), sub:[suiteKort(r.locatie), 'vertrek vandaag'].filter(Boolean).join(' · ') });
-      }else if(r.aankomst === morgen){
-        regels.push({ sleutel:'m-'+r.id, soort: nieuw ? 'nieuw' : 'later', nieuw:nieuw,
-          wanneer:'morgen', titel:gastnaam(r),
-          sub:[suiteKort(r.locatie), r.kanaal,
-               nieuw ? 'NET GEBOEKT — komt morgen' : 'aankomst morgen'].filter(Boolean).join(' · ') });
       }
     });
     /* Wat net geboekt is en bijna aankomt, hoort bovenaan te staan. */
@@ -4647,7 +4670,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           ? '<p class="ds-afkop">' + klaar.length + ' afgevinkt</p>' +
             klaar.map(function(x){ return regelHtml(x, true); }).join('')
           : '')
-      : '<p class="ds-leeg">Vandaag en morgen komt of vertrekt er niemand.</p>';
+      : '<p class="ds-leeg">Vandaag komt of vertrekt er niemand.</p>';
 
     /* Het belletje gaat ALLEEN af voor een boeking die net is binnengekomen én
        binnen 24 uur aankomt. Angela, 22-09-2026: "ik wil alleen nieuwe
@@ -5051,6 +5074,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   document.addEventListener('click', function(e){
     var vink = e.target.closest && e.target.closest('[data-dsvink]');
     if(vink){ dsVink(vink.getAttribute('data-dsvink')); return; }
+    /* Afvinken in de balk "Nieuwe boekingen": het item verdwijnt meteen. */
+    var nbv = e.target.closest && e.target.closest('[data-nbvink]');
+    if(nbv){
+      e.preventDefault();
+      nbBewaarGezien(nbGezien().concat([nbv.getAttribute('data-nbvink')]));
+      tekenNieuweBoekingen();
+      return;
+    }
     var k = e.target.closest && e.target.closest('[data-dskaart]');
     if(!k) return;
     var r = ALLES.filter(function(x){ return String(x.id) === k.getAttribute('data-dskaart'); })[0];
@@ -5060,10 +5091,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   function tekenNieuweBoekingen(){
     var vak = document.getElementById('lmNieuweBoeking');
     if(!vak) return;
-    var lijst = nbNieuw();
-    if(!lijst.length){ vak.hidden = true; vak.innerHTML = ''; return; }
     var gezien = nbGezien();
-    var open = lijst.filter(function(r){ return gezien.indexOf(String(r.id)) < 0; });
+    /* Angela: "na het afvinken verdwijnt het item." Een afgevinkte boeking
+       hoort hier dus niet meer te staan - anders dan bij Spoed vandaag, waar
+       je wilt kunnen zien wat je al gedaan hebt. Deze balk is een seintje:
+       is alles afgehandeld, dan hoort er niets meer te staan. */
+    var lijst = nbNieuw().filter(function(r){ return gezien.indexOf(String(r.id)) < 0; });
+    if(!lijst.length){ vak.hidden = true; vak.innerHTML = ''; return; }
+    var open = lijst;
 
     var team = (CONTACT.filter(function(x){
       return x.soort==='whatsapp' && /team/i.test(x.naam||''); })[0] || {}).waarde || '';
@@ -5076,17 +5111,24 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       (open.length ? '<span class="nb-tel">'+open.length+'</span>' : '') +
       '<small style="font-weight:400;opacity:.7">binnengekomen in de afgelopen 24 uur</small></div>' +
       '<ul>' + lijst.map(function(r){
+        var vandaag = dstr(new Date());
+        /* Zeggen of het om de aankomst of om het vertrek van vandaag gaat -
+           anders staat er "aankomst 21-9" bij iemand die juist vertrekt. */
+        var wat = r.aankomst === vandaag
+          ? 'aankomst vandaag' + (r.tijdIn ? ' ' + r.tijdIn : '')
+          : 'vertrek vandaag' + (r.tijdUit ? ' ' + r.tijdUit : '');
         return '<li>' + (nbIsSpoed(r) ? '<span class="nb-spoed">SPOED</span>' : '') +
           '<strong>'+esc(gastnaam(r))+'</strong>' +
           '<span>'+esc(suiteKort(r.locatie))+'</span>' +
-          '<small>aankomst '+esc(dmyKort(r.aankomst))+(r.tijdIn?' '+esc(r.tijdIn):'')+
-          (r.kanaal ? ' · '+esc(r.kanaal) : '')+'</small></li>';
+          '<small>'+esc(wat)+(r.kanaal ? ' · '+esc(r.kanaal) : '')+'</small>' +
+          '<button class="nb-vink" type="button" data-nbvink="'+esc(String(r.id))+'" ' +
+            'title="Afvinken" aria-label="'+esc(gastnaam(r))+' afvinken">&#10003;</button></li>';
       }).join('') + '</ul>' +
       '<div class="nb-knoppen">' +
         (nr ? '<a class="wa" href="'+esc(wa)+'" target="_blank" rel="noopener">Doorsturen via WhatsApp</a>'
             : '<span style="font-size:12.5px;opacity:.75;align-self:center">Zet eerst een nummer bij '+
               '&laquo;WhatsApp team&raquo; onder Contact.</span>') +
-        (open.length ? '<button type="button" id="nbGezienKnop">Gezien</button>' : '') +
+        (open.length > 1 ? '<button type="button" id="nbGezienKnop">Alles afvinken</button>' : '') +
       '</div>';
 
     var knop = document.getElementById('nbGezienKnop');
