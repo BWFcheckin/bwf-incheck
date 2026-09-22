@@ -155,6 +155,34 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
   .detail{width:100%;border-left:0}
   .paar{grid-template-columns:96px 1fr}
 }
+
+/* ===== Blokken die van Dagstart zijn overgekomen. Angela, 22-09-2026. ===== */
+.ds-rij{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:20px}
+.ds-kaart{background:var(--kaart,#fff);border:1px solid var(--lijn,#e3dad0);border-radius:14px;padding:14px 16px}
+.ds-kop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ds-kop h2{margin:0;font-size:16px}
+.ds-tel{font-size:12px;opacity:.6;font-family:'IBM Plex Mono',monospace}
+.ds-kop .btn{margin-left:auto}
+.ds-leeg{opacity:.6;font-size:13px;margin:4px 0}
+.ds-item{display:flex;gap:9px;align-items:baseline;padding:7px 0;border-top:1px solid var(--lijn,#e3dad0);
+  cursor:pointer;font-size:13.5px}
+.ds-item:first-child{border-top:0}
+.ds-item:hover{background:var(--zacht,#faf7f3)}
+.ds-item .wanneer{flex:0 0 66px;font-size:11.5px;opacity:.65;font-family:'IBM Plex Mono',monospace}
+.ds-item b{font-weight:600}
+.ds-item small{display:block;opacity:.65;font-size:12px}
+.ds-item.laat .wanneer{color:#B3261E;font-weight:700}
+.ds-alles{margin:18px 0 0;background:var(--kaart,#fff);border:1px solid var(--lijn,#e3dad0);border-radius:14px}
+.ds-alles>summary{cursor:pointer;padding:12px 16px;font-weight:600;font-size:15px}
+.ds-alles #tegelGroepen{padding:0 16px 14px}
+.ds-groep{margin-bottom:14px}
+.ds-groep h3{margin:0 0 6px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.55}
+.ds-tegels{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px}
+.ds-tegel{display:block;padding:10px 12px;border:1px solid var(--lijn,#e3dad0);border-radius:11px;
+  text-decoration:none;color:inherit;background:var(--zacht,#faf7f3);font-size:13px}
+.ds-tegel:hover{border-color:var(--groen,#0F7B5A)}
+.ds-tegel b{display:block;font-size:13.5px}
+.ds-tegel span{display:block;opacity:.65;font-size:11.5px;margin-top:1px}
 </style>
 <script src="bwf-account.js?v=1"></script>
 <link rel="stylesheet" href="bwf-agenda-stijl.css?v=2">
@@ -221,6 +249,47 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
     <div id="dienstenVak"></div>
 
     <div id="lijst"></div>
+
+    <!-- ===== Wat hiervoor op Dagstart stond. Angela, 22-09-2026: "kan je
+         dagstart en vandaag 1 scherm van maken, wat er al staat, alleen
+         dubbele dingen verwijderen."
+
+         Dagstart toonde dit scherm al in een ingesloten venster; de
+         samenvoeging is dus vooral dat venster uitpakken. Wat dubbel was gaat
+         eruit: twee inlogschermen, twee kopbalken met "wie ben ik",
+         uitloggen en verversen, en twee keer dezelfde datumfuncties. De
+         sessie van dít scherm blijft, want die vernieuwt zichzelf; die van
+         Dagstart deed dat niet en liet je daardoor vaker opnieuw inloggen.
+         ===== -->
+    <div class="ds-rij">
+      <section class="ds-kaart">
+        <div class="ds-kop"><h2>Mijn taken</h2><span class="ds-tel" id="takenTeller"></span>
+          <button class="btn sec sm" type="button" id="nieuweTaak">+ Taak</button></div>
+        <div id="takenLijst"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
+      </section>
+
+      <section class="ds-kaart">
+        <div class="ds-kop"><h2>Welkomstcalls</h2><span class="ds-tel" id="callsTeller"></span>
+          <button class="btn sec sm" type="button" id="nieuweCall">+ Call</button></div>
+        <div id="callsLijst"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
+      </section>
+
+      <section class="ds-kaart">
+        <div class="ds-kop"><h2>Te bestellen</h2><span class="ds-tel" id="voorraadTeller"></span>
+          <a class="btn sec sm" href="dashboard.html#voorraad">Voorraad</a></div>
+        <div id="voorraadLijst"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
+      </section>
+
+      <section class="ds-kaart">
+        <div class="ds-kop"><h2>Aanmeldingen van gasten</h2><span class="ds-tel" id="aanmeldTeller"></span></div>
+        <div id="aanmeldLijst"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
+      </section>
+    </div>
+
+    <details class="ds-alles">
+      <summary>Alle onderdelen</summary>
+      <div id="tegelGroepen"></div>
+    </details>
   </div>
 </div>
 
@@ -1113,6 +1182,172 @@ function zetDatum(iso){
   document.getElementById('datumSub').textContent = nlDatum(iso);
   ververs();
 }
+
+/* ==========================================================================
+   Blokken die van Dagstart zijn overgekomen — Angela, 22-09-2026
+   --------------------------------------------------------------------------
+   Taken, welkomstcalls, voorraad, gastaanmeldingen en het tegeloverzicht.
+   Ze gebruiken api() van dit scherm en niet de eigen ophaalfunctie van
+   Dagstart: die slikte fouten stil en vernieuwde de sessie niet, waardoor je
+   bij een verlopen token opeens lege lijsten zag zonder uitleg.
+   ========================================================================== */
+
+const TEGELS = [
+  { groep:'Dagelijks', items:[
+    { t:'Agenda',           d:'Vrij en geboekt per suite en per dag',  u:'agenda.html' },
+    { t:'Reserveringen',    d:'Lijst en kalender, gegevens aanpassen', u:'reserveringen.html' },
+    { t:'Dagoverzicht',     d:'Kalender, taken en aanmeldingen',       u:'dagoverzicht.html' },
+    { t:'Incheckformulier', d:'Inchecken en afrekenen op locatie',     u:'incheckformulier.html' },
+    { t:'Gastenlink',       d:'De pagina die de gast invult',          u:'gast-incheck.html' }
+  ]},
+  { groep:'Werken', items:[
+    { t:'VR Dashboard',        d:'Welkomstcalls, taken, belscripts', u:'vr2.html' },
+    { t:'Locatiedashboard',    d:'Planning, voorraad, overdracht',   u:'dashboard.html' },
+    { t:'Urenregistratie',     d:'Uren per medewerker',              u:'uren-ruth.html' }
+  ]},
+  { groep:'Administratie', items:[
+    { t:'Klantbeheer',        d:'Klanten, nachtregister, members', u:'klantbeheer.html' },
+    { t:'Toeristenbelasting', d:'Aangifte per gemeente',           u:'klantbeheer.html?tab=aangifte' }
+  ]},
+  { groep:'Hulp en partners', items:[
+    { t:'Controle',   d:'Werkt je login en de verbinding', u:'controle.html' },
+    { t:'SMG',        d:'Het boekingssysteem',             u:'https://www.smgdashboard.nl' },
+    { t:'Privesauna', d:'Partnerpagina',                   u:'https://www.privesauna.nl' }
+  ]}
+];
+
+function dsTel(id, n){
+  const el = document.getElementById(id);
+  if(el) el.textContent = n ? String(n) : '';
+}
+function dsLeeg(id, tekst){
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = '<p class="ds-leeg">' + esc(tekst) + '</p>';
+}
+
+/* Open taken, de eigen bovenaan, op deadline. */
+async function dsLaadTaken(){
+  let rijen = [];
+  try{
+    rijen = await haal('wz_taken?select=*&afgerond_op=is.null&order=deadline.asc&limit=200', 'taken') || [];
+  }catch(e){ dsLeeg('takenLijst', 'Taken konden niet worden opgehaald.'); return; }
+  const mijn = IK ? rijen.filter(t => String(t.medewerker_id || '') === String(IK.id)) : [];
+  const lijst = mijn.length ? mijn : rijen;
+  dsTel('takenTeller', lijst.length);
+  const vd = vandaagISO();
+  const el = document.getElementById('takenLijst');
+  if(!el) return;
+  el.innerHTML = lijst.length ? lijst.slice(0, 8).map(t => {
+    const d = String(t.deadline || '').slice(0, 10);
+    const laat = d && d < vd;
+    return `<div class="ds-item${laat ? ' laat' : ''}" data-dstaak="${esc(t.id)}">
+      <span class="wanneer">${esc(d ? nlKort(d) : '—')}</span>
+      <div><b>${esc(t.titel || 'Zonder titel')}</b>
+        <small>${esc(String(t.omschrijving || '').slice(0, 90))}</small></div></div>`;
+  }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
+}
+
+/* Welkomstcalls vanaf vandaag die nog niet gedaan zijn. */
+async function dsLaadCalls(){
+  let rijen = [];
+  try{
+    rijen = await haal('wz_welkomstcalls?select=*&datum=gte.' + vandaagISO() +
+      '&order=datum.asc&limit=60', 'welkomstcalls') || [];
+  }catch(e){ dsLeeg('callsLijst', 'Welkomstcalls konden niet worden opgehaald.'); return; }
+  const open = rijen.filter(c => {
+    const st = String(c.status || '').toLowerCase();
+    return st !== 'afgerond' && st !== 'gebeld';
+  });
+  dsTel('callsTeller', open.length);
+  const el = document.getElementById('callsLijst');
+  if(!el) return;
+  el.innerHTML = open.length ? open.slice(0, 8).map(c => `
+    <div class="ds-item" data-dscall="${esc(c.id)}">
+      <span class="wanneer">${esc(nlKort(String(c.datum || '').slice(0, 10)))}</span>
+      <div><b>${esc(c.naam || 'zonder naam')}</b>
+        <small>${esc([c.telefoon, c.locatie, c.status].filter(Boolean).join(' · '))}</small></div></div>`
+  ).join('') : '<p class="ds-leeg">Geen openstaande welkomstcalls.</p>';
+}
+
+/* Alles wat onder het minimum zit of al besteld is. */
+async function dsLaadVoorraad(){
+  let rijen = [];
+  try{
+    rijen = await haal('voorraad?select=*&order=naam.asc&limit=400', 'voorraad') || [];
+  }catch(e){ dsLeeg('voorraadLijst', 'Voorraad kon niet worden opgehaald.'); return; }
+  const nodig = rijen.filter(v => {
+    const a = Number(v.aantal) || 0, m = Number(v.min_aantal) || 0;
+    return v.besteld || a <= m;
+  });
+  dsTel('voorraadTeller', nodig.length);
+  const el = document.getElementById('voorraadLijst');
+  if(!el) return;
+  el.innerHTML = nodig.length ? nodig.slice(0, 10).map(v => `
+    <div class="ds-item">
+      <span class="wanneer">${v.besteld ? 'besteld' : (Number(v.aantal) || 0)}</span>
+      <div><b>${esc(v.naam)}</b>
+        <small>${esc([v.categorie, v.leverancier].filter(Boolean).join(' · '))}</small></div></div>`
+  ).join('') : '<p class="ds-leeg">Niets te bestellen.</p>';
+}
+
+/* Gastformulieren die nog nagekeken moeten worden. */
+async function dsLaadAanmeldingen(){
+  let rijen = [];
+  try{
+    rijen = await haal('gast_aanmeldingen?select=*&order=created_at.desc&limit=40', 'aanmeldingen') || [];
+  }catch(e){ dsLeeg('aanmeldLijst', 'Aanmeldingen konden niet worden opgehaald.'); return; }
+  const nieuw = rijen.filter(a => {
+    const st = String(a.status || '').toLowerCase();
+    return !st || st === 'nieuw';
+  });
+  dsTel('aanmeldTeller', nieuw.length);
+  const el = document.getElementById('aanmeldLijst');
+  if(!el) return;
+  el.innerHTML = nieuw.length ? nieuw.slice(0, 8).map(a => `
+    <div class="ds-item">
+      <span class="wanneer">${esc(nlKort(String(a.created_at || '').slice(0, 10)))}</span>
+      <div><b>${esc([a.voornaam, a.achternaam].filter(Boolean).join(' ') || a.naam || 'zonder naam')}</b>
+        <small>${esc([a.locatie, a.email].filter(Boolean).join(' · '))}</small></div></div>`
+  ).join('') : '<p class="ds-leeg">Geen nieuwe aanmeldingen.</p>';
+}
+
+/* "di 23 sep" — kort, voor in de smalle kolom. */
+function nlKort(iso){
+  const p = String(iso || '').split('-');
+  if(p.length !== 3) return '';
+  const d = new Date(+p[0], +p[1] - 1, +p[2]);
+  return ['zo','ma','di','wo','do','vr','za'][d.getDay()] + ' ' + (+p[2]) + ' ' +
+    ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][+p[1] - 1];
+}
+
+function dsTekenTegels(){
+  const el = document.getElementById('tegelGroepen');
+  if(!el) return;
+  el.innerHTML = TEGELS.map(g => `<div class="ds-groep"><h3>${esc(g.groep)}</h3>
+    <div class="ds-tegels">${g.items.map(i =>
+      `<a class="ds-tegel" href="${esc(i.u)}"${/^https?:/.test(i.u) ? ' target="_blank" rel="noopener"' : ''}>
+        <b>${esc(i.t)}</b><span>${esc(i.d)}</span></a>`).join('')}</div></div>`).join('');
+}
+
+/* Taken en welkomstcalls openen in het scherm waar je ze kunt bewerken.
+   Dagstart had daar een eigen bewerkvenster voor; dat is hier niet nagebouwd,
+   want vr2 kan het al en kent ook het belscript en de koppeling. */
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-dstaak]');
+  if(t){ window.open('vr2.html?open=taak&id=' + encodeURIComponent(t.dataset.dstaak), '_blank'); return; }
+  const c = e.target.closest && e.target.closest('[data-dscall]');
+  if(c){ window.open('vr2.html?open=welkomstcall&id=' + encodeURIComponent(c.dataset.dscall), '_blank'); return; }
+});
+const dsNieuweTaak = document.getElementById('nieuweTaak');
+if(dsNieuweTaak) dsNieuweTaak.addEventListener('click', () => window.open('vr2.html?open=taak', '_blank'));
+const dsNieuweCall = document.getElementById('nieuweCall');
+if(dsNieuweCall) dsNieuweCall.addEventListener('click', () => window.open('vr2.html?open=welkomstcall', '_blank'));
+
+function dsLaadAlles(){
+  dsTekenTegels();
+  dsLaadTaken(); dsLaadCalls(); dsLaadVoorraad(); dsLaadAanmeldingen();
+}
+
 async function start(){
   document.getElementById('loginScherm').classList.add('verborgen');
   document.getElementById('app').classList.remove('verborgen');
@@ -1124,12 +1359,13 @@ async function start(){
       LOCATIES[VASTE_LOC] ? LOCATIES[VASTE_LOC].naam : ('locatie ' + VASTE_LOC);
   }
   zetDatum(vandaagISO());
+  dsLaadAlles();
 }
 
 document.getElementById('lg_knop').addEventListener('click', inloggen);
 document.getElementById('lg_ww').addEventListener('keydown', e => { if(e.key === 'Enter') inloggen(); });
 document.getElementById('knopUit').addEventListener('click', () => { zetSessie(null); location.reload(); });
-document.getElementById('knopVernieuw').addEventListener('click', ververs);
+document.getElementById('knopVernieuw').addEventListener('click', () => { ververs(); dsLaadAlles(); });
 document.getElementById('knopDiensten').addEventListener('click', toonDiensten);
 document.getElementById('dagTerug').addEventListener('click', () => zetDatum(schuifDag(DATUM, -1)));
 document.getElementById('dagVooruit').addEventListener('click', () => zetDatum(schuifDag(DATUM, 1)));
