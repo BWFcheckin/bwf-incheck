@@ -7199,7 +7199,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       cat: soort,
       tekst: verwijzing + '\n' + tekst,
       klaar: false,
-      datum: r.aankomst || new Date().toISOString().slice(0,10)
+      datum: r.aankomst || (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })()
     };
     /* Sinds 20-09-2026 heeft overdracht een koppelveld. Alleen meesturen als
        deze regel een echte reservering is; een agendablok heeft geen id en

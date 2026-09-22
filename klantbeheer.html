@@ -575,7 +575,7 @@ function eur(n){ var v = (Math.round(num(n)*100)/100).toFixed(2).split(".");
   return "€ " + v[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + v[1]; }
 function komma(n,d){ if(d===undefined) d=2; return num(n).toFixed(d).replace(".", ","); }
 function dNL(iso){ if(!iso) return ""; var p = String(iso).split("-"); return p.length===3 ? p[2]+"-"+p[1]+"-"+p[0] : iso; }
-function stempel(){ return new Date().toISOString().slice(0,10); }
+function stempel(){ return (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })(); }
 function nachtenTussen(a,b){ if(!a||!b) return 0;
   var d = (new Date(b+"T12:00:00") - new Date(a+"T12:00:00")) / 86400000; return d > 0 ? Math.round(d) : 0; }
 function toast(msg){ var t = $("toast"); t.textContent = msg; t.classList.add("show");

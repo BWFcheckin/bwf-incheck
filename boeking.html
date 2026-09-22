@@ -360,7 +360,7 @@ $("nogEen").addEventListener("click", function(){
   tekenSamenvatting(); window.scrollTo({top:0, behavior:"smooth"});
 });
 
-var vandaag = new Date().toISOString().slice(0,10);
+var vandaag = (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
 $("datumIn").min = vandaag; $("datumUit").min = vandaag;
 $("voet").textContent = bedrijf;
 vulLocaties(); haalInstellingen(); zetSoort("overnachting"); tekenSamenvatting();

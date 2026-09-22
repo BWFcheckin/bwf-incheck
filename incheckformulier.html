@@ -976,7 +976,7 @@ let orderedItems = [];   // [{naam, aantal, prijs}]
 let guestData = null;    // filled via guest modal
 
 function locGroup(locatieId){ return locatieId === 'angie' ? 'almere' : 'lelystad'; }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){ return (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })(); }
 function locName(id){ const l = LOCATIONS.find(x=>x.id===id); return l ? l.naam : id; }
 function euro(n){ n = parseFloat(n||0); return '€ ' + n.toFixed(2).replace('.', ','); }
 function fmtMoney(v){
@@ -4876,7 +4876,7 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
 
   async function bulk(){
-    var vandaag = new Date().toISOString().slice(0,10);
+    var vandaag = (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
     var open = (alleCheckins()).filter(function(c){
       return c.status !== "concept" && c.achternaam &&
              String(c.datum||"") <= vandaag && !isKlant(c);

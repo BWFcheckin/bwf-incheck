@@ -1596,6 +1596,21 @@ div.ag-blok{cursor:default}
             <button class="btn rood" id="cfDef" type="button">Definitieve formulieren</button>
             <button class="btn ghost" id="cfGast" type="button">Gastversie openen</button>
           </div>
+          <!-- Angela, 22-09-2026: "ik wil de definitieve incheckformulieren
+               kunnen sorteren op weergave maand etc, zodat ik ook alleen een
+               overzicht kan zien van dag, week, maand of alles." -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+            <label class="field" style="margin:0;min-width:190px">
+              <span class="visueel">Welke periode</span>
+              <select id="cfPeriode">
+                <option value="dag">Vandaag</option>
+                <option value="week">Deze week</option>
+                <option value="maand" selected>Deze maand</option>
+                <option value="alles">Alles</option>
+              </select>
+            </label>
+            <span class="pill neutral" id="cfPeriodeTel"></span>
+          </div>
           <div id="cfLijst" style="margin-top:14px"></div>
         </div>
       </div>
@@ -3072,7 +3087,13 @@ const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur = n => '€ '+(Number(n)||0).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
 const num = n => (Number(n)||0).toLocaleString('nl-NL',{maximumFractionDigits:2});
-const vandaag = () => new Date().toISOString().slice(0,10);
+/* De datum van HIER, niet die van Greenwich. toISOString() geeft UTC, en
+   Nederland loopt daar 1 tot 2 uur op voor: tussen middernacht en 02:00 gaf
+   deze functie daardoor gisteren terug. Precies tijdens een nachtdienst wees
+   het scherm dan de verkeerde dag aan. */
+const vandaag = () => { const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') +
+         '-' + String(d.getDate()).padStart(2,'0'); };
 const dmy = d => { if(!d) return '—'; const p=String(d).slice(0,10).split('-'); return p[2].replace(/^0/,'')+'-'+p[1].replace(/^0/,'')+'-'+p[0]; };
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
   : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);}));
@@ -6260,13 +6281,50 @@ function cfStatus(f){
   if(s) return /def|klaar|afgerond|final/.test(s) ? 'definitief' : 'concept';
   return f.definitief || f.afgerond ? 'definitief' : 'concept';
 }
+/* Welke periode de lijst toont. Angela, 22-09-2026: "ik wil de definitieve
+   incheckformulieren kunnen sorteren op weergave maand etc, zodat ik ook
+   alleen een overzicht kan zien van dag, week, maand of alles."
+
+   De week loopt van maandag tot en met zondag, zoals overal in dit dashboard.
+   Een formulier zonder datum valt alleen onder "alles": het ergens anders
+   onderbrengen zou een datum suggereren die er niet is. */
+function cfInPeriode(datum, keuze){
+  if(keuze === 'alles') return true;
+  const d = String(datum || '').slice(0, 10);
+  if(!d) return false;
+  const vd = vandaag();
+  if(keuze === 'dag')   return d === vd;
+  if(keuze === 'maand') return d.slice(0, 7) === vd.slice(0, 7);
+  if(keuze === 'week'){
+    const nu = new Date(vd + 'T12:00:00');
+    const maandag = new Date(nu);
+    maandag.setDate(nu.getDate() - ((nu.getDay() + 6) % 7));
+    const zondag = new Date(maandag);
+    zondag.setDate(maandag.getDate() + 6);
+    return d >= maandag.toISOString().slice(0,10) && d <= zondag.toISOString().slice(0,10);
+  }
+  return true;
+}
+function cfPeriodeNaam(k){
+  return k === 'dag' ? 'vandaag' : k === 'week' ? 'deze week'
+       : k === 'maand' ? 'deze maand' : 'alle periodes';
+}
 function cfLijstToon(soort){
   const doel = $('#cfLijst'); if(!doel) return;
   cfSoortNu = soort;                         /* onthouden voor het opnieuw tekenen */
-  const rijen = FORMS.filter(f=>f._soort === 'incheckformulier' && cfStatus(f) === soort)
+  const keuze = (($('#cfPeriode')||{}).value) || 'maand';
+  const alle = FORMS.filter(f=>f._soort === 'incheckformulier' && cfStatus(f) === soort);
+  const rijen = alle.filter(f=>cfInPeriode(formDatum(f), keuze))
     .sort((a,b)=> String(formDatum(b)).localeCompare(String(formDatum(a))));
   $('#cfHint').textContent = rijen.length + ' ' + (soort === 'concept' ? 'concept' : 'definitief formulier') +
     (rijen.length === 1 ? '' : 'en');
+  /* Erbij zeggen hoeveel er buiten de gekozen periode vallen, anders lijkt het
+     alsof er formulieren zoek zijn. */
+  const tel = $('#cfPeriodeTel');
+  if(tel){
+    const buiten = alle.length - rijen.length;
+    tel.textContent = cfPeriodeNaam(keuze) + (buiten > 0 ? ' · ' + buiten + ' buiten deze periode' : '');
+  }
   doel.innerHTML = rijen.length ? rijen.slice(0,40).map(f=>`
     <div class="od" style="--c:${soort==='concept'?'#C9911E':'#C13E50'}">
       <div class="odkop">
@@ -6288,7 +6346,8 @@ function cfLijstToon(soort){
         </label>` : ''}
       </div>
     </div>`).join('')
-    : `<div class="empty"><strong>Niets gevonden</strong>Er zijn geen ${soort==='concept'?'concepten':'definitieve formulieren'}.</div>`;
+    : `<div class="empty"><strong>Niets gevonden</strong>Geen ${soort==='concept'?'concepten':'definitieve formulieren'} ${esc(cfPeriodeNaam(keuze))}.${
+        alle.length ? ' Er zijn er wel ' + alle.length + ' in een andere periode &mdash; kies "Alles".' : ''}</div>`;
 }
 /* Afvinken dat de betaling van een definitief formulier is verwerkt.
    checkins staat niet in TBL, dus maak/wijzig werken hier niet; we schrijven
@@ -6321,6 +6380,20 @@ $('#cfNieuw').addEventListener('click', ()=> window.open(FORM_LM, '_blank', 'noo
 $('#cfGast').addEventListener('click', ()=> window.open(FORM_GAST, '_blank', 'noopener'));
 $('#cfConcept').addEventListener('click', ()=> cfLijstToon('concept'));
 $('#cfDef').addEventListener('click', ()=> cfLijstToon('definitief'));
+
+/* De periodekeuze geldt voor allebei de lijsten en wordt onthouden, zodat je
+   hem niet elke keer opnieuw hoeft te zetten. */
+(function(){
+  const sel = $('#cfPeriode'); if(!sel) return;
+  try{
+    const bewaard = localStorage.getItem('bwf_cf_periode');
+    if(bewaard) sel.value = bewaard;
+  }catch(e){}
+  sel.addEventListener('change', ()=>{
+    try{ localStorage.setItem('bwf_cf_periode', sel.value); }catch(e){}
+    cfLijstToon(cfSoortNu || 'definitief');
+  });
+})();
 
 /* ---------------- ALLE DIENSTEN ----------------
    De volledige planning van het team, uitklapbaar onder de kalender. */

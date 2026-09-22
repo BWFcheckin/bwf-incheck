@@ -2619,7 +2619,7 @@ function nGekozenTijdsblok() {
 function vulNieuwBlokken() {
   const suite = $("#nSuite").value;
   const tsuite = SUITE_TARIEF[suite];
-  const dagtype = dagtypeVan($("#nAankomst").value || new Date().toISOString().slice(0, 10));
+  const dagtype = dagtypeVan($("#nAankomst").value || (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })());
   const eigen = TARIEVEN.filter((b) => b.suite === tsuite &&
     (b.dagtype === "alle" || b.dagtype === dagtype));
 
@@ -4112,7 +4112,7 @@ async function vstReviewGestuurd() {
   if (!$("#vSjabKeuze") || $("#vSjabKeuze").value !== "review") return;
   try {
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
-      { method: "PATCH", body: { review_verstuurd: new Date().toISOString().slice(0, 10), gewijzigd_door: NAAM } });
+      { method: "PATCH", body: { review_verstuurd: (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })(), gewijzigd_door: NAAM } });
     if (rij && rij.length) {
       RIJEN = RIJEN.map((x) => (x.id === r.id ? rij[0] : x));
       HUIDIG = rij[0];
