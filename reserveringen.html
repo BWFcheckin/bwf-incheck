@@ -77,6 +77,9 @@ section[hidden]{display:none}
 .melding{padding:11px 14px;border-radius:10px;margin-bottom:12px;font-size:14px;background:var(--groen-zacht);color:var(--groen)}
 .melding.fout{background:var(--crit-zacht);color:var(--crit)}
 .reskop-weergave{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.arr-klaar{font-size:12px;color:var(--groen,#2E7D5B);white-space:nowrap}
+/* Een klaargezette extra dimt, maar blijft staan: hij hoort bij de rekening. */
+.arr-gedaan{opacity:.55}
 .telling{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0 2px 8px}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -1612,8 +1615,18 @@ function tekenPersoneelKaart(r) {
       (a && Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
       (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "") +
       doorWie(a) +
+      /* Klaargezet, met wie en wanneer. Blijft staan - zie vinkArrangement(). */
+      (a && a.gedaan
+        ? ' <span class="arr-klaar" title="' +
+          esc(['klaargezet', a.gedaan_door, a.gedaan_op ? fmtGeplakt.format(new Date(a.gedaan_op)) : '']
+            .filter(Boolean).join(' · ')) + '">&#10003; klaargezet</span>'
+        : "") +
       (magWeg && plek >= 0
-        ? ' <button type="button" class="knop sec klein" data-arrweg="' + plek +
+        ? ' <button type="button" class="knop sec klein" data-arrvink="' + plek +
+          '" title="' + (a && a.gedaan ? 'Terugzetten' : 'Afvinken als klaargezet') +
+          '" aria-label="' + (a && a.gedaan ? 'Terugzetten' : 'Afvinken') + '">' +
+          (a && a.gedaan ? '&#8635;' : '&#10003;') + '</button>' +
+          ' <button type="button" class="knop sec klein" data-arrweg="' + plek +
           '" title="Deze regel verwijderen" aria-label="Verwijderen">&#10007;</button>'
         : "");
   };
@@ -3479,6 +3492,11 @@ function tekenAlBijgeboekt(r) {
             (Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") + wie + "</span>" +
           '<span style="white-space:nowrap">' +
             (Number(a.bedrag) ? "&euro; " + esc(euro(a.bedrag)) : "") +
+            (a.gedaan ? ' <span class="arr-klaar">&#10003;</span>' : "") +
+            (mag ? ' <button type="button" class="knop sec klein" data-arrvink="' + x.i +
+                   '" title="' + (a.gedaan ? "Terugzetten" : "Afvinken als klaargezet") +
+                   '" aria-label="' + (a.gedaan ? "Terugzetten" : "Afvinken") + '">' +
+                   (a.gedaan ? "&#8635;" : "&#10003;") + "</button>" : "") +
             (mag ? ' <button type="button" class="knop sec klein" data-arrweg="' + x.i +
                    '" title="Deze regel verwijderen" aria-label="Verwijderen">&#10007;</button>' : "") +
           "</span></div>";
@@ -3618,6 +3636,59 @@ function arrangementToevoegen() {
    geschrapt. Bij een vooraf geboekte regel blijft het bedrag staan: dat is het
    bedrag waarvoor geboekt is, en dat verandert niet doordat je een regel uit
    de omschrijving haalt. */
+/* Een bijgeboekte extra afvinken als klaargezet.
+
+   Angela, 22-09-2026: "ik wil alle takenlijsten en bijgeboekte extra's
+   afvinkbaar, zijn ze gedaan of gezien kun je ze afvinken."
+
+   Anders dan bij een taak verdwijnt de regel hier NIET. Een bijgeboekte extra
+   staat op de rekening van de gast; haal je hem uit beeld zodra iemand hem
+   heeft klaargezet, dan weet de volgende dienst niet meer wat er besteld is en
+   waarvoor er betaald moet worden. Hij blijft dus staan, gedimd, met wie hem
+   heeft klaargezet en wanneer. Nog een keer tikken zet hem terug.
+
+   Het merkteken gaat mee in het arrangement zelf - arrangementen is een
+   json-lijst, dus daar kan een veld bij zonder de tabel te veranderen.
+
+   Let op: dit schrijft naar `arrangementen`. Een locatiemanager mag dat pas
+   sinds migratie 20260923090000; zonder die migratie zet de database het stil
+   terug en springt het vinkje weer uit. */
+async function vinkArrangement(index) {
+  const r = HUIDIG;
+  if (!r) return;
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
+  const regel = arr[index];
+  if (!regel || typeof regel !== "object") return;
+
+  const nu = !regel.gedaan;
+  const over = arr.map((a, i) => {
+    if (i !== index || typeof a !== "object") return a;
+    const kopie = Object.assign({}, a);
+    if (nu) {
+      kopie.gedaan = true;
+      kopie.gedaan_door = NAAM || "";
+      kopie.gedaan_op = new Date().toISOString();
+    } else {
+      delete kopie.gedaan; delete kopie.gedaan_door; delete kopie.gedaan_op;
+    }
+    return kopie;
+  });
+
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { arrangementen: over, gewijzigd_door: NAAM } });
+    if (!rij || !rij.length) throw new Error("je hebt geen rechten om deze reservering te wijzigen");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    tekenAlBijgeboekt(rij[0]);
+    try { tekenPersoneelKaart(rij[0]); } catch (e) {}
+  } catch (err) {
+    melding(/40[13]|rechten/i.test(String(err.message))
+      ? "Afvinken mag nog niet met jouw account. De database moet daarvoor eerst worden bijgewerkt."
+      : "Afvinken lukte niet: " + err.message, "fout");
+  }
+}
+
 async function verwijderArrangement(index) {
   const r = HUIDIG;
   if (!r) return;
@@ -4154,6 +4225,13 @@ document.addEventListener("click", (e) => {
   if (weg) {
     e.preventDefault();
     verwijderArrangement(Number(weg.getAttribute("data-arrweg")));
+    return;
+  }
+  /* Een extra afvinken als klaargezet. */
+  const vink = e.target.closest("[data-arrvink]");
+  if (vink) {
+    e.preventDefault();
+    vinkArrangement(Number(vink.getAttribute("data-arrvink")));
     return;
   }
   /* Het totaalbedrag gelijktrekken met wat er betaald is, vanuit de rode
