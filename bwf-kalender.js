@@ -268,6 +268,11 @@
       ".bwfk-dagkolom h4{margin:0 0 8px;font-size:13px;display:flex;align-items:center;gap:6px}",
       ".bwfk-dagkolom h4 i,.bwfk-suitestip{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}",
       ".bwfk-suitecel{display:flex;align-items:center;gap:9px}",
+      "tr[data-openres]{cursor:pointer}",
+      "tr[data-openres]:hover{background:var(--k-zacht,rgba(0,0,0,.035))}",
+      "tr[data-openres]:focus-visible{outline:2px solid currentColor;outline-offset:-2px}",
+      /* de knoppen rechts houden hun eigen aanwijzer */
+      ".bwfk-acties a,.bwfk-acties button{cursor:pointer}",
       ".bwfk-suitefoto{flex:none;width:44px;height:32px;border-radius:7px;background:var(--sk) center/cover no-repeat;",
         "box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}",
       ".bwfk-suitefoto.foto-angie{background-image:var(--foto-angie)}",
@@ -826,7 +831,14 @@
         /* Zie geenGast(): een regel zonder gastgegevens is een dichtgezette dag
            en krijgt dezelfde rode opmaak als een echte blokkade. */
         var zonderGast = geenGast(r);
-        return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
+        /* Angela, 24-09-2026: "hierbij wil ik op de naam, foto of balk kunnen
+           klikken en dat hij de reserveringskaart opent; de ovale knoppen
+           daarnaast met de statusbalk zijn zodat je ziet wat er al in gedaan
+           is." De hele regel is nu de knop naar de reservering; de knoppen
+           rechts houden hun eigen bestemming. */
+        return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '"' +
+          ' data-openres="' + esc(r.id) + '" tabindex="0" role="link"' +
+          ' title="' + esc((zonderGast ? "Blokkade" : (gastNaam(r) || "Reservering")) + " openen") + '">' +
           "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</td>" +
           '<td class="bwfk-suitecel"><span class="bwfk-suitefoto ' + fotoKlasse(r.suite) +
             '" style="--sk:' + SUITES[r.suite].kleur + '"></span>' +
@@ -887,6 +899,16 @@
       }
     }
 
+    /* Met het toetsenbord dezelfde weg: de regel heeft tabindex en role=link,
+       dus Enter hoort hem te openen. */
+    houder.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      var rij = e.target.closest && e.target.closest("[data-openres]");
+      if (!rij || e.target.closest(".bwfk-acties")) return;
+      e.preventDefault();
+      location.href = beheerUrl + "?id=" + encodeURIComponent(rij.getAttribute("data-openres"));
+    });
+
     houder.addEventListener("click", async function (e) {
       var t;
       if ((t = e.target.closest("[data-opheffen]"))) {
@@ -898,6 +920,13 @@
       }
       if (e.target.closest(".bwfk-acties a")) return;
       if ((t = e.target.closest("[data-taak]"))) { openTaak(t.getAttribute("data-taak")); return; }
+      /* De regel zelf opent de reservering, zolang je niet op een van de
+         knoppen rechts hebt geklikt - die hebben hun eigen bestemming en zijn
+         hierboven al afgevangen. */
+      if ((t = e.target.closest("[data-openres]")) && !e.target.closest(".bwfk-acties")) {
+        location.href = beheerUrl + "?id=" + encodeURIComponent(t.getAttribute("data-openres"));
+        return;
+      }
       if ((t = e.target.closest("[data-taakactie]"))) {
         if (t.getAttribute("data-taakactie") === "bewaar") bewaarTaak(); else $(".bwfk-taakvenster").close();
         return;
