@@ -168,6 +168,13 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
   cursor:pointer;font-size:13.5px}
 .ds-item:first-child{border-top:0}
 .ds-item:hover{background:var(--zacht,#faf7f3)}
+/* Het vinkje om een taak af te vinken. margin-left:auto houdt hem rechts,
+   ook als de tekst afbreekt; flex:none zodat hij niet meekrimpt. */
+.ds-vink{margin-left:auto;flex:none;width:30px;height:30px;border-radius:9px;
+  border:1px solid var(--lijn,#e3dad0);background:var(--vlak,#fff);color:inherit;
+  cursor:pointer;font-size:14px;line-height:1;opacity:.7}
+.ds-vink:hover{opacity:1;border-color:currentColor}
+.ds-vink:disabled{opacity:.35;cursor:default}
 .ds-item .wanneer{flex:0 0 66px;font-size:11.5px;opacity:.65;font-family:'IBM Plex Mono',monospace}
 .ds-item b{font-weight:600}
 .ds-item small{display:block;opacity:.65;font-size:12px}
@@ -1240,12 +1247,46 @@ async function dsLaadTaken(){
   el.innerHTML = lijst.length ? lijst.slice(0, 8).map(t => {
     const d = String(t.deadline || '').slice(0, 10);
     const laat = d && d < vd;
+    /* Angela, 22-09-2026: "ik wil alle takenlijsten afvinkbaar, zijn ze gedaan
+       of gezien kun je ze afvinken en dan verdwijnt het item." Het vinkje zet
+       de taak op klaar; deze lijst haalt alleen taken op zonder afgerond_op,
+       dus hij is daarna uit beeld. */
     return `<div class="ds-item${laat ? ' laat' : ''}" data-dstaak="${esc(t.id)}">
       <span class="wanneer">${esc(d ? nlKort(d) : '—')}</span>
       <div><b>${esc(t.titel || 'Zonder titel')}</b>
-        <small>${esc(String(t.omschrijving || '').slice(0, 90))}</small></div></div>`;
+        <small>${esc(String(t.omschrijving || '').slice(0, 90))}</small></div>
+      <button class="ds-vink" type="button" data-taakklaar="${esc(t.id)}"
+        title="Afvinken" aria-label="${esc(t.titel || 'Taak')} afvinken">&#10003;</button></div>`;
   }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
 }
+
+/* Een taak afvinken. De database laat een locatiemanager alleen zijn eigen
+   taken wijzigen, of taken die hij zelf heeft uitgezet; staat een taak op een
+   ander, dan zeggen we dat in plaats van hem stil te laten staan. */
+document.addEventListener('click', async (e) => {
+  const knop = e.target.closest && e.target.closest('[data-taakklaar]');
+  if(!knop) return;
+  e.preventDefault();
+  e.stopPropagation();                    /* niet ook de taak zelf openen */
+  const id = knop.getAttribute('data-taakklaar');
+  knop.disabled = true;
+  try{
+    /* Rechtstreeks api(): haal() vangt fouten zelf op en geeft een lege lijst
+       terug, dus daarmee zou een geweigerde wijziging er uitzien alsof hij
+       gelukt was. */
+    await api('wz_taken?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'klaar', afgerond_op: new Date().toISOString() })
+    });
+    const rij = knop.closest('.ds-item');
+    if(rij) rij.remove();
+  }catch(err){
+    knop.disabled = false;
+    alert(/40[13]/.test(String(err.message))
+      ? 'Deze taak staat niet op jouw naam, dus je kunt hem niet afvinken.'
+      : 'Afvinken lukte niet: ' + err.message);
+  }
+});
 
 /* Welkomstcalls vanaf vandaag die nog niet gedaan zijn. */
 async function dsLaadCalls(){

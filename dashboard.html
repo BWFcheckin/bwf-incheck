@@ -428,6 +428,10 @@ body.gate-open{overflow:hidden}
 .ds-regel small{display:block;opacity:.66;font-size:12.5px}
 .ds-regel.spoed{background:#fdf2f1;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
 .ds-regel.later{background:var(--goud-zacht,#faf4e8);margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
+/* Het kruisje naast het vinkje: zelfde vorm, maar pas rood als je erop wijst -
+   verwijderen is zeldzamer dan afvinken en hoeft niet te schreeuwen. */
+.ds-vink.ds-weg{opacity:.5}
+.ds-vink.ds-weg:hover{opacity:1;color:#B3261E;border-color:currentColor}
 /* Een regel die de reserveringskaart opent. Geen knopopmaak: het blijft een
    lijstregel, hij laat alleen merken dat je erop kunt tikken. */
 .ds-regel.klikbaar[data-dskaart],#lmNieuweBoeking li.klikbaar{cursor:pointer}
@@ -4891,12 +4895,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var laat = deadline && deadline < vandaag;
       var wie = veld(t, ['medewerker_id'], '');
       var naam = wie ? (MEDEWERKERS.filter(function(m){ return String(m.id) === String(wie); })[0] || {}) : {};
+      /* Angela, 22-09-2026: "ik wil alle takenlijsten afvinkbaar, zijn ze
+         gedaan of gezien kun je ze afvinken en dan verdwijnt het item."
+         Het vinkje zet de taak op klaar; de lijst hierboven laat alles weg wat
+         klaar of afgerond is, dus hij is meteen uit beeld. Het kruisje ernaast
+         haalt de taak echt weg - dat is voor een taak die er ten onrechte
+         staat, en daar wordt om bevestiging gevraagd. */
       return '<div class="ds-regel' + (laat ? ' spoed' : '') + '">' +
         '<span class="wanneer">' + esc(deadline ? dsDatum(deadline) : 'geen datum') + '</span>' +
         '<div><strong>' + esc(veld(t, ['titel'], 'Zonder titel')) + '</strong><small>' +
         esc([veld(t, ['omschrijving'], ''), veld(naam, ['naam','voornaam'], ''),
              laat ? 'over tijd' : ''].filter(Boolean).join(' · ').slice(0, 150)) +
-        '</small></div></div>';
+        '</small></div>' +
+        '<button class="ds-vink" type="button" data-taakklaar="' + esc(String(t.id)) + '" ' +
+          'title="Afvinken" aria-label="' + esc(veld(t, ['titel'], 'Taak')) + ' afvinken">&#10003;</button>' +
+        '<button class="ds-vink ds-weg" type="button" data-taakweg="' + esc(String(t.id)) + '" ' +
+          'title="Verwijderen" aria-label="' + esc(veld(t, ['titel'], 'Taak')) + ' verwijderen">&#10007;</button>' +
+        '</div>';
     }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
   }
 
@@ -5251,9 +5266,41 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(e.target && e.target.id === 'dsResZoek') dsTekenKaarten();
   });
   /* Een tik op een kaart opent dezelfde reserveringskaart als elders. */
+  /* Een taak afvinken of weghalen vanaf de Vandaag-pagina.
+
+     De database laat een locatiemanager alleen zijn eigen taken wijzigen, of
+     taken die hij zelf heeft uitgezet. Een taak die voor iedereen openstaat
+     valt daarbuiten; dan komt er een 401 of 403 terug en zeggen we dat, in
+     plaats van de regel stil te laten staan alsof er niets gebeurde. */
+  async function dsTaakActie(id, wat){
+    var titel = (TAKEN || []).filter(function(t){ return String(t.id) === String(id); })[0];
+    var naam = titel ? veld(titel, ['titel'], 'deze taak') : 'deze taak';
+    if(wat === 'weg' && !confirm('\u201c' + naam + '\u201d verwijderen?\n\n' +
+       'Afvinken is genoeg als de taak gewoon klaar is; verwijderen is voor een taak die hier niet hoort.')) return;
+    try{
+      if(wat === 'weg'){
+        await sb('wz_taken?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+      } else {
+        await sb('wz_taken?id=eq.' + encodeURIComponent(id), { method: 'PATCH',
+          body: JSON.stringify({ status: 'klaar', afgerond_op: new Date().toISOString() }) });
+      }
+      TAKEN = (TAKEN || []).filter(function(t){ return String(t.id) !== String(id); });
+      dsTekenTaken();
+    }catch(err){
+      alert(/40[13]/.test(String(err.message))
+        ? 'Deze taak staat niet op jouw naam, dus je kunt hem niet ' +
+          (wat === 'weg' ? 'verwijderen' : 'afvinken') + '. Vraag Angela of degene die hem heeft uitgezet.'
+        : 'Het lukte niet: ' + err.message);
+    }
+  }
+
   document.addEventListener('click', function(e){
     var vink = e.target.closest && e.target.closest('[data-dsvink]');
     if(vink){ dsVink(vink.getAttribute('data-dsvink')); return; }
+    var tk = e.target.closest && e.target.closest('[data-taakklaar]');
+    if(tk){ e.preventDefault(); dsTaakActie(tk.getAttribute('data-taakklaar'), 'klaar'); return; }
+    var tw = e.target.closest && e.target.closest('[data-taakweg]');
+    if(tw){ e.preventDefault(); dsTaakActie(tw.getAttribute('data-taakweg'), 'weg'); return; }
     /* Afvinken in de balk "Nieuwe boekingen": het item verdwijnt meteen. */
     var nbv = e.target.closest && e.target.closest('[data-nbvink]');
     if(nbv){

@@ -516,6 +516,16 @@
 <script src="bwf-kalender.js?v=19"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script src="bwf-planweergave.js?v=1"></script>
+<style>
+/* Het vinkje om een taak af te vinken. Staat hier en niet bij de rest van de
+   opmaak: die komt van elders, en een knop die nergens gedefinieerd is ziet
+   eruit als een systeemknop tussen verzorgde kaarten. */
+.task-vink{flex:none;width:32px;height:32px;border-radius:9px;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);
+  color:inherit;cursor:pointer;font-size:15px;line-height:1;opacity:.7;margin-right:6px}
+.task-vink:hover{opacity:1;border-color:currentColor}
+.task-vink:disabled{opacity:.35;cursor:default}
+</style>
 <script>
 /* Kalender of lijst op de planningpagina. Angela, 22-09-2026: "graag alle
    planningen in kalenderweergave op elke pagina, met een dropdown voor de
@@ -1349,6 +1359,34 @@ $$('[data-taak]').forEach(b => b.addEventListener('click', () => {
   tekenTaken();
 }));
 
+/* Een taak afvinken vanaf het portaal. Angela, 22-09-2026.
+
+   De database laat een locatiemanager alleen zijn eigen taken wijzigen, of
+   taken die hij zelf heeft uitgezet. Lukt het niet, dan zeggen we dat - een
+   vinkje dat stil terugspringt laat je denken dat het scherm kapot is. */
+document.addEventListener('click', async (e) => {
+  const knop = e.target.closest && e.target.closest('[data-taakklaar]');
+  if(!knop) return;
+  e.preventDefault();
+  const id = knop.getAttribute('data-taakklaar');
+  knop.disabled = true;
+  const { error } = await sb.from('wz_taken')
+    .update({ status: 'klaar', afgerond_op: new Date().toISOString() })
+    .eq('id', id);
+  if(error){
+    knop.disabled = false;
+    alert(/permission|denied|row-level/i.test(error.message || '')
+      ? 'Deze taak staat niet op jouw naam, dus je kunt hem niet afvinken.'
+      : 'Afvinken lukte niet: ' + (error.message || 'onbekende fout'));
+    return;
+  }
+  /* De lijst opnieuw tekenen uit de bijgewerkte gegevens, zodat de tellers
+     boven de lijst ook meteen kloppen. */
+  const t = (TAKEN || []).find(x => String(x.id) === String(id));
+  if(t){ t.status = 'klaar'; t.afgerond_op = new Date().toISOString(); }
+  tekenTaken();
+});
+
 function tekenTaken(){
   $('#tOpen').textContent  = openTaken().length;
   $('#tBezig').textContent = bezigTaken().length;
@@ -1373,8 +1411,14 @@ function tekenTaken(){
             '<p>' + esc(t.omschrijving || '') + '</p>' +
             '<small>' + esc([t.deadline, t.prioriteit].filter(Boolean).join(' · ') || 'geen deadline') + '</small>' +
           '</div>' +
+          /* Angela, 22-09-2026: "ik wil alle takenlijsten afvinkbaar, zijn ze
+             gedaan of gezien kun je ze afvinken en dan verdwijnt het item."
+             Naast Open staat nu een vinkje; wat je afvinkt verdwijnt uit Open
+             en verschuift naar Klaar. */
           (klaar ? '<span class="done-label">&#10003; Klaar</span>'
-                 : '<a class="task-action" href="vr2.html">Open</a>') +
+                 : '<button class="task-vink" type="button" data-taakklaar="' + esc(t.id) +
+                   '" title="Afvinken" aria-label="' + esc(t.titel || 'Taak') + ' afvinken">&#10003;</button>' +
+                   '<a class="task-action" href="vr2.html">Open</a>') +
         '</div>';
       }).join('')
     : '<p class="leeg">Geen taken in deze selectie.</p>';
