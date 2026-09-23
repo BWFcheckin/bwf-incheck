@@ -829,6 +829,25 @@ body::before{display:none}
   border-radius:999px;border:0;background:var(--goud-zacht);color:var(--goud-ink)}
 #groeptabs .tab[aria-selected="true"] .badge{background:var(--groen-zacht);color:var(--groen)}
 
+/* Rood belletje. Angela, 22-09-2026: "een rood belletje op het pictogram van
+   het dashboard als er een nieuwe reservering binnen is gekomen die nog
+   verwerkt moet worden."
+
+   Alleen rood als er echt iets te doen is: bij nul verdwijnt het bolletje
+   helemaal. Een teller die altijd staat te staan is geen signaal meer. */
+#groeptabs .badge[data-nieuw="1"]{background:#B3261E;color:#fff;font-weight:600;
+  box-shadow:0 0 0 3px rgba(179,38,30,.16)}
+#groeptabs .tab[aria-selected="true"] .badge[data-nieuw="1"]{background:#B3261E;color:#fff}
+#groeptabs .badge[hidden]{display:none}
+@media (prefers-reduced-motion: no-preference){
+  #groeptabs .badge[data-nieuw="1"]{animation:bwf-tik .9s ease-out 1}
+}
+@keyframes bwf-tik{
+  0%{transform:scale(.6);opacity:0}
+  55%{transform:scale(1.15)}
+  100%{transform:scale(1);opacity:1}
+}
+
 /* ---------- sfeerbeeld ---------- */
 .bwf-hero{position:relative;min-height:170px;display:flex;align-items:flex-end;
   background:var(--groen) var(--foto) center/cover no-repeat}
@@ -4312,16 +4331,7 @@ function renderDagstart(){
      anders dan verwerkt zijn. */
   const nieuw = $('#dgNieuw');
   if(nieuw){
-    const nietVerwerkt = RES
-      .filter(r => {
-        if(r.verleden || r.geannuleerd) return false;
-        const b = r.ruw || {};
-        /* Heeft een medewerker de boeking aangeraakt, dan is hij verwerkt. */
-        if(b.handmatig_gewijzigd_op) return false;
-        const door = String(b.gewijzigd_door || '');
-        if(door && door !== 'kanalen-sync') return false;
-        return true;
-      })
+    const nietVerwerkt = onverwerkteBoekingen()
       /* Eerst wat het eerst aankomt: daar moet je het snelst iets mee. */
       .sort((a,b) => String(a.start || '').localeCompare(String(b.start || '')));
     nieuw.innerHTML = nietVerwerkt.length
@@ -6069,8 +6079,41 @@ function csv(rows, naam){
 }
 
 /* ---------------- badges & render ---------------- */
+/* Welke boekingen nog onaangeroerd zijn. Stond eerst als losse filter binnen
+   renderDagstart(); daar kon badges() er niet bij, en dan telt het belletje
+   stilletjes nul. Nu op het hoofdniveau, zodat de lijst en het belletje
+   dezelfde maatstaf gebruiken - liepen die uiteen, dan zag je een bolletje
+   zonder te kunnen vinden waar het over ging.
+
+   Maatstaf, gelijk aan die van het reserveringenscherm: gecontroleerd is
+   gewijzigd_door ingevuld en niet "kanalen-sync". Staat er niets of nog
+   kanalen-sync, dan heeft niemand er iets mee gedaan. */
+function onverwerkteBoekingen(){
+  return (typeof RES === 'undefined' ? [] : RES).filter(r => {
+    if(r.verleden || r.geannuleerd) return false;
+    const b = r.ruw || {};
+    if(b.handmatig_gewijzigd_op) return false;      /* aangeraakt = verwerkt */
+    const door = String(b.gewijzigd_door || '');
+    if(door && door !== 'kanalen-sync') return false;
+    return true;
+  });
+}
+
 function badges(){
   const zet = (id,v)=>{ const el=$('#badge-'+id); if(el) el.textContent = v; };
+  /* Bij de reserveringen telt het bolletje wat er nog te verwerken valt. Is dat
+     nul, dan hoort er niets te staan: een teller die er altijd staat leest
+     niemand meer. */
+  const zetNieuw = (id,v)=>{
+    const el = $('#badge-' + id); if(!el) return;
+    el.textContent = v;
+    el.hidden = !v;
+    if(v) el.setAttribute('data-nieuw','1'); else el.removeAttribute('data-nieuw');
+    const tab = el.closest('.tab');
+    if(tab) tab.title = v
+      ? v + (v === 1 ? ' boeking staat' : ' boekingen staan') + ' nog te verwerken'
+      : '';
+  };
   zet('taken', mijnTaken().filter(t=>t.status!=='klaar').length);
   zet('welkomstcall', S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length);
   zet('klanten', S.klanten.length);
@@ -6088,12 +6131,19 @@ function badges(){
   const groepTeller = {
     takencalls: mijnTaken().filter(t=>t.status!=='klaar').length +
                 (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
-    reserveringen: RES.length,
+    /* Angela, 22-09-2026: "een rood belletje op het pictogram van het
+       dashboard als er een nieuwe reservering binnen is gekomen die nog
+       verwerkt moet worden." Stond op RES.length - het totaal aantal
+       boekingen, dus altijd een getal, dus nooit een signaal. */
+    reserveringen: (typeof onverwerkteBoekingen === 'function' ? onverwerkteBoekingen().length : 0),
     klantbeheer: (S.klanten||[]).length,
     bellen: (S.belitems||[]).filter(b=>!b.gebeld).length,
     werktarieven: mijnWerk().filter(w=>String(w.datum).slice(0,7)===vandaag().slice(0,7)).length
   };
   Object.keys(groepTeller).forEach(g=>{
+    /* Reserveringen krijgt het rode belletje: daar gaat het om werk dat nog
+       moet gebeuren. De andere tellers blijven gewoon een aantal. */
+    if(g === 'reserveringen'){ zetNieuw('groep-' + g, groepTeller[g]); return; }
     const el = document.getElementById('badge-groep-'+g);
     if(el){ el.textContent = groepTeller[g]; el.hidden = !groepTeller[g]; }
   });
