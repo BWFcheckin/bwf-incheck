@@ -1579,11 +1579,15 @@ function tekenPersoneelKaart(r) {
      63 bestaande regels had een merkteken, dus tot nu toe viel alles onder
      "vooraf". Sinds vandaag krijgen bijgeboekte regels bron:"bijgeboekt" en
      regels uit een welkomstcall bron:"welkomstcall". */
-  const naCall = arr.filter((a) => a && a.bron === "welkomstcall");
-  const bijgeboekt = arr.filter((a) => a && a.bron === "bijgeboekt");
+  /* De plek in de oorspronkelijke lijst gaat mee: daarop verwijdert de knop,
+     zodat twee regels met dezelfde naam niet door elkaar lopen. Zelfde aanpak
+     als in tekenAlBijgeboekt(). */
+  const metPlek = arr.map((a, i) => ({ a, i }));
+  const naCall = metPlek.filter((x) => x.a && x.a.bron === "welkomstcall");
+  const bijgeboekt = metPlek.filter((x) => x.a && x.a.bron === "bijgeboekt");
   /* Angela, 20-09-2026: op locatie bijgeboekt blijft gescheiden van vooraf. */
-  const opLocatie = arr.filter((a) => a && a.bron === "op_locatie");
-  const vooraf = arr.filter((a) => !(a && a.bron));
+  const opLocatie = metPlek.filter((x) => x.a && x.a.bron === "op_locatie");
+  const vooraf = metPlek.filter((x) => !(x.a && x.a.bron));
   /* Wie het heeft bijgeboekt en wanneer, als dat is vastgelegd. Regels van
      vóór 20-09-2026 hebben dat niet; daar blijft het gewoon weg. */
   const doorWie = (a) => {
@@ -1593,10 +1597,26 @@ function tekenPersoneelKaart(r) {
     return ' <span style="color:var(--muted);font-size:12px">' +
       esc([a.door, wanneer].filter(Boolean).join(" · ")) + "</span>";
   };
-  const noem = (a) => esc((a && (a.naam || a)) || "") +
-    (a && Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
-    (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "") +
-    doorWie(a);
+  /* Angela, 22-09-2026: "ik wil dat de locatiemanager bijgeboekte items kan
+     verwijderen als ze een verkeerde hebben aangeklikt." Het kruisje zit op
+     dezelfde afhandeling als in het bewerkscherm: er wordt om bevestiging
+     gevraagd en het bedrag gaat van het totaal af.
+
+     Alleen bij een boeking die nog loopt: bij een geannuleerde reservering valt
+     er niets meer recht te zetten. */
+  const magWeg = (magBewerken() || magBeperkt()) && r.status !== "geannuleerd";
+  const noem = (x) => {
+    const a = x && x.a !== undefined ? x.a : x;
+    const plek = x && x.i !== undefined ? x.i : -1;
+    return esc((a && (a.naam || a)) || "") +
+      (a && Number(a.aantal) > 1 ? " &times; " + esc(a.aantal) : "") +
+      (a && Number(a.bedrag) ? ' <span style="color:var(--muted)">&euro; ' + esc(euro(a.bedrag)) + "</span>" : "") +
+      doorWie(a) +
+      (magWeg && plek >= 0
+        ? ' <button type="button" class="knop sec klein" data-arrweg="' + plek +
+          '" title="Deze regel verwijderen" aria-label="Verwijderen">&#10007;</button>'
+        : "");
+  };
 
   /* bedragen: eerst wat er echt is vastgelegd, anders afgeleid uit de brontekst */
   const uitBron = leesUitBron(r.brongegevens);
@@ -1615,7 +1635,9 @@ function tekenPersoneelKaart(r) {
              : bstat === "betaald" ? 0
              : bstat === "open" ? totaal
              : (totaal != null && betaald != null ? totaal - betaald : null);
-  const extraNaCall = naCall.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  /* naCall bevat sinds de verwijderknop {regel, plek}-paren, geen kale
+     regels meer: het bedrag zit een laagje dieper. */
+  const extraNaCall = naCall.reduce((t, x) => t + (Number(x.a && x.a.bedrag) || 0), 0);
   const afgeleid = totaal == null && uitBron.bedrag != null;
 
   const tel = String(r.gast_telefoon || "").replace(/\s+/g, "");
@@ -3624,6 +3646,9 @@ async function verwijderArrangement(index) {
     HUIDIG = rij[0];
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
     tekenAlBijgeboekt(rij[0]);
+    /* Een locatiemanager ziet de reservering als kaart, niet als formulier;
+       zonder deze regel bleef de verwijderde extra daar gewoon staan. */
+    try { tekenPersoneelKaart(rij[0]); } catch (e) {}
     /* De bedragvelden meteen bijwerken, net als bij bijboeken: staat het oude
        totaal er nog, dan zet de eerstvolgende druk op Opslaan de verlaging
        weer terug - het formulier stuurt die drie velden mee. */
