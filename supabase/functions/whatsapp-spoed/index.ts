@@ -190,13 +190,31 @@ Deno.serve(async (req) => {
   const { data: inst } = await db.from("instellingen")
     .select("waarde").eq("sleutel", "spoed_meldingen").maybeSingle();
 
-  let meld: { aan?: boolean; nummers?: Record<string, string> } = {};
+  let meld: { aan?: boolean; nummers?: Record<string, string | string[]> } = {};
   try { meld = JSON.parse(inst?.waarde || "{}"); } catch { /* stond er raar in */ }
 
   if (!meld.aan) {
     return Response.json({ gedaan: 0, reden: "staat uit" });
   }
   const nummers = meld.nummers || {};
+
+  /* Angela, 22-09-2026: "ik wil voor het whatsapp-pushbericht spoedboekingen
+     extra telefoonnummers kunnen toevoegen." Een locatie had één nummer als
+     tekst; dat mag nu ook een lijst zijn. Beide vormen blijven werken, want
+     in de instellingen kan de oude vorm nog staan.
+
+     Dubbele nummers gaan eruit: staat hetzelfde nummer twee keer in de lijst,
+     dan krijgt die persoon anders twee keer hetzelfde bericht. */
+  function nummersVan(plaats: string): string[] {
+    const w = nummers[plaats];
+    const ruw = Array.isArray(w) ? w : String(w || "").split(/[\n,;]+/);
+    const uit: string[] = [];
+    for (const x of ruw) {
+      const n = watiNummer(String(x || "").trim());
+      if (n && !uit.includes(n)) uit.push(n);
+    }
+    return uit;
+  }
 
   const endpoint = (Deno.env.get("WATI_ENDPOINT") || "").replace(/\/+$/, "");
   const token = Deno.env.get("WATI_TOKEN") || "";
@@ -215,19 +233,26 @@ Deno.serve(async (req) => {
   const test = new URL(req.url).searchParams.get("test");
   if (test) {
     const plaats = test.toLowerCase() === "almere" ? "Almere" : "Lelystad";
-    const nummer = watiNummer(nummers[plaats] || "");
-    if (!nummer) {
+    const lijst = nummersVan(plaats);
+    if (!lijst.length) {
       return Response.json({ test: plaats, reden: "geen nummer ingesteld" }, { status: 400 });
     }
-    const proef = await stuurWati({ endpoint, token, sjabloon }, nummer, [
-      { name: "1", value: "Proefbericht (geen echte gast)" },
-      { name: "2", value: wanneer(new Date(Date.now() + 18 * 3600_000).toISOString(), null) },
-      { name: "3", value: plaats === "Almere" ? "Suite Angie" : "Malina Jacuzzi" },
-      { name: "4", value: "een test vanuit het dashboard" },
-    ]);
+    /* Naar allemaal, zodat je in één keer ziet welk nummer het wel doet en
+       welk niet - dat was precies de vraag bij Almere. */
+    const proeven = [];
+    for (const nr of lijst) {
+      const p = await stuurWati({ endpoint, token, sjabloon }, nr, [
+        { name: "1", value: "Proefbericht (geen echte gast)" },
+        { name: "2", value: wanneer(new Date(Date.now() + 18 * 3600_000).toISOString(), null) },
+        { name: "3", value: plaats === "Almere" ? "Suite Angie" : "Malina Jacuzzi" },
+        { name: "4", value: "een test vanuit het dashboard" },
+      ]);
+      proeven.push({ nummer: nr, gelukt: p.gelukt, http: p.http, antwoord: p.ruw });
+    }
+    const proef = proeven[0];
     return Response.json({
-      test: plaats, naar: nummer, sjabloon,
-      gelukt: proef.gelukt, http: proef.http, antwoord: proef.ruw,
+      test: plaats, naar: lijst, sjabloon, per_nummer: proeven,
+      gelukt: proeven.every((x) => x.gelukt), http: proef.http, antwoord: proef.ruw,
     }, { status: proef.gelukt ? 200 : 502 });
   }
 
@@ -258,11 +283,17 @@ Deno.serve(async (req) => {
   const ids = (boekingen || []).map((b) => b.id);
   const klaar = new Set<string>();
   const pogingen = new Map<string, number>();
+  /* Welke nummers deze melding al gekregen hebben, per reservering. Nodig nu
+     een locatie meerdere nummers kan hebben: lukt het bij de één wel en bij de
+     ander niet, dan wordt de melding opnieuw opgepakt en mag wie hem al heeft
+     niet nog eens gebeld worden. */
+  const eerderNummers = new Map<string, string>();
   if (ids.length) {
     const { data: al } = await db.from("meldingen_verstuurd")
       .select("reservering_id,gelukt,pogingen,nummer,locatie").eq("soort", SOORT).in("reservering_id", ids);
     for (const r of al || []) {
       pogingen.set(r.reservering_id, Number(r.pogingen) || 0);
+      eerderNummers.set(r.reservering_id, String(r.nummer || ""));
       if (r.gelukt) { klaar.add(r.reservering_id); continue; }
       if ((Number(r.pogingen) || 0) < MAX_POGINGEN) continue;
       /* Opgegeven, maar staat er inmiddels een ander nummer voor die locatie?
@@ -273,8 +304,12 @@ Deno.serve(async (req) => {
          maar zou Angela daar een mobiel nummer neerzetten, dan kwam die
          boeking nooit meer langs. "Ongeldig nummer" is alleen blijvend zolang
          het nummer hetzelfde blijft. */
-      const nu = watiNummer((nummers[String(r.locatie || "")] || ""));
-      if (nu && nu !== String(r.nummer || "")) { pogingen.set(r.reservering_id, 0); continue; }
+      /* Staat er inmiddels een ander of een extra nummer voor die locatie?
+         Dan is de reden om op te geven vervallen. Met meerdere nummers per
+         locatie kijken we of er eentje bij is waar nog niets heen ging. */
+      const nu = nummersVan(String(r.locatie || ""));
+      const gedaan = String(r.nummer || "").split(",").filter(Boolean);
+      if (nu.some((n) => !gedaan.includes(n))) { pogingen.set(r.reservering_id, 0); continue; }
       klaar.add(r.reservering_id);
     }
   }
@@ -285,7 +320,7 @@ Deno.serve(async (req) => {
   const uit: Array<Record<string, unknown>> = [];
   for (const b of teDoen) {
     const plaats = locatieVan(b.suite);
-    const nummer = watiNummer(nummers[plaats] || "");
+    const lijst = nummersVan(plaats);
 
     const eerder = pogingen.get(b.id) || 0;
 
@@ -293,7 +328,7 @@ Deno.serve(async (req) => {
     // nummer nog niet ingevuld, dan kan dat elk moment gebeuren; de teller gaat
     // dan bewust niet omhoog, zodat de volgende ronde hem gewoon weer oppakt.
     // Een onbekende locatie verandert wél nooit meer: die geven we op.
-    if (!plaats || !nummer) {
+    if (!plaats || !lijst.length) {
       await db.from("meldingen_verstuurd").upsert({
         reservering_id: b.id, soort: SOORT, locatie: plaats || null,
         nummer: null, gelukt: false, pogingen: plaats ? eerder : MAX_POGINGEN,
@@ -316,22 +351,43 @@ Deno.serve(async (req) => {
       { name: "4", value: via },
     ];
 
-    const { http, ruw, gelukt, blijvend } = await stuurWati(
-      { endpoint, token, sjabloon }, nummer, parameters);
+    /* Naar elk nummer van deze locatie. Wie het bericht bij een eerdere ronde
+       al gekregen heeft wordt overgeslagen: het veld nummer houdt bij waar het
+       heen ging, met komma's ertussen. Zonder die controle zou een tweede
+       poging - nodig omdat één van de nummers het niet deed - de anderen een
+       dubbel bericht bezorgen. */
+    const alGehad = String(eerderNummers.get(b.id) || "").split(",").filter(Boolean);
+    const nogTeDoen = lijst.filter((n) => !alGehad.includes(n));
 
-    // Gelukt: klaar. Blijvende fout: meteen opgeven, want herhalen helpt niet
-    // en in antwoord staat waarom. Tijdelijk (wachten op goedkeuring, storing):
-    // de teller niet ophogen, zodat we blijven proberen tot de gast er is.
+    const resultaten = [];
+    for (const nr of nogTeDoen) {
+      const p = await stuurWati({ endpoint, token, sjabloon }, nr, parameters);
+      resultaten.push({ nummer: nr, ...p });
+    }
+
+    const gelukteNu = resultaten.filter((x) => x.gelukt).map((x) => x.nummer);
+    const gelukteAlle = alGehad.concat(gelukteNu);
+    /* Klaar is deze melding pas als iedereen op de lijst hem heeft. */
+    const gelukt = lijst.every((n) => gelukteAlle.includes(n));
+    /* Blijvend mislukt alleen als geen van de openstaande nummers nog kans
+       maakt - anders blijven we het de volgende ronde proberen. */
+    const blijvend = resultaten.length > 0 && resultaten.every((x) => x.gelukt || x.blijvend);
+    const http = resultaten.length ? resultaten[resultaten.length - 1].http : 0;
+
     const staat = gelukt ? eerder : blijvend ? MAX_POGINGEN : eerder;
 
     await db.from("meldingen_verstuurd").upsert({
-      reservering_id: b.id, soort: SOORT, locatie: plaats, nummer,
-      gelukt, pogingen: staat, antwoord: "http " + http + " " + ruw,
+      reservering_id: b.id, soort: SOORT, locatie: plaats,
+      nummer: gelukteAlle.join(","),
+      gelukt, pogingen: staat,
+      antwoord: resultaten.map((x) =>
+        x.nummer + ": http " + x.http + " " + String(x.ruw || "").slice(0, 120)).join(" | "),
       verstuurd_op: new Date().toISOString(),
     }, { onConflict: "reservering_id,soort" });
 
     uit.push({
       id: b.id, locatie: plaats, gelukt, http,
+      naar: nogTeDoen, gelukte: gelukteNu,
       ...(gelukt ? {} : { nogmaals: !blijvend }),
     });
   }
