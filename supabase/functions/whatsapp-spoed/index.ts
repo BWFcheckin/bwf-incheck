@@ -87,7 +87,12 @@ function watiNummer(ruw: string): string {
 }
 
 // "2026-09-22T15:00:00" -> "maandag 22 september om 15:00"
-function wanneer(aankomst: string, tijd: string | null): string {
+function wanneer(
+  aankomst: string,
+  tijd: string | null,
+  vertrek?: string | null,
+  uitTijd?: string | null,
+): string {
   const d = String(aankomst || "").slice(0, 10).split("-");
   if (d.length !== 3) return String(aankomst || "");
   const dagen = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
@@ -95,8 +100,66 @@ function wanneer(aankomst: string, tijd: string | null): string {
     "juli", "augustus", "september", "oktober", "november", "december"];
   const dt = new Date(Number(d[0]), Number(d[1]) - 1, Number(d[2]));
   const klok = String(tijd || String(aankomst).slice(11, 16) || "").slice(0, 5);
-  return dagen[dt.getDay()] + " " + Number(d[2]) + " " + maanden[Number(d[1]) - 1] +
-    (klok && klok !== "00:00" ? " om " + klok : "");
+  let uit = dagen[dt.getDay()] + " " + Number(d[2]) + " " + maanden[Number(d[1]) - 1] +
+    (klok && klok !== "00:00" ? " " + klok : "");
+
+  /* Angela, 24-09-2026: "bij datum wil ik datum in en uitchecktijd." De
+     uitcheck erachter, en de dag erbij als de gast pas een andere dag
+     vertrekt - anders lijkt 11:00 een tijd op de aankomstdag. */
+  const u = String(uitTijd || String(vertrek || "").slice(11, 16) || "").slice(0, 5);
+  const vd = String(vertrek || "").slice(0, 10).split("-");
+  if (u && u !== "00:00") {
+    const zelfdeDag = vd.length === 3 && vd.join("-") === d.join("-");
+    if (zelfdeDag) {
+      uit += " tot " + u;
+    } else if (vd.length === 3) {
+      const vt = new Date(Number(vd[0]), Number(vd[1]) - 1, Number(vd[2]));
+      uit += " tot " + dagen[vt.getDay()] + " " + Number(vd[2]) + " " + u;
+    } else {
+      uit += " tot " + u;
+    }
+  }
+  return uit;
+}
+
+/* Wat er verder over de boeking te zeggen valt: dagverblijf of overnachting,
+   met hoeveel personen, en wat erbij geboekt is.
+
+   Angela, 24-09-2026: "dagverblijf of overnachting, aantal personen,
+   arrangementen." Dit gaat mee in dezelfde vierde plek van het sjabloon waar
+   eerst alleen het kanaal stond. Zo hoeft het sjabloon niet opnieuw langs
+   Meta - dat duurde de vorige keer dagen - en staat er toch in wat je 's
+   avonds wilt weten. */
+function watVoorVerblijf(b: {
+  aankomst?: string | null; vertrek?: string | null; type?: string | null;
+}): string {
+  const t = String(b.type || "").toLowerCase();
+  if (t.includes("dag")) return "dagverblijf";
+  if (t.includes("nacht") || t.includes("overnacht")) return "overnachting";
+  /* Geen type ingevuld? Dan zegt het verschil tussen de datums het: vertrekt
+     de gast op een andere dag, dan blijft hij slapen. */
+  const a = String(b.aankomst || "").slice(0, 10);
+  const v = String(b.vertrek || "").slice(0, 10);
+  if (a && v && a !== v) return "overnachting";
+  if (a && v && a === v) return "dagverblijf";
+  return "";
+}
+
+function arrangementTekst(arr: unknown): string {
+  if (!Array.isArray(arr)) return "";
+  const namen: string[] = [];
+  for (const a of arr) {
+    const naam = typeof a === "string" ? a
+      : (a && typeof a === "object" ? String((a as Record<string, unknown>).naam || "") : "");
+    const n = naam.trim();
+    if (!n || namen.includes(n)) continue;
+    namen.push(n);
+  }
+  if (!namen.length) return "";
+  /* Niet eindeloos lang: WhatsApp kapt een te lange regel af en dan valt juist
+     het kanaal erachter weg. */
+  const kort = namen.slice(0, 3).join(", ");
+  return namen.length > 3 ? kort + " en nog " + (namen.length - 3) : kort;
 }
 
 // Dezelfde namen als WC_KANAAL_NAAM in vr2.html; de kolom kanaal kent alleen
@@ -263,7 +326,10 @@ Deno.serve(async (req) => {
 
   const { data: boekingen, error: leesFout } = await db.from("reserveringen")
     .select("id,suite,kanaal,kanaal_ref,aankomst,incheck_tijd,status," +
-      "gast_voornaam,gast_achternaam,created_at")
+      "gast_voornaam,gast_achternaam,created_at," +
+      /* erbij sinds 24-09-2026: nodig voor de uitchecktijd, het soort verblijf,
+         het aantal personen en de arrangementen in het bericht */
+      "vertrek,uitcheck_tijd,type,personen,arrangementen")
     .neq("status", "geannuleerd")
     .gte("aankomst", new Date(nu).toISOString())
     .lte("aankomst", tot)
@@ -314,7 +380,53 @@ Deno.serve(async (req) => {
     }
   }
 
-  const teDoen = (boekingen || []).filter((b) => !klaar.has(b.id)).slice(0, MAX_PER_RONDE);
+  /* Angela, 24-09-2026: "de eerste spoedberichten waren dubbel verstuurd, 3
+     keer ongeveer hetzelfde bericht."
+
+     Per reservering gaat er hoogstens één melding uit - daar zorgt de unieke
+     index op (reservering_id, soort) voor. Maar dezelfde boeking staat soms
+     meer dan eens in de tabel: een privésauna-regel van SMG én de boeking
+     eromheen, of een dubbele import. Dan is het voor de database netjes één
+     melding per rij, en voor de ontvanger drie keer bijna hetzelfde bericht.
+
+     Daarom hier een tweede zeef: dezelfde gast, dezelfde suite en dezelfde
+     aankomstdag gaat één keer. Welke van de dubbele rijen dat wordt maakt niet
+     uit; de andere worden weggelaten en krijgen een notitie waarom, zodat je
+     het kunt terugzien in plaats van je af te vragen waar die melding bleef. */
+  function zelfdeVerblijf(b: Record<string, unknown>): string {
+    return [
+      String(b.suite || ""),
+      String(b.aankomst || "").slice(0, 10),
+      [b.gast_voornaam, b.gast_achternaam].filter(Boolean).join(" ").trim().toLowerCase(),
+    ].join("|");
+  }
+
+  const gezienVerblijf = new Set<string>();
+  /* Wat al eerder verstuurd is telt mee: anders komt er bij een volgende ronde
+     alsnog een tweede bericht voor de dubbele rij. */
+  for (const b of boekingen || []) {
+    if (klaar.has(b.id)) gezienVerblijf.add(zelfdeVerblijf(b));
+  }
+
+  const dubbel: Array<Record<string, unknown>> = [];
+  const teDoen = (boekingen || []).filter((b) => {
+    if (klaar.has(b.id)) return false;
+    const sleutel = zelfdeVerblijf(b);
+    if (gezienVerblijf.has(sleutel)) { dubbel.push({ id: b.id, overgeslagen: "zelfde verblijf" }); return false; }
+    gezienVerblijf.add(sleutel);
+    return true;
+  }).slice(0, MAX_PER_RONDE);
+
+  /* De overgeslagen dubbelen vastleggen als afgehandeld, zodat ze niet elke
+     ronde opnieuw langskomen. */
+  for (const d of dubbel) {
+    await db.from("meldingen_verstuurd").upsert({
+      reservering_id: d.id, soort: SOORT, locatie: null, nummer: null,
+      gelukt: true, pogingen: 0,
+      antwoord: "overgeslagen: dezelfde gast, suite en aankomstdag stond al in een andere reservering",
+      verstuurd_op: new Date().toISOString(),
+    }, { onConflict: "reservering_id,soort" });
+  }
 
   // ---- 4. versturen ----
   const uit: Array<Record<string, unknown>> = [];
@@ -340,13 +452,21 @@ Deno.serve(async (req) => {
     }
 
     const naam = [b.gast_voornaam, b.gast_achternaam].filter(Boolean).join(" ") || "zonder naam";
-    const via = KANAAL_NAAM[String(b.kanaal || "")] || String(b.kanaal || "onbekend");
+    const kanaalNaam = KANAAL_NAAM[String(b.kanaal || "")] || String(b.kanaal || "onbekend");
+    /* Alles wat in de vierde plek van het sjabloon past, gescheiden door
+       puntjes. Leeg wat er niet is: "onbekend · 0 personen" leest slechter dan
+       alleen wat je wél weet. */
+    const soort = watVoorVerblijf(b);
+    const pers = Number(b.personen) > 0
+      ? Number(b.personen) + (Number(b.personen) === 1 ? " persoon" : " personen") : "";
+    const arrs = arrangementTekst(b.arrangementen);
+    const via = [kanaalNaam, soort, pers, arrs].filter(Boolean).join(" \u00b7 ");
 
     // De variabelen moeten in dezelfde volgorde staan als {{1}} {{2}} {{3}} {{4}}
     // in het goedgekeurde sjabloon in Wati.
     const parameters = [
       { name: "1", value: naam },
-      { name: "2", value: wanneer(b.aankomst, b.incheck_tijd) },
+      { name: "2", value: wanneer(b.aankomst, b.incheck_tijd, b.vertrek, b.uitcheck_tijd) },
       { name: "3", value: suiteKort(b.suite) },
       { name: "4", value: via },
     ];
@@ -395,6 +515,7 @@ Deno.serve(async (req) => {
   return Response.json({
     bekeken: (boekingen || []).length,
     verstuurd: uit.filter((x) => x.gelukt).length,
-    regels: uit,
+    dubbel_overgeslagen: dubbel.length,
+    regels: uit.concat(dubbel),
   });
 });
