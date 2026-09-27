@@ -80,6 +80,30 @@ section[hidden]{display:none}
 .arr-klaar{font-size:12px;color:var(--groen,#2E7D5B);white-space:nowrap}
 /* Een klaargezette extra dimt, maar blijft staan: hij hoort bij de rekening. */
 .arr-gedaan{opacity:.55}
+/* De inklapbare blokken op de reserveringskaart. */
+.kaartvak{border:1px solid var(--line-soft);border-radius:11px;margin:0 0 8px;background:var(--surface,#fff)}
+.kaartvak>summary{cursor:pointer;padding:10px 13px;font-size:13px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);font-weight:600;list-style:none;
+  display:flex;align-items:center;gap:9px}
+.kaartvak>summary::-webkit-details-marker{display:none}
+.kaartvak>summary::after{content:"\25BE";margin-left:auto;font-size:11px;opacity:.6;transition:transform .15s}
+.kaartvak[open]>summary::after{transform:rotate(180deg)}
+.kaartvak>summary:hover{color:var(--tekst,inherit)}
+.kaartvak-tel{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--surface-2,#f2ede6);
+  color:var(--muted);text-transform:none;letter-spacing:0}
+.kaartvak-lijf{padding:2px 13px 12px;font-size:14px;line-height:1.7}
+
+/* De balk bovenaan: wat er nog betaald moet worden, en de twee knoppen die
+   een locatiemanager het vaakst nodig heeft. */
+.kaartkop{border:1px solid var(--line-soft);border-radius:13px;padding:13px 15px;margin:0 0 12px;
+  background:var(--surface-2,#faf7f3)}
+.kaartkop-bedrag{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.kaartkop-bedrag .groot{font-size:26px;font-weight:700;line-height:1.1}
+.kaartkop-bedrag .groot.open{color:#B3261E}
+.kaartkop-bedrag .groot.voldaan{color:#2E7D5B}
+.kaartkop-bedrag .naast{font-size:13px;color:var(--muted)}
+.kaartkop-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.kaartkop-knoppen .knop{flex:1 1 auto;min-width:150px}
 .telling{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0 2px 8px}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -1560,12 +1584,28 @@ function leesUitBron(tekst) {
   return uit;
 }
 
-function kaartVak(kop, regels) {
+/* Angela, 27-09-2026: "als je de reserveringskaart opent zie je niet
+   duidelijk wat er nog betaald moet worden en moet je veel scrollen. Ik wil
+   alle functionaliteit behouden maar alle opties met info inklappen; extra's
+   bijboeken en betaling moeten duidelijk zichtbaar zijn."
+
+   De negen blokken stonden allemaal open onder elkaar. Ze zijn nu ingeklapt,
+   zodat het bedrag en de twee knoppen bovenaan meteen in beeld staan. Er gaat
+   niets weg: alles zit er nog, één tik verder.
+
+   Een blok mag open beginnen met `open = true`; dat is voor wat je bij het
+   openslaan sowieso wilt zien. */
+function kaartVak(kop, regels, open) {
   const inhoud = regels.filter(Boolean).join("");
   if (!inhoud) return "";
-  return '<section style="margin:0 0 14px"><h3 style="font-size:13px;letter-spacing:.06em;' +
-    'text-transform:uppercase;color:var(--muted);margin:0 0 6px">' + esc(kop) + "</h3>" +
-    '<div style="font-size:14px;line-height:1.7">' + inhoud + "</div></section>";
+  /* Hoeveel regels erin zitten alvast op de kop, zodat je weet of het de
+     moeite is om open te klappen. */
+  const aantal = regels.filter(Boolean).length;
+  return '<details class="kaartvak"' + (open ? " open" : "") + '>' +
+    '<summary>' + esc(kop) +
+      (aantal > 1 ? '<span class="kaartvak-tel">' + aantal + "</span>" : "") +
+    "</summary>" +
+    '<div class="kaartvak-lijf">' + inhoud + "</div></details>";
 }
 function kaartRegel(naam, waarde) {
   if (waarde === "" || waarde == null) return "";
@@ -1656,7 +1696,33 @@ function tekenPersoneelKaart(r) {
   const tel = String(r.gast_telefoon || "").replace(/\s+/g, "");
   const app = tel.replace(/[^0-9]/g, "").replace(/^0/, "31");
 
+  /* De balk bovenaan. Wat er nog betaald moet worden staat hier groot, en de
+     twee knoppen die een locatiemanager het vaakst nodig heeft staan eronder.
+     Daaronder pas de blokken met informatie, ingeklapt.
+
+     `open` is hierboven al uitgerekend uit de betaalstatus en de bedragen -
+     dezelfde berekening als op de kaart in de lijst, zodat er nooit twee
+     verschillende bedragen in beeld staan. */
+  const nogOpen = (open != null && Number(open) > 0) ? Number(open) : 0;
+  const kopBalk =
+    '<div class="kaartkop">' +
+      '<div class="kaartkop-bedrag">' +
+        (totaal != null
+          ? (nogOpen
+              ? '<span class="groot open">&euro; ' + esc(euro(nogOpen)) + "</span>" +
+                '<span class="naast">nog te betalen van &euro; ' + esc(euro(totaal)) + "</span>"
+              : '<span class="groot voldaan">voldaan</span>' +
+                '<span class="naast">&euro; ' + esc(euro(totaal)) + " betaald</span>")
+          : '<span class="groot">&mdash;</span><span class="naast">geen bedrag bekend</span>') +
+      "</div>" +
+      '<div class="kaartkop-knoppen">' +
+        '<button type="button" class="knop sec" data-naar="vBijboekVak">Extra&#39;s bijboeken</button>' +
+        '<button type="button" class="knop vol" data-naar="vAfrekenVak">Betaling</button>' +
+      "</div>" +
+    "</div>";
+
   doel.innerHTML =
+    kopBalk +
     kaartVak("Reserveringsgegevens", [
       kaartRegel("Nummer", esc(resNummer(r))),
       kaartRegel("Suite", esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite)),
@@ -4225,6 +4291,34 @@ document.addEventListener("click", (e) => {
   if (weg) {
     e.preventDefault();
     verwijderArrangement(Number(weg.getAttribute("data-arrweg")));
+    return;
+  }
+  /* De knoppen bovenaan de kaart: naar extra's bijboeken of naar de betaling.
+     Angela, 27-09-2026 - die twee had ze het vaakst nodig en ze lagen het
+     diepst begraven.
+
+     Het doel kan in een uitklapper zitten die nog dicht is; die wordt eerst
+     opengezet, anders scrollt de pagina naar iets onzichtbaars. */
+  const naar = e.target.closest("[data-naar]");
+  if (naar) {
+    e.preventDefault();
+    const doelEl = document.getElementById(naar.getAttribute("data-naar"));
+    if (!doelEl) return;
+    /* Alleen uitklappers openzetten. Bewust NIET hidden weghalen: dat zou een
+       blok kunnen tonen dat voor deze rol juist verborgen is, en dan opent een
+       knop iets wat iemand niet hoort te zien. Is het doel verborgen, dan
+       gebeurt er niets - en dan hoort de knop er ook niet te staan. */
+    let p = doelEl;
+    while (p) {
+      if (p.tagName === "DETAILS") p.open = true;
+      p = p.parentElement;
+    }
+    if (doelEl.offsetParent === null) return;
+    doelEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    /* Even laten oplichten, zodat je ziet waar je terecht bent gekomen. */
+    doelEl.style.transition = "box-shadow .25s";
+    doelEl.style.boxShadow = "0 0 0 3px rgba(179,38,30,.28)";
+    setTimeout(() => { doelEl.style.boxShadow = ""; }, 1400);
     return;
   }
   /* Een extra afvinken als klaargezet. */
