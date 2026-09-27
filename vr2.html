@@ -541,6 +541,24 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
    Eigen namen (reskaart-*) zodat ze niet botsen met de .card, .badge en .stats
    die dit dashboard zelf al gebruikt. */
 .reskaarten{display:flex;flex-direction:column;gap:10px;padding:14px 18px}
+/* Aankomsten als kaarten met suitefoto. Eigen namen (ov-) zodat ze niet
+   botsen met de reskaart-* van de reserveringenlijst, die een andere maat
+   heeft en in een uitklapper zit. */
+.ov-reskaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ov-reskaart{display:flex;flex-direction:column;text-align:left;border:1px solid var(--line);
+  border-radius:13px;overflow:hidden;background:var(--surface);cursor:pointer;padding:0;
+  font:inherit;color:inherit;transition:.15s}
+.ov-reskaart:hover{box-shadow:0 10px 24px -18px rgba(0,0,0,.5);border-color:var(--line-strong,var(--line))}
+.ov-reskaart:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.ov-resfoto{height:84px;background:var(--muted) center/cover no-repeat;position:relative}
+.ov-resfoto .ov-resop{position:absolute;left:0;right:0;bottom:0;padding:7px 10px;color:#fff;
+  background:linear-gradient(transparent,rgba(0,0,0,.72))}
+.ov-resfoto .ov-resop b{display:block;font-size:14px;line-height:1.2}
+.ov-resfoto .ov-resop span{font-size:11.5px;opacity:.9}
+.ov-reslijf{padding:9px 11px;display:grid;gap:3px;font-size:12.5px}
+.ov-reslijf .rij{display:flex;justify-content:space-between;gap:8px}
+.ov-reslijf .rij span:first-child{color:var(--muted)}
+@media(max-width:560px){ .ov-reskaarten{grid-template-columns:1fr} }
 .reskaart{display:flex;align-items:stretch;position:relative;cursor:pointer;
   background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px;
   transition:border-color .16s ease}
@@ -1592,17 +1610,26 @@ div.ag-blok{cursor:default}
            dus die worden hier bewust niet herhaald. -->
       <div class="card" data-dggroep="planning">
         <div class="card-head"><h2>Aankomsten</h2><span class="hint" id="ovAankHint"></span></div>
+        <!-- Angela, 27-09-2026: "ik wil alleen een kalender zien en daaronder
+             de aankomende reserveringskaarten met foto; die lijst moet weg, ik
+             wil wel een zoekfunctie." Dit was een tabel met vier kolommen;
+             het zijn nu kaarten met de suitefoto, doorzoekbaar. -->
         <div class="card-body" style="padding-bottom:0">
-          <span class="segment ag-pillen" id="ovAankFilter" role="group" aria-label="Periode">
-            <button type="button" data-p="vandaag" aria-pressed="true">Vandaag</button>
-            <button type="button" data-p="week" aria-pressed="false">Deze week</button>
-            <button type="button" data-p="maand" aria-pressed="false">Deze maand</button>
-          </span>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span class="segment ag-pillen" id="ovAankFilter" role="group" aria-label="Periode">
+              <button type="button" data-p="vandaag" aria-pressed="true">Vandaag</button>
+              <button type="button" data-p="week" aria-pressed="false">Deze week</button>
+              <button type="button" data-p="maand" aria-pressed="false">Deze maand</button>
+            </span>
+            <div class="field" style="margin:0;min-width:200px;flex:1">
+              <label for="ovAankZoek" class="visueel">Zoeken</label>
+              <input type="search" id="ovAankZoek" placeholder="Zoek gast, suite of nummer">
+            </div>
+          </div>
         </div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Aankomst</th><th>Suite</th><th>Gast</th><th>Geboekt via</th></tr></thead>
-          <tbody id="ovAankomsten"></tbody>
-        </table></div>
+        <div class="card-body" style="padding-top:12px">
+          <div class="ov-reskaarten" id="ovAankomsten"></div>
+        </div>
       </div>
 
       <div class="card" data-dggroep="planning">
@@ -1615,7 +1642,7 @@ div.ag-blok{cursor:default}
            "Reserveringen op <dag>" die de gedeelde kalender zelf meelevert. -->
       <div class="card" data-dggroep="planning">
         <div class="card-head"><h2>Planning</h2>
-          <span class="hint">klik een dag aan voor de lijst eronder</span></div>
+          <span class="hint">de aankomsten staan hierboven als kaart</span></div>
         <div class="card-body" style="padding-top:0"><div id="dgPlanKalender"></div></div>
       </div>
 
@@ -3278,7 +3305,11 @@ function maakPlanKalender(){
     /* net als bij de Agenda-kalender: hier kijk je naar wat er geboekt is,
        niet naar wat er dichtstaat vanuit Booking.com en de andere kanalen */
     blokkadesTonen: false,
-    lijst: true,
+    /* Angela, 27-09-2026: "ik wil alleen een kalender zien en daaronder de
+       aankomende reserveringskaarten met foto; die lijst moet weg." De tabel
+       die de kalender zelf onder zich zet is uit; de kaarten bij Aankomsten
+       tonen hetzelfde, met foto en doorzoekbaar. */
+    lijst: false,
     naTaak: (taak)=>{
       if(!taak || !Array.isArray(S.taken)) return;
       S.taken.unshift(taak);
@@ -4012,30 +4043,52 @@ function renderAankomsten(){
   const eind = new Date(vd); eind.setDate(eind.getDate() + 6);
   const totWeek = eind.toISOString().slice(0,10);
 
+  /* Zoeken gaat over de periodekeuze heen: typ je een naam, dan wil je die
+     vinden, ook als de gast pas volgende maand komt. */
+  const zoek = String((($('#ovAankZoek')||{}).value) || '').toLowerCase().trim();
   const lijst = RES
     .map(r => ({ r, s: String(r.start||'').slice(0,10) }))
     .filter(x => x.s && x.s >= vd)
-    .filter(x => ovAankPeriode === 'vandaag' ? x.s === vd
+    .filter(x => zoek ? true
+               : ovAankPeriode === 'vandaag' ? x.s === vd
                : ovAankPeriode === 'week'    ? x.s <= totWeek
                : x.s.slice(0,7) === vd.slice(0,7))
+    .filter(x => !zoek || [x.r.naam, x.r.locatie, x.r.bron, x.r.ref, dmy(x.s)]
+      .filter(Boolean).join(' ').toLowerCase().includes(zoek))
     .sort((a,b) => a.s.localeCompare(b.s))
     .map(x => x.r);
 
   const hint = $('#ovAankHint');
-  if(hint) hint.textContent = lijst.length + ' aankomst' + (lijst.length === 1 ? '' : 'en');
+  if(hint) hint.textContent = lijst.length + ' aankomst' + (lijst.length === 1 ? '' : 'en') +
+    (zoek ? ' \u00b7 gezocht in alle periodes' : '');
 
-  doel.innerHTML = lijst.length ? lijst.slice(0, 12).map(r => {
+  doel.innerHTML = lijst.length ? lijst.slice(0, 24).map(r => {
     const s = String(r.start||'').slice(0,10);
     const tijd = String(r.start||'').slice(11,16);
-    return `<tr>
-      <td class="name">${esc(dmy(s))}${tijd ? `<span class="meta">${esc(tijd)}</span>` : ''}</td>
-      <td><span class="resfoto ${resFotoKlasse(r.suiteRuw)}"></span>${esc(r.locatie || 'onbekend')}</td>
-      <td>${esc(r.naam || '—')}</td>
-      <td>${esc(r.bron || '')}</td>
-    </tr>`;
+    const eind = String(r.eind||'').slice(0,10);
+    const eindTijd = String(r.eind||'').slice(11,16);
+    const bedrag = (r.kop && r.kop.totaal != null) ? eur(r.kop.totaal) : '';
+    /* De hele kaart is de knop naar de reservering, net als in de daglijst. */
+    return `<button type="button" class="ov-reskaart"${r.resId ? ` data-resopen="${esc(r.resId)}"` : ''}
+      title="${esc((r.naam || 'Reservering') + ' openen')}">
+      <span class="ov-resfoto ${resFotoKlasse(r.suiteRuw)}">
+        <span class="ov-resop"><b>${esc(r.naam || 'gast onbekend')}</b>
+          <span>${esc(r.locatie || 'onbekend')}</span></span>
+      </span>
+      <span class="ov-reslijf">
+        <span class="rij"><span>aankomst</span><b>${esc(dmy(s))}${tijd ? ' ' + esc(tijd) : ''}</b></span>
+        ${eind ? `<span class="rij"><span>vertrek</span><b>${esc(dmy(eind))}${eindTijd ? ' ' + esc(eindTijd) : ''}</b></span>` : ''}
+        ${r.bron ? `<span class="rij"><span>via</span><span>${esc(r.bron)}</span></span>` : ''}
+        ${bedrag ? `<span class="rij"><span>bedrag</span><b>${esc(bedrag)}</b></span>` : ''}
+      </span>
+    </button>`;
   }).join('')
-    : `<tr><td colspan="4"><div class="empty"><strong>Geen aankomsten</strong>Er staat niets in deze periode.</div></td></tr>`;
+    : `<div class="empty"><strong>Geen aankomsten</strong>${
+        zoek ? 'Niets gevonden voor &ldquo;' + esc(zoek) + '&rdquo;.' : 'Er staat niets in deze periode.'}</div>`;
 }
+document.addEventListener('input', e => {
+  if(e.target && e.target.id === 'ovAankZoek') renderAankomsten();
+});
 document.addEventListener('click', e => {
   const b = e.target.closest('#ovAankFilter button'); if(!b) return;
   ovAankPeriode = b.dataset.p || 'vandaag';
@@ -9249,6 +9302,11 @@ async function laadOverzicht(){
   } else { OV.planning = '\u2014'; OV.planningSub = 'nog geen planningstabel'; }
 
   renderTegels();
+  /* De aankomsten worden in renderOverzicht() getekend, en die draait voordat
+     de reserveringen binnen zijn. Zonder deze regel bleef het blok op "0
+     aankomsten" staan tot je zelf een knop aanraakte - wat eruitzag alsof er
+     niets gepland stond. */
+  try{ renderAankomsten(); }catch(e){}
 }
 
 const TEGELS = [

@@ -408,6 +408,13 @@ body.gate-open{overflow:hidden}
 .ds-bel{border:0;background:none;cursor:pointer;font-size:15px;padding:0 2px;position:relative;line-height:1}
 .ds-bel .aantal{position:absolute;top:-6px;right:-9px;background:#B3261E;color:#fff;border-radius:999px;
   font-size:10px;font-weight:700;padding:0 5px;min-width:15px;text-align:center}
+.ds-blokkop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;padding:12px 16px 0}
+.ds-blokkop strong{font-size:16px;font-weight:600}
+#dsResVak.ds-blok{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);
+  border-radius:14px;margin:14px 0;padding-bottom:14px}
+#dsResVak .ds-balk{padding:10px 16px}
+#dsResVak #dsResKaarten{padding:0 16px}
 .ds-uitklap{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;
   margin:12px 0;overflow:hidden}
 .ds-uitklap>summary{cursor:pointer;padding:12px 16px;font-weight:600;font-size:16px;
@@ -1072,22 +1079,31 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
          De kalender staat hierboven; de rest volgt hieronder. -->
 
 
-    <details class="ds-uitklap" id="dsResVak">
-      <summary>Reserveringen
-        <span class="ds-tel" id="dsResTel"></span></summary>
-      <div class="ds-uitklap-lijf">
-        <div class="ds-balk">
-          <label class="visueel" for="dsResPeriode">Welke reserveringen</label>
-          <select id="dsResPeriode">
-            <option value="komend">Vanaf vandaag</option>
-            <option value="week">Deze week</option>
-            <option value="alles">Alle reserveringen</option>
-          </select>
-          <input type="search" id="dsResZoek" placeholder="Zoek gast, suite of nummer">
-        </div>
-        <div id="dsResKaarten"></div>
+    <!-- Angela, 27-09-2026: "ik wil alleen een kalender zien en daaronder de
+         aankomende reserveringskaarten met foto; die lijst moet weg, ik wil
+         wel een zoekfunctie."
+
+         Deze kaarten stonden achter een uitklapper, onder de daglijst van de
+         kalender. Die lijst is uit en de kaarten staan nu open, direct onder
+         de kalender - dat is waar je ze zoekt. De uitklapper is een gewone
+         kaart geworden; het id dsResVak blijft staan omdat andere code erop
+         mikt. -->
+    <div class="ds-blok" id="dsResVak">
+      <div class="ds-blokkop">
+        <strong>Aankomende reserveringen</strong>
+        <span class="ds-tel" id="dsResTel"></span>
       </div>
-    </details>
+      <div class="ds-balk">
+        <label class="visueel" for="dsResPeriode">Welke reserveringen</label>
+        <select id="dsResPeriode">
+          <option value="komend">Vanaf vandaag</option>
+          <option value="week">Deze week</option>
+          <option value="alles">Alle reserveringen</option>
+        </select>
+        <input type="search" id="dsResZoek" placeholder="Zoek gast, suite of nummer">
+      </div>
+      <div id="dsResKaarten"></div>
+    </div>
 
     <details class="ds-uitklap" id="dsTakenVak" open>
       <summary>Taken Lelystad
@@ -8101,9 +8117,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* Fase 3: de zichtbare dagweergave voor Lelystad uit de gedeelde kalender (reserveringen + blokkades) */
   if(window.BWFKalender && document.getElementById('lelystadKalender')){
+    /* Angela, 27-09-2026: "ik wil alleen een kalender zien en daaronder de
+       aankomende reserveringskaarten met foto; die lijst moet weg."
+
+       De gedeelde kalender levert onder zichzelf een tabel met de gekozen dag.
+       Die staat uit; de kaarten hieronder tonen dezelfde boekingen, maar met
+       de suitefoto erbij en doorzoekbaar. */
     window.BWFKalender.maak(document.getElementById('lelystadKalender'), {
       weergave: window.innerWidth < 760 ? 'maand' : 'week',
-      suites: ['malina_jacuzzi', 'malina_deluxe']
+      suites: ['malina_jacuzzi', 'malina_deluxe'],
+      lijst: false
     });
   }
 
