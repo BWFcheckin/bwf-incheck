@@ -3312,7 +3312,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-planyo.js?v=11"></script>
-<script src="bwf-kalender.js?v=22"></script>
+<script src="bwf-kalender.js?v=23"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
@@ -8120,13 +8120,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     /* Angela, 27-09-2026: "ik wil alleen een kalender zien en daaronder de
        aankomende reserveringskaarten met foto; die lijst moet weg."
 
-       De gedeelde kalender levert onder zichzelf een tabel met de gekozen dag.
-       Die staat uit; de kaarten hieronder tonen dezelfde boekingen, maar met
-       de suitefoto erbij en doorzoekbaar. */
+       De gedeelde kalender levert onder zichzelf de boekingen van de gekozen
+       dag. Dat was een brede tabel en stond daarom uit; sinds 27-09-2026
+       zijn het kaartjes met de suitefoto, en Angela wil ze overal zien. De
+       kaarten verderop blijven: die tonen wat er aankomt, deze wat er op de
+       gekozen dag staat. */
     window.BWFKalender.maak(document.getElementById('lelystadKalender'), {
       weergave: window.innerWidth < 760 ? 'maand' : 'week',
       suites: ['malina_jacuzzi', 'malina_deluxe'],
-      lijst: false
+      lijst: true
     });
   }
 

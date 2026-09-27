@@ -3115,7 +3115,7 @@ div.ag-blok{cursor:default}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
-<script src="bwf-kalender.js?v=22"></script>
+<script src="bwf-kalender.js?v=23"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script src="bwf-chats.js?v=2"></script>
 <script src="bwf-planweergave.js?v=1"></script>
@@ -3306,10 +3306,10 @@ function maakPlanKalender(){
        niet naar wat er dichtstaat vanuit Booking.com en de andere kanalen */
     blokkadesTonen: false,
     /* Angela, 27-09-2026: "ik wil alleen een kalender zien en daaronder de
-       aankomende reserveringskaarten met foto; die lijst moet weg." De tabel
-       die de kalender zelf onder zich zet is uit; de kaarten bij Aankomsten
-       tonen hetzelfde, met foto en doorzoekbaar. */
-    lijst: false,
+       aankomende reserveringskaarten met foto; die lijst moet weg." Stond uit toen de kalender er een
+       brede tabel onder zette; sinds 27-09-2026 zijn het kaartjes met de
+       suitefoto en wil Angela ze overal zien. */
+    lijst: true,
     naTaak: (taak)=>{
       if(!taak || !Array.isArray(S.taken)) return;
       S.taken.unshift(taak);

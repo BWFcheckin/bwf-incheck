@@ -378,12 +378,24 @@
          De koprij met ma/di/wo blijft juist wél staan - zonder die letters is
          een raster van zeven kolommen niet te lezen. */
       ".bwfk-koprij{font-size:10px;padding:3px 0}",
-      ".bwfk-maand .bwfk-cel{min-height:46px;padding:2px 1px}",
+      ".bwfk-maand .bwfk-cel{min-height:58px;padding:2px}",
       ".bwfk-maand .bwfk-dagnr{font-size:11px;margin:0}",
       ".bwfk-maand .bwfk-dagnr .bwfk-meer{display:none}",
-      /* elke boeking wordt een streepje: de tekst past toch niet */
-      ".bwfk-maand .bwfk-item{height:5px;padding:0;margin:0 0 2px;border-left-width:0;border-radius:3px;",
-      "  background:var(--kk,#6B7A72);font-size:0;line-height:0;overflow:hidden}",
+      /* Angela, 27-09-2026: "kan je de blokjes iets duidelijker maken met de
+         suitenaam erin, lichtere kleuren gebruiken en iets breder maken in de
+         hoogte." Ze waren streepjes van vijf pixels zonder tekst - te weinig.
+         Nu hoog genoeg voor de naam van de suite, met een lichte vulling in de
+         kleur van het kanaal en een streep aan de zijkant die de kleur houdt. */
+      ".bwfk-maand .bwfk-item{height:auto;min-height:15px;padding:1px 3px;margin:0 0 2px;",
+      "  border-left:3px solid var(--kk,#6B7A72);border-radius:4px;",
+      "  background:color-mix(in srgb,var(--kk,#6B7A72) 16%,var(--k-bg));",
+      "  font-size:9.5px;line-height:1.3;color:var(--k-ink);white-space:nowrap;overflow:hidden;",
+      "  text-overflow:ellipsis;text-align:left}",
+      /* tijd en gastnaam passen er niet meer bij; de suite wel */
+      ".bwfk-maand .bwfk-itijd,.bwfk-maand .bwfk-inaam{display:none}",
+      ".bwfk-maand .bwfk-isuite{font-weight:600}",
+      ".bwfk-maand .bwfk-item.blokkade{background:color-mix(in srgb,#B3261E 14%,var(--k-bg))}",
+      ".bwfk-maand .bwfk-item .bwfk-blokmerk{font-size:8.5px;padding:0 3px}",
       ".bwfk-maand .bwfk-meer{font-size:9px;line-height:1;padding:0 1px}",
       ".bwfk-maand .bwfk-rooster-mini{display:none}",
       ".bwfk-cel[data-gekozen=\'1\']{box-shadow:inset 0 0 0 2px var(--k-goud)}",
@@ -755,7 +767,14 @@
         (zonderGast ? "#B3261E" : kanaal.kleur) + '" data-res="' + esc(r.id) + '" data-dag="' + datum +
         '" title="' + esc(titel) + '">' +
         (zonderGast ? '<span class="bwfk-blokmerk">blokkade</span>' : '') +
-        '<b>' + esc(tijd) + '</b> ' + (groot ? '' : esc(SUITES[r.suite].kort) + ' · ') + esc(naam) + '</button>';
+        /* De suitenaam staat in een eigen span. Op een telefoon is de cel te
+           smal voor tijd én suite én gast; daar blijft alleen dit stukje over,
+           want aan "Deluxe" heb je meer dan aan een kleurstreepje.
+           Angela, 27-09-2026: "kan je de blokjes iets duidelijker maken met de
+           suitenaam erin." */
+        '<b class="bwfk-itijd">' + esc(tijd) + '</b> ' +
+        (groot ? '' : '<span class="bwfk-isuite">' + esc(SUITES[r.suite].kort) + '</span> ') +
+        '<span class="bwfk-inaam">' + esc(naam) + '</span></button>';
     }
 
     /* ---------- tekenen ---------- */
