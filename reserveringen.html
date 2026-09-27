@@ -85,6 +85,36 @@ section[hidden]{display:none}
 .vrije-regel{margin-top:11px;padding:11px 12px;border-radius:11px;
   border:1px dashed var(--line-strong,var(--line-soft));background:var(--surface-2,#faf7f3)}
 .vrije-regel>strong{display:block;font-size:13.5px;margin-bottom:2px}
+/* Het springmenu bovenin het bewerkvenster. Grote knoppen, want dit wordt
+   op een telefoon gebruikt en een rij kleine links raak je niet. */
+.v-springmenu{position:relative;margin:0 0 12px}
+.v-springknop{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 16px;border-radius:12px;border:1px solid var(--line-soft);
+  background:var(--surface-2,#faf7f3);font:inherit;font-size:15px;font-weight:600;
+  color:inherit;cursor:pointer;min-height:48px}
+.v-springknop:hover{border-color:var(--line-strong,var(--line-soft))}
+.v-springknop .pijl{transition:transform .15s;font-size:12px;opacity:.7}
+.v-springknop[aria-expanded="true"] .pijl{transform:rotate(180deg)}
+.v-springlijst{display:grid;gap:7px;margin-top:8px}
+/* display:grid wint van het hidden-attribuut; zonder deze regel staat het
+   menu altijd open en neemt het ruim zeshonderd pixels in beslag. */
+.v-springlijst[hidden]{display:none}
+.v-springlijst button{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--line-soft);
+  background:var(--surface,#fff);font:inherit;font-size:15.5px;color:inherit;
+  cursor:pointer;text-align:left;min-height:52px}
+.v-springlijst button:hover{background:var(--surface-2,#faf7f3);border-color:var(--line-strong,var(--line-soft))}
+.v-springlijst button .tel{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Een ingeklapt onderdeel: de legend wordt de knop. */
+#formulier fieldset.inklapbaar{padding-top:0}
+#formulier fieldset.inklapbaar>legend{cursor:pointer;user-select:none;display:flex;
+  align-items:center;gap:8px;width:100%;padding:9px 0}
+#formulier fieldset.inklapbaar>legend::after{content:"\25BE";font-size:11px;opacity:.6;
+  margin-left:auto;transition:transform .15s}
+#formulier fieldset.dicht>legend::after{transform:rotate(-90deg)}
+#formulier fieldset.dicht>*:not(legend){display:none}
+#formulier fieldset.oplichten{box-shadow:0 0 0 3px rgba(179,38,30,.25)}
 .kaartvak{border:1px solid var(--line-soft);border-radius:11px;margin:0 0 8px;background:var(--surface,#fff)}
 .kaartvak>summary{cursor:pointer;padding:10px 13px;font-size:13px;letter-spacing:.05em;
   text-transform:uppercase;color:var(--muted);font-weight:600;list-style:none;
@@ -554,6 +584,22 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
          moet. Angela, 17-09-2026. Staat onder de kop, die blijft plakken, dus
          je ziet de stand terwijl je door de reservering scrollt. -->
     <div id="vBalk" class="v-balk"></div>
+    <!-- Angela, 27-09-2026: "hier wil ik een dropdownmenu met grote knoppen,
+         zodat je niet eindeloos hoeft te scrollen."
+
+         Het formulier heeft tien onderdelen onder elkaar - gast, verblijf,
+         arrangement en betaling, welkomstcall, gesprekslog, status,
+         brongegevens, koppelingen, wijzigingslog, bevestiging. Op een telefoon
+         scrol je daar lang doorheen om bij het gesprekslog of de betaling te
+         komen. Ze zijn nu ingeklapt, en dit menu brengt je er in één tik
+         naartoe. -->
+    <div class="v-springmenu">
+      <button type="button" class="v-springknop" id="vSpringKnop"
+        aria-expanded="false" aria-controls="vSpringLijst">
+        <span>Ga naar onderdeel</span><span class="pijl">&#9662;</span>
+      </button>
+      <div class="v-springlijst" id="vSpringLijst" hidden></div>
+    </div>
 
     <div class="v-inhoud">
       <div class="opmerking" id="vOpmerking" hidden></div>
@@ -1570,6 +1616,11 @@ function openVenster(id) {
   vulKoppelingen(r);
   vulLog(r);
 
+  /* Het springmenu vullen met de onderdelen die deze rol te zien krijgt, en de
+     onderdelen inklappen. Moet ná vulKoppelingen() en de rolbepaling, want
+     verborgen fieldsets horen niet in het menu. */
+  try { vulSpringmenu(); } catch (e) {}
+
   $("#venster").showModal();
 }
 
@@ -1628,6 +1679,93 @@ function kaartRegel(naam, waarde) {
   if (waarde === "" || waarde == null) return "";
   return '<div style="display:flex;gap:12px;justify-content:space-between">' +
     '<span style="color:var(--muted)">' + esc(naam) + "</span><span>" + waarde + "</span></div>";
+}
+
+/* Het bewerkvenster overzichtelijk houden. Angela, 27-09-2026: "hier wil ik
+   een dropdownmenu met grote knoppen, zodat je niet eindeloos hoeft te
+   scrollen."
+
+   De tien onderdelen worden ingeklapt en de legend wordt de knop om ze open te
+   doen. Het menu bovenin springt er rechtstreeks naartoe. Welk onderdeel je
+   openlaat wordt onthouden, zodat je bij de volgende reservering niet opnieuw
+   hoeft te zoeken waar je gebleven was.
+
+   Bewust géén <details>: de code die het formulier per rol toont en verbergt
+   werkt met fieldset.hidden, en dat moet blijven werken. Een klasse erbij is
+   genoeg. */
+const VOUW_SLEUTEL = "bwf-res-open-onderdeel";
+function vouwOnthouden() {
+  try { return localStorage.getItem(VOUW_SLEUTEL) || ""; } catch (e) { return ""; }
+}
+function vouwBewaren(naam) {
+  try { localStorage.setItem(VOUW_SLEUTEL, naam || ""); } catch (e) {}
+}
+function onderdeelNaam(fs) {
+  const l = fs.querySelector("legend");
+  return l ? l.textContent.replace(/[\u25BE\u25B8]/g, "").trim() : "";
+}
+function vouwOnderdelen() {
+  const velden = [...document.querySelectorAll("#formulier fieldset")];
+  if (!velden.length) return [];
+  const laatste = vouwOnthouden();
+  velden.forEach((fs) => {
+    fs.classList.add("inklapbaar");
+    const naam = onderdeelNaam(fs);
+    /* Het onderdeel waar je het laatst was staat open; anders alles dicht. */
+    fs.classList.toggle("dicht", laatste ? naam !== laatste : true);
+    const l = fs.querySelector("legend");
+    if (l && !l.dataset.vouw) {
+      l.dataset.vouw = "1";
+      l.setAttribute("role", "button");
+      l.setAttribute("tabindex", "0");
+      const wissel = () => {
+        const dicht = fs.classList.toggle("dicht");
+        vouwBewaren(dicht ? "" : onderdeelNaam(fs));
+      };
+      l.addEventListener("click", wissel);
+      l.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); wissel(); }
+      });
+    }
+  });
+  return velden;
+}
+function vulSpringmenu() {
+  const lijst = $("#vSpringLijst");
+  const knop = $("#vSpringKnop");
+  if (!lijst || !knop) return;
+  const velden = vouwOnderdelen().filter((fs) => !fs.hidden);
+  lijst.innerHTML = velden.map((fs, i) => {
+    /* Hoeveel velden erin zitten: dan weet je of er iets te halen valt. */
+    const aantal = fs.querySelectorAll("input,select,textarea").length;
+    return '<button type="button" data-spring="' + i + '">' +
+      "<span>" + esc(onderdeelNaam(fs)) + "</span>" +
+      (aantal ? '<span class="tel">' + aantal + "</span>" : "") + "</button>";
+  }).join("");
+
+  lijst.querySelectorAll("[data-spring]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const fs = velden[Number(b.getAttribute("data-spring"))];
+      if (!fs) return;
+      velden.forEach((x) => x.classList.add("dicht"));
+      fs.classList.remove("dicht");
+      vouwBewaren(onderdeelNaam(fs));
+      lijst.hidden = true;
+      knop.setAttribute("aria-expanded", "false");
+      fs.scrollIntoView({ behavior: "smooth", block: "start" });
+      fs.classList.add("oplichten");
+      setTimeout(() => fs.classList.remove("oplichten"), 1200);
+    });
+  });
+
+  if (!knop.dataset.aan) {
+    knop.dataset.aan = "1";
+    knop.addEventListener("click", () => {
+      const open = lijst.hidden;
+      lijst.hidden = !open;
+      knop.setAttribute("aria-expanded", String(open));
+    });
+  }
 }
 
 function tekenPersoneelKaart(r) {
