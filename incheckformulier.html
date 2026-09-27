@@ -619,7 +619,18 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <label>Betaalwijze restbedrag</label>
       <!-- Booking.com en SMG erbij: die kanalen rekenen vooraf af, en zonder
            die keuze kon "vooraf betaald via Booking.com" nergens heen. -->
+      <!-- Angela, 28-09-2026: "nu staat automatisch de betaalwijze op contant
+           bij de reservering; vooraf betaald moet altijd op online staan in
+           plaats van contant."
+
+           Er stond geen lege beginoptie, dus als niemand iets koos werd
+           "Contant" meegeschreven - ook bij een gast die vooraf online had
+           afgerekend. De lijst begint nu leeg, en "Online vooraf betaald"
+           staat erbij. Wat er vooraf binnenkomt wordt hieronder ook vanzelf
+           op die waarde gezet. -->
       <select id="c_betaalwijze">
+        <option value="">&mdash; nog niet bekend &mdash;</option>
+        <option>Online vooraf betaald</option>
         <option>Contant</option>
         <option>Flatpay</option>
         <option>Mollie betaallink</option>
@@ -2161,7 +2172,9 @@ function editCheckinFromDetail(){
     document.getElementById('c_split2bedrag').value = c.split_bedrag2 || '';
     document.getElementById('c_split2wijze').value = c.split_wijze2 || 'Flatpay';
   } else {
-    document.getElementById('c_betaalwijze').value = c.betaalwijze || 'Contant';
+    /* Leeg laten als er niets is vastgelegd: "Contant" was een gok die als
+       feit werd opgeslagen. */
+    document.getElementById('c_betaalwijze').value = c.betaalwijze || '';
   }
   document.getElementById('c_extraomzet').value = c.extra_omzet || 0;
   document.getElementById('c_opmerking').value = c.opmerkingen || '';
@@ -3586,6 +3599,15 @@ function collectCheckinData(){
   var wijzen = betalingen.map(function(b){ return (b && b.wijze) || ''; }).filter(Boolean);
   var uniekeWijzen = wijzen.filter(function(w, i){ return wijzen.indexOf(w) === i; });
   var wijzeAfgeleid = uniekeWijzen.length > 1 ? 'Gesplitst' : (uniekeWijzen[0] || '');
+
+  /* Angela, 28-09-2026: "vooraf betaald moet altijd op online staan in plaats
+     van contant." Is er vooraf een bedrag binnengekomen en heeft niemand een
+     betaalwijze gekozen, dan is dat online gegaan - via een betaallink, het
+     boekingskanaal of een overschrijving. Contant kan per definitie niet:
+     daarvoor moet de gast er zijn. */
+  var vooraf = parseFloat(document.getElementById('c_aanbetaald').value || 0) || 0;
+  var wijzeGekozen = document.getElementById('c_betaalwijze').value;
+  if (!wijzeAfgeleid && !wijzeGekozen && vooraf > 0) wijzeAfgeleid = 'Online vooraf betaald';
   var data = {
     id: existingId || ('c' + Date.now()),
     locatie: document.getElementById('c_locatie').value,
@@ -3718,7 +3740,9 @@ function laadInConcept(c){
     document.getElementById('c_split2bedrag').value = c.split_bedrag2 || '';
     document.getElementById('c_split2wijze').value = c.split_wijze2 || 'Flatpay';
   } else {
-    document.getElementById('c_betaalwijze').value = c.betaalwijze || 'Contant';
+    /* Leeg laten als er niets is vastgelegd: "Contant" was een gok die als
+       feit werd opgeslagen. */
+    document.getElementById('c_betaalwijze').value = c.betaalwijze || '';
   }
   document.getElementById('c_extraomzet').value = c.extra_omzet || 0;
   document.getElementById('c_opmerking').value = c.opmerkingen || '';

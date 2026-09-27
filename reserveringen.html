@@ -88,6 +88,22 @@ section[hidden]{display:none}
 /* Het springmenu bovenin het bewerkvenster. Grote knoppen, want dit wordt
    op een telefoon gebruikt en een rij kleine links raak je niet. */
 /* "Alles al betaald" - groen, met een vinkje, en breed genoeg om te zien. */
+/* De betaalwijzen als knoppen. Groot genoeg om met een duim te raken; de
+   gekozen knop kleurt door, zodat je niet hoeft te zoeken wat aanstaat. */
+.afr-wijzekop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  margin:12px 0 8px;flex-wrap:wrap}
+.afr-wijzekop span{font-weight:700;font-size:16px}
+.afr-wijzen{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+.afr-wijze{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:12px 8px;border:1px solid var(--line-soft);border-radius:12px;cursor:pointer;
+  background:var(--surface,#fff);font-size:13.5px;text-align:center;min-height:64px;
+  transition:.12s;user-select:none}
+.afr-wijze .ico{font-size:19px;line-height:1}
+.afr-wijze input{position:absolute;opacity:0;width:0;height:0}
+.afr-wijze:hover{border-color:var(--line-strong,var(--line-soft));background:var(--surface-2,#faf7f3)}
+.afr-wijze:has(input:checked){border-color:#2E7D5B;background:#E8F4EC;color:#1F5B41;font-weight:600;
+  box-shadow:inset 0 0 0 1px #2E7D5B}
+.afr-wijze:has(input:focus-visible){outline:2px solid currentColor;outline-offset:2px}
 .v-albetaald{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:11px 14px;
   border-radius:11px;background:#E8F4EC;border:1px solid #2E7D5B;color:#1F5B41;
   font-size:14.5px;line-height:1.45;grid-column:1/-1}
@@ -889,6 +905,12 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
     <!-- Afronden door personeel: het enige dat een locatiemanager zelf invult.
          Staat buiten de fieldsets hierboven, want die worden voor hem verborgen. -->
     <div id="vAfrondVak" hidden style="padding:14px 18px;border-top:1px solid var(--line-soft)">
+      <!-- Angela, 28-09-2026: het afrekenvak eronder zat verstopt in dit blok,
+           dat alleen personeel te zien krijgt. Zij moest een betaling dus
+           buiten het scherm om verwerken. Dit bovenste deel blijft voor
+           personeel - de eigenaar heeft die twee velden al in het formulier -
+           maar het afrekenen zelf staat nu voor iedereen open. -->
+      <div id="vAfrondPersoneel">
       <strong style="display:block;margin-bottom:8px">Boeking afronden</strong>
       <div class="raster">
         <label class="veld">Betaalstatus <select id="vAfrondStatus"></select></label>
@@ -903,6 +925,8 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <option>Anders</option>
         </select></label>
       </div>
+      </div><!-- einde vAfrondPersoneel -->
+
       <!-- Afrekenen met de gast, net als in het locatiedashboard (Angela,
            21-09-2026). Hierboven staat wat er is afgesproken; hieronder wat er
            daadwerkelijk wordt afgerekend. -->
@@ -910,13 +934,30 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <strong style="display:block;margin-bottom:6px">Afrekenen met de gast</strong>
         <div id="vAfrekenKeuze" style="display:flex;gap:16px;flex-wrap:wrap"></div>
         <p class="uitleg" id="vAfrekenUitleg" style="margin:6px 0 0"></p>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px">
-          <b>Betaalwijze</b>
-          <label><input type="radio" name="vAfrWijze" value="Pin"> Pin</label>
-          <label><input type="radio" name="vAfrWijze" value="Contant"> Contant</label>
-          <label><input type="radio" name="vAfrWijze" value="Flatpay"> Flatpay</label>
-          <label><input type="radio" name="vAfrWijze" value="Splitsen"> Splitsen</label>
-          <span style="margin-left:auto;font-weight:700" id="vAfrekenSom"></span>
+        <!-- Angela, 28-09-2026: "ik wil meer opties zien met knoppen bij
+             betaling verwerken: pin, contant, Mollie."
+
+             Dit waren kleine radioknopjes op een rij - op een telefoon moeilijk
+             te raken en makkelijk over het hoofd te zien. Het zijn nu brede
+             knoppen. De radio's zitten er nog onder, zodat alles wat erop
+             gebouwd is blijft werken; alleen het uiterlijk verandert. -->
+        <div class="afr-wijzekop">
+          <b>Hoe wordt er betaald</b>
+          <span id="vAfrekenSom"></span>
+        </div>
+        <div class="afr-wijzen">
+          <label class="afr-wijze"><input type="radio" name="vAfrWijze" value="Pin">
+            <span class="ico">&#128179;</span><span>Pin</span></label>
+          <label class="afr-wijze"><input type="radio" name="vAfrWijze" value="Contant">
+            <span class="ico">&#128181;</span><span>Contant</span></label>
+          <label class="afr-wijze"><input type="radio" name="vAfrWijze" value="Mollie betaallink">
+            <span class="ico">&#128241;</span><span>Mollie</span></label>
+          <label class="afr-wijze"><input type="radio" name="vAfrWijze" value="Flatpay">
+            <span class="ico">&#128179;</span><span>Flatpay</span></label>
+          <label class="afr-wijze"><input type="radio" name="vAfrWijze" value="Online">
+            <span class="ico">&#127760;</span><span>Online vooraf</span></label>
+          <label class="afr-wijze"><input type="radio" name="vAfrWijze" value="Splitsen">
+            <span class="ico">&#9878;</span><span>Splitsen</span></label>
         </div>
         <div id="vAfrSplit" hidden style="margin-top:9px;padding:9px 11px;border-radius:10px;background:var(--surface-2,#f7f5f2)">
           <div style="font-size:13px;margin-bottom:7px">Verdeel het bedrag over de betaalwijzen:</div>
@@ -1577,7 +1618,12 @@ function openVenster(id) {
      staan daarmee ook op slot. Terugdraaien kan door BEPERKTE_VELDEN hierboven
      weer mee te wegen. */
   $("#vPersoneelKaart").hidden = !beperkt;
-  $("#vAfrondVak").hidden = !beperkt;
+  /* Het blok blijft staan zolang iemand er iets mag: personeel ziet alles,
+     de eigenaar en de vr-assistenten alleen het afrekenen - de twee velden
+     erboven staan voor hen al in het formulier zelf. */
+  $("#vAfrondVak").hidden = !(beperkt || bewerk);
+  const afrPers = $("#vAfrondPersoneel");
+  if (afrPers) afrPers.hidden = !beperkt;
   /* Deze pagina heeft geen $$-hulpfunctie; die bestaat alleen in het
      VR-dashboard. Daarom rechtstreeks querySelectorAll. */
   document.querySelectorAll("#formulier fieldset").forEach((fs) => { fs.hidden = beperkt; });
