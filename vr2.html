@@ -1256,6 +1256,10 @@ div.ag-blok{cursor:default}
 .dg-meldrij label small{font-weight:400;opacity:.65;font-size:12px}
 .dg-meldrij input,.dg-meldrij textarea{flex:1 1 180px;min-width:150px;padding:9px 11px;border-radius:9px;
   border:1px solid var(--lijn,#e3dad0);font:inherit;font-size:14px;font-family:inherit;resize:vertical;min-height:38px}
+.dg-meldfout{margin:12px 0 0;padding:10px 12px;border-radius:9px;font-size:13.5px;
+  background:#FDECEA;border:1px solid #B3261E;color:#7A1C15}
+.dg-meldfout b{font-weight:600}
+.dg-meldfout a{color:inherit}
 .dg-meldaan{display:flex;align-items:center;gap:9px;font-size:14px;margin-top:4px}
 @media(max-width:620px){.dg-meldrij label{flex:1 1 100%}}
 .dg-spoedregel.nieuwbinnen .dg-spoedtijd{color:var(--goud,#9A7B4F);text-transform:uppercase;font-size:10.5px}
@@ -1532,6 +1536,11 @@ div.ag-blok{cursor:default}
         <p class="hint" style="margin:8px 0 0">Automatisch versturen werkt pas als de
           koppeling met Wati is ingesteld. Staat dat vinkje uit, of is de koppeling er
           nog niet, dan blijft de melding met de WhatsApp-knop op het dashboard staan.</p>
+        <!-- Angela, 24-09-2026: het Wati-tegoed was op en niemand merkte het;
+             de berichten gingen gewoon niet. Er waren drie queries in de
+             database voor nodig om daarachter te komen. Hier staat nu wat er
+             bij de laatste poging misging, in gewone woorden. -->
+        <p class="dg-meldfout" id="dgMeldFout" hidden></p>
         <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <button class="btn" type="button" id="dgMeldBewaar">Bewaren</button>
           <span class="hint" id="dgMeldStand"></span>
@@ -4088,7 +4097,60 @@ function meldNummer(v){
   if(n[0] === '0') n = '31' + n.slice(1);
   return n;
 }
+/* Wat ging er mis bij de laatste spoedmelding?
+
+   Angela, 24-09-2026: het Wati-tegoed was op. De berichten gingen niet, er
+   werd nergens iets rood, en we hadden drie queries nodig om het te vinden.
+   Dat hoort hier te staan.
+
+   De tekst die Wati teruggeeft is Engels en technisch; dat vertalen we naar
+   iets waar je wat aan hebt. Wat er niet bij staat vertalen we niet weg: dan
+   krijg je de oorspronkelijke melding te zien, want half raden is erger dan
+   een lastige zin. */
+function dgMeldReden(antwoord){
+  const a = String(antwoord || '').toLowerCase();
+  if(/not enough credits|insufficient/.test(a))
+    return { kort: 'Het tegoed bij Wati is op.',
+             uitleg: 'Vul het bij in je Wati-account; daarna gaan de wachtende meldingen vanzelf alsnog eruit.' };
+  if(/template.*(not approved|pending)/.test(a))
+    return { kort: 'Het sjabloon is nog niet goedgekeurd door Meta.',
+             uitleg: 'Zodra dat rond is worden de meldingen vanzelf verstuurd.' };
+  if(/validwhatsappnumber"\s*:\s*false|invalid.*number/.test(a))
+    return { kort: 'Dat nummer heeft geen WhatsApp.',
+             uitleg: 'Zet er een nummer neer waar WhatsApp op staat.' };
+  if(/template.*(not found|does not exist)/.test(a))
+    return { kort: 'Het sjabloon bestaat niet meer bij Wati.',
+             uitleg: 'Controleer de naam van het sjabloon in Wati.' };
+  if(/unauthor|forbidden|invalid.*token/.test(a))
+    return { kort: 'Wati weigert de koppeling.',
+             uitleg: 'De API-sleutel klopt niet meer of is verlopen.' };
+  return { kort: 'De laatste melding is niet verstuurd.', uitleg: String(antwoord || '').slice(0, 200) };
+}
+
+async function dgMeldStandHaal(){
+  const vak = $('#dgMeldFout');
+  if(!vak) return;
+  try{
+    /* Alleen de laatste, en alleen als hij niet gelukt is. Een oude fout van
+       weken geleden waar al een geslaagde melding op volgde zegt niets meer. */
+    const r = await api('meldingen_verstuurd?select=gelukt,antwoord,locatie,verstuurd_op' +
+      '&order=verstuurd_op.desc&limit=1');
+    const laatste = r && r[0];
+    if(!laatste || laatste.gelukt){ vak.hidden = true; return; }
+    const reden = dgMeldReden(laatste.antwoord);
+    const wanneer = String(laatste.verstuurd_op || '').slice(0, 16).replace('T', ' om ');
+    vak.hidden = false;
+    vak.innerHTML = '<b>' + esc(reden.kort) + '</b> ' + esc(reden.uitleg) +
+      '<br><span style="opacity:.75;font-size:12.5px">laatste poging ' + esc(wanneer) +
+      (laatste.locatie ? ' \u00b7 ' + esc(laatste.locatie) : '') + '</span>';
+  }catch(e){
+    /* Niet kunnen kijken is geen fout om te tonen: dan staat er gewoon niets. */
+    vak.hidden = true;
+  }
+}
+
 async function dgMeldHaal(){
+  dgMeldStandHaal();          /* los ophalen; het mag de instellingen niet ophouden */
   try{
     const r = await api('instellingen?select=waarde&sleutel=eq.spoed_meldingen');
     if(r && r[0] && r[0].waarde){
