@@ -87,6 +87,12 @@ section[hidden]{display:none}
 .vrije-regel>strong{display:block;font-size:13.5px;margin-bottom:2px}
 /* Het springmenu bovenin het bewerkvenster. Grote knoppen, want dit wordt
    op een telefoon gebruikt en een rij kleine links raak je niet. */
+/* "Alles al betaald" - groen, met een vinkje, en breed genoeg om te zien. */
+.v-albetaald{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:11px 14px;
+  border-radius:11px;background:#E8F4EC;border:1px solid #2E7D5B;color:#1F5B41;
+  font-size:14.5px;line-height:1.45;grid-column:1/-1}
+.v-albetaald .vink{flex:none;width:26px;height:26px;border-radius:50%;background:#2E7D5B;
+  color:#fff;display:grid;place-items:center;font-size:15px;font-weight:700}
 .v-springmenu{position:relative;margin:0 0 12px}
 .v-springknop{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:13px 16px;border-radius:12px;border:1px solid var(--line-soft);
@@ -825,8 +831,17 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <!-- Angela, 20-09-2026: heette "Aanbetaling", maar je kunt hier ook het
                volledige bedrag of alleen de extra's afrekenen. De keuzelijst gaat
                over wát er betaald wordt, dus dat is nu ook het label. -->
+          <!-- Staat alles al binnen, dan hoort dat niet in een grijze regel weg te
+               vallen: dit is het eerste dat je wilt weten als je dit blok
+               opent. Angela, 27-09-2026. -->
+          <p class="v-albetaald" id="vAlBetaald" hidden></p>
           <label class="veld">Wat wordt er betaald
             <select id="vDeelKeuze">
+              <!-- Angela, 27-09-2026: "ik wil dat automatisch het openstaande
+                   bedrag ingevuld wordt bij wat wordt er betaald." Daarom deze
+                   keuze bovenaan; vulBetaalvak() kiest hem ook vanzelf zodra er
+                   iets openstaat. -->
+              <option value="restant">Nog te betalen</option>
               <option value="50">50% aanbetaling</option>
               <option value="100">Volledig bedrag</option>
               <!-- Angela, 17-09-2026: na het bijboeken wil je kunnen kiezen of
@@ -4087,7 +4102,27 @@ function vDeelBedrag() {
   return Math.round((leesBedrag($("#vDeelBedrag").value) || 0) * 100) / 100;
 }
 
-function vZetBedrag(r) {
+/* Wat er nog betaald moet worden. Eén berekening voor het hele scherm: de
+   kaart bovenaan, de balk bij de personeelskaart en het betaalvak gebruiken
+   allemaal deze, zodat er nooit twee verschillende bedragen in beeld staan.
+
+   De betaalstatus is leidend, net als op de kaart in de lijst: betaald_bedrag
+   en restant_bedrag zijn bij de meeste boekingen leeg, en daarmee rekenen gaf
+   eerder twee streepjes bij een reservering die gewoon op Betaald stond. */
+function openstaandVan(r) {
+  if (!r) return null;
+  const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
+  const stand = String(r.betaalstatus || "open");
+  if (r.restant_bedrag != null) return Number(r.restant_bedrag);
+  if (stand === "betaald") return 0;
+  if (stand === "open") return totaal;
+  if (totaal != null && r.betaald_bedrag != null) {
+    return Math.round((totaal - Number(r.betaald_bedrag)) * 100) / 100;
+  }
+  return null;
+}
+
+function vZetBedrag(r, versGeladen) {
   /* Reken met wat er op het scherm staat: typt iemand het totaalbedrag
      hierboven in, dan loopt de aanbetaling meteen mee. */
   const totaal = leesBedrag($("#vBedrag").value) || Number(r.bedrag_totaal) || 0;
@@ -4118,7 +4153,28 @@ function vZetBedrag(r) {
 
   if (note && note.textContent.startsWith(GEEN)) note.textContent = "";
   veld.readOnly = keuze !== "vrij";
-  if (keuze === "100") veld.value = euro(totaal);
+  if (keuze === "restant") {
+    /* Wat er nog openstaat.
+
+       Bij het openen van een reservering telt de reservering zelf: vulBetaalvak()
+       draait vóórdat het restantveld gevuld is, dus daar staat op dat moment nog
+       het bedrag van de vórige boeking in. Dat gaf een volledig betaalde gast een
+       openstaand bedrag van de reservering ervoor.
+
+       Daarna telt het veld wel: past iemand het restant met de hand aan, dan
+       hoort de betaallink dat te volgen. */
+    const uitVeld = leesBedrag($("#vRestant") ? $("#vRestant").value : "");
+    const nog = versGeladen
+      ? openstaandVan(r)
+      : ((uitVeld != null && !Number.isNaN(uitVeld)) ? uitVeld : openstaandVan(r));
+    veld.value = (nog != null && nog > 0) ? euro(nog) : "";
+    if (note) {
+      note.textContent = nog == null
+        ? "Er staat geen bedrag bij deze reservering, dus het openstaande bedrag is niet te bepalen."
+        : nog > 0 ? "" : "De gast heeft alles al betaald.";
+    }
+  }
+  else if (keuze === "100") veld.value = euro(totaal);
   else if (keuze === "50") veld.value = euro(Math.round(totaal * 50) / 100);
   else if (keuze === "extras" || keuze === "restant_extras") {
     /* De bijgeboekte extra's zijn de regels met een merkteken: wat via dit
@@ -4308,10 +4364,37 @@ function vBerichtTekst(r) {
 }
 
 function vulBetaalvak(r) {
-  $("#vDeelKeuze").value = "50";
+  /* Angela, 27-09-2026: "ik wil dat automatisch het openstaande bedrag
+     ingevuld wordt bij wat wordt er betaald; ook als het op 0 staat geeft het
+     aan: klant heeft alles al betaald, met een groen vinkje."
+
+     Stond altijd op 50% aanbetaling. Dat klopt bij een nieuwe boeking, maar
+     niet bij een gast die al een deel heeft voldaan - dan typte je het bedrag
+     elke keer zelf over uit de regel erboven. */
+  const nog = openstaandVan(r);
+  const alBetaald = nog != null && nog <= 0;
+
+  /* Is er iets bekend over het bedrag, dan staat "Nog te betalen" voorop - ook
+     als dat nul is. Dan blijft het bedrag leeg en zegt de groene regel waarom;
+     een voorgestelde aanbetaling van de helft klopt daar niet, de gast is al
+     klaar. Alleen bij een boeking zonder bedrag valt er niets te berekenen en
+     blijft 50% de gewone start. */
+  $("#vDeelKeuze").value = (nog != null) ? "restant" : "50";
   $("#vBetaallink").value = "";
   $("#vBetaalNote").textContent = "";
-  vZetBedrag(r);
+  vZetBedrag(r, true);          /* vers geladen: lees uit de reservering */
+
+  /* Alles voldaan: dat hoort niet in een grijze regel weg te vallen. */
+  const klaar = $("#vAlBetaald");
+  if (klaar) {
+    klaar.hidden = !alBetaald;
+    if (alBetaald) {
+      klaar.innerHTML = '<span class="vink">&#10003;</span><span>De gast heeft alles al betaald.' +
+        (r.bedrag_totaal != null
+          ? " Het volledige bedrag van &euro; " + esc(euro(Number(r.bedrag_totaal))) + " is voldaan."
+          : "") + "</span>";
+    }
+  }
   $("#vBericht").value = vBerichtTekst(r);
 }
 
