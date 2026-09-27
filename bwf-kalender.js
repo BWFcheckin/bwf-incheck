@@ -273,15 +273,36 @@
       "tr[data-openres]:focus-visible{outline:2px solid currentColor;outline-offset:-2px}",
       /* de knoppen rechts houden hun eigen aanwijzer */
       ".bwfk-acties a,.bwfk-acties button{cursor:pointer}",
+      /* ---- de daglijst als kaartjes ---- */
+      ".bwfk-kaartjes{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px;padding:12px 14px}",
+      ".bwfk-kaart{border:1px solid var(--k-line);border-radius:12px;overflow:hidden;background:var(--k-bg);display:flex;flex-direction:column}",
+      ".bwfk-kaart.blokkade{border-color:#C9534A}",
+      ".bwfk-kaart.uitgelicht{box-shadow:0 0 0 2px var(--k-goud)}",
+      ".bwfk-kaartfoto{position:relative;min-height:82px;padding:9px 10px;display:flex;align-items:flex-end;",
+      "  background:var(--sk,#6B7A72) center/cover no-repeat;cursor:pointer}",
+      ".bwfk-kaartfoto.foto-angie{background-image:var(--foto-angie)}",
+      ".bwfk-kaartfoto.foto-malina{background-image:var(--foto-malina)}",
+      ".bwfk-kaartfoto.foto-deluxe{background-image:var(--foto-deluxe)}",
+      ".bwfk-kaartfoto::after{content:\'\';position:absolute;inset:0;background:linear-gradient(transparent 35%,rgba(0,0,0,.72))}",
+      ".bwfk-kaartop{position:relative;z-index:1;color:#fff;min-width:0}",
+      ".bwfk-kaartop b{display:block;font-size:14px;line-height:1.25}",
+      ".bwfk-kaartop span{font-size:11.5px;opacity:.92}",
+      ".bwfk-kaartfoto .bwfk-pil{position:absolute;top:8px;right:8px;z-index:1}",
+      ".bwfk-kaartlijf{padding:8px 10px;display:grid;gap:3px;font-size:12.5px;cursor:pointer;flex:1}",
+      ".bwfk-kaartrij{display:flex;justify-content:space-between;gap:8px;align-items:baseline}",
+      ".bwfk-kaartrij>span:first-child{color:var(--k-muted)}",
+      ".bwfk-kaart .bwfk-acties{padding:0 10px 10px;display:flex;flex-wrap:wrap;gap:5px}",
+      "@media(max-width:560px){ .bwfk-kaartjes{grid-template-columns:1fr;padding:10px} }",
+
       /* ---- verticale weergave: dagen onder elkaar ---- */
       ".bwfk-verticaal{display:flex;flex-direction:column;gap:5px}",
-      ".bwfk-vrij{display:flex;gap:11px;align-items:flex-start;padding:8px 10px;border-radius:10px;",
+      ".bwfk-vdagrij{display:flex;gap:11px;align-items:flex-start;padding:8px 10px;border-radius:10px;",
       "  border:1px solid var(--k-line);background:var(--k-bg);cursor:pointer;text-align:left}",
-      ".bwfk-vrij:hover{border-color:var(--k-line-sterk,var(--k-line));background:var(--k-zacht,rgba(0,0,0,.03))}",
-      ".bwfk-vrij:focus-visible{outline:2px solid currentColor;outline-offset:-2px}",
-      ".bwfk-vrij[data-leeg=\"1\"]{padding:5px 10px;opacity:.65}",
-      ".bwfk-vrij[data-vandaag=\"1\"]{border-color:var(--k-accent,#0F6156);box-shadow:inset 0 0 0 1px var(--k-accent,#0F6156)}",
-      ".bwfk-vrij[data-gekozen=\"1\"]{background:var(--k-accent-zacht,rgba(15,97,86,.09))}",
+      ".bwfk-vdagrij:hover{border-color:var(--k-line-sterk,var(--k-line));background:var(--k-zacht,rgba(0,0,0,.03))}",
+      ".bwfk-vdagrij:focus-visible{outline:2px solid currentColor;outline-offset:-2px}",
+      ".bwfk-vdagrij[data-leeg=\"1\"]{padding:5px 10px;opacity:.65}",
+      ".bwfk-vdagrij[data-vandaag=\"1\"]{border-color:var(--k-accent,#0F6156);box-shadow:inset 0 0 0 1px var(--k-accent,#0F6156)}",
+      ".bwfk-vdagrij[data-gekozen=\"1\"]{background:var(--k-accent-zacht,rgba(15,97,86,.09))}",
       ".bwfk-vdag{flex:0 0 42px;text-align:center;line-height:1.15}",
       ".bwfk-vdag b{display:block;font-size:17px;font-variant-numeric:tabular-nums}",
       ".bwfk-vdag span{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--k-muted)}",
@@ -342,13 +363,35 @@
       ".bwfk-vol:hover{color:#fff;filter:brightness(1.1)}",
       "@media(max-width:760px){",
       ".bwfk-twee{grid-template-columns:1fr}",
-      ".bwfk-koprij{display:none}",
-      ".bwfk-maand .bwfk-week{grid-template-columns:1fr}",
-      ".bwfk-maand .bwfk-cel{min-height:0}",
-      ".bwfk-maand .bwfk-cel[data-leeg='1']{display:none}",
-      ".bwfk-week.bwfk-weekweergave{grid-template-columns:1fr}",
-      ".bwfk-week .bwfk-cel{min-height:0}",
       ".bwfk-balk .bwfk-rechts{margin-left:0}",
+
+      /* Angela, 27-09-2026, met schermafdrukken erbij: "ik wil deze
+         telefoonverhouding, meteen ook de maandkalender kunnen zien in één
+         oogopslag zonder te hoeven scrollen."
+
+         De maand werd hier uitgerold tot één lange kolom met een blok per dag.
+         Compleet, maar je scrolde een halve maand door voordat je wist hoe het
+         ervoor stond. Nu blijft het een raster van zeven kolommen dat in beeld
+         past: per dag het nummer en een streepje per boeking, in de kleur van
+         het kanaal. Tik een dag aan en de kaartjes eronder tonen wie er komt.
+
+         De koprij met ma/di/wo blijft juist wél staan - zonder die letters is
+         een raster van zeven kolommen niet te lezen. */
+      ".bwfk-koprij{font-size:10px;padding:3px 0}",
+      ".bwfk-maand .bwfk-cel{min-height:46px;padding:2px 1px}",
+      ".bwfk-maand .bwfk-dagnr{font-size:11px;margin:0}",
+      ".bwfk-maand .bwfk-dagnr .bwfk-meer{display:none}",
+      /* elke boeking wordt een streepje: de tekst past toch niet */
+      ".bwfk-maand .bwfk-item{height:5px;padding:0;margin:0 0 2px;border-left-width:0;border-radius:3px;",
+      "  background:var(--kk,#6B7A72);font-size:0;line-height:0;overflow:hidden}",
+      ".bwfk-maand .bwfk-meer{font-size:9px;line-height:1;padding:0 1px}",
+      ".bwfk-maand .bwfk-rooster-mini{display:none}",
+      ".bwfk-cel[data-gekozen=\'1\']{box-shadow:inset 0 0 0 2px var(--k-goud)}",
+
+      /* De weekweergave mag wel uitrollen: zeven dagen onder elkaar is daar
+         prettiger dan zeven smalle kolommen. */
+      ".bwfk-week.bwfk-weekweergave{grid-template-columns:1fr}",
+      ".bwfk-week.bwfk-weekweergave .bwfk-cel{min-height:0}",
       "}"
     ].join("");
     document.head.appendChild(css);
@@ -756,7 +799,7 @@
         for (var dv = p.van; dv <= p.tot; dv = plusDagen(dv, 1)) dagenV.push(dv);
         html = '<div class="bwfk-verticaal">' + dagenV.map(function (ds) {
           var opDeze = opDag(lijst, ds);
-          return '<div class="bwfk-vrij" role="button" tabindex="0" data-cel="' + ds + '"' +
+          return '<div class="bwfk-vdagrij" role="button" tabindex="0" data-cel="' + ds + '"' +
             ' data-vandaag="' + (ds === vd ? 1 : 0) + '" data-gekozen="' + (ds === st.dag ? 1 : 0) + '"' +
             ' data-leeg="' + (opDeze.length ? 0 : 1) + '">' +
             '<div class="bwfk-vdag"><b>' + Number(ds.slice(8)) + '</b>' +
@@ -892,7 +935,31 @@
            daarnaast met de statusbalk zijn zodat je ziet wat er al in gedaan
            is." De hele regel is nu de knop naar de reservering; de knoppen
            rechts houden hun eigen bestemming. */
-        return { sorteer: r.aankomst, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '"' +
+        var kaartHtml = '<div class="bwfk-kaart ' + esc(r.status) + (zonderGast ? " blokkade" : "") +
+          (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '">' +
+          '<div class="bwfk-kaartfoto ' + fotoKlasse(r.suite) + '" style="--sk:' + SUITES[r.suite].kleur + '"' +
+            ' data-openres="' + esc(r.id) + '" role="button" tabindex="0"' +
+            ' title="' + esc((zonderGast ? "Blokkade" : (gastNaam(r) || "Reservering")) + " openen") + '">' +
+            '<div class="bwfk-kaartop">' +
+              "<b>" + (zonderGast ? "blokkade &middot; " + esc(blokBron(r))
+                                  : esc(gastNaam(r) || "gast onbekend")) + "</b>" +
+              "<span>" + esc(SUITES[r.suite].naam) + " &middot; " + esc(TYPES[r.type] || r.type) + "</span>" +
+            "</div>" +
+            '<span class="bwfk-pil ' + esc(r.status) + '">' + esc(STATUSSEN[r.status] || r.status) + "</span>" +
+          "</div>" +
+          '<div class="bwfk-kaartlijf" data-openres="' + esc(r.id) + '" role="button" tabindex="0">' +
+            '<div class="bwfk-kaartrij"><span>' + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</span></div>" +
+            (r.personen ? '<div class="bwfk-kaartrij"><span>personen</span><b>' + esc(r.personen) + "</b></div>" : "") +
+            '<div class="bwfk-kaartrij"><span>via</span>' +
+              '<span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span></div>" +
+            (resNummer(r) ? '<div class="bwfk-kaartrij"><span>nummer</span><b>' + esc(resNummer(r)) + "</b></div>" : "") +
+          "</div>" +
+          '<div class="bwfk-acties"><a href="' + esc(beheerUrl + "?id=" + encodeURIComponent(r.id)) + '" target="_top">Reservering</a>' +
+            '<a href="' + esc(incheckLink(r)) + '" target="_top">Incheckformulier</a>' +
+            (magWc ? '<a href="' + esc(welkomstcallLink(r)) + '" target="_top">Welkomstcall</a>' : "") +
+            (magTaak ? '<button type="button" data-taak="' + esc(r.id) + '">Taak</button>' : "") +
+          "</div></div>";
+        return { sorteer: r.aankomst, kaart: kaartHtml, html: '<tr class="' + esc(r.status) + (zonderGast ? " blokkade" : "") + (st.uitgelicht === r.id ? " uitgelicht" : "") + '" data-rij="' + esc(r.id) + '"' +
           ' data-openres="' + esc(r.id) + '" tabindex="0" role="link"' +
           ' title="' + esc((zonderGast ? "Blokkade" : (gastNaam(r) || "Reservering")) + " openen") + '">' +
           "<td>" + tijdTekst(r.aankomst, r.vertrek, r.incheck_tijd, true) + "</td>" +
@@ -911,7 +978,21 @@
             (magWc ? '<a href="' + esc(welkomstcallLink(r)) + '" target="_top">Welkomstcall</a>' : "") +
             (magTaak ? '<button type="button" data-taak="' + esc(r.id) + '">Taak</button>' : "") + '</div></td></tr>' };
       }).concat(blokken.map(function (b) {
-        return { sorteer: b.van, html: '<tr class="blokkade">' +
+        var blokKaart = '<div class="bwfk-kaart blokkade">' +
+          '<div class="bwfk-kaartfoto" style="--sk:' + SUITES[b.suite].kleur + '">' +
+            '<div class="bwfk-kaartop"><b>blokkade &middot; ' + esc(b.reden || "gesloten") + "</b>" +
+              "<span>" + esc(SUITES[b.suite].naam) + "</span></div>" +
+            '<span class="bwfk-pil">Gesloten</span></div>' +
+          '<div class="bwfk-kaartlijf">' +
+            '<div class="bwfk-kaartrij"><span>bron</span><b>' +
+              esc(b.bron === "handmatig" ? "Handmatig" : b.bron === "ics-booking" ? "Booking.com"
+                : b.bron === "ics-smg" ? "SMG-planning" : b.bron) + "</b></div>" +
+          "</div>" +
+          (opties.blokkadeOpheffen && b.bron === "handmatig"
+            ? '<div class="bwfk-acties"><button type="button" data-opheffen="' + esc(b.id) + '">Opheffen</button></div>'
+            : "") +
+          "</div>";
+        return { sorteer: b.van, kaart: blokKaart, html: '<tr class="blokkade">' +
           "<td>" + tijdTekst(b.van, b.tot) + "</td>" +
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[b.suite].kleur + '"></span> ' + esc(SUITES[b.suite].naam) + "<small>blokkade</small></td>" +
           '<td class="bwfk-naam" title="' + esc(b.reden || "") + '">' +
@@ -921,9 +1002,17 @@
           '<td><div class="bwfk-acties">' + (opties.blokkadeOpheffen && b.bron === "handmatig" ? '<button type="button" data-opheffen="' + esc(b.id) + '">Opheffen</button>' : "") + "</div></td></tr>" };
       })).sort(function (a, b) { return a.sorteer < b.sorteer ? -1 : a.sorteer > b.sorteer ? 1 : 0; });
 
+      /* Angela, 27-09-2026, met schermafdrukken erbij: "de lijst daarbinnen
+         moet vervangen worden met de volledige suitekaartjes."
+
+         Dit was een tabel met zes kolommen. Op een telefoon paste die niet:
+         Kanaal en Status vielen buiten beeld en je moest zijwaarts scrollen om
+         te zien hoe een boeking ervoor stond. Het zijn nu kaartjes met de
+         suitefoto, die naast elkaar passen op een breed scherm en onder elkaar
+         op een smal. Er gaat niets verloren - alles wat in de kolommen stond
+         staat op de kaart, inclusief de knoppen. */
       $(".bwfk-lijstinhoud").innerHTML = (regels.length
-        ? '<div class="bwfk-tabel"><table><thead><tr><th>Tijd</th><th>Suite</th><th>Gast</th><th>Kanaal</th><th>Status</th><th></th></tr></thead><tbody>' +
-          regels.map(function (x) { return x.html; }).join("") + "</tbody></table></div>"
+        ? '<div class="bwfk-kaartjes">' + regels.map(function (x) { return x.kaart || x.html; }).join("") + "</div>"
         : '<div class="bwfk-leeg" style="padding:12px 14px">Geen reserveringen of blokkades op deze dag.</div>') + vrijeBlokkenHtml();
     }
 
