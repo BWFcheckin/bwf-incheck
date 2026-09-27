@@ -273,6 +273,20 @@
       "tr[data-openres]:focus-visible{outline:2px solid currentColor;outline-offset:-2px}",
       /* de knoppen rechts houden hun eigen aanwijzer */
       ".bwfk-acties a,.bwfk-acties button{cursor:pointer}",
+      /* ---- verticale weergave: dagen onder elkaar ---- */
+      ".bwfk-verticaal{display:flex;flex-direction:column;gap:5px}",
+      ".bwfk-vrij{display:flex;gap:11px;align-items:flex-start;padding:8px 10px;border-radius:10px;",
+      "  border:1px solid var(--k-line);background:var(--k-bg);cursor:pointer;text-align:left}",
+      ".bwfk-vrij:hover{border-color:var(--k-line-sterk,var(--k-line));background:var(--k-zacht,rgba(0,0,0,.03))}",
+      ".bwfk-vrij:focus-visible{outline:2px solid currentColor;outline-offset:-2px}",
+      ".bwfk-vrij[data-leeg=\"1\"]{padding:5px 10px;opacity:.65}",
+      ".bwfk-vrij[data-vandaag=\"1\"]{border-color:var(--k-accent,#0F6156);box-shadow:inset 0 0 0 1px var(--k-accent,#0F6156)}",
+      ".bwfk-vrij[data-gekozen=\"1\"]{background:var(--k-accent-zacht,rgba(15,97,86,.09))}",
+      ".bwfk-vdag{flex:0 0 42px;text-align:center;line-height:1.15}",
+      ".bwfk-vdag b{display:block;font-size:17px;font-variant-numeric:tabular-nums}",
+      ".bwfk-vdag span{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--k-muted)}",
+      ".bwfk-vinhoud{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}",
+      ".bwfk-vinhoud .bwfk-item{width:100%}",
       ".bwfk-suitefoto{flex:none;width:44px;height:32px;border-radius:7px;background:var(--sk) center/cover no-repeat;",
         "box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}",
       ".bwfk-suitefoto.foto-angie{background-image:var(--foto-angie)}",
@@ -397,7 +411,7 @@
 
     var toegestaan = Array.isArray(opties.suites) && opties.suites.length ? opties.suites.slice() : Object.keys(SUITES);
     var st = {
-      weergave: ["dag", "week", "maand"].indexOf(opties.weergave) >= 0 ? opties.weergave : "maand",
+      weergave: ["dag", "week", "maand", "verticaal"].indexOf(opties.weergave) >= 0 ? opties.weergave : "maand",
       dag: /^\d{4}-\d{2}-\d{2}$/.test(opties.datum || "") ? opties.datum : vandaag(),
       suite: toegestaan.indexOf(opties.suite) >= 0 ? opties.suite : "",
       geannuleerd: opties.geannuleerdTonen !== false,
@@ -424,6 +438,11 @@
         '<div class="bwfk-rechts">' +
           '<span class="bwfk-seg" role="group" aria-label="Weergave">' +
             '<button type="button" class="bwfk-knop" data-v="dag">Dag</button>' +
+            /* Angela, 27-09-2026: "kan je zorgen dat er ook een kalenderweergave
+               beschikbaar is in verticale stand." Een raster van zeven kolommen
+               is op een telefoon in portretstand te krap; hier staan de dagen
+               onder elkaar, met per dag alles wat erop staat. */
+            '<button type="button" class="bwfk-knop" data-v="verticaal" title="Dagen onder elkaar">Verticaal</button>' +
             '<button type="button" class="bwfk-knop" data-v="week">Week</button>' +
             '<button type="button" class="bwfk-knop" data-v="maand">Maand</button>' +
           '</span>' +
@@ -471,6 +490,19 @@
     function periode() {
       if (st.weergave === "dag") return { van: st.dag, tot: st.dag };
       if (st.weergave === "week") { var ma = plusDagen(st.dag, -weekdag(st.dag)); return { van: ma, tot: plusDagen(ma, 6) }; }
+      /* Verticaal loopt over dezelfde maand als de maandweergave, zodat
+         heen en weer schakelen je op dezelfde dagen laat kijken. */
+      if (st.weergave === "verticaal") {
+        var eersteV = st.dag.slice(0, 8) + "01";
+        var jV = Number(eersteV.slice(0, 4)), mV = Number(eersteV.slice(5, 7));
+        var laatsteV = new Date(jV, mV, 0);
+        return {
+          van: eersteV,
+          tot: laatsteV.getFullYear() + "-" + String(laatsteV.getMonth() + 1).padStart(2, "0") +
+               "-" + String(laatsteV.getDate()).padStart(2, "0"),
+          maand: eersteV,
+        };
+      }
       var eerste = st.dag.slice(0, 8) + "01";
       var start = plusDagen(eerste, -weekdag(eerste));
       return { van: start, tot: plusDagen(start, 41), maand: eerste };
@@ -688,7 +720,11 @@
       var p = periode(), lijst = items(), vd = vandaag();
       houder.querySelectorAll("[data-v]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === st.weergave)); });
       var titel = $(".bwfk-titel");
-      if (st.weergave === "dag") titel.textContent = dagLang(st.dag);
+      if (st.weergave === "verticaal") {
+        var mv = (p.maand || st.dag);
+        titel.textContent = MAANDEN[Number(mv.slice(5, 7)) - 1] + " " + mv.slice(0, 4);
+      }
+      else if (st.weergave === "dag") titel.textContent = dagLang(st.dag);
       else if (st.weergave === "week") titel.textContent = dagKort(p.van) + " – " + dagKort(p.tot);
       else titel.textContent = MAANDEN[Number(p.maand.slice(5, 7)) - 1] + " " + p.maand.slice(0, 4);
 
@@ -712,6 +748,26 @@
           html += "</div>";
         }
         html += "</div>";
+      } else if (st.weergave === "verticaal") {
+        /* Dagen onder elkaar. Een dag met iets erop krijgt zijn regels; een
+           lege dag blijft één smalle regel, zodat je er wel op kunt tikken om
+           hem te kiezen maar er geen ruimte aan verloren gaat. */
+        var dagenV = [];
+        for (var dv = p.van; dv <= p.tot; dv = plusDagen(dv, 1)) dagenV.push(dv);
+        html = '<div class="bwfk-verticaal">' + dagenV.map(function (ds) {
+          var opDeze = opDag(lijst, ds);
+          return '<div class="bwfk-vrij" role="button" tabindex="0" data-cel="' + ds + '"' +
+            ' data-vandaag="' + (ds === vd ? 1 : 0) + '" data-gekozen="' + (ds === st.dag ? 1 : 0) + '"' +
+            ' data-leeg="' + (opDeze.length ? 0 : 1) + '">' +
+            '<div class="bwfk-vdag"><b>' + Number(ds.slice(8)) + '</b>' +
+              '<span>' + esc(dagKort(ds).split(" ")[0]) + "</span></div>" +
+            '<div class="bwfk-vinhoud">' +
+              roosterHtml(ds, true) +
+              (opDeze.length
+                ? opDeze.map(function (x) { return itemHtml(x, ds, true); }).join("")
+                : '<span class="bwfk-leeg">&mdash;</span>') +
+            "</div></div>";
+        }).join("") + "</div>";
       } else if (st.weergave === "week") {
         html = kop + '<div class="bwfk-week bwfk-weekweergave">';
         for (var j = 0; j < 7; j++) {
@@ -875,6 +931,12 @@
     function schuif(stap) {
       if (st.weergave === "dag") st.dag = plusDagen(st.dag, stap);
       else if (st.weergave === "week") st.dag = plusDagen(st.dag, 7 * stap);
+      else if (st.weergave === "verticaal") {
+        /* Per maand vooruit, net als de maandweergave. */
+        var jv = Number(st.dag.slice(0, 4)), mv = Number(st.dag.slice(5, 7)) - 1 + stap;
+        jv += Math.floor(mv / 12); mv = ((mv % 12) + 12) % 12;
+        st.dag = jv + "-" + String(mv + 1).padStart(2, "0") + "-01";
+      }
       else {
         var j = Number(st.dag.slice(0, 4)), m = Number(st.dag.slice(5, 7)) - 1 + stap;
         j += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
@@ -1038,7 +1100,7 @@
     return {
       ververs: function () { return laad(true); },
       naarDatum: function (datum) { if (/^\d{4}-\d{2}-\d{2}$/.test(datum)) kiesDag(datum, null); },
-      zetWeergave: function (w) { if (["dag", "week", "maand"].indexOf(w) >= 0) { st.weergave = w; laad(); } }
+      zetWeergave: function (w) { if (["dag", "week", "maand", "verticaal"].indexOf(w) >= 0) { st.weergave = w; laad(); } }
     };
   }
 
