@@ -93,6 +93,10 @@ section[hidden]{display:none}
   font-size:14.5px;line-height:1.45;grid-column:1/-1}
 .v-albetaald .vink{flex:none;width:26px;height:26px;border-radius:50%;background:#2E7D5B;
   color:#fff;display:grid;place-items:center;font-size:15px;font-weight:700}
+.v-albetaald .bij{opacity:.75;font-size:13px}
+/* Staat er nog iets open, dan dezelfde regel maar in het rood. */
+.v-albetaald.openstaand{background:#FDECEA;border-color:#B3261E;color:#7A1C15}
+.v-albetaald.openstaand .vink{background:#B3261E}
 .v-springmenu{position:relative;margin:0 0 12px}
 .v-springknop{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:13px 16px;border-radius:12px;border:1px solid var(--line-soft);
@@ -4113,9 +4117,23 @@ function openstaandVan(r) {
   if (!r) return null;
   const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
   const stand = String(r.betaalstatus || "open");
-  if (r.restant_bedrag != null) return Number(r.restant_bedrag);
+
+  /* DE BETAALSTATUS IS LEIDEND, precies zoals op de kaart in de lijst.
+
+     Dit ging op 27-09-2026 mis: deze functie gaf restant_bedrag voorrang, en
+     bij een boeking waar dat veld op 0 stond terwijl de status "open" was
+     meldde het scherm "de gast heeft alles al betaald" - terwijl er nog EUR
+     668 openstond. De kaart in de lijst toonde tegelijk het juiste bedrag,
+     want die negeert dat veld bij een openstaande boeking.
+
+     Reden: het bewerkvenster vult betaald_bedrag en restant_bedrag niet, dus
+     die staan bij vrijwel elke boeking op nul of leeg. Een nul daarin betekent
+     "niet ingevuld", niet "niets meer te betalen". Alleen wanneer de status
+     iets anders zegt dan open of betaald telt dat veld mee - dan is het
+     bewust gezet. */
   if (stand === "betaald") return 0;
   if (stand === "open") return totaal;
+  if (r.restant_bedrag != null) return Number(r.restant_bedrag);
   if (totaal != null && r.betaald_bedrag != null) {
     return Math.round((totaal - Number(r.betaald_bedrag)) * 100) / 100;
   }
@@ -4384,14 +4402,28 @@ function vulBetaalvak(r) {
   $("#vBetaalNote").textContent = "";
   vZetBedrag(r, true);          /* vers geladen: lees uit de reservering */
 
-  /* Alles voldaan: dat hoort niet in een grijze regel weg te vallen. */
+  /* Angela, 28-09-2026: "ik wil bij wat wordt er betaald exact de status
+     aangeven: welk bedrag er nog openstaat, of 0,00 als alles betaald is, met
+     'nog te betalen' of 'alles betaald'."
+
+     Daarom staat deze regel er altijd, niet alleen als er niets meer open is.
+     Groen met een vinkje als het klaar is, rood als er nog iets moet komen, en
+     het bedrag staat er altijd bij - ook de nul. Zo hoef je het niet af te
+     leiden uit het woord eronder. */
   const klaar = $("#vAlBetaald");
   if (klaar) {
-    klaar.hidden = !alBetaald;
-    if (alBetaald) {
-      klaar.innerHTML = '<span class="vink">&#10003;</span><span>De gast heeft alles al betaald.' +
+    if (nog == null) {
+      /* Geen bedrag bekend: dan iets beweren over betalen is raden. */
+      klaar.hidden = true;
+    } else {
+      klaar.hidden = false;
+      klaar.className = "v-albetaald" + (alBetaald ? "" : " openstaand");
+      klaar.innerHTML =
+        '<span class="vink">' + (alBetaald ? "&#10003;" : "&#33;") + "</span>" +
+        "<span><b>" + (alBetaald ? "Alles betaald" : "Nog te betalen") + "</b> &middot; " +
+        "&euro; " + esc(euro(Math.max(0, nog))) +
         (r.bedrag_totaal != null
-          ? " Het volledige bedrag van &euro; " + esc(euro(Number(r.bedrag_totaal))) + " is voldaan."
+          ? ' <span class="bij">van &euro; ' + esc(euro(Number(r.bedrag_totaal))) + " totaal</span>"
           : "") + "</span>";
     }
   }
