@@ -81,6 +81,10 @@ section[hidden]{display:none}
 /* Een klaargezette extra dimt, maar blijft staan: hij hoort bij de rekening. */
 .arr-gedaan{opacity:.55}
 /* De inklapbare blokken op de reserveringskaart. */
+/* De regel die je zelf invult, naast de vaste extra's. */
+.vrije-regel{margin-top:11px;padding:11px 12px;border-radius:11px;
+  border:1px dashed var(--line-strong,var(--line-soft));background:var(--surface-2,#faf7f3)}
+.vrije-regel>strong{display:block;font-size:13.5px;margin-bottom:2px}
 .kaartvak{border:1px solid var(--line-soft);border-radius:11px;margin:0 0 8px;background:var(--surface,#fff)}
 .kaartvak>summary{cursor:pointer;padding:10px 13px;font-size:13px;letter-spacing:.05em;
   text-transform:uppercase;color:var(--muted);font-weight:600;list-style:none;
@@ -619,9 +623,22 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
                  ontbreken. De samenvatting zegt nu wat er binnen te kiezen valt. -->
             <summary style="cursor:pointer;font-weight:600">Extra&#39;s bijboeken &mdash; vooraf of op locatie</summary>
             <div id="vBijLijst" style="display:grid;gap:5px;margin-top:9px"></div>
-            <div class="raster" style="margin-top:9px">
-              <label class="veld">Eigen arrangement <input id="vVrijNaam" type="text" placeholder="bijv. late check-out tot 13:00"></label>
-              <label class="veld">Bedrag (&euro;) <input id="vVrijBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
+            <!-- Angela, 27-09-2026: "ik wil ook een vrije regel waar je zelf
+                 tekst en prijs aan kan hangen." Die bestond al, maar heette
+                 "Eigen arrangement" en stond als twee losse velden onderaan
+                 tussen de vaste extra's - daar zie je hem niet. Nu een eigen
+                 vakje met een kop erboven, zodat het opvalt dat je hier zelf
+                 iets mag intikken dat niet in de lijst staat. -->
+            <div class="vrije-regel">
+              <strong>Staat het er niet bij? Vul het zelf in</strong>
+              <div class="raster" style="margin-top:7px">
+                <label class="veld">Omschrijving
+                  <input id="vVrijNaam" type="text" placeholder="bijv. late check-out tot 13:00"></label>
+                <label class="veld">Bedrag (&euro;)
+                  <input id="vVrijBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
+              </div>
+              <p class="uitleg" style="margin:6px 0 0">Komt als losse regel bij de
+                arrangementen te staan en telt mee in het totaalbedrag.</p>
             </div>
             <div id="vBijSom" style="margin-top:11px;padding-top:9px;border-top:1px solid var(--line-soft);
                  font-size:13px;display:grid;gap:3px"></div>
