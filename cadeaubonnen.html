@@ -94,6 +94,7 @@ code.code{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13.
 .vlag.op{background:var(--surface-2);border-color:var(--line);color:var(--muted)}
 .vlag.geblokkeerd{background:var(--crit-zacht);border-color:var(--crit);color:var(--crit)}
 .vlag.verlopen{background:var(--warn-zacht);border-color:var(--warn);color:var(--warn)}
+.vlag.wacht_op_betaling{background:var(--goud-zacht);border-color:var(--goud);color:#6B5228}
 
 .tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
 .tegel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px}
@@ -154,6 +155,7 @@ dialog::backdrop{background:rgba(10,18,14,.5)}
     <button class="tab" role="tab" data-tab="lijst" aria-selected="true">Bonnen</button>
     <button class="tab" role="tab" data-tab="import" aria-selected="false">Codes invoeren</button>
     <button class="tab" role="tab" data-tab="nieuw" aria-selected="false">Digitale bon maken</button>
+    <button class="tab" role="tab" data-tab="tegoed" aria-selected="false">Tegoedbon</button>
   </div>
 
   <!-- ============ BONNEN ============ -->
@@ -170,12 +172,14 @@ dialog::backdrop{background:rgba(10,18,14,.5)}
             <option value="op">Opgemaakt</option>
             <option value="geblokkeerd">Geblokkeerd</option>
             <option value="verlopen">Verlopen</option>
+            <option value="wacht_op_betaling">Wacht op betaling</option>
           </select></label>
         <label class="veld">Soort
           <select id="fSoort">
             <option value="">Alle</option>
             <option value="plastic">Plastic (Privésauna)</option>
             <option value="digitaal">Digitaal</option>
+            <option value="tegoed">Tegoedbon</option>
           </select></label>
       </div>
     </div>
@@ -236,10 +240,61 @@ BON-1003&#9;100"></textarea></label>
         <label class="veld breed">Persoonlijk bericht op de bon
           <input type="text" id="nwBericht" placeholder="bijv. Fijne verjaardag!"></label>
       </div>
+      <!-- Angela, 29-09-2026: "ik wil ook een Mollie-link kunnen sturen; zodra
+           de link is betaald is de cadeaubon actief." -->
+      <div class="vrij" style="margin-top:14px;padding:12px 13px;border-radius:11px;
+           border:1px dashed var(--line);background:var(--surface-2)">
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="nwBetalen" style="width:auto;min-height:auto;margin:3px 0 0">
+          <span><b>Eerst laten betalen</b><br>
+          <span class="uitleg" style="margin:0">De bon wordt aangemaakt maar is nog
+          niet geldig. Je krijgt een betaallink om door te sturen; zodra die betaald
+          is wordt de bon vanzelf actief.</span></span>
+        </label>
+      </div>
       <div class="knoprij">
         <button class="knop vol" type="button" id="nwMaak">Bon aanmaken</button>
       </div>
       <div id="nwUit" style="margin-top:16px"></div>
+    </div>
+  </section>
+
+  <!-- ============ TEGOEDBON ============ -->
+  <section id="paneel-tegoed" hidden>
+    <div class="kaart">
+      <h2>Tegoedbon geven</h2>
+      <p class="uitleg" style="margin:0 0 4px">Voor een gast die te veel heeft
+        betaald, of als tegemoetkoming bij een klacht.</p>
+      <p class="uitleg" style="margin:0 0 12px"><b>Een tegoedbon is meteen
+        geldig</b> — er komt geen betaling aan te pas. Hij is een schuld van ons
+        aan de gast.</p>
+      <div class="raster">
+        <label class="veld">Bedrag (&euro;) <input type="text" id="tgBedrag" inputmode="decimal" placeholder="25,00"></label>
+        <label class="veld">Waarom
+          <select id="tgReden">
+            <option value="te veel betaald">Te veel betaald</option>
+            <option value="tegemoetkoming klacht">Tegemoetkoming bij een klacht</option>
+            <option value="annulering">Annulering</option>
+            <option value="anders">Anders</option>
+          </select></label>
+        <label class="veld">Voor wie <input type="text" id="tgVoor" placeholder="naam van de gast"></label>
+        <label class="veld">E-mailadres <input type="email" id="tgMail"></label>
+        <label class="veld">Geldig tot (mag leeg) <input type="date" id="tgGeldig"></label>
+        <label class="veld">Foto op de bon
+          <select id="tgSuite">
+            <option value="malina_deluxe">Malina Deluxe</option>
+            <option value="malina_jacuzzi">Malina Jacuzzi</option>
+            <option value="angie">Suite Angie</option>
+          </select></label>
+        <label class="veld breed">Bij welke boeking (mag leeg)
+          <input type="text" id="tgRes" placeholder="plak hier het reserveringsnummer of de id"></label>
+        <label class="veld breed">Toelichting voor jezelf
+          <input type="text" id="tgNotitie" placeholder="bijv. jacuzzi was stuk, afgesproken met de gast"></label>
+      </div>
+      <div class="knoprij">
+        <button class="knop vol" type="button" id="tgMaak">Tegoedbon aanmaken</button>
+      </div>
+      <div id="tgUit" style="margin-top:16px"></div>
     </div>
   </section>
 </div>
@@ -389,10 +444,18 @@ async function laad() {
    extra ding dat stuk kan, en het antwoord is uit de datum af te lezen. */
 function echteStatus(b) {
   if (b.status === "geblokkeerd") return "geblokkeerd";
+  /* Een bon die nog op betaling wacht is niets anders; de geldigheidsdatum
+     doet er pas toe als hij betaald is. */
+  if (b.status === "wacht_op_betaling") return "wacht_op_betaling";
   if (b.geldig_tot && String(b.geldig_tot) < vandaag() && Number(b.saldo) > 0) return "verlopen";
   return b.status;
 }
 const bruikbaar = (b) => echteStatus(b) === "actief" && Number(b.saldo) > 0;
+/* "wacht_op_betaling" leest niet als Nederlands; op het scherm hoort te staan
+   wat er aan de hand is. */
+const STAND_NAAM = { actief: "bruikbaar", op: "opgemaakt", geblokkeerd: "geblokkeerd",
+  verlopen: "verlopen", wacht_op_betaling: "wacht op betaling" };
+const standNaam = (s) => STAND_NAAM[s] || s;
 
 function teken() {
   const zoek = ($("#zoek").value || "").trim().toLowerCase();
@@ -425,10 +488,11 @@ function teken() {
         const st = echteStatus(b);
         return '<tr data-bon="' + esc(b.id) + '">' +
           '<td><code class="code">' + esc(b.code) + "</code></td>" +
-          "<td>" + (b.soort === "digitaal" ? "digitaal" : "plastic") + "</td>" +
+          "<td>" + (b.soort === "tegoed" ? "<b>tegoed</b>"
+             : b.soort === "digitaal" ? "digitaal" : "plastic") + "</td>" +
           '<td class="num">&euro; ' + euro(b.waarde) + "</td>" +
           '<td class="num"><b>&euro; ' + euro(b.saldo) + "</b></td>" +
-          '<td><span class="vlag ' + st + '">' + st + "</span></td>" +
+          '<td><span class="vlag ' + st + '">' + esc(standNaam(st)) + "</span></td>" +
           "<td>" + (b.geldig_tot ? esc(dNL(b.geldig_tot)) : "&mdash;") + "</td>" +
           "<td>" + esc(b.ontvanger_naam || b.notitie || "") + "</td></tr>";
       }).join("") + "</tbody>"
@@ -442,7 +506,8 @@ async function openBon(id) {
   const st = echteStatus(b);
   $("#bkTitel").innerHTML = '<code class="code">' + esc(b.code) + "</code>";
   $("#bkSub").innerHTML = "&euro; " + euro(b.waarde) + " &middot; nog &euro; " + euro(b.saldo) +
-    ' &middot; <span class="vlag ' + st + '">' + st + "</span>";
+    ' &middot; <span class="vlag ' + st + '">' + esc(standNaam(st)) + "</span>" +
+    (b.soort === "tegoed" ? " &middot; tegoedbon" + (b.reden ? " (" + esc(b.reden) + ")" : "") : "");
 
   $("#bkLijf").innerHTML =
     '<div class="raster" style="margin-bottom:12px">' +
@@ -628,10 +693,20 @@ async function bonMaken() {
     uit.innerHTML = '<div class="melding fout">Vul eerst een bedrag in.</div>';
     return;
   }
+  /* Eerst laten betalen? Dan komt de bon op wacht_op_betaling te staan en is
+     hij niet te verzilveren tot de betaling binnen is. Dat laatste bewaakt de
+     database, niet dit scherm. */
+  const eerstBetalen = !!($("#nwBetalen") && $("#nwBetalen").checked);
+  if (eerstBetalen && aantal > 1) {
+    uit.innerHTML = '<div class="melding fout">Bij "eerst laten betalen" kan er ' +
+      "maar één bon tegelijk: elke bon krijgt een eigen betaallink.</div>";
+    return;
+  }
   const rijen = [];
   for (let i = 0; i < aantal; i++) {
     rijen.push({
       code: nieuweCode(), waarde: bedrag, soort: "digitaal",
+      status: eerstBetalen ? "wacht_op_betaling" : "actief",
       geldig_tot: $("#nwGeldig").value || null,
       ontvanger_naam: ($("#nwVoor").value || "").trim() || null,
       ontvanger_email: ($("#nwMail").value || "").trim().toLowerCase() || null,
@@ -642,7 +717,29 @@ async function bonMaken() {
   const knop = $("#nwMaak");
   knop.disabled = true; knop.textContent = "Bezig…";
   try {
-    const gemaakt = await api("bwf_cadeaubonnen", { method: "POST", body: rijen });
+    let gemaakt = await api("bwf_cadeaubonnen", { method: "POST", body: rijen });
+
+    /* De betaallink erbij. Dit gebeurt NA het aanmaken, zodat de code van de
+       bon in de omschrijving van de betaling staat - dan zie je bij Mollie
+       waar een betaling over ging.
+
+       Lukt de link niet, dan blijft de bon staan op wacht_op_betaling. Dat is
+       met opzet: hij is dan niet te gebruiken, en je kunt het later alsnog
+       proberen. Een half betaalde toestand is erger dan een bon die nog
+       even wacht. */
+    let linkFout = "";
+    if (eerstBetalen && gemaakt && gemaakt.length) {
+      try {
+        const link = await betaallinkVoorBon(gemaakt[0]);
+        const bij = await api("bwf_cadeaubonnen?id=eq." + encodeURIComponent(gemaakt[0].id) +
+          "&select=*", { method: "PATCH",
+          body: { betaal_id: link.id, betaal_link: link.url } });
+        if (bij && bij.length) gemaakt = bij;
+      } catch (e) {
+        linkFout = e.message;
+      }
+    }
+
     /* De bonnen eerst in BONNEN zetten: de knoppen Versturen en Opslaan zoeken
        de bon daar op, en die zouden anders niets vinden tot de lijst herladen
        is. */
@@ -650,7 +747,24 @@ async function bonMaken() {
     const suite = $("#nwSuite").value;
     const vellen = [];
     for (const g of (gemaakt || [])) vellen.push(await bonVel(g, suite));
-    uit.innerHTML = vellen.join("") +
+
+    const b0 = (gemaakt || [])[0];
+    uit.innerHTML =
+      (eerstBetalen && b0 && b0.betaal_link
+        ? '<div class="melding let"><b>De bon wacht op betaling.</b> Stuur deze link ' +
+          "naar de koper; zodra hij betaald is wordt de bon vanzelf actief." +
+          '<div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+          '<code class="code" style="word-break:break-all">' + esc(b0.betaal_link) + "</code>" +
+          '<button class="knop klein" type="button" data-linkkopie="' + esc(b0.betaal_link) + '">Kopieer</button>' +
+          '<a class="knop klein" href="' + esc(b0.betaal_link) + '" target="_blank" rel="noopener">Openen</a>' +
+          "</div></div>"
+        : "") +
+      (linkFout
+        ? '<div class="melding fout"><b>De bon is aangemaakt, maar de betaallink niet:</b> ' +
+          esc(linkFout) + "<br>De bon staat op \u2018wacht op betaling\u2019 en is dus niet " +
+          "te gebruiken. Maak de link opnieuw aan, of zet de bon met de hand op actief.</div>"
+        : "") +
+      vellen.join("") +
       '<div class="knoprij"><button class="knop" type="button" onclick="window.print()">Afdrukken of opslaan als pdf</button></div>';
     await laad();
   } catch (e) {
@@ -901,6 +1015,100 @@ function bonMailen(code) {
   melding("De mail staat klaar. Sla de bon eerst op met Opslaan en sleep hem er als bijlage bij.", "let");
 }
 
+/* =========================================================
+   Betaallink voor een cadeaubon
+   =========================================================
+   Angela, 29-09-2026: "ik wil een Mollie-link kunnen sturen; zodra de link is
+   betaald is de cadeaubon actief."
+
+   De bon wordt aangemaakt met status 'wacht_op_betaling' en bewaart zelf het
+   betalingsnummer. Als de betaling binnenkomt roept mollie-webhook de functie
+   bwf_bon_betaald() aan, die de bon op actief zet.
+
+   Waarom het betalingsnummer op de bon staat en niet in mollie_betalingen:
+   die tabel heeft een harde verwijzing naar reserveringen, en een cadeaubon is
+   geen reservering. Eén kolom op de bon is minder ingrijpend dan die tabel
+   openbreken.
+
+   Een bon die op betaling wacht is niet te verzilveren - dat weigert de
+   database zelf, niet alleen dit scherm. */
+const MOLLIE_FUNCTIE = CFG.url.replace(/\/$/, "") + "/functions/v1/mollie-create-payment";
+
+async function betaallinkVoorBon(bon) {
+  const token = await geldigToken();
+  if (!token) throw new Error("Je sessie is verlopen.");
+  const r = await fetch(MOLLIE_FUNCTIE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({
+      bedrag: Number(bon.waarde),
+      omschrijving: "Cadeaubon " + bon.code + " — Bed & Wellness Flevoland",
+      gast: bon.ontvanger_naam || bon.van_wie || ""
+      /* Geen reservering_id: die hoort hier niet bij. Zonder dat veld legt de
+         functie niets vast in de database, en dat hoeft ook niet - wij bewaren
+         het betalingsnummer zelf op de bon. */
+    })
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.success) {
+    throw new Error(d.error || d.message || "De betaallink kon niet worden aangemaakt.");
+  }
+  return { id: d.paymentLinkId || d.paymentId, url: d.checkoutUrl || d.betaalUrl,
+    verlooptOp: d.verlooptOp || null };
+}
+
+/* ---------- tegoedbon ---------- */
+/* Een tegoedbon is meteen geldig: er komt geen betaling aan te pas. Hij is een
+   schuld van ons aan de gast, geen verkoop. Daarom een eigen soort, zodat je
+   later kunt zien wat er is weggegeven en wat er is verkocht. */
+async function tegoedMaken() {
+  const uit = $("#tgUit");
+  const bedrag = leesBedrag($("#tgBedrag").value);
+  if (bedrag == null || bedrag <= 0) {
+    uit.innerHTML = '<div class="melding fout">Vul eerst een bedrag in.</div>';
+    return;
+  }
+  const reden = $("#tgReden").value;
+  const resTekst = ($("#tgRes").value || "").trim();
+  /* Alleen een echte uuid wordt als boeking gekoppeld. Iets anders - een
+     reserveringsnummer bijvoorbeeld - zou de database weigeren, dus dat gaat
+     naar de toelichting. Zo gaat er niets verloren. */
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resTekst);
+  const notitie = [($("#tgNotitie").value || "").trim(),
+    (resTekst && !isUuid) ? "boeking: " + resTekst : ""].filter(Boolean).join(" · ");
+
+  const rij = {
+    code: nieuweCode(), waarde: bedrag, soort: "tegoed", status: "actief",
+    reden: reden,
+    reservering_id: isUuid ? resTekst : null,
+    geldig_tot: $("#tgGeldig").value || null,
+    ontvanger_naam: ($("#tgVoor").value || "").trim() || null,
+    ontvanger_email: ($("#tgMail").value || "").trim().toLowerCase() || null,
+    notitie: notitie || null,
+    bericht: reden === "tegemoetkoming klacht"
+      ? "Onze excuses — met deze bon maken we het graag goed."
+      : reden === "te veel betaald" ? "Te veel betaald bij je vorige verblijf."
+      : null
+  };
+  const knop = $("#tgMaak");
+  knop.disabled = true; knop.textContent = "Bezig…";
+  try {
+    const gemaakt = await api("bwf_cadeaubonnen", { method: "POST", body: [rij] });
+    const b = (gemaakt || [])[0];
+    BONNEN = (gemaakt || []).concat(BONNEN);
+    uit.innerHTML = '<div class="melding">Tegoedbon <b>' + esc(b.code) +
+      "</b> van &euro; " + euro(b.waarde) + " is aangemaakt en meteen geldig.</div>" +
+      await bonVel(b, $("#tgSuite").value);
+    $("#tgBedrag").value = ""; $("#tgVoor").value = ""; $("#tgMail").value = "";
+    $("#tgRes").value = ""; $("#tgNotitie").value = "";
+    await laad();
+  } catch (e) {
+    uit.innerHTML = '<div class="melding fout">Aanmaken lukte niet: ' + esc(e.message) + "</div>";
+  } finally {
+    knop.disabled = false; knop.textContent = "Tegoedbon aanmaken";
+  }
+}
+
 /* ---------- blokkeren ---------- */
 async function blokkeer(id, aan) {
   const b = BONNEN.find((x) => String(x.id) === String(id));
@@ -926,7 +1134,7 @@ async function blokkeer(id, aan) {
 
 /* ---------- tabbladen ---------- */
 function toonTab(naam) {
-  ["lijst", "import", "nieuw"].forEach((t) => {
+  ["lijst", "import", "nieuw", "tegoed"].forEach((t) => {
     const p = $("#paneel-" + t);
     if (p) p.hidden = t !== naam;
   });
@@ -967,6 +1175,17 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "impKijk") { importNakijken(); return; }
   if (e.target.id === "impDoe") { importDoen(); return; }
   if (e.target.id === "nwMaak") { bonMaken(); return; }
+  if (e.target.id === "tgMaak") { tegoedMaken(); return; }
+  const lk = e.target.closest("[data-linkkopie]");
+  if (lk) {
+    e.preventDefault();
+    const t = lk.getAttribute("data-linkkopie");
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(
+      () => { lk.textContent = "Gekopieerd"; setTimeout(() => { lk.textContent = "Kopieer"; }, 1500); },
+      () => prompt("Kopieer de betaallink:", t));
+    else prompt("Kopieer de betaallink:", t);
+    return;
+  }
   if (e.target.id === "lgKnop") { inloggen(); return; }
 });
 document.addEventListener("input", (e) => {
@@ -1038,7 +1257,7 @@ async function start() {
      generator. Zo kun je die link apart bewaren zonder eerst te moeten
      klikken. Onbekende waarden worden genegeerd. */
   const gevraagd = new URLSearchParams(location.search).get("tab");
-  if (["lijst", "import", "nieuw"].includes(gevraagd)) {
+  if (["lijst", "import", "nieuw", "tegoed"].includes(gevraagd)) {
     if (gevraagd === "lijst" || magBeheren()) toonTab(gevraagd);
   }
 }

@@ -62,6 +62,42 @@ function afgerond(n: number): number {
 }
 
 /*
+ * Een cadeaubon activeren die op deze betaling wachtte.
+ *
+ * Geeft true terug als er werkelijk een bon bij hoorde. De database doet het
+ * werk: bwf_bon_betaald() zet de status van 'wacht_op_betaling' naar 'actief'
+ * en noteert wanneer. Stond de bon al op actief, dan verandert er niets - dan
+ * is dit een herhaalde webhook, en die horen geen tweede keer iets te doen.
+ *
+ * Bewust een databasefunctie en geen update hier: de regel wanneer een bon
+ * geldig is hoort bij de bon, niet bij de betaalkoppeling. Zo geldt hij ook
+ * als er ooit een andere betaalwijze bij komt.
+ */
+async function zetBonBetaald(
+  supabase: ReturnType<typeof createClient>,
+  betaalId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc("bwf_bon_betaald", {
+      p_betaal_id: betaalId,
+    });
+    if (error) {
+      console.error(`Bon activeren mislukte voor ${betaalId}:`, error.message);
+      return false;
+    }
+    const rijen = Array.isArray(data) ? data : [];
+    if (!rijen.length) return false;
+    console.info(
+      `Cadeaubon ${rijen[0].code} staat op ${rijen[0].status} na betaling ${betaalId}`,
+    );
+    return true;
+  } catch (e) {
+    console.error(`Bon activeren gaf een fout voor ${betaalId}:`, e);
+    return false;
+  }
+}
+
+/*
  * De reservering bijwerken na een geslaagde betaling. Alleen aanroepen als de
  * betaling nieuw is; de aanroeper bewaakt dat.
  */
@@ -329,6 +365,8 @@ export default {
        */
       let reserveringBijgewerkt = false;
 
+      let bonBijgewerkt = false;
+
       if (isBetaald && !wasAlBetaald && reserveringId && bedrag > 0) {
         reserveringBijgewerkt = await zetReserveringBetaald(
           supabase,
@@ -337,10 +375,25 @@ export default {
           betaaldOp,
         );
       } else if (isBetaald && !reserveringId) {
-        console.error(
-          `Betaling ${kenmerk} is voldaan maar hoort bij geen enkele ` +
-            "reservering. Handmatig nalopen.",
-        );
+        /* Geen reservering? Dan kan het een cadeaubon zijn die op betaling
+         * wachtte. Angela, 29-09-2026: "zodra de link is betaald is de
+         * cadeaubon actief."
+         *
+         * De bon bewaart zelf het betalingsnummer in bwf_cadeaubonnen.betaal_id,
+         * dus er is geen kolom in mollie_betalingen voor nodig - die tabel
+         * heeft een harde verwijzing naar reserveringen en daar past een bon
+         * niet in.
+         *
+         * De functie zet de bon alleen op actief als hij op 'wacht_op_betaling'
+         * stond. Komt dezelfde webhook twee keer binnen, dan gebeurt er de
+         * tweede keer niets. */
+        bonBijgewerkt = await zetBonBetaald(supabase, kenmerk);
+        if (!bonBijgewerkt) {
+          console.error(
+            `Betaling ${kenmerk} is voldaan maar hoort bij geen enkele ` +
+              "reservering of cadeaubon. Handmatig nalopen.",
+          );
+        }
       }
 
       console.info(
@@ -354,6 +407,7 @@ export default {
         soort: isLink ? "payment-link" : "payment",
         status: record.status,
         reserveringBijgewerkt,
+        bonBijgewerkt,
       });
     } catch (error) {
       console.error("Onverwachte webhookfout:", error);

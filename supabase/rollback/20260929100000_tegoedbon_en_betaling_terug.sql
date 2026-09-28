@@ -1,0 +1,56 @@
+-- Terugdraaien van 20260929100000_tegoedbon_en_betaling.sql
+-- ---------------------------------------------------------------------------
+-- Let op: tegoedbonnen zijn een SCHULD aan een gast. Ze weggooien betekent dat
+-- iemand recht heeft op geld dat je niet meer kunt zien.
+--
+-- TRAP 1 - stilzetten zonder iets te verliezen
+-- Haal het vinkje "eerst laten betalen" uit het scherm (of draai de vorige
+-- versie van cadeaubonnen.html terug). Bestaande bonnen blijven werken.
+--
+-- Staan er bonnen op wacht_op_betaling waarvan je weet dat ze betaald zijn?
+-- Zet die eerst met de hand op actief, anders zijn ze onbruikbaar:
+--   update public.bwf_cadeaubonnen set status='actief', betaald_op=now()
+--    where status='wacht_op_betaling' and code in ('...');
+--
+-- TRAP 2 - pas als je het echt niet meer wilt
+-- Kijk eerst wat eraan hangt:
+--
+--   select soort, status, count(*), sum(saldo) as openstaand
+--   from public.bwf_cadeaubonnen group by soort, status order by soort, status;
+--
+-- Exporteer de tegoedbonnen altijd eerst - dat zijn toezeggingen aan gasten:
+--
+--   \copy (select code, waarde, saldo, status, reden, reservering_id,
+--                 ontvanger_naam, ontvanger_email, uitgegeven_op, notitie
+--          from public.bwf_cadeaubonnen where soort = 'tegoed' order by uitgegeven_op)
+--   to 'exports/tegoedbonnen-backup.csv' csv header
+--
+-- Daarna pas, en bewust regel voor regel. De soort- en statuslijst moeten
+-- terug naar de oude waarden, dus eerst de rijen omzetten die daar niet meer
+-- in passen:
+--
+-- begin;
+-- drop trigger if exists bwf_bon_mag_gebruikt_trg on public.bwf_bon_gebruik;
+-- drop function if exists public.bwf_bon_mag_gebruikt();
+-- drop function if exists public.bwf_bon_betaald(text);
+-- update public.bwf_cadeaubonnen set soort = 'digitaal' where soort = 'tegoed';
+-- update public.bwf_cadeaubonnen set status = 'geblokkeerd' where status = 'wacht_op_betaling';
+-- alter table public.bwf_cadeaubonnen drop constraint if exists bwf_cadeaubonnen_soort_check;
+-- alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_soort_check
+--   check (soort in ('plastic','digitaal'));
+-- alter table public.bwf_cadeaubonnen drop constraint if exists bwf_cadeaubonnen_status_check;
+-- alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_status_check
+--   check (status in ('actief','op','geblokkeerd','verlopen'));
+-- drop index if exists public.bwf_cadeaubonnen_betaal_id_idx;
+-- alter table public.bwf_cadeaubonnen drop constraint if exists bwf_cadeaubonnen_reservering_fkey;
+-- alter table public.bwf_cadeaubonnen
+--   drop column if exists betaald_op, drop column if exists betaal_link,
+--   drop column if exists betaal_id,  drop column if exists reservering_id,
+--   drop column if exists reden;
+-- commit;
+--
+-- En haal dan ook zetBonBetaald() uit supabase/functions/mollie-webhook,
+-- anders roept die een functie aan die niet meer bestaat. Dat is geen ramp -
+-- de fout wordt opgevangen - maar het staat wel in het log.
+--
+-- Bewust uitgecommentarieerd: dit script draait zoals het is niets weg.
