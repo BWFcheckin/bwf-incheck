@@ -102,6 +102,16 @@ section[hidden]{display:none}
 .vrije-regel{margin-top:11px;padding:11px 12px;border-radius:11px;
   border:1px dashed var(--line-strong,var(--line-soft));background:var(--surface-2,#faf7f3)}
 .vrije-regel>strong{display:block;font-size:13.5px;margin-bottom:2px}
+/* Korting geven ziet er anders uit dan iets bijboeken: hier gaat er geld af.
+   Een eigen kleur zodat je de twee vakjes niet verwisselt. */
+.korting-regel{border-color:#B3261E;background:#FCF0EF}
+.korting-regel>strong{color:#8C1D18}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .korting-regel{background:#2a1512;border-color:#E58A82}
+  :root:not([data-theme="light"]) .korting-regel>strong{color:#F2B8B5}
+}
+:root[data-theme="dark"] .korting-regel{background:#2a1512;border-color:#E58A82}
+:root[data-theme="dark"] .korting-regel>strong{color:#F2B8B5}
 /* Het springmenu bovenin het bewerkvenster. Grote knoppen, want dit wordt
    op een telefoon gebruikt en een rij kleine links raak je niet. */
 /* "Alles al betaald" - groen, met een vinkje, en breed genoeg om te zien. */
@@ -769,6 +779,24 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
               </div>
               <p class="uitleg" style="margin:6px 0 0">Komt als losse regel bij de
                 arrangementen te staan en telt mee in het totaalbedrag.</p>
+            </div>
+            <!-- Angela, 28-09-2026: "ik wil kortingen kunnen toevoegen aan een
+                 reservering als regel, handmatige vrije invoer." Aparte velden
+                 en niet een min-teken in het vakje hierboven: een korting die
+                 je per ongeluk als plus invoert verhoogt de rekening, en dat
+                 merk je pas als de gast het zegt. Hier kan het bedrag alleen
+                 maar van het totaal af. -->
+            <div class="vrije-regel korting-regel">
+              <strong>Korting geven</strong>
+              <div class="raster" style="margin-top:7px">
+                <label class="veld">Reden
+                  <input id="vKortNaam" type="text" placeholder="bijv. compensatie late incheck"></label>
+                <label class="veld">Bedrag eraf (&euro;)
+                  <input id="vKortBedrag" type="text" inputmode="decimal" placeholder="0,00"></label>
+              </div>
+              <p class="uitleg" style="margin:6px 0 0">Vul een positief bedrag in;
+                het gaat van het totaal af. De reden komt op de rekening te staan,
+                dus schrijf er iets dat de gast mag lezen.</p>
             </div>
             <div id="vBijSom" style="margin-top:11px;padding-top:9px;border-top:1px solid var(--line-soft);
                  font-size:13px;display:grid;gap:3px"></div>
@@ -1648,6 +1676,8 @@ function openVenster(id) {
   V_KEUZES = {};
   if ($("#vVrijNaam")) $("#vVrijNaam").value = "";
   if ($("#vVrijBedrag")) $("#vVrijBedrag").value = "";
+  if ($("#vKortNaam")) $("#vKortNaam").value = "";
+  if ($("#vKortBedrag")) $("#vKortBedrag").value = "";
   if ($("#vBijNote")) $("#vBijNote").textContent = "";
   if ($("#vBijboekVak")) $("#vBijboekVak").open = false;
   tekenBijboek(r);
@@ -2127,7 +2157,12 @@ function tekenPersoneelKaart(r) {
      lezen ze als een geboekt item van min dertig euro. Ze krijgen een eigen
      blok, en worden hier uit "vooraf" gehouden. */
   const voordeel = metPlek.filter((x) => x.a && x.a.member === true);
-  const vooraf = metPlek.filter((x) => !(x.a && x.a.bron) && !(x.a && x.a.member === true));
+  /* Handmatig gegeven korting, Angela 28-09-2026. Net als de memberregels een
+     eigen groep: tussen de arrangementen leest "compensatie late incheck"
+     met min vijfentwintig euro als een geboekt item. */
+  const kortingen = metPlek.filter((x) => x.a && x.a.korting === true);
+  const vooraf = metPlek.filter((x) => !(x.a && x.a.bron) &&
+    !(x.a && x.a.member === true) && !(x.a && x.a.korting === true));
   /* Wie het heeft bijgeboekt en wanneer, als dat is vastgelegd. Regels van
      vóór 20-09-2026 hebben dat niet; daar blijft het gewoon weg. */
   const doorWie = (a) => {
@@ -2261,6 +2296,22 @@ function tekenPersoneelKaart(r) {
        is bijgekomen en door wie. */
     kaartVak("Extra's bijgeboekt op locatie",
       opLocatie.length ? opLocatie.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    /* Handmatig gegeven korting. Staat open als er iets staat: wie een rekening
+       narekent moet meteen zien waarom er minder betaald is dan de optelsom
+       van de regels. Is er niets, dan komt het vak er helemaal niet. */
+    (kortingen.length
+      ? kaartVak("Korting gegeven",
+          kortingen.map((x) =>
+            '<div style="display:flex;justify-content:space-between;gap:12px;color:#B3261E">' +
+            "<span>" + esc((x.a && x.a.naam) || "korting") + "</span><span>&minus; &euro; " +
+            esc(euro(Math.abs(Number(x.a && x.a.bedrag) || 0))) + "</span></div>")
+            .concat(['<div style="display:flex;justify-content:space-between;gap:12px;' +
+              'font-weight:700;border-top:1px solid var(--line-soft);margin-top:4px;padding-top:4px">' +
+              "<span>Totaal korting</span><span>&euro; " +
+              esc(euro(kortingen.reduce((a, x) =>
+                a + Math.abs(Number(x.a && x.a.bedrag) || 0), 0))) + "</span></div>"]),
+          true)
+      : "") +
     /* Membership. Staat open als deze gast lid is of als er voordeel is
        verrekend - dat is wat je aan de balie moet weten. Bij een gewone gast
        blijft het dicht en zegt het in één regel dat er niets te claimen valt. */
@@ -4083,6 +4134,18 @@ function vBijRegels() {
   const naam = String($("#vVrijNaam").value || "").trim();
   const bedrag = leesBedrag($("#vVrijBedrag").value);
   if (naam && bedrag != null && !Number.isNaN(bedrag)) uit.push({ naam, aantal: 1, bedrag });
+  /* Een handmatige korting. Angela, 28-09-2026. Het bedrag wordt hier omgezet
+     naar negatief, zodat de rest van de afhandeling - optellen, het totaal
+     bijwerken, opslaan in arrangementen - precies hetzelfde kan blijven.
+
+     Math.abs: wie zelf al een minteken typt, bedoelt nog steeds korting. Zonder
+     dit zou "-25" een verhoging van 25 worden. */
+  const kNaam = String(($("#vKortNaam") || {}).value || "").trim();
+  const kBedrag = leesBedrag(($("#vKortBedrag") || {}).value);
+  if (kNaam && kBedrag != null && !Number.isNaN(kBedrag) && kBedrag !== 0) {
+    uit.push({ naam: kNaam, aantal: 1,
+      bedrag: -Math.abs(Math.round(kBedrag * 100) / 100), korting: true });
+  }
   return uit;
 }
 
@@ -4156,11 +4219,16 @@ function vBijSom() {
   const totaal = regels.reduce((a, x) => a + x.bedrag, 0);
   vak.innerHTML = regels.length
     ? regels.map((x) =>
-        '<div style="display:flex;justify-content:space-between;gap:12px"><span>' + esc(x.naam) +
-          (x.aantal > 1 ? " &times; " + esc(x.aantal) : "") + "</span><span>&euro; " +
-          esc(euro(x.bedrag)) + "</span></div>").join("") +
+        /* Een korting valt op: rood en met een minteken, zodat je vóór het
+           opslaan ziet dat er iets af gaat in plaats van bij. */
+        '<div style="display:flex;justify-content:space-between;gap:12px' +
+          (x.korting ? ';color:#B3261E;font-weight:600' : '') + '"><span>' + esc(x.naam) +
+          (x.aantal > 1 ? " &times; " + esc(x.aantal) : "") + "</span><span>" +
+          (x.bedrag < 0 ? "&minus; " : "") + "&euro; " +
+          esc(euro(Math.abs(x.bedrag))) + "</span></div>").join("") +
       '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
-        "<span>Bij te boeken</span><span>&euro; " + esc(euro(totaal)) + "</span></div>"
+        "<span>" + (totaal < 0 ? "Gaat eraf" : "Bij te boeken") + "</span><span>" +
+        (totaal < 0 ? "&minus; " : "") + "&euro; " + esc(euro(Math.abs(totaal))) + "</span></div>"
     : '<span style="color:var(--muted)">Nog niets aangevinkt.</span>';
 }
 
@@ -4559,6 +4627,8 @@ async function bijboeken(soort) {
     V_KEUZES = {};
     $("#vVrijNaam").value = "";
     $("#vVrijBedrag").value = "";
+    if ($("#vKortNaam")) $("#vKortNaam").value = "";
+    if ($("#vKortBedrag")) $("#vKortBedrag").value = "";
     tekenBijboek(rij[0]);
     vulArrKeuze(rij[0]);
     tekenAlBijgeboekt(rij[0]);
@@ -5004,7 +5074,7 @@ document.addEventListener("input", (e) => {
      daar zelf in bezig bent - anders typ je tegen de berekening in. */
   if (["vBedrag", "vBetaald"].includes(e.target.id) && HUIDIG) vBetaalstand(true);
   /* eigen arrangement: de som meteen meerekenen */
-  if (["vVrijNaam", "vVrijBedrag"].includes(e.target.id) && HUIDIG) vBijSom();
+  if (["vVrijNaam", "vVrijBedrag", "vKortNaam", "vKortBedrag"].includes(e.target.id) && HUIDIG) vBijSom();
 });
 
 /* Aanvinken en aantallen in het bijboekblok. */

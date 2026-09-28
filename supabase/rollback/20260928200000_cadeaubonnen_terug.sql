@@ -1,0 +1,60 @@
+-- Terugdraaien van 20260928200000_cadeaubonnen.sql
+-- ---------------------------------------------------------------------------
+-- Cadeaubonnen zijn geld. Weggooien is hier onomkeerbaar op een manier die de
+-- andere rollbackscripts niet kennen: een verzilverde bon die verdwijnt, is
+-- een gast die zijn tegoed kwijt is en niet kan aantonen dat hij het had.
+--
+-- TRAP 1 - stilzetten zonder iets te verliezen
+-- Alle bonnen blokkeren. Ze blijven bestaan, met hun saldo, maar er kan niets
+-- meer mee verzilverd worden:
+--
+--   update public.bwf_cadeaubonnen set status = 'geblokkeerd'
+--    where status = 'actief';
+--
+-- Terugzetten kan altijd:
+--   update public.bwf_cadeaubonnen set status = 'actief'
+--    where status = 'geblokkeerd' and saldo > 0;
+--
+-- TRAP 2 - pas als je de hele boel echt weg wilt
+-- Kijk eerst wat eraan hangt:
+--
+--   select count(*) as bonnen,
+--          count(*) filter (where saldo > 0) as met_saldo,
+--          sum(saldo) as openstaand_tegoed
+--   from public.bwf_cadeaubonnen;
+--
+--   select count(*) as verzilveringen from public.bwf_bon_gebruik;
+--
+-- Staat daar openstaand tegoed, dan gooi je geld van gasten weg. Exporteer
+-- altijd eerst:
+--
+--   \copy (select b.code, b.soort, b.waarde, b.saldo, b.status, b.uitgegeven_op,
+--                 b.geldig_tot, b.ontvanger_naam, b.ontvanger_email, b.notitie
+--          from public.bwf_cadeaubonnen b order by b.code)
+--   to 'exports/cadeaubonnen-backup.csv' csv header
+--
+--   \copy (select g.wanneer, b.code, g.bedrag, g.reservering_id, g.door, g.notitie
+--          from public.bwf_bon_gebruik g
+--          join public.bwf_cadeaubonnen b on b.id = g.bon_id
+--          order by g.wanneer)
+--   to 'exports/cadeaubon-gebruik-backup.csv' csv header
+--
+-- (exports/ staat in .gitignore, dus die bestanden belanden niet in de repo.
+--  Het zijn wel klantgegevens: bewaar ze niet langer dan nodig.)
+--
+-- Daarna pas, en bewust regel voor regel. Let op de volgorde: het gebruik
+-- verwijst naar de bonnen.
+--
+-- begin;
+-- drop trigger if exists bwf_bon_saldo_trg on public.bwf_bon_gebruik;
+-- drop trigger if exists bwf_bon_nieuw_trg on public.bwf_cadeaubonnen;
+-- drop function if exists public.bwf_bon_saldo_bij();
+-- drop function if exists public.bwf_bon_nieuw();
+-- drop table if exists public.bwf_bon_gebruik;
+-- drop table if exists public.bwf_cadeaubonnen;
+-- commit;
+--
+-- LET OP: checkins.cadeau_code hoort hier NIET bij. Dat veld bestond al vóór
+-- deze migratie, wordt er niet door gewijzigd, en blijft dus staan.
+--
+-- Bewust uitgecommentarieerd: dit script draait zoals het is niets weg.
