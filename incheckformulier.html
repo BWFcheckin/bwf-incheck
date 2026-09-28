@@ -5027,10 +5027,27 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
                (c.resnr ? " \u2014 res. " + c.resnr : "") + ". Kale kamerprijs controleren.",
       aangemaakt: new Date().toISOString()
     };
+    /* Heeft deze gast op het formulier aangevinkt dat hij member wil worden,
+       dan wordt hij dat hier ook echt: met begindatum, niveau en lidnummer.
+       Zonder die velden stond hij wel als member aangevinkt maar zonder nummer,
+       en bleef hij in het dagoverzicht als onverwerkte aanmelding staan.
+       Dit is de knop waarmee de achterstand wordt weggewerkt, dus juist hier
+       moet het compleet zijn.
+
+       De begindatum wordt de datum van het verblijf en niet vandaag: de gast
+       heeft zich toen aangemeld, niet op het moment dat iemand op de knop
+       drukt. */
+    if(rij.member === true && typeof memberAanmeldVelden === "function"){
+      try{
+        var mv = await memberAanmeldVelden(null);
+        if(rij.datum_in) mv.member_sinds = rij.datum_in;
+        Object.assign(rij, mv);
+      }catch(e){}
+    }
     await sb("wz_klantbeheer", { method:"POST", body: JSON.stringify([rij]),
       prefer: "resolution=merge-duplicates,return=minimal" });
     KLANTEN_CACHE.push({ id: rij.id, achternaam: rij.achternaam, email: rij.email,
-      datum_in: rij.datum_in, member: rij.member });
+      datum_in: rij.datum_in, member: rij.member, member_nummer: rij.member_nummer || null });
   }
 
   async function bulk(){
