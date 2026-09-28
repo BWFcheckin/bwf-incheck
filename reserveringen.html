@@ -1897,6 +1897,79 @@ const REVIEW_UITLEG = {
   "": "Nog niets gedaan."
 };
 
+/* =========================================================
+   Membership op de reserveringskaart
+   =========================================================
+   Angela, 28-09-2026: wie incheckt moet kunnen zien dat deze gast member is.
+   Dat is geen sieraad: het bepaalt of iemand recht heeft op de gratis extra's
+   en op voorrang, en dat wordt aan de balie gevraagd.
+
+   De klant komt uit KLANTEN, die bij het opstarten al is opgehaald inclusief
+   member, member_gestopt en member_nummer. Geen tweede bevraging per kaart. */
+function klantVan(r) {
+  if (!r || !r.klant_id) return null;
+  return KLANTEN.find((k) => String(k.id) === String(r.klant_id)) || null;
+}
+
+function memberVakInhoud(r) {
+  const k = klantVan(r);
+  if (typeof BWFMember === "undefined") return "";
+  const lid = BWFMember.isLid(k);
+
+  /* Wat er bij deze boeking daadwerkelijk aan voordeel is verrekend. Dat komt
+     uit de bewaarde regels en niet uit een herberekening: het percentage kan
+     sinds het boeken veranderd zijn, en dan zou een nieuwe som een ander
+     bedrag geven dan de gast heeft betaald. */
+  const arr = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+  const regels = arr.filter((a) => a && a.member === true);
+  const verrekend = regels.reduce((a, x) => a + Math.abs(Number(x.bedrag) || 0), 0);
+
+  if (!lid && !regels.length) {
+    /* Geen member en nooit voordeel gehad: één regel, zodat aan de balie
+       duidelijk is dat er niets te claimen valt. */
+    return '<div style="color:var(--muted);font-size:13.5px">' +
+      (k ? esc(gastNaam(r) || "Deze gast") + " is geen member."
+         : "Aan deze boeking hangt geen klant uit het klantenbestand, dus een " +
+           "lidmaatschap is hier niet te zien.") + "</div>";
+  }
+
+  const kop = lid
+    ? '<div style="display:flex;gap:9px;align-items:center;padding:10px 12px;border-radius:10px;' +
+      'background:#E8F4EC;border:1px solid #2E7D5B;color:#1F5B41;font-size:14px;margin-bottom:8px">' +
+      "<span>&#11088;</span><span><b>Member</b>" +
+      (k && k.member_nummer ? " &middot; lidnr. " + esc(k.member_nummer) : "") +
+      (k && k.member_sinds ? " &middot; sinds " + esc(String(k.member_sinds).slice(0, 10)
+        .split("-").reverse().join("-")) : "") + "</span></div>"
+    /* Voordeel gehad maar nu geen lid meer: dat moet je zien voordat je aan de
+       balie nog een gratis extra weggeeft. */
+    : '<div style="display:flex;gap:9px;align-items:center;padding:10px 12px;border-radius:10px;' +
+      'background:#F5EFE4;border:1px solid #B08A4F;color:#6B5228;font-size:14px;margin-bottom:8px">' +
+      "<span>&#9888;</span><span>Bij deze boeking is memberkorting verrekend, " +
+      "maar het lidmaatschap loopt nu niet meer.</span></div>";
+
+  const lijst = regels.length
+    ? '<div style="font-size:13.5px">' + regels.map((x) =>
+        '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0">' +
+        "<span>" + esc(x.naam) + "</span><span>&minus; &euro; " +
+        esc(euro(Math.abs(Number(x.bedrag) || 0))) + "</span></div>").join("") +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;' +
+      'border-top:1px solid var(--line-soft);margin-top:4px;padding-top:4px">' +
+      "<span>Voordeel op deze boeking</span><span>&euro; " + esc(euro(verrekend)) + "</span></div></div>"
+    : '<div style="color:var(--muted);font-size:13.5px">Bij deze boeking is geen ' +
+      "memberkorting verrekend. Die is bij het aanmaken toegepast; is de gast later " +
+      "lid geworden, dan staat het er niet met terugwerkende kracht in.</div>";
+
+  /* Waar de gast verder recht op heeft, ook als het niet in het bedrag zit:
+     de gratis extra's gelden bij elk bezoek, niet alleen bij het boeken. */
+  const r2 = BWFMember.regels();
+  const rechten = (lid && r2.gratisExtras.length)
+    ? '<div style="margin-top:8px;font-size:13.5px"><b>Gratis bij elk bezoek:</b> ' +
+      esc(r2.gratisExtras.join(" &middot; ").replace(/&middot;/g, "·")) + "</div>"
+    : "";
+
+  return kop + lijst + rechten;
+}
+
 function reviewLinkVan(r) {
   const loc = SUITE_LOCATIE[r.suite] || "";
   if (!loc) return "";
@@ -2049,7 +2122,12 @@ function tekenPersoneelKaart(r) {
   const bijgeboekt = metPlek.filter((x) => x.a && x.a.bron === "bijgeboekt");
   /* Angela, 20-09-2026: op locatie bijgeboekt blijft gescheiden van vooraf. */
   const opLocatie = metPlek.filter((x) => x.a && x.a.bron === "op_locatie");
-  const vooraf = metPlek.filter((x) => !(x.a && x.a.bron));
+  /* Membershipprogramma, 28-09-2026: de kortingsregels dragen member:true en
+     hebben een negatief bedrag. Die horen niet tussen de arrangementen - daar
+     lezen ze als een geboekt item van min dertig euro. Ze krijgen een eigen
+     blok, en worden hier uit "vooraf" gehouden. */
+  const voordeel = metPlek.filter((x) => x.a && x.a.member === true);
+  const vooraf = metPlek.filter((x) => !(x.a && x.a.bron) && !(x.a && x.a.member === true));
   /* Wie het heeft bijgeboekt en wanneer, als dat is vastgelegd. Regels van
      vóór 20-09-2026 hebben dat niet; daar blijft het gewoon weg. */
   const doorWie = (a) => {
@@ -2183,6 +2261,12 @@ function tekenPersoneelKaart(r) {
        is bijgekomen en door wie. */
     kaartVak("Extra's bijgeboekt op locatie",
       opLocatie.length ? opLocatie.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    /* Membership. Staat open als deze gast lid is of als er voordeel is
+       verrekend - dat is wat je aan de balie moet weten. Bij een gewone gast
+       blijft het dicht en zegt het in één regel dat er niets te claimen valt. */
+    kaartVak("Membership", ['<div id="vMemberVak">' + memberVakInhoud(r) + "</div>"],
+      typeof BWFMember !== "undefined" &&
+      (BWFMember.isLid(klantVan(r)) || voordeel.length > 0)) +
     kaartVak("Bijzonderheden en opmerkingen", [
       r.omschrijving ? "<div>" + esc(r.omschrijving) + "</div>" : "",
       r.notitie ? "<div>" + esc(r.notitie) + "</div>" : "",

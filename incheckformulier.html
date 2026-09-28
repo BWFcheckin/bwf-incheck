@@ -726,11 +726,16 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <label>E-mailadres <span class="req-mark">*</span></label>
       <input type="email" id="g_email" required>
 
-      <label>Wil je gratis lid worden (10% korting)? <span class="req-mark">*</span></label>
+      <!-- De 10% stond hier hard in de tekst. Sinds het membershipprogramma
+           (28-09-2026) is het percentage instelbaar, dus wordt deze regel
+           bijgewerkt met wat er werkelijk is ingesteld. Lukt dat niet, dan
+           blijft de tekst hieronder staan - die klopt met de beginwaarde. -->
+      <label id="lidVraag">Wil je gratis lid worden (10% korting)? <span class="req-mark">*</span></label>
       <div class="radio-row" id="lidRow">
         <label><input type="radio" name="g_lid" value="ja"> Ja</label>
         <label><input type="radio" name="g_lid" value="nee"> Nee</label>
       </div>
+      <p id="lidVoordeel" class="hint" hidden></p>
 
       <div class="fieldset-label">Huisregels &amp; algemene voorwaarden</div>
       <button class="btn secondary sm" type="button" style="margin-top:8px;" onclick="viewDocument('huisregels')">📄 Huisregels bekijken</button>
@@ -1384,6 +1389,11 @@ document.addEventListener("change", function(e){
   }
 });
 document.addEventListener("DOMContentLoaded", function(){ setTimeout(vulPakketten, 400); });
+/* De voorwaarden van het lidmaatschap ophalen. Mislukt het, dan blijft de vaste
+   tekst staan; vandaar dat er niet op gewacht hoeft te worden. */
+document.addEventListener("DOMContentLoaded", function(){
+  setTimeout(function(){ try{ vulLidVraag(); }catch(e){} }, 500);
+});
 setTimeout(vulPakketten, 900);
 
 /* Het aanmaken van een nieuwe reservering staat nu op reserveringen.html. */
@@ -2064,8 +2074,108 @@ function openCheckinDetail(id){
   openModal('checkinDetailModal');
 }
 
+/* ===== De vraag over het lidmaatschap, met de echte voorwaarden =====
+   Het percentage en de gratis extra's staan in `instellingen` en zijn door
+   Angela aan te passen. Deze functie haalt ze op en zet ze in de vraag, zodat
+   een gast nooit een korting leest die niet meer klopt.
+
+   Mislukt het ophalen - bijvoorbeeld omdat de gast geen leesrecht heeft op die
+   tabel - dan blijft de tekst staan zoals hij in de pagina staat. Er wordt niets
+   beloofd dat niet nagekeken is. */
+async function vulLidVraag(){
+  var vraag = document.getElementById('lidVraag');
+  if(!vraag) return;
+  var rijen;
+  try{
+    rijen = await sb('instellingen?select=sleutel,waarde&sleutel=like.member\\_*');
+  }catch(e){ return; }
+  var m = {};
+  (rijen || []).forEach(function(r){ if(r && r.sleutel) m[r.sleutel] = r.waarde; });
+  var pct = parseFloat(String(m.member_korting_procent || '').replace(',', '.'));
+  var gratis = String(m.member_gratis_extras || '').split(/\s*[\n;]\s*/)
+    .map(function(x){ return x.trim(); }).filter(Boolean);
+  if(isNaN(pct)) return;
+
+  /* Staat de korting op nul, dan wordt er geen percentage genoemd - anders
+     leest de gast "0% korting" en dat is een slechte reclame voor iets wat
+     verder wel voordelen heeft. */
+  var kop = pct > 0
+    ? 'Wil je gratis lid worden (' + (pct % 1 === 0 ? pct : String(pct).replace('.', ',')) +
+      '% korting)?'
+    : 'Wil je gratis lid worden?';
+  vraag.innerHTML = kop + ' <span class="req-mark">*</span>';
+
+  var uitleg = document.getElementById('lidVoordeel');
+  if(uitleg){
+    var punten = [];
+    if(pct > 0) punten.push((pct % 1 === 0 ? pct : String(pct).replace('.', ',')) +
+      '% korting op ' + (m.member_korting_over === 'alles' ? 'je hele boeking' : 'de kamerprijs'));
+    gratis.forEach(function(x){ punten.push(x + ' gratis'); });
+    punten.push('als eerste bericht bij aanbiedingen');
+    uitleg.textContent = 'Lidmaatschap is gratis en loopt door: ' + punten.join(' · ') + '.';
+    uitleg.hidden = false;
+  }
+}
+
 /* ===== Gast doorzetten naar het klantenbestand (Klantbeheer) ===== */
 const KLANTBEHEER_TABEL = 'wz_klantbeheer';
+
+/* Membershipprogramma, 28-09-2026. Vinkt een gast aan dat hij member wil
+   worden, dan is hij dat meteen: het lidmaatschap is gratis en loopt door, dus
+   er valt niets goed te keuren. Deze functie levert de velden die daarbij
+   horen.
+
+   `bestaand` is de klant zoals hij nu in de database staat, of null bij een
+   nieuwe. Is iemand al eerder lid geweest, dan blijft zijn oorspronkelijke
+   begindatum en lidnummer staan - hij is dan dezelfde member als toen, geen
+   nieuwe. De stopdatum gaat wel weg, want hij doet weer mee. */
+async function memberAanmeldVelden(bestaand){
+  var nu = new Date();
+  var vandaag = nu.getFullYear() + '-' + String(nu.getMonth()+1).padStart(2,'0') +
+    '-' + String(nu.getDate()).padStart(2,'0');
+  var uit = {
+    member: true,
+    member_niveau: 'basis',
+    member_gestopt: null
+  };
+  if(!bestaand || !bestaand.member_sinds) uit.member_sinds = vandaag;
+  if(!bestaand || !bestaand.member_nummer){
+    var nr = await volgendLidnummer();
+    if(nr) uit.member_nummer = nr;
+  }
+  return uit;
+}
+
+/* Het eerstvolgende vrije lidnummer.
+
+   Het wordt op dit moment opgehaald en niet uit een lijst gelezen die de
+   pagina misschien al heeft: bij het inchecken is die lijst er vaak nog niet,
+   en dan zou een gast die zich aanmeldt helemaal geen nummer krijgen.
+
+   Alle bestaande nummers worden opgehaald en numeriek vergeleken. Sorteren in
+   de database zou niet werken: member_nummer is tekst, en dan komt "999" ná
+   "1001". Het zijn er weinig, dus dat kost niets.
+
+   Lukt de bevraging niet, dan komt er géén nummer in plaats van een gegokt
+   nummer. Beter geen nummer dan twee gasten met hetzelfde: Angela kent het dan
+   in klantbeheer toe, waar ze ziet welke al vergeven zijn. De unieke index in
+   de database vangt een botsing hoe dan ook op. */
+async function volgendLidnummer(){
+  var rijen;
+  try{
+    rijen = await sb('wz_klantbeheer?select=member_nummer&member_nummer=not.is.null&limit=5000');
+  }catch(e){
+    /* Terugval op wat de pagina toevallig al heeft. */
+    rijen = (typeof KLANTEN !== 'undefined' && KLANTEN) ? KLANTEN : null;
+    if(!rijen) return '';
+  }
+  var hoog = 1000;
+  (rijen || []).forEach(function(k){
+    var n = parseInt(String((k && k.member_nummer) || '').replace(/\D/g,''), 10);
+    if(!isNaN(n) && n > hoog) hoog = n;
+  });
+  return String(hoog + 1);
+}
 async function klantAanmakenVanCheckin(){
   const c = checkins.find(x=>x.id===openDetailId);
   const st = document.getElementById('cdKlantStatus');
@@ -2111,6 +2221,11 @@ async function klantAanmakenVanCheckin(){
                 (c.resnr ? ' \u2014 res. ' + c.resnr : '') + '. Kale kamerprijs controleren.'),
       aangemaakt: new Date().toISOString()
     };
+    /* Wil deze gast member worden, dan meteen de bijbehorende velden erbij:
+       begindatum, niveau en een lidnummer. Zonder die velden staat hij wel als
+       member aangevinkt maar weet niemand sinds wanneer, en blijft hij in het
+       dagoverzicht als onverwerkte aanmelding staan. */
+    if(rij.member === true) Object.assign(rij, await memberAanmeldVelden(null));
     await sb(KLANTBEHEER_TABEL, {
       method: 'POST',
       body: JSON.stringify([rij]),
@@ -2240,7 +2355,12 @@ async function klantUitGastgegevens(){
     var zoekMail = String(g.email || '').trim().toLowerCase();
     var zoekTel = String(g.telefoon || '').replace(/\D/g, '').slice(-9);
     var bestaand = null;
-    var velden = 'select=id,voornaam,achternaam,email,telefoon,woonplaats,nationaliteit,member,type';
+    /* member_sinds, member_nummer en member_gestopt erbij sinds het
+       membershipprogramma: ze bepalen of iemand al lid is, en zo ja sinds
+       wanneer en met welk nummer. Zonder die drie zou een bestaande member bij
+       het inchecken een nieuwe begindatum en een tweede lidnummer krijgen. */
+    var velden = 'select=id,voornaam,achternaam,email,telefoon,woonplaats,nationaliteit,member,' +
+      'member_sinds,member_nummer,member_gestopt,type';
     if(zoekMail){
       var opMail = await sb('wz_klantbeheer?' + velden + '&email=eq.' + encodeURIComponent(zoekMail) + '&limit=1');
       bestaand = opMail && opMail[0];
@@ -2283,6 +2403,15 @@ async function klantUitGastgegevens(){
         if((k === 'woonplaats' || k === 'nationaliteit' || k === 'email' || k === 'telefoon') && bestaand[k]) return;
         wijziging[k] = w;
       });
+      /* member:false mag NOOIT mee in een bijwerking.
+         Het filter hierboven houdt null, lege tekst en undefined tegen, maar
+         false glipt erdoor - en dan zet een gast die het vinkje niet aantikt
+         zijn eigen lidmaatschap stop zonder dat iemand het merkt. Een
+         lidmaatschap beëindig je in klantbeheer, niet via een incheckformulier.
+         Aanvinken kan hier wel: dat is een aanmelding, en die is nooit
+         schadelijk. */
+      if(wijziging.member !== true) delete wijziging.member;
+      else Object.assign(wijziging, await memberAanmeldVelden(bestaand));
       await sb('wz_klantbeheer?id=eq.' + encodeURIComponent(bestaand.id), {
         method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(wijziging)
       });
@@ -2295,7 +2424,7 @@ async function klantUitGastgegevens(){
           bron: 'Incheckformulier',
           notitie: 'Aangemaakt vanuit het incheckformulier. Kale kamerprijs controleren.',
           aangemaakt: new Date().toISOString()
-        }, gegevens)])
+        }, gegevens, gegevens.member === true ? await memberAanmeldVelden(null) : {})])
       });
     }
     st.className = 'status ok';
