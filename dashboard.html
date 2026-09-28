@@ -455,6 +455,12 @@ body.gate-open{overflow:hidden}
 .ds-regel.gedaan strong{text-decoration:line-through}
 .ds-regel.gedaan .ds-vink:hover{border-color:#9A7B4F;color:#9A7B4F}
 .ds-afkop{margin:12px 0 2px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+/* Het keuzelijstje boven de taken: openstaand, gedaan of alles. */
+.ds-takenbalk{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px}
+.ds-takenbalk label{opacity:.65}
+.ds-takenbalk select{font:inherit;font-size:13px;padding:5px 8px;border-radius:8px;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);color:inherit;
+  margin-left:auto;min-height:34px}
 .ds-regel.nu{background:#e8f3ee;margin:0 -8px;padding:8px;border-radius:8px;border-top:0}
 /* Wie er tijdens een dienst in huis is. Angela, 22-09-2026. */
 .dienstgasten{display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:6px}
@@ -723,6 +729,9 @@ dialog.bwfkaart .actie .rechts{margin-left:auto;display:flex;gap:8px;align-items
 #panel-taken .veld label{font-size:13px;opacity:.7}
 #panel-taken .kaart{background:var(--surface,#fff);border:1px solid var(--line,#e3dad0);border-radius:14px;padding:18px 20px;margin-bottom:18px}
 #panel-taken .taak{display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line-soft,#efe8e1);padding:12px 0}
+/* Een afgevinkte taak blijft leesbaar maar stapt naar de achtergrond. */
+#panel-taken .taak.gedaan{opacity:.55}
+#panel-taken .taak.gedaan b{text-decoration:line-through}
 #panel-taken .taak:last-child{border-bottom:0}
 #planTable[data-alleenlezen="1"] .icon-btn{display:none}
 #panel-taken .taak .op{flex:1}
@@ -1108,7 +1117,21 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <details class="ds-uitklap" id="dsTakenVak" open>
       <summary>Taken Lelystad
         <span class="ds-tel" id="dsTakenTel"></span></summary>
-      <div class="ds-uitklap-lijf"><div id="dsTaken"></div></div>
+      <div class="ds-uitklap-lijf">
+        <!-- Angela, 22-09-2026: "de taken afvinken en gaan dan in een dropdown,
+             zodat je kunt filteren op openstaand en gedaan." Een afgevinkte
+             taak verdwijnt uit het rijtje maar is hier terug te vinden, en kan
+             daar ook weer opengezet worden als je te vroeg was. -->
+        <div class="ds-takenbalk">
+          <label for="dsTakenStand">Tonen</label>
+          <select id="dsTakenStand">
+            <option value="open">Openstaand</option>
+            <option value="klaar">Gedaan</option>
+            <option value="alles">Alles</option>
+          </select>
+        </div>
+        <div id="dsTaken"></div>
+      </div>
     </details>
 
     <details class="ds-uitklap" id="dsPlanningVak" open>
@@ -1325,9 +1348,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     <div class="kaart">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-        <h2 style="font-size:17px">Openstaand</h2>
+        <h2 style="font-size:17px">Taken</h2>
         <span id="tkTeller" style="font-size:13px;opacity:.7"></span>
-        <select id="tkFilter" style="margin-left:auto"><option value="">Iedereen</option></select>
+        <!-- Openstaand, gedaan of alles. Angela, 22-09-2026. -->
+        <select id="tkStand" style="margin-left:auto">
+          <option value="open">Openstaand</option>
+          <option value="klaar">Gedaan</option>
+          <option value="alles">Alles</option>
+        </select>
+        <select id="tkFilter"><option value="">Iedereen</option></select>
       </div>
       <div id="tkLijst"></div>
     </div>
@@ -4884,26 +4913,54 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       return String(veld(m, ['toegangsrol'], '')).toLowerCase() === 'locatiemanager';
     }).map(function(m){ return String(m.id); });
   }
+  /* Is deze taak gedaan? Twee kolommen zeggen er iets over: status ('klaar' of
+     'afgerond') en afgerond_op. Ze horen samen te lopen, maar één schrijfplek
+     in dit bestand zette alleen de status - daardoor bleef zo'n taak elders
+     nog als openstaand tellen. Die plek is rechtgezet; deze functie kijkt
+     naar allebei, zodat oude rijen ook goed vallen. */
+  function dsTaakGedaan(t){
+    var st = String(veld(t, ['status'], '')).toLowerCase();
+    return st === 'klaar' || st === 'afgerond' || !!veld(t, ['afgerond_op'], '');
+  }
+
+  /* Openstaand, gedaan of alles. Angela, 22-09-2026. */
+  var dsTakenStand = 'open';
+
   function dsTekenTaken(){
     var vak = document.getElementById('dsTaken');
     if(!vak) return;
     var vandaag = dstr(new Date());
     var vanHen = dsLocatieMensen();
-    var lijst = (TAKEN || []).filter(function(t){
-      var st = String(veld(t, ['status'], '')).toLowerCase();
-      if(st === 'klaar' || st === 'afgerond') return false;
+    var keuze = (document.getElementById('dsTakenStand') || {}).value || dsTakenStand;
+    /* Wie de taak mag zien staat los van de vraag of hij af is: eerst bepalen
+       welke taken van deze locatie zijn, dan pas het filter erop. Anders zou
+       "Gedaan" ook taken van Almere tonen. */
+    var vanOns = (TAKEN || []).filter(function(t){
       if(String(veld(t, ['locatie'], '')).toLowerCase() === 'almere') return false;
       var wie = String(veld(t, ['medewerker_id'], ''));
       if(!wie) return true;                      /* voor iedereen */
       return vanHen.indexOf(wie) > -1;           /* Jerry, Michel of Ruth */
+    });
+    var lijst = vanOns.filter(function(t){
+      var af = dsTaakGedaan(t);
+      return keuze === 'alles' ? true : keuze === 'klaar' ? af : !af;
     }).sort(function(a, b){
+      /* Onder "Alles" hoort wat nog moet gebeuren bovenaan te staan; anders
+         opent de lijst met werk dat al gedaan is. Binnen elke groep op
+         deadline, zoals het altijd al was. */
+      var fa = dsTaakGedaan(a) ? 1 : 0, fb = dsTaakGedaan(b) ? 1 : 0;
+      if(fa !== fb) return fa - fb;
       var da = String(veld(a, ['deadline'], '') || '9999-99-99');
       var db = String(veld(b, ['deadline'], '') || '9999-99-99');
       return da.localeCompare(db);
     });
 
+    /* De teller telt wat er nog moet gebeuren, ongeacht wat het filter toont -
+       anders zou hij op nul springen zodra je naar Gedaan kijkt, en dat leest
+       als "niets meer te doen". */
     var tel = document.getElementById('dsTakenTel');
-    if(tel) tel.textContent = lijst.length ? String(lijst.length) : '';
+    var openTel = vanOns.filter(function(t){ return !dsTaakGedaan(t); }).length;
+    if(tel) tel.textContent = openTel ? String(openTel) : '';
 
     vak.className = '';
     vak.innerHTML = lijst.length ? lijst.slice(0, 40).map(function(t){
@@ -4913,22 +4970,35 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var naam = wie ? (MEDEWERKERS.filter(function(m){ return String(m.id) === String(wie); })[0] || {}) : {};
       /* Angela, 22-09-2026: "ik wil alle takenlijsten afvinkbaar, zijn ze
          gedaan of gezien kun je ze afvinken en dan verdwijnt het item."
-         Het vinkje zet de taak op klaar; de lijst hierboven laat alles weg wat
-         klaar of afgerond is, dus hij is meteen uit beeld. Het kruisje ernaast
-         haalt de taak echt weg - dat is voor een taak die er ten onrechte
-         staat, en daar wordt om bevestiging gevraagd. */
-      return '<div class="ds-regel' + (laat ? ' spoed' : '') + '">' +
+         Het vinkje zet de taak op klaar; met het filter op Openstaand is hij
+         dan meteen uit beeld, maar onder Gedaan staat hij er nog. Het kruisje
+         ernaast haalt de taak echt weg - dat is voor een taak die er ten
+         onrechte staat, en daar wordt om bevestiging gevraagd.
+
+         Bij een gedane taak wordt het vinkje een pijltje terug: heb je te
+         vroeg afgevinkt, dan zet je hem zo weer open. */
+      var af = dsTaakGedaan(t);
+      var wanneerAf = String(veld(t, ['afgerond_op'], '') || '').slice(0, 10);
+      return '<div class="ds-regel' + (af ? ' gedaan' : laat ? ' spoed' : '') + '">' +
         '<span class="wanneer">' + esc(deadline ? dsDatum(deadline) : 'geen datum') + '</span>' +
         '<div><strong>' + esc(veld(t, ['titel'], 'Zonder titel')) + '</strong><small>' +
         esc([veld(t, ['omschrijving'], ''), veld(naam, ['naam','voornaam'], ''),
-             laat ? 'over tijd' : ''].filter(Boolean).join(' · ').slice(0, 150)) +
+             af ? (wanneerAf ? 'gedaan op ' + dsDatum(wanneerAf) : 'gedaan') : (laat ? 'over tijd' : '')
+            ].filter(Boolean).join(' · ').slice(0, 150)) +
         '</small></div>' +
-        '<button class="ds-vink" type="button" data-taakklaar="' + esc(String(t.id)) + '" ' +
-          'title="Afvinken" aria-label="' + esc(veld(t, ['titel'], 'Taak')) + ' afvinken">&#10003;</button>' +
+        (af
+          ? '<button class="ds-vink" type="button" data-taakopen="' + esc(String(t.id)) + '" ' +
+            'title="Weer openzetten" aria-label="' + esc(veld(t, ['titel'], 'Taak')) +
+            ' weer openzetten">&#8635;</button>'
+          : '<button class="ds-vink" type="button" data-taakklaar="' + esc(String(t.id)) + '" ' +
+            'title="Afvinken" aria-label="' + esc(veld(t, ['titel'], 'Taak')) + ' afvinken">&#10003;</button>') +
         '<button class="ds-vink ds-weg" type="button" data-taakweg="' + esc(String(t.id)) + '" ' +
           'title="Verwijderen" aria-label="' + esc(veld(t, ['titel'], 'Taak')) + ' verwijderen">&#10007;</button>' +
         '</div>';
-    }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
+    }).join('') : '<p class="ds-leeg">' +
+      (keuze === 'klaar' ? 'Er is hier nog niets afgevinkt.'
+       : keuze === 'alles' ? 'Er staan hier geen taken.'
+       : 'Geen openstaande taken.') + '</p>';
   }
 
   /* ============ Urenregistratie ============
@@ -5268,6 +5338,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   function tekenDagstart(){
+    /* De onthouden keuze terugzetten voordat de lijst getekend wordt. */
+    try{
+      var bewaard = localStorage.getItem('bwf-dstaken-stand');
+      if(bewaard){
+        dsTakenStand = bewaard;
+        var kies = document.getElementById('dsTakenStand');
+        if(kies) kies.value = bewaard;
+      }
+    }catch(e){}
     try{ dsTekenSpoed(); }catch(e){}
     try{ dsTekenKaarten(); }catch(e){}
     try{ dsTekenTaken(); }catch(e){}
@@ -5277,6 +5356,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   document.addEventListener('change', function(e){
     if(e.target && (e.target.id === 'dsResPeriode')) dsTekenKaarten();
+    /* Openstaand, gedaan of alles. De keuze wordt onthouden, zodat je na het
+       verversen niet opnieuw hoeft te kiezen. */
+    if(e.target && e.target.id === 'dsTakenStand'){
+      dsTakenStand = e.target.value;
+      try{ localStorage.setItem('bwf-dstaken-stand', dsTakenStand); }catch(x){}
+      dsTekenTaken();
+    }
   });
   document.addEventListener('input', function(e){
     if(e.target && e.target.id === 'dsResZoek') dsTekenKaarten();
@@ -5296,16 +5382,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     try{
       if(wat === 'weg'){
         await sb('wz_taken?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+        /* Verwijderen is het enige dat de taak echt uit de lijst haalt. */
+        TAKEN = (TAKEN || []).filter(function(t){ return String(t.id) !== String(id); });
       } else {
+        /* Afvinken en weer openzetten passen de taak aan; hij blijft in TAKEN
+           staan, anders zou het filter "Gedaan" leeg blijven tot je de pagina
+           ververst. Dat was de fout in de eerste versie. */
+        var nieuw = wat === 'open'
+          ? { status: 'open',  afgerond_op: null }
+          : { status: 'klaar', afgerond_op: new Date().toISOString() };
         await sb('wz_taken?id=eq.' + encodeURIComponent(id), { method: 'PATCH',
-          body: JSON.stringify({ status: 'klaar', afgerond_op: new Date().toISOString() }) });
+          body: JSON.stringify(nieuw) });
+        TAKEN = (TAKEN || []).map(function(t){
+          if(String(t.id) !== String(id)) return t;
+          var k = {}; for(var s in t) k[s] = t[s];
+          k.status = nieuw.status; k.afgerond_op = nieuw.afgerond_op;
+          return k;
+        });
       }
-      TAKEN = (TAKEN || []).filter(function(t){ return String(t.id) !== String(id); });
       dsTekenTaken();
+      /* De tweede takenlijst op deze pagina leest uit dezelfde TAKEN. */
+      if(typeof tekenTaken === 'function'){ try{ tekenTaken(); }catch(e){} }
     }catch(err){
       alert(/40[13]/.test(String(err.message))
         ? 'Deze taak staat niet op jouw naam, dus je kunt hem niet ' +
-          (wat === 'weg' ? 'verwijderen' : 'afvinken') + '. Vraag Angela of degene die hem heeft uitgezet.'
+          (wat === 'weg' ? 'verwijderen' : wat === 'open' ? 'openzetten' : 'afvinken') +
+          '. Vraag Angela of degene die hem heeft uitgezet.'
         : 'Het lukte niet: ' + err.message);
     }
   }
@@ -5315,6 +5417,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(vink){ dsVink(vink.getAttribute('data-dsvink')); return; }
     var tk = e.target.closest && e.target.closest('[data-taakklaar]');
     if(tk){ e.preventDefault(); dsTaakActie(tk.getAttribute('data-taakklaar'), 'klaar'); return; }
+    var to = e.target.closest && e.target.closest('[data-taakopen]');
+    if(to){ e.preventDefault(); dsTaakActie(to.getAttribute('data-taakopen'), 'open'); return; }
     var tw = e.target.closest && e.target.closest('[data-taakweg]');
     if(tw){ e.preventDefault(); dsTaakActie(tw.getAttribute('data-taakweg'), 'weg'); return; }
     /* Afvinken in de balk "Nieuwe boekingen": het item verdwijnt meteen. */
@@ -7951,28 +8055,53 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     /* voor de zekerheid ook hier: geen eigenaar, dan altijd de eigen naam */
     var magAlles = !window.BWF || !window.BWF.rol || (window.BWF.mag && window.BWF.mag('eigenaar'));
     if(!magAlles) wie = tkMijnId() || wie;
-    var open = TAKEN.filter(function(t){ return (t.status||'open')==='open'; })
-      .filter(function(t){ return !wie || String(t.medewerker_id||'')===String(wie); });
+    var stand = (document.getElementById('tkStand') || {}).value || 'open';
+    var vanWie = TAKEN.filter(function(t){ return !wie || String(t.medewerker_id||'')===String(wie); });
+    var open = vanWie.filter(function(t){
+      var af = dsTaakGedaan(t);
+      return stand === 'alles' ? true : stand === 'klaar' ? af : !af;
+    }).sort(function(a, b){
+      /* Onder "Alles" eerst wat nog moet, dan het afgevinkte werk; binnen elke
+         groep de vroegste deadline bovenaan. */
+      var fa = dsTaakGedaan(a) ? 1 : 0, fb = dsTaakGedaan(b) ? 1 : 0;
+      if(fa !== fb) return fa - fb;
+      return String(a.deadline || '9999-99-99').localeCompare(String(b.deadline || '9999-99-99'));
+    });
     var el = document.getElementById('tkLijst');
     var teller = document.getElementById('tkTeller');
     if(teller){
       var mij = tkMijnId();
+      /* De teller blijft over het openstaande werk gaan, ook als je naar
+         Gedaan kijkt: anders leest hij als "niets meer te doen". */
+      var nogOpen = vanWie.filter(function(t){ return !dsTaakGedaan(t); }).length;
       var opMijnNaam = TAKEN.filter(function(t){
-        return (t.status||'open')==='open' && mij && String(t.medewerker_id||'')===mij; }).length;
+        return !dsTaakGedaan(t) && mij && String(t.medewerker_id||'')===mij; }).length;
       teller.textContent = wie
-        ? open.length + ' op naam van ' + (tkNaam(wie) || 'onbekend')
-        : open.length + ' in totaal' + (mij ? ' \u00b7 ' + opMijnNaam + ' op jouw naam' : '');
+        ? nogOpen + ' open op naam van ' + (tkNaam(wie) || 'onbekend')
+        : nogOpen + ' open' + (mij ? ' \u00b7 ' + opMijnNaam + ' op jouw naam' : '');
     }
     if(!open.length){
       el.innerHTML = '<p style="opacity:.55;font-size:14px">' +
-        (wie ? 'Geen openstaande taken voor ' + esc(tkNaam(wie) || 'deze persoon') + '. Zet het filter op Iedereen om alles te zien.'
-             : 'Geen openstaande taken.') + '</p>';
+        (stand === 'klaar'
+          ? (wie ? 'Er is niets afgevinkt voor ' + esc(tkNaam(wie) || 'deze persoon') + '.'
+                 : 'Er is nog niets afgevinkt.')
+          : stand === 'alles'
+            ? (wie ? 'Geen taken voor ' + esc(tkNaam(wie) || 'deze persoon') + '.' : 'Er staan geen taken.')
+            : (wie ? 'Geen openstaande taken voor ' + esc(tkNaam(wie) || 'deze persoon') + '. Zet het filter op Iedereen om alles te zien.'
+                   : 'Geen openstaande taken.')) + '</p>';
       return;
     }
     el.innerHTML = open.map(function(t){
-      return '<div class="taak"><input type="checkbox" data-taak="'+esc(t.id)+'" style="margin-top:4px">'+
+      /* Een gedane taak staat aangevinkt en doorgestreept; het vinkje uitzetten
+         zet hem weer open. */
+      var af = dsTaakGedaan(t);
+      var wanneerAf = String(t.afgerond_op || '').slice(0, 10);
+      return '<div class="taak'+(af ? ' gedaan' : '')+'"><input type="checkbox" data-taak="'+esc(t.id)+'"'+
+        (af ? ' checked' : '')+' style="margin-top:4px">'+
         '<div class="op"><b>'+esc(t.titel||'Zonder titel')+'</b>'+
-        '<small>'+esc([t.locatie, tkNaam(t.medewerker_id)||'niet toegewezen', t.deadline?('voor '+String(t.deadline).slice(0,10)):'']
+        '<small>'+esc([t.locatie, tkNaam(t.medewerker_id)||'niet toegewezen',
+          t.deadline?('voor '+String(t.deadline).slice(0,10)):'',
+          af ? (wanneerAf ? 'gedaan op '+wanneerAf : 'gedaan') : '']
           .filter(Boolean).join(' \u00b7 '))+'</small>'+
         (t.omschrijving ? '<div style="font-size:13.5px;opacity:.8;margin-top:4px">'+esc(t.omschrijving)+'</div>' : '')+
         '</div></div>';
@@ -8053,15 +8182,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   document.getElementById('ckSluit').onclick = function(){ document.getElementById('callKaart').close(); };
 
   document.getElementById('tkFilter').onchange = tekenTaken;
+  document.getElementById('tkStand').onchange = tekenTaken;
   document.getElementById('tkLijst').addEventListener('change', async function(e){
-    var c = e.target.closest('input[data-taak]'); if(!c || !c.checked) return;
+    var c = e.target.closest('input[data-taak]'); if(!c) return;
     var id = c.getAttribute('data-taak');
+    var aan = c.checked;
+    /* Twee dingen die hier eerder misgingen:
+       1. alleen `status` werd weggeschreven en `afgerond_op` niet. Op de andere
+          schermen wordt op dat veld gefilterd, dus zo'n taak bleef daar staan
+          als openstaand. Nu gaan ze allebei mee.
+       2. de taak werd uit TAKEN gegooid. Daardoor kon "Gedaan" hem niet meer
+          tonen en kon je hem niet terugzetten. Nu wordt hij bijgewerkt. */
+    var nieuw = aan
+      ? { status:'klaar', afgerond_op: new Date().toISOString() }
+      : { status:'open',  afgerond_op: null };
     try{
       await sb('wz_taken?id=eq.'+encodeURIComponent(id),
-        { method:'PATCH', body:JSON.stringify({ status:'klaar' }) });
-      TAKEN = TAKEN.filter(function(t){ return String(t.id)!==String(id); });
+        { method:'PATCH', body:JSON.stringify(nieuw) });
+      TAKEN = TAKEN.map(function(t){
+        if(String(t.id)!==String(id)) return t;
+        var k = {}; for(var s in t) k[s] = t[s];
+        k.status = nieuw.status; k.afgerond_op = nieuw.afgerond_op;
+        return k;
+      });
       tekenTaken();
-    }catch(err){ c.checked=false; }
+      if(typeof dsTekenTaken === 'function'){ try{ dsTekenTaken(); }catch(x){} }
+    }catch(err){ c.checked = !aan; }
   });
   document.getElementById('tkBewaarNieuw').onclick = async function(){
     var titel = document.getElementById('tkTitel').value.trim();

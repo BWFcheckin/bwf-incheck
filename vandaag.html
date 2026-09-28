@@ -160,6 +160,11 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
 .ds-rij{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:20px}
 .ds-kaart{background:var(--kaart,#fff);border:1px solid var(--lijn,#e3dad0);border-radius:14px;padding:14px 16px}
 .ds-kop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+/* Het keuzelijstje voor openstaand/gedaan; duwt de knop ernaast naar rechts. */
+.ds-stand{font:inherit;font-size:12.5px;padding:5px 7px;border-radius:8px;min-height:32px;
+  border:1px solid var(--line,#e3dad0);background:var(--surface,#fff);color:inherit;margin-left:auto}
+.ds-item.gedaan{opacity:.55}
+.ds-item.gedaan b{text-decoration:line-through}
 .ds-kop h2{margin:0;font-size:16px}
 .ds-tel{font-size:12px;opacity:.6;font-family:'IBM Plex Mono',monospace}
 .ds-kop .btn{margin-left:auto}
@@ -271,6 +276,13 @@ textarea{width:100%;min-height:70px;background:var(--surface-2);border:1px solid
     <div class="ds-rij">
       <section class="ds-kaart">
         <div class="ds-kop"><h2>Mijn taken</h2><span class="ds-tel" id="takenTeller"></span>
+          <!-- Angela, 22-09-2026: afgevinkte taken verdwijnen uit het rijtje,
+               maar moeten hier terug te vinden zijn. -->
+          <select id="takenStand" class="ds-stand">
+            <option value="open">Openstaand</option>
+            <option value="klaar">Gedaan</option>
+            <option value="alles">Alles</option>
+          </select>
           <button class="btn sec sm" type="button" id="nieuweTaak">+ Taak</button></div>
         <div id="takenLijst"><p class="ds-leeg">Bezig met laden&hellip;</p></div>
       </section>
@@ -1232,59 +1244,112 @@ function dsLeeg(id, tekst){
   if(el) el.innerHTML = '<p class="ds-leeg">' + esc(tekst) + '</p>';
 }
 
-/* Open taken, de eigen bovenaan, op deadline. */
+/* Taken, de eigen bovenaan, op deadline.
+
+   Er wordt nu ook opgehaald wat al gedaan is. Dat moest wel: de bevraging
+   stond op afgerond_op=is.null, dus een afgevinkte taak kwam niet eens mee en
+   dan valt er niets te tonen onder "Gedaan". De lijst zelf schift ze. */
+let DS_TAKEN = [];
+
+function dsTaakGedaan(t){
+  const st = String(t.status || '').toLowerCase();
+  return st === 'klaar' || st === 'afgerond' || !!t.afgerond_op;
+}
+
 async function dsLaadTaken(){
-  let rijen = [];
   try{
-    rijen = await haal('wz_taken?select=*&afgerond_op=is.null&order=deadline.asc&limit=200', 'taken') || [];
+    DS_TAKEN = await haal('wz_taken?select=*&order=deadline.asc&limit=200', 'taken') || [];
   }catch(e){ dsLeeg('takenLijst', 'Taken konden niet worden opgehaald.'); return; }
+  dsTekenTaken();
+}
+
+function dsTekenTaken(){
+  const rijen = DS_TAKEN || [];
+  const keuze = (document.getElementById('takenStand') || {}).value || 'open';
   const mijn = IK ? rijen.filter(t => String(t.medewerker_id || '') === String(IK.id)) : [];
-  const lijst = mijn.length ? mijn : rijen;
-  dsTel('takenTeller', lijst.length);
+  /* Eerst bepalen wiens taken dit zijn, dan pas openstaand/gedaan erop. Andersom
+     zou "Gedaan" ineens andermans taken tonen zodra je zelf niets openstaan
+     hebt, want dan valt `mijn` leeg en wordt er teruggevallen op alles. */
+  const vanMij = mijn.length ? mijn : (IK ? rijen.filter(t => !t.medewerker_id) : rijen);
+  const basis = vanMij.length ? vanMij : rijen;
+  const lijst = basis.filter(t => {
+    const af = dsTaakGedaan(t);
+    return keuze === 'alles' ? true : keuze === 'klaar' ? af : !af;
+  }).sort((a, b) => {
+    /* Onder "Alles" eerst wat nog moet, dan pas het afgevinkte werk. */
+    const fa = dsTaakGedaan(a) ? 1 : 0, fb = dsTaakGedaan(b) ? 1 : 0;
+    if(fa !== fb) return fa - fb;
+    return String(a.deadline || '9999-99-99').localeCompare(String(b.deadline || '9999-99-99'));
+  });
+  /* De teller gaat over het openstaande werk, ook als je naar Gedaan kijkt. */
+  dsTel('takenTeller', basis.filter(t => !dsTaakGedaan(t)).length);
   const vd = vandaagISO();
   const el = document.getElementById('takenLijst');
   if(!el) return;
   el.innerHTML = lijst.length ? lijst.slice(0, 8).map(t => {
     const d = String(t.deadline || '').slice(0, 10);
-    const laat = d && d < vd;
+    const af = dsTaakGedaan(t);
+    const laat = !af && d && d < vd;
+    const afOp = String(t.afgerond_op || '').slice(0, 10);
     /* Angela, 22-09-2026: "ik wil alle takenlijsten afvinkbaar, zijn ze gedaan
        of gezien kun je ze afvinken en dan verdwijnt het item." Het vinkje zet
-       de taak op klaar; deze lijst haalt alleen taken op zonder afgerond_op,
-       dus hij is daarna uit beeld. */
-    return `<div class="ds-item${laat ? ' laat' : ''}" data-dstaak="${esc(t.id)}">
+       de taak op klaar en hij is uit dit rijtje; via het keuzelijstje erboven
+       vind je hem terug, en daar zet het pijltje hem weer open. */
+    return `<div class="ds-item${laat ? ' laat' : ''}${af ? ' gedaan' : ''}" data-dstaak="${esc(t.id)}">
       <span class="wanneer">${esc(d ? nlKort(d) : '—')}</span>
       <div><b>${esc(t.titel || 'Zonder titel')}</b>
-        <small>${esc(String(t.omschrijving || '').slice(0, 90))}</small></div>
-      <button class="ds-vink" type="button" data-taakklaar="${esc(t.id)}"
-        title="Afvinken" aria-label="${esc(t.titel || 'Taak')} afvinken">&#10003;</button></div>`;
-  }).join('') : '<p class="ds-leeg">Geen openstaande taken.</p>';
+        <small>${esc([String(t.omschrijving || '').slice(0, 90),
+                      af ? (afOp ? 'gedaan op ' + nlKort(afOp) : 'gedaan') : ''
+                     ].filter(Boolean).join(' · '))}</small></div>
+      ${af
+        ? `<button class="ds-vink" type="button" data-taakopen="${esc(t.id)}"
+             title="Weer openzetten" aria-label="${esc(t.titel || 'Taak')} weer openzetten">&#8635;</button>`
+        : `<button class="ds-vink" type="button" data-taakklaar="${esc(t.id)}"
+             title="Afvinken" aria-label="${esc(t.titel || 'Taak')} afvinken">&#10003;</button>`}
+      </div>`;
+  }).join('') : `<p class="ds-leeg">${keuze === 'klaar' ? 'Er is nog niets afgevinkt.'
+      : keuze === 'alles' ? 'Er staan geen taken.' : 'Geen openstaande taken.'}</p>`;
 }
+
+document.addEventListener('change', (e) => {
+  if(e.target && e.target.id === 'takenStand') dsTekenTaken();
+});
 
 /* Een taak afvinken. De database laat een locatiemanager alleen zijn eigen
    taken wijzigen, of taken die hij zelf heeft uitgezet; staat een taak op een
    ander, dan zeggen we dat in plaats van hem stil te laten staan. */
 document.addEventListener('click', async (e) => {
-  const knop = e.target.closest && e.target.closest('[data-taakklaar]');
+  const knop = e.target.closest && (e.target.closest('[data-taakklaar]') ||
+                                    e.target.closest('[data-taakopen]'));
   if(!knop) return;
   e.preventDefault();
   e.stopPropagation();                    /* niet ook de taak zelf openen */
-  const id = knop.getAttribute('data-taakklaar');
+  const open = knop.hasAttribute('data-taakopen');
+  const id = knop.getAttribute(open ? 'data-taakopen' : 'data-taakklaar');
   knop.disabled = true;
+  const nieuw = open
+    ? { status: 'open',  afgerond_op: null }
+    : { status: 'klaar', afgerond_op: new Date().toISOString() };
   try{
     /* Rechtstreeks api(): haal() vangt fouten zelf op en geeft een lege lijst
        terug, dus daarmee zou een geweigerde wijziging er uitzien alsof hij
        gelukt was. */
     await api('wz_taken?id=eq.' + encodeURIComponent(id), {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'klaar', afgerond_op: new Date().toISOString() })
+      body: JSON.stringify(nieuw)
     });
-    const rij = knop.closest('.ds-item');
-    if(rij) rij.remove();
+    /* De taak bijwerken in plaats van de regel weghalen: hij moet onder
+       "Gedaan" terug te vinden zijn, en daar weer open te zetten. Opnieuw
+       tekenen laat hem uit het huidige rijtje verdwijnen als dat nodig is. */
+    DS_TAKEN = (DS_TAKEN || []).map(t =>
+      String(t.id) === String(id) ? Object.assign({}, t, nieuw) : t);
+    dsTekenTaken();
   }catch(err){
     knop.disabled = false;
     alert(/40[13]/.test(String(err.message))
-      ? 'Deze taak staat niet op jouw naam, dus je kunt hem niet afvinken.'
-      : 'Afvinken lukte niet: ' + err.message);
+      ? 'Deze taak staat niet op jouw naam, dus je kunt hem niet ' +
+        (open ? 'openzetten' : 'afvinken') + '.'
+      : (open ? 'Openzetten' : 'Afvinken') + ' lukte niet: ' + err.message);
   }
 });
 
