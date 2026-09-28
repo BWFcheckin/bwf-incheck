@@ -120,8 +120,15 @@ create trigger bwf_bon_mag_gebruikt_trg
 -- ---------------------------------------------------------------------------
 -- Wordt aangeroepen door de webhook. security definer, want de webhook draait
 -- zonder ingelogde gebruiker.
+-- LET OP de namen van de uitvoerkolommen: bon_code, bon_waarde, bon_status.
+-- Ze heetten eerst code, waarde en status - net als de kolommen van de tabel.
+-- Een `returns table (...)` maakt die namen tot variabelen, en dan weet
+-- PostgreSQL bij `set status = ...` niet meer of je de kolom of de variabele
+-- bedoelt: "column reference status is ambiguous". De hele migratie liep daar
+-- op stuk, en omdat alles in één transactie zit kwam er niets door - Angela
+-- zag op 29-09-2026 "0 van 5" bij de controle terwijl ze hem gedraaid had.
 create or replace function public.bwf_bon_betaald(p_betaal_id text)
-returns table (code text, waarde numeric, status text)
+returns table (bon_code text, bon_waarde numeric, bon_status text)
 language plpgsql
 security definer
 set search_path = ''

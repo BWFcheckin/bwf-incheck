@@ -87,8 +87,11 @@ async function zetBonBetaald(
     }
     const rijen = Array.isArray(data) ? data : [];
     if (!rijen.length) return false;
+    /* bon_code en bon_status, niet code en status: die namen zouden in de
+     * databasefunctie botsen met de kolommen van de tabel. */
     console.info(
-      `Cadeaubon ${rijen[0].code} staat op ${rijen[0].status} na betaling ${betaalId}`,
+      `Cadeaubon ${rijen[0].bon_code} staat op ${rijen[0].bon_status} ` +
+        `na betaling ${betaalId}`,
     );
     return true;
   } catch (e) {
