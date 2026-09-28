@@ -799,6 +799,13 @@ async function start() {
     melding("Je kunt bonnen opzoeken en nakijken. Nieuwe bonnen aanmaken doet Angela of een VR-assistent.");
   }
   try { await laad(); } catch (e) { melding("De bonnen konden niet worden geladen: " + e.message, "fout"); }
+  /* Rechtstreeks naar een tabblad: cadeaubonnen.html?tab=nieuw opent meteen de
+     generator. Zo kun je die link apart bewaren zonder eerst te moeten
+     klikken. Onbekende waarden worden genegeerd. */
+  const gevraagd = new URLSearchParams(location.search).get("tab");
+  if (["lijst", "import", "nieuw"].includes(gevraagd)) {
+    if (gevraagd === "lijst" || magBeheren()) toonTab(gevraagd);
+  }
 }
 
 start();
