@@ -1631,7 +1631,15 @@ function openVenster(id) {
      mocht aanvullen (naam, contact, personen, in- en uitchecktijd, plakveld)
      staan daarmee ook op slot. Terugdraaien kan door BEPERKTE_VELDEN hierboven
      weer mee te wegen. */
-  $("#vPersoneelKaart").hidden = !beperkt;
+  /* Angela, 28-09-2026: "ik zie het nog niet." Terecht - deze kaart met het
+     openstaande bedrag, de twee knoppen en de gegevens in blokjes was alleen
+     voor personeel. De eigenaar en de vr-assistenten kregen meteen het
+     bewerkformulier en zagen dat overzicht nooit.
+
+     Hij staat er nu voor iedereen, bovenaan: eerst zien wat er speelt, dan
+     eronder in de ingeklapte onderdelen wijzigen wat nodig is. Voor personeel
+     verandert er niets; die had alleen deze kaart al. */
+  $("#vPersoneelKaart").hidden = false;
   /* Het blok blijft staan zolang iemand er iets mag: personeel ziet alles,
      de eigenaar en de vr-assistenten alleen het afrekenen - de twee velden
      erboven staan voor hen al in het formulier zelf. */
@@ -1682,8 +1690,12 @@ function openVenster(id) {
        het handiger als het meteen openstaat. */
     const bij = $("#vBijboekVak");
     if (bij && "open" in bij) bij.open = true;
-    tekenPersoneelKaart(r);
   }
+
+  /* Het overzicht bovenaan: bedrag, knoppen en de gegevens in blokjes. Stond
+     eerst binnen het blok hierboven en werd dus alleen voor personeel
+     getekend. */
+  tekenPersoneelKaart(r);
 
   /* Het afrekenvak met de drie keuzes vullen; de bedragen hangen aan deze
      reservering, dus dat moet bij elk openen opnieuw.
