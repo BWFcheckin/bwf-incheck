@@ -1,0 +1,47 @@
+-- Terugdraaien van 20260928160000_membership.sql
+-- ---------------------------------------------------------------------------
+-- In twee trappen, zodat er geen lidmaatschappen sneuvelen.
+--
+-- TRAP 1 - het programma stilzetten zonder iets te verliezen
+-- Zet het kortingspercentage op nul; dan rekent geen enkel scherm nog korting,
+-- terwijl alle leden en hun lidnummers gewoon blijven bestaan:
+--
+--   update public.instellingen set waarde = '0'
+--    where sleutel = 'member_korting_procent';
+--
+-- TRAP 2 - pas als je het programma echt niet meer wilt
+-- Kijk eerst wat je weggooit:
+--
+--   select count(*) as leden,
+--          count(*) filter (where member_nummer is not null) as met_lidnummer
+--   from public.wz_klantbeheer where member = true;
+--
+-- Staat daar meer dan nul, exporteer dan eerst:
+--
+--   \copy (select id, voornaam, achternaam, email, member, member_sinds,
+--                 member_nummer, member_gestopt, member_niveau
+--          from public.wz_klantbeheer where member = true)
+--   to 'exports/members-backup.csv' csv header
+--
+-- (exports/ staat in .gitignore, dus zo'n bestand belandt niet in de repo.)
+--
+-- Daarna pas, en bewust regel voor regel:
+--
+-- begin;
+-- drop index if exists public.wz_klantbeheer_member_nummer_idx;
+-- drop index if exists public.wz_klantbeheer_member_idx;
+-- alter table public.wz_klantbeheer
+--   drop constraint if exists wz_klantbeheer_member_niveau_check;
+-- alter table public.wz_klantbeheer
+--   drop column if exists member_niveau,
+--   drop column if exists member_gestopt,
+--   drop column if exists member_nummer,
+--   drop column if exists member_sinds;
+-- delete from public.instellingen where sleutel like 'member\_%';
+-- commit;
+--
+-- LET OP: de kolom `member` zelf staat hier NIET bij. Die bestond al vóór deze
+-- migratie en hoort dus niet bij wat teruggedraaid wordt.
+--
+-- Bewust uitgecommentarieerd: dit script draait zoals het is niets weg. Wil je
+-- het echt, haal dan zelf de streepjes weg.

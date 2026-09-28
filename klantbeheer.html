@@ -505,6 +505,46 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
           </div>
         </div>
       </fieldset>
+      <!-- Membershipprogramma, 28-09-2026. Deze regels staan in de tabel
+           `instellingen` en niet bij de andere instellingen hierboven: het
+           reserveringsscherm moet het kortingspercentage ook kennen bij het
+           boeken, en dat leest daar al uit. -->
+      <fieldset>
+        <p class="legend">Membership</p>
+        <div class="grid">
+          <div class="field">
+            <label for="sMemKorting">Korting voor members — %</label>
+            <input type="number" id="sMemKorting" min="0" max="100" step="0.5">
+            <span class="hint">Op nul zetten schakelt de korting uit zonder dat er iemand zijn lidmaatschap verliest.</span>
+          </div>
+          <div class="field">
+            <label for="sMemOver">De korting geldt over</label>
+            <select id="sMemOver">
+              <option value="kamer">Alleen de kamerprijs</option>
+              <option value="alles">De hele boeking, extra's erbij</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label for="sMemExtras">Extra's die members gratis krijgen</label>
+            <textarea id="sMemExtras" rows="3" placeholder="Eén per regel, bijvoorbeeld:&#10;Late check-out&#10;Rookterras"></textarea>
+            <span class="hint">Eén per regel. Deze namen moeten precies zo heten als in de lijst met extra's, anders worden ze niet herkend bij het boeken.</span>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label for="sMemTekst">Tekst voor de gast</label>
+            <textarea id="sMemTekst" rows="3"></textarea>
+            <span class="hint">Wordt gebruikt in de mail aan members. Laat je dit leeg, dan wordt de tekst opgebouwd uit de regels hierboven.</span>
+          </div>
+          <div class="field">
+            <label for="sMemStart">Lidnummers beginnen bij</label>
+            <input type="number" id="sMemStart" min="1" step="1">
+            <span class="hint">Alleen van belang voor het eerste lid; daarna telt het vanzelf door.</span>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn primary" id="sMemBewaar" type="button">Memberregels bewaren</button>
+          <span id="sMemMsg" style="margin-left:10px;font-size:13px"></span>
+        </div>
+      </fieldset>
       <fieldset>
         <p class="legend">Locaties</p>
         <div id="sLocList"></div>
@@ -686,7 +726,14 @@ function naarRij(r){
     geboortedatum:dOfNull(r.geboortedatum), woonplaats:r.woonplaats || "", email:r.email || "",
     telefoon:r.telefoon || "", nationaliteit:r.nationaliteit || "", personen:num(r.personen),
     kinderen:num(r.kinderen), kale_prijs:num(r.kalePrijs), totaal_betaald:num(r.totaalBetaald),
-    member:!!r.member, bron:r.bron || "", notitie:r.notitie || "", aangemaakt:r.aangemaakt || new Date().toISOString()};
+    member:!!r.member, bron:r.bron || "", notitie:r.notitie || "", aangemaakt:r.aangemaakt || new Date().toISOString(),
+    /* Membershipprogramma, 28-09-2026. Deze vier gaan mee in élke opslag, ook
+       als je ze niet hebt aangeraakt: het opslaan hier is een upsert van de
+       hele rij, en wat je niet meestuurt loopt het risico dat het terugvalt op
+       de standaardwaarde. Een lidnummer dat stil verdwijnt omdat iemand een
+       telefoonnummer bijwerkte, zou je pas weken later merken. */
+    member_sinds: dOfNull(r.memberSinds), member_nummer: r.memberNummer || null,
+    member_gestopt: dOfNull(r.memberGestopt), member_niveau: r.memberNiveau || null};
 }
 function uitRij(x){
   return {id:x.id, type:x.type || "overnachting", locatieId:x.locatie_id || "",
@@ -695,7 +742,9 @@ function uitRij(x){
     geboortedatum:x.geboortedatum || "", woonplaats:x.woonplaats || "", email:x.email || "",
     telefoon:x.telefoon || "", nationaliteit:x.nationaliteit || "", personen:num(x.personen),
     kinderen:num(x.kinderen), kalePrijs:num(x.kale_prijs), totaalBetaald:num(x.totaal_betaald),
-    member:!!x.member, bron:x.bron || "", notitie:x.notitie || "", aangemaakt:x.aangemaakt || ""};
+    member:!!x.member, bron:x.bron || "", notitie:x.notitie || "", aangemaakt:x.aangemaakt || "",
+    memberSinds:x.member_sinds || "", memberNummer:x.member_nummer || "",
+    memberGestopt:x.member_gestopt || "", memberNiveau:x.member_niveau || ""};
 }
 function modalOpen(){ return !$("mdReg").hidden || !$("mdNieuweKlant").hidden || !$("mdSet").hidden; }
 function ververs(){
@@ -706,15 +755,42 @@ function ververs(){
     state.records = nieuw; lsSchrijf(LS_REC, nieuw); herteken();
   })["catch"](function(){});
 }
+/* De regels van het membershipprogramma. Die staan in `instellingen`, dezelfde
+   sleutel/waarde-tabel waar de reviewlinks en de sjablonen in staan - en niet
+   in wz_klantbeheer_instellingen. Reden: het reserveringsscherm moet het
+   kortingspercentage ook kennen bij het boeken, en dat leest al uit
+   `instellingen`. Twee plekken zouden gaan afwijken.
+
+   De standaardwaarden hieronder gelden zolang de bevraging niet gelukt is;
+   dan rekent er niets korting in plaats van een verzonnen percentage. */
+var MEMBER_REGELS = { korting: 0, over: "kamer", gratisExtras: [], voorwaarden: "", nummerStart: 1001 };
+
+function leesMemberRegels(rijen){
+  var m = {};
+  (rijen || []).forEach(function(r){ m[r.sleutel] = r.waarde; });
+  MEMBER_REGELS = {
+    korting: num(m.member_korting_procent),
+    over: m.member_korting_over || "kamer",
+    gratisExtras: String(m.member_gratis_extras || "").split(/\s*[\n;]\s*/).filter(Boolean),
+    voorwaarden: m.member_voorwaarden || "",
+    nummerStart: num(m.member_nummer_start) || 1001
+  };
+  return MEMBER_REGELS;
+}
+
 function startSupabase(){
   Promise.all([
     sbGet(SUPABASE.tabel + "?select=*"),
-    sbGet(SUPABASE.instellingen + "?id=eq.algemeen&select=data")
+    sbGet(SUPABASE.instellingen + "?id=eq.algemeen&select=data"),
+    /* Mislukt deze, dan blijft MEMBER_REGELS op nul staan en werkt de rest
+       gewoon door. Vandaar een eigen catch en geen deelname aan de grote. */
+    sbGet("instellingen?select=sleutel,waarde&sleutel=like.member\\_*")["catch"](function(){ return []; })
   ]).then(function(res){
     state.records = (res[0] || []).map(uitRij);
     lsSchrijf(LS_REC, state.records);
     if(res[1] && res[1][0] && res[1][0].data)
       state.settings = Object.assign({}, DEFAULT_SETTINGS, res[1][0].data);
+    leesMemberRegels(res[2]);
     setStatus("supabase"); vulSelects(); vulSettingsForm(); herteken();
     setInterval(ververs, 30000);
     window.addEventListener("focus", ververs);
@@ -1078,7 +1154,12 @@ function klantenMap(){
     if(!map[key]) map[key] = {key:key, naam:volleNaam(r), woonplaats:r.woonplaats, nationaliteit:r.nationaliteit,
       geboortedatum:r.geboortedatum, email:"", telefoon:"", overnachtingen:0, dagverblijven:0, nachten:0,
       personen:0, besteed:0, belasting:0, member:false, eerste:"", laatste:"", records:[], jaren:{},
-      contacten:0, contactDatum:"", notitie:""};
+      contacten:0, contactDatum:"", notitie:"",
+      /* Membershipprogramma. Een klant is één persoon maar kan meerdere
+         registraties hebben; het lidmaatschap hoort bij de persoon. We nemen
+         de eerste ingevulde waarde die we tegenkomen, en voor de begindatum de
+         vroegste - dat is wanneer hij echt lid werd. */
+      memberSinds:"", memberNummer:"", memberGestopt:"", memberNiveau:""};
     var k = map[key];
     k.records.push(r);
     if(r.email) k.email = r.email;
@@ -1097,6 +1178,13 @@ function klantenMap(){
     k.besteed += num(r.totaalBetaald);
     k.belasting += belasting(r).bedrag;
     if(r.member) k.member = true;
+    if(r.memberNummer && !k.memberNummer) k.memberNummer = r.memberNummer;
+    if(r.memberNiveau && !k.memberNiveau) k.memberNiveau = r.memberNiveau;
+    if(r.memberSinds && (!k.memberSinds || r.memberSinds < k.memberSinds)) k.memberSinds = r.memberSinds;
+    /* Gestopt: de laatste datum telt. Is iemand gestopt en later weer lid
+       geworden, dan staat de nieuwste stopdatum vóór dat opnieuw aanmelden -
+       en dat opnieuw aanmelden maakt het veld weer leeg. */
+    if(r.memberGestopt && r.memberGestopt > k.memberGestopt) k.memberGestopt = r.memberGestopt;
     if(r.datumIn){ k.jaren[r.datumIn.slice(0,4)] = 1;
       if(!k.laatste || r.datumIn > k.laatste) k.laatste = r.datumIn;
       if(!k.eerste || r.datumIn < k.eerste) k.eerste = r.datumIn; }
@@ -1320,6 +1408,8 @@ function tekenMembers(){
   for(i=0;i<rijen.length;i++){
     var k = rijen[i]; if(k.email) metMail++; besteed += k.besteed; nachten += k.nachten;
     html += '<tr><td><button class="linkbtn" data-klant="' + esc(k.key) + '">' + esc(k.naam) + "</button></td>" +
+      "<td>" + (k.memberNummer ? esc(k.memberNummer) : '<span style="opacity:.5">—</span>') + "</td>" +
+      "<td>" + (k.memberSinds ? dNL(k.memberSinds) : '<span style="opacity:.5">onbekend</span>') + "</td>" +
       "<td>" + esc(k.woonplaats) + "</td>" +
       "<td>" + (k.email ? '<a href="mailto:' + esc(k.email) + '">' + esc(k.email) + "</a>" : '<span style="color:var(--copper)">ontbreekt</span>') + "</td>" +
       "<td>" + belCel(k.telefoon) + "</td>" +
@@ -1329,7 +1419,7 @@ function tekenMembers(){
       "<td>" + (k.laatste ? dNL(k.laatste) : "nog geen verblijf") + "</td></tr>";
   }
   $("mTabel").innerHTML = rijen.length
-    ? '<thead><tr><th>Member</th><th>Woonplaats</th><th>E-mail</th><th>Telefoon</th>' +
+    ? '<thead><tr><th>Member</th><th>Lidnr.</th><th>Lid sinds</th><th>Woonplaats</th><th>E-mail</th><th>Telefoon</th>' +
       '<th class="num">Overnachtingen</th><th class="num">Nachten</th><th class="num">Dagverblijven</th>' +
       '<th class="num">Totaal besteed</th><th>Eerste bezoek</th><th>Laatste bezoek</th></tr></thead><tbody>' + html + "</tbody>"
     : '<tbody><tr><td><div class="empty"><b>Nog geen members</b>Vink bij een registratie aan dat de gast member wil worden.</div></td></tr></tbody>';
@@ -1353,8 +1443,35 @@ function openKlant(key){
     "<div><span>Telefoon</span><b>" + (k.telefoon ? belCel(k.telefoon) : "—") + "</b></div>" +
     "<div><span>Nationaliteit</span><b>" + esc(k.nationaliteit || "—") + "</b></div>" +
     "<div><span>Geboortedatum</span><b>" + (k.geboortedatum ? dNL(k.geboortedatum) : "—") + "</b></div>" +
-    "<div><span>Member</span><b>" + (k.member ? "ja" : "nee") + "</b></div>" +
+    /* Het lidmaatschap in één blokje: of hij lid is, met welk nummer en sinds
+       wanneer. Is hij gestopt, dan staat dat er ook - anders lijkt een oud
+       lidnummer alsof het nog loopt. */
+    "<div><span>Member</span><b>" + (k.member
+        ? "ja" + (k.memberNummer ? " · nr. " + esc(k.memberNummer) : "") +
+          (k.memberSinds ? '<small style="display:block;font-weight:400;opacity:.7">sinds ' +
+            dNL(k.memberSinds) + "</small>" : "")
+        : k.memberGestopt
+          ? 'nee<small style="display:block;font-weight:400;opacity:.7">gestopt op ' +
+            dNL(k.memberGestopt) + (k.memberNummer ? " · was nr. " + esc(k.memberNummer) : "") + "</small>"
+          : "nee") + "</b></div>" +
     "</div>" +
+    /* Wat het lidmaatschap oplevert, met de bedragen van deze klant erbij.
+       Alleen tonen als er echt een voordeel is ingesteld; staat de korting op
+       nul, dan zou dit blok een belofte doen die niet waargemaakt wordt. */
+    (k.member && (MEMBER_REGELS.korting > 0 || MEMBER_REGELS.gratisExtras.length)
+      ? '<div class="card" style="margin:0 0 14px"><div class="card-body" style="padding:14px">' +
+        "<b>Voordeel als member</b><ul style=\"margin:8px 0 0;padding-left:20px;font-size:14px\">" +
+        (MEMBER_REGELS.korting > 0
+          ? "<li>" + MEMBER_REGELS.korting + "% korting op " +
+            (MEMBER_REGELS.over === "alles" ? "de hele boeking" : "de kamerprijs") +
+            (k.besteed ? ' <span style="opacity:.7">(had ' +
+              eur(k.besteed * MEMBER_REGELS.korting / 100) + " gescheeld over alles wat hij tot nu toe besteedde)</span>" : "") +
+            "</li>"
+          : "") +
+        MEMBER_REGELS.gratisExtras.map(function(x){
+          return "<li>" + esc(x) + "</li>"; }).join("") +
+        "</ul></div></div>"
+      : "") +
     '<div class="tiles">' +
     '<div class="tile"><span>Overnachtingen</span><b>' + k.overnachtingen + "</b><small>" + k.nachten + " nachten</small></div>" +
     '<div class="tile"><span>Dagverblijven</span><b>' + k.dagverblijven + "</b></div>" +
@@ -1612,6 +1729,7 @@ function vulSettingsForm(){
   var s = state.settings;
   $("sLelystad").value = s.tariefLelystad; $("sAlmere").value = s.percentageAlmere; $("sIncl").value = s.prijsInclusief;
   $("sBedrijf").value = s.bedrijf; $("sKvk").value = s.kvk; $("sMail").value = s.mail; $("sMailNaar").value = s.mailNaar || "";
+  vulMemberForm();
   tekenLocatieInstellingen();
   $("sInfo").textContent = state.mode === "supabase"
     ? "De gegevens staan in Supabase (tabel " + SUPABASE.tabel + "), hetzelfde project als je dashboards. Iedereen met toegang tot de pagina ziet dezelfde klanten en registraties; de lijst ververst automatisch."
@@ -1619,6 +1737,53 @@ function vulSettingsForm(){
     ? "Alle gegevens staan in de beveiligde opslag van deze app en zijn zichtbaar op elk apparaat waarmee je bent ingelogd. Maak toch af en toe een back-up."
     : "Let op: de gegevens staan nu alleen in deze browser. Maak regelmatig een back-up met de knoppen hierboven.";
 }
+/* Het membershipformulier vullen uit MEMBER_REGELS. */
+function vulMemberForm(){
+  if(!$("sMemKorting")) return;
+  $("sMemKorting").value = MEMBER_REGELS.korting;
+  $("sMemOver").value = MEMBER_REGELS.over === "alles" ? "alles" : "kamer";
+  $("sMemExtras").value = MEMBER_REGELS.gratisExtras.join("\n");
+  $("sMemTekst").value = MEMBER_REGELS.voorwaarden;
+  $("sMemStart").value = MEMBER_REGELS.nummerStart;
+}
+
+/* Bewaren gaat rechtstreeks naar `instellingen`, met een upsert op de sleutel.
+   Bewust een aparte knop en geen opslaan-bij-elke-toets zoals de tarieven
+   hierboven: dit zijn vijf velden die bij elkaar horen, en halverwege
+   opslaan zou een percentage kunnen vastleggen dat nog niet af is. */
+function bewaarMemberRegels(){
+  var msg = $("sMemMsg");
+  var rijen = [
+    { sleutel: "member_korting_procent", waarde: String(num($("sMemKorting").value)) },
+    { sleutel: "member_korting_over",    waarde: $("sMemOver").value },
+    { sleutel: "member_gratis_extras",   waarde: $("sMemExtras").value.trim() },
+    { sleutel: "member_voorwaarden",     waarde: $("sMemTekst").value.trim() },
+    { sleutel: "member_nummer_start",    waarde: String(num($("sMemStart").value) || 1001) }
+  ];
+  if(state.mode !== "supabase"){
+    msg.textContent = "Geen verbinding met de database — deze regels worden niet bewaard.";
+    return;
+  }
+  msg.textContent = "Bezig…";
+  fetch(sbUrl("instellingen"), {
+    method: "POST",
+    headers: sbHeaders({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
+    body: JSON.stringify(rijen)
+  }).then(function(r){
+    if(!r.ok) throw new Error("Supabase " + r.status);
+    /* Wat er nu in de velden staat is wat er in de database staat; de rest van
+       het scherm rekent er meteen mee. */
+    leesMemberRegels(rijen);
+    msg.textContent = "Bewaard.";
+    herteken();
+    setTimeout(function(){ msg.textContent = ""; }, 2500);
+  })["catch"](function(e){
+    msg.textContent = /40[13]/.test(String(e.message))
+      ? "Je mag deze instellingen niet wijzigen. Vraag Angela."
+      : "Bewaren lukte niet: " + e.message;
+  });
+}
+
 function tekenLocatieInstellingen(){
   var html = "";
   for(var i=0;i<state.settings.locaties.length;i++){
@@ -1871,9 +2036,21 @@ $("mMailKnop").addEventListener("click", function(){
   var rijen = memberRijen(), adressen = [], zonder = 0, i;
   for(i=0;i<rijen.length;i++){ if(rijen[i].email) adressen.push(rijen[i].email); else zonder++; }
   if(!adressen.length){ toast("Van deze members is nog geen e-mailadres bekend."); return; }
-  mailtoBcc(adressen, "Word member bij " + state.settings.bedrijf,
-    "Beste gast,\n\nJe gaf aan interesse te hebben in een membership bij " + state.settings.bedrijf + ".\n\n" +
-    "[hier je tekst]\n\nMet vriendelijke groet,\n" + state.settings.bedrijf);
+  /* De tekst komt uit de instelling member_voorwaarden, zodat je hem op één
+     plek aanpast en hij overal gelijk is. Staat daar niets, dan wordt hij
+     opgebouwd uit de regels die wél zijn ingesteld - beter een kloppende
+     opsomming dan "[hier je tekst]" die per ongeluk de deur uitgaat. */
+  var voordeel = MEMBER_REGELS.voorwaarden || [
+    MEMBER_REGELS.korting > 0
+      ? "• " + MEMBER_REGELS.korting + "% korting op " +
+        (MEMBER_REGELS.over === "alles" ? "je hele boeking" : "de kamerprijs")
+      : ""
+  ].concat(MEMBER_REGELS.gratisExtras.map(function(x){ return "• " + x; }))
+   .concat(["• Als eerste bericht bij aanbiedingen en drukke data"])
+   .filter(Boolean).join("\n");
+  mailtoBcc(adressen, "Je membership bij " + state.settings.bedrijf,
+    "Beste gast,\n\nJe bent member bij " + state.settings.bedrijf + ".\n\n" +
+    voordeel + "\n\nMet vriendelijke groet,\n" + state.settings.bedrijf);
   if(zonder) setTimeout(function(){ toast("Let op: van " + zonder + " member(s) is geen e-mailadres bekend."); }, 1200);
 });
 
@@ -1891,16 +2068,55 @@ $("klantCsv").addEventListener("click", function(){
     csvVan(CSV_KOP, k.records.slice().sort(function(a,b){ return (a.datumIn||"").localeCompare(b.datumIn||""); }).map(csvRij)), "Lijst");
 });
 $("klantMail").addEventListener("click", function(){ klantActie("gmail"); });
+/* Het eerstvolgende vrije lidnummer. Hoogste bestaande plus één, met de
+   ondergrens uit de instellingen. Bewust berekend uit wat er staat en niet uit
+   een teller die je apart moet bijhouden: zo kan een teller nooit uit de pas
+   lopen met de werkelijkheid. Zetten twee mensen tegelijk iemand op member,
+   dan vangt de unieke index in de database de botsing op. */
+function volgendLidnummer(){
+  var hoog = MEMBER_REGELS.nummerStart - 1, i, n;
+  for(i = 0; i < state.records.length; i++){
+    n = parseInt(String(state.records[i].memberNummer || "").replace(/\D/g, ""), 10);
+    if(!isNaN(n) && n > hoog) hoog = n;
+  }
+  return String(hoog + 1);
+}
+
 $("klantMember").addEventListener("click", function(){
   var map = klantenMap(), k = map[state.klantOpen];
   if(!k) return;
-  var nieuw = !k.member, i;
+  var nieuw = !k.member, i, vandaag = new Date().toISOString().slice(0, 10);
+  /* Stoppen vraagt om bevestiging: het lidnummer blijft staan, maar de gast
+     verliest zijn korting en valt uit de mailings. */
+  if(!nieuw && !confirm("Het lidmaatschap van " + k.naam + " stopzetten?\n\n" +
+      "Het lidnummer en de begindatum blijven bewaard, dus je ziet later nog " +
+      "dat hij lid is geweest. Hij krijgt vanaf nu geen memberkorting meer.")) return;
+  /* Nummer één keer bepalen, buiten de lus: alle registraties van dezelfde
+     persoon horen hetzelfde lidnummer te krijgen. */
+  var nummer = k.memberNummer || volgendLidnummer();
   for(i=0;i<state.records.length;i++){
-    if(klantKey(state.records[i]) === k.key){ state.records[i].member = nieuw; bewaarRecord(state.records[i]); }
+    if(klantKey(state.records[i]) !== k.key) continue;
+    var r = state.records[i];
+    r.member = nieuw;
+    if(nieuw){
+      /* Opnieuw lid worden: de oorspronkelijke begindatum blijft staan, de
+         stopdatum gaat weg. Zo blijft zichtbaar hoe lang iemand al meedoet. */
+      if(!r.memberSinds) r.memberSinds = vandaag;
+      if(!r.memberNummer) r.memberNummer = nummer;
+      r.memberNiveau = "basis";
+      r.memberGestopt = "";
+    } else {
+      r.memberGestopt = vandaag;
+    }
+    bewaarRecord(r);
   }
   herteken(); openKlant(k.key);
-  toast(nieuw ? "Toegevoegd aan members." : "Member-vinkje weggehaald.");
+  toast(nieuw
+    ? "Member geworden · lidnummer " + nummer
+    : "Lidmaatschap gestopt. Het lidnummer blijft bewaard.");
 });
+
+$("sMemBewaar").addEventListener("click", bewaarMemberRegels);
 
 ["sLelystad","sAlmere","sIncl","sBedrijf","sKvk","sMail","sMailNaar"].forEach(function(id){
   $(id).addEventListener("change", function(){
@@ -1939,17 +2155,16 @@ $("sJson").addEventListener("click", function(){
 
 /* ---------- start ---------- */
 vulSelects(); vulSettingsForm(); leegForm(); tekenPreview(); setStatus("wacht"); startOpslag();
-})();
 
-/* ---------- ingebed reserveringenoverzicht ---------- */
-window.addEventListener("message", function(e){
-  if(e.data && e.data.bwf === "hoogte" && e.data.bron === "reserveringen"){
-    var f = document.getElementById("resFrame");
-    if(f) f.style.height = Math.max(300, Math.min(1400, e.data.hoogte + 20)) + "px";
-  }
-});
-
-/* zoekterm uit de link toepassen zodra de gegevens geladen zijn */
+/* Toepassen wat de link vraagt, zodra de gegevens geladen zijn.
+   Deze vijf regels stonden ONDER de afsluiting van deze functie, dus buiten de
+   scope waarin pasLinkTabToe en de andere drie gedefinieerd zijn. Gevolg: bij
+   elk laden kwam er stil een foutmelding ("pasLinkTabToe is not defined") en
+   deed geen enkele link iets. Dat trof klantbeheer.html?klant=<id>,
+   ?nieuw=<id>, ?tab=members en ?zoek=<naam> - precies de links waarmee het
+   dagoverzicht en de dashboards hierheen wijzen.
+   Gemeten 28-09-2026: met ?tab=members bleef het klantenbestand openstaan.
+   Ze staan nu binnen de functie. */
 setTimeout(pasLinkTabToe, 700);
 setTimeout(pasLinkZoekToe, 800);
 setTimeout(pasLinkZoekToe, 2500);
@@ -1959,6 +2174,15 @@ setTimeout(pasLinkKlantToe, 900);
 setTimeout(pasLinkKlantToe, 2600);
 /* het venster voor een nieuwe klant, als de link daarom vraagt */
 setTimeout(pasLinkNieuwToe, 1000);
+})();
+
+/* ---------- ingebed reserveringenoverzicht ---------- */
+window.addEventListener("message", function(e){
+  if(e.data && e.data.bwf === "hoogte" && e.data.bron === "reserveringen"){
+    var f = document.getElementById("resFrame");
+    if(f) f.style.height = Math.max(300, Math.min(1400, e.data.hoogte + 20)) + "px";
+  }
+});
 </script>
 
 <script>

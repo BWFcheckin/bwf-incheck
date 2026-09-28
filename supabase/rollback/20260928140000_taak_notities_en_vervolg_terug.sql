@@ -1,0 +1,41 @@
+-- Terugdraaien van 20260928140000_taak_notities_en_vervolg.sql
+-- ---------------------------------------------------------------------------
+-- In twee trappen, zodat je niet per ongeluk aantekeningen weggooit die
+-- medewerkers al hebben ingetypt.
+--
+-- TRAP 1 - de schermen laten het met rust
+-- Zet de nieuwe onderdelen uit in het scherm (of draai de vorige versie van de
+-- pagina terug). De kolommen blijven staan, er gaat niets verloren, en je kunt
+-- op elk moment weer verder.
+--
+-- TRAP 2 - pas als je zeker weet dat je ze niet meer wilt
+-- Kijk eerst wat je weggooit:
+--
+--   select count(*) as taken_met_notities
+--   from public.wz_taken
+--   where notities is not null and jsonb_array_length(notities) > 0;
+--
+--   select count(*) as vervolgtaken
+--   from public.wz_taken where vervolg_van is not null;
+--
+-- Staat daar meer dan nul, exporteer dan eerst:
+--
+--   \copy (select id, titel, notities, vervolg_van from public.wz_taken
+--          where jsonb_array_length(notities) > 0 or vervolg_van is not null)
+--   to 'exports/taak-notities-backup.csv' csv header
+--
+-- (exports/ staat in .gitignore, dus zo'n bestand belandt niet in de repo.)
+--
+-- Daarna pas, en bewust regel voor regel:
+--
+-- begin;
+-- drop index if exists public.wz_taken_vervolg_van_idx;
+-- alter table public.wz_taken drop constraint if exists wz_taken_vervolg_van_fkey;
+-- alter table public.wz_taken drop constraint if exists wz_taken_notities_check;
+-- alter table public.wz_taken drop column if exists vervolg_van;
+-- alter table public.wz_taken drop column if exists notities;
+-- commit;
+--
+-- Bewust uitgecommentarieerd: dit script draait zoals het is niets weg. Wil je
+-- het echt, haal dan zelf de streepjes weg. Zo kan een per ongeluk uitgevoerd
+-- rollbackscript geen aantekeningen wissen.
