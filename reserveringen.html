@@ -495,6 +495,9 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <!-- Bestaande klant kiezen vult de vier velden hieronder. Leeg laten mag:
              dan wordt er geen klant aan de reservering gekoppeld. -->
         <label class="veld breed">Bestaande klant <select id="nKlant"></select></label>
+        <!-- Meldt dat deze klant member is, met wat dat hier oplevert.
+             Angela, 28-09-2026. Blijft leeg zolang er geen member gekozen is. -->
+        <div class="veld breed" id="nMemberVak" hidden></div>
         <!-- Staat de klant er nog niet tussen, dan kan hij hiervandaan meteen
              worden aangemaakt in klantbeheer. Opent in een nieuw tabblad, zodat
              de half ingevulde reservering blijft staan. -->
@@ -3506,13 +3509,115 @@ function toeslagRegels() {
   return uit;
 }
 
+/* =========================================================
+   Memberkorting bij een nieuwe boeking
+   =========================================================
+   Angela, 28-09-2026: members krijgen korting op elke boeking en sommige
+   extra's gratis. Hoeveel en welke staat in `instellingen` en wordt gelezen
+   door bwf-member.js, zodat het percentage aanpasbaar is zonder dat hier iets
+   verandert.
+
+   De korting komt als eigen regels in de opsomming, met een negatief bedrag.
+   Dat is met opzet:
+     * de gast ziet wát hij bespaart en waarom, in plaats van alleen een lager
+       eindbedrag waar hij niets van kan nagaan;
+     * de opsomming telt op tot het totaal. Bij opslaan wordt die opsomming
+       opnieuw opgebouwd en als specificatie in `arrangementen` bewaard - zou
+       de korting daar niet in staan, dan zou de specificatie niet kloppen met
+       bedrag_totaal.
+
+   Een gratis extra wordt niet op nul gezet maar tegengeboekt. Zo blijft
+   zichtbaar dat het ding € 10 waard is; dat is eerlijker naar de gast en
+   scheelt gedoe als het lidmaatschap achteraf niet blijkt te kloppen. */
+function nGekozenKlant() {
+  const el = $("#nKlant");
+  if (!el || !el.value) return null;
+  return KLANTEN.find((k) => String(k.id) === String(el.value)) || null;
+}
+
+function nIsMember() {
+  if (typeof BWFMember === "undefined") return false;
+  return BWFMember.isLid(nGekozenKlant());
+}
+
+/* De kortingsregels voor deze boeking. Leeg als er geen member is gekozen of
+   als er geen voordeel is ingesteld. */
+function memberRegels(verblijf, toeslag, feest, extras) {
+  if (typeof BWFMember === "undefined" || !nIsMember() || !BWFMember.actief()) return [];
+  const r = BWFMember.regels();
+  const uit = [];
+
+  /* Waar de korting over gaat. "kamer" betekent het verblijf met de
+     persoonstoeslagen erbij - dat is samen de kamerprijs. Het feestpakket en
+     de losse extra's vallen daarbuiten, tenzij de instelling op "alles" staat. */
+  const som = (lijst) => lijst.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  const kamer = som(verblijf) + som(toeslag);
+  const rest = som(feest) + som(extras);
+
+  if (r.korting > 0) {
+    const basis = r.over === "alles" ? kamer + rest : kamer;
+    const bedrag = Math.round(basis * r.korting / 100 * 100) / 100;
+    if (bedrag > 0) {
+      uit.push({
+        naam: "Memberkorting " + r.korting + "% (" +
+          (r.over === "alles" ? "hele boeking" : "kamerprijs") + ")",
+        aantal: 1, bedrag: -bedrag, member: true
+      });
+    }
+  }
+
+  /* Extra's die members gratis krijgen, tegengeboekt. Ook het feestpakket kan
+     erbij zitten als het zo heet in de instelling. */
+  feest.concat(extras).forEach((x) => {
+    if (!BWFMember.isGratisExtra(x.naam)) return;
+    const bedrag = Number(x.bedrag) || 0;
+    if (bedrag <= 0) return;
+    uit.push({ naam: x.naam + " — gratis voor members", aantal: 1, bedrag: -bedrag, member: true });
+  });
+  return uit;
+}
+
+/* Het balkje onder de klantkeuze. Drie standen:
+     geen klant of geen member  - niets tonen
+     member, voordeel ingesteld - groen, met het bedrag dat eraf gaat
+     member, maar niets ingesteld - zand, zodat je niet denkt dat er korting
+       gerekend is terwijl het percentage op nul staat */
+function nMemberMelding(alles) {
+  const vak = $("#nMemberVak");
+  if (!vak) return;
+  const k = nGekozenKlant();
+  if (!k || typeof BWFMember === "undefined" || !BWFMember.isLid(k)) {
+    vak.hidden = true; vak.innerHTML = ""; return;
+  }
+  const voordeel = (alles || []).filter((x) => x.member)
+    .reduce((a, x) => a + Math.abs(Number(x.bedrag) || 0), 0);
+  const nummer = k.member_nummer ? " &middot; lidnr. " + esc(k.member_nummer) : "";
+  vak.hidden = false;
+  vak.innerHTML = BWFMember.actief()
+    ? '<div style="display:flex;gap:9px;align-items:center;padding:9px 12px;border-radius:10px;' +
+      'background:#E8F4EC;border:1px solid #2E7D5B;color:#1F5B41;font-size:13.5px">' +
+      "<span>&#11088;</span><span><b>Member</b>" + nummer +
+      (voordeel > 0
+        ? " &mdash; er gaat &euro; " + esc(euro(voordeel)) + " af, zie de opsomming"
+        : " &mdash; het voordeel wordt berekend zodra er een tijdsblok of prijs staat") +
+      "</span></div>"
+    : '<div style="display:flex;gap:9px;align-items:center;padding:9px 12px;border-radius:10px;' +
+      'background:#F5EFE4;border:1px solid #B08A4F;color:#6B5228;font-size:13.5px">' +
+      "<span>&#11088;</span><span><b>Member</b>" + nummer +
+      " &mdash; maar er staat nog geen korting of gratis extra ingesteld. " +
+      "Dat zet je in klantbeheer onder Instellingen.</span></div>";
+}
+
 function nHerbereken() {
   const verblijf = verblijfRegels();
   const toeslag = toeslagRegels();
   const extras = nExtraRegels();
+  const feest = feestRegels();
   /* het feestpakket is een eigen regel: het staat niet in de aanvinklijst */
-  const alles = verblijf.concat(toeslag, feestRegels(), extras);
+  const alles = verblijf.concat(toeslag, feest, extras,
+    memberRegels(verblijf, toeslag, feest, extras));
   const totaal = alles.reduce((a, x) => a + x.bedrag, 0);
+  nMemberMelding(alles);
 
   const som = $("#nExtrasSom");
   if (som) som.textContent = euro(totaal);
@@ -3521,9 +3626,13 @@ function nHerbereken() {
   if (vak) {
     vak.innerHTML = alles.length
       ? alles.map((x) =>
-          '<div style="display:flex;justify-content:space-between;gap:12px">' +
+          /* Een memberregel valt op: groen en met een minteken ervoor, zodat
+             je in één oogopslag ziet wat het lidmaatschap oplevert. */
+          '<div style="display:flex;justify-content:space-between;gap:12px' +
+            (x.member ? ';color:#1F5B41;font-weight:600' : '') + '">' +
             "<span>" + esc(x.naam) + (x.aantal > 1 ? " &times; " + esc(x.aantal) : "") + "</span>" +
-            "<span>&euro; " + esc(euro(x.bedrag)) + "</span></div>").join("") +
+            "<span>" + (x.bedrag < 0 ? "&minus; " : "") + "&euro; " +
+              esc(euro(Math.abs(x.bedrag))) + "</span></div>").join("") +
         '<div style="display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-top:4px">' +
           "<span>Totaal</span><span>&euro; " + esc(euro(totaal)) + "</span></div>"
       : '<span style="color:var(--muted)">Kies een tijdsblok of vul een eigen prijs in.</span>';
@@ -3558,6 +3667,9 @@ document.addEventListener("change", (e) => {
       $("#nEmail").value      = k.email || "";
       $("#nTelefoon").value   = k.telefoon || "";
     }
+    /* Opnieuw rekenen: is deze klant member, dan gaat de korting er meteen af,
+       en anders wordt een eerdere korting weer teruggedraaid. */
+    nHerbereken();
     return;
   }
   if (["nPersonen", "nBedragVolg", "nVolwassenen", "nKinderen", "nEigenPrijs", "nVertrek"]
@@ -5075,13 +5187,25 @@ async function maakReservering() {
     gast_email: $("#nEmail").value.trim().toLowerCase() || null,
     gast_telefoon: $("#nTelefoon").value.trim() || null,
     personen: parseInt($("#nPersonen").value, 10) || 2,
-    /* Wat in de opsomming staat, wordt ook bewaard: verblijf, toeslagen en
-       extra's. Zo is later terug te zien waaruit het totaalbedrag is opgebouwd. */
-    arrangementen: $("#nArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }))
-      .concat(verblijfRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
-      .concat(toeslagRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
-      .concat(feestRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag })))
-      .concat(nExtraRegels().map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag }))),
+    /* Wat in de opsomming staat, wordt ook bewaard: verblijf, toeslagen,
+       extra's en de memberkorting. Zo is later terug te zien waaruit het
+       totaalbedrag is opgebouwd.
+
+       De kortingsregels moeten hier echt bij: zonder die regels telt de
+       specificatie op tot méér dan bedrag_totaal, en dan lijkt het alsof er
+       een bedrag kwijt is. De regels van hierboven worden één keer berekend en
+       hergebruikt, zodat de opslag niet iets anders kan uitrekenen dan wat er
+       op het scherm stond. */
+    arrangementen: (function () {
+      const vb = verblijfRegels(), ts = toeslagRegels(), fe = feestRegels(), ex = nExtraRegels();
+      const mk = memberRegels(vb, ts, fe, ex);
+      const plat = (x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag });
+      return $("#nArr").value.split("\n").map((x) => x.trim()).filter(Boolean).map((naam) => ({ naam }))
+        .concat(vb.map(plat), ts.map(plat), fe.map(plat), ex.map(plat),
+          /* member:true blijft erop staan, zodat de reserveringskaart deze
+             regels als voordeel kan herkennen en niet als gewone extra. */
+          mk.map((x) => ({ naam: x.naam, aantal: x.aantal, bedrag: x.bedrag, member: true })));
+    })(),
     /* De antwoorden uit het feestformulier worden twee keer bewaard: apart in
        extras, zodat er later per vraag op gezocht kan worden, en als leesbare
        tekst in de omschrijving, zodat ze meteen bij de reservering zichtbaar
@@ -5194,7 +5318,11 @@ async function start() {
       api("wz_extras?select=id,naam,categorie,prijs,per_persoon,omschrijving,locatie&actief=eq.true&order=sortering.asc,naam.asc"),
       api("bwf_tariefblokken?select=id,suite,verblijf,dagtype,naam,starttijd,eindtijd,prijs&actief=eq.true&order=suite.asc,sortering.asc"),
       api("bwf_persoonstoeslagen?select=suite,verblijf,soort,prijs&actief=eq.true"),
-      api("wz_klantbeheer?select=id,voornaam,voorletters,achternaam,email,telefoon,woonplaats&order=achternaam.asc")
+      /* member en member_gestopt erbij sinds het membershipprogramma
+         (28-09-2026): zonder die twee weet dit scherm niet wie korting krijgt.
+         member_nummer staat erbij zodat het op de bevestiging kan. */
+      api("wz_klantbeheer?select=id,voornaam,voorletters,achternaam,email,telefoon,woonplaats," +
+        "member,member_gestopt,member_nummer&order=achternaam.asc")
     ]);
     EXTRAS = extras || [];
     TARIEVEN = tarieven || [];
@@ -5235,6 +5363,11 @@ async function start() {
      beheertabblad. Lukt het ophalen niet, dan valt het berichtveld gewoon terug
      op de vaste tekst en blijft de rest van het scherm werken. */
   try { await laadSjablonen(); } catch (e) {}
+  /* De regels van het membershipprogramma. Mislukt dit, dan blijft de korting
+     op nul staan en rekent er niets - er wordt geen percentage geraden. */
+  if (typeof BWFMember !== "undefined") {
+    try { await BWFMember.laad((pad) => api(pad, { stil: true })); } catch (e) {}
+  }
   /* Eén keer kijken of review_status bestaat. Lukt het, dan halen we hem
      voortaan mee op; lukt het niet, dan blijft KOLOMMEN zoals hij was en
      breekt er niets. */
@@ -5535,6 +5668,9 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script src="bwf-kalender.js?v=23"></script>
 <script src="bwf-planweergave.js?v=1"></script>
+<!-- De rekenregels van het membershipprogramma. Apart bestand, zodat de
+     korting op elk scherm hetzelfde uitvalt. -->
+<script src="bwf-member.js?v=1"></script>
 <script src="bwf-menu.js?v=9"></script>
 <script src="bwf-weergave.js?v=2"></script>
 <script src="bwf-account.js?v=1"></script>
