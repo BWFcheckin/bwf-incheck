@@ -104,6 +104,17 @@ section[hidden]{display:none}
 .vrije-regel>strong{display:block;font-size:13.5px;margin-bottom:2px}
 /* Korting geven ziet er anders uit dan iets bijboeken: hier gaat er geld af.
    Een eigen kleur zodat je de twee vakjes niet verwisselt. */
+/* Het vak om een cadeaubon te verzilveren. Goud, want dat is wat een bon is:
+   iets wat de gast meebrengt en dat geld waard is. */
+.bonvak{margin:11px 0;padding:11px 12px;border-radius:11px;
+  border:1px solid var(--goud,#B9975B);background:var(--goud-zacht,#F6EFE1)}
+.bonvak input{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  text-transform:uppercase;letter-spacing:.06em}
+.bonvak .gevonden{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:9px 11px;border-radius:9px;background:var(--surface,#fff);
+  border:1px solid var(--line-soft);font-size:13.5px}
+.bonvak .saldo{font-weight:700;font-variant-numeric:tabular-nums}
+.bonvak .fout{color:var(--crit,#B3453A);font-size:13.5px}
 .korting-regel{border-color:#B3261E;background:#FCF0EF}
 .korting-regel>strong{color:#8C1D18}
 @media (prefers-color-scheme:dark){
@@ -1027,6 +1038,25 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
              te raken en makkelijk over het hoofd te zien. Het zijn nu brede
              knoppen. De radio's zitten er nog onder, zodat alles wat erop
              gebouwd is blijft werken; alleen het uiterlijk verandert. -->
+        <!-- Cadeaubon verzilveren. Angela, 28-09-2026: "ik heb van Privésauna
+             allemaal plastic cadeaubonnen met een unieke code, deze wil ik
+             kunnen verzilveren tijdens het boeken."
+
+             Staat boven de betaalwijzen met opzet: eerst kijken wat de bon
+             dekt, daarna pas afrekenen wat er overblijft. -->
+        <div class="bonvak">
+          <div style="display:flex;gap:9px;align-items:baseline;flex-wrap:wrap">
+            <strong style="font-size:13.5px">Cadeaubon</strong>
+            <span class="uitleg" style="margin:0">code van de kaart of uit de mail</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap">
+            <input type="text" id="vBonCode" placeholder="bijv. BWF-9J24N-NPQRK"
+              autocomplete="off" autocapitalize="characters" spellcheck="false"
+              style="flex:1 1 190px;min-width:150px">
+            <button type="button" class="knop sec klein" id="vBonZoek">Opzoeken</button>
+          </div>
+          <div id="vBonUit" style="margin-top:9px"></div>
+        </div>
         <div class="afr-wijzekop">
           <b>Hoe wordt er betaald</b>
           <span id="vAfrekenSom"></span>
@@ -1678,6 +1708,11 @@ function openVenster(id) {
   if ($("#vVrijBedrag")) $("#vVrijBedrag").value = "";
   if ($("#vKortNaam")) $("#vKortNaam").value = "";
   if ($("#vKortBedrag")) $("#vKortBedrag").value = "";
+  /* De opgezochte bon hoort bij de vorige reservering; hem laten staan zou
+     betekenen dat je hem per ongeluk op deze boeking verzilvert. */
+  V_BON = null;
+  if ($("#vBonCode")) $("#vBonCode").value = "";
+  if ($("#vBonUit")) $("#vBonUit").innerHTML = "";
   if ($("#vBijNote")) $("#vBijNote").textContent = "";
   if ($("#vBijboekVak")) $("#vBijboekVak").open = false;
   tekenBijboek(r);
@@ -2358,11 +2393,202 @@ function afrBijgeboekt(r) {
   return (Array.isArray(r && r.arrangementen) ? r.arrangementen : [])
     .filter((a) => a && a.bron && a.bron !== "betaling" && !a.betaald);
 }
+/* =========================================================
+   Cadeaubon verzilveren
+   =========================================================
+   Angela, 28-09-2026. Een bon is geld dat de gast meebrengt; verzilveren is
+   dus een betaling, geen korting. Daarom gaat het bedrag naar betaald_bedrag
+   en niet van bedrag_totaal af: de boeking kostte wat hij kostte.
+
+   Wat er gebeurt bij verzilveren, in deze volgorde:
+     1. een regel in bwf_bon_gebruik - de database rekent daar zelf het nieuwe
+        saldo uit, met de rij op slot, zodat twee mensen tegelijk niet allebei
+        dezelfde bon kunnen opmaken
+     2. pas als dat gelukt is: de betaling op de reservering bijwerken
+
+   Die volgorde is met opzet. Mislukt stap 2, dan staat er een verzilvering
+   zonder betaling - vervelend, maar zichtbaar in de historie van de bon en
+   terug te draaien. Andersom zou de gast betaald hebben met een bon die nog
+   vol staat, en dat merkt niemand. */
+let V_BON = null;      /* de bon die nu is opgezocht */
+
+async function bonZoek() {
+  const vak = $("#vBonUit");
+  const code = String(($("#vBonCode") || {}).value || "").trim();
+  V_BON = null;
+  if (!code) { vak.innerHTML = ""; return; }
+  vak.innerHTML = '<span class="uitleg">Bezig met opzoeken&hellip;</span>';
+  let rijen;
+  try {
+    /* Hoofdletterongevoelig zoeken: wie "abc" intypt bedoelt "ABC". ilike
+       zonder jokertekens is een exacte vergelijking zonder op hoofdletters te
+       letten - precies wat de unieke index in de database ook doet. */
+    rijen = await api("bwf_cadeaubonnen?select=*&code=ilike." +
+      encodeURIComponent(code.replace(/[%_]/g, "")), { stil: true });
+  } catch (e) {
+    vak.innerHTML = '<div class="fout">Opzoeken lukte niet: ' + esc(e.message) + "</div>";
+    return;
+  }
+  const b = (rijen || [])[0];
+  if (!b) {
+    vak.innerHTML = '<div class="fout">Deze code staat niet in het systeem. ' +
+      "Kijk of hij goed is overgetypt; een 0 en een O lijken op elkaar.</div>";
+    return;
+  }
+  /* Waarom een bon niet bruikbaar is, met zoveel woorden. "Ongeldig" zegt
+     niets tegen een gast die voor je staat. */
+  const vandaagStr = (function () {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+      "-" + String(d.getDate()).padStart(2, "0");
+  })();
+  const saldo = Number(b.saldo) || 0;
+  let weigering = "";
+  if (b.status === "geblokkeerd") weigering = "Deze bon is geblokkeerd. Overleg met Angela.";
+  else if (saldo <= 0) weigering = "Deze bon is al helemaal opgemaakt.";
+  else if (b.geldig_tot && String(b.geldig_tot) < vandaagStr) {
+    weigering = "Deze bon was geldig tot " +
+      String(b.geldig_tot).slice(0, 10).split("-").reverse().join("-") +
+      ". Overleg met Angela of je hem toch aanneemt.";
+  }
+  if (weigering) {
+    vak.innerHTML = '<div class="fout">' + esc(weigering) + "</div>";
+    return;
+  }
+
+  V_BON = b;
+  const r = HUIDIG;
+  const open = r ? afrBedragen(r).open : 0;
+  /* Voorstel: nooit meer dan er nog te betalen valt, en nooit meer dan er op
+     de bon staat. Staat er niets open, dan 0 en zegt het vak dat erbij. */
+  const voorstel = Math.round(Math.min(saldo, Math.max(0, open)) * 100) / 100;
+  vak.innerHTML =
+    '<div class="gevonden">' +
+      "<span>&#127873;</span>" +
+      "<span>Nog op deze bon: <span class=\"saldo\">&euro; " + esc(euro(saldo)) + "</span>" +
+      (Number(b.waarde) !== saldo ? ' <span style="color:var(--muted)">van &euro; ' +
+        esc(euro(b.waarde)) + "</span>" : "") + "</span>" +
+    "</div>" +
+    (open > 0
+      ? '<div style="display:flex;gap:8px;align-items:flex-end;margin-top:9px;flex-wrap:wrap">' +
+        '<label class="veld" style="flex:1 1 120px;margin:0">Hiervan gebruiken (&euro;)' +
+        '<input type="text" id="vBonBedrag" inputmode="decimal" value="' + esc(euro(voorstel)) + '"></label>' +
+        '<button type="button" class="knop vol klein" id="vBonOk" style="min-height:42px">Verzilveren</button>' +
+        "</div>" +
+        '<p class="uitleg" style="margin:6px 0 0">Er staat nu &euro; ' + esc(euro(open)) +
+        " open. Wat je hier gebruikt geldt als betaald; de rest reken je hieronder af." +
+        (saldo > open ? " Het restant blijft op de bon staan voor een volgend bezoek." : "") + "</p>"
+      : '<p class="uitleg" style="margin:6px 0 0">Er staat op deze boeking niets ' +
+        "meer open, dus er valt nu niets te verzilveren.</p>");
+}
+
+async function bonVerzilver() {
+  const r = HUIDIG, b = V_BON;
+  const vak = $("#vBonUit");
+  if (!r || !b) return;
+  const saldo = Number(b.saldo) || 0;
+  const open = afrBedragen(r).open;
+  let bedrag = leesBedrag(($("#vBonBedrag") || {}).value);
+  if (bedrag == null || Number.isNaN(bedrag) || bedrag <= 0) {
+    vak.insertAdjacentHTML("beforeend", '<div class="fout">Vul een bedrag in.</div>');
+    return;
+  }
+  if (bedrag > saldo) {
+    vak.insertAdjacentHTML("beforeend",
+      '<div class="fout">Er staat maar &euro; ' + esc(euro(saldo)) + " op deze bon.</div>");
+    return;
+  }
+  if (bedrag > open) {
+    vak.insertAdjacentHTML("beforeend",
+      '<div class="fout">Er staat maar &euro; ' + esc(euro(open)) + " open op deze boeking.</div>");
+    return;
+  }
+  const knop = $("#vBonOk");
+  if (knop) { knop.disabled = true; knop.textContent = "Bezig…"; }
+  try {
+    /* Stap 1: het gebruik vastleggen. De trigger in de database rekent het
+       nieuwe saldo uit. Is de bon ondertussen door iemand anders opgemaakt,
+       dan komt dat hier aan het licht en is er nog niets aan de boeking
+       veranderd. */
+    await api("bwf_bon_gebruik", { method: "POST", body: [{
+      bon_id: b.id, reservering_id: r.id, bedrag: bedrag, door: NAAM,
+      notitie: "verzilverd bij de reservering"
+    }] });
+
+    /* Meteen terugkijken wat het saldo nu is. Dat is ook de controle: is er
+       ondertussen meer af gegaan dan er op stond, dan zou de database dat
+       hebben geweigerd. */
+    const na = await api("bwf_cadeaubonnen?select=*&id=eq." + encodeURIComponent(b.id));
+    const nieuw = (na || [])[0];
+
+    /* Stap 2: de betaling op de reservering. */
+    const betaaldWas = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+    const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
+    const betaaldNu = Math.round((betaaldWas + bedrag) * 100) / 100;
+    const openNa = Math.round(Math.max(0, open - bedrag) * 100) / 100;
+    const d = {
+      betaald_bedrag: betaaldNu,
+      restant_bedrag: openNa,
+      betaalstatus: openNa <= 0.004 ? "betaald" : "deels",
+      gewijzigd_door: NAAM
+    };
+    /* De betaalwijze alleen invullen als er nog niets stond: is er al met pin
+       betaald en komt de bon erbij, dan zou "Cadeaubon" de pinbetaling
+       wegpoetsen. */
+    if (!r.betaald_via) d.betaald_via = "Cadeaubon";
+    else if (String(r.betaald_via).indexOf("Cadeaubon") < 0) d.betaald_via = r.betaald_via + " + Cadeaubon";
+
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: d });
+    if (rij && rij.length) {
+      HUIDIG = rij[0];
+      RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+      $("#vBedrag").value = rij[0].bedrag_totaal == null ? "" : euro(rij[0].bedrag_totaal);
+      $("#vBetaald").value = rij[0].betaald_bedrag == null ? "" : euro(rij[0].betaald_bedrag);
+      $("#vRestant").value = rij[0].restant_bedrag == null ? "" : euro(rij[0].restant_bedrag);
+      $("#vBetaal").value = rij[0].betaalstatus || "open";
+      onthoudBedragen();
+      vulBetaalvak(rij[0]);
+      tekenPersoneelKaart(rij[0]);
+      teken();
+    }
+    const over = nieuw ? Number(nieuw.saldo) || 0 : Math.max(0, saldo - bedrag);
+    vak.innerHTML = '<div class="gevonden" style="border-color:#2E7D5B;background:#E8F4EC;color:#1F5B41">' +
+      "<span>&#10003;</span><span>&euro; " + esc(euro(bedrag)) + " verzilverd." +
+      (over > 0 ? " Er staat nog &euro; " + esc(euro(over)) + " op deze bon." : " De bon is nu op.") +
+      "</span></div>";
+    $("#vBonCode").value = "";
+    V_BON = null;
+  } catch (e) {
+    vak.insertAdjacentHTML("beforeend", '<div class="fout">Verzilveren lukte niet: ' +
+      esc(e.message) + (/40[13]/.test(e.message)
+        ? "<br>Je hebt geen rechten om deze reservering te wijzigen."
+        : "") + "</div>");
+  } finally {
+    if (knop) { knop.disabled = false; knop.textContent = "Verzilveren"; }
+  }
+}
+
 function afrBedragen(r) {
   const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
   const betaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
-  const open = r.restant_bedrag != null ? Number(r.restant_bedrag)
-    : r.betaalstatus === "betaald" ? 0
+  /* DE BETAALSTATUS IS LEIDEND - dezelfde regel als in openstaandVan().
+
+     Deze functie gaf restant_bedrag nog voorrang, terwijl openstaandVan() op
+     27-09-2026 al was rechtgezet omdat dat mis ging. De fout zat hier dus nog:
+     bij een boeking met betaalstatus "open" en restant_bedrag op nul - en dat
+     laatste is bij vrijwel elke boeking zo, want het bewerkvenster vult dat
+     veld niet - meldde het hele afrekenvak dat er niets meer te betalen viel.
+     Gemeten 29-09-2026 op een boeking van EUR 668: open kwam op 0 uit, en dan
+     kan er ook geen cadeaubon op verzilverd worden.
+
+     Een nul in restant_bedrag betekent "niet ingevuld", niet "niets meer te
+     betalen". Alleen bij een status die iets anders zegt dan open of betaald
+     is dat veld bewust gezet en telt het mee. */
+  const stand = String(r.betaalstatus || "open");
+  const open = stand === "betaald" ? 0
+    : stand === "open" ? (totaal != null ? totaal : 0)
+    : r.restant_bedrag != null ? Number(r.restant_bedrag)
     : totaal != null ? Math.max(0, totaal - betaald) : 0;
   const extras = afrBijgeboekt(r).reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
   /* Nooit meer dan er openstaat: is er al deels betaald, dan kunnen de extra's
@@ -2525,6 +2751,14 @@ async function afrekenenMetGast() {
 document.addEventListener("change", (e) => {
   if (!e.target.closest || !e.target.closest("#vAfrekenVak") || !HUIDIG) return;
   if (e.target.name === "vAfrWat" || e.target.name === "vAfrWijze") tekenAfrekenVak(HUIDIG);
+});
+/* Enter in het codeveld zoekt op: aan de balie tik je de code in en drukt
+   door, je pakt er geen muis bij. */
+document.addEventListener("keydown", (e) => {
+  if (e.target && e.target.id === "vBonCode" && e.key === "Enter") {
+    e.preventDefault();
+    bonZoek();
+  }
 });
 document.addEventListener("input", (e) => {
   if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-vsplit") && HUIDIG) tekenAfrSplit(HUIDIG);
@@ -5234,6 +5468,9 @@ document.addEventListener("click", (e) => {
     setTimeout(() => { doelEl.style.boxShadow = ""; }, 1400);
     return;
   }
+  /* Een cadeaubon opzoeken of verzilveren. */
+  if (e.target.id === "vBonZoek") { e.preventDefault(); bonZoek(); return; }
+  if (e.target.id === "vBonOk")   { e.preventDefault(); bonVerzilver(); return; }
   /* De reviewstand aan- of uitzetten. */
   const rev = e.target.closest("[data-rev]");
   if (rev) {
