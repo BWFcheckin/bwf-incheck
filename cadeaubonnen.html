@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14342A">
+<title>Cadeaubonnen — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Dezelfde kleuren en letters als reserveringen.html, zodat dit scherm niet
+   aanvoelt als een los aanhangsel. */
+:root{
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1;
+  --ok:#2E7D53; --ok-zacht:#E6F2EA;
+  --warn:#B8860B; --warn-zacht:#FBF1DA;
+  --crit:#B3453A; --crit-zacht:#FBEAE7;
+  --r:12px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F; --surface:#1A201A; --surface-2:#161B15; --line:#2C3329; --line-soft:#232A22;
+    --ink:#E9EEE6; --ink-2:#B6C0B2; --muted:#8B978A;
+    --groen-zacht:#1B2C24; --goud-zacht:#2A2314; --ok-zacht:#152A1E;
+    --warn-zacht:#2A2314; --crit-zacht:#2C1917;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F; --surface:#1A201A; --surface-2:#161B15; --line:#2C3329; --line-soft:#232A22;
+  --ink:#E9EEE6; --ink-2:#B6C0B2; --muted:#8B978A;
+  --groen-zacht:#1B2C24; --goud-zacht:#2A2314; --ok-zacht:#152A1E;
+  --warn-zacht:#2A2314; --crit-zacht:#2C1917;
+}
+*{box-sizing:border-box}
+/* Het hidden-attribuut zet display:none, maar elke eigen display-regel wint
+   daarvan. #slot heeft display:grid, dus zonder deze regel staat het
+   inlogvenster altijd over de pagina heen - ook als het verborgen hoort te
+   zijn. Dat is in dit project al eerder misgegaan; gemeten met een
+   schermafdruk, want in de DOM ziet het er goed uit. */
+[hidden]{display:none !important}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.55 "Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:18px 16px 60px}
+h1{font:600 26px/1.2 "Cormorant Garamond",Georgia,serif;margin:0 0 3px;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+h2{font:600 18px/1.25 "Cormorant Garamond",Georgia,serif;margin:0 0 10px}
+
+.tabs{display:flex;gap:6px;margin:0 0 16px;flex-wrap:wrap}
+.tab{font:inherit;font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);min-height:40px}
+.tab[aria-selected="true"]{background:var(--groen);border-color:var(--groen);color:#fff;font-weight:600}
+.tab:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+
+.kaart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin:0 0 14px}
+.raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+label.veld{display:block;font-size:13px;color:var(--ink-2)}
+label.veld.breed{grid-column:1/-1}
+input,select,textarea{font:inherit;width:100%;margin-top:4px;padding:9px 10px;min-height:42px;
+  border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)}
+textarea{min-height:120px;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--groen-2);outline-offset:-1px}
+.knop{font:inherit;font-size:14px;padding:10px 15px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);min-height:42px}
+.knop.vol{background:var(--groen);border-color:var(--groen);color:#fff;font-weight:600}
+.knop.klein{font-size:13px;padding:6px 10px;min-height:34px}
+.knop:hover{border-color:var(--groen-2)}
+.knop[disabled]{opacity:.5;cursor:default}
+.knoprij{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+
+.uitleg{color:var(--muted);font-size:12.5px;margin:5px 0 0}
+.melding{padding:10px 13px;border-radius:10px;margin:0 0 14px;font-size:14px;
+  background:var(--groen-zacht);border:1px solid var(--groen-2)}
+.melding.fout{background:var(--crit-zacht);border-color:var(--crit);color:var(--crit)}
+.melding.let{background:var(--warn-zacht);border-color:var(--warn);color:var(--warn)}
+
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tabelwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+tr[data-bon]{cursor:pointer}
+tr[data-bon]:hover td{background:var(--surface-2)}
+code.code{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13.5px;
+  letter-spacing:.04em;background:var(--surface-2);padding:2px 6px;border-radius:6px}
+
+.vlag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;
+  border:1px solid;white-space:nowrap}
+.vlag.actief{background:var(--ok-zacht);border-color:var(--ok);color:var(--ok)}
+.vlag.op{background:var(--surface-2);border-color:var(--line);color:var(--muted)}
+.vlag.geblokkeerd{background:var(--crit-zacht);border-color:var(--crit);color:var(--crit)}
+.vlag.verlopen{background:var(--warn-zacht);border-color:var(--warn);color:var(--warn)}
+
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
+.tegel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px}
+.tegel span{display:block;font-size:12px;color:var(--muted)}
+.tegel b{display:block;font-size:21px;font-variant-numeric:tabular-nums;margin-top:2px}
+
+dialog{border:0;border-radius:16px;padding:0;max-width:640px;width:calc(100% - 28px);
+  background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(10,18,14,.5)}
+.dkop{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;
+  align-items:flex-start;justify-content:space-between}
+.dlijf{padding:16px 18px;max-height:65vh;overflow:auto}
+.dvoet{padding:13px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+
+/* De afdrukbare bon. Bewust smal en rustig: hij gaat als plaatje of pdf naar
+   de gast, dus alles moet op één blik leesbaar zijn. */
+.bonvel{background:linear-gradient(160deg,#14342A,#1F4D3D);color:#fff;border-radius:16px;
+  padding:26px 24px;text-align:center;margin:0 0 14px}
+.bonvel .klein{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+.bonvel .bedrag{font:600 42px/1.1 "Cormorant Garamond",Georgia,serif;margin:8px 0 4px}
+.bonvel .bcode{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:19px;
+  letter-spacing:.16em;background:rgba(255,255,255,.14);padding:9px 14px;border-radius:9px;
+  display:inline-block;margin:12px 0 6px}
+.bonvel .regel{font-size:13px;opacity:.85;margin:3px 0 0}
+
+#slot{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;z-index:99;padding:20px}
+.bwf-vergrendeld{overflow:hidden}
+@media (max-width:430px){
+  .wrap{padding:14px 12px 50px}
+  h1{font-size:23px}
+  .tegel b{font-size:19px}
+}
+@media print{
+  body{background:#fff}
+  .tabs,.knoprij,.dvoet,.sub,h1{display:none}
+  .wrap{padding:0}
+}
+</style>
+</head>
+<body>
+
+<div id="slot" hidden>
+  <div class="kaart" style="max-width:340px;width:100%">
+    <h2>Inloggen</h2>
+    <p class="uitleg" id="lgFout" style="color:var(--crit)"></p>
+    <label class="veld">E-mailadres <input type="email" id="lgMail" autocomplete="username"></label>
+    <label class="veld" style="margin-top:9px">Wachtwoord
+      <input type="password" id="lgWw" autocomplete="current-password"></label>
+    <div class="knoprij"><button class="knop vol" type="button" id="lgKnop">Inloggen</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>Cadeaubonnen</h1>
+  <p class="sub">Plastic bonnen van Privésauna en digitale bonnen, met saldo per bon.</p>
+  <div class="melding" id="melding" hidden></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="lijst" aria-selected="true">Bonnen</button>
+    <button class="tab" role="tab" data-tab="import" aria-selected="false">Codes invoeren</button>
+    <button class="tab" role="tab" data-tab="nieuw" aria-selected="false">Digitale bon maken</button>
+  </div>
+
+  <!-- ============ BONNEN ============ -->
+  <section id="paneel-lijst">
+    <div class="tegels" id="tegels"></div>
+    <div class="kaart">
+      <div class="raster">
+        <label class="veld">Zoeken op code of naam
+          <input type="search" id="zoek" placeholder="bijv. 1004 of Jansen"></label>
+        <label class="veld">Status
+          <select id="fStatus">
+            <option value="">Alle</option>
+            <option value="actief" selected>Alleen bruikbaar</option>
+            <option value="op">Opgemaakt</option>
+            <option value="geblokkeerd">Geblokkeerd</option>
+            <option value="verlopen">Verlopen</option>
+          </select></label>
+        <label class="veld">Soort
+          <select id="fSoort">
+            <option value="">Alle</option>
+            <option value="plastic">Plastic (Privésauna)</option>
+            <option value="digitaal">Digitaal</option>
+          </select></label>
+      </div>
+    </div>
+    <div class="kaart" style="padding:0">
+      <div class="tabelwrap"><table id="tabel"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ IMPORTEREN ============ -->
+  <section id="paneel-import" hidden>
+    <div class="kaart">
+      <h2>Codes van bestaande bonnen invoeren</h2>
+      <p class="uitleg" style="margin:0 0 10px">
+        Plak hier de lijst van Privésauna. Eén bon per regel. Het bedrag mag
+        erachter staan, gescheiden door een tab, puntkomma of komma — plak je
+        rechtstreeks uit Excel, dan gaat dat vanzelf goed. Staat er geen bedrag
+        bij een regel, dan wordt het bedrag hieronder gebruikt.
+      </p>
+      <label class="veld breed">De codes
+        <textarea id="impTekst" placeholder="BON-1001&#9;50
+BON-1002&#9;50
+BON-1003&#9;100"></textarea></label>
+      <div class="raster" style="margin-top:12px">
+        <label class="veld">Bedrag als het er niet bij staat (&euro;)
+          <input type="text" id="impBedrag" inputmode="decimal" placeholder="50,00"></label>
+        <label class="veld">Geldig tot (mag leeg)
+          <input type="date" id="impGeldig"></label>
+        <label class="veld">Aantekening bij deze serie
+          <input type="text" id="impNotitie" placeholder="bijv. doos Privésauna sept 2026"></label>
+      </div>
+      <div class="knoprij">
+        <button class="knop" type="button" id="impKijk">Eerst nakijken</button>
+        <button class="knop vol" type="button" id="impDoe" disabled>Invoeren</button>
+      </div>
+      <div id="impUit" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <!-- ============ DIGITALE BON ============ -->
+  <section id="paneel-nieuw" hidden>
+    <div class="kaart">
+      <h2>Digitale cadeaubon maken</h2>
+      <p class="uitleg" style="margin:0 0 10px">De code wordt hier gemaakt en is
+        meteen geldig. Maak er meerdere tegelijk door een aantal in te vullen.</p>
+      <div class="raster">
+        <label class="veld">Bedrag (&euro;) <input type="text" id="nwBedrag" inputmode="decimal" placeholder="50,00"></label>
+        <label class="veld">Aantal <input type="number" id="nwAantal" min="1" max="50" value="1"></label>
+        <label class="veld">Geldig tot (mag leeg) <input type="date" id="nwGeldig"></label>
+        <label class="veld">Voor wie <input type="text" id="nwVoor" placeholder="naam van de ontvanger"></label>
+        <label class="veld">E-mailadres ontvanger <input type="email" id="nwMail"></label>
+        <label class="veld">Van wie <input type="text" id="nwVan" placeholder="naam van de gever"></label>
+        <label class="veld breed">Persoonlijk bericht op de bon
+          <input type="text" id="nwBericht" placeholder="bijv. Fijne verjaardag!"></label>
+      </div>
+      <div class="knoprij">
+        <button class="knop vol" type="button" id="nwMaak">Bon aanmaken</button>
+      </div>
+      <div id="nwUit" style="margin-top:16px"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ BONKAART ============ -->
+<dialog id="bonKaart">
+  <div class="dkop">
+    <div>
+      <h2 id="bkTitel" style="margin:0">Bon</h2>
+      <p class="uitleg" id="bkSub" style="margin:3px 0 0"></p>
+    </div>
+    <button class="knop klein" type="button" id="bkSluit" aria-label="Sluiten">&#10005;</button>
+  </div>
+  <div class="dlijf" id="bkLijf"></div>
+  <div class="dvoet" id="bkVoet"></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g,
+  (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const euro = (n) => n == null ? "" : Number(n).toLocaleString("nl-NL",
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const CFG = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  ls:  "sb-iuyjvtlauktnjprbmbjj-auth-token"
+};
+
+let SESSIE = null, ROL = null, NAAM = "", BONNEN = [], verversBezig = null;
+
+/* ---------- sessie ---------- */
+function jwtDeel(t) {
+  try { return JSON.parse(atob(String(t).split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }
+  catch (e) { return {}; }
+}
+function leesSessie() {
+  try { SESSIE = JSON.parse(localStorage.getItem(CFG.ls) || "null"); } catch (e) { SESSIE = null; }
+  return SESSIE;
+}
+function bewaarSessie(d) {
+  SESSIE = d;
+  try { localStorage.setItem(CFG.ls, JSON.stringify(d)); } catch (e) {}
+}
+async function ververs() {
+  if (!SESSIE || !SESSIE.refresh_token) return null;
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=refresh_token", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: SESSIE.refresh_token })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) return null;
+    bewaarSessie(d);
+    return d.access_token;
+  } catch (e) { return null; }
+}
+async function geldigToken() {
+  if (!SESSIE || !SESSIE.access_token) return null;
+  const exp = (jwtDeel(SESSIE.access_token).exp || 0) * 1000;
+  if (exp - Date.now() > 60000) return SESSIE.access_token;
+  if (!verversBezig) verversBezig = ververs().finally(() => { verversBezig = null; });
+  return verversBezig;
+}
+function toonSlot(tekst) {
+  document.body.classList.add("bwf-vergrendeld");
+  $("#slot").hidden = false;
+  $("#lgFout").textContent = tekst || "";
+  setTimeout(() => $("#lgMail").focus(), 60);
+}
+function verbergSlot() {
+  document.body.classList.remove("bwf-vergrendeld");
+  $("#slot").hidden = true;
+}
+
+async function api(pad, opties = {}) {
+  const token = await geldigToken();
+  if (!token) { if (!opties.stil) toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  const headers = { apikey: CFG.key, Authorization: "Bearer " + token };
+  if (opties.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    headers.Prefer = opties.prefer || "return=representation";
+  }
+  const r = await fetch(CFG.url + "/rest/v1/" + pad, {
+    method: opties.method || "GET", headers,
+    body: opties.body === undefined ? undefined : JSON.stringify(opties.body)
+  });
+  const tekst = await r.text();
+  if (r.status === 401) { if (!opties.stil) toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  if (!r.ok) {
+    let m = tekst;
+    try { m = JSON.parse(tekst).message || tekst; } catch (e) {}
+    throw new Error(m || "Fout " + r.status);
+  }
+  return tekst ? JSON.parse(tekst) : null;
+}
+
+function melding(tekst, soort) {
+  const m = $("#melding");
+  m.textContent = tekst || "";
+  m.className = "melding" + (soort ? " " + soort : "");
+  m.hidden = !tekst;
+}
+
+/* ---------- codes ---------- */
+/* Het alfabet mist met opzet 0, O, 1, I en L: die worden verwisseld zodra
+   iemand een code van een papiertje overtypt of door de telefoon doorgeeft.
+   Ook geen U, want die leest als V in blokletters. */
+const ALFABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+
+function nieuweCode() {
+  let uit = "";
+  /* crypto in plaats van Math.random: een cadeaubon is geld, en een code die
+     te voorspellen is, is te raden. */
+  const bron = new Uint32Array(10);
+  (window.crypto || window.msCrypto).getRandomValues(bron);
+  for (let i = 0; i < 10; i++) uit += ALFABET[bron[i] % ALFABET.length];
+  return "BWF-" + uit.slice(0, 5) + "-" + uit.slice(5);
+}
+
+/* Bedragen met een komma of een punt, allebei goed. */
+function leesBedrag(v) {
+  const s = String(v == null ? "" : v).trim().replace(/[€\s]/g, "");
+  if (!s) return null;
+  const n = parseFloat(s.replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
+  return Number.isNaN(n) ? null : Math.round(n * 100) / 100;
+}
+
+function vandaag() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+    "-" + String(d.getDate()).padStart(2, "0");
+}
+const dNL = (d) => !d ? "" : String(d).slice(0, 10).split("-").reverse().join("-");
+
+/* ---------- laden ---------- */
+async function laad() {
+  BONNEN = await api("bwf_cadeaubonnen?select=*&order=aangemaakt.desc&limit=2000") || [];
+  teken();
+}
+
+/* Een bon is verlopen als de datum voorbij is. Dat wordt hier berekend en niet
+   in de database bijgehouden: een nachtelijke taak die statussen omzet is een
+   extra ding dat stuk kan, en het antwoord is uit de datum af te lezen. */
+function echteStatus(b) {
+  if (b.status === "geblokkeerd") return "geblokkeerd";
+  if (b.geldig_tot && String(b.geldig_tot) < vandaag() && Number(b.saldo) > 0) return "verlopen";
+  return b.status;
+}
+const bruikbaar = (b) => echteStatus(b) === "actief" && Number(b.saldo) > 0;
+
+function teken() {
+  const zoek = ($("#zoek").value || "").trim().toLowerCase();
+  const fSt = $("#fStatus").value, fSo = $("#fSoort").value;
+  const lijst = BONNEN.filter((b) => {
+    const st = echteStatus(b);
+    if (fSt === "actief" && !bruikbaar(b)) return false;
+    if (fSt && fSt !== "actief" && st !== fSt) return false;
+    if (fSo && b.soort !== fSo) return false;
+    if (zoek) {
+      const hooi = [b.code, b.ontvanger_naam, b.ontvanger_email, b.van_wie, b.notitie]
+        .filter(Boolean).join(" ").toLowerCase();
+      if (hooi.indexOf(zoek) < 0) return false;
+    }
+    return true;
+  });
+
+  const openstaand = BONNEN.filter(bruikbaar).reduce((a, b) => a + Number(b.saldo || 0), 0);
+  const uitgegeven = BONNEN.reduce((a, b) => a + Number(b.waarde || 0), 0);
+  $("#tegels").innerHTML =
+    '<div class="tegel"><span>Bruikbaar</span><b>' + BONNEN.filter(bruikbaar).length + "</b></div>" +
+    '<div class="tegel"><span>Openstaand tegoed</span><b>&euro; ' + euro(openstaand) + "</b></div>" +
+    '<div class="tegel"><span>Bonnen totaal</span><b>' + BONNEN.length + "</b></div>" +
+    '<div class="tegel"><span>Ooit uitgegeven</span><b>&euro; ' + euro(uitgegeven) + "</b></div>";
+
+  $("#tabel").innerHTML = lijst.length
+    ? "<thead><tr><th>Code</th><th>Soort</th><th class='num'>Waarde</th>" +
+      "<th class='num'>Saldo</th><th>Status</th><th>Geldig tot</th><th>Voor wie</th></tr></thead><tbody>" +
+      lijst.map((b) => {
+        const st = echteStatus(b);
+        return '<tr data-bon="' + esc(b.id) + '">' +
+          '<td><code class="code">' + esc(b.code) + "</code></td>" +
+          "<td>" + (b.soort === "digitaal" ? "digitaal" : "plastic") + "</td>" +
+          '<td class="num">&euro; ' + euro(b.waarde) + "</td>" +
+          '<td class="num"><b>&euro; ' + euro(b.saldo) + "</b></td>" +
+          '<td><span class="vlag ' + st + '">' + st + "</span></td>" +
+          "<td>" + (b.geldig_tot ? esc(dNL(b.geldig_tot)) : "&mdash;") + "</td>" +
+          "<td>" + esc(b.ontvanger_naam || b.notitie || "") + "</td></tr>";
+      }).join("") + "</tbody>"
+    : "<tbody><tr><td style='color:var(--muted);padding:18px'>Geen bonnen gevonden.</td></tr></tbody>";
+}
+
+/* ---------- bonkaart ---------- */
+async function openBon(id) {
+  const b = BONNEN.find((x) => String(x.id) === String(id));
+  if (!b) return;
+  const st = echteStatus(b);
+  $("#bkTitel").innerHTML = '<code class="code">' + esc(b.code) + "</code>";
+  $("#bkSub").innerHTML = "&euro; " + euro(b.waarde) + " &middot; nog &euro; " + euro(b.saldo) +
+    ' &middot; <span class="vlag ' + st + '">' + st + "</span>";
+
+  $("#bkLijf").innerHTML =
+    '<div class="raster" style="margin-bottom:12px">' +
+    tegel("Waarde", "&euro; " + euro(b.waarde)) +
+    tegel("Nog te besteden", "&euro; " + euro(b.saldo)) +
+    tegel("Uitgegeven op", dNL(b.uitgegeven_op)) +
+    (b.geldig_tot ? tegel("Geldig tot", dNL(b.geldig_tot)) : "") +
+    "</div>" +
+    (b.ontvanger_naam || b.van_wie || b.bericht
+      ? '<p style="margin:0 0 10px;font-size:14px">' +
+        (b.ontvanger_naam ? "<b>Voor:</b> " + esc(b.ontvanger_naam) +
+          (b.ontvanger_email ? " &middot; " + esc(b.ontvanger_email) : "") + "<br>" : "") +
+        (b.van_wie ? "<b>Van:</b> " + esc(b.van_wie) + "<br>" : "") +
+        (b.bericht ? "<i>" + esc(b.bericht) + "</i>" : "") + "</p>"
+      : "") +
+    (b.notitie ? '<p class="uitleg" style="margin:0 0 12px">' + esc(b.notitie) + "</p>" : "") +
+    '<h2 style="margin-top:14px">Gebruikt</h2><div id="bkHist">wordt geladen&hellip;</div>';
+
+  $("#bkVoet").innerHTML =
+    (magBeheren()
+      ? (b.status === "geblokkeerd"
+          ? '<button class="knop" type="button" data-blok="uit">Deblokkeren</button>'
+          : '<button class="knop" type="button" data-blok="aan">Blokkeren</button>')
+      : "") +
+    (b.soort === "digitaal" ? '<button class="knop" type="button" id="bkAfdruk">Bon tonen</button>' : "") +
+    '<button class="knop" type="button" id="bkKopie">Code kopiëren</button>';
+  $("#bonKaart").dataset.bon = b.id;
+  $("#bonKaart").showModal();
+
+  /* De historie apart, zodat de kaart meteen openstaat. */
+  try {
+    const h = await api("bwf_bon_gebruik?select=*&bon_id=eq." + encodeURIComponent(b.id) +
+      "&order=wanneer.desc");
+    $("#bkHist").innerHTML = (h && h.length)
+      ? '<div class="tabelwrap"><table><thead><tr><th>Wanneer</th><th class="num">Bedrag</th>' +
+        "<th>Door</th><th>Bij</th></tr></thead><tbody>" +
+        h.map((g) => "<tr><td>" + esc(new Date(g.wanneer).toLocaleString("nl-NL",
+            { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })) + "</td>" +
+          '<td class="num" style="color:' + (Number(g.bedrag) < 0 ? "var(--ok)" : "inherit") + '">' +
+            (Number(g.bedrag) < 0 ? "+ " : "&minus; ") + "&euro; " + euro(Math.abs(g.bedrag)) + "</td>" +
+          "<td>" + esc(g.door || "") + "</td>" +
+          "<td>" + (g.reservering_id
+            ? '<a href="reserveringen.html?id=' + esc(g.reservering_id) + '" target="_blank" rel="noopener">reservering</a>'
+            : esc(g.notitie || "&mdash;")) + "</td></tr>").join("") + "</tbody></table></div>"
+      : '<p class="uitleg" style="margin:0">Deze bon is nog niet gebruikt.</p>';
+  } catch (e) {
+    $("#bkHist").innerHTML = '<p class="uitleg" style="color:var(--crit)">Het gebruik kon niet worden geladen: ' +
+      esc(e.message) + "</p>";
+  }
+}
+const tegel = (kop, waarde) =>
+  '<div class="tegel"><span>' + kop + "</span><b>" + waarde + "</b></div>";
+const magBeheren = () => ROL === "eigenaar" || ROL === "vr";
+
+/* ---------- invoeren van bestaande codes ---------- */
+/* De lijst uitpluizen. Per regel: eerst de code, daarna eventueel het bedrag.
+   Tab, puntkomma en komma gelden allemaal als scheiding - plak je uit Excel
+   dan zijn het tabs, plak je uit een csv dan puntkomma's. Een regel met alleen
+   een code is ook goed; dan geldt het standaardbedrag. */
+function leesImport() {
+  const tekst = $("#impTekst").value || "";
+  const standaard = leesBedrag($("#impBedrag").value);
+  const uit = [], fout = [], gezien = {};
+  tekst.split(/\r?\n/).forEach((regel, i) => {
+    const r = regel.trim();
+    if (!r) return;
+    const delen = r.split(/[\t;]|,(?=\s*[€\d])|\s{2,}/).map((x) => x.trim()).filter(Boolean);
+    const code = (delen[0] || "").replace(/^["']|["']$/g, "").trim();
+    if (!code) return;
+    /* Zoek in de rest van de regel naar iets dat op een bedrag lijkt. */
+    let bedrag = null;
+    for (let j = 1; j < delen.length; j++) {
+      const b = leesBedrag(delen[j]);
+      if (b != null && b > 0) { bedrag = b; break; }
+    }
+    if (bedrag == null) bedrag = standaard;
+    const sleutel = code.toUpperCase();
+    if (gezien[sleutel]) { fout.push({ regel: i + 1, code, waarom: "staat twee keer in deze lijst" }); return; }
+    gezien[sleutel] = true;
+    if (bedrag == null || bedrag <= 0) {
+      fout.push({ regel: i + 1, code, waarom: "geen bedrag; vul het standaardbedrag in" });
+      return;
+    }
+    uit.push({ code, waarde: bedrag });
+  });
+  return { goed: uit, fout };
+}
+
+async function importNakijken() {
+  const { goed, fout } = leesImport();
+  const vak = $("#impUit");
+  $("#impDoe").disabled = true;
+  if (!goed.length && !fout.length) {
+    vak.innerHTML = '<p class="uitleg">Er staat nog niets in het vak hierboven.</p>';
+    return;
+  }
+  /* Kijken welke codes al in de database staan. In één bevraging, zodat het
+     ook bij honderden codes snel blijft. */
+  let bestaat = {};
+  try {
+    const codes = goed.map((x) => x.code.toUpperCase());
+    const rijen = await api("bwf_cadeaubonnen?select=code,waarde,saldo&limit=5000");
+    (rijen || []).forEach((r) => {
+      if (codes.indexOf(String(r.code).toUpperCase()) > -1) bestaat[String(r.code).toUpperCase()] = r;
+    });
+  } catch (e) {
+    vak.innerHTML = '<p class="melding fout">Nakijken lukte niet: ' + esc(e.message) + "</p>";
+    return;
+  }
+  const nieuw = goed.filter((x) => !bestaat[x.code.toUpperCase()]);
+  const dubbel = goed.filter((x) => bestaat[x.code.toUpperCase()]);
+  const som = nieuw.reduce((a, x) => a + x.waarde, 0);
+
+  vak.innerHTML =
+    '<div class="melding' + (nieuw.length ? "" : " let") + '">' +
+      "<b>" + nieuw.length + (nieuw.length === 1 ? " nieuwe bon" : " nieuwe bonnen") + "</b>, samen &euro; " +
+      euro(som) + "." +
+      (dubbel.length ? " " + dubbel.length + " " + (dubbel.length === 1 ? "code staat" : "codes staan") +
+        " er al in en " + (dubbel.length === 1 ? "wordt" : "worden") + " overgeslagen." : "") +
+      (fout.length ? " " + fout.length + " " + (fout.length === 1 ? "regel kon" : "regels konden") +
+        " niet gelezen worden." : "") +
+    "</div>" +
+    (fout.length
+      ? '<div class="tabelwrap"><table><thead><tr><th>Regel</th><th>Code</th><th>Waarom niet</th></tr></thead><tbody>' +
+        fout.map((f) => "<tr><td>" + f.regel + "</td><td><code class='code'>" + esc(f.code) +
+          "</code></td><td>" + esc(f.waarom) + "</td></tr>").join("") + "</tbody></table></div>"
+      : "") +
+    (nieuw.length
+      ? '<p class="uitleg" style="margin-top:10px">Eerste vijf: ' +
+        nieuw.slice(0, 5).map((x) => esc(x.code) + " (&euro; " + euro(x.waarde) + ")").join(", ") +
+        (nieuw.length > 5 ? " &hellip;" : "") + "</p>"
+      : "");
+  $("#impDoe").disabled = !nieuw.length;
+  $("#impDoe").dataset.aantal = String(nieuw.length);
+  IMPORT_KLAAR = nieuw;
+}
+let IMPORT_KLAAR = [];
+
+async function importDoen() {
+  if (!IMPORT_KLAAR.length) return;
+  if (!confirm(IMPORT_KLAAR.length + " bonnen invoeren, samen € " +
+      euro(IMPORT_KLAAR.reduce((a, x) => a + x.waarde, 0)) + "?\n\n" +
+      "Ze zijn daarna meteen te verzilveren.")) return;
+  const knop = $("#impDoe");
+  knop.disabled = true; knop.textContent = "Bezig…";
+  const geldig = $("#impGeldig").value || null;
+  const notitie = ($("#impNotitie").value || "").trim() || null;
+  const rijen = IMPORT_KLAAR.map((x) => ({
+    code: x.code, waarde: x.waarde, soort: "plastic",
+    geldig_tot: geldig, notitie: notitie
+  }));
+  try {
+    /* In stukken van honderd: één grote invoer kan op een trage verbinding
+       aflopen, en dan weet je niet wat er wel en niet in staat. */
+    let gedaan = 0;
+    for (let i = 0; i < rijen.length; i += 100) {
+      await api("bwf_cadeaubonnen", { method: "POST", body: rijen.slice(i, i + 100),
+        prefer: "return=minimal" });
+      gedaan += Math.min(100, rijen.length - i);
+      knop.textContent = "Bezig… " + gedaan + "/" + rijen.length;
+    }
+    $("#impUit").innerHTML = '<div class="melding"><b>' + rijen.length +
+      " bonnen ingevoerd.</b> Ze staan nu bij Bonnen en zijn te verzilveren.</div>";
+    $("#impTekst").value = "";
+    IMPORT_KLAAR = [];
+    await laad();
+  } catch (e) {
+    $("#impUit").innerHTML = '<div class="melding fout">Invoeren lukte niet: ' + esc(e.message) +
+      (/duplicate|unique/i.test(e.message)
+        ? "<br>Er zat een code bij die al bestond. Klik opnieuw op Eerst nakijken; die haalt de bestaande codes eruit."
+        : "") + "</div>";
+  } finally {
+    knop.disabled = false; knop.textContent = "Invoeren";
+  }
+}
+
+/* ---------- digitale bon maken ---------- */
+async function bonMaken() {
+  const bedrag = leesBedrag($("#nwBedrag").value);
+  const aantal = Math.max(1, Math.min(50, parseInt($("#nwAantal").value, 10) || 1));
+  const uit = $("#nwUit");
+  if (bedrag == null || bedrag <= 0) {
+    uit.innerHTML = '<div class="melding fout">Vul eerst een bedrag in.</div>';
+    return;
+  }
+  const rijen = [];
+  for (let i = 0; i < aantal; i++) {
+    rijen.push({
+      code: nieuweCode(), waarde: bedrag, soort: "digitaal",
+      geldig_tot: $("#nwGeldig").value || null,
+      ontvanger_naam: ($("#nwVoor").value || "").trim() || null,
+      ontvanger_email: ($("#nwMail").value || "").trim().toLowerCase() || null,
+      van_wie: ($("#nwVan").value || "").trim() || null,
+      bericht: ($("#nwBericht").value || "").trim() || null
+    });
+  }
+  const knop = $("#nwMaak");
+  knop.disabled = true; knop.textContent = "Bezig…";
+  try {
+    const gemaakt = await api("bwf_cadeaubonnen", { method: "POST", body: rijen });
+    uit.innerHTML = (gemaakt || []).map(bonVel).join("") +
+      '<div class="knoprij"><button class="knop" type="button" onclick="window.print()">Afdrukken of opslaan als pdf</button></div>';
+    await laad();
+  } catch (e) {
+    uit.innerHTML = '<div class="melding fout">Aanmaken lukte niet: ' + esc(e.message) + "</div>";
+  } finally {
+    knop.disabled = false; knop.textContent = "Bon aanmaken";
+  }
+}
+
+/* De bon zoals de gast hem krijgt. Bewust zonder logo-afbeelding: dit moet ook
+   werken als een plaatje niet meelaadt in de mail van de ontvanger. */
+function bonVel(b) {
+  return '<div class="bonvel">' +
+    '<div class="klein">Bed &amp; Wellness Flevoland</div>' +
+    '<div class="bedrag">&euro; ' + euro(b.waarde) + "</div>" +
+    '<div class="klein">cadeaubon</div>' +
+    '<div class="bcode">' + esc(b.code) + "</div>" +
+    (b.ontvanger_naam ? '<p class="regel">Voor ' + esc(b.ontvanger_naam) + "</p>" : "") +
+    (b.van_wie ? '<p class="regel">Van ' + esc(b.van_wie) + "</p>" : "") +
+    (b.bericht ? '<p class="regel"><i>' + esc(b.bericht) + "</i></p>" : "") +
+    '<p class="regel" style="margin-top:10px">' +
+      (b.geldig_tot ? "Geldig tot " + esc(dNL(b.geldig_tot)) + " &middot; " : "") +
+      "Te besteden bij je reservering</p>" +
+    "</div>";
+}
+
+/* ---------- blokkeren ---------- */
+async function blokkeer(id, aan) {
+  const b = BONNEN.find((x) => String(x.id) === String(id));
+  if (!b) return;
+  if (aan && !confirm("Bon " + b.code + " blokkeren?\n\n" +
+      "Er kan dan niets meer mee verzilverd worden. Het saldo van € " +
+      euro(b.saldo) + " blijft staan en je kunt dit altijd terugdraaien.")) return;
+  try {
+    const rij = await api("bwf_cadeaubonnen?id=eq." + encodeURIComponent(id) + "&select=*",
+      { method: "PATCH", body: { status: aan ? "geblokkeerd" : (Number(b.saldo) > 0 ? "actief" : "op") } });
+    if (rij && rij.length) {
+      BONNEN = BONNEN.map((x) => (x.id === id ? rij[0] : x));
+      teken();
+      $("#bonKaart").close();
+      melding(aan ? "Bon geblokkeerd." : "Bon weer bruikbaar.");
+    }
+  } catch (e) {
+    melding(/40[13]/.test(e.message)
+      ? "Je mag bonnen niet blokkeren. Vraag Angela."
+      : "Het lukte niet: " + e.message, "fout");
+  }
+}
+
+/* ---------- tabbladen ---------- */
+function toonTab(naam) {
+  ["lijst", "import", "nieuw"].forEach((t) => {
+    const p = $("#paneel-" + t);
+    if (p) p.hidden = t !== naam;
+  });
+  $$(".tab").forEach((k) => k.setAttribute("aria-selected", String(k.dataset.tab === naam)));
+}
+
+/* ---------- bindingen ---------- */
+document.addEventListener("click", (e) => {
+  const t = e.target.closest(".tab");
+  if (t) { toonTab(t.dataset.tab); return; }
+  const rij = e.target.closest("tr[data-bon]");
+  if (rij) { openBon(rij.dataset.bon); return; }
+  const blok = e.target.closest("[data-blok]");
+  if (blok) { blokkeer($("#bonKaart").dataset.bon, blok.dataset.blok === "aan"); return; }
+  if (e.target.id === "bkSluit") { $("#bonKaart").close(); return; }
+  if (e.target.id === "bkKopie") {
+    const b = BONNEN.find((x) => String(x.id) === String($("#bonKaart").dataset.bon));
+    if (!b) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(b.code).then(
+      () => { e.target.textContent = "Gekopieerd"; setTimeout(() => { e.target.textContent = "Code kopiëren"; }, 1500); },
+      () => prompt("Kopieer de code:", b.code));
+    else prompt("Kopieer de code:", b.code);
+    return;
+  }
+  if (e.target.id === "bkAfdruk") {
+    const b = BONNEN.find((x) => String(x.id) === String($("#bonKaart").dataset.bon));
+    if (!b) return;
+    const w = window.open("", "_blank");
+    if (!w) { melding("Het venster werd geblokkeerd. Sta pop-ups toe voor deze pagina.", "let"); return; }
+    w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8">' +
+      "<title>Cadeaubon " + esc(b.code) + "</title>" +
+      '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=IBM+Plex+Mono&family=Public+Sans&display=swap" rel="stylesheet">' +
+      "<style>body{font-family:'Public Sans',sans-serif;margin:30px;max-width:460px}" +
+      document.querySelector("style").textContent.match(/\.bonvel[\s\S]*?\.bonvel \.regel\{[^}]*\}/)[0] +
+      "</style></head><body>" + bonVel(b) + "</body></html>");
+    w.document.close();
+    return;
+  }
+  if (e.target.id === "impKijk") { importNakijken(); return; }
+  if (e.target.id === "impDoe") { importDoen(); return; }
+  if (e.target.id === "nwMaak") { bonMaken(); return; }
+  if (e.target.id === "lgKnop") { inloggen(); return; }
+});
+document.addEventListener("input", (e) => {
+  if (["zoek"].includes(e.target.id)) teken();
+  /* De lijst is veranderd: het nakijken opnieuw doen voordat er iets in mag. */
+  if (["impTekst", "impBedrag"].includes(e.target.id)) {
+    $("#impDoe").disabled = true;
+    IMPORT_KLAAR = [];
+  }
+});
+document.addEventListener("change", (e) => {
+  if (["fStatus", "fSoort"].includes(e.target.id)) teken();
+});
+
+async function inloggen() {
+  const k = $("#lgKnop"), f = $("#lgFout");
+  f.textContent = ""; k.disabled = true; k.textContent = "Bezig…";
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=password", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("#lgMail").value.trim().toLowerCase(), password: $("#lgWw").value })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) {
+      throw new Error(d.error_description === "Invalid login credentials"
+        ? "E-mailadres of wachtwoord klopt niet." : (d.error_description || d.msg || "Inloggen lukte niet."));
+    }
+    bewaarSessie(d);
+    $("#lgWw").value = "";
+    verbergSlot();
+    await start();
+  } catch (e) {
+    f.textContent = e.message;
+  } finally {
+    k.disabled = false; k.textContent = "Inloggen";
+  }
+}
+
+async function start() {
+  leesSessie();
+  const token = await geldigToken();
+  if (!token) { toonSlot("Log in om de cadeaubonnen te zien."); return; }
+  verbergSlot();
+  const deel = jwtDeel(token);
+  try {
+    const [rol, mw] = await Promise.all([
+      api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
+      api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || ""))
+    ]);
+    ROL = rol || null;
+    NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
+  } catch (e) {
+    melding("Je gegevens konden niet worden geladen: " + e.message, "fout");
+    return;
+  }
+  if (!ROL) {
+    melding("Je account heeft geen toegang. Vraag Angela om een toegangsrol.", "fout");
+    return;
+  }
+  /* Bonnen aanmaken is geld maken; dat blijft bij kantoor. Wie alleen mag
+     verzilveren ziet de twee tabbladen niet - de database weigert het toch,
+     en een knop die niets doet is erger dan een knop die er niet is. */
+  if (!magBeheren()) {
+    $$('.tab').forEach((k) => { if (k.dataset.tab !== "lijst") k.hidden = true; });
+    melding("Je kunt bonnen opzoeken en nakijken. Nieuwe bonnen aanmaken doet Angela of een VR-assistent.");
+  }
+  try { await laad(); } catch (e) { melding("De bonnen konden niet worden geladen: " + e.message, "fout"); }
+}
+
+start();
+</script>
+</body>
+</html>
