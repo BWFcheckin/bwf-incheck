@@ -122,6 +122,30 @@ section[hidden]{display:none}
 .afr-wijze:has(input:checked){border-color:#2E7D5B;background:#E8F4EC;color:#1F5B41;font-weight:600;
   box-shadow:inset 0 0 0 1px #2E7D5B}
 .afr-wijze:has(input:focus-visible){outline:2px solid currentColor;outline-offset:2px}
+/* De reviewstand. Drie knoppen in dezelfde taal als de betaalwijzen, maar ze
+   slaan meteen op; daarom knoppen met aria-pressed en geen keuzerondjes.
+   De gekozen stand kleurt mee met wat hij betekent: groen als er een review
+   aankomt, grijs als je er bewust vanaf ziet. */
+/* Drie vaste kolommen en niet auto-fit: met auto-fit viel de derde knop op een
+   telefoon alleen op een tweede rij, en dan lees je niet meer dat het één
+   keuze uit drie is. Gemeten op 390px breed: drie knoppen van 93px passen,
+   en de tekst mag daarbinnen over twee regels. */
+.rev-knoppen{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:4px 0 2px}
+.rev-knop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:10px 5px;border:1px solid var(--line-soft);border-radius:12px;cursor:pointer;
+  background:var(--surface,#fff);font-size:12.5px;text-align:center;min-height:64px;
+  color:inherit;transition:.12s;line-height:1.25;hyphens:auto}
+.rev-knop .ico{font-size:19px;line-height:1}
+.rev-knop:hover{border-color:var(--line-strong,var(--line-soft));background:var(--surface-2,#faf7f3)}
+.rev-knop[aria-pressed="true"]{border-color:#2E7D5B;background:#E8F4EC;color:#1F5B41;font-weight:600;
+  box-shadow:inset 0 0 0 1px #2E7D5B}
+.rev-knop[data-rev="geen"][aria-pressed="true"]{border-color:#8A8178;background:#F1EEEA;color:#4A443D;
+  box-shadow:inset 0 0 0 1px #8A8178}
+.rev-knop:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.rev-knop[disabled]{cursor:default;opacity:.55}
+.rev-link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 2px;font-size:13px}
+.rev-link code{font-size:12px;word-break:break-all;background:var(--surface-2,#faf7f3);
+  padding:3px 6px;border-radius:6px}
 .v-albetaald{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:11px 14px;
   border-radius:11px;background:#E8F4EC;border:1px solid #2E7D5B;color:#1F5B41;
   font-size:14.5px;line-height:1.45;grid-column:1/-1}
@@ -1064,7 +1088,12 @@ const TYPES = { dagverblijf: "Dagverblijf", avond: "Avond", overnachting: "Overn
   late_checkin: "Late check-in", honeymoon: "Honeymoon" };
 const STATUSSEN = { bevestigd: "Bevestigd", optie: "Optie", geannuleerd: "Geannuleerd", no_show: "No-show" };
 const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
-const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
+/* Let op: dit is met opzet een let en geen const. review_status komt er pas bij
+   als de migratie 20260928100000 gedraaid is; vraag je een kolom op die nog
+   niet bestaat, dan geeft PostgREST een fout op élke bevraging en blijft het
+   hele scherm leeg. start() test daarom één keer of de kolom er is en plakt
+   hem er dan pas achter. */
+let KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
   "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,extras,bedrag_totaal,betaald_bedrag," +
   "restant_bedrag,betaalstatus,betaald_via,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
   /* review_verstuurd hoort erbij sinds de controlebalk: dat veld bestaat in de
@@ -1072,6 +1101,15 @@ const KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,v
      hoe vaak je de link ook verstuurd had. */
   "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door,review_verstuurd";
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
+
+/* Staat de kolom review_status in de database? Wordt bij het opstarten
+   vastgesteld. Zo lang hij er niet is werkt alles gewoon door en zegt het
+   reviewblok eerlijk dat de migratie nog moet draaien. */
+let REVIEW_KOLOM = false;
+/* De welkomstcall van de reservering die nu openstaat. De controlebalk heeft
+   die nodig; zonder zou een hertekening de stap "welkomstcall gedaan" ten
+   onrechte op rood zetten. undefined = nog niet opgehaald. */
+let LAATSTE_CALL;
 
 let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = null, ARR_START = "";
 /* Wat er in de drie bedragvelden stond toen het venster openging. Opslaan
@@ -1600,6 +1638,7 @@ function openVenster(id) {
   vBetaalstand(false);
   /* De controlebalk meteen tekenen met wat de reservering zelf weet. De
      welkomstcall komt later binnen; vulKoppelingen tekent hem dan opnieuw. */
+  LAATSTE_CALL = undefined;
   tekenBalk(r, undefined);
   /* Het bijboekblok opnieuw opbouwen voor deze reservering: de keuzelijst hoort
      bij de suite, en de al bijgeboekte regels staan eronder. */
@@ -1824,6 +1863,83 @@ function kaartRegel(naam, waarde) {
     (ico ? '<span class="kaartblok-ico">' + ico + "</span>" : "") +
     '<span class="kaartblok-tekst"><small>' + esc(naam) + "</small>" +
     "<b>" + waarde + "</b></span></div>";
+}
+
+/* =========================================================
+   De reviewstand
+   =========================================================
+   Angela, 28-09-2026: "in de reserveringskaart een optie waarbij je kunt
+   aangeven: reviewlink al verstuurd, qr-code gescand, en geen review sturen,
+   klant is niet tevreden."
+
+   De reviewlink hangt aan de locatie, niet aan de suite: Malina Jacuzzi en
+   Malina Deluxe staan allebei in Lelystad en delen één bordje met één
+   qr-code, Suite Angie heeft die van Almere. Angela heeft dat op 28-09-2026
+   bevestigd ("de suites in Lelystad delen dezelfde qr-code"), dus we lezen de
+   link gewoon uit de locatie-instelling die er al staat.
+
+   Wat hier NIET gebeurt, en waarom: automatisch zien dat er gescand is. De
+   gedrukte bordjes wijzen rechtstreeks naar reviewplus.io. Zo'n scan komt
+   nooit langs dit systeem, hoe we het ook bouwen. Vandaar een knop die je
+   zelf aanzet zodra je de review ziet binnenkomen. */
+const REVIEW_STANDEN = [
+  { waarde: "verstuurd", ico: "&#128233;", naam: "Link verstuurd" },
+  { waarde: "gescand",   ico: "&#128241;", naam: "QR gescand" },
+  { waarde: "geen",      ico: "&#128683;", naam: "Geen review" }
+];
+const REVIEW_UITLEG = {
+  verstuurd: "De reviewlink is naar de gast gestuurd.",
+  gescand: "De gast heeft het bordje in de suite gescand.",
+  geen: "Bewust geen review vragen — de gast was niet tevreden.",
+  "": "Nog niets gedaan."
+};
+
+function reviewLinkVan(r) {
+  const loc = SUITE_LOCATIE[r.suite] || "";
+  if (!loc) return "";
+  return String(BEHEER_WAARDEN[bhRevSleutel(loc)] || BH_REVIEW_STANDAARD[loc] || "").trim();
+}
+
+function reviewVakInhoud(r) {
+  if (!REVIEW_KOLOM) {
+    return '<div style="color:var(--muted)">De reviewstand kan nog niet worden ' +
+      "bewaard: de migratie 20260928100000_review_stand.sql is nog niet gedraaid.</div>";
+  }
+  const stand = String(r.review_status || "");
+  /* Dezelfde regel als bij de extra's: op locatie mag je dit aanzetten, want
+     daar zie je als eerste dat er gescand is. Bij een geannuleerde boeking
+     valt er niets meer te vragen. */
+  const mag = (magBewerken() || magBeperkt()) && r.status !== "geannuleerd";
+  const link = reviewLinkVan(r);
+  const loc = SUITE_LOCATIE[r.suite] || "";
+
+  const knoppen = '<div class="rev-knoppen">' + REVIEW_STANDEN.map((s) =>
+    '<button type="button" class="rev-knop" data-rev="' + s.waarde + '"' +
+      ' aria-pressed="' + (stand === s.waarde ? "true" : "false") + '"' +
+      (mag ? "" : " disabled") +
+      ' title="' + esc(REVIEW_UITLEG[s.waarde]) + '">' +
+      '<span class="ico">' + s.ico + "</span>" + esc(s.naam) + "</button>").join("") + "</div>";
+
+  const datum = r.review_verstuurd
+    ? '<div style="color:var(--muted);font-size:12.5px;margin-top:6px">Verstuurd op ' +
+      esc(String(r.review_verstuurd).slice(0, 10).split("-").reverse().join("-")) + "</div>"
+    : "";
+
+  const uitleg = '<div style="font-size:13px;margin-top:8px">' +
+    (stand ? esc(REVIEW_UITLEG[stand]) + ' <span style="color:var(--muted)">Nog een keer op ' +
+       'dezelfde knop tikken zet het weer terug.</span>'
+           : '<span style="color:var(--muted)">Er staat nog geen reviewstand. ' +
+             "Tik aan wat er gebeurd is.</span>") + "</div>";
+
+  const linkregel = link
+    ? '<div class="rev-link"><span>Reviewlink ' + esc(loc) + ":</span><code>" + esc(link) + "</code>" +
+      '<button type="button" class="knop sec klein" data-revkopie="' + esc(link) +
+      '">Kopieer</button>' +
+      '<a class="knop sec klein" href="' + esc(link) + '" target="_blank" rel="noopener">Openen</a></div>'
+    : '<div class="rev-link" style="color:var(--muted)">Voor ' + esc(loc || "deze locatie") +
+      " staat nog geen reviewlink. Die zet je op het tabblad Beheer.</div>";
+
+  return knoppen + uitleg + datum + linkregel;
 }
 
 /* Het bewerkvenster overzichtelijk houden. Angela, 27-09-2026: "hier wil ik
@@ -2072,7 +2188,10 @@ function tekenPersoneelKaart(r) {
     ]) +
     kaartVak("Incheckformulier", [
       '<div id="vKaartIncheck" style="color:var(--muted)">wordt geladen&hellip;</div>'
-    ]);
+    ]) +
+    /* Het reviewblok staat open: na afloop van een verblijf is dit het enige
+       wat er nog moet gebeuren, en dan wil je er niet eerst naar zoeken. */
+    kaartVak("Review", ['<div id="vReviewVak">' + reviewVakInhoud(r) + "</div>"], true);
 
   /* De koppelingen worden apart geladen; die vullen dit blok zodra ze binnen zijn. */
   const vak = $("#vKaartIncheck");
@@ -2425,7 +2544,10 @@ async function vulKoppelingen(r) {
       "", ""));
 
     doel.innerHTML = regels.join("");
-    /* Nu de welkomstcall bekend is, de balk opnieuw tekenen. */
+    /* Nu de welkomstcall bekend is, de balk opnieuw tekenen. Hij wordt ook
+       bewaard, zodat een latere hertekening (bijvoorbeeld na het zetten van de
+       reviewstand) deze stap niet weer op rood zet. */
+    LAATSTE_CALL = w;
     tekenBalk(r, w);
   } catch (e) {
     doel.textContent = "Koppelingen konden niet worden geladen: " + e.message;
@@ -2549,13 +2671,22 @@ function balkStand(r, w) {
     w.status === "afgerond" || w.status === "gebeld");
   const incheck = !!r.checkin_id;
   const betaling = r.betaalstatus === "betaald";
-  const review = !!r.review_verstuurd;
+  /* De reviewstap is afgehandeld zodra er iets over bekend is: de link is
+     verstuurd, de gast heeft het bordje gescand, of je hebt bewust besloten
+     geen review te vragen. Dat laatste is óók klaar - het zou onzin zijn die
+     boeking daarvoor rood te laten staan. review_verstuurd blijft meetellen
+     voor de boekingen van vóór de reviewstand. */
+  const rstand = String(r.review_status || "");
+  const review = !!rstand || !!r.review_verstuurd;
+  const reviewNaam = rstand === "gescand" ? "Review via QR"
+                   : rstand === "geen" ? "Review: bewust niet"
+                   : "Reviewlink verstuurd";
   const stappen = [
     ["Gegevens gecontroleerd", gegevens],
     ["Welkomstcall gedaan", call],
     ["Incheckformulier gekoppeld", incheck],
     ["Betaling rond", betaling],
-    ["Reviewlink verstuurd", review]
+    [reviewNaam, review]
   ];
   /* Volledig afgerond is geen apart veld: het is waar zodra de vijf stappen
      hierboven alle vijf groen zijn. */
@@ -4715,6 +4846,55 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "vGastNaarKlant") { e.preventDefault(); maakKlantEnKoppel(); }
   if (e.target.id === "vWcOpslaan") { e.preventDefault(); bewaarWelkomstcall(); }
 });
+/* De datum van vandaag als jjjj-mm-dd, in de tijd hier en niet in UTC. Met
+   toISOString() stond er tussen middernacht en 02:00 de dag ervoor; die fout
+   zat op acht plekken en is hier niet opnieuw gemaakt. */
+function revVandaag() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+    "-" + String(d.getDate()).padStart(2, "0");
+}
+
+/* De reviewstand aanzetten, of terugzetten door nog een keer op dezelfde knop
+   te tikken. Bij "Link verstuurd" gaat de datum mee, zodat de controlebalk en
+   het bestaande veld review_verstuurd blijven kloppen. */
+async function zetReviewStand(keuze) {
+  const r = HUIDIG;
+  if (!r || !REVIEW_KOLOM) return;
+  if (!((magBewerken() || magBeperkt()) && r.status !== "geannuleerd")) return;
+
+  const nu = String(r.review_status || "");
+  const nieuw = nu === keuze ? null : keuze;
+  const body = { review_status: nieuw, gewijzigd_door: NAAM };
+  /* review_verstuurd loopt mee met de stand "verstuurd": aan zetten vult de
+     datum als die nog leeg was, uit zetten haalt hem weg. Anders zou de
+     controlebalk groen blijven terwijl de knop uit staat. */
+  if (nieuw === "verstuurd" && !r.review_verstuurd) body.review_verstuurd = revVandaag();
+  if (nu === "verstuurd" && nieuw === null) body.review_verstuurd = null;
+
+  const vak = $("#vReviewVak");
+  if (vak) vak.style.opacity = ".5";
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: body });
+    if (rij && rij.length) {
+      RIJEN = RIJEN.map((x) => (x.id === r.id ? rij[0] : x));
+      HUIDIG = rij[0];
+      /* Alleen dit blok opnieuw tekenen. De hele kaart hertekenen zou elk
+         opengeklapt onderdeel weer dichtdoen. */
+      if (vak) vak.innerHTML = reviewVakInhoud(HUIDIG);
+      tekenBalk(HUIDIG, LAATSTE_CALL);
+      teken();
+    }
+  } catch (e) {
+    if (vak) vak.insertAdjacentHTML("beforeend",
+      '<div style="color:var(--fout,#b3261e);font-size:13px;margin-top:8px">' +
+      "De reviewstand kon niet worden bewaard: " + esc(e.message) + "</div>");
+  } finally {
+    if (vak) vak.style.opacity = "";
+  }
+}
+
 /* Heb je de reviewlink verstuurd, dan mag die stap in de controlebalk groen
    worden. review_verstuurd is een datumkolom, dus alleen de datum eruit. */
 async function vstReviewGestuurd() {
@@ -4722,11 +4902,19 @@ async function vstReviewGestuurd() {
   if (!r || r.review_verstuurd || !magBewerken()) return;
   if (!$("#vSjabKeuze") || $("#vSjabKeuze").value !== "review") return;
   try {
+    const body = { review_verstuurd: revVandaag(), gewijzigd_door: NAAM };
+    /* De stand loopt mee met de datum, zodat het reviewblok op de kaart
+       hetzelfde zegt als de controlebalk. Alleen als er nog niets stond: had
+       je "geen review sturen" aangezet, dan blijft die keuze staan. */
+    if (REVIEW_KOLOM && !r.review_status) body.review_status = "verstuurd";
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
-      { method: "PATCH", body: { review_verstuurd: (function(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })(), gewijzigd_door: NAAM } });
+      { method: "PATCH", body: body });
     if (rij && rij.length) {
       RIJEN = RIJEN.map((x) => (x.id === r.id ? rij[0] : x));
       HUIDIG = rij[0];
+      const vak = $("#vReviewVak");
+      if (vak) vak.innerHTML = reviewVakInhoud(HUIDIG);
+      tekenBalk(HUIDIG, LAATSTE_CALL);
       teken();
     }
   } catch (e) {
@@ -4778,6 +4966,32 @@ document.addEventListener("click", (e) => {
     doelEl.style.transition = "box-shadow .25s";
     doelEl.style.boxShadow = "0 0 0 3px rgba(179,38,30,.28)";
     setTimeout(() => { doelEl.style.boxShadow = ""; }, 1400);
+    return;
+  }
+  /* De reviewstand aan- of uitzetten. */
+  const rev = e.target.closest("[data-rev]");
+  if (rev) {
+    e.preventDefault();
+    zetReviewStand(rev.getAttribute("data-rev"));
+    return;
+  }
+  /* De reviewlink kopiëren, zodat je hem in WhatsApp kunt plakken. */
+  const revk = e.target.closest("[data-revkopie]");
+  if (revk) {
+    e.preventDefault();
+    const tekst = revk.getAttribute("data-revkopie");
+    const klaar = () => {
+      const was = revk.textContent;
+      revk.textContent = "Gekopieerd";
+      setTimeout(() => { revk.textContent = was; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tekst).then(klaar, () => {
+        /* Lukt het kopiëren niet (dat gebeurt op iOS als de pagina geen
+           https is), dan de link maar tonen om zelf te selecteren. */
+        prompt("Kopieer de reviewlink:", tekst);
+      });
+    } else prompt("Kopieer de reviewlink:", tekst);
     return;
   }
   /* Een extra afvinken als klaargezet. */
@@ -5021,6 +5235,14 @@ async function start() {
      beheertabblad. Lukt het ophalen niet, dan valt het berichtveld gewoon terug
      op de vaste tekst en blijft de rest van het scherm werken. */
   try { await laadSjablonen(); } catch (e) {}
+  /* Eén keer kijken of review_status bestaat. Lukt het, dan halen we hem
+     voortaan mee op; lukt het niet, dan blijft KOLOMMEN zoals hij was en
+     breekt er niets. */
+  try {
+    await api("reserveringen?select=id,review_status&limit=1", { stil: true });
+    REVIEW_KOLOM = true;
+    KOLOMMEN += ",review_status";
+  } catch (e) { REVIEW_KOLOM = false; }
   await laad();
   await openUitLink();
   const tab = new URLSearchParams(location.search).get("tab");
