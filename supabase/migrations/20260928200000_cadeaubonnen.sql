@@ -55,10 +55,10 @@ create table if not exists public.bwf_cadeaubonnen (
      Hoofdletterongevoelig uniek: wie "abc123" intypt bedoelt "ABC123". */
   code          text not null,
   soort         text not null default 'plastic',
-  waarde        numeric(10,2) not null check (waarde > 0),
+  waarde        numeric(10,2) not null,
   /* Wat er nog op staat. Wordt door de trigger bijgehouden; het scherm schrijft
      hier nooit rechtstreeks in. */
-  saldo         numeric(10,2) not null default 0 check (saldo >= 0),
+  saldo         numeric(10,2) not null default 0,
   status        text not null default 'actief',
   uitgegeven_op date not null default current_date,
   geldig_tot    date,
@@ -69,15 +69,39 @@ create table if not exists public.bwf_cadeaubonnen (
   bericht       text,
   notitie       text,
   aangemaakt    timestamptz not null default now(),
-  aangemaakt_door uuid,
-  constraint bwf_cadeaubonnen_soort_check
-    check (soort in ('plastic', 'digitaal')),
-  constraint bwf_cadeaubonnen_status_check
-    check (status in ('actief', 'op', 'geblokkeerd', 'verlopen')),
-  /* Het saldo kan nooit boven de oorspronkelijke waarde uitkomen. */
-  constraint bwf_cadeaubonnen_saldo_check
-    check (saldo <= waarde)
+  aangemaakt_door uuid
 );
+
+/* De check-regels apart, en niet in de create table hierboven.
+   Waarom: stonden ze daarbinnen, dan loopt een tweede poging stuk zodra de
+   tabel al bestaat - `if not exists` slaat de tabel dan over, maar de fout
+   "constraint already exists" komt er alsnog uit en de rest van het script
+   draait niet meer. Angela liep daar op 28-09-2026 tegenaan. Zo kan dit
+   bestand zonder gevaar twee keer. */
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'bwf_cadeaubonnen_soort_check') then
+    alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_soort_check
+      check (soort in ('plastic', 'digitaal'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'bwf_cadeaubonnen_status_check') then
+    alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_status_check
+      check (status in ('actief', 'op', 'geblokkeerd', 'verlopen'));
+  end if;
+  /* Het saldo kan nooit boven de oorspronkelijke waarde uitkomen. */
+  if not exists (select 1 from pg_constraint where conname = 'bwf_cadeaubonnen_saldo_check') then
+    alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_saldo_check
+      check (saldo <= waarde);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'bwf_cadeaubonnen_waarde_check') then
+    alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_waarde_check
+      check (waarde > 0);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'bwf_cadeaubonnen_saldo_pos_check') then
+    alter table public.bwf_cadeaubonnen add constraint bwf_cadeaubonnen_saldo_pos_check
+      check (saldo >= 0);
+  end if;
+end $$;
 
 -- Twee bonnen met dezelfde code kan niet, ongeacht hoofdletters.
 create unique index if not exists bwf_cadeaubonnen_code_idx
@@ -98,11 +122,19 @@ create table if not exists public.bwf_bon_gebruik (
   /* Waar hij aan is opgegaan. Mag leeg zijn: een bon kan ook los worden
      verzilverd, bijvoorbeeld aan de balie zonder reservering. */
   reservering_id uuid references public.reserveringen(id) on delete set null,
-  bedrag         numeric(10,2) not null check (bedrag <> 0),
+  bedrag         numeric(10,2) not null,
   wanneer        timestamptz not null default now(),
   door           text,
   notitie        text
 );
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'bwf_bon_gebruik_bedrag_check') then
+    alter table public.bwf_bon_gebruik add constraint bwf_bon_gebruik_bedrag_check
+      check (bedrag <> 0);
+  end if;
+end $$;
 
 create index if not exists bwf_bon_gebruik_bon_idx on public.bwf_bon_gebruik (bon_id);
 create index if not exists bwf_bon_gebruik_res_idx on public.bwf_bon_gebruik (reservering_id)
