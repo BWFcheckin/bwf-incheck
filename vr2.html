@@ -3799,6 +3799,72 @@ document.addEventListener('click', function(e){
 document.addEventListener('click', function(){ setTimeout(laadResFrameIndienZichtbaar, 60); });
 setTimeout(laadResFrameIndienZichtbaar, 1500);
 
+/* ---------- Handleiding ----------
+   Angela, 29-09-2026: "kun je deze toevoegen aan het vr-dashboard en ook in
+   het menu plaatsen." In de gedeelde menubalk stond hij al; die werd alleen
+   niet opgehaald omdat elke pagina nog v=9 laadde terwijl de handleiding zelf
+   v=10 gebruikt - de browser hield dus een menu uit de cache zonder dat item.
+   Alle pagina's staan nu op dezelfde versie.
+
+   Hier komt hij er als tabblad bij, zodat je hem tijdens het werken naast je
+   hebt zonder het dashboard te verlaten. Zelfde aanpak als de bonnenpagina:
+   ingeladen in plaats van nagebouwd. */
+function maakHandleidingPaneel(){
+  if(document.getElementById('panel-handleiding')) return;
+  const tabs = document.getElementById('tabs'); if(!tabs) return;
+
+  const paneel = document.createElement('section');
+  paneel.className = 'panel'; paneel.id = 'panel-handleiding';
+  paneel.setAttribute('role','tabpanel'); paneel.hidden = true;
+  paneel.innerHTML = `<div class="page-head">
+      <span class="eyebrow">Werkinstructie</span>
+      <h1>Handleiding</h1>
+      <p>Hoe alles werkt, per onderwerp. Doorzoekbaar en af te drukken.</p>
+    </div>
+    <div class="card"><div class="card-head"><h2>Handleiding</h2>
+      <a class="btn ghost small" href="handleiding.html" target="_blank" rel="noopener">In eigen venster openen</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      <iframe id="handleidingFrame" data-src="handleiding.html" title="Handleiding"
+        style="width:100%;height:80vh;min-height:540px;border:0;border-radius:0 0 12px 12px;background:#fff"></iframe>
+    </div></div>`;
+  const naast = document.getElementById('panel-klanten');
+  if(naast && naast.parentNode) naast.parentNode.insertBefore(paneel, naast);
+  else document.body.appendChild(paneel);
+
+  const knop = document.createElement('button');
+  knop.className = 'tab'; knop.setAttribute('role','tab');
+  knop.id = 'tab-handleiding'; knop.dataset.tab = 'handleiding';
+  knop.setAttribute('aria-selected','false');
+  knop.setAttribute('aria-controls','panel-handleiding');
+  knop.textContent = 'Handleiding';
+  tabs.appendChild(knop);
+
+  if(typeof GROEPEN !== 'undefined' && !GROEPEN.handleiding) GROEPEN.handleiding = ['handleiding'];
+
+  /* Achteraan in het hoofdmenu: je slaat hem op naar iets op te zoeken, niet
+     om je dag mee te beginnen. */
+  const groeptabs = document.getElementById('groeptabs');
+  if(groeptabs && !groeptabs.querySelector('[data-groep="handleiding"]')){
+    const g = document.createElement('button');
+    g.className = 'tab'; g.setAttribute('role','tab');
+    g.dataset.groep = 'handleiding';
+    g.setAttribute('aria-selected','false');
+    g.textContent = '📖 Handleiding';
+    groeptabs.appendChild(g);
+  }
+}
+maakHandleidingPaneel();
+document.addEventListener('DOMContentLoaded', maakHandleidingPaneel);
+
+function laadHandleidingIndienZichtbaar(){
+  const f = document.getElementById('handleidingFrame');
+  const p = document.getElementById('panel-handleiding');
+  if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
+}
+document.addEventListener('click', function(){ setTimeout(laadHandleidingIndienZichtbaar, 60); });
+setTimeout(laadHandleidingIndienZichtbaar, 1500);
+
 /* ---------- Cadeaubonnen ----------
    Angela, 29-09-2026: "kun je de cadeaubonnen-html toevoegen aan het
    vr-dashboard." Zelfde aanpak als de reserveringenpagina hierboven: de pagina
@@ -12144,7 +12210,7 @@ $('#whoBtn').addEventListener('click', ()=>{
      hetzelfde als de regel "Naar de startpagina" die al bovenin het
      uitklapmenu staat. Twee knoppen voor hetzelfde, en op een telefoon stond
      hij in de weg van de onderste balk. -->
-<script src="bwf-menu.js?v=9"></script>
+<script src="bwf-menu.js?v=10"></script>
 <script src="bwf-weergave.js?v=2"></script>
 <script>
 /* onthouden e-mailadres terugzetten in het inlogscherm */
