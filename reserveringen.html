@@ -2284,6 +2284,11 @@ function tekenPersoneelKaart(r) {
       "</div>" +
       '<div class="kaartkop-knoppen">' +
         '<button type="button" class="knop sec" data-naar="vBijboekVak">Extra&#39;s bijboeken</button>' +
+        /* Angela, 29-09-2026: "ik wil ook de e-mailbevestiging en de factuur
+           terug hebben." Ze waren er nog wel, maar zaten in een onderdeel dat
+           ik bij het opschonen had ingeklapt - en daarmee onvindbaar gemaakt.
+           Nu staan ze bovenaan naast de twee andere knoppen. */
+        '<button type="button" class="knop sec" data-naar="vBetaalVak">Bevestiging &amp; factuur</button>' +
         '<button type="button" class="knop vol" data-naar="vAfrekenVak">Betaling</button>' +
       "</div>" +
     "</div>";
@@ -5619,6 +5624,24 @@ async function maakReservering() {
     toonTab("lijst");
     teken();
     openVenster(rij[0].id);
+    /* Angela, 29-09-2026: "zet de betaallink aanmaken terug bij nieuwe
+       reservering", en "ik wil ook de e-mailbevestiging en de factuur terug".
+
+       Na het aanmaken is dat precies wat je wilt doen: de gast een bevestiging
+       sturen en zo nodig een betaallink. Dat onderdeel zat ingeklapt, dus het
+       gaat nu vanzelf open bij een verse reservering - bij een bestaande niet,
+       want dan kom je meestal voor iets anders. */
+    setTimeout(() => {
+      const vak = $("#vBetaalVak");
+      if (!vak) return;
+      vak.classList.remove("dicht");
+      if (typeof vouwBewaren === "function") {
+        try { vouwBewaren(onderdeelNaam(vak)); } catch (e) {}
+      }
+      vak.scrollIntoView({ behavior: "smooth", block: "center" });
+      const note = $("#vBetaalNote");
+      if (note) note.textContent = "Zet hier de bevestiging klaar, of maak een betaallink.";
+    }, 350);
   } catch (e) {
     m.textContent = "Aanmaken lukte niet: " + e.message;
   }
