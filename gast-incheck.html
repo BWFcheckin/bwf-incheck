@@ -301,6 +301,12 @@ let CATALOGUS = [
     oms:'Fles champagne met speciale glazen en wijnkoeler. Geserveerd met ijs en fruit.' },
   { id:'drank_mocktail', groep:'drank', naam:'Mocktail karaf', prijs:30, img:'drank-mocktail.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
     oms:'Wisselend assortiment, bijvoorbeeld aardbei of tropical.' },
+  /* Angela, 28-09-2026: bier en rookterras erbij. Ze stonden al op het
+     incheckformulier en in de lijst met extra's; hier ontbraken ze nog, zodat
+     een gast ze zelf niet kon bestellen. Geen foto: er is er geen van, en een
+     verkeerde foto is erger dan geen. */
+  { id:'drank_bier', groep:'drank', naam:'Bier per fles', prijs:6, suites:['angie','jacuzzi','deluxe'], maxAantal:12,
+    oms:'Per fles, gekoeld klaargezet.' },
 
   /* --- Services --- */
   { id:'srv_waterpijp', groep:'srv', naam:'Waterpijp', prijs:30, img:'srv-waterpijp.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:2,
@@ -310,6 +316,9 @@ let CATALOGUS = [
     oms:'Gebruik van massagetafel incl. extra handdoek en olie.' },
   { id:'srv_blinddoek', groep:'srv', naam:'Blinddoek', prijs:2.5, img:'srv-blinddoek.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
     oms:'Verras iemand tijdens het spabezoek.' },
+  /* Alleen Lelystad: het rookterras hoort bij de Malina-suites. */
+  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, suites:['jacuzzi','deluxe'], maxAantal:1,
+    oms:'Gebruik van het rookterras tijdens je verblijf.' },
 ];
 
 /* ================= CATALOGUS UIT BEHEER ================= */
