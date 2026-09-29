@@ -540,7 +540,11 @@ button.dk-dienst:hover:not([disabled]){border-color:var(--crit,#B3261E);
 button.dk-dienst[disabled]{cursor:default;opacity:.75}
 button.dk-dienst:focus-visible{outline:2px solid currentColor;outline-offset:1px}
 /* Het kruisje achter een dienst in de lijst eronder. */
-.dienst-weg{margin-left:auto;flex:none;width:28px;height:28px;border-radius:8px;cursor:pointer;
+.dienst-bewerk{margin-left:auto;flex:none;width:28px;height:28px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:13px;line-height:1}
+.dienst-bewerk:hover{border-color:var(--accent,#9A7B4F);color:var(--accent,#9A7B4F)}
+.dienst-bewerk:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.dienst-weg{flex:none;width:28px;height:28px;border-radius:8px;cursor:pointer;
   border:1px solid var(--line);background:var(--surface);color:var(--muted);
   font-size:13px;line-height:1}
 .dienst-weg:hover{border-color:var(--crit,#B3261E);color:var(--crit,#B3261E);
@@ -2075,7 +2079,12 @@ div.ag-blok{cursor:default}
           <div class="field" style="grid-column:span 2"><label for="plnNotitie">Notitie</label>
             <input type="text" id="plnNotitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
           <div class="field"><label>&nbsp;</label>
-            <button class="btn groen" type="button" id="plnBewaar">Inplannen</button></div>
+            <button class="btn groen" type="button" id="plnBewaar">Inplannen</button>
+            <!-- Angela, 29-09-2026: "ik wil ook diensten uit het verleden
+                 kunnen wijzigen." Klik je een dienst aan, dan wordt dit
+                 formulier het bewerkvenster en verschijnen deze twee. -->
+            <button class="btn" type="button" id="plnAnnuleer" hidden>Annuleren</button>
+            <button class="btn rood" type="button" id="plnWis" hidden>Verwijderen</button></div>
         </div>
         <p class="note" id="plnMeld" style="margin:10px 0 0"></p>
       </div>
@@ -6972,12 +6981,115 @@ function renderDiensten(){
       <span class="pill neutral">${esc(kalSoortLabel(d.dienst))}</span>
       ${d.locatie?`<span>${esc(d.locatie)}</span>`:''}
       ${d.notitie?`<em>${esc(d.notitie)}</em>`:''}
+      <button type="button" class="dienst-bewerk" title="Deze dienst wijzigen"
+        aria-label="Dienst van ${esc(teamNaam(d.medewerker_id))} op ${esc(dmy(String(d.datum||'').slice(0,10)))} wijzigen"
+        data-dienstbewerk="${esc(d.id)}">&#9998;</button>
       <button type="button" class="dienst-weg" title="Deze dienst verwijderen"
         aria-label="Dienst van ${esc(teamNaam(d.medewerker_id))} op ${esc(dmy(String(d.datum||'').slice(0,10)))} verwijderen"
         data-dienstweg="${esc(d.id)}">&#10005;</button>
     </div>`).join('')
     : '<p class="note" style="margin:0">Geen diensten binnen deze keuze.</p>';
 }
+
+/* ---------------- EEN DIENST WIJZIGEN ----------------
+   Angela, 29-09-2026: "ik wil ook diensten uit het verleden kunnen wijzigen."
+
+   Eerst kon je een dienst alleen verwijderen, en verleden diensten in de
+   kalender helemaal niet aanraken. Dat was te streng: een dienst die achteraf
+   anders liep - iemand anders viel in, het werd een nachtdienst - moet je
+   kunnen rechtzetten, juist als hij al geweest is. Urenregistratie en
+   uitbetaling hangen eraan.
+
+   Het bestaande inplanformulier wordt het bewerkvenster: dezelfde velden,
+   dezelfde controles, één plek om te onderhouden. Wat er verandert is de
+   knoptekst en dat er twee knoppen bijkomen.
+
+   Klikken op een dienst OPENT hem nu, en verwijdert hem niet meteen. Dat is
+   ook veiliger: een tik op een klein blokje in een maandrooster is zo gebeurd.
+   Verwijderen zit in het venster, en het kruisje in de lijst doet het nog
+   steeds rechtstreeks. */
+let plnBewerkId = null;
+
+function plnStand(){
+  const knop = $('#plnBewaar'), ann = $('#plnAnnuleer'), wis = $('#plnWis');
+  const bewerkt = !!plnBewerkId;
+  if(knop) knop.textContent = bewerkt ? 'Wijziging opslaan' : 'Inplannen';
+  if(ann) ann.hidden = !bewerkt;
+  if(wis) wis.hidden = !bewerkt;
+  const kop = $('#plnToggle');
+  if(kop){
+    const t = kop.querySelector('span:last-child');
+    if(t) t.textContent = bewerkt ? 'Dienst wijzigen' : 'Dienst inplannen';
+  }
+}
+
+function plnLeeg(){
+  plnBewerkId = null;
+  ['#plnDatum','#plnNotitie'].forEach(x => { const el = $(x); if(el) el.value = ''; });
+  const w = $('#plnWie'); if(w) w.value = '';
+  plnStand();
+  plnMeld('');
+}
+
+/* Een dienst openen om te wijzigen. */
+function dienstBewerk(id){
+  const d = DIENSTEN.filter(x => String(x.id) === String(id))[0];
+  if(!d) return;
+  plnBewerkId = String(id);
+
+  /* Het blok openzetten als het dicht stond, anders vul je een formulier dat
+     niemand ziet. */
+  const knop = $('#plnToggle'), blok = $('#plnBlok');
+  if(knop && blok && knop.getAttribute('aria-expanded') !== 'true'){
+    knop.setAttribute('aria-expanded','true');
+    blok.hidden = false;
+  }
+
+  /* Eerst de keuzelijsten vullen. Zonder dit blijft "Wie" leeg: een select
+     neemt een waarde niet aan als de bijbehorende optie er nog niet is, en
+     dan weigert het opslaan met "kies eerst wie er werkt". Gemeten op
+     29-09-2026 - het openen zag er goed uit, maar de wijziging sloeg af. */
+  plnVulWie();
+
+  /* Staat de medewerker of de locatie niet in de lijst - iemand die uit dienst
+     is, of een oude locatienaam - dan wordt de optie erbij gezet. Anders kun je
+     een oude dienst niet bewerken zonder hem ongemerkt op iemand anders te
+     zetten. */
+  const zetMet = (sel, waarde, naam) => {
+    const el = $(sel); if(!el) return;
+    const w = String(waarde == null ? '' : waarde);
+    if(w && !Array.from(el.options).some(o => o.value === w)){
+      el.add(new Option(naam || w, w));
+    }
+    el.value = w;
+  };
+  const zet = (sel, waarde) => { const el = $(sel); if(el) el.value = waarde || ''; };
+  zet('#plnDatum', String(d.datum || '').slice(0,10));
+  zetMet('#plnWie', d.medewerker_id, teamNaam(d.medewerker_id));
+  zetMet('#plnLoc', d.locatie, d.locatie);
+  zetMet('#plnSoort', d.dienst, kalSoortLabel(d.dienst));
+  zet('#plnNotitie', d.notitie);
+  plnStand();
+  plnMeld('Je wijzigt de dienst van ' + teamNaam(d.medewerker_id) + ' op ' +
+    dmy(String(d.datum||'').slice(0,10)) + '.');
+  if(blok && blok.scrollIntoView) blok.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+document.addEventListener('click', function(e){
+  const b = e.target.closest && e.target.closest('[data-dienstbewerk]');
+  if(b){
+    e.preventDefault(); e.stopPropagation();
+    dienstBewerk(b.getAttribute('data-dienstbewerk'));
+  }
+});
+
+const plnAnnuleer = $('#plnAnnuleer');
+if(plnAnnuleer) plnAnnuleer.addEventListener('click', plnLeeg);
+
+const plnWis = $('#plnWis');
+if(plnWis) plnWis.addEventListener('click', function(){
+  if(plnBewerkId) dienstVerwijder(plnBewerkId, true);
+});
 
 /* ---------------- EEN DIENST VERWIJDEREN ----------------
    Angela, 29-09-2026: "ik wil via het vr-dashboard diensten kunnen toevoegen
@@ -6987,7 +7099,7 @@ function renderDiensten(){
    Er wordt om bevestiging gevraagd met de naam en de datum erin. Een dienst
    verwijderen is niet erg - je plant hem zo weer in - maar het is wel iemands
    werkrooster, en dat wil je niet per ongeluk wijzigen. */
-async function dienstVerwijder(id){
+async function dienstVerwijder(id, uitVenster){
   const d = DIENSTEN.filter(x => String(x.id) === String(id))[0];
   if(!d) return;
   const wat = [teamNaam(d.medewerker_id), kalSoortLabel(d.dienst), d.locatie]
@@ -7002,6 +7114,9 @@ async function dienstVerwijder(id){
        weg is. */
     const i = DIENSTEN.findIndex(x => String(x.id) === String(id));
     if(i > -1) DIENSTEN.splice(i, 1);
+    /* Stond hij open in het formulier, dan hoort dat weer leeg te zijn -
+       anders bewerk je een dienst die niet meer bestaat. */
+    if(uitVenster || String(plnBewerkId) === String(id)) plnLeeg();
     renderDiensten();
     try{ renderDienstKalender(); }catch(e){}
     /* De dagstart toont wie er vandaag werkt; die klopt nu ook niet meer. */
@@ -7097,16 +7212,20 @@ function renderDienstKalender(){
     html += `<div class="dk-dag"${datum===vd?' data-vandaag="1"':''}` +
             `${datum<vd?' data-verleden="1"':''}>` +
       `<span class="dk-nr">${dag}</span>` +
-      /* Een dienst in het rooster is een knop: erop tikken vraagt of je hem wilt
-         verwijderen. Angela, 29-09-2026. In de kalender kijk je het vaakst, dus
-         hier moet het ook kunnen en niet alleen in de lijst eronder.
-         Een verleden dienst blijft staan zoals hij is - daar valt niets meer
-         te plannen, en per ongeluk je eigen geschiedenis wissen is zonde. */
-      lijst.map(d=>`<button type="button" class="dk-dienst"${datum < vd ? ' disabled' : ''}` +
+      /* Een dienst in het rooster is een knop: erop tikken OPENT hem in het
+         formulier eronder, om te wijzigen of te verwijderen. Angela,
+         29-09-2026 - eerst verwijderde een tik meteen, en dat is op een klein
+         blokje in een maandrooster zo gebeurd.
+
+         Ook diensten uit het verleden zijn aanklikbaar: "ik wil ook diensten
+         uit het verleden kunnen wijzigen." Een dienst die achteraf anders liep
+         moet je kunnen rechtzetten, juist als hij al geweest is - de
+         urenregistratie hangt eraan. */
+      lijst.map(d=>`<button type="button" class="dk-dienst"` +
         ` title="${esc(teamNaam(d.medewerker_id))} — ` +
         `${esc(kalSoortLabel(d.dienst))}${d.locatie?' — '+esc(d.locatie):''}` +
-        `${datum < vd ? '' : ' (tik om te verwijderen)'}"` +
-        `${datum < vd ? '' : ` data-dienstweg="${esc(d.id)}"`}>` +
+        ` (tik om te wijzigen)"` +
+        ` data-dienstbewerk="${esc(d.id)}">` +
         `<span class="dk-stip" style="--c:${kalMwKleur(d.medewerker_id)}"></span>` +
         `${esc(kalVoornaam(teamNaam(d.medewerker_id)))}</button>`).join('') +
       '</div>';
@@ -7194,9 +7313,13 @@ if(plnBewaar) plnBewaar.addEventListener('click', async ()=>{
   /* Staat er al een dienst voor deze persoon op deze dag, dan is dat meestal
      een vergissing - twee keer op Inplannen gedrukt, of iemand anders was je
      voor. Vragen in plaats van weigeren: soms klopt het wel, bijvoorbeeld een
-     schoonmaak naast een nachtdienst. */
+     schoonmaak naast een nachtdienst.
+
+     De dienst die je aan het wijzigen bent telt daarbij niet mee: anders
+     vraagt hij bij elke wijziging of je hem er nog eens bij wilt zetten. */
   const bestaat = DIENSTEN.filter(d =>
-    String(d.datum||'').slice(0,10) === datum && String(d.medewerker_id) === String(wie));
+    String(d.datum||'').slice(0,10) === datum && String(d.medewerker_id) === String(wie) &&
+    String(d.id) !== String(plnBewerkId || ''));
   if(bestaat.length){
     const wat = bestaat.map(d=>kalSoortLabel(d.dienst)).join(', ');
     if(!confirm(teamNaam(wie) + ' staat op ' + dmy(datum) + ' al ingepland: ' + wat +
@@ -7204,17 +7327,29 @@ if(plnBewaar) plnBewaar.addEventListener('click', async ()=>{
   }
 
   plnBewaar.disabled = true;
-  plnMeld('Inplannen…');
+  plnMeld(plnBewerkId ? 'Wijziging opslaan…' : 'Inplannen…');
   try{
-    await api('planning', {
-      method: 'POST',
-      headers: heads({'Content-Type':'application/json'}),
-      body: JSON.stringify({
-        id: plnId(), datum: datum, medewerker_id: wie,
-        locatie: loc, dienst: soort,
-        notitie: (($('#plnNotitie')||{}).value || '').trim() || null
-      })
-    });
+    /* Dezelfde velden, alleen een ander adres: bij het wijzigen gaat het als
+       PATCH naar die ene rij, bij een nieuwe als POST naar de tabel. De id
+       gaat bij een wijziging NIET mee - die verander je niet. */
+    const velden = {
+      datum: datum, medewerker_id: wie,
+      locatie: loc, dienst: soort,
+      notitie: (($('#plnNotitie')||{}).value || '').trim() || null
+    };
+    if(plnBewerkId){
+      await api('planning?id=eq.' + encodeURIComponent(plnBewerkId), {
+        method: 'PATCH',
+        headers: heads({'Content-Type':'application/json'}),
+        body: JSON.stringify(velden)
+      });
+    } else {
+      await api('planning', {
+        method: 'POST',
+        headers: heads({'Content-Type':'application/json'}),
+        body: JSON.stringify(Object.assign({ id: plnId() }, velden))
+      });
+    }
     /* Opnieuw ophalen in plaats van de regel er lokaal bij verzinnen: dan zie
        je wat de database er werkelijk van gemaakt heeft. */
     await laadDiensten();
@@ -7222,12 +7357,23 @@ if(plnBewaar) plnBewaar.addEventListener('click', async ()=>{
     renderKalender();
     renderDiensten();
     try{ renderDienstKalender(); }catch(e){}
+    const was = !!plnBewerkId;
+    /* Na een wijziging het formulier weer op nieuw zetten: blijft het in de
+       bewerkstand staan, dan zou de volgende druk op de knop dezelfde dienst
+       nog eens overschrijven. */
+    plnBewerkId = null;
+    plnStand();
     $('#plnNotitie').value = '';
-    plnMeld(teamNaam(wie) + ' ingepland op ' + dmy(datum) + ' — ' + kalSoortLabel(soort) + '.');
+    /* De dagstart toont wie er vandaag werkt; na een wijziging klopt dat ook. */
+    try{ renderDagstart(); }catch(e){}
+    plnMeld(was
+      ? 'Wijziging opgeslagen: ' + teamNaam(wie) + ' op ' + dmy(datum) + ' — ' + kalSoortLabel(soort) + '.'
+      : teamNaam(wie) + ' ingepland op ' + dmy(datum) + ' — ' + kalSoortLabel(soort) + '.');
   }catch(e){
+    const wat = plnBewerkId ? 'Wijzigen' : 'Inplannen';
     plnMeld(/40[13]/.test(String(e.message))
-      ? 'Inplannen mag niet met jouw account. Vraag Angela om het recht op de planning aan te zetten.'
-      : 'Inplannen lukte niet: ' + e.message, true);
+      ? wat + ' mag niet met jouw account. Vraag Angela om het recht op de planning aan te zetten.'
+      : wat + ' lukte niet: ' + e.message, true);
   }finally{
     plnBewaar.disabled = false;
   }
