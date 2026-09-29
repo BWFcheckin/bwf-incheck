@@ -1259,6 +1259,37 @@ div.ag-blok{cursor:default}
 .dg-drie{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .dg-drie .dg-breed{grid-column:1 / -1}
 
+/* Afvinken en het archief. Angela, 29-09-2026: afvinken is geen verwijderen -
+   wat je wegvinkt staat eronder en is met het pijltje terug te halen. */
+.dg-kaartrij{display:flex;gap:8px;align-items:flex-start}
+.dg-kaartrij .dg-kaart{flex:1;min-width:0}
+.dg-vink{flex:none;width:34px;height:34px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  font-size:15px;line-height:1;align-self:center}
+.dg-vink:hover{border-color:#0F7B5A;color:#0F7B5A;background:#EAF5EF}
+.dg-vink:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.dg-spoedregel.metvink{display:flex;gap:10px;align-items:flex-start}
+.dg-spoedregel.metvink > div{flex:1;min-width:0}
+.dg-archief{margin:10px 14px 0;border-top:1px solid var(--line-soft,var(--line))}
+.dg-kaarten .dg-archief{margin:4px 0 0}
+.dg-archief > summary{cursor:pointer;list-style:none;padding:9px 0;font-size:13px;
+  color:var(--muted);display:flex;align-items:center;gap:7px}
+.dg-archief > summary::-webkit-details-marker{display:none}
+.dg-archief > summary::before{content:'▸';font-size:11px}
+.dg-archief[open] > summary::before{content:'▾'}
+.dg-archief > summary:hover{color:var(--ink)}
+.dg-archieftel{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;
+  padding:0 8px;font-size:11.5px;font-weight:700}
+.dg-archiefregel{display:flex;gap:10px;align-items:center;padding:7px 0;
+  border-top:1px solid var(--line-soft,var(--line));opacity:.72}
+.dg-archiefregel > div{flex:1;min-width:0}
+.dg-archiefregel strong{display:block;font-size:13px;font-weight:600;
+  text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dg-archiefregel small{display:block;font-size:11.5px;color:var(--muted)}
+.dg-terug{flex:none;width:30px;height:30px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:14px}
+.dg-terug:hover{border-color:#9A7B4F;color:#9A7B4F}
+
 /* Reserveringen als kaartje in plaats van als tekstregel. Angela, 29-09-2026:
    "ik wil de reserveringenlijst op de dagstart vervangen voor de kaarten."
    Dezelfde vorm als de kaartjes in de kalender eronder - foto met de naam
@@ -3714,6 +3745,23 @@ function laadResFrameIndienZichtbaar(){
      naar !f.src, en die blijft werken omdat src na toekenning gevuld is. */
   if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
 }
+/* Afvinken en terugzetten. Vóór de andere klikafhandeling, en met
+   stopPropagation: een tik op het vinkje mag de reservering niet openen. */
+document.addEventListener('click', function(e){
+  const v = e.target.closest && e.target.closest('[data-afvink]');
+  if(v){
+    e.preventDefault(); e.stopPropagation();
+    vinkAf(v.getAttribute('data-afvink'), v.getAttribute('data-kenmerk'),
+      v.getAttribute('data-titel'));
+    return;
+  }
+  const t = e.target.closest && e.target.closest('[data-terug]');
+  if(t){
+    e.preventDefault(); e.stopPropagation();
+    zetTerug(t.getAttribute('data-terug'), t.getAttribute('data-kenmerk'));
+  }
+}, true);
+
 document.addEventListener('click', function(){ setTimeout(laadResFrameIndienZichtbaar, 60); });
 setTimeout(laadResFrameIndienZichtbaar, 1500);
 
@@ -4392,6 +4440,112 @@ async function dgMeldBewaar(){
 }
 if($('#dgMeldBewaar')) $('#dgMeldBewaar').addEventListener('click', dgMeldBewaar);
 
+/* =========================================================
+   Lijsten afvinken, met een archief
+   =========================================================
+   Angela, 29-09-2026: "ik wil dat al deze lijsten afvinkbaar worden en worden
+   gearchiveerd als ze zijn afgevinkt, later pas verwijderen, zodat als je per
+   ongeluk afvinkt je de taak nog wel kan vinden."
+
+   Afvinken is hier NIET verwijderen. Het item gaat naar bwf_afgevinkt en
+   verdwijnt uit de lijst, maar staat eronder bij "Afgevinkt" met een pijltje
+   om het terug te zetten. De bronnen - reserveringen, taken, formulieren -
+   worden niet aangeraakt.
+
+   Waarom een laag erboven en geen vlaggetje per bron: die vier lijsten komen
+   uit vier verschillende tabellen, en bij "nog te verwerken" zou een vlaggetje
+   botsen met wat die lijst betekent (die vraagt juist of een boeking al is
+   nagelopen). */
+const AFGEVINKT = { spoed: {}, nieuw: {}, extras: {}, formulieren: {} };
+
+async function laadAfgevinkt(){
+  try{
+    const rijen = await api('bwf_afgevinkt?select=*&order=afgevinkt_op.desc&limit=2000');
+    Object.keys(AFGEVINKT).forEach(k => { AFGEVINKT[k] = {}; });
+    (rijen || []).forEach(r => {
+      if(!r || !AFGEVINKT[r.lijst]) return;
+      AFGEVINKT[r.lijst][String(r.kenmerk)] = r;
+    });
+  }catch(e){
+    /* Bestaat de tabel nog niet, dan blijven alle lijsten gewoon volledig
+       staan en is er niets afgevinkt. Geen melding: dat zou elke keer in beeld
+       komen tot de migratie gedraaid is. */
+  }
+}
+
+const isAfgevinkt = (lijst, kenmerk) =>
+  !!(kenmerk && AFGEVINKT[lijst] && AFGEVINKT[lijst][String(kenmerk)]);
+
+/* Wat er van een lijst overblijft. Eén plek, zodat geen enkele lijst het
+   filteren kan vergeten. */
+const nogOpen = (lijst, items, kenmerkVan) =>
+  (items || []).filter(x => !isAfgevinkt(lijst, kenmerkVan(x)));
+
+async function vinkAf(lijst, kenmerk, titel, toelichting){
+  if(!kenmerk) return;
+  /* Meteen in beeld wegstrepen; de bevraging loopt erachteraan. Wachten zou
+     een tik van een halve seconde opleveren en dan tikt iemand twee keer. */
+  AFGEVINKT[lijst][String(kenmerk)] = {
+    lijst, kenmerk: String(kenmerk), titel: titel || '',
+    afgevinkt_op: new Date().toISOString(),
+    afgevinkt_door: (typeof IK !== 'undefined' && IK && IK.naam) ? IK.naam : ''
+  };
+  renderDagstart();
+  try{
+    await api('bwf_afgevinkt', { method:'POST',
+      prefer: 'resolution=merge-duplicates,return=minimal',
+      body: [{ lijst, kenmerk: String(kenmerk), titel: titel || null,
+        toelichting: toelichting || null,
+        afgevinkt_door: (typeof IK !== 'undefined' && IK && IK.naam) ? IK.naam : null }] });
+  }catch(e){
+    /* Niet gelukt: terugdraaien in beeld, anders denk je dat het weg is
+       terwijl het morgen weer terugkomt. */
+    delete AFGEVINKT[lijst][String(kenmerk)];
+    renderDagstart();
+    /* toast() en niet melding(): dit dashboard heeft geen melding-functie.
+       Dat kostte me een meetronde - de fout kwam pas boven bij het echt
+       aanklikken, want een niet-bestaande functie merk je niet aan de code. */
+    toast('Afvinken lukte niet: ' + e.message +
+      (/(does not exist|schema cache)/i.test(String(e.message))
+        ? ' — de migratie 20260929120000 moet nog gedraaid worden.' : ''));
+  }
+}
+
+async function zetTerug(lijst, kenmerk){
+  if(!kenmerk) return;
+  const bewaard = AFGEVINKT[lijst][String(kenmerk)];
+  delete AFGEVINKT[lijst][String(kenmerk)];
+  renderDagstart();
+  try{
+    await api('bwf_afgevinkt?lijst=eq.' + encodeURIComponent(lijst) +
+      '&kenmerk=eq.' + encodeURIComponent(String(kenmerk)), { method:'DELETE' });
+  }catch(e){
+    if(bewaard) AFGEVINKT[lijst][String(kenmerk)] = bewaard;
+    renderDagstart();
+    toast('Terugzetten lukte niet: ' + e.message);
+  }
+}
+
+/* Het uitklapblokje met wat er is afgevinkt. Staat onder elke lijst en blijft
+   weg zolang er niets afgevinkt is - een lege uitklapper is alleen ruis. */
+function archiefBlok(lijst){
+  const rijen = Object.values(AFGEVINKT[lijst] || {})
+    .sort((a,b) => String(b.afgevinkt_op || '').localeCompare(String(a.afgevinkt_op || '')));
+  if(!rijen.length) return '';
+  return `<details class="dg-archief">
+    <summary>Afgevinkt <span class="dg-archieftel">${rijen.length}</span></summary>
+    ${rijen.slice(0,40).map(r => `<div class="dg-archiefregel">
+      <div><strong>${esc(r.titel || r.kenmerk)}</strong>
+        <small>${esc([r.afgevinkt_door || '', r.afgevinkt_op
+          ? new Date(r.afgevinkt_op).toLocaleString('nl-NL',
+              {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
+          : ''].filter(Boolean).join(' · '))}</small></div>
+      <button type="button" class="dg-terug" title="Terugzetten in de lijst"
+        data-terug="${esc(lijst)}" data-kenmerk="${esc(r.kenmerk)}">&#8635;</button>
+    </div>`).join('')}
+  </details>`;
+}
+
 /* Een reservering als kaartje op de dagstart. Angela, 29-09-2026.
 
    Dezelfde vorm als de kaartjes in de kalender eronder: foto van de suite met
@@ -4415,15 +4569,26 @@ function dgKaart(k){
     .map(r => `<div class="rij"><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`)
     .join('');
   const klik = k.resId ? ` data-resopen="${esc(k.resId)}"` : '';
-  return `<button type="button" class="dg-kaart${k.taak ? ' istaak' : ''}${
+  /* Het vinkje staat naast de kaart en niet erin: een knop in een knop is
+     geen geldige html, en een tik op het vinkje mag de reservering niet
+     openen. Angela, 29-09-2026. */
+  const vink = k.lijst && k.kenmerk
+    ? `<button type="button" class="dg-vink" title="Afvinken"
+         aria-label="${esc(k.naam || 'dit item')} afvinken"
+         data-afvink="${esc(k.lijst)}" data-kenmerk="${esc(k.kenmerk)}"
+         data-titel="${esc(k.naam || '')}">&#10003;</button>`
+    : '';
+  return `<div class="dg-kaartrij">
+    <button type="button" class="dg-kaart${k.taak ? ' istaak' : ''}${
       k.resId ? '' : ' geenklik'}"${klik}${k.resId ? '' : ' disabled'}>
-    <div class="dg-kaartfoto ${dgFotoKlasse(k.suite)}">
-      ${k.merk ? `<span class="dg-kaartmerk${k.merkSoort ? ' ' + k.merkSoort : ''}">${esc(k.merk)}</span>` : ''}
-      <span class="dg-kaartop"><b>${esc(k.naam || 'zonder naam')}</b>
-        <span>${esc(k.sub || '')}</span></span>
-    </div>
-    ${rijen ? `<div class="dg-kaartlijf">${rijen}</div>` : ''}
-  </button>`;
+      <div class="dg-kaartfoto ${dgFotoKlasse(k.suite)}">
+        ${k.merk ? `<span class="dg-kaartmerk${k.merkSoort ? ' ' + k.merkSoort : ''}">${esc(k.merk)}</span>` : ''}
+        <span class="dg-kaartop"><b>${esc(k.naam || 'zonder naam')}</b>
+          <span>${esc(k.sub || '')}</span></span>
+      </div>
+      ${rijen ? `<div class="dg-kaartlijf">${rijen}</div>` : ''}
+    </button>${vink}
+  </div>`;
 }
 
 function renderDagstart(){
@@ -4579,7 +4744,7 @@ function renderDagstart(){
       .concat(vandaagAank.map(r => ({
         naam: r.naam, sub: r.locatie || '', suite: r.suiteRuw,
         merk: String(r.start || '').slice(11,16) || 'vandaag',
-        resId: r.resId || '',
+        resId: r.resId || '', lijst: 'spoed', kenmerk: r.resId || r.ref || '',
         rijen: [
           ['aankomst', String(r.start || '').slice(11,16)],
           ['vertrek', dmy(String(r.eind || '').slice(0,10)) + ' ' + String(r.eind || '').slice(11,16)],
@@ -4590,7 +4755,7 @@ function renderDagstart(){
       .concat(netBinnen.map(r => ({
         naam: r.naam, sub: r.locatie || '', suite: r.suiteRuw,
         merk: 'nieuw', merkSoort: 'nieuw',
-        resId: r.resId || '',
+        resId: r.resId || '', lijst: 'spoed', kenmerk: r.resId || r.ref || '',
         rijen: [
           ['aankomst', dmy(String(r.start || '').slice(0,10)) + ' ' + String(r.start || '').slice(11,16)],
           ['via', r.bron || ''],
@@ -4601,15 +4766,18 @@ function renderDagstart(){
         naam: t.titel || 'Zonder titel',
         sub: t.omschrijving ? String(t.omschrijving).slice(0,60) : 'hoge prioriteit',
         taak: true, merk: 'taak', merkSoort: 'taak', resId: '',
+        lijst: 'spoed', kenmerk: 'taak-' + (t.id || ''),
         rijen: [
           ['deadline', t.deadline ? dmy(t.deadline) : 'geen datum'],
           ['voor', mwNaam(t.medewerker_id) || '']
         ]
       })));
+    /* Wat al afgevinkt is valt weg; het staat eronder bij Afgevinkt. */
+    const open8 = nogOpen('spoed', kaarten, k => k.kenmerk);
     spoed.className = 'dg-kaarten';
-    spoed.innerHTML = kaarten.length
-      ? kaarten.slice(0,8).map(dgKaart).join('')
-      : '<p class="dg-leeg">Niets met spoed vandaag.</p>';
+    spoed.innerHTML = (open8.length
+      ? open8.slice(0,8).map(dgKaart).join('')
+      : '<p class="dg-leeg">Niets met spoed vandaag.</p>') + archiefBlok('spoed');
   }
 
   /* ---- blok 3: nieuwe reserveringen die nog niet verwerkt zijn ----
@@ -4625,8 +4793,9 @@ function renderDagstart(){
     const nietVerwerkt = onverwerkteBoekingen()
       /* Eerst wat het eerst aankomt: daar moet je het snelst iets mee. */
       .sort((a,b) => String(a.start || '').localeCompare(String(b.start || '')));
-    nieuw.innerHTML = nietVerwerkt.length
-      ? nietVerwerkt.slice(0,8).map(r => {
+    const nietVerwerktOpen = nogOpen('nieuw', nietVerwerkt, r => r.resId || r.ref || '');
+    nieuw.innerHTML = (nietVerwerktOpen.length
+      ? nietVerwerktOpen.slice(0,8).map(r => {
           const b = r.ruw || {};
           /* Wat er nog mist is nuttig om erbij te zien, maar bepaalt niet of
              de boeking in deze lijst staat. */
@@ -4643,6 +4812,7 @@ function renderDagstart(){
             suite: r.suiteRuw,
             merk: dmy(String(r.start || '').slice(0,10)),
             resId: r.resId || '',
+            lijst: 'nieuw', kenmerk: r.resId || r.ref || '',
             rijen: [
               ['aankomst', String(r.start || '').slice(11,16)],
               ['via', r.bron || 'onbekend kanaal'],
@@ -4651,7 +4821,7 @@ function renderDagstart(){
             ]
           });
         }).join('')
-      : '<p class="dg-leeg">Alles is verwerkt.</p>';
+      : '<p class="dg-leeg">Alles is verwerkt.</p>') + archiefBlok('nieuw');
     nieuw.className = 'dg-kaarten';
     /* Belletje: boekingen die je nog niet gezien hebt. */
     dgBel('dgBelNieuw', 'nieuw', nietVerwerkt.map(r => r.resId || r.ref || ''));
@@ -4666,23 +4836,29 @@ function renderDagstart(){
     const metExtras = (typeof FORMS !== 'undefined' ? FORMS : [])
       .filter(f => Array.isArray(f.extras) && f.extras.length)
       .sort((a,b) => String(b.datum || b.created_at || '').localeCompare(String(a.datum || a.created_at || '')));
-    if(exTel) exTel.textContent = metExtras.length ? String(metExtras.length) : '';
-    exVak.innerHTML = metExtras.length
-      ? metExtras.slice(0,12).map(f => {
+    const exOpen = nogOpen('extras', metExtras, f => f.id || '');
+    if(exTel) exTel.textContent = exOpen.length ? String(exOpen.length) : '';
+    exVak.innerHTML = (exOpen.length
+      ? exOpen.slice(0,12).map(f => {
           const wat = f.extras.map(x =>
             (x && (x.naam || x.titel || x.omschrijving) || '') +
             (Number(x && x.aantal) > 1 ? ' ×' + x.aantal : '')).filter(Boolean).join(' · ');
           const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') || 'zonder naam';
           const bedrag = Number(f.extras_totaal) ? ' — € ' + num(f.extras_totaal) : '';
-          return `<div class="dg-spoedregel">
+          return `<div class="dg-spoedregel metvink">
             <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
             <div><strong>${esc(naam)}${esc(bedrag)}</strong>
               <small>${esc([wat, f.locatie, f.betaalwijze ? 'betaalwijze: ' + f.betaalwijze : '']
                 .filter(Boolean).join(' · '))}</small></div>
+            <button type="button" class="dg-vink" title="Afvinken"
+              aria-label="${esc(naam)} afvinken"
+              data-afvink="extras" data-kenmerk="${esc(f.id || '')}"
+              data-titel="${esc(naam + bedrag)}">&#10003;</button>
           </div>`;
         }).join('')
-      : '<p class="dg-leeg">Niemand heeft iets bijgeboekt via het formulier.</p>';
-    dgBel('dgBelExtras', 'extras', metExtras.map(f => f.id || ''));
+      : '<p class="dg-leeg">Niemand heeft iets bijgeboekt via het formulier.</p>')
+      + archiefBlok('extras');
+    dgBel('dgBelExtras', 'extras', exOpen.map(f => f.id || ''));
   }
 
   /* ---- uitklap 2: formulieren die nog aan een boeking moeten hangen ---- */
@@ -4691,20 +4867,26 @@ function renderDagstart(){
     const los = (typeof FORMS !== 'undefined' ? FORMS : [])
       .filter(f => typeof formGekoppeld === 'function' ? !formGekoppeld(f) : false)
       .sort((a,b) => String(b.datum || b.created_at || '').localeCompare(String(a.datum || a.created_at || '')));
-    if(losTel) losTel.textContent = los.length ? String(los.length) : '';
-    losVak.innerHTML = los.length
-      ? los.slice(0,12).map(f => {
+    const losOpen = nogOpen('formulieren', los, f => f.id || '');
+    if(losTel) losTel.textContent = losOpen.length ? String(losOpen.length) : '';
+    losVak.innerHTML = (losOpen.length
+      ? losOpen.slice(0,12).map(f => {
           const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') ||
             (typeof formNaam === 'function' ? formNaam(f) : '') || 'zonder naam';
-          return `<div class="dg-spoedregel">
+          return `<div class="dg-spoedregel metvink">
             <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
             <div><strong>${esc(naam)}</strong>
               <small>${esc([f.locatie, f._soort === 'aanmelding' ? 'gastformulier' : 'incheckformulier']
                 .filter(Boolean).join(' · '))}</small></div>
+            <button type="button" class="dg-vink" title="Afvinken"
+              aria-label="${esc(naam)} afvinken"
+              data-afvink="formulieren" data-kenmerk="${esc(f.id || '')}"
+              data-titel="${esc(naam)}">&#10003;</button>
           </div>`;
         }).join('')
-      : '<p class="dg-leeg">Alle formulieren zijn gekoppeld.</p>';
-    dgBel('dgBelLos', 'los', los.map(f => f.id || ''));
+      : '<p class="dg-leeg">Alle formulieren zijn gekoppeld.</p>')
+      + archiefBlok('formulieren');
+    dgBel('dgBelLos', 'los', losOpen.map(f => f.id || ''));
   }
 
   /* ---- uitklap 3: voorraad bijvullen ---- */
@@ -8650,6 +8832,9 @@ const resSleutel = r => r.eigen ? 'hm-' + r.id
       String(r.start||'').slice(0,10) + '-' + dashTijd(r.start)));
 
 async function laadFormulieren(){
+  /* Wat er is afgevinkt hoort erbij te staan vóór de lijsten getekend worden,
+     anders knippert er van alles even in beeld dat al weg was. */
+  await laadAfgevinkt();
   const [aanm, chk, kop] = await Promise.all([
     planHaal('gast_aanmeldingen?select=*&order=created_at.desc&limit=500'),
     planHaal('checkins?select=*&order=created_at.desc&limit=1000'),
