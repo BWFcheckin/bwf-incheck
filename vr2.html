@@ -531,6 +531,21 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:4px;z-index:100;poi
   padding:2px 5px;border-radius:6px;background:var(--surface-2,#f6f1ea);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dk-stip{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c,#9A7B4F)}
+/* De dienst in het rooster is een knop geworden: erop tikken verwijdert hem.
+   Angela, 29-09-2026. Het uiterlijk blijft gelijk aan de span die het was. */
+button.dk-dienst{font:inherit;font-size:11.5px;text-align:left;width:100%;
+  border:1px solid transparent;cursor:pointer;color:inherit}
+button.dk-dienst:hover:not([disabled]){border-color:var(--crit,#B3261E);
+  background:var(--crit-zacht,#FBEAE7)}
+button.dk-dienst[disabled]{cursor:default;opacity:.75}
+button.dk-dienst:focus-visible{outline:2px solid currentColor;outline-offset:1px}
+/* Het kruisje achter een dienst in de lijst eronder. */
+.dienst-weg{margin-left:auto;flex:none;width:28px;height:28px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  font-size:13px;line-height:1}
+.dienst-weg:hover{border-color:var(--crit,#B3261E);color:var(--crit,#B3261E);
+  background:var(--crit-zacht,#FBEAE7)}
+.dienst-weg:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .dk-legenda{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:12px;opacity:.8}
 .dk-legenda span{display:inline-flex;align-items:center;gap:6px}
 @media(max-width:640px){
@@ -6957,9 +6972,55 @@ function renderDiensten(){
       <span class="pill neutral">${esc(kalSoortLabel(d.dienst))}</span>
       ${d.locatie?`<span>${esc(d.locatie)}</span>`:''}
       ${d.notitie?`<em>${esc(d.notitie)}</em>`:''}
+      <button type="button" class="dienst-weg" title="Deze dienst verwijderen"
+        aria-label="Dienst van ${esc(teamNaam(d.medewerker_id))} op ${esc(dmy(String(d.datum||'').slice(0,10)))} verwijderen"
+        data-dienstweg="${esc(d.id)}">&#10005;</button>
     </div>`).join('')
     : '<p class="note" style="margin:0">Geen diensten binnen deze keuze.</p>';
 }
+
+/* ---------------- EEN DIENST VERWIJDEREN ----------------
+   Angela, 29-09-2026: "ik wil via het vr-dashboard diensten kunnen toevoegen
+   en verwijderen." Inplannen kon al; weghalen niet, en dan moest een
+   vergissing blijven staan of via het locatiedashboard worden rechtgezet.
+
+   Er wordt om bevestiging gevraagd met de naam en de datum erin. Een dienst
+   verwijderen is niet erg - je plant hem zo weer in - maar het is wel iemands
+   werkrooster, en dat wil je niet per ongeluk wijzigen. */
+async function dienstVerwijder(id){
+  const d = DIENSTEN.filter(x => String(x.id) === String(id))[0];
+  if(!d) return;
+  const wat = [teamNaam(d.medewerker_id), kalSoortLabel(d.dienst), d.locatie]
+    .filter(Boolean).join(' · ');
+  if(!confirm('Dienst verwijderen?\n\n' + dmy(String(d.datum||'').slice(0,10)) +
+      '\n' + wat + (d.notitie ? '\n' + d.notitie : '') +
+      '\n\nJe kunt hem daarna gewoon opnieuw inplannen.')) return;
+  try{
+    await api('planning?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+    /* Uit de lijst halen en beide weergaven bijwerken. Opnieuw ophalen zou ook
+       kunnen, maar dat duurt merkbaar langer terwijl we precies weten wat er
+       weg is. */
+    const i = DIENSTEN.findIndex(x => String(x.id) === String(id));
+    if(i > -1) DIENSTEN.splice(i, 1);
+    renderDiensten();
+    try{ renderDienstKalender(); }catch(e){}
+    /* De dagstart toont wie er vandaag werkt; die klopt nu ook niet meer. */
+    try{ renderDagstart(); }catch(e){}
+    toast('Dienst verwijderd.');
+  }catch(e){
+    toast(/40[13]/.test(String(e.message))
+      ? 'Je mag deze dienst niet verwijderen. Vraag Angela.'
+      : 'Verwijderen lukte niet: ' + e.message);
+  }
+}
+
+document.addEventListener('click', function(e){
+  const w = e.target.closest && e.target.closest('[data-dienstweg]');
+  if(w){
+    e.preventDefault(); e.stopPropagation();
+    dienstVerwijder(w.getAttribute('data-dienstweg'));
+  }
+});
 $('#dienstToggle').addEventListener('click', ()=>{
   const knop = $('#dienstToggle'), blok = $('#dienstBlok');
   const open = knop.getAttribute('aria-expanded') !== 'true';
@@ -7036,10 +7097,18 @@ function renderDienstKalender(){
     html += `<div class="dk-dag"${datum===vd?' data-vandaag="1"':''}` +
             `${datum<vd?' data-verleden="1"':''}>` +
       `<span class="dk-nr">${dag}</span>` +
-      lijst.map(d=>`<span class="dk-dienst" title="${esc(teamNaam(d.medewerker_id))} — ` +
-        `${esc(kalSoortLabel(d.dienst))}${d.locatie?' — '+esc(d.locatie):''}">` +
+      /* Een dienst in het rooster is een knop: erop tikken vraagt of je hem wilt
+         verwijderen. Angela, 29-09-2026. In de kalender kijk je het vaakst, dus
+         hier moet het ook kunnen en niet alleen in de lijst eronder.
+         Een verleden dienst blijft staan zoals hij is - daar valt niets meer
+         te plannen, en per ongeluk je eigen geschiedenis wissen is zonde. */
+      lijst.map(d=>`<button type="button" class="dk-dienst"${datum < vd ? ' disabled' : ''}` +
+        ` title="${esc(teamNaam(d.medewerker_id))} — ` +
+        `${esc(kalSoortLabel(d.dienst))}${d.locatie?' — '+esc(d.locatie):''}` +
+        `${datum < vd ? '' : ' (tik om te verwijderen)'}"` +
+        `${datum < vd ? '' : ` data-dienstweg="${esc(d.id)}"`}>` +
         `<span class="dk-stip" style="--c:${kalMwKleur(d.medewerker_id)}"></span>` +
-        `${esc(kalVoornaam(teamNaam(d.medewerker_id)))}</span>`).join('') +
+        `${esc(kalVoornaam(teamNaam(d.medewerker_id)))}</button>`).join('') +
       '</div>';
   }
   rooster.innerHTML = html;
