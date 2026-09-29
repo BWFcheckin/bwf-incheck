@@ -11592,6 +11592,7 @@ function gmailKop(payload, naam){
   return h ? h.value : '';
 }
 function gmailDatum(v){ const d=new Date(v); return isNaN(d)?'':d.toLocaleString('nl-NL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+let gmailAdres = '';
 function gmailToestand(aan, tekst){
   const s=$('#gmailStatus'); s.classList.toggle('verbonden',!!aan); s.querySelector('span:last-child').textContent=tekst||(aan?'Verbonden':'Niet verbonden');
   $('#gmailWerk').hidden=!aan; $('#gmailKoppel').textContent=aan?'Opnieuw koppelen':'Koppelen met Google';
@@ -11614,6 +11615,17 @@ async function gmailKoppelen(){
     gmailTokenClient=google.accounts.oauth2.initTokenClient({client_id:id,scope:GMAIL_SCOPE,callback:async r=>{
       if(r.error){ toast('Google-koppeling is geannuleerd.'); return; }
       gmailToken=r.access_token; gmailToestand(true,'Verbonden');
+      /* Met WELK adres ben je gekoppeld. Angela, 29-09-2026: het dashboard
+         meldde "verstuurd" maar er kwam niets aan - de mail stond in de
+         verzonden items van een ander Google-account dan waar ze keek. Dat
+         zie je alleen als het adres erbij staat. */
+      try{
+        const p = await gmailApi('profile');
+        if(p && p.emailAddress){
+          gmailAdres = p.emailAddress;
+          gmailToestand(true, 'Verbonden als ' + p.emailAddress);
+        }
+      }catch(e){}
       try{ await gmailLabelsLaden(); await gmailLaden(); }catch(e){ toast(e.message); }
     }});
     gmailTokenClient.requestAccessToken({prompt:gmailToken?'':'consent'});
@@ -11753,7 +11765,8 @@ window.addEventListener('message', async function(e){
   try{
     await gmailApi('messages/send', { method:'POST', body: JSON.stringify({
       raw: gmailRawMetBijlage(d.aan, d.onderwerp, d.tekst, d.bestandsnaam, d.bestand) }) });
-    toast('Bon verstuurd naar ' + d.aan + '.');
+    toast('Bon verstuurd naar ' + d.aan +
+      (gmailAdres ? ' vanuit ' + gmailAdres : '') + '.');
     if(e.source) e.source.postMessage({ bwf:'bon-gmail-klaar', gelukt:true }, e.origin);
   }catch(err){
     toast('Versturen mislukt: ' + err.message);
@@ -11773,7 +11786,7 @@ function gmailSchrijven(v={}){
     catch(e){ toast('Versturen mislukt: '+e.message); }
   });
 }
-function gmailOntkoppelen(){ if(gmailToken&&window.google) google.accounts.oauth2.revoke(gmailToken,()=>{}); gmailToken=''; gmailBerichten=[]; gmailLabels=[]; gmailActief=null; gmailToestand(false); $('#gmailLijst').innerHTML=''; }
+function gmailOntkoppelen(){ if(gmailToken&&window.google) google.accounts.oauth2.revoke(gmailToken,()=>{}); gmailToken=''; gmailAdres=''; gmailBerichten=[]; gmailLabels=[]; gmailActief=null; gmailToestand(false); $('#gmailLijst').innerHTML=''; }
 $('#gmailKoppel').addEventListener('click',gmailKoppelen);
 $('#gmailVervers').addEventListener('click',()=>gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)));
 $('#gmailZoekBtn').addEventListener('click',()=>gmailLaden($('#gmailZoek').value).catch(e=>toast(e.message)));
