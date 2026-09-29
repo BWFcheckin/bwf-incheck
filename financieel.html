@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14342A">
+<title>Financieel overzicht — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1;
+  --ok:#2E7D53; --ok-zacht:#E6F2EA;
+  --warn:#B8860B; --warn-zacht:#FBF1DA;
+  --crit:#B3453A; --crit-zacht:#FBEAE7;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F; --surface:#1A201A; --surface-2:#161B15; --line:#2C3329; --line-soft:#232A22;
+    --ink:#E9EEE6; --ink-2:#B6C0B2; --muted:#8B978A;
+    --groen-zacht:#1B2C24; --goud-zacht:#2A2314; --ok-zacht:#152A1E;
+    --warn-zacht:#2A2314; --crit-zacht:#2C1917;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F; --surface:#1A201A; --surface-2:#161B15; --line:#2C3329; --line-soft:#232A22;
+  --ink:#E9EEE6; --ink-2:#B6C0B2; --muted:#8B978A;
+  --groen-zacht:#1B2C24; --goud-zacht:#2A2314; --ok-zacht:#152A1E;
+  --warn-zacht:#2A2314; --crit-zacht:#2C1917;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{overscroll-behavior-x:none;overflow-x:clip}
+body{margin:0;max-width:100%;overflow-x:clip;overscroll-behavior-x:none;
+  background:var(--bg);color:var(--ink);
+  font:15px/1.5 "Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:18px 16px 70px}
+h1{font:600 26px/1.2 "Cormorant Garamond",Georgia,serif;margin:0 0 3px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+.balk{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:13px 14px;margin:0 0 14px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+label.veld{display:block;font-size:12.5px;color:var(--ink-2)}
+input,select{font:inherit;font-size:14px;margin-top:3px;padding:8px 10px;min-height:40px;
+  border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--groen-2);outline-offset:-1px}
+.knop{font:inherit;font-size:14px;padding:9px 14px;border-radius:9px;cursor:pointer;min-height:40px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.knop.vol{background:var(--groen);border-color:var(--groen);color:#fff;font-weight:600}
+.knop:hover{border-color:var(--groen-2)}
+.knop[disabled]{opacity:.5;cursor:default}
+
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
+.tegel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tegel span{display:block;font-size:12px;color:var(--muted)}
+.tegel b{display:block;font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+.tegel.uit b{color:var(--crit)}
+.tegel.in b{color:var(--ok)}
+
+.tabelwrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:1080px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+  font-weight:600;background:var(--surface-2);position:sticky;top:0;z-index:2}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:var(--surface-2)}
+tr.maandkop td{background:var(--groen-zacht);font-weight:700;font-size:13px;
+  border-top:2px solid var(--groen-2);position:sticky;top:29px;z-index:1}
+tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--line)}
+.nul{color:var(--muted)}
+.gast{max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.wijze{font:inherit;font-size:12.5px;padding:4px 6px;min-height:30px;border-radius:7px;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--ink);max-width:150px}
+.vlag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid}
+.vlag.betaald{background:var(--ok-zacht);border-color:var(--ok);color:var(--ok)}
+.vlag.deels{background:var(--warn-zacht);border-color:var(--warn);color:var(--warn)}
+.vlag.open{background:var(--crit-zacht);border-color:var(--crit);color:var(--crit)}
+.mollie{font-size:11.5px;color:var(--muted)}
+.mollie.ok{color:var(--ok)}
+
+.melding{padding:10px 13px;border-radius:10px;margin:0 0 14px;font-size:14px;
+  background:var(--groen-zacht);border:1px solid var(--groen-2)}
+.melding.fout{background:var(--crit-zacht);border-color:var(--crit);color:var(--crit)}
+.melding.let{background:var(--warn-zacht);border-color:var(--warn);color:var(--warn)}
+.uitleg{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+
+#slot{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;z-index:99;padding:20px}
+.bwf-vergrendeld{overflow:hidden}
+@media (max-width:640px){
+  .wrap{padding:14px 12px 60px}
+  h1{font-size:23px}
+  .tegel b{font-size:18px}
+}
+@media print{
+  body{background:#fff}
+  .balk,.knop,#slot{display:none}
+  .tabelwrap{border:0;overflow:visible}
+  table{min-width:0;font-size:10.5px}
+  th{position:static}
+  tr.maandkop td{position:static}
+}
+</style>
+</head>
+<body>
+
+<div id="slot" hidden>
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:18px;max-width:340px;width:100%">
+    <h2 style="margin:0 0 8px;font:600 19px 'Cormorant Garamond',Georgia,serif">Inloggen</h2>
+    <p class="uitleg" id="lgFout" style="color:var(--crit)"></p>
+    <label class="veld">E-mailadres <input type="email" id="lgMail" autocomplete="username" style="width:100%"></label>
+    <label class="veld" style="margin-top:8px">Wachtwoord
+      <input type="password" id="lgWw" autocomplete="current-password" style="width:100%"></label>
+    <div style="margin-top:12px"><button class="knop vol" type="button" id="lgKnop">Inloggen</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>Financieel overzicht</h1>
+  <p class="sub">Alle reserveringen per maand, met wat er vooraf, tijdens de welkomstcall en op locatie is bijgeboekt.</p>
+  <div class="melding" id="melding" hidden></div>
+
+  <div class="balk">
+    <label class="veld">Van
+      <input type="month" id="fVan"></label>
+    <label class="veld">Tot en met
+      <input type="month" id="fTot"></label>
+    <label class="veld">Locatie
+      <select id="fLoc">
+        <option value="">Beide</option>
+        <option value="Almere">Almere</option>
+        <option value="Lelystad">Lelystad</option>
+      </select></label>
+    <label class="veld">Suite
+      <select id="fSuite"><option value="">Alle suites</option></select></label>
+    <label class="veld">Betaalstatus
+      <select id="fStatus">
+        <option value="">Alle</option>
+        <option value="betaald">Betaald</option>
+        <option value="deels">Deels betaald</option>
+        <option value="open">Open</option>
+      </select></label>
+    <label class="veld">Tellen op
+      <select id="fDatumsoort">
+        <option value="aankomst">Aankomstdatum</option>
+        <option value="vertrek">Vertrekdatum</option>
+      </select></label>
+    <button class="knop" type="button" id="fVernieuw">Vernieuwen</button>
+    <button class="knop vol" type="button" id="fCsv">Uitdraai (CSV)</button>
+    <button class="knop" type="button" id="fPrint">Afdrukken</button>
+  </div>
+
+  <div class="tegels" id="tegels"></div>
+
+  <div class="tabelwrap">
+    <table id="tabel"><tbody><tr><td style="padding:18px;color:var(--muted)">Bezig met laden&hellip;</td></tr></tbody></table>
+  </div>
+  <p class="uitleg" id="voetnoot"></p>
+</div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g,
+  (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const eur = (n) => (Number(n) || 0).toLocaleString("nl-NL",
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const CFG = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  ls:  "sb-iuyjvtlauktnjprbmbjj-auth-token"
+};
+
+const SUITES = {
+  angie:          { naam: "Suite Angie",    locatie: "Almere" },
+  malina_jacuzzi: { naam: "Malina Jacuzzi", locatie: "Lelystad" },
+  malina_deluxe:  { naam: "Malina Deluxe",  locatie: "Lelystad" }
+};
+const KANALEN = { smg: "Privésauna", booking: "Booking.com", oo: "Origineel Overnachten",
+  planyo: "Planyo", eigen: "Eigen website", telefonisch: "Telefonisch",
+  whatsapp: "WhatsApp", handmatig: "Handmatig" };
+
+/* De betaalwijzen die je kunt kiezen. Vrije tekst die er al staat blijft
+   staan: er zijn boekingen met een wijze die hier niet in voorkomt, en die
+   mag niet stilletjes veranderen als iemand het vakje aanraakt. */
+const WIJZEN = ["", "Pin", "Contant", "Mollie betaallink", "Flatpay", "Online",
+  "Bankoverschrijving", "Cadeaubon", "Booking.com", "Splitsen"];
+
+let SESSIE = null, ROL = null, NAAM = "", verversBezig = null;
+let RIJEN = [], EXTRAS = [], MOLLIE = {};
+
+/* ---------- sessie ---------- */
+function jwtDeel(t) {
+  try { return JSON.parse(atob(String(t).split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }
+  catch (e) { return {}; }
+}
+function leesSessie() {
+  try { SESSIE = JSON.parse(localStorage.getItem(CFG.ls) || "null"); } catch (e) { SESSIE = null; }
+  return SESSIE;
+}
+function bewaarSessie(d) {
+  SESSIE = d;
+  try { localStorage.setItem(CFG.ls, JSON.stringify(d)); } catch (e) {}
+}
+async function ververs() {
+  if (!SESSIE || !SESSIE.refresh_token) return null;
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=refresh_token", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: SESSIE.refresh_token })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) return null;
+    bewaarSessie(d);
+    return d.access_token;
+  } catch (e) { return null; }
+}
+async function geldigToken() {
+  if (!SESSIE || !SESSIE.access_token) return null;
+  const exp = (jwtDeel(SESSIE.access_token).exp || 0) * 1000;
+  if (exp - Date.now() > 60000) return SESSIE.access_token;
+  if (!verversBezig) verversBezig = ververs().finally(() => { verversBezig = null; });
+  return verversBezig;
+}
+function toonSlot(t) {
+  document.body.classList.add("bwf-vergrendeld");
+  $("#slot").hidden = false;
+  $("#lgFout").textContent = t || "";
+  setTimeout(() => $("#lgMail").focus(), 60);
+}
+function verbergSlot() {
+  document.body.classList.remove("bwf-vergrendeld");
+  $("#slot").hidden = true;
+}
+async function api(pad, opties = {}) {
+  const token = await geldigToken();
+  if (!token) { if (!opties.stil) toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  const headers = { apikey: CFG.key, Authorization: "Bearer " + token };
+  if (opties.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    headers.Prefer = opties.prefer || "return=representation";
+  }
+  const r = await fetch(CFG.url + "/rest/v1/" + pad, {
+    method: opties.method || "GET", headers,
+    body: opties.body === undefined ? undefined : JSON.stringify(opties.body)
+  });
+  const tekst = await r.text();
+  if (r.status === 401) { if (!opties.stil) toonSlot("Je sessie is verlopen."); throw new Error("Niet ingelogd."); }
+  if (!r.ok) {
+    let m = tekst;
+    try { m = JSON.parse(tekst).message || tekst; } catch (e) {}
+    throw new Error(m || "Fout " + r.status);
+  }
+  return tekst ? JSON.parse(tekst) : null;
+}
+function melding(t, soort) {
+  const m = $("#melding");
+  m.textContent = t || "";
+  m.className = "melding" + (soort ? " " + soort : "");
+  m.hidden = !t;
+}
+
+/* =========================================================
+   De bedragen uit elkaar halen
+   =========================================================
+   Angela, 29-09-2026: "wat is de kale prijs, de bijgeboekte extra's vooraf,
+   na de welkomstcall en op locatie."
+
+   Alles staat in één kolom `arrangementen` (jsonb), met een merkteken per
+   regel dat zegt waar hij vandaan komt:
+
+     geen bron          meegekomen met de boeking: het verblijf zelf, de
+                        persoonstoeslagen, een feestpakket en wat er bij het
+                        aanmaken is aangevinkt
+     bron=bijgeboekt    vooraf bijgeboekt, na het aanmaken
+     bron=welkomstcall  geboekt tijdens de welkomstcall
+     bron=op_locatie    tijdens het verblijf bijgeboekt
+     member=true        memberkorting (negatief bedrag)
+     korting=true       handmatig gegeven korting (negatief bedrag)
+
+   Binnen "geen bron" splitsen we het VERBLIJF van de EXTRA'S. Dat kan niet aan
+   een merkteken - dat is er niet - dus het gaat op naam: staat de naam in de
+   lijst met extra's (wz_extras) of is het een feestpakket, dan is het een
+   extra; anders hoort het bij het verblijf. Niet waterdicht, maar het is de
+   enige aanwijzing die er is, en de kolommen tellen altijd op tot het totaal
+   zodat een misgeplaatste regel de boekhouding niet scheeftrekt. */
+function extraNamen() {
+  const uit = {};
+  (EXTRAS || []).forEach((e) => {
+    if (e && e.naam) uit[String(e.naam).toLowerCase().replace(/[^a-z0-9]/g, "")] = true;
+  });
+  return uit;
+}
+let EXTRA_NAMEN = {};
+
+function isExtraNaam(naam) {
+  const s = String(naam || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!s) return false;
+  if (EXTRA_NAMEN[s]) return true;
+  /* Feestpakketten en arrangementen staan niet in wz_extras maar zijn wel
+     extra's; die herken je aan het woord. */
+  return /arrangement|pakket|ontbijt|lunch|menu|borrel|sushi|champagne|bubbels|taart|bloemen|massage|hightea|waterpijp|bier|rookterras|handdoek|checkout/.test(s);
+}
+
+function splitsBedragen(r) {
+  const arr = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+  const uit = { verblijf: 0, vooraf: 0, bijgeboekt: 0, call: 0, locatie: 0, korting: 0 };
+  arr.forEach((a) => {
+    if (!a) return;
+    const b = Number(a.bedrag) || 0;
+    if (!b) return;
+    if (a.member === true || a.korting === true) { uit.korting += b; return; }
+    const bron = String(a.bron || "");
+    if (bron === "bijgeboekt")   { uit.bijgeboekt += b; return; }
+    if (bron === "welkomstcall") { uit.call += b; return; }
+    if (bron === "op_locatie")   { uit.locatie += b; return; }
+    if (isExtraNaam(a.naam)) uit.vooraf += b;
+    else uit.verblijf += b;
+  });
+  /* Wat de regels bij elkaar zijn, en wat er als totaal op de boeking staat.
+     Die twee lopen uiteen bij oudere boekingen waar niemand een specificatie
+     heeft ingevuld - dan staat alles in bedrag_totaal en zijn de regels leeg.
+     Het verschil komt op het verblijf, want dat is wat het dan was. */
+  const uitRegels = uit.verblijf + uit.vooraf + uit.bijgeboekt + uit.call +
+    uit.locatie + uit.korting;
+  const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : uitRegels;
+  const verschil = Math.round((totaal - uitRegels) * 100) / 100;
+  if (Math.abs(verschil) > 0.004) uit.verblijf += verschil;
+  uit.totaal = Math.round(totaal * 100) / 100;
+  Object.keys(uit).forEach((k) => { uit[k] = Math.round(uit[k] * 100) / 100; });
+  return uit;
+}
+
+/* Wat er betaald is en wat er openstaat. Dezelfde regel als in het
+   reserveringenscherm: DE BETAALSTATUS IS LEIDEND. Een nul in restant_bedrag
+   betekent "niet ingevuld", niet "niets meer te betalen" - het bewerkvenster
+   vult dat veld bij vrijwel geen enkele boeking. */
+function betaling(r, totaal) {
+  const stand = String(r.betaalstatus || "open");
+  if (stand === "betaald") return { betaald: totaal, open: 0 };
+  if (stand === "open") {
+    const b = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+    return { betaald: b, open: Math.round((totaal - b) * 100) / 100 };
+  }
+  const b = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+  const o = r.restant_bedrag != null ? Number(r.restant_bedrag)
+    : Math.round((totaal - b) * 100) / 100;
+  return { betaald: b, open: o };
+}
+
+/* ---------- laden ---------- */
+const maandVan = (iso) => String(iso || "").slice(0, 7);
+const dNL = (iso) => {
+  const s = String(iso || "").slice(0, 10);
+  return s ? s.split("-").reverse().join("-") : "";
+};
+function standaardPeriode() {
+  const nu = new Date();
+  const tot = nu.getFullYear() + "-" + String(nu.getMonth() + 1).padStart(2, "0");
+  const v = new Date(nu.getFullYear(), nu.getMonth() - 5, 1);
+  const van = v.getFullYear() + "-" + String(v.getMonth() + 1).padStart(2, "0");
+  return { van, tot };
+}
+
+async function laad() {
+  const van = $("#fVan").value || standaardPeriode().van;
+  const tot = $("#fTot").value || standaardPeriode().tot;
+  const soort = $("#fDatumsoort").value === "vertrek" ? "vertrek" : "aankomst";
+  /* Een maand later dan "tot", zodat de hele laatste maand meekomt. */
+  const totEind = (function () {
+    const p = tot.split("-");
+    const d = new Date(Number(p[0]), Number(p[1]), 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
+  })();
+
+  $("#tabel").innerHTML = '<tbody><tr><td style="padding:18px;color:var(--muted)">Bezig met laden&hellip;</td></tr></tbody>';
+  try {
+    const [res, extras] = await Promise.all([
+      api("reserveringen?select=id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek," +
+        "gast_voornaam,gast_achternaam,personen,arrangementen,bedrag_totaal,betaald_bedrag," +
+        "restant_bedrag,betaalstatus,betaald_via,geannuleerd_op" +
+        "&" + soort + "=gte." + van + "-01" +
+        "&" + soort + "=lt." + totEind +
+        "&order=" + soort + ".asc&limit=3000"),
+      api("wz_extras?select=naam&limit=500", { stil: true }).catch(() => [])
+    ]);
+    EXTRAS = extras || [];
+    EXTRA_NAMEN = extraNamen();
+    RIJEN = (res || []).filter((r) => !r.geannuleerd_op && r.status !== "geannuleerd");
+
+    /* Wat er via Mollie is binnengekomen. Los opgehaald: lukt het niet, dan
+       werkt de rest gewoon en ontbreekt alleen die kolom. */
+    MOLLIE = {};
+    try {
+      const m = await api("mollie_betalingen?select=reservering_id,bedrag,status,betaald_op" +
+        "&reservering_id=not.is.null&limit=3000", { stil: true });
+      (m || []).forEach((x) => {
+        if (!x.reservering_id) return;
+        const k = String(x.reservering_id);
+        (MOLLIE[k] = MOLLIE[k] || []).push(x);
+      });
+    } catch (e) { MOLLIE = {}; }
+
+    teken();
+  } catch (e) {
+    $("#tabel").innerHTML = '<tbody><tr><td style="padding:18px;color:var(--crit)">' +
+      "De gegevens konden niet worden geladen: " + esc(e.message) + "</td></tr></tbody>";
+  }
+}
+
+/* ---------- tekenen ---------- */
+function gefilterd() {
+  const loc = $("#fLoc").value, suite = $("#fSuite").value, st = $("#fStatus").value;
+  return RIJEN.filter((r) => {
+    const s = SUITES[r.suite];
+    if (loc && (!s || s.locatie !== loc)) return false;
+    if (suite && r.suite !== suite) return false;
+    if (st && String(r.betaalstatus || "open") !== st) return false;
+    return true;
+  });
+}
+
+function mollieVan(r) {
+  const lijst = MOLLIE[String(r.id)] || [];
+  const betaald = lijst.filter((x) => x.status === "paid" || x.betaald_op);
+  if (!betaald.length) return lijst.length ? { tekst: "link open", ok: false } : null;
+  const som = betaald.reduce((a, x) => a + (Number(x.bedrag) || 0), 0);
+  return { tekst: "€ " + eur(som), ok: true };
+}
+
+function teken() {
+  const soort = $("#fDatumsoort").value === "vertrek" ? "vertrek" : "aankomst";
+  const lijst = gefilterd().slice().sort((a, b) =>
+    String(a[soort] || "").localeCompare(String(b[soort] || "")));
+
+  const kop = "<thead><tr>" +
+    "<th>Datum</th><th>Nummer</th><th>Gast</th><th>Suite</th><th>Via</th>" +
+    "<th class='num'>Verblijf</th><th class='num'>Extra's vooraf</th>" +
+    "<th class='num'>Bijgeboekt</th><th class='num'>Na call</th>" +
+    "<th class='num'>Op locatie</th><th class='num'>Korting</th>" +
+    "<th class='num'>Totaal</th><th class='num'>Betaald</th><th class='num'>Open</th>" +
+    "<th>Status</th><th>Betaalwijze</th><th>Mollie</th></tr></thead>";
+
+  let html = "", maand = "", totalen = leegTotaal(), maandTot = leegTotaal(), body = "";
+  const maandRij = (m, t) => "<tr class='maandkop'><td colspan='5'>" + esc(maandNaam(m)) + "</td>" +
+    ["verblijf","vooraf","bijgeboekt","call","locatie","korting","totaal","betaald","open"]
+      .map((k) => "<td class='num'>&euro; " + eur(t[k]) + "</td>").join("") +
+    "<td colspan='3'></td></tr>";
+
+  lijst.forEach((r) => {
+    const m = maandVan(r[soort]);
+    if (m !== maand) {
+      if (maand) body += maandRij(maand, maandTot);
+      maand = m;
+      maandTot = leegTotaal();
+      body += "<tr class='maandkop'><td colspan='17'>" + esc(maandNaam(m)) + "</td></tr>";
+    }
+    const b = splitsBedragen(r);
+    const p = betaling(r, b.totaal);
+    const s = SUITES[r.suite] || { naam: r.suite, locatie: "" };
+    const stand = String(r.betaalstatus || "open");
+    const mol = mollieVan(r);
+    tel(maandTot, b, p);
+    tel(totalen, b, p);
+
+    body += "<tr data-res='" + esc(r.id) + "'>" +
+      "<td>" + esc(dNL(r[soort])) + "</td>" +
+      "<td>" + esc(r.kanaal_ref || String(r.id).slice(0, 8)) + "</td>" +
+      "<td class='gast'>" + esc([r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ") || "—") + "</td>" +
+      "<td>" + esc(s.naam) + "</td>" +
+      "<td>" + esc(KANALEN[r.kanaal] || r.kanaal || "") + "</td>" +
+      geld(b.verblijf) + geld(b.vooraf) + geld(b.bijgeboekt) + geld(b.call) +
+      geld(b.locatie) + geld(b.korting) +
+      "<td class='num'><b>&euro; " + eur(b.totaal) + "</b></td>" +
+      geld(p.betaald) + geld(p.open) +
+      "<td><span class='vlag " + esc(stand) + "'>" +
+        esc({ betaald: "betaald", deels: "deels", open: "open" }[stand] || stand) + "</span></td>" +
+      "<td>" + wijzeKeuze(r) + "</td>" +
+      "<td class='mollie" + (mol && mol.ok ? " ok" : "") + "'>" +
+        (mol ? esc(mol.tekst) : "&mdash;") + "</td></tr>";
+  });
+  if (maand) body += maandRij(maand, maandTot);
+
+  const voet = "<tfoot><tr><td colspan='5'>Alles bij elkaar (" + lijst.length + ")</td>" +
+    ["verblijf","vooraf","bijgeboekt","call","locatie","korting","totaal","betaald","open"]
+      .map((k) => "<td class='num'>&euro; " + eur(totalen[k]) + "</td>").join("") +
+    "<td colspan='3'></td></tr></tfoot>";
+
+  $("#tabel").innerHTML = lijst.length
+    ? kop + "<tbody>" + body + "</tbody>" + voet
+    : "<tbody><tr><td style='padding:18px;color:var(--muted)'>Geen reserveringen in deze periode.</td></tr></tbody>";
+
+  $("#tegels").innerHTML =
+    tegel("Reserveringen", String(lijst.length), "") +
+    tegel("Omzet", "&euro; " + eur(totalen.totaal), "") +
+    tegel("Ontvangen", "&euro; " + eur(totalen.betaald), "in") +
+    tegel("Nog te ontvangen", "&euro; " + eur(totalen.open), totalen.open > 0.004 ? "uit" : "") +
+    tegel("Bijgeboekt onderweg", "&euro; " + eur(totalen.bijgeboekt + totalen.call + totalen.locatie), "") +
+    tegel("Korting gegeven", "&euro; " + eur(Math.abs(totalen.korting)), "");
+
+  $("#voetnoot").innerHTML =
+    "Geannuleerde boekingen tellen niet mee. De kolom <b>Verblijf</b> is het totaal min " +
+    "alles wat als extra herkend is; staat er bij een oude boeking geen specificatie, " +
+    "dan valt het hele bedrag daaronder. De kolommen tellen altijd op tot het totaal.";
+}
+
+const leegTotaal = () => ({ verblijf:0, vooraf:0, bijgeboekt:0, call:0, locatie:0,
+  korting:0, totaal:0, betaald:0, open:0 });
+function tel(t, b, p) {
+  ["verblijf","vooraf","bijgeboekt","call","locatie","korting","totaal"].forEach((k) => {
+    t[k] = Math.round((t[k] + (b[k] || 0)) * 100) / 100;
+  });
+  t.betaald = Math.round((t.betaald + p.betaald) * 100) / 100;
+  t.open = Math.round((t.open + p.open) * 100) / 100;
+}
+const geld = (n) => "<td class='num" + (Math.abs(n) < 0.005 ? " nul" : "") + "'>" +
+  (Math.abs(n) < 0.005 ? "&mdash;" : "&euro; " + eur(n)) + "</td>";
+const tegel = (kop, waarde, klas) =>
+  "<div class='tegel " + (klas || "") + "'><span>" + kop + "</span><b>" + waarde + "</b></div>";
+
+function maandNaam(ym) {
+  const namen = ["januari","februari","maart","april","mei","juni","juli",
+    "augustus","september","oktober","november","december"];
+  const p = String(ym || "").split("-");
+  const n = namen[Number(p[1]) - 1];
+  return n ? n.charAt(0).toUpperCase() + n.slice(1) + " " + p[0] : (ym || "");
+}
+
+/* De betaalwijze aanpasbaar, want dat is waar de boekhouding op sorteert.
+   Staat er iets wat niet in de lijst voorkomt, dan wordt die waarde erbij
+   gezet - anders zou openen van het lijstje de bestaande wijze wissen. */
+function wijzeKeuze(r) {
+  const nu = String(r.betaald_via || "");
+  const opties = WIJZEN.slice();
+  if (nu && opties.indexOf(nu) < 0) opties.push(nu);
+  return "<select class='wijze' data-wijze='" + esc(r.id) + "'>" +
+    opties.map((w) => "<option value='" + esc(w) + "'" +
+      (w === nu ? " selected" : "") + ">" + esc(w || "— niet ingevuld —") + "</option>").join("") +
+    "</select>";
+}
+
+async function zetWijze(id, wijze) {
+  const r = RIJEN.find((x) => String(x.id) === String(id));
+  if (!r) return;
+  const oud = r.betaald_via;
+  r.betaald_via = wijze || null;
+  try {
+    await api("reserveringen?id=eq." + encodeURIComponent(id),
+      { method: "PATCH", prefer: "return=minimal",
+        body: { betaald_via: wijze || null, gewijzigd_door: NAAM } });
+    melding("Betaalwijze bijgewerkt naar " + (wijze || "leeg") + ".");
+    setTimeout(() => melding(""), 2200);
+  } catch (e) {
+    r.betaald_via = oud;
+    teken();
+    melding(/40[13]/.test(e.message)
+      ? "Je mag de betaalwijze niet wijzigen. Vraag Angela."
+      : "Bijwerken lukte niet: " + e.message, "fout");
+  }
+}
+
+/* ---------- uitdraai ---------- */
+/* Puntkomma als scheidingsteken en een BOM ervoor: zo opent het bestand in
+   Excel meteen goed op een Nederlandse computer. Met komma's zou Excel elke
+   regel in één cel zetten, en zonder BOM gaan de accenten stuk. */
+function csv() {
+  const soort = $("#fDatumsoort").value === "vertrek" ? "vertrek" : "aankomst";
+  const lijst = gefilterd().slice().sort((a, b) =>
+    String(a[soort] || "").localeCompare(String(b[soort] || "")));
+  const kop = ["Maand", "Datum", "Nummer", "Gast", "Suite", "Locatie", "Via", "Soort",
+    "Personen", "Verblijf", "Extra's vooraf", "Bijgeboekt", "Na welkomstcall",
+    "Op locatie", "Korting", "Totaal", "Betaald", "Openstaand", "Betaalstatus",
+    "Betaalwijze", "Via Mollie ontvangen"];
+  const veld = (v) => {
+    const s = String(v == null ? "" : v);
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  /* Bedragen met een komma: dat verwacht Excel hier. */
+  const bedrag = (n) => String((Number(n) || 0).toFixed(2)).replace(".", ",");
+  const regels = [kop.join(";")];
+  lijst.forEach((r) => {
+    const b = splitsBedragen(r);
+    const p = betaling(r, b.totaal);
+    const s = SUITES[r.suite] || { naam: r.suite, locatie: "" };
+    const mol = mollieVan(r);
+    regels.push([
+      maandNaam(maandVan(r[soort])), dNL(r[soort]),
+      r.kanaal_ref || String(r.id).slice(0, 8),
+      [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" "),
+      s.naam, s.locatie, KANALEN[r.kanaal] || r.kanaal || "", r.type || "",
+      r.personen || "",
+      bedrag(b.verblijf), bedrag(b.vooraf), bedrag(b.bijgeboekt), bedrag(b.call),
+      bedrag(b.locatie), bedrag(b.korting), bedrag(b.totaal),
+      bedrag(p.betaald), bedrag(p.open),
+      r.betaalstatus || "open", r.betaald_via || "",
+      mol && mol.ok ? mol.tekst.replace("€ ", "").replace(".", "") : ""
+    ].map(veld).join(";"));
+  });
+  const naam = "financieel-" + ($("#fVan").value || "") + "-tm-" + ($("#fTot").value || "") + ".csv";
+  const blob = new Blob(["﻿" + regels.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = naam;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ---------- bindingen ---------- */
+document.addEventListener("change", (e) => {
+  if (["fLoc","fSuite","fStatus"].includes(e.target.id)) { teken(); return; }
+  if (["fVan","fTot","fDatumsoort"].includes(e.target.id)) { laad(); return; }
+  const w = e.target.closest("[data-wijze]");
+  if (w) { zetWijze(w.getAttribute("data-wijze"), w.value); return; }
+});
+document.addEventListener("click", (e) => {
+  if (e.target.id === "fVernieuw") { laad(); return; }
+  if (e.target.id === "fCsv") { csv(); return; }
+  if (e.target.id === "fPrint") { window.print(); return; }
+  if (e.target.id === "lgKnop") { inloggen(); return; }
+});
+
+async function inloggen() {
+  const k = $("#lgKnop"), f = $("#lgFout");
+  f.textContent = ""; k.disabled = true; k.textContent = "Bezig…";
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=password", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("#lgMail").value.trim().toLowerCase(), password: $("#lgWw").value })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) {
+      throw new Error(d.error_description === "Invalid login credentials"
+        ? "E-mailadres of wachtwoord klopt niet." : (d.error_description || d.msg || "Inloggen lukte niet."));
+    }
+    bewaarSessie(d);
+    $("#lgWw").value = "";
+    verbergSlot();
+    await start();
+  } catch (e) { f.textContent = e.message; }
+  finally { k.disabled = false; k.textContent = "Inloggen"; }
+}
+
+async function start() {
+  leesSessie();
+  const token = await geldigToken();
+  if (!token) { toonSlot("Log in om het financiële overzicht te zien."); return; }
+  verbergSlot();
+  const deel = jwtDeel(token);
+  try {
+    const [rol, mw] = await Promise.all([
+      api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
+      api("wz_medewerkers?select=naam&auth_id=eq." + encodeURIComponent(deel.sub || ""))
+    ]);
+    ROL = rol || null;
+    NAAM = (mw && mw[0] && mw[0].naam) || deel.email || "onbekend";
+  } catch (e) {
+    melding("Je gegevens konden niet worden geladen: " + e.message, "fout");
+    return;
+  }
+  if (!ROL) { melding("Je account heeft geen toegang.", "fout"); return; }
+  /* Bedragen van alle boekingen zijn niets voor een locatiemanager: die ziet
+     zijn eigen suites en verder niets. De database weigert de rest toch, maar
+     dan zou het overzicht half gevuld zijn en dat leest als een fout. */
+  if (ROL !== "eigenaar" && ROL !== "vr") {
+    melding("Dit overzicht is voor kantoor. Vraag Angela als je het nodig hebt.", "let");
+    $("#tabel").innerHTML = "<tbody><tr><td style='padding:18px;color:var(--muted)'>Geen toegang.</td></tr></tbody>";
+    return;
+  }
+
+  const p = standaardPeriode();
+  $("#fVan").value = p.van;
+  $("#fTot").value = p.tot;
+  $("#fSuite").innerHTML = "<option value=''>Alle suites</option>" +
+    Object.entries(SUITES).map(([k, s]) => "<option value='" + k + "'>" + esc(s.naam) + "</option>").join("");
+  await laad();
+}
+
+start();
+</script>
+</body>
+</html>
