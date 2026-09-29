@@ -536,6 +536,7 @@ async function openBon(id) {
   $("#bkVoet").innerHTML =
     '<button class="knop vol" type="button" id="bkVerstuur">Opnieuw versturen</button>' +
     '<button class="knop" type="button" id="bkWhatsapp">WhatsApp</button>' +
+    '<button class="knop" type="button" id="bkGmail">Gmail</button>' +
     '<button class="knop" type="button" id="bkBewaar">Opslaan</button>' +
     '<button class="knop" type="button" id="bkKopie">Code kopiëren</button>' +
     (magBeheren()
@@ -971,6 +972,7 @@ async function bonVel(b, suite) {
       '<button class="knop vol klein" type="button" data-deel="' + esc(b.code) + '">Versturen</button>' +
       '<button class="knop klein" type="button" data-wa="' + esc(b.code) + '">WhatsApp</button>' +
       '<button class="knop klein" type="button" data-bewaar="' + esc(b.code) + '">Opslaan</button>' +
+      '<button class="knop klein" type="button" data-gmail="' + esc(b.code) + '">Gmail</button>' +
       '<button class="knop klein" type="button" data-mail="' + esc(b.code) + '">Mail openen</button>' +
     "</div></div>";
 }
@@ -1070,6 +1072,73 @@ async function bonWhatsapp(code) {
   melding("De bon is opgeslagen en WhatsApp staat klaar met de tekst. " +
     "Voeg de opgeslagen afbeelding er zelf bij.", "let");
 }
+
+/* Via Gmail versturen, mét de bon als bijlage. Angela, 29-09-2026: "ik wil de
+   bonnen kunnen versturen via Gmail vanuit het dashboard."
+
+   Deze pagina draait in een venster binnen het VR-dashboard en heeft zelf geen
+   Google-koppeling; die zit daar. Daarom wordt het versturen aan het dashboard
+   gevraagd, dat de mail met bijlage opbouwt en verstuurt.
+
+   Staat deze pagina los open - dan is er geen dashboard omheen - dan valt hij
+   terug op een gewone mail. Dat wordt ook gezegd, want anders lijkt het alsof
+   de knop niets doet. */
+function inDashboard() {
+  try { return window.parent && window.parent !== window; } catch (e) { return false; }
+}
+
+async function bonGmail(code) {
+  const b = BONNEN.find((x) => x.code === code);
+  if (!b) return;
+  const aan = (b.ontvanger_email || "").trim();
+  if (!aan) {
+    melding("Bij deze bon staat geen e-mailadres. Vul dat eerst in, of gebruik " +
+      "Opslaan en stuur hem zelf.", "let");
+    return;
+  }
+  if (!inDashboard()) {
+    melding("Versturen via Gmail kan alleen vanuit het VR-dashboard. " +
+      "Deze pagina staat nu los open; de mail wordt in plaats daarvan klaargezet.", "let");
+    bonMailen(code);
+    return;
+  }
+  const saldo = b.saldo != null ? Number(b.saldo) : Number(b.waarde);
+  const bedrag = (saldo > 0 && Math.abs(saldo - Number(b.waarde)) > 0.004) ? saldo : b.waarde;
+  const soortNaam = b.soort === "tegoed" ? "tegoedbon" : "cadeaubon";
+  const tekst = "Beste " + (b.ontvanger_naam || "gast") + ",\n\n" +
+    (b.van_wie ? b.van_wie + " heeft een " + soortNaam + " voor je gekocht bij "
+               : "Hierbij je " + soortNaam + " voor ") +
+    "Bed & Wellness Flevoland.\n\n" +
+    "Waarde: € " + euro(bedrag) + "\n" +
+    "Code: " + b.code + "\n" +
+    (b.geldig_tot ? "Geldig tot: " + dNL(b.geldig_tot) + "\n" : "") +
+    (b.bericht ? "\n" + b.bericht + "\n" : "") +
+    "\nDe bon zit als afbeelding bij deze mail. Je kunt hem gebruiken bij het " +
+    "boeken of bij aankomst; geef dan de code door.\n\n" +
+    "Met vriendelijke groet,\nBed & Wellness Flevoland\nbedenwellnessflevoland.nl";
+
+  melding("Bezig met versturen…");
+  const c = await bonTeken(b, $("#nwSuite") ? $("#nwSuite").value : "malina_deluxe");
+  window.parent.postMessage({
+    bwf: "bon-gmail",
+    aan: aan,
+    onderwerp: (b.soort === "tegoed" ? "Je tegoedbon" : "Je cadeaubon") +
+      " voor Bed & Wellness Flevoland",
+    tekst: tekst,
+    bestandsnaam: "cadeaubon-" + b.code + ".jpg",
+    bestand: c.toDataURL("image/jpeg", 0.92)
+  }, location.origin);
+}
+
+/* Het dashboard laat weten of het gelukt is. */
+window.addEventListener("message", (e) => {
+  const d = e.data;
+  if (!d || d.bwf !== "bon-gmail-klaar") return;
+  melding(d.gelukt
+    ? "De bon is per Gmail verstuurd."
+    : "Versturen via Gmail lukte niet: " + (d.reden || "onbekende fout"),
+    d.gelukt ? "" : "fout");
+});
 
 /* Een mail klaarzetten. De bon zelf gaat als bijlage mee; die kan een mailto
    niet meesturen, dus die moet je er zelf bijslepen. Dat staat erbij. */
@@ -1253,6 +1322,13 @@ document.addEventListener("click", (e) => {
     if (b) bonWhatsapp(b.code);
     return;
   }
+  if (e.target.id === "bkGmail") {
+    const b = BONNEN.find((x) => String(x.id) === String($("#bonKaart").dataset.bon));
+    if (b) bonGmail(b.code);
+    return;
+  }
+  const gm = e.target.closest("[data-gmail]");
+  if (gm) { e.preventDefault(); bonGmail(gm.getAttribute("data-gmail")); return; }
   const wa = e.target.closest("[data-wa]");
   if (wa) { e.preventDefault(); bonWhatsapp(wa.getAttribute("data-wa")); return; }
   const deel = e.target.closest("[data-deel]");

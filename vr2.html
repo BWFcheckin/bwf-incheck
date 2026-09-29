@@ -11688,6 +11688,80 @@ function gmailRaw(aan,onderwerp,tekst){
   const subj='=?UTF-8?B?'+btoa(unescape(encodeURIComponent(onderwerp)))+'?=';
   return enc('To: '+aan+'\r\nSubject: '+subj+'\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n'+tekst);
 }
+/* Een bericht MET bijlage. Angela, 29-09-2026: "ik wil de bonnen kunnen
+   versturen via Gmail vanuit het dashboard."
+
+   gmailRaw() hierboven maakt een bericht van platte tekst; voor een bijlage
+   moet het een multipart/mixed worden: eerst de tekst, dan het bestand, met
+   een scheidingsregel ertussen die nergens in de inhoud voorkomt.
+
+   De bijlage komt binnen als data-url (dat is wat een canvas oplevert); het
+   stuk achter de komma is al base64, dus dat kan er zo in. */
+function gmailRawMetBijlage(aan, onderwerp, tekst, bestandsnaam, dataUrl){
+  const enc = s => btoa(unescape(encodeURIComponent(s)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const subj = '=?UTF-8?B?' + btoa(unescape(encodeURIComponent(onderwerp))) + '?=';
+  const komma = String(dataUrl || '').indexOf(',');
+  const type = (String(dataUrl || '').match(/^data:([^;]+)/) || [,'application/octet-stream'])[1];
+  const data = komma > -1 ? String(dataUrl).slice(komma + 1) : '';
+  /* Een grens die niet in base64 of in de tekst kan voorkomen. */
+  const grens = 'bwf' + Date.now().toString(36) + 'x' + Math.random().toString(36).slice(2,10);
+
+  const regels = [
+    'To: ' + aan,
+    'Subject: ' + subj,
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="' + grens + '"',
+    '',
+    '--' + grens,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    tekst,
+    '',
+    '--' + grens,
+    'Content-Type: ' + type + '; name="' + bestandsnaam + '"',
+    'Content-Transfer-Encoding: base64',
+    'Content-Disposition: attachment; filename="' + bestandsnaam + '"',
+    '',
+    /* Base64 in regels van 76 tekens: sommige mailservers weigeren langere. */
+    data.replace(/(.{76})/g, '$1\r\n'),
+    '',
+    '--' + grens + '--',
+    ''
+  ];
+  return enc(regels.join('\r\n'));
+}
+
+/* De bonnenpagina draait in een venster binnen dit dashboard en heeft zelf
+   geen Google-koppeling; die zit hier. Daarom vraagt hij het versturen via een
+   bericht aan deze pagina. Wordt de bonnenpagina los geopend, dan is er geen
+   ouder en valt hij daar terug op een gewone mail.
+
+   Er wordt alleen geluisterd naar berichten van onze eigen pagina's: een
+   willekeurige site mag hier geen mail mee versturen. */
+window.addEventListener('message', async function(e){
+  const d = e.data;
+  if(!d || d.bwf !== 'bon-gmail') return;
+  if(e.origin !== location.origin) return;
+  if(!gmailToken){
+    toast('Gmail is nog niet gekoppeld. Ga naar het tabblad Gmail en koppel je account.');
+    if(e.source) e.source.postMessage({ bwf:'bon-gmail-klaar', gelukt:false,
+      reden:'Gmail is nog niet gekoppeld in het dashboard.' }, e.origin);
+    return;
+  }
+  try{
+    await gmailApi('messages/send', { method:'POST', body: JSON.stringify({
+      raw: gmailRawMetBijlage(d.aan, d.onderwerp, d.tekst, d.bestandsnaam, d.bestand) }) });
+    toast('Bon verstuurd naar ' + d.aan + '.');
+    if(e.source) e.source.postMessage({ bwf:'bon-gmail-klaar', gelukt:true }, e.origin);
+  }catch(err){
+    toast('Versturen mislukt: ' + err.message);
+    if(e.source) e.source.postMessage({ bwf:'bon-gmail-klaar', gelukt:false,
+      reden: err.message }, e.origin);
+  }
+});
+
 function gmailSchrijven(v={}){
   let d=$('#dlgGmailSchrijf'); if(!d){ d=document.createElement('dialog'); d.id='dlgGmailSchrijf'; d.innerHTML=`<form method="dialog"><div class="card-body"><h2>Nieuw bericht</h2><div class="gmail-compose">
     <div class="field"><label for="gmAan">Aan</label><input type="email" id="gmAan" required></div><div class="field"><label for="gmOnderwerp">Onderwerp</label><input type="text" id="gmOnderwerp"></div>
