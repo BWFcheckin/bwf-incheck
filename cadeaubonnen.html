@@ -526,14 +526,23 @@ async function openBon(id) {
     (b.notitie ? '<p class="uitleg" style="margin:0 0 12px">' + esc(b.notitie) + "</p>" : "") +
     '<h2 style="margin-top:14px">Gebruikt</h2><div id="bkHist">wordt geladen&hellip;</div>';
 
+  /* Angela, 29-09-2026: "tegoedbonnen en cadeaubonnen knop aanmaken opnieuw
+     versturen, en ook versturen via WhatsApp mogelijk maken."
+
+     Opnieuw versturen kan nu voor élke soort en niet alleen voor digitale
+     bonnen. Ook van een plastic bon is het handig: raakt een gast zijn kaartje
+     kwijt, dan stuur je hem de bon als afbeelding met dezelfde code erop.
+     Er wordt niets nieuws aangemaakt - het is dezelfde bon. */
   $("#bkVoet").innerHTML =
+    '<button class="knop vol" type="button" id="bkVerstuur">Opnieuw versturen</button>' +
+    '<button class="knop" type="button" id="bkWhatsapp">WhatsApp</button>' +
+    '<button class="knop" type="button" id="bkBewaar">Opslaan</button>' +
+    '<button class="knop" type="button" id="bkKopie">Code kopiëren</button>' +
     (magBeheren()
       ? (b.status === "geblokkeerd"
           ? '<button class="knop" type="button" data-blok="uit">Deblokkeren</button>'
           : '<button class="knop" type="button" data-blok="aan">Blokkeren</button>')
-      : "") +
-    (b.soort === "digitaal" ? '<button class="knop" type="button" id="bkAfdruk">Bon versturen</button>' : "") +
-    '<button class="knop" type="button" id="bkKopie">Code kopiëren</button>';
+      : "");
   $("#bonKaart").dataset.bon = b.id;
   $("#bonKaart").showModal();
 
@@ -878,26 +887,47 @@ async function bonTeken(b, suite) {
   x.font = "600 13px 'Public Sans', sans-serif";
   x.fillText("BED & WELLNESS FLEVOLAND", lx, 62);
 
+  /* De kop hangt af van of er al van de bon af is; dat wordt verderop bepaald,
+     dus eerst even rekenen. */
+  const saldo = b.saldo == null ? Number(b.waarde) : Number(b.saldo);
+  const deels = saldo > 0 && Math.abs(saldo - Number(b.waarde)) > 0.004;
+
   x.fillStyle = "#7E8A82";
   x.font = "400 15px 'Public Sans', sans-serif";
-  x.fillText("Cadeaubon ter waarde van", lx, 96);
+  x.fillText(b.soort === "tegoed"
+    ? (deels ? "Tegoedbon, nog te besteden" : "Tegoedbon ter waarde van")
+    : (deels ? "Cadeaubon, nog te besteden" : "Cadeaubon ter waarde van"), lx, 96);
 
+  /* Is er al van de bon af, dan staat het RESTANT groot en de oorspronkelijke
+     waarde klein eronder. Angela, 29-09-2026: bij "opnieuw versturen" van een
+     deels gebruikte bon zou anders de oude waarde op de afbeelding staan
+     terwijl het bericht ernaast het restant noemt - en dan gaat een gast met
+     honderd euro de deur uit terwijl er nog vijfentwintig op staat.
+
+     Bij een restant staat het bedrag wat hoger, zodat de regel eronder niet
+     door de cijfers heen loopt; dat gebeurde in de eerste versie. */
   x.fillStyle = "#1D2420";
-  x.font = "600 62px Georgia, 'Cormorant Garamond', serif";
-  x.fillText("€ " + euro(b.waarde), lx, 160);
+  x.font = "600 " + (deels ? 54 : 62) + "px Georgia, 'Cormorant Garamond', serif";
+  x.fillText("€ " + euro(deels ? saldo : b.waarde), lx, deels ? 150 : 160);
+  if (deels) {
+    x.font = "400 13.5px 'Public Sans', sans-serif";
+    x.fillStyle = "#8B978A";
+    x.fillText("oorspronkelijk € " + euro(b.waarde), lx, 174);
+  }
 
   /* De code in een kadertje: dat is wat de gast moet doorgeven. */
   x.font = "500 25px 'IBM Plex Mono', ui-monospace, Menlo, monospace";
   const cb = x.measureText(b.code).width + 34;
+  const codeY = deels ? 190 : 184;      /* ruimte voor de regel eronder */
   x.fillStyle = "#F4F1EA";
   x.strokeStyle = "#E0D8C8"; x.lineWidth = 1;
-  rondeRechthoek(x, lx, 184, Math.min(cb, max), 48, 10);
+  rondeRechthoek(x, lx, codeY, Math.min(cb, max), 48, 10);
   x.fill(); x.stroke();
   x.fillStyle = "#1D2420";
-  x.fillText(pasTekst(x, b.code, max - 34), lx + 17, 215);
+  x.fillText(pasTekst(x, b.code, max - 34), lx + 17, codeY + 31);
 
   /* Voor wie, van wie, het bericht. */
-  let y = 262;
+  let y = deels ? 270 : 262;
   x.font = "400 16px 'Public Sans', sans-serif";
   x.fillStyle = "#46514A";
   const regels = [];
@@ -939,6 +969,7 @@ async function bonVel(b, suite) {
     '<img src="' + url + '" alt="Cadeaubon ' + esc(b.code) + '">' +
     '<div class="bondeel">' +
       '<button class="knop vol klein" type="button" data-deel="' + esc(b.code) + '">Versturen</button>' +
+      '<button class="knop klein" type="button" data-wa="' + esc(b.code) + '">WhatsApp</button>' +
       '<button class="knop klein" type="button" data-bewaar="' + esc(b.code) + '">Opslaan</button>' +
       '<button class="knop klein" type="button" data-mail="' + esc(b.code) + '">Mail openen</button>' +
     "</div></div>";
@@ -992,6 +1023,52 @@ async function bonBewaren(code) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+/* Via WhatsApp versturen. Angela, 29-09-2026.
+
+   Twee wegen, en de eerste is de betere:
+
+   1. Kan het apparaat bestanden delen (telefoon, en Safari op de Mac), dan
+      gaat de bon als AFBEELDING mee via het deelvenster - daar staat WhatsApp
+      tussen. Dat is wat een gast wil krijgen.
+
+   2. Lukt dat niet, dan opent wa.me met de tekst en de code erin, en wordt de
+      bon apart opgeslagen om er zelf bij te slepen. Een wa.me-link kan geen
+      afbeelding meesturen; dat kan WhatsApp nu eenmaal niet via een link.
+
+   Geen telefoonnummer in de link: dan laat WhatsApp je zelf een contact kiezen.
+   Dat is hier juist handig, want bij een cadeaubon is de ontvanger vaak niet
+   degene die hem koopt. */
+async function bonWhatsapp(code) {
+  const b = BONNEN.find((x) => x.code === code);
+  if (!b) return;
+  const tekst = (b.soort === "tegoed"
+      ? "Hierbij je tegoedbon voor Bed & Wellness Flevoland."
+      : "Hierbij je cadeaubon voor Bed & Wellness Flevoland.") +
+    "\n\nWaarde: € " + euro(b.saldo != null && Number(b.saldo) !== Number(b.waarde)
+      ? b.saldo : b.waarde) +
+    "\nCode: " + b.code +
+    (b.geldig_tot ? "\nGeldig tot: " + dNL(b.geldig_tot) : "") +
+    (b.bericht ? "\n\n" + b.bericht : "") +
+    "\n\nGeef de code door bij het boeken of bij aankomst.";
+
+  /* Eerst proberen de afbeelding mee te sturen. */
+  try {
+    const c = await bonTeken(b, $("#nwSuite") ? $("#nwSuite").value : "malina_deluxe");
+    const bestand = await bonBestand(c, b.code);
+    if (bestand && navigator.canShare && navigator.canShare({ files: [bestand] })) {
+      await navigator.share({ files: [bestand], text: tekst, title: "Cadeaubon" });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;   /* zelf geannuleerd, geen fout */
+  }
+  /* Terugval: WhatsApp met alleen de tekst, en de bon apart opslaan. */
+  bonBewaren(code);
+  window.open("https://wa.me/?text=" + encodeURIComponent(tekst), "_blank", "noopener");
+  melding("De bon is opgeslagen en WhatsApp staat klaar met de tekst. " +
+    "Voeg de opgeslagen afbeelding er zelf bij.", "let");
 }
 
 /* Een mail klaarzetten. De bon zelf gaat als bijlage mee; die kan een mailto
@@ -1159,13 +1236,25 @@ document.addEventListener("click", (e) => {
     else prompt("Kopieer de code:", b.code);
     return;
   }
-  if (e.target.id === "bkAfdruk") {
-    /* Dezelfde bon opnieuw versturen of bewaren, bijvoorbeeld als de gast
-       hem kwijt is. Er wordt niets nieuws aangemaakt. */
+  /* Dezelfde bon opnieuw versturen of bewaren, bijvoorbeeld als de gast hem
+     kwijt is. Er wordt niets nieuws aangemaakt: het is dezelfde code. */
+  if (e.target.id === "bkVerstuur" || e.target.id === "bkAfdruk") {
     const b = BONNEN.find((x) => String(x.id) === String($("#bonKaart").dataset.bon));
     if (b) bonDelen(b.code);
     return;
   }
+  if (e.target.id === "bkBewaar") {
+    const b = BONNEN.find((x) => String(x.id) === String($("#bonKaart").dataset.bon));
+    if (b) bonBewaren(b.code);
+    return;
+  }
+  if (e.target.id === "bkWhatsapp") {
+    const b = BONNEN.find((x) => String(x.id) === String($("#bonKaart").dataset.bon));
+    if (b) bonWhatsapp(b.code);
+    return;
+  }
+  const wa = e.target.closest("[data-wa]");
+  if (wa) { e.preventDefault(); bonWhatsapp(wa.getAttribute("data-wa")); return; }
   const deel = e.target.closest("[data-deel]");
   if (deel) { e.preventDefault(); bonDelen(deel.getAttribute("data-deel")); return; }
   const bew = e.target.closest("[data-bewaar]");
