@@ -823,9 +823,12 @@ const ORDER_ITEMS = [
   { naam:'Juice of the Day', prijs:8.50 },
   /* Angela, 28-09-2026. Bier stond nog niet op de kaart terwijl het wel werd
      besteld - op een bestaande boeking stond "Bier per fles x4, EUR 24,00".
-     Het rookterras is geen consumptie maar wordt wel apart gerekend. */
+
+     Het rookterras staat hier BEWUST NIET bij. Angela, 29-09-2026: Malina
+     Jacuzzi heeft geen rookgelegenheid en bij Malina Deluxe hoort het terras
+     bij de suite, dus daar valt niets te bestellen. Alleen Almere rekent er
+     iets voor; het staat daarom in ALMERE_ORDER_ITEMS hieronder. */
   { naam:'Bier per fles', prijs:6 },
-  { naam:'Rookterras', prijs:10 },
 ];
 const ALMERE_ORDER_ITEMS = [
   /* Menukaart Almere - alleen bij de Angie Wellness Suite */
@@ -838,6 +841,10 @@ const ALMERE_ORDER_ITEMS = [
   { naam:'High Tea (p.p., vanaf 4 personen)', prijs:24.50 },
   { naam:'Tasting Tree Experience', prijs:69 },
   { naam:'Champagne Ontbijt', prijs:79 },
+  /* Angela, 29-09-2026: bier hoort op beide kaarten, het rookterras alleen
+     hier - in Almere wordt er voor betaald. */
+  { naam:'Bier per fles', prijs:6 },
+  { naam:'Rookterras', prijs:10 },
 ];
 // Extra personen bijboeken op locatie — tarief per locatie
 const EXTRA_PERSONEN = {

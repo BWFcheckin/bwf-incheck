@@ -316,8 +316,13 @@ let CATALOGUS = [
     oms:'Gebruik van massagetafel incl. extra handdoek en olie.' },
   { id:'srv_blinddoek', groep:'srv', naam:'Blinddoek', prijs:2.5, img:'srv-blinddoek.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
     oms:'Verras iemand tijdens het spabezoek.' },
-  /* Alleen Lelystad: het rookterras hoort bij de Malina-suites. */
-  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, suites:['jacuzzi','deluxe'], maxAantal:1,
+  /* Rookterras staat ALLEEN bij Suite Angie in Almere. Angela, 29-09-2026:
+       Almere         rookterras, EUR 10,00
+       Malina Deluxe  heeft een eigen rookterras dat bij het verblijf hoort -
+                      niet vermelden, er valt niets te bestellen
+       Malina Jacuzzi geen rookgelegenheid
+     Ik had dit eerst precies omgekeerd en op beide Malina-suites gezet. */
+  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, suites:['angie'], maxAantal:1,
     oms:'Gebruik van het rookterras tijdens je verblijf.' },
 ];
 
@@ -396,7 +401,12 @@ function itemPrijs(it){
 }
 function prodHTML(it){
   const k = keuze[it.id] || { aantal:0, variant: it.varianten ? it.varianten[0].id : null };
-  const prijsLabel = it.varianten && it.varianten.some(v=>v.prijs!==it.varianten[0].prijs) ? 'v.a. ' + eur(Math.min(...it.varianten.map(v=>v.prijs))) : eur(it.prijs);
+  /* Kost het niets, dan staat er "Gratis" en geen "€ 0,00" - dat laatste leest
+     als een fout. Er staat op dit moment niets gratis in de lijst; deze regel
+     voorkomt het als er ooit iets bijkomt. */
+  const prijsLabel = it.varianten && it.varianten.some(v=>v.prijs!==it.varianten[0].prijs)
+    ? 'v.a. ' + eur(Math.min(...it.varianten.map(v=>v.prijs)))
+    : (Number(it.prijs) > 0 ? eur(it.prijs) : 'Gratis');
   const varSel = it.varianten ? `<select onchange="zetVariant('${it.id}', this.value)">${it.varianten.map(v=>`<option value="${v.id}" ${v.id===k.variant?'selected':''}>${v.naam}${v.prijs!==it.varianten[0].prijs||it.varianten.some(x=>x.prijs!==v.prijs)?' — '+eur(v.prijs):''}</option>`).join('')}</select>` : '';
   const ctl = it.maxAantal > 1
     ? `<div class="qty"><button type="button" aria-label="Minder" onclick="wijzigAantal('${it.id}',-1)">−</button><span>${k.aantal}</span><button type="button" aria-label="Meer" onclick="wijzigAantal('${it.id}',1)">+</button></div>
