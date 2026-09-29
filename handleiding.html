@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Locatiemanager werkinstructie · BWF</title>
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="bwf-icon-180.png">
+<meta name="theme-color" content="#14213D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="handleiding.css?v=1">
+</head>
+<body>
+
+<!-- De gedeelde BWF-menubalk (bwf-menu.js) komt hier. -->
+<div id="bwfTop"></div>
+
+<header class="hl-hero">
+  <div class="hl-hero-binnen">
+    <div class="hl-hero-acties">
+      <a href="dashboard.html" id="hlTerug" class="hl-terug">← Terug naar dashboard</a>
+      <button type="button" id="hlPrint" class="hl-hero-knop">🖨️ Print handleiding</button>
+    </div>
+    <p class="hl-hero-merk">📖 Bed &amp; Wellness Flevoland</p>
+    <h1 id="hlTitel">Locatiemanager werkinstructie</h1>
+    <p id="hlSubtitel" class="hl-subtitel">Reserveringen • Check-in • Agenda • Communicatie • Dagelijkse werkwijze</p>
+    <div class="hl-zoek" role="search">
+      <label for="hlZoek" class="hl-zoek-icoon" aria-label="Zoek in handleiding">🔎</label>
+      <input type="search" id="hlZoek" placeholder="Zoek in handleiding, bijvoorbeeld: reservering" autocomplete="off">
+      <button type="button" id="hlZoekWis" aria-label="Zoekopdracht wissen">✕</button>
+    </div>
+    <p id="hlZoekInfo" class="hl-zoek-info" hidden aria-live="polite"></p>
+  </div>
+</header>
+
+<div class="hl-legenda" id="hlLegenda" aria-label="Statuskleuren"></div>
+
+<main id="hlHandleiding" class="hl-layout">
+  <nav class="hl-menu" id="hlMenu" aria-label="Onderdelen van de handleiding"></nav>
+  <div class="hl-inhoud">
+    <p id="hlLaden" class="hl-gedempt">Handleiding laden…</p>
+    <div id="hlGeenResultaat" class="hl-leeg" hidden>Niets gevonden. Probeer een ander zoekwoord of wis de zoekopdracht.</div>
+    <div id="hlInhoud"></div>
+  </div>
+</main>
+
+<main id="hlBeheer" class="hl-beheer" hidden></main>
+
+<div id="hlMelding" class="hl-melding" role="status" aria-live="polite"></div>
+<button type="button" id="hlNaarBoven" class="hl-naar-boven" aria-label="Naar boven">↑</button>
+
+<script src="handleiding.js?v=1"></script>
+<script src="bwf-menu.js?v=10"></script>
+</body>
+</html>

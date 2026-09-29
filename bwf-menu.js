@@ -64,6 +64,7 @@
     ["Klanten", "klantbeheer.html"],
     ["VR", "vr2.html"],
     ["Locatie", "dashboard.html"],
+    ["📖 Handleiding", "handleiding.html"],   /* Locatiemanager handleiding, 29-09-2026 */
     ["Hulp", "controle.html"]
   ];
 
@@ -80,9 +81,10 @@
   var PER_ROL = {
     eigenaar:       null,   /* null = alles */
     vr:             ["dagstart.html", "agenda.html", "reserveringen.html",
-                     "incheckformulier.html", "klantbeheer.html", "vr2.html", "controle.html"],
-    locatiemanager: ["reserveringen.html", "incheckformulier.html", "dashboard.html"],
-    onbekend:       ["reserveringen.html", "incheckformulier.html", "dashboard.html"]
+                     "incheckformulier.html", "klantbeheer.html", "vr2.html", "controle.html",
+                     "handleiding.html"],
+    locatiemanager: ["reserveringen.html", "incheckformulier.html", "dashboard.html", "handleiding.html"],
+    onbekend:       ["reserveringen.html", "incheckformulier.html", "dashboard.html", "handleiding.html"]
   };
 
   /* De pagina waar je al bent hoeft er niet nog eens in als doorverwijzing.
