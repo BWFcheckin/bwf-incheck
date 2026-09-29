@@ -31,7 +31,10 @@
 }
 
 *{box-sizing:border-box}
-html{scroll-padding-top:16px}
+/* De pagina blijft vast in beeld; geen zijwaarts schuiven of naveren.
+   Angela, 29-09-2026. clip en niet hidden, want hidden breekt sticky. */
+html{scroll-padding-top:16px;overscroll-behavior-x:none;overflow-x:clip}
+body{overflow-x:clip;overscroll-behavior-x:none;max-width:100%}
 body{margin:0;background:var(--hl-grijs);color:var(--hl-tekst);font-family:var(--hl-body);
   font-size:16px;line-height:1.55;-webkit-text-size-adjust:100%;
   padding-bottom:env(safe-area-inset-bottom,0px)}

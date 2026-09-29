@@ -40,6 +40,14 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
+/* De pagina blijft vast in beeld. Angela, 29-09-2026: "ik wil dat de pagina's
+   vast blijven in het beeld, zonder dat je naar links en rechts schuift."
+   overflow-x:clip en niet hidden: hidden breekt position:sticky, en de kopbalk
+   en de tabbladen hier zijn sticky. overscroll-behavior-x zet de elastische
+   naveer van iOS uit - die geeft het gevoel dat de pagina los zit, ook als er
+   niets te schuiven valt. */
+html{overscroll-behavior-x:none;overflow-x:clip}
+body{overflow-x:clip;overscroll-behavior-x:none;max-width:100%}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;

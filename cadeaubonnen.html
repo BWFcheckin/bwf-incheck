@@ -36,6 +36,10 @@
   --warn-zacht:#2A2314; --crit-zacht:#2C1917;
 }
 *{box-sizing:border-box}
+/* De pagina blijft vast in beeld; geen zijwaarts schuiven of naveren.
+   Angela, 29-09-2026. clip en niet hidden, want hidden breekt sticky. */
+html{overscroll-behavior-x:none;overflow-x:clip}
+body{overflow-x:clip;overscroll-behavior-x:none;max-width:100%}
 /* Het hidden-attribuut zet display:none, maar elke eigen display-regel wint
    daarvan. #slot heeft display:grid, dus zonder deze regel staat het
    inlogvenster altijd over de pagina heen - ook als het verborgen hoort te

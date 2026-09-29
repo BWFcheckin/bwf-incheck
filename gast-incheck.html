@@ -10,6 +10,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
+/* De pagina blijft vast in beeld; geen zijwaarts schuiven of naveren.
+   Angela, 29-09-2026. clip en niet hidden, want hidden breekt sticky. */
+html{overscroll-behavior-x:none;overflow-x:clip}
+body{overflow-x:clip;overscroll-behavior-x:none;max-width:100%}
 :root{
   --bg:#F4F1ED; --surface:#FFFFFF; --surface-2:#FAF7F3; --line:#E3DAD0; --line-soft:#EFE8E1;
   --ink:#241E19; --ink-2:#4B4239; --muted:#7B6E62;

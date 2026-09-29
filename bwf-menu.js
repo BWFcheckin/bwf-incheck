@@ -122,7 +122,40 @@
        balk." De tabbladen en de paginalinks stonden op twee regels met een
        streep ertussen; nu lopen ze door op één regel, met een verticaal
        streepje als scheiding. Past het niet, dan schuift de rij zijwaarts. */
+    /* De verhuisde tabbalk mag de PAGINA niet meetrekken. Angela, 29-09-2026:
+       "ik wil dat de pagina's vast blijven in beeld, zonder dat je naar links
+       en rechts schuift." Gemeten op een scherm van 390px: de tabbalk van het
+       locatiedashboard was 601 breed en duwde de hele pagina mee.
+       min-width:0 is de sleutel - zonder dat weigert een flex-kind te krimpen
+       onder zijn inhoud, en helpt max-width niets. Dit stond eerst alleen in
+       de mobiele regels hieronder; nu altijd, want ook op een smalle laptop
+       kan die balk te lang worden. */
     ".bwf-topmenu .rij{display:flex;gap:6px;align-items:center;flex-wrap:wrap}",
+    /* De verhuisde tabbalk mag de PAGINA niet meetrekken. Angela, 29-09-2026:
+       "ik wil dat de pagina's vast blijven in het beeld, zonder dat je naar
+       links en rechts schuift." Gemeten op 390px: de tabbalk van het
+       locatiedashboard was 601 breed en duwde de hele pagina mee.
+
+       !important is hier met opzet. Deze balk wordt door bwf-menu.js verhuisd
+       naar een plek waar de CSS van de pagina zelf nog steeds geldt - op het
+       locatiedashboard staat er `width:max-content` op dezelfde selector, en
+       die wint van een gewone regel hier. Zonder !important blijft de balk
+       zijn eigen breedte houden en schuift de pagina.
+
+       min-width:0 is net zo belangrijk: zonder dat weigert een flex-kind te
+       krimpen onder zijn inhoud en helpt max-width niets. */
+    ".bwf-topmenu .rij,.bwf-topmenu nav.tabs{",
+      "min-width:0!important;max-width:100%!important;width:auto!important;",
+      "overflow-x:auto!important;scrollbar-width:none;",
+      "-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}",
+    ".bwf-topmenu .rij::-webkit-scrollbar,.bwf-topmenu nav.tabs::-webkit-scrollbar{display:none}",
+    /* De balk zelf mag ook niet uitlopen. */
+    ".bwf-topmenu,.bwf-topmenu .binnen{max-width:100%;min-width:0;overflow-x:clip}",
+    /* En het vangnet voor de pagina zelf: niets mag zijwaarts schuiven, en de
+       elastische naveer van iOS gaat uit. overflow-x:clip en niet hidden -
+       hidden breekt position:sticky, en de tabbalk en kopregels zijn sticky. */
+    "html{overscroll-behavior-x:none;overflow-x:clip}",
+    "body{overflow-x:clip;overscroll-behavior-x:none;max-width:100%}",
     /* De verhuisde tabbalk brengt zijn eigen opmaak van het scherm mee; die
        hoort hier niet meer te gelden. Vandaar dat deze regels hem terugzetten. */
     ".bwf-topmenu [data-bwf-verhuisd]{background:none!important;border:0!important;",
@@ -157,9 +190,8 @@
     "@media(max-width:760px){",
       ".bwf-topmenu .binnen{padding:5px 10px;gap:3px}",
       ".bwf-topmenu img{display:none}",
-      ".bwf-topmenu .rij{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;",
-        "-webkit-overflow-scrolling:touch}",
-      ".bwf-topmenu .rij::-webkit-scrollbar{display:none}",
+      /* Op een telefoon niet afbreken maar schuiven binnen de balk zelf. */
+      ".bwf-topmenu .rij{flex-wrap:nowrap}",
       ".bwf-topmenu a,.bwf-topmenu .bwfk-tab{padding:4px 9px;font-size:12.5px}",
       ".bwf-topmenu .rij.paginas{margin-top:4px;padding-top:4px}",
       ".bwf-topmenu .rij.paginas a{font-size:12px}",
