@@ -4500,13 +4500,38 @@ async function laadAfgevinkt(){
 const isAfgevinkt = (lijst, kenmerk) =>
   !!(kenmerk && AFGEVINKT[lijst] && AFGEVINKT[lijst][String(kenmerk)]);
 
+/* Waarop een formulier wordt herkend. Meestal is dat gewoon de id, maar niet
+   elk formulier heeft er een: een gastformulier dat nog niet is opgeslagen, of
+   een rij die uit een oudere import komt, kan hem missen. Dan viel het vinkje
+   stil weg - het stond er wel, maar afvinken deed niets. Angela, 29-09-2026:
+   "afvinken van bijgeboekte extra's lukt niet."
+
+   De terugval is naam + datum + bedrag. Niet waterdicht, maar stabiel genoeg
+   over herladen heen, en het alternatief was een vinkje dat niets doet. */
+function formSleutel(f){
+  if(!f) return '';
+  if(f.id) return String(f.id);
+  const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') ||
+    (typeof formNaam === 'function' ? formNaam(f) : '') || 'zonder-naam';
+  const datum = String(f.datum || f.created_at || '').slice(0,10);
+  const bedrag = f.extras_totaal != null ? String(f.extras_totaal) : '';
+  return 'zi-' + [naam, datum, bedrag].filter(Boolean).join('-')
+    .toLowerCase().replace(/\s+/g,'-');
+}
+
 /* Wat er van een lijst overblijft. Eén plek, zodat geen enkele lijst het
    filteren kan vergeten. */
 const nogOpen = (lijst, items, kenmerkVan) =>
   (items || []).filter(x => !isAfgevinkt(lijst, kenmerkVan(x)));
 
 async function vinkAf(lijst, kenmerk, titel, toelichting){
-  if(!kenmerk) return;
+  /* Nooit stil niets doen: zonder kenmerk valt er niets vast te leggen, en dan
+     hoort de gebruiker dat te weten in plaats van te denken dat de knop stuk
+     is. Sinds formSleutel() zou dit niet meer moeten voorkomen. */
+  if(!kenmerk){
+    toast('Deze regel kan niet worden afgevinkt: er is geen kenmerk om hem op te herkennen.');
+    return;
+  }
   /* Meteen in beeld wegstrepen; de bevraging loopt erachteraan. Wachten zou
      een tik van een halve seconde opleveren en dan tikt iemand twee keer. */
   AFGEVINKT[lijst][String(kenmerk)] = {
@@ -4860,7 +4885,7 @@ function renderDagstart(){
     const metExtras = (typeof FORMS !== 'undefined' ? FORMS : [])
       .filter(f => Array.isArray(f.extras) && f.extras.length)
       .sort((a,b) => String(b.datum || b.created_at || '').localeCompare(String(a.datum || a.created_at || '')));
-    const exOpen = nogOpen('extras', metExtras, f => f.id || '');
+    const exOpen = nogOpen('extras', metExtras, formSleutel);
     if(exTel) exTel.textContent = exOpen.length ? String(exOpen.length) : '';
     exVak.innerHTML = (exOpen.length
       ? exOpen.slice(0,12).map(f => {
@@ -4876,13 +4901,13 @@ function renderDagstart(){
                 .filter(Boolean).join(' · '))}</small></div>
             <button type="button" class="dg-vink" title="Afvinken"
               aria-label="${esc(naam)} afvinken"
-              data-afvink="extras" data-kenmerk="${esc(f.id || '')}"
+              data-afvink="extras" data-kenmerk="${esc(formSleutel(f))}"
               data-titel="${esc(naam + bedrag)}">&#10003;</button>
           </div>`;
         }).join('')
       : '<p class="dg-leeg">Niemand heeft iets bijgeboekt via het formulier.</p>')
       + archiefBlok('extras');
-    dgBel('dgBelExtras', 'extras', exOpen.map(f => f.id || ''));
+    dgBel('dgBelExtras', 'extras', exOpen.map(formSleutel));
   }
 
   /* ---- uitklap 2: formulieren die nog aan een boeking moeten hangen ---- */
@@ -4891,7 +4916,7 @@ function renderDagstart(){
     const los = (typeof FORMS !== 'undefined' ? FORMS : [])
       .filter(f => typeof formGekoppeld === 'function' ? !formGekoppeld(f) : false)
       .sort((a,b) => String(b.datum || b.created_at || '').localeCompare(String(a.datum || a.created_at || '')));
-    const losOpen = nogOpen('formulieren', los, f => f.id || '');
+    const losOpen = nogOpen('formulieren', los, formSleutel);
     if(losTel) losTel.textContent = losOpen.length ? String(losOpen.length) : '';
     losVak.innerHTML = (losOpen.length
       ? losOpen.slice(0,12).map(f => {
@@ -4904,13 +4929,13 @@ function renderDagstart(){
                 .filter(Boolean).join(' · '))}</small></div>
             <button type="button" class="dg-vink" title="Afvinken"
               aria-label="${esc(naam)} afvinken"
-              data-afvink="formulieren" data-kenmerk="${esc(f.id || '')}"
+              data-afvink="formulieren" data-kenmerk="${esc(formSleutel(f))}"
               data-titel="${esc(naam)}">&#10003;</button>
           </div>`;
         }).join('')
       : '<p class="dg-leeg">Alle formulieren zijn gekoppeld.</p>')
       + archiefBlok('formulieren');
-    dgBel('dgBelLos', 'los', losOpen.map(f => f.id || ''));
+    dgBel('dgBelLos', 'los', losOpen.map(formSleutel));
   }
 
   /* ---- uitklap 3: voorraad bijvullen ---- */
