@@ -1,0 +1,434 @@
+{
+  "versie": 1,
+  "meta": {
+    "titel": "Locatiemanager werkinstructie",
+    "subtitel": "Reserveringen • Check-in • Agenda • Communicatie • Dagelijkse werkwijze",
+    "terugUrl": "dashboard.html"
+  },
+  "statussen": {
+    "normaal": {
+      "label": "Normaal",
+      "uitleg": "Normale dagelijkse werkzaamheden."
+    },
+    "actie": {
+      "label": "Actie",
+      "uitleg": "Iets controleren, uitvoeren of opvolgen."
+    },
+    "spoed": {
+      "label": "Spoed",
+      "uitleg": "Direct actie of contact nodig."
+    }
+  },
+  "secties": [
+    {
+      "id": "dagstart",
+      "icoon": "🌅",
+      "titel": "Dagstart",
+      "type": "lijst",
+      "status": "normaal",
+      "intro": "Begin iedere dienst met deze controles, in deze volgorde.",
+      "items": [
+        "Agenda controleren",
+        "Aankomsten controleren",
+        "Vertrekken controleren",
+        "Nieuwe reserveringen controleren",
+        "Wijzigingen controleren",
+        "Annuleringen controleren",
+        "Welkomstcalls controleren",
+        "Openstaande acties controleren",
+        "Bijzonderheden controleren"
+      ]
+    },
+    {
+      "id": "reserveringen",
+      "icoon": "📅",
+      "titel": "Reserveringen",
+      "type": "kaarten",
+      "status": "normaal",
+      "intro": "Elke reservering controleer je op drie punten: de gegevens, de bron en het dashboard.",
+      "link": {
+        "label": "Open reserveringen",
+        "url": "reserveringen.html"
+      },
+      "kaarten": [
+        {
+          "icoon": "🔍",
+          "titel": "Gegevens controleren",
+          "status": "actie",
+          "tekst": "Loop bij elke reservering deze gegevens na:",
+          "lijst": [
+            "Naam",
+            "Aankomst",
+            "Vertrek",
+            "Aantal personen",
+            "Accommodatie",
+            "Prijs",
+            "Extra's",
+            "Opmerkingen"
+          ]
+        },
+        {
+          "icoon": "🌐",
+          "titel": "Bron controleren",
+          "status": "normaal",
+          "tekst": "De oorspronkelijke reserveringsbron is leidend. Staat er in het dashboard iets anders dan bij de bron, dan geldt wat bij de bron staat.",
+          "lijst": []
+        },
+        {
+          "icoon": "💾",
+          "titel": "Dashboard controleren",
+          "status": "actie",
+          "tekst": "Controleer of de gegevens correct in het dashboard staan. Klopt iets niet, pas het aan of geef het door aan de locatieverantwoordelijke.",
+          "lijst": []
+        }
+      ]
+    },
+    {
+      "id": "nieuwe-reservering",
+      "icoon": "➕",
+      "titel": "Nieuwe reservering",
+      "type": "workflow",
+      "status": "actie",
+      "intro": "Zo verwerk je een nieuwe reservering van begin tot eind.",
+      "stappen": [
+        {
+          "titel": "Reservering ontvangen",
+          "tekst": ""
+        },
+        {
+          "titel": "Bron controleren",
+          "tekst": "De oorspronkelijke bron is leidend."
+        },
+        {
+          "titel": "Gegevens controleren",
+          "tekst": "Naam, data, personen, accommodatie, prijs."
+        },
+        {
+          "titel": "Dashboard controleren",
+          "tekst": "Staat alles goed in het dashboard?"
+        },
+        {
+          "titel": "Eventuele extra's controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Welkomstcall uitvoeren indien nodig",
+          "tekst": ""
+        },
+        {
+          "titel": "Reservering volledig verwerken",
+          "tekst": ""
+        }
+      ]
+    },
+    {
+      "id": "welkomstcall",
+      "icoon": "📞",
+      "titel": "Welkomstcall",
+      "type": "workflow",
+      "status": "actie",
+      "intro": "Een persoonlijk gesprek met de gast vóór aankomst.",
+      "stappen": [
+        {
+          "titel": "Reservering openen",
+          "tekst": ""
+        },
+        {
+          "titel": "Gegevens controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Gast bellen",
+          "tekst": ""
+        },
+        {
+          "titel": "Gast welkom heten",
+          "tekst": ""
+        },
+        {
+          "titel": "Belangrijke informatie controleren",
+          "tekst": "Aankomsttijd, aantal personen, extra's."
+        },
+        {
+          "titel": "Bijzonderheden bespreken",
+          "tekst": "Wensen, allergieën, speciale gelegenheid."
+        },
+        {
+          "titel": "Uitkomst registreren",
+          "tekst": ""
+        }
+      ]
+    },
+    {
+      "id": "inchecken",
+      "icoon": "🛎️",
+      "titel": "Inchecken",
+      "type": "kaarten",
+      "status": "normaal",
+      "intro": "Bij aankomst van de gast loop je deze vier onderdelen langs.",
+      "link": {
+        "label": "Open incheckformulier",
+        "url": "incheckformulier.html"
+      },
+      "kaarten": [
+        {
+          "icoon": "📋",
+          "titel": "Check-in formulier",
+          "status": "normaal",
+          "tekst": "Controleer het incheckformulier of laat de gast het invullen en ondertekenen.",
+          "lijst": []
+        },
+        {
+          "icoon": "➕",
+          "titel": "Extra's",
+          "status": "normaal",
+          "tekst": "Controleer welke extra's geboekt zijn en of die klaarstaan.",
+          "lijst": []
+        },
+        {
+          "icoon": "💳",
+          "titel": "Betaling",
+          "status": "actie",
+          "tekst": "Controleer of alles betaald is. Staat er nog iets open, zorg dat het wordt afgerond of noteer het als openstaande actie.",
+          "lijst": []
+        },
+        {
+          "icoon": "📝",
+          "titel": "Bijzonderheden",
+          "status": "normaal",
+          "tekst": "Noteer wensen, allergieën en andere bijzonderheden.",
+          "lijst": []
+        }
+      ]
+    },
+    {
+      "id": "agenda",
+      "icoon": "🗓️",
+      "titel": "Agenda",
+      "type": "kaarten",
+      "status": "normaal",
+      "intro": "In de agenda let je op deze zes onderdelen. Controleer ze bij de dagstart en aan het einde van je dienst.",
+      "link": {
+        "label": "Open locatiedashboard",
+        "url": "dashboard.html"
+      },
+      "kaarten": [
+        {
+          "icoon": "🟢",
+          "titel": "Aankomsten",
+          "status": "normaal",
+          "tekst": "Wie komt er vandaag en morgen aan?",
+          "lijst": []
+        },
+        {
+          "icoon": "🚪",
+          "titel": "Vertrekken",
+          "status": "normaal",
+          "tekst": "Wie vertrekt er en hoe laat?",
+          "lijst": []
+        },
+        {
+          "icoon": "🏠",
+          "titel": "Bezetting",
+          "status": "normaal",
+          "tekst": "Welke suites zijn bezet?",
+          "lijst": []
+        },
+        {
+          "icoon": "📭",
+          "titel": "Openstaande beschikbaarheid",
+          "status": "normaal",
+          "tekst": "Welke data zijn nog vrij?",
+          "lijst": []
+        },
+        {
+          "icoon": "📝",
+          "titel": "Bijzonderheden",
+          "status": "actie",
+          "tekst": "Zijn er opmerkingen of wensen die aandacht vragen?",
+          "lijst": []
+        },
+        {
+          "icoon": "✏️",
+          "titel": "Wijzigingen",
+          "status": "actie",
+          "tekst": "Is er sinds je vorige dienst iets veranderd?",
+          "lijst": []
+        }
+      ]
+    },
+    {
+      "id": "agenda-sluiten",
+      "icoon": "🔒",
+      "titel": "Agenda sluiten",
+      "type": "workflow",
+      "status": "actie",
+      "intro": "Een datum of suite dichtzetten zodat er geen dubbele boekingen ontstaan.",
+      "notitie": {
+        "status": "actie",
+        "tekst": "Het dashboard sluit de beschikbaarheid op partnerplatforms niet automatisch. Sluit de datum zelf in het beheer van elk platform waar de suite online staat. Twijfel je, overleg dan met de locatieverantwoordelijke."
+      },
+      "stappen": [
+        {
+          "titel": "Bezetting controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Beschikbaarheid controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Partnerplatform controleren",
+          "tekst": "Op elk platform waar de suite online staat."
+        },
+        {
+          "titel": "Beschikbaarheid sluiten indien nodig",
+          "tekst": "Handmatig, per platform."
+        },
+        {
+          "titel": "Dashboard controleren",
+          "tekst": ""
+        }
+      ]
+    },
+    {
+      "id": "wijzigen",
+      "icoon": "✏️",
+      "titel": "Reservering wijzigen",
+      "type": "workflow",
+      "status": "actie",
+      "intro": "Een gast wil iets veranderen, of een platform geeft een wijziging door.",
+      "stappen": [
+        {
+          "titel": "Bron controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Wijziging vaststellen",
+          "tekst": ""
+        },
+        {
+          "titel": "Dashboard aanpassen",
+          "tekst": ""
+        },
+        {
+          "titel": "Gegevens opnieuw controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Welkomstcall opnieuw controleren indien nodig",
+          "tekst": ""
+        }
+      ]
+    },
+    {
+      "id": "annulering",
+      "icoon": "❌",
+      "titel": "Annulering",
+      "type": "workflow",
+      "status": "actie",
+      "intro": "Een reservering is geannuleerd.",
+      "stappen": [
+        {
+          "titel": "Annulering bij bron controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Dashboard bijwerken",
+          "tekst": ""
+        },
+        {
+          "titel": "Beschikbaarheid controleren",
+          "tekst": ""
+        },
+        {
+          "titel": "Eventuele acties afronden",
+          "tekst": ""
+        }
+      ]
+    },
+    {
+      "id": "spoed",
+      "icoon": "🚨",
+      "titel": "Spoed & bijzonderheden",
+      "type": "kaarten",
+      "status": "spoed",
+      "intro": "Bij spoed of een bijzondere situatie direct contact opnemen met de locatieverantwoordelijke.",
+      "kaarten": [
+        {
+          "icoon": "💬",
+          "titel": "WhatsApp",
+          "status": "normaal",
+          "tekst": "Voor normale communicatie en afstemming.",
+          "lijst": []
+        },
+        {
+          "icoon": "📞",
+          "titel": "Telefoon",
+          "status": "spoed",
+          "tekst": "Bij spoed, of wanneer snel overleg noodzakelijk is.",
+          "lijst": []
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "icoon": "👥",
+      "titel": "Wie werkt wanneer",
+      "type": "team",
+      "status": "normaal",
+      "intro": "Overzicht van het team op de locatie.",
+      "leden": []
+    },
+    {
+      "id": "contact",
+      "icoon": "💬",
+      "titel": "Contact met locatie",
+      "type": "contact",
+      "status": "normaal",
+      "intro": "WhatsApp is voor normale afstemming. Bel bij spoed of bijzonderheden.",
+      "kanalen": [
+        {
+          "type": "whatsapp",
+          "label": "WhatsApp",
+          "waarde": "",
+          "gebruik": "Normale afstemming",
+          "status": "normaal"
+        },
+        {
+          "type": "telefoon",
+          "label": "Telefoon",
+          "waarde": "",
+          "gebruik": "Spoed en bijzonderheden",
+          "status": "spoed"
+        },
+        {
+          "type": "email",
+          "label": "E-mail",
+          "waarde": "",
+          "gebruik": "Niet-dringende zaken en documenten",
+          "status": "normaal"
+        }
+      ]
+    },
+    {
+      "id": "checklist",
+      "icoon": "☑️",
+      "titel": "Dagelijkse checklist",
+      "type": "checklist",
+      "status": "actie",
+      "intro": "Vink af wat je gedaan hebt. De checklist wordt per dag op dit apparaat bewaard.",
+      "items": [
+        "Agenda gecontroleerd",
+        "Nieuwe reserveringen gecontroleerd",
+        "Gegevens bij de bron gecontroleerd",
+        "Welkomstcalls gecontroleerd",
+        "Openstaande acties gecontroleerd",
+        "Bijzonderheden gecontroleerd",
+        "Openstaande acties overgedragen",
+        "Agenda opnieuw gecontroleerd",
+        "Bijzonderheden doorgegeven"
+      ]
+    }
+  ]
+}
