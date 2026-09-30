@@ -345,10 +345,28 @@ const isPerDag = (t) => t && t.eenheid === "dag";
 /* =========================================================
    Het invulblok
    ========================================================= */
+/* Welke werkzaamheden staan er in de lijst?
+   =========================================================
+   Angela, 30-09-2026: "voor haar alleen de opties in de keuzelijst laten zien
+   bij het opgeven van de werkzaamheden, en later eventueel extra
+   werkzaamheden toevoegen."
+
+   De hele tarievenlijst tonen was verkeerd: daar staat ook het wellness-werk
+   in (dagverblijf, uitcheck, schoonmaak) en dat doet Kelly niet. De categorie
+   maakt het onderscheid dat er al is: alles onder BACKOFFICE is haar werk.
+
+   Wil je er later iets bij: zet in vr2 (Werk & tarieven -> Tarieven) een nieuw
+   tarief neer met categorie Backoffice, en het staat hier vanzelf tussen. Een
+   tarief op Wellness of Marketing komt hier niet in beeld.
+
+   De eigenaar ziet wél alles, want die boekt ook voor anderen. */
+const VOOR_BACKOFFICE = "Backoffice";
+
 function bruikbareTarieven() {
   const loon = Number(IK && IK.uurtarief) || 0;
   return TARIEVEN
     .filter((t) => t.actief !== false)
+    .filter((t) => ROL === "eigenaar" || String(t.categorie || "") === VOOR_BACKOFFICE)
     /* Uurwerk zonder uurloon levert altijd nul op. Dat verstopt een fout,
        dus die regel laten we weg in plaats van hem op nul te tonen. */
     .filter((t) => t.soort !== "uur" || loon > 0)
