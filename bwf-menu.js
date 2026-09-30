@@ -69,6 +69,12 @@
        dit weghalen uit de balk is alleen om het niet in de weg te zetten. */
     ["Werkzaamheden", "werkzaamheden.html"],
     ["Locatie", "dashboard.html"],
+    /* Angela, 30-09-2026: de locatiemanager mag de bedragen per boeking zien.
+       Die pagina zat alleen als tabblad in vr2 en daar komt zij niet; zonder
+       deze knop had ze geen ingang. Voor haar heet het "Bedragen" en staan de
+       optellingen uit - de pagina regelt dat zelf. Een vr-assistent heeft hem
+       al als tabblad in vr2 en krijgt hem hier niet nog eens. */
+    ["Bedragen", "financieel.html"],
     ["📖 Handleiding", "handleiding.html"],   /* Locatiemanager handleiding, 29-09-2026 */
     ["Hulp", "controle.html"]
   ];
@@ -88,7 +94,8 @@
     vr:             ["dagstart.html", "agenda.html", "reserveringen.html",
                      "incheckformulier.html", "klantbeheer.html", "vr2.html", "controle.html",
                      "handleiding.html", "werkzaamheden.html"],
-    locatiemanager: ["reserveringen.html", "incheckformulier.html", "dashboard.html", "handleiding.html"],
+    locatiemanager: ["reserveringen.html", "incheckformulier.html", "dashboard.html",
+                     "handleiding.html", "financieel.html"],
     onbekend:       ["reserveringen.html", "incheckformulier.html", "dashboard.html", "handleiding.html"]
   };
 

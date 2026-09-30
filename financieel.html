@@ -76,6 +76,24 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
 .gast{max-width:190px;overflow:hidden;text-overflow:ellipsis}
 .wijze{font:inherit;font-size:12.5px;padding:4px 6px;min-height:30px;border-radius:7px;
   border:1px solid var(--line);background:var(--surface-2);color:var(--ink);max-width:150px}
+/* ---- kaartweergave (locatiemanager) ---- */
+.kaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.kaartmaand{grid-column:1/-1;font:600 15px/1.2 "Cormorant Garamond",Georgia,serif;
+  letter-spacing:.02em;color:var(--groen-2);background:var(--groen-zacht);
+  border-radius:9px;padding:7px 12px;margin:4px 0 0}
+.bk{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 14px}
+.bk-kop{display:flex;gap:9px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+.bk-kop b{font-size:14.5px}
+.bk-gast{color:var(--ink-2);font-size:13.5px;margin:2px 0 9px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-regel{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:2.5px 0}
+.bk-regel span{color:var(--muted)}
+.bk-regel b{font-variant-numeric:tabular-nums;font-weight:500}
+.bk-regel.tot{border-top:1px solid var(--line);margin-top:6px;padding-top:7px;font-size:14.5px}
+.bk-regel.tot span,.bk-regel.tot b{color:var(--ink);font-weight:700}
+.bk-regel.op b{color:var(--crit);font-weight:700}
+.bk-voet{margin-top:9px;padding-top:8px;border-top:1px solid var(--line-soft);
+  font-size:12.5px;color:var(--muted)}
 .vlag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid}
 .vlag.betaald{background:var(--ok-zacht);border-color:var(--ok);color:var(--ok)}
 .vlag.deels{background:var(--warn-zacht);border-color:var(--warn);color:var(--warn)}
@@ -108,6 +126,11 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
 </head>
 <body>
 
+<!-- De gedeelde menubalk. Deze pagina draait óók als iframe in vr2; daar
+     haalt bwf-menu.js zichzelf weg, dus er komt geen tweede balk. Voor de
+     locatiemanager is dit de enige weg terug: zij heeft geen vr2. -->
+<div id="bwfTop"></div>
+
 <div id="slot" hidden>
   <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;
     padding:18px;max-width:340px;width:100%">
@@ -121,8 +144,8 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
 </div>
 
 <div class="wrap">
-  <h1>Financieel overzicht</h1>
-  <p class="sub">Alle reserveringen per maand, met wat er vooraf, tijdens de welkomstcall en op locatie is bijgeboekt.</p>
+  <h1 id="titel">Financieel overzicht</h1>
+  <p class="sub" id="ondertitel">Alle reserveringen per maand, met wat er vooraf, tijdens de welkomstcall en op locatie is bijgeboekt.</p>
   <div class="melding" id="melding" hidden></div>
 
   <div class="balk">
@@ -130,13 +153,13 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
       <input type="month" id="fVan"></label>
     <label class="veld">Tot en met
       <input type="month" id="fTot"></label>
-    <label class="veld">Locatie
+    <label class="veld" id="fLocVak">Locatie
       <select id="fLoc">
         <option value="">Beide</option>
         <option value="Almere">Almere</option>
         <option value="Lelystad">Lelystad</option>
       </select></label>
-    <label class="veld">Suite
+    <label class="veld" id="fSuiteVak">Suite
       <select id="fSuite"><option value="">Alle suites</option></select></label>
     <label class="veld">Betaalstatus
       <select id="fStatus">
@@ -157,9 +180,13 @@ tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--
 
   <div class="tegels" id="tegels"></div>
 
-  <div class="tabelwrap">
+  <div class="tabelwrap" id="tabelwrap">
     <table id="tabel"><tbody><tr><td style="padding:18px;color:var(--muted)">Bezig met laden&hellip;</td></tr></tbody></table>
   </div>
+  <!-- Kaartweergave voor de locatiemanager: de brede tabel schuift op een
+       telefoon precies de bedragen uit beeld, en dat zijn juist de kolommen
+       waar het haar om gaat. -->
+  <div class="kaarten" id="kaarten" hidden></div>
   <p class="uitleg" id="voetnoot"></p>
 </div>
 
@@ -193,6 +220,14 @@ const WIJZEN = ["", "Pin", "Contant", "Mollie betaallink", "Flatpay", "Online",
   "Bankoverschrijving", "Cadeaubon", "Booking.com", "Splitsen"];
 
 let SESSIE = null, ROL = null, NAAM = "", verversBezig = null;
+/* Optellingen tonen? Voor een locatiemanager niet - zie de toelichting in
+   start(). Staat standaard UIT: gaat de rolbepaling onderweg mis, dan is het
+   ergste gevolg dat Angela haar totalen mist en dat meldt. Andersom zou een
+   storing stilletjes de omzet laten zien aan wie hem niet hoort te zien. */
+let TOON_TOTALEN = false;
+/* Mag de betaalwijze aangepast worden? Voor een locatiemanager niet: de
+   database draait die wijziging stil terug. Zie wijzeKeuze(). */
+let MAG_WIJZE = false;
 let RIJEN = [], EXTRAS = [], MOLLIE = {};
 
 /* ---------- sessie ---------- */
@@ -379,7 +414,11 @@ async function laad() {
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
   })();
 
-  $("#tabel").innerHTML = '<tbody><tr><td style="padding:18px;color:var(--muted)">Bezig met laden&hellip;</td></tr></tbody>';
+  if (TOON_TOTALEN) {
+    $("#tabel").innerHTML = '<tbody><tr><td style="padding:18px;color:var(--muted)">Bezig met laden&hellip;</td></tr></tbody>';
+  } else {
+    $("#kaarten").innerHTML = '<p style="color:var(--muted);padding:14px 2px">Bezig met laden&hellip;</p>';
+  }
   try {
     const [res, extras] = await Promise.all([
       api("reserveringen?select=id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek," +
@@ -434,10 +473,73 @@ function mollieVan(r) {
   return { tekst: "€ " + eur(som), ok: true };
 }
 
+/* =========================================================
+   Kaarten in plaats van een tabel
+   =========================================================
+   Angela, 30-09-2026: de locatiemanager moet de bedragen per boeking zien.
+   In de tabel lukt dat niet op een telefoon: die is 1080px breed en schuift
+   in zijn eigen vakje, zodat er van de bedragen niets in beeld staat - juist
+   de kolommen waar het om gaat. Per boeking één kaart dus, waarin alles
+   onder elkaar past. Er wordt niets opgeteld: geen tegels, geen maandtotaal,
+   geen eindregel. Dat is de afspraak.
+   ========================================================= */
+function tekenKaarten(lijst, soort) {
+  if (!lijst.length) {
+    $("#kaarten").innerHTML = "<p style='color:var(--muted);padding:14px 2px'>" +
+      "Geen boekingen in deze periode.</p>";
+    return;
+  }
+  const regel = (naam, bedrag, klasse) =>
+    "<div class='bk-regel" + (klasse ? " " + klasse : "") + "'>" +
+      "<span>" + esc(naam) + "</span><b>&euro; " + eur(bedrag) + "</b></div>";
+
+  let html = "", maand = "";
+  lijst.forEach((r) => {
+    const m = maandVan(r[soort]);
+    if (m !== maand) { maand = m; html += "<div class='kaartmaand'>" + esc(maandNaam(m)) + "</div>"; }
+
+    const b = splitsBedragen(r);
+    const p = betaling(r, b.totaal);
+    const s = SUITES[r.suite] || { naam: r.suite, locatie: "" };
+    const stand = String(r.betaalstatus || "open");
+    const naam = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ") || "—";
+
+    html += "<div class='bk'>" +
+      "<div class='bk-kop'><b>" + esc(dNL(r[soort])) + " &middot; " + esc(s.naam) + "</b>" +
+        "<span class='vlag " + esc(stand) + "'>" +
+          esc({ betaald: "betaald", deels: "deels", open: "open" }[stand] || stand) + "</span></div>" +
+      "<div class='bk-gast'>" + esc(naam) + " &middot; " +
+        esc(r.kanaal_ref || String(r.id).slice(0, 8)) + "</div>" +
+      regel("Verblijf", b.verblijf) +
+      /* Nullen weglaten: een kaart vol "€ 0,00" leest als een storing. */
+      (Math.abs(b.vooraf)     > 0.004 ? regel("Extra's vooraf", b.vooraf) : "") +
+      (Math.abs(b.bijgeboekt) > 0.004 ? regel("Later bijgeboekt", b.bijgeboekt) : "") +
+      (Math.abs(b.call)       > 0.004 ? regel("Na de welkomstcall", b.call) : "") +
+      (Math.abs(b.locatie)    > 0.004 ? regel("Op locatie", b.locatie) : "") +
+      (Math.abs(b.korting)    > 0.004 ? regel("Korting", b.korting) : "") +
+      regel("Totaal", b.totaal, "tot") +
+      regel("Betaald", p.betaald) +
+      (p.open > 0.004 ? regel("Nog te ontvangen", p.open, "op") : "") +
+      "<div class='bk-voet'>" +
+        esc(KANALEN[r.kanaal] || r.kanaal || "onbekend kanaal") +
+        (r.betaald_via ? " &middot; " + esc(r.betaald_via) : "") +
+      "</div>" +
+    "</div>";
+  });
+  $("#kaarten").innerHTML = html;
+}
+
 function teken() {
   const soort = $("#fDatumsoort").value === "vertrek" ? "vertrek" : "aankomst";
   const lijst = gefilterd().slice().sort((a, b) =>
     String(a[soort] || "").localeCompare(String(b[soort] || "")));
+
+  if (!TOON_TOTALEN) {
+    tekenKaarten(lijst, soort);
+    $("#voetnoot").innerHTML = "Geannuleerde boekingen tellen niet mee. Je ziet de " +
+      "boekingen van jouw locatie. Klopt er een bedrag niet, geef het dan door aan Angela.";
+    return;
+  }
 
   const kop = "<thead><tr>" +
     "<th>Datum</th><th>Nummer</th><th>Gast</th><th>Suite</th><th>Via</th>" +
@@ -456,7 +558,7 @@ function teken() {
   lijst.forEach((r) => {
     const m = maandVan(r[soort]);
     if (m !== maand) {
-      if (maand) body += maandRij(maand, maandTot);
+      if (maand && TOON_TOTALEN) body += maandRij(maand, maandTot);
       maand = m;
       maandTot = leegTotaal();
       body += "<tr class='maandkop'><td colspan='17'>" + esc(maandNaam(m)) + "</td></tr>";
@@ -485,29 +587,33 @@ function teken() {
       "<td class='mollie" + (mol && mol.ok ? " ok" : "") + "'>" +
         (mol ? esc(mol.tekst) : "&mdash;") + "</td></tr>";
   });
-  if (maand) body += maandRij(maand, maandTot);
+  if (maand && TOON_TOTALEN) body += maandRij(maand, maandTot);
 
-  const voet = "<tfoot><tr><td colspan='5'>Alles bij elkaar (" + lijst.length + ")</td>" +
-    ["verblijf","vooraf","bijgeboekt","call","locatie","korting","totaal","betaald","open"]
-      .map((k) => "<td class='num'>&euro; " + eur(totalen[k]) + "</td>").join("") +
-    "<td colspan='3'></td></tr></tfoot>";
+  const voet = TOON_TOTALEN
+    ? "<tfoot><tr><td colspan='5'>Alles bij elkaar (" + lijst.length + ")</td>" +
+      ["verblijf","vooraf","bijgeboekt","call","locatie","korting","totaal","betaald","open"]
+        .map((k) => "<td class='num'>&euro; " + eur(totalen[k]) + "</td>").join("") +
+      "<td colspan='3'></td></tr></tfoot>"
+    : "";
 
   $("#tabel").innerHTML = lijst.length
     ? kop + "<tbody>" + body + "</tbody>" + voet
     : "<tbody><tr><td style='padding:18px;color:var(--muted)'>Geen reserveringen in deze periode.</td></tr></tbody>";
 
-  $("#tegels").innerHTML =
-    tegel("Reserveringen", String(lijst.length), "") +
-    tegel("Omzet", "&euro; " + eur(totalen.totaal), "") +
-    tegel("Ontvangen", "&euro; " + eur(totalen.betaald), "in") +
-    tegel("Nog te ontvangen", "&euro; " + eur(totalen.open), totalen.open > 0.004 ? "uit" : "") +
-    tegel("Bijgeboekt onderweg", "&euro; " + eur(totalen.bijgeboekt + totalen.call + totalen.locatie), "") +
-    tegel("Korting gegeven", "&euro; " + eur(Math.abs(totalen.korting)), "");
+  $("#tegels").innerHTML = TOON_TOTALEN
+    ? tegel("Reserveringen", String(lijst.length), "") +
+      tegel("Omzet", "&euro; " + eur(totalen.totaal), "") +
+      tegel("Ontvangen", "&euro; " + eur(totalen.betaald), "in") +
+      tegel("Nog te ontvangen", "&euro; " + eur(totalen.open), totalen.open > 0.004 ? "uit" : "") +
+      tegel("Bijgeboekt onderweg", "&euro; " + eur(totalen.bijgeboekt + totalen.call + totalen.locatie), "") +
+      tegel("Korting gegeven", "&euro; " + eur(Math.abs(totalen.korting)), "")
+    : "";
 
   $("#voetnoot").innerHTML =
     "Geannuleerde boekingen tellen niet mee. De kolom <b>Verblijf</b> is het totaal min " +
     "alles wat als extra herkend is; staat er bij een oude boeking geen specificatie, " +
-    "dan valt het hele bedrag daaronder. De kolommen tellen altijd op tot het totaal.";
+    "dan valt het hele bedrag daaronder. De kolommen tellen altijd op tot het totaal." +
+    (TOON_TOTALEN ? "" : " Je ziet de boekingen van jouw locatie.");
 }
 
 const leegTotaal = () => ({ verblijf:0, vooraf:0, bijgeboekt:0, call:0, locatie:0,
@@ -537,6 +643,13 @@ function maandNaam(ym) {
    gezet - anders zou openen van het lijstje de bestaande wijze wissen. */
 function wijzeKeuze(r) {
   const nu = String(r.betaald_via || "");
+  /* Een locatiemanager mag de betaalwijze niet wijzigen. Dat staat niet in
+     deze pagina maar in de database: de trigger bwf_reservering_beperkt zet
+     betaald_via terug naar de oude waarde (20260913120000, regel 55). Die
+     terugdraai gebeurt ZONDER foutmelding - het opslaan slaagt gewoon. Een
+     keuzelijst zou dus werken tot je ververst, en dan stond het oude er weer.
+     Daarom leest zij hier alleen wat er staat. */
+  if (!MAG_WIJZE) return esc(nu || "—");
   const opties = WIJZEN.slice();
   if (nu && opties.indexOf(nu) < 0) opties.push(nu);
   return "<select class='wijze' data-wijze='" + esc(r.id) + "'>" +
@@ -664,13 +777,39 @@ async function start() {
     return;
   }
   if (!ROL) { melding("Je account heeft geen toegang.", "fout"); return; }
-  /* Bedragen van alle boekingen zijn niets voor een locatiemanager: die ziet
-     zijn eigen suites en verder niets. De database weigert de rest toch, maar
-     dan zou het overzicht half gevuld zijn en dat leest als een fout. */
-  if (ROL !== "eigenaar" && ROL !== "vr") {
+
+  /* Angela, 30-09-2026: "ik wil dat de locatiemanager wel de bedragen ziet per
+     boeking maar de totalen hoeft zij niet te zien boven aan de pagina."
+
+     Een locatiemanager mag er dus in, maar zonder optellingen: de tegels
+     bovenaan, de maandregels in de tabel en de regel "alles bij elkaar"
+     onderaan blijven weg. Alleen de tegels weghalen zou niets opleveren -
+     dan staat hetzelfde getal drie regels lager gewoon in de voetregel.
+
+     Welke boekingen zij ziet regelt de database, niet deze pagina: de policy
+     "reserveringen lezen" laat via bwf_mag_suite() alleen de suites door die
+     in haar eigen lijst staan. Michel ziet dus geen Lelystad.
+
+     Een rol die hier helemaal niet in voorkomt, komt er niet in. */
+  if (!["eigenaar", "vr", "locatiemanager"].includes(ROL)) {
     melding("Dit overzicht is voor kantoor. Vraag Angela als je het nodig hebt.", "let");
     $("#tabel").innerHTML = "<tbody><tr><td style='padding:18px;color:var(--muted)'>Geen toegang.</td></tr></tbody>";
     return;
+  }
+  TOON_TOTALEN = ROL !== "locatiemanager";
+  MAG_WIJZE    = ROL !== "locatiemanager";
+  if (!TOON_TOTALEN) {
+    $("#tegels").hidden = true;
+    $("#tabelwrap").hidden = true;
+    $("#kaarten").hidden = false;
+    /* "Locatie: beide" en "alle suites" zijn een loze belofte als de database
+       er toch maar één doorlaat: dan lijkt het of er iets ontbreekt. */
+    $("#fLocVak").hidden = true;
+    $("#fSuiteVak").hidden = true;
+    $("#titel").textContent = "Boekingen en bedragen";
+    $("#ondertitel").textContent =
+      "De boekingen van jouw locatie, met wat er vooraf, tijdens de welkomstcall " +
+      "en op locatie is bijgeboekt.";
   }
 
   const p = standaardPeriode();
@@ -683,5 +822,6 @@ async function start() {
 
 start();
 </script>
+<script src="bwf-menu.js?v=11"></script>
 </body>
 </html>
