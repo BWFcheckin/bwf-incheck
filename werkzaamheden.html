@@ -333,9 +333,14 @@ function prijsTekst(t, uurloon) {
 function invoerLabel(t) {
   if (isProcent(t)) return "Omzet €";
   if (t.eenheid === "record") return "Aantal klanten";
+  if (t.eenheid === "dag") return "Aantal dagen";
   if (t.soort === "uur") return "Aantal keer";
   return "Aantal";
 }
+/* Een dagtarief betaalt het bereikbaar zijn, niet het tellen. Angela,
+   30-09-2026, over de appjes: "per dag". Daarom staat er alvast een 1 in:
+   Kelly hoeft alleen nog op "Zet erbij" te tikken. */
+const isPerDag = (t) => t && t.eenheid === "dag";
 
 /* =========================================================
    Het invulblok
@@ -369,6 +374,7 @@ function tekenInvoer() {
       "<div class='werk-invoer'>" +
         "<label class='veld getal'>" + esc(invoerLabel(t)) +
           "<input type='number' inputmode='decimal' min='0' step='" + stap + "' " +
+          (isPerDag(t) ? "value='1' " : "") +
           "id='in-" + esc(t.id) + "' data-in='" + esc(t.id) + "'></label>" +
         "<label class='veld'>Notitie (mag leeg)" +
           "<input type='text' id='nt-" + esc(t.id) + "' data-nt='" + esc(t.id) + "' " +
@@ -380,6 +386,9 @@ function tekenInvoer() {
       "</div>" +
     "</div>";
   }).join("");
+  /* de voorgevulde dagtarieven meteen doorrekenen, anders staat er € 0,00
+     terwijl er wel een 1 in het vakje staat */
+  lijst.forEach((t) => herrekenRij(t.id));
 }
 
 function herrekenRij(id) {
@@ -410,6 +419,15 @@ async function zetErbij(id) {
   const mwId = (ROL === "eigenaar" && wieVak && wieVak.value) ? wieVak.value : (IK && IK.id);
   if (!mwId) { melding("Ik weet niet wie je bent in het medewerkersbestand. Vraag Angela.", "fout"); return; }
 
+  /* Een dag twee keer afvinken is altijd een vergissing: er is maar één van.
+     Bij de andere tarieven kan het wél kloppen (twee keer op een dag een
+     paar welkomstcalls), dus daar wordt niets gevraagd. */
+  if (isPerDag(t) && WERK.some((w) => w.tarief_id === t.id && w.datum === datum &&
+                                      w.medewerker_id === mwId)) {
+    if (!window.confirm(t.taak + " staat al op " + datumKort(datum) +
+        ". Wil je die dag er nog een keer bij zetten?")) return;
+  }
+
   const r = rekenRegel(t, invoer, IK && IK.uurtarief);
   knop.disabled = true; knop.textContent = "Bezig…";
   try {
@@ -426,7 +444,8 @@ async function zetErbij(id) {
       notitie: (notitie && notitie.value.trim()) || null,
       betaald: false
     }});
-    veld.value = ""; if (notitie) notitie.value = "";
+    veld.value = isPerDag(t) ? "1" : "";
+    if (notitie) notitie.value = "";
     herrekenRij(id);
     melding(esc(t.taak) + " van " + datumKort(datum) + " staat erbij: " + eur(r.bedrag), "goed");
     await laad();

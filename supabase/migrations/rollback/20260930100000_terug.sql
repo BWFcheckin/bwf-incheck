@@ -11,7 +11,8 @@ update public.wz_tarieven
    set actief = false
  where taak in ('Nieuwe boeking verwerkt',
                 'Upsell bijgeboekt',
-                'Nieuwe reservering aangemaakt');
+                'Nieuwe reservering aangemaakt',
+                'Appjes van gasten beantwoord');
 
 update public.wz_tarieven
    set tarief = 0

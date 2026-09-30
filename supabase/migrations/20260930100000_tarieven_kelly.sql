@@ -112,7 +112,14 @@ select v.taak, v.omschrijving, v.soort, v.eenheid, v.uren, v.tarief, v.categorie
 
     ('Nieuwe reservering aangemaakt',
      'Een reservering die jij zelf in het systeem hebt gezet. Vul de omzet in; je krijgt er 5% van.',
-     'stuk', 'omzet', 0::numeric, 0.05::numeric, 'Backoffice', 230)
+     'stuk', 'omzet', 0::numeric, 0.05::numeric, 'Backoffice', 230),
+
+    -- Angela, 30-09-2026, op de vraag of appjes beantwoorden meetelt: "per dag".
+    -- Bewust niet per bericht: dat is niet te controleren en het beloont een
+    -- lang gesprek boven een kort antwoord. Dit betaalt het bereikbaar zijn.
+    ('Appjes van gasten beantwoord',
+     'Per dag dat jij de app doet, ongeacht hoeveel berichten er binnenkomen',
+     'stuk', 'dag', 0::numeric, 2.50::numeric, 'Backoffice', 240)
   ) as v(taak, omschrijving, soort, eenheid, uren, tarief, categorie, sortering)
  where not exists (
    select 1 from public.wz_tarieven t where t.taak = v.taak
@@ -130,14 +137,16 @@ commit;
 --          end as leest_als
 --     from public.wz_tarieven
 --    where taak in ('Nieuwe boeking verwerkt','Welkomstcall','Upsell bijgeboekt',
---                   'Nieuwe reservering aangemaakt','Data entry klantgegevens')
+--                   'Nieuwe reservering aangemaakt','Data entry klantgegevens',
+--                   'Appjes van gasten beantwoord')
 --    order by sortering;
 --
--- Verwacht: 5 regels.
+-- Verwacht: 6 regels.
 --   Nieuwe boeking verwerkt        EUR 1,50 per reservering
 --   Welkomstcall                   EUR 2,00 per call
 --   Data entry klantgegevens       EUR 1,00 per record
 --   Upsell bijgeboekt              10% van de omzet
 --   Nieuwe reservering aangemaakt  5% van de omzet
+--   Appjes van gasten beantwoord   EUR 2,50 per dag
 --
 -- Terugdraaien: zie rollback/20260930100000_terug.sql
