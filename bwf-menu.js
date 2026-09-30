@@ -63,6 +63,11 @@
        is hetzelfde als reserveringen." */
     ["Klanten", "klantbeheer.html"],
     ["VR", "vr2.html"],
+    /* Werkzaamheden staat bewust NIET in de lijst van de locatiemanager:
+       Angela, 30-09-2026 - "alleen Kelly en ik kunnen dat zien". Kelly heeft
+       rol vr, Angela eigenaar. De pagina zelf controleert het nog een keer;
+       dit weghalen uit de balk is alleen om het niet in de weg te zetten. */
+    ["Werkzaamheden", "werkzaamheden.html"],
     ["Locatie", "dashboard.html"],
     ["📖 Handleiding", "handleiding.html"],   /* Locatiemanager handleiding, 29-09-2026 */
     ["Hulp", "controle.html"]
@@ -82,7 +87,7 @@
     eigenaar:       null,   /* null = alles */
     vr:             ["dagstart.html", "agenda.html", "reserveringen.html",
                      "incheckformulier.html", "klantbeheer.html", "vr2.html", "controle.html",
-                     "handleiding.html"],
+                     "handleiding.html", "werkzaamheden.html"],
     locatiemanager: ["reserveringen.html", "incheckformulier.html", "dashboard.html", "handleiding.html"],
     onbekend:       ["reserveringen.html", "incheckformulier.html", "dashboard.html", "handleiding.html"]
   };

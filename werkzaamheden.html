@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14342A">
+<title>Werkzaamheden overzicht — Bed &amp; Wellness Flevoland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#FBF9F5; --line:#E6E1D7; --line-soft:#F0ECE4;
+  --ink:#1D2420; --ink-2:#46514A; --muted:#7E8A82;
+  --groen:#14342A; --groen-2:#1F4D3D; --groen-zacht:#E7EFEA;
+  --goud:#B9975B; --goud-zacht:#F6EFE1;
+  --ok:#2E7D53; --ok-zacht:#E6F2EA;
+  --warn:#B8860B; --warn-zacht:#FBF1DA;
+  --crit:#B3453A; --crit-zacht:#FBEAE7;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F; --surface:#1A201A; --surface-2:#161B15; --line:#2C3329; --line-soft:#232A22;
+    --ink:#E9EEE6; --ink-2:#B6C0B2; --muted:#8B978A;
+    --groen-zacht:#1B2C24; --goud-zacht:#2A2314; --ok-zacht:#152A1E;
+    --warn-zacht:#2A2314; --crit-zacht:#2C1917;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F; --surface:#1A201A; --surface-2:#161B15; --line:#2C3329; --line-soft:#232A22;
+  --ink:#E9EEE6; --ink-2:#B6C0B2; --muted:#8B978A;
+  --groen-zacht:#1B2C24; --goud-zacht:#2A2314; --ok-zacht:#152A1E;
+  --warn-zacht:#2A2314; --crit-zacht:#2C1917;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{overscroll-behavior-x:none;overflow-x:clip}
+body{margin:0;max-width:100%;overflow-x:clip;overscroll-behavior-x:none;
+  background:var(--bg);color:var(--ink);
+  font:15px/1.5 "Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:820px;margin:0 auto;padding:18px 16px 70px}
+h1{font:600 27px/1.2 "Cormorant Garamond",Georgia,serif;margin:0 0 3px}
+h2{font:600 19px/1.25 "Cormorant Garamond",Georgia,serif;margin:0}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+.melding{border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:13.5px;
+  background:var(--groen-zacht);border:1px solid var(--line)}
+.melding.fout{background:var(--crit-zacht);border-color:var(--crit);color:var(--crit)}
+.melding.let{background:var(--warn-zacht);border-color:var(--warn)}
+.melding.goed{background:var(--ok-zacht);border-color:var(--ok);color:var(--ok)}
+
+.kaart{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px;margin:0 0 14px}
+.kaart-kop{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 10px}
+.kaart-kop .hint{color:var(--muted);font-size:12.5px}
+
+label.veld{display:block;font-size:12.5px;color:var(--ink-2)}
+input,select{font:inherit;font-size:16px;margin-top:3px;padding:9px 10px;min-height:42px;
+  max-width:100%;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface-2);color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--groen-2);outline-offset:-1px}
+.knop{font:inherit;font-size:14px;padding:9px 14px;border-radius:9px;cursor:pointer;min-height:42px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.knop.vol{background:var(--groen);border-color:var(--groen);color:#fff;font-weight:600}
+.knop.klein{min-height:34px;padding:5px 10px;font-size:12.5px}
+.knop:hover{border-color:var(--groen-2)}
+.knop[disabled]{opacity:.45;cursor:default}
+
+/* ---- de werkzaamheden om aan te tikken ---- */
+/* Alles krimpt mee en breekt naar een nieuwe regel als het niet past. Op een
+   telefoon van 390px liep het notitieveld anders buiten de kaart: de pagina
+   schoof niet (overflow-x:clip), maar het veld was half onbruikbaar. */
+.werk{display:flex;flex-wrap:wrap;gap:9px 12px;align-items:flex-end;
+  padding:13px 0;border-top:1px solid var(--line-soft)}
+.werk:first-of-type{border-top:0}
+.werk-naam{flex:1 1 100%;min-width:0}
+.werk-naam b{display:block;font-size:14.5px;font-weight:600}
+.werk-naam span{display:block;color:var(--muted);font-size:12.5px}
+.werk-prijs{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;
+  color:var(--groen-2);background:var(--groen-zacht);border-radius:99px;padding:2px 9px}
+.werk-invoer{flex:1 1 100%;min-width:0;display:flex;gap:8px;align-items:flex-end}
+.werk-invoer label{flex:1 1 auto;min-width:0}
+.werk-invoer label.getal{flex:0 0 124px}
+.werk-invoer input{width:100%}
+.werk-invoer input[type=number]{font-variant-numeric:tabular-nums}
+/* bedrag en knop samen op één regel, rechts uitgelijnd */
+.werk-voet{flex:1 1 100%;display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.werk-uit{font-weight:700;font-size:16.5px;font-variant-numeric:tabular-nums}
+@media (min-width:700px){
+  .werk-naam{flex:1 1 240px}
+  .werk-invoer{flex:0 1 auto}
+  .werk-invoer label{flex:0 1 160px}
+  .werk-voet{flex:0 0 auto}
+}
+
+/* ---- totalen ---- */
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0 0 12px}
+.tegel{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+.tegel span{display:block;font-size:12px;color:var(--muted)}
+.tegel b{display:block;font-size:21px;font-variant-numeric:tabular-nums;margin-top:2px}
+.tegel.open b{color:var(--goud)}
+.tegel.uitbetaald b{color:var(--ok)}
+
+/* ---- lijst ---- */
+.dag{border-top:1px solid var(--line-soft);padding:10px 0}
+.dag:first-child{border-top:0}
+.dag-kop{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  font-size:12.5px;color:var(--muted);margin:0 0 5px}
+.dag-kop b{color:var(--ink);font-size:13.5px;font-variant-numeric:tabular-nums}
+.regel{display:flex;gap:10px;align-items:center;padding:5px 0;font-size:13.5px}
+.regel .wat{flex:1 1 auto;min-width:0}
+.regel .wat em{font-style:normal;color:var(--muted);font-size:12.5px}
+.regel .bed{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.vlag{font-size:11px;border-radius:99px;padding:2px 8px;white-space:nowrap;
+  background:var(--goud-zacht);color:var(--warn);border:1px solid var(--warn)}
+.vlag.uit{background:var(--ok-zacht);color:var(--ok);border-color:var(--ok)}
+.leeg{color:var(--muted);font-size:13.5px;padding:14px 0}
+
+#slot{position:fixed;inset:0;z-index:99;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+body.bwf-vergrendeld .wrap{display:none}
+.uitleg{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+@media print{.kaart.geen-print,.knop,#bwfTop{display:none !important}}
+</style>
+</head>
+<body>
+
+<div id="bwfTop"></div>
+
+<div id="slot" hidden>
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:18px;max-width:340px;width:100%">
+    <h2 style="margin:0 0 8px">Inloggen</h2>
+    <p class="uitleg" id="lgFout" style="color:var(--crit)"></p>
+    <label class="veld">E-mailadres <input type="email" id="lgMail" autocomplete="username" style="width:100%"></label>
+    <label class="veld" style="margin-top:8px">Wachtwoord
+      <input type="password" id="lgWw" autocomplete="current-password" style="width:100%"></label>
+    <div style="margin-top:12px"><button class="knop vol" type="button" id="lgKnop">Inloggen</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>Werkzaamheden overzicht</h1>
+  <p class="sub" id="subtitel">Zet erbij wat je hebt gedaan. Het bedrag rekent zichzelf uit.</p>
+  <div class="melding" id="melding" hidden></div>
+
+  <!-- ============ registreren ============ -->
+  <div class="kaart geen-print" id="kaartInvoer" hidden>
+    <div class="kaart-kop">
+      <h2>Wat heb je gedaan?</h2>
+      <span class="hint">Kies eerst de datum, vul dan in bij de regel die klopt.</span>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:0 0 4px">
+      <label class="veld">Datum <input type="date" id="iDatum"></label>
+      <label class="veld" id="wieVak" hidden>Voor wie <select id="iWie"></select></label>
+    </div>
+
+    <div id="werkLijst"></div>
+  </div>
+
+  <!-- ============ overzicht ============ -->
+  <div class="kaart">
+    <div class="kaart-kop">
+      <h2>Overzicht</h2>
+      <span class="hint" id="periodeHint"></span>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:0 0 12px">
+      <label class="veld">Maand <input type="month" id="fMaand"></label>
+      <label class="veld">Tonen
+        <select id="fStand">
+          <option value="">Alles</option>
+          <option value="open">Nog te ontvangen</option>
+          <option value="uitbetaald">Al uitbetaald</option>
+        </select></label>
+      <button class="knop geen-print" type="button" id="fVernieuw">Vernieuwen</button>
+      <button class="knop geen-print" type="button" id="fCsv">Uitdraai (CSV)</button>
+    </div>
+
+    <div class="tegels" id="tegels"></div>
+    <div id="lijst"><p class="leeg">Bezig met laden&hellip;</p></div>
+  </div>
+
+  <p class="uitleg" id="voetnoot"></p>
+</div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g,
+  (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const eur = (n) => "€ " + (Number(n) || 0).toLocaleString("nl-NL",
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const CFG = {
+  url: "https://iuyjvtlauktnjprbmbjj.supabase.co",
+  key: "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U",
+  ls:  "sb-iuyjvtlauktnjprbmbjj-auth-token"
+};
+
+let SESSIE = null, verversBezig = null;
+let ROL = null, IK = null;          /* IK = {id, naam, uurtarief} uit wz_medewerkers */
+let TARIEVEN = [], WERK = [], MENSEN = [];
+
+/* =========================================================
+   sessie en netwerk — zelfde aanpak als het financieel overzicht
+   ========================================================= */
+function jwtDeel(t) {
+  try { return JSON.parse(atob(String(t).split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }
+  catch (e) { return {}; }
+}
+function leesSessie() {
+  try { SESSIE = JSON.parse(localStorage.getItem(CFG.ls) || "null"); } catch (e) { SESSIE = null; }
+  return SESSIE;
+}
+function bewaarSessie(d) {
+  SESSIE = d;
+  try { localStorage.setItem(CFG.ls, JSON.stringify(d)); } catch (e) {}
+}
+async function ververs() {
+  if (!SESSIE || !SESSIE.refresh_token) return null;
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=refresh_token", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: SESSIE.refresh_token })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) return null;
+    bewaarSessie(d);
+    return d.access_token;
+  } catch (e) { return null; }
+}
+async function geldigToken() {
+  if (!SESSIE || !SESSIE.access_token) return null;
+  const exp = (jwtDeel(SESSIE.access_token).exp || 0) * 1000;
+  if (exp - Date.now() > 60000) return SESSIE.access_token;
+  if (!verversBezig) verversBezig = ververs().finally(() => { verversBezig = null; });
+  return verversBezig;
+}
+function toonSlot(t) {
+  document.body.classList.add("bwf-vergrendeld");
+  $("#slot").hidden = false;
+  $("#lgFout").textContent = t || "";
+  setTimeout(() => $("#lgMail").focus(), 60);
+}
+function verbergSlot() {
+  document.body.classList.remove("bwf-vergrendeld");
+  $("#slot").hidden = true;
+}
+async function api(pad, opties = {}) {
+  const token = await geldigToken();
+  if (!token) { toonSlot("Je sessie is verlopen. Log opnieuw in."); throw new Error("Niet ingelogd."); }
+  const headers = { apikey: CFG.key, Authorization: "Bearer " + token };
+  if (opties.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    headers.Prefer = opties.prefer || "return=representation";
+  }
+  const r = await fetch(CFG.url + "/rest/v1/" + pad, {
+    method: opties.method || "GET", headers,
+    body: opties.body === undefined ? undefined : JSON.stringify(opties.body)
+  });
+  const tekst = await r.text();
+  if (r.status === 401) { toonSlot("Je sessie is verlopen."); throw new Error("Niet ingelogd."); }
+  if (!r.ok) {
+    let m = tekst;
+    try { m = JSON.parse(tekst).message || tekst; } catch (e) {}
+    throw new Error(m || "Fout " + r.status);
+  }
+  return tekst ? JSON.parse(tekst) : null;
+}
+function melding(t, soort) {
+  const m = $("#melding");
+  m.textContent = t || "";
+  m.className = "melding" + (soort ? " " + soort : "");
+  m.hidden = !t;
+}
+
+/* =========================================================
+   De rekenregel
+   =========================================================
+   Angela, 30-09-2026: "Extra omzet upsel Kelly geeft aan wat ze heeft
+   bijgeboekt en over het totaal wordt dan 10% berekend."
+
+   Er zijn drie soorten tarieven, en de EENHEID zegt welke:
+
+     eenheid 'omzet'   het ingevulde getal is een BEDRAG in euro's, en
+                       `tarief` is een deel van 1 (0.10 = tien procent).
+                       bedrag = omzet x 0,10
+     soort 'uur'       het ingevulde getal is een aantal keer, elke keer
+                       kost `uren` uur, maal het uurloon van de persoon.
+     de rest           het ingevulde getal is een stuktal.
+                       bedrag = aantal x tarief
+
+   Het uurloon hangt aan de persoon, niet aan het tarief. Wie geen uurloon
+   heeft ingevuld kan geen uurwerk registreren: dat zou stilletjes op nul
+   uitkomen en dat is erger dan een duidelijke melding.
+   ========================================================= */
+const isProcent = (t) => t && t.eenheid === "omzet";
+
+function rekenRegel(tarief, invoer, uurloon) {
+  const t = Number(tarief && tarief.tarief) || 0;
+  const a = Number(invoer) || 0;
+  if (!tarief || a <= 0) return { bedrag: 0, uren: 0, perEenheid: t, uitleg: "" };
+
+  if (isProcent(tarief)) {
+    return { bedrag: a * t, uren: 0, perEenheid: t,
+      uitleg: pct(t) + " van " + eur(a) };
+  }
+  if (tarief.soort === "uur") {
+    const urenPer = Number(tarief.uren) || 0, loon = Number(uurloon) || 0;
+    return { bedrag: a * urenPer * loon, uren: a * urenPer, perEenheid: urenPer * loon,
+      uitleg: a + " × " + urenPer + " uur × " + eur(loon) };
+  }
+  return { bedrag: a * t, uren: 0, perEenheid: t,
+    uitleg: a + " × " + eur(t) };
+}
+function pct(fractie) {
+  const p = Math.round(Number(fractie) * 10000) / 100;
+  return String(p).replace(".", ",") + "%";
+}
+/* Wat staat er op het bolletje achter de naam van een werkzaamheid */
+function prijsTekst(t, uurloon) {
+  if (isProcent(t)) return pct(t.tarief) + " van de omzet";
+  if (t.soort === "uur") {
+    const loon = Number(uurloon) || 0;
+    if (!loon) return "uurwerk — geen uurtarief ingesteld";
+    return eur((Number(t.uren) || 0) * loon) + " per keer";
+  }
+  return eur(t.tarief) + " per " + (t.eenheid === "record" ? "klant" : t.eenheid);
+}
+/* Wat vraagt het invoerveld */
+function invoerLabel(t) {
+  if (isProcent(t)) return "Omzet €";
+  if (t.eenheid === "record") return "Aantal klanten";
+  if (t.soort === "uur") return "Aantal keer";
+  return "Aantal";
+}
+
+/* =========================================================
+   Het invulblok
+   ========================================================= */
+function bruikbareTarieven() {
+  const loon = Number(IK && IK.uurtarief) || 0;
+  return TARIEVEN
+    .filter((t) => t.actief !== false)
+    /* Uurwerk zonder uurloon levert altijd nul op. Dat verstopt een fout,
+       dus die regel laten we weg in plaats van hem op nul te tonen. */
+    .filter((t) => t.soort !== "uur" || loon > 0)
+    .sort((a, b) => (Number(a.sortering) || 0) - (Number(b.sortering) || 0));
+}
+
+function tekenInvoer() {
+  const loon = Number(IK && IK.uurtarief) || 0;
+  const lijst = bruikbareTarieven();
+  if (!lijst.length) {
+    $("#werkLijst").innerHTML =
+      "<p class='leeg'>Er staan nog geen tarieven klaar. Vraag Angela om ze in te stellen.</p>";
+    return;
+  }
+  $("#werkLijst").innerHTML = lijst.map((t) => {
+    const stap = isProcent(t) ? "0.01" : "1";
+    return "<div class='werk' data-tarief='" + esc(t.id) + "'>" +
+      "<div class='werk-naam'>" +
+        "<b>" + esc(t.taak) + "</b>" +
+        (t.omschrijving ? "<span>" + esc(t.omschrijving) + "</span>" : "") +
+        "<span class='werk-prijs'>" + esc(prijsTekst(t, loon)) + "</span>" +
+      "</div>" +
+      "<div class='werk-invoer'>" +
+        "<label class='veld getal'>" + esc(invoerLabel(t)) +
+          "<input type='number' inputmode='decimal' min='0' step='" + stap + "' " +
+          "id='in-" + esc(t.id) + "' data-in='" + esc(t.id) + "'></label>" +
+        "<label class='veld'>Notitie (mag leeg)" +
+          "<input type='text' id='nt-" + esc(t.id) + "' data-nt='" + esc(t.id) + "' " +
+          "placeholder='" + (isProcent(t) ? "gastnaam of boeking" : "bijv. gastnaam") + "'></label>" +
+      "</div>" +
+      "<div class='werk-voet'>" +
+        "<div class='werk-uit' id='uit-" + esc(t.id) + "'>" + eur(0) + "</div>" +
+        "<button class='knop vol' type='button' data-zet='" + esc(t.id) + "'>Zet erbij</button>" +
+      "</div>" +
+    "</div>";
+  }).join("");
+}
+
+function herrekenRij(id) {
+  const t = TARIEVEN.find((x) => x.id === id);
+  const veld = document.getElementById("in-" + id);
+  const uit = document.getElementById("uit-" + id);
+  if (!t || !veld || !uit) return;
+  const r = rekenRegel(t, veld.value, IK && IK.uurtarief);
+  uit.textContent = eur(r.bedrag);
+  uit.title = r.uitleg;
+}
+
+async function zetErbij(id) {
+  const t = TARIEVEN.find((x) => x.id === id);
+  const veld = document.getElementById("in-" + id);
+  const notitie = document.getElementById("nt-" + id);
+  const knop = document.querySelector("[data-zet='" + id + "']");
+  if (!t || !veld) return;
+
+  const invoer = Number(veld.value) || 0;
+  if (invoer <= 0) {
+    melding(isProcent(t) ? "Vul eerst het omzetbedrag in." : "Vul eerst een aantal in.", "let");
+    veld.focus();
+    return;
+  }
+  const datum = $("#iDatum").value || new Date().toISOString().slice(0, 10);
+  const wieVak = $("#iWie");
+  const mwId = (ROL === "eigenaar" && wieVak && wieVak.value) ? wieVak.value : (IK && IK.id);
+  if (!mwId) { melding("Ik weet niet wie je bent in het medewerkersbestand. Vraag Angela.", "fout"); return; }
+
+  const r = rekenRegel(t, invoer, IK && IK.uurtarief);
+  knop.disabled = true; knop.textContent = "Bezig…";
+  try {
+    await api("wz_werkzaamheden", { method: "POST", body: {
+      datum: datum,
+      medewerker_id: mwId,
+      tarief_id: t.id,
+      taak_naam: t.taak,
+      eenheid: t.eenheid,
+      aantal: invoer,
+      uren: Math.round(r.uren * 100) / 100,
+      tarief: Number(t.tarief) || 0,
+      bedrag: Math.round(r.bedrag * 100) / 100,
+      notitie: (notitie && notitie.value.trim()) || null,
+      betaald: false
+    }});
+    veld.value = ""; if (notitie) notitie.value = "";
+    herrekenRij(id);
+    melding(esc(t.taak) + " van " + datumKort(datum) + " staat erbij: " + eur(r.bedrag), "goed");
+    await laad();
+  } catch (e) {
+    melding("Opslaan lukte niet: " + e.message, "fout");
+  } finally {
+    knop.disabled = false; knop.textContent = "Zet erbij";
+  }
+}
+
+/* =========================================================
+   Het overzicht
+   ========================================================= */
+function datumKort(d) {
+  const dd = new Date(d + "T12:00:00");
+  if (isNaN(dd)) return d;
+  return dd.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "long" });
+}
+
+function gefilterd() {
+  const stand = $("#fStand").value;
+  let l = WERK.slice();
+  if (stand === "open") l = l.filter((w) => !w.betaald);
+  if (stand === "uitbetaald") l = l.filter((w) => !!w.betaald);
+  return l.sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0));
+}
+
+function tekenOverzicht() {
+  const lijst = gefilterd();
+  const totaal = lijst.reduce((s, w) => s + (Number(w.bedrag) || 0), 0);
+  const open = lijst.filter((w) => !w.betaald).reduce((s, w) => s + (Number(w.bedrag) || 0), 0);
+  const uit = totaal - open;
+
+  $("#tegels").innerHTML =
+    "<div class='tegel'><span>Totaal deze maand</span><b>" + eur(totaal) + "</b></div>" +
+    "<div class='tegel open'><span>Nog te ontvangen</span><b>" + eur(open) + "</b></div>" +
+    "<div class='tegel uitbetaald'><span>Al uitbetaald</span><b>" + eur(uit) + "</b></div>" +
+    "<div class='tegel'><span>Regels</span><b>" + lijst.length + "</b></div>";
+
+  if (!lijst.length) {
+    $("#lijst").innerHTML = "<p class='leeg'>Nog niets geregistreerd in deze maand.</p>";
+    return;
+  }
+
+  const perDag = {};
+  lijst.forEach((w) => { (perDag[w.datum] = perDag[w.datum] || []).push(w); });
+
+  const magAfvinken = ROL === "eigenaar";
+  $("#lijst").innerHTML = Object.keys(perDag).sort().reverse().map((d) => {
+    const regels = perDag[d];
+    const dagTot = regels.reduce((s, w) => s + (Number(w.bedrag) || 0), 0);
+    return "<div class='dag'>" +
+      "<div class='dag-kop'><span>" + esc(datumKort(d)) + "</span><b>" + eur(dagTot) + "</b></div>" +
+      regels.map((w) => {
+        const wie = MENSEN.find((m) => m.id === w.medewerker_id);
+        const toon = (ROL === "eigenaar" && wie && IK && wie.id !== IK.id) ? " · " + esc(wie.naam) : "";
+        const hoe = w.eenheid === "omzet"
+          ? pct(w.tarief) + " van " + eur(w.aantal)
+          : (Number(w.aantal) || 0) + " × " + eur(w.tarief);
+        return "<div class='regel'>" +
+          "<div class='wat'>" + esc(w.taak_naam || "") +
+            "<em> — " + esc(hoe) + (w.notitie ? " · " + esc(w.notitie) : "") + esc(toon) + "</em></div>" +
+          "<div class='bed'>" + eur(w.bedrag) + "</div>" +
+          (w.betaald
+            ? "<span class='vlag uit'>uitbetaald</span>"
+            : "<span class='vlag'>open</span>") +
+          (magAfvinken && !w.betaald
+            ? "<button class='knop klein geen-print' type='button' data-betaal='" + esc(w.id) + "'>Uitbetaald</button>"
+            : "") +
+          (!w.betaald
+            ? "<button class='knop klein geen-print' type='button' data-weg='" + esc(w.id) + "' title='Verwijderen'>✕</button>"
+            : "") +
+        "</div>";
+      }).join("") +
+    "</div>";
+  }).join("");
+}
+
+async function zetBetaald(id) {
+  try {
+    await api("wz_werkzaamheden?id=eq." + encodeURIComponent(id),
+      { method: "PATCH", body: { betaald: true } });
+    melding("Op uitbetaald gezet.", "goed");
+    await laad();
+  } catch (e) { melding("Dat lukte niet: " + e.message, "fout"); }
+}
+async function haalWeg(id) {
+  const w = WERK.find((x) => x.id === id);
+  const wat = w ? (w.taak_naam + " van " + datumKort(w.datum) + " (" + eur(w.bedrag) + ")") : "deze regel";
+  if (!window.confirm("Weet je het zeker? " + wat + " wordt verwijderd.")) return;
+  try {
+    await api("wz_werkzaamheden?id=eq." + encodeURIComponent(id), { method: "DELETE" });
+    melding("Regel verwijderd.", "goed");
+    await laad();
+  } catch (e) { melding("Verwijderen lukte niet: " + e.message, "fout"); }
+}
+
+function csv() {
+  const lijst = gefilterd();
+  if (!lijst.length) { melding("Er is niets om uit te draaien.", "let"); return; }
+  const kop = ["Datum", "Wie", "Werkzaamheid", "Eenheid", "Aantal of omzet",
+               "Tarief", "Bedrag", "Notitie", "Uitbetaald"];
+  const veld = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const rijen = lijst.map((w) => {
+    const wie = MENSEN.find((m) => m.id === w.medewerker_id);
+    return [w.datum, (wie && wie.naam) || "", w.taak_naam, w.eenheid, w.aantal,
+            w.tarief, w.bedrag, w.notitie || "", w.betaald ? "ja" : "nee"].map(veld).join(";");
+  });
+  const tot = lijst.reduce((s, w) => s + (Number(w.bedrag) || 0), 0);
+  rijen.push(["", "", "TOTAAL", "", "", "", Math.round(tot * 100) / 100, "", ""].map(veld).join(";"));
+  const blob = new Blob(["﻿" + kop.map(veld).join(";") + "\n" + rijen.join("\n")],
+    { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "werkzaamheden-" + ($("#fMaand").value || "") + ".csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* =========================================================
+   laden
+   ========================================================= */
+function maandGrenzen(maand) {
+  const [j, m] = String(maand || "").split("-").map(Number);
+  if (!j || !m) {
+    const n = new Date();
+    return maandGrenzen(n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0"));
+  }
+  const van = j + "-" + String(m).padStart(2, "0") + "-01";
+  const na = new Date(Date.UTC(j, m, 1)).toISOString().slice(0, 10);
+  return { van, na };
+}
+
+async function laad() {
+  const g = maandGrenzen($("#fMaand").value);
+  try {
+    /* De database filtert zelf op persoon: wie geen eigenaar is krijgt alleen
+       zijn eigen regels terug (policy "bwf rechten werkzaamheden"). Hier hoeft
+       dus niet nog eens op medewerker_id gefilterd te worden. */
+    WERK = await api("wz_werkzaamheden?select=*" +
+      "&datum=gte." + g.van + "&datum=lt." + g.na + "&order=datum.desc") || [];
+  } catch (e) {
+    $("#lijst").innerHTML = "<p class='leeg'>De regels konden niet geladen worden: " + esc(e.message) + "</p>";
+    return;
+  }
+  tekenOverzicht();
+  $("#periodeHint").textContent = ROL === "eigenaar"
+    ? "Je ziet alles van iedereen."
+    : "Je ziet alleen je eigen regels.";
+}
+
+async function start() {
+  leesSessie();
+  const token = await geldigToken();
+  if (!token) { toonSlot("Log in om je werkzaamheden te zien."); return; }
+  verbergSlot();
+  const deel = jwtDeel(token);
+
+  try {
+    const [rol, mij] = await Promise.all([
+      api("rpc/bwf_toegangsrol", { method: "POST", body: {} }),
+      api("wz_medewerkers?select=id,naam,uurtarief&auth_id=eq." + encodeURIComponent(deel.sub || ""))
+    ]);
+    ROL = rol || null;
+    IK = (mij && mij[0]) || null;
+  } catch (e) {
+    melding("Je gegevens konden niet worden geladen: " + e.message, "fout");
+    return;
+  }
+
+  if (!ROL) { melding("Je account heeft geen toegang.", "fout"); return; }
+
+  /* Deze pagina is voor de backoffice: Kelly en Angela. Een locatiemanager
+     doet dit werk niet en hoort hier niet rond te kijken. De database houdt
+     hem tegen bij het opslaan, maar dan zou de pagina half werken en dat
+     leest als een storing. */
+  if (ROL !== "eigenaar" && ROL !== "vr") {
+    melding("Deze pagina is voor de backoffice. Vraag Angela als je hem nodig hebt.", "let");
+    $("#lijst").innerHTML = "<p class='leeg'>Geen toegang.</p>";
+    $("#tegels").innerHTML = "";
+    return;
+  }
+  if (!IK) {
+    melding("Je staat nog niet in het medewerkersbestand, dus je kunt nog niets " +
+            "registreren. Vraag Angela om je toe te voegen.", "let");
+  }
+
+  $("#subtitel").textContent = IK
+    ? "Hallo " + IK.naam + ". Zet erbij wat je hebt gedaan; het bedrag rekent zichzelf uit."
+    : "Zet erbij wat je hebt gedaan. Het bedrag rekent zichzelf uit.";
+
+  const nu = new Date();
+  $("#iDatum").value = nu.toISOString().slice(0, 10);
+  $("#fMaand").value = nu.getFullYear() + "-" + String(nu.getMonth() + 1).padStart(2, "0");
+
+  try {
+    TARIEVEN = await api("wz_tarieven?select=*&order=sortering") || [];
+  } catch (e) {
+    melding("De tarieven konden niet geladen worden: " + e.message, "fout");
+    TARIEVEN = [];
+  }
+
+  if (ROL === "eigenaar") {
+    try {
+      MENSEN = await api("wz_medewerkers?select=id,naam&order=naam") || [];
+      $("#wieVak").hidden = false;
+      $("#iWie").innerHTML = MENSEN.map((m) =>
+        "<option value='" + esc(m.id) + "'" + (IK && m.id === IK.id ? " selected" : "") +
+        ">" + esc(m.naam) + "</option>").join("");
+    } catch (e) { MENSEN = IK ? [IK] : []; }
+  } else {
+    MENSEN = IK ? [IK] : [];
+  }
+
+  if (IK) { $("#kaartInvoer").hidden = false; tekenInvoer(); }
+
+  $("#voetnoot").textContent = "Uitbetaling loopt via Angela. Een regel die op " +
+    "uitbetaald staat kun je niet meer weghalen — klopt er iets niet, geef het dan door.";
+
+  await laad();
+}
+
+/* ---------- klikken en typen ---------- */
+document.addEventListener("input", (e) => {
+  const id = e.target && e.target.dataset && e.target.dataset.in;
+  if (id) herrekenRij(id);
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id === "fMaand" || e.target.id === "fStand") { laad(); }
+});
+document.addEventListener("click", (e) => {
+  const k = e.target.closest && e.target.closest("button");
+  if (!k) return;
+  if (k.dataset.zet)    { zetErbij(k.dataset.zet); return; }
+  if (k.dataset.betaal) { zetBetaald(k.dataset.betaal); return; }
+  if (k.dataset.weg)    { haalWeg(k.dataset.weg); return; }
+  if (k.id === "fVernieuw") { laad(); return; }
+  if (k.id === "fCsv")      { csv(); return; }
+  if (k.id === "lgKnop")    { inloggen(); return; }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target && e.target.dataset && e.target.dataset.in) {
+    zetErbij(e.target.dataset.in);
+  }
+});
+
+async function inloggen() {
+  const k = $("#lgKnop"), f = $("#lgFout");
+  f.textContent = ""; k.disabled = true; k.textContent = "Bezig…";
+  try {
+    const r = await fetch(CFG.url + "/auth/v1/token?grant_type=password", {
+      method: "POST", headers: { apikey: CFG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("#lgMail").value.trim().toLowerCase(), password: $("#lgWw").value })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.access_token) {
+      throw new Error(d.error_description === "Invalid login credentials"
+        ? "E-mailadres of wachtwoord klopt niet." : (d.error_description || d.msg || "Inloggen lukte niet."));
+    }
+    bewaarSessie(d);
+    $("#lgWw").value = "";
+    verbergSlot();
+    await start();
+  } catch (e) { f.textContent = e.message; }
+  finally { k.disabled = false; k.textContent = "Inloggen"; }
+}
+
+start();
+</script>
+<script src="bwf-menu.js?v=11"></script>
+</body>
+</html>
