@@ -187,8 +187,26 @@ tr.tk-rij:hover td{background:var(--surface-2)}
    de balk op y=783-834 en vangt elementFromPoint(60, 814) de knop Dagstart.
    Ze staan buiten de gewone stroom, dus weghalen verschuift niets. */
 body.bwf-typt .bwf-merkbalk{position:static}
-body.bwf-typt #groeptabs,
-body.bwf-typt #bwfMenuKnop,
+/* HIER STONDEN TWEE SELECTORS ZONDER EIGEN DECLARATIE:
+     body.bwf-typt #groeptabs,
+     body.bwf-typt #bwfMenuKnop,
+   Ze eindigden op een komma, dus de browser plakte ze vast aan de regel
+   hieronder en gaf de TABBALK een min-height van bijna een schermhoogte.
+   Zodra je in een veld klikte, groeide die van 45px naar 1167px: een groot
+   wit vlak met de tabknoppen eronder. Angela meldde het op 30-09-2026 en het
+   is nagemeten op 2000x1287, precies haar scherm.
+
+   Ze zijn niet vervangen door display:none, maar weggehaald. Ze dateren van
+   21-09-2026, toen de tabbalk en de menuknop nog los onderaan zweefden en over
+   een invoerveld konden vallen. Dat is op 22-09 opgelost door ze in de balk
+   bovenaan te zetten (zie #groeptabs.tabs in de telefoon-mediaquery): ze
+   zweven niet meer, dus er valt niets meer weg te halen tijdens het typen.
+   #bwfMenuKnop bestaat in vr2 niet eens - bwf-menu.js slaat deze pagina over
+   omdat er al een eigen balk is.
+
+   De regel erboven blijft wel staan: de merkbalk static maken tijdens typen
+   is nog steeds nodig, want die staat op een telefoon sticky bovenaan. */
+
 /* Een paneel met tegelknoppen houdt minstens een schermhoogte aan. Kies je
    een tegel, dan verdwijnen de andere kaarten en wordt de pagina korter; is
    er dan te weinig hoogte over, dan kan de browser niet meer op dezelfde plek
