@@ -93,6 +93,35 @@ input:focus,select:focus{outline:2px solid var(--groen-2);outline-offset:-1px}
   .werk-voet{flex:0 0 auto}
 }
 
+/* ---- rekenhulp bij een percentage-tarief ---- */
+.hulp{flex:1 1 100%;margin-top:2px}
+.hulp>summary{cursor:pointer;font-size:13px;color:var(--groen-2);font-weight:600;
+  padding:5px 0;list-style:none;display:inline-flex;align-items:center;gap:6px}
+.hulp>summary::-webkit-details-marker{display:none}
+.hulp>summary::before{content:"▸";font-size:11px;transition:transform .15s}
+.hulp[open]>summary::before{transform:rotate(90deg)}
+.hulp-binnen{border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+  background:var(--surface-2);margin-top:4px}
+/* Bewust GEEN max-height met eigen scrollbalk: met vier categorieën viel de
+   laatste dan onder de rand, zonder dat iets liet zien dat er meer was. De
+   categorieën zijn uitklapbaar; dat is de manier om het kort te houden. */
+.hulp-lijst{margin-top:10px}
+.cat{border-top:1px solid var(--line-soft);padding:4px 0}
+.cat:first-child{border-top:0}
+.cat>summary{cursor:pointer;font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--muted);padding:5px 0}
+.cat>summary span{font-weight:500;text-transform:none;letter-spacing:0;opacity:.7}
+.pos{display:flex;gap:10px;align-items:center;padding:4px 0 4px 2px}
+.pos-naam{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:1.3}
+.pos-naam span{display:block;color:var(--muted);font-size:12px;
+  font-variant-numeric:tabular-nums}
+.pos input{flex:0 0 64px;width:64px;min-height:36px;padding:5px 7px;font-size:15px;
+  text-align:center;font-variant-numeric:tabular-nums;margin-top:0}
+.hulp-voet{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.hulp-voet>div{flex:1 1 auto;font-size:13.5px;color:var(--muted)}
+.hulp-voet b{color:var(--ink);font-size:16.5px;font-variant-numeric:tabular-nums}
+
 /* ---- totalen ---- */
 .tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0 0 12px}
 .tegel{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
@@ -201,7 +230,7 @@ const CFG = {
 
 let SESSIE = null, verversBezig = null;
 let ROL = null, IK = null;          /* IK = {id, naam, uurtarief} uit wz_medewerkers */
-let TARIEVEN = [], WERK = [], MENSEN = [];
+let TARIEVEN = [], WERK = [], MENSEN = [], EXTRAS = [];
 
 /* =========================================================
    sessie en netwerk — zelfde aanpak als het financieel overzicht
@@ -402,11 +431,130 @@ function tekenInvoer() {
         "<div class='werk-uit' id='uit-" + esc(t.id) + "'>" + eur(0) + "</div>" +
         "<button class='knop vol' type='button' data-zet='" + esc(t.id) + "'>Zet erbij</button>" +
       "</div>" +
+      /* Bij een percentage-tarief hoort de rekenhulp: Angela, 30-09-2026 -
+         "dropdown menu calculator arrangementen menu en drinken services etc
+         de hele lijst om uit te kiezen per categorie". */
+      (isProcent(t) ? rekenhulpHtml(t) : "") +
     "</div>";
   }).join("");
   /* de voorgevulde dagtarieven meteen doorrekenen, anders staat er € 0,00
      terwijl er wel een 1 in het vakje staat */
   lijst.forEach((t) => herrekenRij(t.id));
+}
+
+/* =========================================================
+   De rekenhulp bij een percentage-tarief
+   =========================================================
+   Angela, 30-09-2026: "dropdown menu calculator arrangementen menu en drinken
+   services etc de hele lijst om uit te kiezen per categorie."
+
+   De lijst komt uit wz_extras - dezelfde tabel die het reserveringenscherm en
+   het locatiedashboard gebruiken. Dat is met opzet: zet je daar een prijs bij,
+   dan rekent deze hulp er meteen mee, en kunnen de twee nooit uiteenlopen.
+
+   Wat Kelly hier optelt vult daarna het omzetvak. Ze mag het bedrag ook
+   gewoon intypen - bij een nieuwe reservering zit de omzet immers vooral in
+   het verblijf zelf, en dat staat niet in deze lijst.
+   ========================================================= */
+function rekenhulpHtml(t) {
+  if (!EXTRAS.length) return "";
+  return "<details class='hulp' data-hulp='" + esc(t.id) + "'>" +
+    "<summary>Reken uit met de kaart</summary>" +
+    "<div class='hulp-binnen'>" +
+      "<label class='veld'>Locatie" +
+        "<select data-hulploc='" + esc(t.id) + "'>" +
+          "<option value=''>Alles</option>" +
+          "<option value='Almere'>Almere</option>" +
+          "<option value='Lelystad'>Lelystad</option>" +
+        "</select></label>" +
+      "<div class='hulp-lijst' id='hulplijst-" + esc(t.id) + "'></div>" +
+      "<div class='hulp-voet'>" +
+        "<div>Samen <b id='hulpsom-" + esc(t.id) + "'>" + eur(0) + "</b></div>" +
+        "<button class='knop' type='button' data-hulpneem='" + esc(t.id) + "'>Neem over</button>" +
+        "<button class='knop' type='button' data-hulpwis='" + esc(t.id) + "'>Wissen</button>" +
+      "</div>" +
+    "</div></details>";
+}
+
+/* De kaart voor één locatie. Een item zonder locatie geldt overal - zo staat
+   het ook in wz_extras (kolom locatie mag leeg zijn). */
+function kaartVoor(loc) {
+  return EXTRAS.filter((x) => !loc || !x.locatie || x.locatie === loc);
+}
+
+function tekenHulpLijst(tarId) {
+  const vak = document.getElementById("hulplijst-" + tarId);
+  if (!vak) return;
+  /* Wat al ingevuld is bewaren: wie halverwege van locatie wisselt raakte
+     anders zonder waarschuwing zijn hele telling kwijt. */
+  const bewaard = {};
+  vak.querySelectorAll("[data-pos]").forEach((el) => {
+    if (el.value) bewaard[el.dataset.naam] = el.value;
+  });
+
+  const kiezer = document.querySelector("[data-hulploc='" + tarId + "']");
+  const lijst = kaartVoor(kiezer ? kiezer.value : "");
+  if (!lijst.length) { vak.innerHTML = "<p class='leeg'>Geen items op deze locatie.</p>"; return; }
+
+  const perCat = {};
+  lijst.forEach((x) => { (perCat[x.categorie || "Overig"] = perCat[x.categorie || "Overig"] || []).push(x); });
+
+  vak.innerHTML = Object.keys(perCat).sort().map((cat) =>
+    "<details class='cat' open><summary>" + esc(cat) +
+      " <span>" + perCat[cat].length + "</span></summary>" +
+      perCat[cat].map((x) =>
+        "<div class='pos'>" +
+          "<div class='pos-naam'>" + esc(x.naam) +
+            "<span>" + eur(x.prijs) + (x.per_persoon ? " p.p." : "") +
+            (x.locatie ? " · " + esc(x.locatie) : "") + "</span></div>" +
+          "<input type='number' min='0' step='1' inputmode='numeric' " +
+            "data-pos='" + esc(tarId) + "' data-prijs='" + esc(x.prijs) + "' " +
+            "data-naam='" + esc(x.naam) + "' aria-label='Aantal " + esc(x.naam) + "'>" +
+        "</div>").join("") +
+    "</details>").join("");
+
+  vak.querySelectorAll("[data-pos]").forEach((el) => {
+    if (bewaard[el.dataset.naam]) el.value = bewaard[el.dataset.naam];
+  });
+  telHulpOp(tarId);
+}
+
+/* Wat staat er geteld, en waaruit bestaat het */
+function hulpStand(tarId) {
+  let som = 0;
+  const stukken = [];
+  document.querySelectorAll("[data-pos='" + tarId + "']").forEach((el) => {
+    const n = Number(el.value) || 0;
+    if (n <= 0) return;
+    const prijs = Number(el.dataset.prijs) || 0;
+    som += n * prijs;
+    stukken.push((n > 1 ? n + "× " : "") + el.dataset.naam);
+  });
+  return { som: Math.round(som * 100) / 100, stukken };
+}
+
+function telHulpOp(tarId) {
+  const b = document.getElementById("hulpsom-" + tarId);
+  if (b) b.textContent = eur(hulpStand(tarId).som);
+}
+
+function neemHulpOver(tarId) {
+  const st = hulpStand(tarId);
+  if (st.som <= 0) { melding("Vul eerst bij een paar items een aantal in.", "let"); return; }
+  const veld = document.getElementById("in-" + tarId);
+  const notitie = document.getElementById("nt-" + tarId);
+  if (veld) { veld.value = st.som; herrekenRij(tarId); }
+  /* De notitie invullen scheelt Kelly typewerk en maakt achteraf duidelijk
+     waar het bedrag vandaan komt. Wat ze zelf al had getypt blijft staan. */
+  if (notitie && !notitie.value.trim()) notitie.value = st.stukken.join(", ").slice(0, 180);
+  const uit = document.querySelector("[data-hulp='" + tarId + "']");
+  if (uit) uit.open = false;
+  melding("Omzet overgenomen: " + eur(st.som), "goed");
+}
+
+function wisHulp(tarId) {
+  document.querySelectorAll("[data-pos='" + tarId + "']").forEach((el) => { el.value = ""; });
+  telHulpOp(tarId);
 }
 
 function herrekenRij(id) {
@@ -666,6 +814,15 @@ async function start() {
     TARIEVEN = [];
   }
 
+  /* De kaart voor de rekenhulp. Los opgehaald en met een lege uitkomst bij
+     een fout: lukt dit niet, dan blijft het omzetvak gewoon werken en
+     ontbreekt alleen de rekenhulp. Dezelfde query als reserveringen.html en
+     dashboard.html gebruiken, zodat de prijzen niet uiteen kunnen lopen. */
+  try {
+    EXTRAS = await api("wz_extras?select=id,naam,categorie,prijs,per_persoon," +
+      "omschrijving,locatie&actief=eq.true&order=sortering.asc,naam.asc", { stil: true }) || [];
+  } catch (e) { EXTRAS = []; }
+
   if (ROL === "eigenaar") {
     try {
       MENSEN = await api("wz_medewerkers?select=id,naam&order=naam") || [];
@@ -688,15 +845,28 @@ async function start() {
 
 /* ---------- klikken en typen ---------- */
 document.addEventListener("input", (e) => {
-  const id = e.target && e.target.dataset && e.target.dataset.in;
-  if (id) herrekenRij(id);
+  const d = e.target && e.target.dataset;
+  if (!d) return;
+  if (d.in)  { herrekenRij(d.in); return; }
+  if (d.pos) { telHulpOp(d.pos); return; }
 });
 document.addEventListener("change", (e) => {
-  if (e.target.id === "fMaand" || e.target.id === "fStand") { laad(); }
+  if (e.target.id === "fMaand" || e.target.id === "fStand") { laad(); return; }
+  const loc = e.target.dataset && e.target.dataset.hulploc;
+  if (loc) { tekenHulpLijst(loc); return; }
 });
+/* De lijst pas opbouwen als de rekenhulp echt wordt opengeklapt: anders staan
+   er bij elk percentage-tarief tientallen invoervelden in de pagina die
+   niemand gebruikt. */
+document.addEventListener("toggle", (e) => {
+  const id = e.target && e.target.dataset && e.target.dataset.hulp;
+  if (id && e.target.open) tekenHulpLijst(id);
+}, true);
 document.addEventListener("click", (e) => {
   const k = e.target.closest && e.target.closest("button");
   if (!k) return;
+  if (k.dataset.hulpneem) { neemHulpOver(k.dataset.hulpneem); return; }
+  if (k.dataset.hulpwis)  { wisHulp(k.dataset.hulpwis); return; }
   if (k.dataset.zet)    { zetErbij(k.dataset.zet); return; }
   if (k.dataset.betaal) { zetBetaald(k.dataset.betaal); return; }
   if (k.dataset.weg)    { haalWeg(k.dataset.weg); return; }
