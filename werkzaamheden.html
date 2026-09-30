@@ -613,7 +613,31 @@ async function zetErbij(id) {
     veld.value = isPerDag(t) ? "1" : "";
     if (notitie) notitie.value = "";
     herrekenRij(id);
-    melding(esc(t.taak) + " van " + datumKort(datum) + " staat erbij: " + eur(r.bedrag), "goed");
+
+    /* Het overzicht laten meebewegen, anders zegt de pagina "staat erbij" en
+       zie je niets. Angela, 30-09-2026: "ik heb voor Kelly werkzaamheden
+       geregistreerd maar ik zie de registratie niet."
+
+       Twee manieren waarop een net opgeslagen regel buiten beeld valt:
+         1. de datum ligt in een andere maand dan de maand die getoond wordt
+            (je boekt op 30 september iets na voor augustus);
+         2. het filter staat op "Al uitbetaald", en een nieuwe regel staat
+            altijd open.
+       Allebei worden ze hier rechtgezet, met een melding erbij zodat het
+       verspringen van de maand geen verrassing is. */
+    let sprong = "";
+    const maandVanRegel = String(datum).slice(0, 7);
+    if ($("#fMaand").value !== maandVanRegel) {
+      $("#fMaand").value = maandVanRegel;
+      sprong = " Het overzicht staat nu op " + maandNaam(maandVanRegel) + ".";
+    }
+    if ($("#fStand").value === "uitbetaald") {
+      $("#fStand").value = "";
+      sprong += " Het filter stond op 'al uitbetaald'; dat is teruggezet, " +
+                "anders viel deze nieuwe regel weg.";
+    }
+    melding(t.taak + " van " + datumKort(datum) + " staat erbij: " +
+            eur(r.bedrag) + "." + sprong, "goed");
     await laad();
   } catch (e) {
     melding("Opslaan lukte niet: " + e.message, "fout");
@@ -625,6 +649,12 @@ async function zetErbij(id) {
 /* =========================================================
    Het overzicht
    ========================================================= */
+function maandNaam(jjjjmm) {
+  const [j, m] = String(jjjjmm || "").split("-").map(Number);
+  if (!j || !m) return String(jjjjmm || "");
+  return new Date(j, m - 1, 1).toLocaleDateString("nl-NL",
+    { month: "long", year: "numeric" });
+}
 function datumKort(d) {
   const dd = new Date(d + "T12:00:00");
   if (isNaN(dd)) return d;
