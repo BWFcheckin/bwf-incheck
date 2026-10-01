@@ -982,7 +982,8 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
                die hier altijd al uitkwam. -->
           <label class="veld">Soort bericht
             <select id="vSjabKeuze">
-              <option value="bevestiging">Bevestiging</option>
+              <option value="bevestiging">Reserveringsbevestiging</option>
+              <option value="persoonlijk">Persoonlijk bericht</option>
               <option value="factuur">Factuur</option>
               <option value="extras">Bijgeboekte extra&#39;s</option>
               <option value="review">Reviewlink</option>
@@ -995,6 +996,46 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <button type="button" class="knop sec" id="vMaakLink">Betaallink maken</button>
           <button type="button" class="knop sec" id="vApp">Via WhatsApp</button>
           <button type="button" class="knop sec" id="vMail">E-mail opstellen</button>
+        </div>
+      </fieldset>
+
+      <!-- Angela, 02-10-2026: "geef ook de mogelijkheid om een cadeaubon of een
+           tegoedvoucher aan te maken in de reserveringskaart. Deze moet alleen
+           zichtbaar zijn voor de vr-assistent en ik, eigenaar."
+           Het verbergen gebeurt in openVenster() met magBewerken(); een
+           locatiemanager ziet dit vak niet. -->
+      <fieldset id="vBonVak" class="dicht" hidden>
+        <legend>Cadeaubon of tegoedbon</legend>
+        <div class="raster">
+          <p class="v-melding" style="grid-column:1/-1;color:var(--muted);margin:0">
+            De bon wordt aan deze reservering gekoppeld. Versturen, afdrukken en
+            het overzicht van alle bonnen staan op de bonnenpagina.</p>
+          <label class="veld">Soort
+            <select id="vBonSoort">
+              <option value="tegoed">Tegoedbon (te veel betaald of klacht)</option>
+              <option value="cadeau">Cadeaubon</option>
+            </select></label>
+          <label class="veld">Bedrag &euro;
+            <input type="text" inputmode="decimal" id="vBonBedrag" placeholder="25,00"></label>
+          <label class="veld" id="vBonRedenVak">Reden
+            <select id="vBonReden">
+              <option value="te veel betaald">Te veel betaald</option>
+              <option value="tegemoetkoming klacht">Tegemoetkoming bij een klacht</option>
+              <option value="anders">Anders</option>
+            </select></label>
+          <label class="veld">Geldig tot
+            <input type="date" id="vBonGeldig"></label>
+          <label class="veld">Op naam van
+            <input type="text" id="vBonVoor" placeholder="naam van de gast"></label>
+          <label class="veld">E-mailadres
+            <input type="email" id="vBonMail" placeholder="voor het versturen"></label>
+          <label class="veld breed">Toelichting (blijft intern)
+            <input type="text" id="vBonNotitie" placeholder="bijv. compensatie late incheck"></label>
+          <div id="vBonUit" style="grid-column:1/-1"></div>
+        </div>
+        <div class="v-voet" style="position:static;border:0;padding:12px 0 0">
+          <span class="v-melding" id="vBonNote" style="color:var(--muted)"></span>
+          <button type="button" class="knop sec" id="vBonMaak">Bon aanmaken</button>
         </div>
       </fieldset>
     </div>
@@ -1655,6 +1696,7 @@ function openVenster(id) {
   }
 
   vulBetaalvak(r);
+  vulBonVak(r);
   /* De stand van de betaallinks erbij. Mag niets blokkeren, dus zonder await
      en met een eigen vangnet. */
   toonMollieStand(r).catch(function () {});
@@ -1773,6 +1815,13 @@ function openVenster(id) {
   /* Deze pagina heeft geen $$-hulpfunctie; die bestaat alleen in het
      VR-dashboard. Daarom rechtstreeks querySelectorAll. */
   document.querySelectorAll("#formulier fieldset").forEach((fs) => { fs.hidden = beperkt; });
+  /* Bonnen aanmaken is alleen voor de eigenaar en de vr-assistenten. De regel
+     hierboven verbergt fieldsets voor een locatiemanager, maar bij een rol die
+     geen van beide is (een account zonder toegangsrol) zou dit vak blijven
+     staan. Daarom hier nog eens expliciet, op magBewerken() - dat is precies
+     eigenaar + vr. Angela, 02-10-2026. */
+  const bonVak = $("#vBonVak");
+  if (bonVak) bonVak.hidden = !bewerk;
   /* Het gesprekslog is de uitzondering: juist de locatiemanager neemt de
      telefoon aan, dus die moet een telefoontje kunnen vastleggen en zien wat er
      eerder is besproken. Angela, 20-09-2026. Het is een log, geen
@@ -5152,6 +5201,30 @@ function vBerichtTekst(r) {
   if (eigen) return vulSjabloon(eigen, vstVelden(r));
   if (soort === "review") return vstReviewTekst(r);
 
+  /* Persoonlijk bericht. Angela, 02-10-2026: naast de bevestiging en de
+     factuur ook "een persoonlijk bericht" kunnen sturen.
+
+     Dit is met opzet alleen een aanhef en een afsluiting: de bedoeling is dat
+     je er zelf iets in schrijft. Een voorgekauwde tekst zou juist in de weg
+     zitten - dan staat er een praatje dat niemand zo bedoeld heeft, en moet je
+     eerst wissen voor je kunt beginnen. De gegevens staan er wel bij, zodat je
+     ze niet hoeft op te zoeken. */
+  if (soort === "persoonlijk") {
+    const voor = (r.gast_voornaam || "").trim();
+    const p = periode(r);
+    const t = [];
+    t.push("Beste " + (voor || "gast") + ",");
+    t.push("");
+    t.push("");          /* hier typ je zelf */
+    t.push("");
+    t.push("Je verblijf: " + (SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) +
+           ", " + p.dag + " " + p.tijd + ".");
+    t.push("");
+    t.push("Hartelijke groet,");
+    t.push("Bed & Wellness Flevoland");
+    return t.join("\n");
+  }
+
   const voor = (r.gast_voornaam || "").trim();
   const p = periode(r);
   const incheck = new URL(gastLinkVan(r), location.href).href;
@@ -5194,6 +5267,101 @@ function vBerichtTekst(r) {
   t.push("Tot snel!");
   t.push("Bed & Wellness Flevoland");
   return t.join("\n");
+}
+
+/* =========================================================
+   Cadeaubon of tegoedbon vanuit de reserveringskaart
+   =========================================================
+   Angela, 02-10-2026: "geef ook de mogelijkheid om een cadeaubon of een
+   tegoedvoucher aan te maken in de reserveringskaart."
+
+   Dit schrijft naar dezelfde tabel als de bonnenpagina (bwf_cadeaubonnen), met
+   dezelfde velden - anders zou een bon die hier is gemaakt daar niet
+   terugkomen. Wat hier NIET gebeurt is het versturen, afdrukken en het
+   overzicht: dat staat op cadeaubonnen.html en hoeft niet twee keer te
+   bestaan. Het verschil met die pagina is dat de boeking hier vanzelf
+   gekoppeld wordt en de naam en het e-mailadres al ingevuld staan.
+
+   Een cadeaubon die eerst betaald moet worden kan hier bewust niet: dat loopt
+   via Mollie en hoort thuis op de bonnenpagina, waar je de betaalstatus ook
+   kunt volgen. Hier maak je een bon die meteen geldig is. */
+const BON_ALFABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+function bonNieuweCode() {
+  /* crypto en niet Math.random: een bon is geld, en een code die te
+     voorspellen is, is te raden. */
+  let uit = "";
+  const bron = new Uint32Array(10);
+  (window.crypto || window.msCrypto).getRandomValues(bron);
+  for (let i = 0; i < 10; i++) uit += BON_ALFABET[bron[i] % BON_ALFABET.length];
+  return "BWF-" + uit.slice(0, 5) + "-" + uit.slice(5);
+}
+
+function vulBonVak(r) {
+  if (!$("#vBonVak")) return;
+  $("#vBonUit").innerHTML = "";
+  $("#vBonNote").textContent = "";
+  $("#vBonBedrag").value = "";
+  $("#vBonNotitie").value = "";
+  $("#vBonVoor").value = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ");
+  $("#vBonMail").value = (r.gast_email || "").trim();
+  /* Een jaar geldig, zoals op de bonnenpagina. */
+  const jaar = new Date();
+  jaar.setFullYear(jaar.getFullYear() + 1);
+  $("#vBonGeldig").value = jaar.toISOString().slice(0, 10);
+  bonSoortWissel();
+}
+
+function bonSoortWissel() {
+  const cadeau = $("#vBonSoort") && $("#vBonSoort").value === "cadeau";
+  /* Een reden hoort bij een tegoedbon: die geef je omdat er iets is misgegaan
+     of te veel is betaald. Een cadeaubon heeft geen reden. */
+  if ($("#vBonRedenVak")) $("#vBonRedenVak").hidden = cadeau;
+}
+
+async function vBonMaken() {
+  if (!HUIDIG) return;
+  const uit = $("#vBonUit"), knop = $("#vBonMaak");
+  const bedrag = leesBedrag($("#vBonBedrag").value);
+  if (bedrag == null || bedrag <= 0) {
+    $("#vBonNote").textContent = "Vul eerst een bedrag in.";
+    $("#vBonBedrag").focus();
+    return;
+  }
+  const cadeau = $("#vBonSoort").value === "cadeau";
+  const reden = cadeau ? null : $("#vBonReden").value;
+  const rij = {
+    code: bonNieuweCode(),
+    waarde: bedrag,
+    soort: cadeau ? "digitaal" : "tegoed",
+    status: "actief",
+    reden: reden,
+    reservering_id: HUIDIG.id,
+    geldig_tot: $("#vBonGeldig").value || null,
+    ontvanger_naam: ($("#vBonVoor").value || "").trim() || null,
+    ontvanger_email: ($("#vBonMail").value || "").trim().toLowerCase() || null,
+    notitie: [($("#vBonNotitie").value || "").trim(),
+              "bij reservering " + resNummer(HUIDIG)].filter(Boolean).join(" · "),
+    bericht: cadeau ? null
+      : reden === "tegemoetkoming klacht"
+        ? "Onze excuses — met deze bon maken we het graag goed."
+        : reden === "te veel betaald" ? "Te veel betaald bij je vorige verblijf." : null
+  };
+  knop.disabled = true; knop.textContent = "Bezig…";
+  $("#vBonNote").textContent = "";
+  try {
+    const gemaakt = await api("bwf_cadeaubonnen", { method: "POST", body: [rij] });
+    const b = (gemaakt || [])[0] || rij;
+    uit.innerHTML = '<p class="v-albetaald" style="margin:0">' +
+      (cadeau ? "Cadeaubon" : "Tegoedbon") + " <b>" + esc(b.code) + "</b> van &euro; " +
+      esc(euro(b.waarde).replace("€ ", "")) + " is aangemaakt en meteen geldig. " +
+      'Versturen doe je op de <a href="cadeaubonnen.html" target="_blank" rel="noopener">bonnenpagina</a>.</p>';
+    $("#vBonBedrag").value = "";
+    $("#vBonNotitie").value = "";
+  } catch (e) {
+    $("#vBonNote").textContent = "Aanmaken lukte niet: " + e.message;
+  } finally {
+    knop.disabled = false; knop.textContent = "Bon aanmaken";
+  }
 }
 
 function vulBetaalvak(r) {
@@ -5320,6 +5488,7 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   /* Ander soort bericht gekozen: het berichtveld opnieuw opbouwen. */
   if (e.target.id === "vSjabKeuze" && HUIDIG) { $("#vBericht").value = vBerichtTekst(HUIDIG); return; }
+  if (e.target.id === "vBonSoort") { bonSoortWissel(); return; }
   const vink = e.target.closest ? e.target.closest("[data-vextra]") : null;
   if (vink && HUIDIG) {
     const id = vink.dataset.vextra;
@@ -5522,6 +5691,11 @@ document.addEventListener("click", (e) => {
      knop bij de stand. Hij doet hetzelfde als "Betaallink maken", maar de
      knop die je indrukt moet ook degene zijn die op slot gaat. */
   if (e.target.id === "vNieuweLink") { e.preventDefault(); maakBetaallink(e.target); return; }
+  if (e.target.id === "vBonMaak" && HUIDIG) {
+    e.preventDefault();
+    vBonMaken();
+    return;
+  }
   if (e.target.id === "vMail" && HUIDIG) {
     e.preventDefault();
     const adres = (HUIDIG.gast_email || "").trim();
@@ -5529,7 +5703,8 @@ document.addEventListener("click", (e) => {
     /* Het onderwerp volgt het soort bericht dat je hebt gekozen. */
     const keuze = $("#vSjabKeuze") ? $("#vSjabKeuze").value : "bevestiging";
     const kop = { bevestiging: "Bevestiging reservering", factuur: "Factuur reservering",
-      extras: "Bijgeboekte extra's bij reservering", review: "Bedankt voor je verblijf \u2014 reservering" }[keuze] ||
+      extras: "Bijgeboekte extra's bij reservering", review: "Bedankt voor je verblijf \u2014 reservering",
+      persoonlijk: "Over je reservering" }[keuze] ||
       "Bevestiging reservering";
     const onderwerp = kop + " " + resNummer(HUIDIG) + " \u2014 Bed & Wellness Flevoland";
     window.open("mailto:" + encodeURIComponent(adres) + "?subject=" + encodeURIComponent(onderwerp) +
