@@ -311,7 +311,14 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
           <option value="dagverblijf">Dagverblijf</option>
           <option value="overnachting">Overnachting</option>
         </select></div>
-      <div><label for="c_manager">Locatiemanager <span class="req-mark">*</span></label>
+      <!-- Angela, 02-10-2026: "verder hoeft zij er geen locatiemanager aan te
+           hangen, want als hij aan de reservering gekoppeld staat weten we ook
+           wie hem heeft gedraaid."
+           Het veld blijft in de pagina staan - er hangt code aan die het vult
+           en meeschrijft naar `checkins.manager`, en dat moet blijven werken
+           voor formulieren die er al zijn. Alleen niemand hoeft het meer in te
+           vullen. Terugzetten is het woord `hidden` weghalen. -->
+      <div id="c_managerVak" hidden><label for="c_manager">Locatiemanager</label>
         <select id="c_manager"></select></div>
     </div>
     <div class="formgrid3">
@@ -434,8 +441,14 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     </div>
   </div>
 
-  <!-- ================= 6 · EERDER IN- OF LATER UITCHECKEN ================= -->
-  <div class="card">
+  <!-- ================= 6 · EERDER IN- OF LATER UITCHECKEN =================
+       VERBORGEN op 02-10-2026. Angela: het incheckformulier gaat alleen nog
+       over wie er komt, voor welke suite, wanneer en hoe laat, en of het een
+       dagverblijf of een overnachting is. Extra uren zijn bijboeken, en dat
+       hoort bij de reservering, niet hier.
+       De kaart blijft in de pagina staan met alle code eraan vast; terugzetten
+       is het woord `hidden` weghalen. -->
+  <div class="card" hidden>
     <h3>Eerder in- of later uitchecken</h3>
     <p class="desc">Extra uren naast wat vooraf gereserveerd is. Maximaal 8 uur, &euro; 50 per uur. Een half uur kost &euro; 30.</p>
     <div class="formgrid3">
@@ -468,8 +481,11 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="hint" id="checkoutPrijsHint"></div>
   </div>
 
-  <!-- ================= 7 · ARRANGEMENTEN ================= -->
-  <div class="card">
+  <!-- ================= 7 · ARRANGEMENTEN =================
+       VERBORGEN op 02-10-2026. Angela: "haal alle velden betreft arrangementen
+       etc weg." Wat er geboekt is staat op de reserveringskaart; hier stond het
+       alleen nog een keer over. -->
+  <div class="card" hidden>
     <h3>Arrangementen</h3>
     <p class="desc">Is er een reservering gekoppeld, dan staan alleen de arrangementen van die reservering in de lijst. Het tarief zit al in het gereserveerde bedrag en telt hier niet apart mee.</p>
     <div class="order-add">
@@ -480,8 +496,10 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="order-list" id="arrList"></div>
   </div>
 
-  <!-- ================= 8 · VOORAF GERESERVEERD ================= -->
-  <div class="card">
+  <!-- ================= 8 · VOORAF GERESERVEERD =================
+       VERBORGEN op 02-10-2026, zelfde reden als de arrangementen hierboven:
+       vooraf geboekte extra's staan op de reserveringskaart. -->
+  <div class="card" hidden>
     <h3>Vooraf geboekte extra’s</h3>
     <p class="desc">Wat de gast al vooraf heeft geboekt. Dit zit in het gereserveerde bedrag en telt <b>niet</b> extra mee. Wat ter plekke wordt besteld zet je bij &quot;Bestellingen op locatie&quot;.</p>
     <div class="order-add">
@@ -494,8 +512,11 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 
   <!-- Nieuwe reservering aanmaken is verhuisd naar reserveringen.html -->
 
-  <!-- ================= 4 &middot; LOCATIEMANAGER ================= -->
-  <div class="card">
+  <!-- ================= 4 &middot; LOCATIEMANAGER =================
+       VERBORGEN op 02-10-2026. Angela: "extras bijboeken" mag eruit. Bijboeken
+       tijdens het verblijf gaat via de reserveringskaart ("Extra's bijboeken"),
+       waar het meteen bij de juiste boeking terechtkomt. -->
+  <div class="card" hidden>
     <h3>Bijgeboekt op locatie</h3>
     <p class="desc">Wat er tijdens het verblijf is bijgeboekt, en de afrekening op locatie.</p>
     <h3>Bestellingen op locatie</h3>
@@ -5657,6 +5678,21 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
 
   /* ---------- het blok bouwen ---------- */
   function bouw(){
+    /* UITGEZET op 02-10-2026. Angela: "haal het stuk factuur sturen eruit en
+       plaats deze in de reserveringskaart."
+
+       Daar staat het nu: reserveringen.html heeft onder "Bevestiging en
+       betaling" de keuze reserveringsbevestiging / persoonlijk bericht /
+       factuur / bijgeboekte extra's / reviewlink, met mailen, WhatsApp en een
+       betaallink. Dat werkt per reservering en niet per ingevuld formulier, en
+       dat is waar het hoort.
+
+       De code hieronder blijft staan, inclusief de sjablonen. Die worden
+       gedeeld met reserveringen.html via de tabel `instellingen` (sleutels
+       sjabloon_bevestiging en sjabloon_factuur); aanpassen kan daar onder
+       "Sjablonen & documenten". Terugzetten is deze return weghalen. */
+    return;
+    /* eslint-disable-next-line no-unreachable */
     var sec = document.querySelector('.bwf-sec[data-titel="Eindafrekening"] .bwf-body')
            || document.querySelector('.bwf-sec[data-titel*="Opslaan"] .bwf-body');
     if(!sec || document.getElementById("bwfDoc")) return;
@@ -6114,7 +6150,10 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
 
   function merk(){
-    ["c_locatieTop","c_datumTop","c_manager"].forEach(function(id){
+    /* c_manager stond hier ook in: dat veld is verborgen en niet meer
+       verplicht, dus een rode rand eromheen zou een rand zijn om iets wat
+       niemand ziet. Angela, 02-10-2026. */
+    ["c_locatieTop","c_datumTop"].forEach(function(id){
       var el = document.getElementById(id); if(!el) return;
       el.style.borderColor = el.value ? "" : "var(--crit)";
     });
@@ -6211,7 +6250,10 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
           var mist = [];
           if(!document.getElementById("c_locatie").value) mist.push("suite");
           if(!document.getElementById("c_datum").value) mist.push("datum");
-          if(!document.getElementById("c_manager").value) mist.push("locatiemanager");
+          /* De locatiemanager hoort hier niet meer bij. Angela, 02-10-2026:
+             wie de dienst draaide blijkt uit de reservering. Het veld is
+             verborgen; het hier verplicht laten zou betekenen dat opslaan
+             blijft hangen op iets wat niemand kan invullen of zelfs zien. */
           if(mist.length){
             merk();
             var st = document.getElementById("checkinStatus");
