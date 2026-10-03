@@ -326,7 +326,16 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
         <input type="date" id="c_datumTop"></div>
       <div><label for="c_tijdTop">Inchecktijd</label>
         <input type="time" id="c_tijdTop"></div>
-      <div><label>Gast</label>
+      <!-- Angela, 03-10-2026: het formulier gaat over "wie er komt". Het aantal
+           personen stond alleen in de boekingsgegevens, en die kaart is weg -
+           dan was het aantal niet meer in te vullen en klopt het nachtregister
+           voor de toeristenbelasting niet. Dit is een spiegel van c_personen,
+           net als de velden hierboven. -->
+      <div><label for="c_personenTop">Personen</label>
+        <input type="number" id="c_personenTop" min="1" step="1" inputmode="numeric"></div>
+    </div>
+    <div class="formgrid3">
+      <div style="flex:1 1 100%"><label>Gast</label>
         <div class="guest-status empty" id="c_gastTop" style="margin:0">Nog geen gast gekoppeld.</div></div>
     </div>
     <div class="linkbox" style="margin-top:10px">
@@ -4324,9 +4333,14 @@ body{background:#f4f7fb!important}
        vijf stappen verderop. Deze kaarten gaan niet in een sectie en blijven
        verborgen in de pagina staan - de code eraan blijft werken, en
        terugzetten is een naam uit deze lijst halen. */
-    ["boeking", "tijden", "arr", "vooraf", "besteld", "afreken"].forEach(function (naam) {
-      if (K[naam]) { K[naam].hidden = true; K[naam] = null; }
-    });
+    /* Angela, 03-10-2026: "berichten versturen naar de klant moet allemaal via
+       de reserveringskaart en mag weg uit het incheckformulier." Daarom hoort
+       de gastenlink hier ook niet meer: die gaat mee in de bevestiging die je
+       vanuit de reserveringskaart verstuurt. */
+    ["boeking", "tijden", "arr", "vooraf", "besteld", "afreken", "gastlink"]
+      .forEach(function (naam) {
+        if (K[naam]) { K[naam].hidden = true; K[naam] = null; }
+      });
 
     var houder = document.createElement("div");
     houder.className = "bwf-secties";
@@ -4382,27 +4396,17 @@ body{background:#f4f7fb!important}
     sectie(3, "Gast koppelen", "zoeken in het klantenbestand",
       "Gast koppelen", [K.gastkoppel], false);
 
-    /* ---- 4. Gastenlink versturen ---- */
-    sectie(4, "Gastenlink versturen", "de gast vult zijn gegevens zelf in",
-      "Gastenlink", [K.gastlink], false);
-
-    /* ---- 5. Gastaanmelding koppelen ---- */
-    sectie(5, "Gastaanmelding koppelen", "wat de gast heeft ingestuurd",
+    /* ---- 4. Gastaanmelding koppelen ---- */
+    sectie(4, "Gastaanmelding koppelen", "wat de gast heeft ingestuurd",
       "Aanmeldingen", [K.aanmeld], false);
 
-    /* ---- 6. Opslaan ----
-       Angela noemde dit niet in haar opsomming, maar zonder opslaan is het
-       formulier nutteloos: dan kun je wel invullen en niets bewaren. Het staat
-       daarom onderaan en dichtgeklapt, uit de weg maar bereikbaar. */
-    sectie(6, "Opslaan", "bewaren als concept of definitief afronden",
-      "Eindafrekening", [K.opslaan], false);
-
-    /* ---- 7. Eerder opgeslagen ----
-       Ook niet genoemd, en om dezelfde reden gehouden: zonder deze twee kun je
-       een half ingevuld formulier niet hervatten en een afgerond formulier niet
-       meer terugvinden. */
-    sectie(7, "Eerder opgeslagen", "concepten hervatten en afgeronde formulieren terugzoeken",
-      "Definitieve formulieren", [K.concept, K.definitief], false);
+    /* ---- 5. Opslaan en terugzoeken ----
+       Angela noemde deze niet in haar opsomming, maar zonder opslaan kun je
+       wel invullen en niets bewaren, en zonder het archief kun je een concept
+       niet hervatten of een afgerond formulier niet terugvinden. Ze staan
+       daarom samen in één laatste stap, onderaan en dichtgeklapt. */
+    sectie(5, "Opslaan en terugzoeken", "bewaren, hervatten en afgeronde formulieren",
+      "Eindafrekening", [K.opslaan, K.concept, K.definitief], false);
 
     /* Deze haak werd aangeroepen zodra er gastgegevens waren overgenomen; hij
        opende toen een keuzelijst die niet meer bestaat. Nu klapt hij gewoon de
@@ -4641,8 +4645,13 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   }
   function eur(n){ return "\u20ac " + (Math.round(n*100)/100).toFixed(2).replace(".", ","); }
 
+  /* De korte regel in de kopbalk, zodat je dichtgeklapt al ziet wat erin
+     staat. Stond op stap 1 (Reservering koppelen); dat was dubbelop, want dit
+     zijn de reserveringsgegevens en die hebben hun eigen stap. Hij staat nu
+     op stap 2. De bedragen zijn eruit: de afrekening hoort niet meer in dit
+     formulier. Angela, 03-10-2026. */
   function samenvatting(){
-    var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"]');
+    var sec = document.querySelector('.bwf-sec[data-titel="Reserveringsgegevens"]');
     if(!sec) return;
     var doel = sec.querySelector(".sub");
     if(!doel){
@@ -4652,24 +4661,26 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     }
     var d  = (document.getElementById("c_datum")||{}).value || "";
     var in_ = (document.getElementById("c_checkin")||{}).value || "";
-    var uit = (document.getElementById("c_checkuit")||{}).value || "";
     var pers = (document.getElementById("c_personen")||{}).value || "";
     var type = document.querySelector('input[name="verblijftype"]:checked');
-    var res = bedrag("c_resbedrag"), aan = bedrag("c_aanbetaald");
 
     var stukken = [];
     if(d) stukken.push(d);
-    if(in_ || uit) stukken.push((in_ || "?") + "\u2013" + (uit || "?"));
+    if(in_) stukken.push("vanaf " + in_);
     if(type) stukken.push(type.value === "overnachting" ? "overnachting" : "dagverblijf");
     if(pers) stukken.push(pers + " pers.");
-    if(res) stukken.push(eur(res) + " gereserveerd");
-    if(aan) stukken.push(eur(aan) + " betaald");
-    if(res && res - aan > 0.004) stukken.push("nog " + eur(res - aan));
-    doel.textContent = stukken.join(" \u00b7 ");
+    doel.textContent = stukken.length ? stukken.join(" \u00b7 ") : "suite, verblijf, datum en tijd";
   }
 
-  /* een klein overzicht bovenin Boekingsgegevens */
+  /* UITGEZET op 03-10-2026. Angela: "bovenin staan reserveringsgegevens bij 1
+     en bij 2 komt het weer tevoorschijn."
+
+     Dit blok zette check-in, check-out en de bedragen bovenaan stap 1, terwijl
+     dezelfde gegevens bij stap 2 staan. Twee keer hetzelfde, en de bedragen
+     horen er sinds het weghalen van de afrekening helemaal niet meer. */
   function overzicht(){
+    return;
+    /* eslint-disable-next-line no-unreachable */
     var kaart = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"] .bwf-body');
     if(!kaart || document.getElementById("bwfResOverzicht")) return;
     var d = document.createElement("div");
@@ -6239,6 +6250,9 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     koppelSpiegel("c_datumTop", "c_datum");
     /* Inchecktijd is een gewoon invoerveld, dus dezelfde spiegel volstaat. */
     koppelSpiegel("c_tijdTop", "c_checkin");
+    /* Personen erbij sinds 03-10-2026: het echte veld zit in de kaart
+       Boekingsgegevens, en die staat niet meer in beeld. */
+    koppelSpiegel("c_personenTop", "c_personen");
     koppelRadioSpiegel("c_typeTop", "verblijftype");
     vulGastNaamTop();
     setInterval(vulGastNaamTop, 1500);
