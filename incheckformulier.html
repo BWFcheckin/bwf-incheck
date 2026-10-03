@@ -358,15 +358,46 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
     <div class="aanmeld-lijst" id="conceptLijst"></div>
   </div>
 
-  <!-- ================= 4 · FORMULIER VOOR DE GAST ================= -->
-  <div class="card">
-    <h3>Gastgegevens en akkoord</h3>
-    <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn &mdash; niet de rest van dit formulier of eerder opgeslagen incheckformulieren.</p>
+  <!-- ================= 3 · GAST KOPPELEN =================
+       Angela, 03-10-2026: het formulier loopt voortaan in vijf stappen:
+       reservering koppelen, reserveringsgegevens, gast koppelen (zoeken in het
+       klantenbestand op naam), gastenlink versturen, gastaanmelding koppelen.
+
+       Deze kaart heette "Gastgegevens en akkoord" en deed drie dingen door
+       elkaar: het gastformulier, de gastenlink en het klantenbestand. Die zijn
+       hieronder uit elkaar gehaald, zodat elke stap zijn eigen kaart heeft en
+       de volgorde klopt met hoe je werkt. -->
+  <div class="card" id="kaartGastKoppelen">
+    <h3>Gast koppelen</h3>
+    <p class="desc">Zoek de gast in het klantenbestand. Staat hij er al, dan neem je zijn gegevens
+      over; is het een nieuwe gast, dan zet je hem erbij.</p>
+    <div class="formgrid3">
+      <div style="flex:1;min-width:190px"><label for="kl_zoek">Zoeken op naam</label>
+        <input type="text" id="kl_zoek" placeholder="naam, e-mailadres of telefoonnummer"></div>
+      <div style="flex:2;min-width:220px"><label for="kl_keuze">Gevonden klanten</label>
+        <select id="kl_keuze"></select></div>
+    </div>
+    <div class="linkbox">
+      <button class="btn sm" type="button" id="kl_neem">Gegevens overnemen</button>
+      <button class="btn secondary sm" type="button" onclick="klantUitGastgegevens()">Klant aanmaken of bijwerken</button>
+    </div>
+    <div class="status" id="kl_status"></div>
+    <p class="desc" style="margin:8px 0 0">Bij een overnachting komt de gast ook in het nachtregister
+      voor de toeristenbelasting.</p>
+    <div class="status" id="gastKlantStatus"></div>
+
+    <h3>Gegevens van de gast</h3>
+    <p class="desc">De gast vult dit zelf in via een apart venster, waarin alleen de eigen gegevens te zien zijn.</p>
     <div class="guest-status empty" id="guestStatus">Nog niet ingevuld door de gast.</div>
     <button type="button" class="btn" onclick="openGuestModal()">&#9998; Formulier voor de gast openen</button>
+  </div>
 
-    <h3>Of laat de gast het vooraf invullen</h3>
-    <p class="desc" style="margin-bottom:0;">Stuur de gast een link. Hij ziet alleen zijn eigen gegevens en kan geen andere incheckformulieren openen. Wat hij instuurt verschijnt hierboven bij &quot;Aanmeldingen van gasten&quot;.</p>
+  <!-- ================= 4 · GASTENLINK VERSTUREN ================= -->
+  <div class="card" id="kaartGastLink">
+    <h3>Gastenlink versturen</h3>
+    <p class="desc">Stuur de gast een link zodat hij zijn gegevens vooraf invult. Hij ziet alleen zijn
+      eigen gegevens en kan geen andere incheckformulieren openen. Wat hij instuurt komt bij stap 5
+      te staan.</p>
     <div class="linkbox">
       <button class="btn secondary sm" type="button" onclick="maakGastLink(true)">Persoonlijke link maken</button>
       <button class="btn secondary sm" type="button" onclick="maakGastLink(false)">Algemene link</button>
@@ -377,12 +408,6 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <a class="btn secondary sm" id="gastLinkWa" target="_blank" rel="noopener">WhatsApp</a>
     </div>
     <div class="status" id="gastLinkStatus"></div>
-
-    <h3>Klant in het klantenbestand</h3>
-    <p class="desc">Zet deze gast meteen in het klantenbestand. Bij een overnachting komt hij ook in
-      het nachtregister voor de toeristenbelasting. Bestaat de klant al, dan wordt hij bijgewerkt.</p>
-    <button class="btn secondary" type="button" onclick="klantUitGastgegevens()">Klant aanmaken of bijwerken</button>
-    <div class="status" id="gastKlantStatus"></div>
   </div>
 
   <!-- ================= 5 · BOEKINGSGEGEVENS ================= -->
@@ -4216,9 +4241,11 @@ body{background:#f4f7fb!important}
 
     var K = {
       koppel:     viaVeld("k_bron"),
+      boven:      viaId("bwfBovenBlok"),
+      gastkoppel: viaId("kaartGastKoppelen"),
+      gastlink:   viaId("kaartGastLink"),
       aanmeld:    viaVeld("aanmeldLijst"),
       concept:    viaId("concepten"),
-      gastform:   viaVeld("guestStatus"),
       boeking:    viaVeld("c_boekingvia"),
       tijden:     viaVeld("c_checkoutType"),
       arr:        viaVeld("arrSelect"),
@@ -4228,6 +4255,15 @@ body{background:#f4f7fb!important}
       opslaan:    viaVeld("c_sendto"),
       definitief: viaId("definitief")
     };
+
+    /* Angela, 03-10-2026: "er staan nog steeds veel te veel opties in, bouw hem
+       opnieuw op." Wat eruit mag staat hieronder; wat erin blijft staat in de
+       vijf stappen verderop. Deze kaarten gaan niet in een sectie en blijven
+       verborgen in de pagina staan - de code eraan blijft werken, en
+       terugzetten is een naam uit deze lijst halen. */
+    ["boeking", "tijden", "arr", "vooraf", "besteld", "afreken"].forEach(function (naam) {
+      if (K[naam]) { K[naam].hidden = true; K[naam] = null; }
+    });
 
     var houder = document.createElement("div");
     houder.className = "bwf-secties";
@@ -4254,90 +4290,65 @@ body{background:#f4f7fb!important}
       return s;
     }
 
-    /* ---- 1. Beginnen ---- */
-    var start = sectie(1, "Beginnen", "nieuw formulier of verder met een concept",
-      "Start", [K.aanmeld, K.concept, K.gastform], true);
-    if(start){
-      var body = start.querySelector(".bwf-body");
+    /* =====================================================================
+       De vijf stappen, in de volgorde waarin je werkt.
+       Angela, 03-10-2026, letterlijk:
 
-      var knoppen = document.createElement("div");
-      knoppen.className = "linkbox";
-      knoppen.style.marginBottom = "12px";
-      knoppen.innerHTML =
-        '<button class="btn" type="button" id="bwfNieuwForm">Nieuw formulier beginnen</button>' +
-        '<button class="btn secondary" type="button" id="bwfConceptForm">Concept openen</button>' +
-        '<button class="btn secondary" type="button" id="bwfArchiefForm">Definitieve incheckformulieren</button>';
-      body.insertBefore(knoppen, body.firstChild);
+         "begin met reservering koppelen met een zoekbalk naam datum
+          daarna zie je de reserveringsgegevens
+          gast koppelen, klantbestand zoeken op naam
+          daarna gastenlink versturen
+          gastaanmelding koppelen
+          meer hoeft er niet te staan"
 
-      /* Eén keuzelijst in plaats van drie lijsten onder elkaar. */
-      var stukken = [
-        { el:K.aanmeld,  naam:"Aanmeldingen van gasten" },
-        { el:K.concept,  naam:"Klaargezette formulieren" },
-        { el:K.gastform, naam:"Gastgegevens en akkoord" }
-      ].filter(function(x){ return x.el; });
+       De sleutel (derde waarde) is de naam waarop andere scripts aanhaken en
+       waarop open/dicht wordt onthouden. Die namen blijven staan, ook al staat
+       er nu een andere kop boven: "Boekingsgegevens" is de sleutel van stap 1,
+       want daar springen bestaande knoppen naartoe.
+       ===================================================================== */
 
-      var kiesVak = document.createElement("div");
-      kiesVak.style.marginBottom = "14px";
-      kiesVak.innerHTML =
-        '<label for="bwfStartKeuze" style="display:block;font-size:12px;margin-bottom:4px">Wat wil je zien</label>' +
-        '<select id="bwfStartKeuze" style="max-width:340px">' +
-        stukken.map(function(x, i){ return '<option value="' + i + '">' + x.naam + "</option>"; }).join("") +
-        "</select>";
-      body.insertBefore(kiesVak, knoppen.nextSibling);
+    /* ---- 1. Reservering koppelen ---- */
+    sectie(1, "Reservering koppelen", "zoek op naam, nummer of datum",
+      "Boekingsgegevens", [K.koppel], true);
 
-      function toon(k){
-        stukken.forEach(function(x, i){ x.el.hidden = i !== k; x.el.classList.add("zonderkop"); });
-      }
-      toon(0);
-      document.getElementById("bwfStartKeuze").onchange = function(){ toon(+this.value); };
+    /* ---- 2. Reserveringsgegevens ---- */
+    sectie(2, "Reserveringsgegevens", "suite, verblijf, datum en tijd",
+      "Reserveringsgegevens", [K.boven], true);
 
-      /* rechtstreeks naar het archief onderaan de pagina */
-      document.getElementById("bwfArchiefForm").onclick = function(){
-        if(window.bwfOpenSectie) window.bwfOpenSectie("Definitieve formulieren");
-        var t = document.getElementById("defTabel") || document.getElementById("checkinTableBody");
-        if(t) setTimeout(function(){ t.scrollIntoView({ behavior:"smooth", block:"center" }); }, 250);
-      };
+    /* ---- 3. Gast koppelen ---- */
+    sectie(3, "Gast koppelen", "zoeken in het klantenbestand",
+      "Gast koppelen", [K.gastkoppel], false);
 
-      document.getElementById("bwfNieuwForm").onclick = function(){
-        if(typeof clearCheckinForm === "function") clearCheckinForm();
-        if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
-      };
-      document.getElementById("bwfConceptForm").onclick = function(){
-        var i = stukken.map(function(x){ return x.el; }).indexOf(K.concept);
-        if(i < 0) i = 0;
-        document.getElementById("bwfStartKeuze").value = String(i);
-        toon(i);
-        var l = document.getElementById("conceptLijst");
-        if(l) l.scrollIntoView({ behavior:"smooth", block:"center" });
-      };
+    /* ---- 4. Gastenlink versturen ---- */
+    sectie(4, "Gastenlink versturen", "de gast vult zijn gegevens zelf in",
+      "Gastenlink", [K.gastlink], false);
 
-      /* Zodra er gastgegevens zijn overgenomen, springt de keuzelijst
-         daarheen zodat je meteen ziet wat er is opgeslagen. */
-      window.bwfToonGastgegevens = function(){
-        var i = stukken.map(function(x){ return x.el; }).indexOf(K.gastform);
-        if(i < 0) return;
-        document.getElementById("bwfStartKeuze").value = String(i);
-        toon(i);
-        start.setAttribute("data-open", "1");
-        K.gastform.scrollIntoView({ behavior:"smooth", block:"center" });
-      };
-    }
+    /* ---- 5. Gastaanmelding koppelen ---- */
+    sectie(5, "Gastaanmelding koppelen", "wat de gast heeft ingestuurd",
+      "Aanmeldingen", [K.aanmeld], false);
 
-    /* ---- 2. Reserveringsgegevens (sleutel blijft Boekingsgegevens) ---- */
-    sectie(2, "Reserveringsgegevens",
-      "koppelen, controleren en de gast erbij zoeken",
-      "Boekingsgegevens",
-      [K.koppel, K.boeking, K.arr, K.vooraf], true);
+    /* ---- 6. Opslaan ----
+       Angela noemde dit niet in haar opsomming, maar zonder opslaan is het
+       formulier nutteloos: dan kun je wel invullen en niets bewaren. Het staat
+       daarom onderaan en dichtgeklapt, uit de weg maar bereikbaar. */
+    sectie(6, "Opslaan", "bewaren als concept of definitief afronden",
+      "Eindafrekening", [K.opslaan], false);
 
-    /* ---- 3. Locatiemanager (sleutel blijft Eindafrekening) ---- */
-    sectie(3, "In te vullen door de locatiemanager",
-      "bijgeboekt op locatie, afrekening en versturen",
-      "Eindafrekening",
-      [K.besteld, K.tijden, K.afreken, K.opslaan], false);
+    /* ---- 7. Eerder opgeslagen ----
+       Ook niet genoemd, en om dezelfde reden gehouden: zonder deze twee kun je
+       een half ingevuld formulier niet hervatten en een afgerond formulier niet
+       meer terugvinden. */
+    sectie(7, "Eerder opgeslagen", "concepten hervatten en afgeronde formulieren terugzoeken",
+      "Definitieve formulieren", [K.concept, K.definitief], false);
 
-    /* ---- 4. Archief ---- */
-    sectie(4, "Definitieve incheckformulieren", "terugzoeken, openen en afdrukken",
-      "Definitieve formulieren", [K.definitief], false);
+    /* Deze haak werd aangeroepen zodra er gastgegevens waren overgenomen; hij
+       opende toen een keuzelijst die niet meer bestaat. Nu klapt hij gewoon de
+       stap open waar die gegevens staan. */
+    window.bwfToonGastgegevens = function(){
+      if(window.bwfOpenSectie) window.bwfOpenSectie("Gast koppelen");
+      var g = document.getElementById("guestStatus");
+      if(g) setTimeout(function(){ g.scrollIntoView({ behavior:"smooth", block:"center" }); }, 250);
+    };
 
     /* ---- open of dicht onthouden ---- */
     var stand = {};
@@ -4630,14 +4641,14 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     overzicht();
     bij();
 
-    /* Boekingsgegevens standaard dicht, tenzij je hem zelf open had gezet */
-    try{
-      var stand = JSON.parse(localStorage.getItem("bwf-incheck-open") || "{}") || {};
-      if(!stand.hasOwnProperty("Boekingsgegevens")){
-        var sec = document.querySelector('.bwf-sec[data-titel="Boekingsgegevens"]');
-        if(sec) sec.setAttribute("data-open", "0");
-      }
-    }catch(e){}
+    /* Hier stond: "Boekingsgegevens standaard dicht". Dat klopte toen die
+       sectie alle boekingsvelden bevatte en vooral in de weg stond.
+
+       Sinds 03-10-2026 is dat de sleutel van stap 1 - Reservering koppelen -
+       en dat is juist waar je begint. Dichtzetten betekende dat je elke keer
+       eerst een sectie moest openklappen voor je kon beginnen. De regel is
+       daarom weg; de onthouden stand (bwf-incheck-open) blijft gewoon werken,
+       dus klap je hem zelf dicht, dan blijft hij dicht. */
 
     ["c_datum","c_checkin","c_checkuit","c_personen","c_resbedrag","c_aanbetaald"].forEach(function(id){
       var el = document.getElementById(id);
@@ -7175,6 +7186,95 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   if(document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 1600); });
   else setTimeout(start, 1600);
+})();
+</script>
+
+<!-- =========================================================
+     Stap 3: de gast zoeken in het klantenbestand
+     =========================================================
+     Angela, 03-10-2026: "gast koppelen, klantbestand zoeken op naam."
+
+     De klantenlijst staat al in het geheugen (KLANTEN, gevuld door
+     laadKoppelBronnen) en er is al een klantLabel() en een zetVoorinvulling().
+     Die worden hier hergebruikt: een eigen kopie zou na een week afwijken van
+     wat de keuzelijst bovenaan laat zien.
+     ========================================================= -->
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+
+  function zoekwoorden(k){
+    return [k.voornaam, k.achternaam, k.email, k.telefoon, k.woonplaats]
+      .filter(Boolean).join(" ").toLowerCase();
+  }
+
+  function vul(){
+    var zoek = ($("kl_zoek").value || "").trim().toLowerCase();
+    var sel = $("kl_keuze");
+    var lijst = (typeof KLANTEN !== "undefined" && Array.isArray(KLANTEN)) ? KLANTEN : [];
+    /* Zonder zoekterm niet de hele lijst van duizenden namen in een keuzelijst
+       proppen: dan scrol je je suf. Eerst typen, dan kiezen. */
+    if(zoek.length < 2){
+      sel.innerHTML = '<option value="">' +
+        (lijst.length ? "Typ een naam om te zoeken" : "Klantenbestand nog niet geladen") +
+        "</option>";
+      return;
+    }
+    var raak = lijst.filter(function(k){ return zoekwoorden(k).indexOf(zoek) > -1; }).slice(0, 50);
+    if(!raak.length){
+      sel.innerHTML = '<option value="">Niemand gevonden</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">' + raak.length +
+      (raak.length === 50 ? "+ gevonden — kies" : " gevonden — kies") + "</option>" +
+      raak.map(function(k){
+        var label = (typeof klantLabel === "function") ? klantLabel(k)
+          : ((k.voornaam || "") + " " + (k.achternaam || "")).trim();
+        return '<option value="' + String(k.id).replace(/"/g, "&quot;") + '">' +
+          String(label).replace(/</g, "&lt;") + "</option>";
+      }).join("");
+  }
+
+  function neem(){
+    var id = $("kl_keuze").value;
+    var st = $("kl_status");
+    if(!id){ st.className = "status err"; st.textContent = "Kies eerst een klant uit de lijst."; return; }
+    var lijst = (typeof KLANTEN !== "undefined" && Array.isArray(KLANTEN)) ? KLANTEN : [];
+    var k = lijst.filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!k){ st.className = "status err"; st.textContent = "Die klant staat niet meer in de lijst. Vernieuw de lijst bovenaan."; return; }
+    if(typeof zetVoorinvulling !== "function"){
+      st.className = "status err";
+      st.textContent = "Overnemen kan nu niet. Laad de pagina opnieuw.";
+      return;
+    }
+    zetVoorinvulling({
+      voornaam: k.voornaam || "", achternaam: k.achternaam || "",
+      woonplaats: k.woonplaats || "", nationaliteit: k.nationaliteit || "",
+      telefoon: k.telefoon || "", email: k.email || ""
+    });
+    st.className = "status ok";
+    st.textContent = "✓ Gegevens van " +
+      ((k.voornaam || "") + " " + (k.achternaam || "")).trim() + " overgenomen.";
+  }
+
+  function start(){
+    if(!$("kl_zoek")){ setTimeout(start, 500); return; }
+    $("kl_zoek").addEventListener("input", vul);
+    $("kl_keuze").addEventListener("change", function(){ $("kl_status").textContent = ""; });
+    $("kl_neem").addEventListener("click", neem);
+    vul();
+    /* De klantenlijst komt pas binnen nadat de pagina heeft ingelogd en
+       geladen. Zolang hij leeg is blijft de keuzelijst zeggen dat hij nog
+       niet geladen is; deze herhaling vult hem zodra hij er wel is. */
+    var pogingen = 0;
+    var tik = setInterval(function(){
+      if(typeof KLANTEN !== "undefined" && KLANTEN.length){ vul(); clearInterval(tik); }
+      if(++pogingen > 40) clearInterval(tik);
+    }, 1000);
+  }
+  if(document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", start);
+  else start();
 })();
 </script>
 
