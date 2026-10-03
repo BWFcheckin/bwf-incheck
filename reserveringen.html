@@ -1261,6 +1261,29 @@ function gastLinkVan(r) {
   return "gast-incheck.html?" + p.toString();
 }
 
+/* De veilige variant: een link met een token, waarmee het gastformulier de
+   naam, het e-mailadres en het telefoonnummer al ingevuld heeft.
+
+   De gegevens zélf gaan niet mee in de link. Zo'n link gaat via WhatsApp rond
+   en komt in browsergeschiedenis en voorvertoningen terecht; wie hem
+   doorstuurt zou het telefoonnummer en e-mailadres van die gast meesturen. Het
+   token wisselt de gastpagina bij de database in voor de gegevens van déze ene
+   boeking - meer krijgt hij niet.
+
+   Lukt het maken niet (de functie bestaat nog niet, of de database is even
+   niet bereikbaar), dan valt hij terug op de kale link van hierboven. Dan moet
+   de gast zijn naam zelf intypen, maar werkt het wel. */
+async function veiligeGastLink(r) {
+  try {
+    const token = await api("rpc/bwf_gastlink_maak", {
+      method: "POST", body: { p_reservering: r.id }
+    });
+    const t = typeof token === "string" ? token : (token && token.token) || "";
+    if (t) return "gast-incheck.html?token=" + encodeURIComponent(t);
+  } catch (e) { /* stil: de kale link werkt ook */ }
+  return gastLinkVan(r);
+}
+
 /* ---------- sessie ---------- */
 function jwtDeel(t) {
   try { return JSON.parse(atob(String(t).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch (e) { return {}; }
@@ -2908,6 +2931,29 @@ async function vulKoppelingen(r) {
         : concept ? "incheckformulier.html?formulier=" + encodeURIComponent(concept.id)
         : "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
       definitief ? "Open pdf" : concept ? "Openen" : "Aanmaken"));
+
+    /* Angela, 03-10-2026: "maak een knop voor de locatiemanager in de
+       reserveringskaart voor gastformulier openen als deze nog niet is
+       ingevuld, dat de gast deze ter plekke kan invullen."
+
+       Dit is het formulier dat de GAST invult - naam, nationaliteit,
+       handtekening, akkoord huisregels - en niet het locatiemanagerformulier
+       hierboven. Staat de gast voor je neus zonder dat hij de link vooraf heeft
+       ingevuld, dan geef je hem je telefoon of tablet en vult hij het hier in.
+
+       De knop maakt een eigen link met een token, zodat zijn naam en
+       contactgegevens al ingevuld staan en hij alleen de rest hoeft te doen.
+       Dat gebeurt bij het klikken en niet nu, want het is een aanroep naar de
+       database en die hoort niet bij het openen van elke kaart te lopen. */
+    const gastKlaar = !gastOntbreekt(r) && (definitief || concept);
+    regels.push(
+      '<div style="display:flex;gap:10px;align-items:baseline;padding:4px 0;' +
+        'border-bottom:1px solid var(--lijn,#eee)">' +
+      '<b style="min-width:150px">Gastformulier</b>' +
+      '<span style="flex:1">' +
+        (gastKlaar ? "ingevuld" : "nog niet ingevuld") + "</span>" +
+      '<button type="button" class="knop sec klein" data-gastform="' + esc(r.id) + '">' +
+        (gastKlaar ? "Opnieuw openen" : "Ter plekke invullen") + "</button></div>");
 
     /* Op de kaart hoort alleen te staan óf er gebeld is en wat er kort is
        besproken. Het volledige welkomstcall-scherm openen vanuit de kaart is
@@ -5691,6 +5737,26 @@ document.addEventListener("click", (e) => {
      knop bij de stand. Hij doet hetzelfde als "Betaallink maken", maar de
      knop die je indrukt moet ook degene zijn die op slot gaat. */
   if (e.target.id === "vNieuweLink") { e.preventDefault(); maakBetaallink(e.target); return; }
+  const gastKnop = e.target.closest && e.target.closest("[data-gastform]");
+  if (gastKnop) {
+    e.preventDefault();
+    const id = gastKnop.getAttribute("data-gastform");
+    const r = (RIJEN || []).find((x) => String(x.id) === String(id)) || HUIDIG;
+    if (!r) return;
+    /* Eerst het venster openen en dan pas de link ophalen zou de popupblokker
+       in de weg zitten; andersom opent hij soms een leeg tabblad. Daarom de
+       knop even op "Bezig" en daarna openen. */
+    const oud = gastKnop.textContent;
+    gastKnop.disabled = true; gastKnop.textContent = "Bezig…";
+    veiligeGastLink(r).then((url) => {
+      window.open(url, "_blank", "noopener");
+    }).catch(() => {
+      window.open(gastLinkVan(r), "_blank", "noopener");
+    }).then(() => {
+      gastKnop.disabled = false; gastKnop.textContent = oud;
+    });
+    return;
+  }
   if (e.target.id === "vBonMaak" && HUIDIG) {
     e.preventDefault();
     vBonMaken();

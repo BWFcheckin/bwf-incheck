@@ -375,20 +375,56 @@ function initLink(){
   if(linkDatum) st.push(dmy(linkDatum));
   if(st.length){ chip.textContent = st.join(' · '); chip.style.display='inline-block'; }
 }
+/* De link met een token: daarmee staan de naam en de contactgegevens al
+   ingevuld, zonder dat ze in de link zelf staan.
+
+   Dit liep tot 02-10-2026 via een edge function (gastlink-bridge). Die eist
+   sinds een Supabase-wijziging een inlogsleutel die deze pagina niet
+   meestuurt, waardoor elke gast een foutmelding kreeg - gemeten:
+   UNAUTHORIZED_NO_AUTH_HEADER. Nu gaat het via de databasefunctie
+   bwf_gastlink_open, die met de gewone sleutel werkt en alleen de gegevens van
+   déze boeking teruggeeft.
+
+   De oude weg blijft eronder staan voor links die al verstuurd zijn. */
 async function laadVeiligeLink(){
-  if(!veiligToken || typeof BWFGastlink === 'undefined') return;
+  if(!veiligToken) return;
+  let g = null;
   try{
-    const g = await BWFGastlink.resolve(veiligToken);
-    resCode = String(g.reservation_id||'');
-    const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
-    if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
-    if(g.arrival) document.getElementById('g_datum').value=g.arrival;
-    const zetAls=(id,w)=>{ const el=document.getElementById(id); if(el && w && !String(el.value).trim()) el.value=w; };
-    zetAls('g_voornaam',g.first_name); zetAls('g_achternaam',g.last_name); zetAls('g_email',g.email); zetAls('g_telefoon',g.phone);
-    document.getElementById('verblijfWrap').style.display='none';
-    const chip=document.getElementById('resChip'); chip.textContent='Reservering '+g.reservation_id; chip.style.display='inline-block';
-    renderCatalogus();
-  }catch(e){ toon(e.message,'err'); }
+    const uit = await sb('rpc/bwf_gastlink_open', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({ p_token: veiligToken })
+    });
+    const rij = Array.isArray(uit) ? uit[0] : uit;
+    if(rij) g = {
+      reservation_id: rij.reservering_id, location: rij.suite,
+      arrival: rij.aankomst, first_name: rij.voornaam, last_name: rij.achternaam,
+      email: rij.email, phone: rij.telefoon
+    };
+  }catch(e){ /* hieronder nog de oude weg proberen */ }
+
+  if(!g && typeof BWFGastlink !== 'undefined'){
+    try{ g = await BWFGastlink.resolve(veiligToken); }catch(e){}
+  }
+  if(!g){
+    /* Niets gevonden: laat de gast gewoon zelf invullen in plaats van een
+       foutmelding tonen waar hij niets mee kan. Een verlopen of verkeerd
+       gekopieerde link mag het formulier niet blokkeren. */
+    return;
+  }
+
+  resCode = String(g.reservation_id||'');
+  const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
+  if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
+  if(g.arrival) document.getElementById('g_datum').value=g.arrival;
+  const zetAls=(id,w)=>{ const el=document.getElementById(id); if(el && w && !String(el.value).trim()) el.value=w; };
+  zetAls('g_voornaam',g.first_name); zetAls('g_achternaam',g.last_name);
+  zetAls('g_email',g.email); zetAls('g_telefoon',g.phone);
+  document.getElementById('verblijfWrap').style.display='none';
+  const chip=document.getElementById('resChip');
+  chip.textContent='Reservering '+(resCode.length>12 ? resCode.slice(0,8) : resCode);
+  chip.style.display='inline-block';
+  renderCatalogus();
 }
 
 /* ================= CATALOGUS RENDEREN ================= */
