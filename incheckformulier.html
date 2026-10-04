@@ -321,11 +321,38 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
       <h2 id="fmOpenTitel"></h2>
       <button type="button" id="fmOpenDicht" aria-label="Sluiten">&times;</button>
     </div>
+    <!-- Angela, 04-10-2026: "zorg ervoor dat ik bij de zoekopties meer opties
+         heb, zoals zoeken op naam, suite en datum, filteren per maand, week en
+         dag, filteren per suite." -->
     <div class="fmZoek">
-      <div><label for="fmZoekNaam">Zoeken op naam</label>
+      <div><label for="fmZoekNaam">Zoeken</label>
         <input type="text" id="fmZoekNaam" placeholder="naam, e-mailadres of reserveringsnummer"></div>
-      <div><label for="fmZoekDatum">Datum</label>
+      <div><label for="fmZoekSuite">Suite</label>
+        <select id="fmZoekSuite">
+          <option value="">Alle suites</option>
+          <option value="angie">Suite Angie</option>
+          <option value="jacuzzi">Malina Jacuzzi</option>
+          <option value="deluxe">Malina Deluxe</option>
+        </select></div>
+      <div><label for="fmZoekPeriode">Periode</label>
+        <select id="fmZoekPeriode">
+          <option value="">Alles</option>
+          <option value="dag">Vandaag</option>
+          <option value="week">Deze week</option>
+          <option value="maand">Deze maand</option>
+          <option value="datum">Eén dag kiezen</option>
+        </select></div>
+      <div id="fmDatumVak" hidden><label for="fmZoekDatum">Datum</label>
         <input type="date" id="fmZoekDatum"></div>
+      <!-- De formulieren van vóór de gastenlink staan in een eigen stapel. Dat
+           onderscheid bestond al, maar de knop ervoor zat vast aan de tabel die
+           sinds 04-10-2026 verborgen is - daardoor waren ze onbereikbaar. -->
+      <div id="fmFaseVak" hidden><label for="fmZoekFase">Welke</label>
+        <select id="fmZoekFase">
+          <option value="">Alle formulieren</option>
+          <option value="nu">Sinds de gastenlink</option>
+          <option value="fase1">Fase 1 — daarvoor</option>
+        </select></div>
       <div><label>&nbsp;</label>
         <button class="btn secondary sm" type="button" id="fmZoekWis">Wissen</button></div>
     </div>
@@ -1812,11 +1839,63 @@ function fmDatumVan(x){
   return String(x.datum || x.created_at || '').slice(0, 10);
 }
 
+/* De grenzen van vandaag, deze week of deze maand. De week begint op maandag,
+   zoals de planning dat ook doet. */
+function fmPeriodeGrens(soort){
+  const nu = new Date(); nu.setHours(0, 0, 0, 0);
+  /* Niet toISOString(): die rekent naar UTC, en bij ons is middernacht lokaal
+     daar nog de vorige dag. "Vandaag" gaf daardoor de formulieren van gisteren
+     en liet die van vandaag weg - gemeten op 04-10-2026, waar het filter nul
+     teruggaf terwijl er een formulier van die dag stond. */
+  const iso = (d) => d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+  if(soort === 'dag') return { van: iso(nu), tot: iso(nu) };
+  if(soort === 'week'){
+    const ma = new Date(nu);
+    ma.setDate(nu.getDate() - ((nu.getDay() + 6) % 7));
+    const zo = new Date(ma); zo.setDate(ma.getDate() + 6);
+    return { van: iso(ma), tot: iso(zo) };
+  }
+  if(soort === 'maand'){
+    return { van: iso(new Date(nu.getFullYear(), nu.getMonth(), 1)),
+             tot: iso(new Date(nu.getFullYear(), nu.getMonth() + 1, 0)) };
+  }
+  return null;
+}
+
+/* De suite heet in het ene veld 'angie' en in het andere 'Suite Angie — Almere';
+   bij oude formulieren staat er soms nog PSA of PSMD. Daarom vergelijken we op
+   herkenbare stukken en niet op gelijkheid. */
+function fmSuiteVan(x){
+  const s = String(x.locatie || x.suite || '').toLowerCase();
+  if(/deluxe|zwembad|psmd|psd/.test(s)) return 'deluxe';
+  if(/jacuzzi|psm\b|malina/.test(s))    return 'jacuzzi';
+  if(/angie|almere|psa/.test(s))        return 'angie';
+  return '';
+}
+
 /* Past deze regel bij wat er in de zoekvelden staat? */
 function fmPast(x){
-  const naam = (document.getElementById('fmZoekNaam') || {}).value || '';
-  const datum = (document.getElementById('fmZoekDatum') || {}).value || '';
-  if(datum && fmDatumVan(x) !== datum) return false;
+  const el = (id) => (document.getElementById(id) || {}).value || '';
+  const naam = el('fmZoekNaam');
+  const suite = el('fmZoekSuite');
+  const periode = el('fmZoekPeriode');
+  const fase = el('fmZoekFase');
+  const d = fmDatumVan(x);
+
+  if(suite && fmSuiteVan(x) !== suite) return false;
+
+  if(periode === 'datum'){
+    const datum = el('fmZoekDatum');
+    if(datum && d !== datum) return false;
+  }else if(periode){
+    const g = fmPeriodeGrens(periode);
+    if(g && (!d || d < g.van || d > g.tot)) return false;
+  }
+
+  if(fase && typeof window.bwfFaseVan === 'function' && window.bwfFaseVan(x) !== fase) return false;
+
   const z = naam.trim().toLowerCase();
   if(!z) return true;
   return [fmNaamVan(x), x.email, x.telefoon, x.resnr, x.code, x.woonplaats]
@@ -1886,6 +1965,11 @@ function fmVul(sleutel){
         '</tbody></table>'
       : '<div class="aanmeld-leeg">Niets gevonden.</div>';
   }
+  /* De fase-keuze gaat alleen over definitieve formulieren: concepten en
+     aanmeldingen bestaan pas sinds de gastenlink. */
+  const faseVak = document.getElementById('fmFaseVak');
+  if(faseVak) faseVak.hidden = sleutel !== 'definitief';
+
   titel.textContent = naam;
   lijst.innerHTML = html;
   if(tel) tel.textContent = rijen.length
@@ -2029,8 +2113,8 @@ function fmDicht(){
 document.addEventListener('click', function(e){
   if(e.target.closest && e.target.closest('#fmOpenDicht')){ fmDicht(); return; }
   if(e.target.closest && e.target.closest('#fmZoekWis')){
-    const n = document.getElementById('fmZoekNaam'), d = document.getElementById('fmZoekDatum');
-    if(n) n.value = ''; if(d) d.value = '';
+    FM_VELDEN.forEach(function(id){ const el = document.getElementById(id); if(el) el.value = ''; });
+    const dv = document.getElementById('fmDatumVak'); if(dv) dv.hidden = true;
     if(FM_OPEN) fmVul(FM_OPEN);
     return;
   }
@@ -2040,12 +2124,19 @@ document.addEventListener('click', function(e){
   if(FM_OPEN === sleutel){ fmDicht(); return; }
   fmVul(sleutel);
 });
-document.addEventListener('input', function(e){
-  if(!e.target.id) return;
-  if(e.target.id === 'fmZoekNaam' || e.target.id === 'fmZoekDatum'){
-    if(FM_OPEN) fmVul(FM_OPEN);
+const FM_VELDEN = ['fmZoekNaam','fmZoekDatum','fmZoekSuite','fmZoekPeriode','fmZoekFase'];
+function fmFilterGewijzigd(e){
+  if(!e.target.id || FM_VELDEN.indexOf(e.target.id) < 0) return;
+  /* De datumkiezer hoort alleen bij "één dag kiezen"; anders staat er een leeg
+     datumvak dat niets doet. */
+  if(e.target.id === 'fmZoekPeriode'){
+    const vak = document.getElementById('fmDatumVak');
+    if(vak) vak.hidden = e.target.value !== 'datum';
   }
-});
+  if(FM_OPEN) fmVul(FM_OPEN);
+}
+document.addEventListener('input', fmFilterGewijzigd);
+document.addEventListener('change', fmFilterGewijzigd);
 
 function renderConcepten(){
   const lijst = document.getElementById('conceptLijst');
@@ -5330,6 +5421,11 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
     var d = String((c && (c.created_at || c.datum)) || "").slice(0, 10);
     return (d && d < FASE_GRENS) ? "fase1" : "nu";
   }
+  /* Ook buiten dit blok nodig: de tegel met de definitieve formulieren filtert
+     er sinds 04-10-2026 op. Zonder deze regel zat de fase-indeling opgesloten
+     in deze ene functie en moest ik de grensdatum ergens anders overschrijven -
+     twee plekken die gegarandeerd uiteen gaan lopen. */
+  window.bwfFaseVan = faseVan;
 
   /* ---------- filters boven de tabel ---------- */
   function bouwFilters(){
