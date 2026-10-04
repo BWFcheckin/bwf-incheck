@@ -2929,6 +2929,33 @@ async function vulKoppelingen(r) {
         : "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
       definitief ? "Open pdf" : concept ? "Openen" : "Aanmaken"));
 
+    /* Angela, 04-10-2026: "ik wil bij oude reserveringen een ingevuld gescand
+       formulier kunnen koppelen als pdf, zodat die wordt ingeladen en zichtbaar
+       wordt als je drukt op formulier bekijken."
+
+       Voor boekingen van vóór het digitale formulier: je hebt het papier, je
+       scant het in, en het hangt daarna bij de reservering. Het gaat in
+       dezelfde opslag als de andere bijlagen - privé, met een tijdelijke link
+       per keer - maar met een merkteken, zodat het hier als formulier
+       terugkomt en niet tussen de bevestigingen verdwijnt. */
+    const scan = bijlagenVan(r).find((b) => b && b.soort === "incheckformulier");
+    regels.push(
+      '<div style="display:flex;gap:10px;align-items:baseline;padding:4px 0;' +
+        'border-bottom:1px solid var(--lijn,#eee)">' +
+      '<b style="min-width:150px">Gescand formulier</b>' +
+      '<span style="flex:1">' + (scan
+        ? esc(scan.naam || "ingescand") +
+          (scan.toegevoegd ? ' <span style="opacity:.6">· ' + esc(String(scan.toegevoegd).slice(0, 10)) + "</span>" : "")
+        : "nog geen scan") + "</span>" +
+      (scan
+        ? '<button type="button" class="knop sec klein" data-scanzie="' + esc(scan.pad) + '">Formulier bekijken</button>'
+        : "") +
+      (magBewerken()
+        ? '<button type="button" class="knop sec klein" data-scanop="' + esc(r.id) + '">' +
+          (scan ? "Vervangen" : "Scan koppelen") + "</button>"
+        : "") +
+      "</div>");
+
     /* Angela, 03-10-2026: "maak een knop voor de locatiemanager in de
        reserveringskaart voor gastformulier openen als deze nog niet is
        ingevuld, dat de gast deze ter plekke kan invullen."
@@ -3204,6 +3231,71 @@ function vulBijlagen(r) {
         '<a href="#" data-bijlage="' + i + '">' + esc(b.naam || b.pad) + "</a>" +
         (b.toegevoegd ? ' <span style="opacity:.6">· ' + esc(String(b.toegevoegd).slice(0, 10)) + "</span>" : "") + "</li>").join("")
     : '<li style="opacity:.6">Nog geen bijlagen.</li>';
+}
+
+/* =========================================================
+   Een gescand incheckformulier bij een oude reservering
+   =========================================================
+   Angela, 04-10-2026. Voor boekingen van vóór het digitale formulier: je hebt
+   het papier, je scant het in, en het hangt daarna bij de reservering.
+
+   Het gaat in dezelfde opslag als de andere bijlagen, met één verschil: het
+   krijgt soort "incheckformulier". Zonder dat merkteken zou het tussen de
+   bevestigingen en betaalbewijzen verdwijnen en kon de kaart het niet apart
+   tonen. Er is maar één scan per reservering - een tweede vervangt de vorige
+   in beeld, maar het oude bestand blijft in de opslag staan; weggooien doe je
+   niet automatisch met iets wat iemand bewust heeft ingescand. */
+function kiesScan(resId) {
+  const r = (RIJEN || []).find((x) => String(x.id) === String(resId)) || HUIDIG;
+  if (!r) return;
+  const kiezer = document.createElement("input");
+  kiezer.type = "file";
+  kiezer.accept = ".pdf,image/*,application/pdf";
+  kiezer.onchange = () => { if (kiezer.files && kiezer.files[0]) uploadScan(r, kiezer.files[0]); };
+  kiezer.click();
+}
+
+async function uploadScan(r, bestand) {
+  const note = $("#vBetaalNote");
+  const zeg = (t) => { if (note) note.textContent = t; };
+  if (bestand.size > 20 * 1024 * 1024) { zeg("Dit bestand is groter dan 20 MB."); return; }
+  zeg("Bezig met " + bestand.name + "…");
+  try {
+    const token = await geldigToken();
+    const veilig = bestand.name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-");
+    const pad = r.id + "/scan-" + Date.now() + "-" + veilig;
+    const op = await fetch(CFG.url + "/storage/v1/object/" + BIJLAGE_BUCKET + "/" + encodeURIComponent(pad), {
+      method: "POST",
+      headers: { apikey: CFG.key, Authorization: "Bearer " + token,
+        "Content-Type": bestand.type || "application/octet-stream", "x-upsert": "true" },
+      body: bestand
+    });
+    if (!op.ok) {
+      zeg("Uploaden lukte niet (" + op.status + "). Alleen de eigenaar en de VR-assistenten mogen bestanden toevoegen.");
+      return;
+    }
+    /* De bestaande scan uit de lijst halen, de nieuwe erbij: anders groeit de
+       lijst bij elke vervanging en weet de kaart niet welke de laatste is. */
+    const lijst = bijlagenVan(r).filter((b) => !(b && b.soort === "incheckformulier"));
+    lijst.push({ pad, naam: bestand.name, type: bestand.type || "", grootte: bestand.size,
+      toegevoegd: new Date().toISOString(), door: NAAM, soort: "incheckformulier" });
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { bron_bestanden: lijst, gewijzigd_door: NAAM } });
+    if (rij && rij[0]) {
+      const i = (RIJEN || []).findIndex((x) => String(x.id) === String(r.id));
+      if (i > -1) RIJEN[i] = rij[0];
+      if (HUIDIG && String(HUIDIG.id) === String(r.id)) HUIDIG = rij[0];
+      /* vulKoppelingen() en niet tekenPersoneelKaart(): de regel "Gescand
+         formulier" staat in het blok Koppelingen, niet op de leeskaart
+         erboven. Met de verkeerde van de twee bleef er "nog geen scan" staan
+         terwijl het bestand er wél was - gemeten op 04-10-2026. */
+      vulKoppelingen(rij[0]);
+      tekenPersoneelKaart(rij[0]);
+    }
+    zeg("✓ " + bestand.name + " is gekoppeld aan deze reservering.");
+  } catch (e) {
+    zeg("Het koppelen lukte niet: " + e.message);
+  }
 }
 
 /* De bucket is niet openbaar: we vragen per keer een tijdelijke link op. */
@@ -5739,6 +5831,15 @@ document.addEventListener("click", (e) => {
      knop bij de stand. Hij doet hetzelfde als "Betaallink maken", maar de
      knop die je indrukt moet ook degene zijn die op slot gaat. */
   if (e.target.id === "vNieuweLink") { e.preventDefault(); maakBetaallink(e.target); return; }
+  const scanOp = e.target.closest && e.target.closest("[data-scanop]");
+  if (scanOp) { e.preventDefault(); kiesScan(scanOp.getAttribute("data-scanop")); return; }
+  const scanZie = e.target.closest && e.target.closest("[data-scanzie]");
+  if (scanZie) {
+    e.preventDefault();
+    openBijlage(scanZie.getAttribute("data-scanzie"))
+      .catch((err) => { const n = $("#vBetaalNote"); if (n) n.textContent = err.message; });
+    return;
+  }
   const gastKnop = e.target.closest && e.target.closest("[data-gastform]");
   if (gastKnop) {
     e.preventDefault();
