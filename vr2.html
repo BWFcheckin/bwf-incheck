@@ -4783,11 +4783,22 @@ async function vinkAf(lijst, kenmerk, titel, toelichting){
      achter tot de volgende keer dat er iets anders hertekende. */
   try{ badges(); }catch(e){}
   try{
+    /* Twee fouten zaten hier, en samen maakten ze het afvinken stuk. Angela,
+       04-10-2026: 'Afvinken lukte niet: 400 PGRST102 Empty or invalid json'.
+
+       1. De body was een array in plaats van een JSON-tekst. fetch maakt daar
+          "[object Object]" van, en dat is geen json - vandaar PGRST102.
+       2. 'prefer' als losse optie doet niets: api() kijkt alleen naar
+          headers. Zonder de Prefer-header geeft een tweede keer afvinken van
+          dezelfde regel een sleutelbotsing in plaats van een stille update.
+
+       De andere schrijfacties in dit bestand doen het wel goed (zie
+       wz_gesprekken en de maak()-functie); deze was de uitzondering. */
     await api('bwf_afgevinkt', { method:'POST',
-      prefer: 'resolution=merge-duplicates,return=minimal',
-      body: [{ lijst, kenmerk: String(kenmerk), titel: titel || null,
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{ lijst, kenmerk: String(kenmerk), titel: titel || null,
         toelichting: toelichting || null,
-        afgevinkt_door: (typeof IK !== 'undefined' && IK && IK.naam) ? IK.naam : null }] });
+        afgevinkt_door: (typeof IK !== 'undefined' && IK && IK.naam) ? IK.naam : null }]) });
   }catch(e){
     /* Niet gelukt: terugdraaien in beeld, anders denk je dat het weg is
        terwijl het morgen weer terugkomt. */
