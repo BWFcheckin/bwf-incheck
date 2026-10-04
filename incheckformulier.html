@@ -4301,6 +4301,16 @@ body{background:#f4f7fb!important}
 .bwf-kop .pijl{margin-left:auto;color:var(--bwf-grijs);font-size:12px;transition:transform .18s ease}
 .bwf-sec[data-open="0"] .pijl{transform:rotate(-90deg)}
 .bwf-sec[data-open="0"] .bwf-body{display:none}
+/* Angela, 04-10-2026: "dit gedeelte mag verwijderd worden bij het
+   incheckformulier, de info staat nu dubbel."
+
+   De kopregel van Reserveringsgegevens vatte samen wat er in de velden
+   eronder staat - datum, tijd, verblijf, personen - en dat stond er dus twee
+   keer zodra je het blok openklapte. Een samenvatting hoort alleen te staan
+   als je de inhoud NIET ziet. Bij de andere secties blijft de regel staan:
+   daar is het een toelichting ("zoek op naam, nummer of datum") en geen
+   herhaling van de velden. */
+.bwf-sec[data-titel="Reserveringsgegevens"][data-open="1"] .bwf-kop .sub{display:none}
 .bwf-body{padding:4px 20px 20px}
 .bwf-body .card{border:0!important;box-shadow:none!important;padding:0!important;margin:0 0 18px!important;
   background:transparent!important;border-radius:0!important}
