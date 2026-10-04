@@ -154,6 +154,11 @@ const STANDAARD = [
   { id:'srv_waterpijp', groep:'srv', naam:'Waterpijp', prijs:30, img:'srv-waterpijp.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:2, oms:'Diverse smaken.', varianten:[ {id:'love66',naam:'Love 66',prijs:30}, {id:'miamore',naam:'Mi Amore',prijs:30}, {id:'dubbelappel',naam:'Dubbel Appel',prijs:30} ] },
   { id:'srv_massagetafel', groep:'srv', naam:'Massagetafel', prijs:25, img:'srv-massagetafel.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:1, oms:'Gebruik van massagetafel incl. extra handdoek en olie.' },
   { id:'srv_blinddoek', groep:'srv', naam:'Blinddoek', prijs:2.5, img:'srv-blinddoek.jpg', suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Verras iemand tijdens het spabezoek.' },
+  /* Angela, 02 en 03-10-2026. Deze twee staan ook in de ingebouwde lijst van
+     gast-incheck.html. Hier moeten ze óók staan: sla je op deze pagina iets
+     op, dan wordt deze lijst de bron en zouden ze anders verdwijnen. */
+  { id:'srv_badlinnen', groep:'srv', naam:'Badlinnenpakket extra', prijs:20, suites:['angie','jacuzzi','deluxe'], maxAantal:4, oms:'Een extra set handdoeken en badlinnen.' },
+  { id:'srv_laat', groep:'srv', naam:'Later aankomen', prijs:0, suites:['angie','jacuzzi','deluxe'], maxAantal:1, oms:'Geef door hoe laat je verwacht aan te komen. Tot 22:00 kost dat niets. Daarna rekenen we € 25 per uur; later dan 00:00 inchecken kan niet.', varianten:[ {id:'voor22',naam:'Vóór 22:00',prijs:0}, {id:'tot23',naam:'Tussen 22:00 en 23:00',prijs:25}, {id:'tot24',naam:'Tussen 23:00 en 00:00',prijs:50} ] },
 ];
 
 let CAT = [];

@@ -328,6 +328,25 @@ let CATALOGUS = [
      Ik had dit eerst precies omgekeerd en op beide Malina-suites gezet. */
   { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, suites:['angie'], maxAantal:1,
     oms:'Gebruik van het rookterras tijdens je verblijf.' },
+
+  /* Angela, 02 en 03-10-2026. Deze twee stonden alleen in de migratie, die de
+     rij 'standaard' in gast_catalogus bijwerkt. Nagemeten op 04-10-2026: die
+     rij bestaat niet, dus die update raakte niets en de gast zag ze niet. Ze
+     horen hier, in de ingebouwde lijst die dan geldt. */
+  { id:'srv_badlinnen', groep:'srv', naam:'Badlinnenpakket extra', prijs:20,
+    suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    oms:'Een extra set handdoeken en badlinnen.' },
+
+  /* Later aankomen. Tot 22:00 kost het niets, maar het staat er wel bij: dan
+     weet de locatiemanager hoe laat hij je kan verwachten. Na 22:00 is het
+     EUR 25 per uur; later dan 00:00 inchecken kan niet, dus daar stopt de
+     lijst. */
+  { id:'srv_laat', groep:'srv', naam:'Later aankomen', prijs:0,
+    suites:['angie','jacuzzi','deluxe'], maxAantal:1,
+    oms:'Geef door hoe laat je verwacht aan te komen. Tot 22:00 kost dat niets. Daarna rekenen we € 25 per uur; later dan 00:00 inchecken kan niet.',
+    varianten:[ {id:'voor22', naam:'Vóór 22:00', prijs:0},
+                {id:'tot23',  naam:'Tussen 22:00 en 23:00', prijs:25},
+                {id:'tot24',  naam:'Tussen 23:00 en 00:00', prijs:50} ] },
 ];
 
 /* ================= CATALOGUS UIT BEHEER ================= */
@@ -498,7 +517,16 @@ function regels(){
     const it = CATALOGUS.find(x=>x.id===id);
     const v = it.varianten ? it.varianten.find(x=>x.id===k.variant) : null;
     const prijs = v ? v.prijs : it.prijs;
-    return { id, naam: it.naam + (v && it.varianten.length>1 ? ' — ' + v.naam.split(':')[0] : ''), variant: v ? v.id : null, aantal: k.aantal, prijs, subtotaal: +(k.aantal*prijs).toFixed(2), groep: it.groep };
+    /* De variantnaam wordt ingekort tot wat vóór de dubbele punt staat, zodat
+       "Deluxe: romantische versiering, 2 glazen prosecco en bonbons" in de
+       bestelling gewoon "Deluxe" wordt.
+
+       Dat ging mis bij tijden: "Tussen 22:00 en 23:00" werd "Tussen 22".
+       Daarom nu alleen splitsen op een dubbele punt die door een spatie wordt
+       gevolgd - dat is een dubbele punt in een zin. In een tijd komt er een
+       cijfer achter, en dan blijft de naam heel. Nagemeten 04-10-2026. */
+    const kort = v ? String(v.naam).split(/:\s/)[0] : '';
+    return { id, naam: it.naam + (v && it.varianten.length>1 ? ' — ' + kort : ''), variant: v ? v.id : null, aantal: k.aantal, prijs, subtotaal: +(k.aantal*prijs).toFixed(2), groep: it.groep };
   });
 }
 function totaal(){ return +regels().reduce((s,r)=>s+r.subtotaal,0).toFixed(2); }
