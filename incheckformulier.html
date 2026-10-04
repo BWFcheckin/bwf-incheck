@@ -87,6 +87,39 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   margin-top:20px; border-top:1px solid var(--line-soft); padding-top:14px; font-weight:500; }
 .hint{ font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
 .status{ margin-top:10px; font-size:13px; font-weight:600; }
+/* De drie tegels bovenaan, in dezelfde vorm als de dagstart van het
+   VR-dashboard: een knop met een aantal, een rood bolletje als er iets te
+   doen is, en de lijst die eronder openklapt. */
+#fmTegels{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:12px; margin:0 0 16px; }
+.fm-tegel{ position:relative; text-align:left; cursor:pointer; padding:15px 16px;
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--r-l);
+  display:flex; flex-direction:column; gap:3px; transition:border-color .15s; }
+.fm-tegel:hover{ border-color:var(--brass); }
+.fm-tegel.open{ border-color:var(--accent); background:var(--accent-soft); }
+.fm-tegel .getal{ font-family:var(--f-display); font-size:27px; font-weight:700; line-height:1.1; }
+.fm-tegel .wat{ font-size:13px; color:var(--muted); }
+.fm-tegel .pijl{ position:absolute; right:14px; bottom:14px; color:var(--muted);
+  font-size:13px; transition:transform .15s; }
+.fm-tegel.open .pijl{ transform:rotate(180deg); }
+.fm-tegel .stip{ position:absolute; top:9px; right:9px; min-width:20px; height:20px;
+  padding:0 6px; border-radius:999px; background:#B3261E; color:#fff;
+  font:600 11.5px/20px var(--f-mono); text-align:center; }
+#fmOpen{ background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-l); margin:-6px 0 18px; overflow:hidden; }
+#fmOpen[hidden]{ display:none!important; }
+.fmOpen-kop{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:13px 16px 10px; border-bottom:1px solid var(--line-soft); }
+.fmOpen-kop h2{ margin:0; font-size:17px; }
+#fmOpenDicht{ font-size:22px; line-height:1; padding:0 6px; background:none; border:0;
+  cursor:pointer; color:var(--muted); }
+#fmOpenDicht:hover{ color:var(--ink); }
+.fmZoek{ display:grid; grid-template-columns:2fr 1fr auto; gap:10px; padding:12px 14px 6px; }
+@media(max-width:620px){ .fmZoek{ grid-template-columns:1fr; } }
+.fmZoek label{ margin:0 0 4px; }
+#fmOpenLijst{ padding:0 14px 14px; }
+#fmOpenLijst table{ width:100%; }
+
 /* De uitklapkop van de klaargezette formulieren. */
 .concept-kop{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; }
 .concept-kop::-webkit-details-marker{ display:none; }
@@ -259,6 +292,31 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   </header>
 
   <div class="loadstatus" id="loadStatus"></div>
+
+  <!-- Angela, 04-10-2026: "ik wil de knoppen definitieve formulieren,
+       klaargezette formulieren en gastaanmeldingen bovenaan zien als tegels
+       met dropdownmenu, net als bij de homepage. Ik wil bij alle formulieren
+       kunnen zoeken op naam en datum."
+
+       Dezelfde opzet als de dagstart in vr2: drie tegels, en de lijst van de
+       aangeklikte tegel komt eronder te staan, met een zoekveld. -->
+  <div id="fmTegels"></div>
+  <div id="fmOpen" hidden>
+    <div class="fmOpen-kop">
+      <h2 id="fmOpenTitel"></h2>
+      <button type="button" id="fmOpenDicht" aria-label="Sluiten">&times;</button>
+    </div>
+    <div class="fmZoek">
+      <div><label for="fmZoekNaam">Zoeken op naam</label>
+        <input type="text" id="fmZoekNaam" placeholder="naam, e-mailadres of reserveringsnummer"></div>
+      <div><label for="fmZoekDatum">Datum</label>
+        <input type="date" id="fmZoekDatum"></div>
+      <div><label>&nbsp;</label>
+        <button class="btn secondary sm" type="button" id="fmZoekWis">Wissen</button></div>
+    </div>
+    <p class="hint" id="fmTel" style="margin:0 14px 8px"></p>
+    <div id="fmOpenLijst"></div>
+  </div>
 
   <div class="aanmeld" id="aanmeldBanner" style="display:none;margin-bottom:16px;">
     <div class="info" id="aanmeldBannerTekst"></div>
@@ -1691,6 +1749,145 @@ function confirmGuestForm(){
 function aanmeldingVoorConcept(conceptId){
   return aanmeldingen.find(a=>a.checkin_id === conceptId) || null;
 }
+/* =========================================================
+   De drie tegels bovenaan, met zoeken op naam en datum
+   =========================================================
+   Angela, 04-10-2026: "ik wil de knoppen definitieve formulieren,
+   klaargezette formulieren en gastaanmeldingen bovenaan zien als tegels met
+   dropdownmenu, net als bij de homepage. Ik wil bij alle formulieren kunnen
+   zoeken op naam en datum."
+
+   Eén zoekveld voor alle drie, want je zoekt altijd in de lijst die openstaat.
+   De datum is een los veld: op naam zoek je met woorden, op datum met een
+   kalender, en die twee door elkaar husselen in één vak levert alleen maar
+   "17-09 geeft niets" op.
+   ========================================================= */
+let FM_OPEN = '';
+
+function fmNaamVan(x){
+  return [x.voornaam, x.achternaam].filter(Boolean).join(' ').trim();
+}
+function fmDatumVan(x){
+  return String(x.datum || x.created_at || '').slice(0, 10);
+}
+
+/* Past deze regel bij wat er in de zoekvelden staat? */
+function fmPast(x){
+  const naam = (document.getElementById('fmZoekNaam') || {}).value || '';
+  const datum = (document.getElementById('fmZoekDatum') || {}).value || '';
+  if(datum && fmDatumVan(x) !== datum) return false;
+  const z = naam.trim().toLowerCase();
+  if(!z) return true;
+  return [fmNaamVan(x), x.email, x.telefoon, x.resnr, x.code, x.woonplaats]
+    .filter(Boolean).join(' ').toLowerCase().indexOf(z) > -1;
+}
+
+function fmTegels(){
+  const vak = document.getElementById('fmTegels');
+  if(!vak) return;
+  const def = checkins.filter(c => c.status !== 'concept');
+  const con = checkins.filter(c => c.status === 'concept');
+  const aan = aanmeldingen.filter(a => !a.status || a.status === 'nieuw');
+  const tegel = (sleutel, getal, wat, stip) =>
+    `<button class="fm-tegel${FM_OPEN === sleutel ? ' open' : ''}" type="button"
+       data-fmtoon="${sleutel}" aria-expanded="${FM_OPEN === sleutel}">
+       ${stip && getal ? `<span class="stip">${getal > 99 ? '99+' : getal}</span>` : ''}
+       <span class="getal">${getal}</span><span class="wat">${wat}</span>
+       <span class="pijl">&#8964;</span></button>`;
+  vak.innerHTML =
+    tegel('aanmeldingen', aan.length, 'Gastaanmeldingen', true) +
+    tegel('concepten',    con.length, 'Klaargezette formulieren', true) +
+    tegel('definitief',   def.length, 'Definitieve formulieren', false);
+}
+
+function fmVul(sleutel){
+  const vak = document.getElementById('fmOpen');
+  const titel = document.getElementById('fmOpenTitel');
+  const lijst = document.getElementById('fmOpenLijst');
+  const tel = document.getElementById('fmTel');
+  if(!vak || !lijst) return;
+  FM_OPEN = sleutel;
+  vak.hidden = false;
+
+  let rijen = [], html = '', naam = '';
+  if(sleutel === 'aanmeldingen'){
+    naam = 'Gastaanmeldingen';
+    rijen = aanmeldingen.filter(a => (!a.status || a.status === 'nieuw') && fmPast(a));
+    html = rijen.length
+      ? rijen.map(a => `<div class="aanmeld">
+          <div class="info"><strong>${escapeHtml(fmNaamVan(a) || 'zonder naam')}</strong>
+            <small>${escapeHtml([fmDatumVan(a) ? new Date(fmDatumVan(a)).toLocaleDateString('nl-NL') : '',
+              locName(a.locatie), a.code ? 'res. ' + a.code : '',
+              a.lid ? 'wil lid worden' : ''].filter(Boolean).join(' · '))}</small></div>
+          <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Koppelen</button>
+        </div>`).join('')
+      : '<div class="aanmeld-leeg">Niets gevonden.</div>';
+  }else if(sleutel === 'concepten'){
+    naam = 'Klaargezette formulieren';
+    rijen = checkins.filter(c => c.status === 'concept' && fmPast(c));
+    html = rijen.length
+      ? rijen.map(c => {
+          const a = aanmeldingVoorConcept(c.id);
+          const wie = a ? fmNaamVan(a) : (fmNaamVan(c) || 'Nog geen gastgegevens');
+          return `<div class="aanmeld">
+            <div class="info"><strong>${escapeHtml(wie)}</strong>
+              <small>${escapeHtml([c.datum ? new Date(c.datum).toLocaleDateString('nl-NL') : '',
+                locName(c.locatie), c.resnr ? 'res. ' + c.resnr : '',
+                a ? '✓ gast heeft ingevuld' : 'wacht nog op de gast'].filter(Boolean).join(' · '))}</small></div>
+            <button class="btn sm" type="button" onclick="openCheckinDetail('${c.id}')">Verder invullen</button>
+          </div>`;
+        }).join('')
+      : '<div class="aanmeld-leeg">Niets gevonden.</div>';
+  }else{
+    naam = 'Definitieve formulieren';
+    rijen = checkins.filter(c => c.status !== 'concept' && fmPast(c));
+    html = rijen.length
+      ? '<table><thead><tr><th>Datum</th><th>Locatie</th><th>Gast</th>' +
+        '<th>Pers.</th><th>Totaal</th><th>Nog te betalen</th></tr></thead><tbody>' +
+        rijen.slice(0, 60).map(c => `<tr onclick="openCheckinDetail('${c.id}')" style="cursor:pointer">
+          <td>${escapeHtml(c.datum || '')}</td><td>${escapeHtml(locName(c.locatie))}</td>
+          <td>${escapeHtml(fmNaamVan(c) || '—')}</td><td>${escapeHtml(String(c.personen || ''))}</td>
+          <td>${c.totaal != null ? euro(c.totaal) : ''}</td>
+          <td>${c.restant != null ? euro(c.restant) : ''}</td></tr>`).join('') +
+        '</tbody></table>'
+      : '<div class="aanmeld-leeg">Niets gevonden.</div>';
+  }
+  titel.textContent = naam;
+  lijst.innerHTML = html;
+  if(tel) tel.textContent = rijen.length
+    ? rijen.length + (rijen.length === 1 ? ' formulier' : ' formulieren')
+    : '';
+  fmTegels();
+}
+
+function fmDicht(){
+  const vak = document.getElementById('fmOpen');
+  if(vak) vak.hidden = true;
+  FM_OPEN = '';
+  fmTegels();
+}
+
+document.addEventListener('click', function(e){
+  if(e.target.closest && e.target.closest('#fmOpenDicht')){ fmDicht(); return; }
+  if(e.target.closest && e.target.closest('#fmZoekWis')){
+    const n = document.getElementById('fmZoekNaam'), d = document.getElementById('fmZoekDatum');
+    if(n) n.value = ''; if(d) d.value = '';
+    if(FM_OPEN) fmVul(FM_OPEN);
+    return;
+  }
+  const knop = e.target.closest && e.target.closest('[data-fmtoon]');
+  if(!knop) return;
+  const sleutel = knop.getAttribute('data-fmtoon');
+  if(FM_OPEN === sleutel){ fmDicht(); return; }
+  fmVul(sleutel);
+});
+document.addEventListener('input', function(e){
+  if(!e.target.id) return;
+  if(e.target.id === 'fmZoekNaam' || e.target.id === 'fmZoekDatum'){
+    if(FM_OPEN) fmVul(FM_OPEN);
+  }
+});
+
 function renderConcepten(){
   const lijst = document.getElementById('conceptLijst');
   const concepten = checkins.filter(c=>c.status === 'concept');
@@ -1698,6 +1895,9 @@ function renderConcepten(){
      klaarstaat. Angela, 04-10-2026. */
   const tel = document.getElementById('conceptTel');
   if(tel) tel.textContent = concepten.length ? String(concepten.length) : '';
+  /* De tegels bovenaan tellen hetzelfde; even bijwerken zodat ze niet
+     achterlopen nadat er een concept bij komt of weggaat. */
+  try{ fmTegels(); if(FM_OPEN) fmVul(FM_OPEN); }catch(e){}
   if(!concepten.length){
     lijst.innerHTML = '<div class="aanmeld-leeg">Er staan geen concepten klaar.</div>';
     return;
@@ -1866,6 +2066,7 @@ function renderAanmeldingen(){
   }).join('');
   banner.style.display = nieuwe.length ? 'flex' : 'none';
   if(nieuwe.length) vulAanmeldBanner(nieuwe);
+  try{ fmTegels(); if(FM_OPEN === 'aanmeldingen') fmVul('aanmeldingen'); }catch(e){}
 }
 
 /* De balk bovenaan telt altijd alle openstaande aanmeldingen, ook als je lijst
@@ -2162,6 +2363,7 @@ function clearCheckinForm(){
 let openDetailId = null;
 try{ Object.defineProperty(window, 'openDetailId', { get: function(){ return openDetailId; } }); }catch(e){}
 function renderCheckinTable(){
+  try{ fmTegels(); }catch(e){}
   const body = document.getElementById('checkinTableBody');
   const afgerond = checkins.filter(c=>c.status !== 'concept');
   if(!afgerond.length){
@@ -4439,16 +4641,23 @@ body{background:#f4f7fb!important}
     sectie(1, "Reservering koppelen", "zoek op naam, nummer of datum",
       "Boekingsgegevens", [K.koppel], true);
 
-    /* ---- 2. Reserveringsgegevens ---- */
-    sectie(2, "Reserveringsgegevens", "suite, verblijf, datum en tijd",
-      "Reserveringsgegevens", [K.boven], true);
+    /* Reserveringsgegevens stond hier als stap 2. Angela, 04-10-2026: "knop 2
+       reserveringsgegevens is overbodig, dit staat al boven zodra je hem
+       koppelt." Klopt: stap 1 toont na het koppelen de gevonden gegevens, en
+       deze velden herhaalden dat.
 
-    /* ---- 3. Gast koppelen ---- */
-    sectie(3, "Gast koppelen", "zoeken in het klantenbestand",
+       De kaart zelf blijft in de pagina staan, verborgen: suite, datum en tijd
+       worden eruit weggeschreven en zijn verplicht bij definitief opslaan.
+       Lukt het opslaan niet omdat ze leeg zijn, dan komt het blok vanzelf
+       tevoorschijn - zie de controle in saveCheckin. */
+    if(K.boven) K.boven.hidden = true;
+
+    /* ---- 2. Gast koppelen ---- */
+    sectie(2, "Gast koppelen", "zoeken in het klantenbestand",
       "Gast koppelen", [K.gastkoppel], false);
 
-    /* ---- 4. Gastaanmelding koppelen ---- */
-    sectie(4, "Gastaanmelding koppelen", "wat de gast heeft ingestuurd",
+    /* ---- 3. Gastaanmelding koppelen ---- */
+    sectie(3, "Gastaanmelding koppelen", "wat de gast heeft ingestuurd",
       "Aanmeldingen", [K.aanmeld], false);
 
     /* ---- 5. Opslaan en terugzoeken ----
@@ -4456,8 +4665,12 @@ body{background:#f4f7fb!important}
        wel invullen en niets bewaren, en zonder het archief kun je een concept
        niet hervatten of een afgerond formulier niet terugvinden. Ze staan
        daarom samen in één laatste stap, onderaan en dichtgeklapt. */
-    sectie(5, "Opslaan en terugzoeken", "bewaren, hervatten en afgeronde formulieren",
-      "Eindafrekening", [K.opslaan, K.concept, K.definitief], false);
+    /* De concepten en de definitieve formulieren staan sinds 04-10-2026 als
+       tegel bovenaan; hier blijft alleen het opslaan over. */
+    sectie(4, "Opslaan", "bewaren als concept of definitief afronden",
+      "Eindafrekening", [K.opslaan], false);
+    if(K.concept)    K.concept.hidden = true;
+    if(K.definitief) K.definitief.hidden = true;
 
     /* Deze haak werd aangeroepen zodra er gastgegevens waren overgenomen; hij
        opende toen een keuzelijst die niet meer bestaat. Nu klapt hij gewoon de
@@ -6403,8 +6616,16 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
             }
             /* Verwees naar Boekingsgegevens; suite, datum en locatiemanager staan
                sinds 18-09-2026 bovenaan in Reserveringsgegevens. */
+            /* Het blok Reserveringsgegevens staat normaal verborgen - de
+               gegevens komen uit de gekoppelde reservering. Ontbreekt suite of
+               datum, dan moet je ze alsnog kunnen invullen, dus komt het hier
+               tevoorschijn. Zonder dit zou het opslaan weigeren om iets wat je
+               nergens kunt aanpassen. Angela, 04-10-2026. */
             var boven = document.getElementById("bwfBovenBlok");
-            if(boven) boven.scrollIntoView({ behavior:"smooth", block:"start" });
+            if(boven){
+              boven.hidden = false;
+              boven.scrollIntoView({ behavior:"smooth", block:"start" });
+            }
             else if(window.bwfOpenSectie) window.bwfOpenSectie("Boekingsgegevens");
             return Promise.reject(new Error("verplichte velden"));
           }
