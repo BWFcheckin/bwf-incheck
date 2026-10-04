@@ -1174,10 +1174,25 @@ function springNaarAnker(){
   const q = new URLSearchParams(location.search);
   const form = q.get('formulier'), pdf = q.get('pdf');
   if(form || pdf){
-    setTimeout(function(){
+    /* Niet één keer 900 ms gokken: hoe lang het laden duurt hangt af van de
+       verbinding, en wie net te traag is kreeg een lege uitkomst. Wachten tot
+       het gevraagde formulier er écht is, met een grens zodat het niet
+       eindeloos doorloopt. Angela, 04-10-2026: "de pdf wordt niet geopend". */
+    const gezocht = pdf || form;
+    let pogingen = 0;
+    const kijk = setInterval(function(){
+      pogingen++;
+      const klaar = (typeof checkins !== 'undefined' && Array.isArray(checkins))
+        && checkins.some(function(c){ return c && c.id === gezocht; });
+      if(!klaar && pogingen < 40) return;           /* 40 × 250 ms = 10 seconden */
+      clearInterval(kijk);
+      if(!klaar){
+        alert('Het formulier kon niet geladen worden. Ververs de pagina en probeer het opnieuw.');
+        return;
+      }
       if(pdf && typeof window.bwfAfdrukken === 'function'){ window.bwfAfdrukken(pdf); return; }
       if(form && typeof openCheckinDetail === 'function') openCheckinDetail(form);
-    }, 900);
+    }, 250);
     return;
   }
   const h = (location.hash || '').replace('#','');
@@ -5594,7 +5609,9 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
   window.bwfAfdrukken = function(id){ return afdrukken(id); };
   function afdrukken(id){
     var c = (alleCheckins()).find(function(x){ return x.id === id; });
-    if(!c) return;
+    /* Stil teruggaan was hier de fout: je drukt op "Open pdf" en er gebeurt
+       niets, zonder dat iets zegt waarom. Angela, 04-10-2026. */
+    if(!c){ alert("Dit formulier staat niet in de lijst. Ververs de pagina en probeer het opnieuw."); return; }
     var overnacht = c.verblijftype === "overnachting";
     function rij(l, w){
       return '<tr><th>' + veilig(l) + '</th><td>' + veilig(w == null || w === "" ? "\u2014" : w) + '</td></tr>';
@@ -5645,10 +5662,76 @@ dialog::backdrop{background:rgba(20,32,51,.38)}
       new Date().toLocaleDateString("nl-NL", { day:"numeric", month:"long", year:"numeric" }) + '</p>' +
       '</body></html>';
 
-    var w = window.open("", "_blank");
-    if(!w){ alert("Je browser blokkeert het nieuwe venster. Sta pop-ups toe voor deze pagina."); return; }
-    w.document.write(h); w.document.close();
-    setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 400);
+    toonAfdrukvel(h, naamVan(c));
+  }
+
+  /* ---------- het formulier in beeld, niet in een pop-up ----------
+     Angela, 04-10-2026: "ik zie bij reserveringen wel een groene balk bij
+     incheckformulier maar de pdf wordt niet geopend."
+
+     Dit stond eerder in window.open(). Dat werkt alleen zolang de browser een
+     muisklik ziet; vanaf de reserveringskaart komt de knop binnen als
+     ?pdf=<id> en wordt het venster ná het laden geopend, dus zonder klik. Elke
+     moderne browser houdt dat tegen - gemeten in Chrome: window.open geeft
+     null en de gast ziet alleen de melding "sta pop-ups toe". Op een iPhone is
+     een tweede venster sowieso onhandig.
+
+     Nu komt het formulier als vel over de pagina te liggen, in een eigen
+     iframe zodat de opmaak van het formulier en die van deze pagina elkaar
+     niet raken. Afdrukken of opslaan als pdf gaat met de knop erboven - dat is
+     wél een echte klik, dus daar houdt geen browser iets tegen. */
+  var AFDRUK_VEL = null;
+  function toonAfdrukvel(html, titel){
+    if(!AFDRUK_VEL){
+      /* Bij het afdrukken moet alleen het vel op papier komen en niet de
+         pagina eronder. Het iframe drukt zichzelf af; deze regel is de
+         terugval voor browsers die dat niet doen. */
+      var st = document.createElement("style");
+      st.textContent =
+        "#bwfAfdrukVel{position:fixed;inset:0;z-index:9999;background:#f4f6f9;" +
+        "  display:flex;flex-direction:column}" +
+        "#bwfAfdrukVel iframe{flex:1;width:100%;border:0;background:#fff}" +
+        /* De balk mag afbreken: op een telefoon passen de titel en twee
+           knoppen niet op één regel, en dan werd de naam afgekapt tot
+           "Petra B...". Nu zakken de knoppen naar de regel eronder. */
+        ".bwfAfdrukBalk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;" +
+        "  padding:10px 12px;background:#fff;border-bottom:1px solid #e4e9f0;flex:0 0 auto}" +
+        ".bwfAfdrukBalk strong{flex:1 1 100%;min-width:0;font-size:15px}" +
+        ".bwfAfdrukBalk button{flex:0 0 auto}" +
+        "@media(min-width:620px){ .bwfAfdrukBalk strong{flex:1 1 auto;" +
+        "  overflow:hidden;text-overflow:ellipsis;white-space:nowrap} }" +
+        "@media print{ body > *:not(#bwfAfdrukVel){display:none !important}" +
+        "  #bwfAfdrukVel{position:static !important;background:#fff !important}" +
+        "  #bwfAfdrukVel .bwfAfdrukBalk{display:none !important}" +
+        "  #bwfAfdrukVel iframe{height:auto !important;min-height:100vh} }";
+      document.head.appendChild(st);
+
+      AFDRUK_VEL = document.createElement("div");
+      AFDRUK_VEL.id = "bwfAfdrukVel";
+      AFDRUK_VEL.innerHTML =
+        '<div class="bwfAfdrukBalk">' +
+          '<strong data-veltitel></strong>' +
+          '<button type="button" class="btn sm" data-velprint>Afdrukken of opslaan als pdf</button>' +
+          '<button type="button" class="btn secondary sm" data-veldicht>Sluiten</button>' +
+        '</div>' +
+        '<iframe title="Incheckformulier"></iframe>';
+      document.body.appendChild(AFDRUK_VEL);
+
+      AFDRUK_VEL.querySelector("[data-veldicht]").addEventListener("click", function(){
+        AFDRUK_VEL.hidden = true;
+      });
+      AFDRUK_VEL.querySelector("[data-velprint]").addEventListener("click", function(){
+        var f = AFDRUK_VEL.querySelector("iframe");
+        /* Het iframe zelf afdrukken geeft precies dit ene vel. Lukt dat niet
+           (sommige browsers weigeren het), dan drukt de pagina af en zorgt de
+           @media print-regel hierboven dat alleen het vel overblijft. */
+        try{ f.contentWindow.focus(); f.contentWindow.print(); }
+        catch(e){ window.print(); }
+      });
+    }
+    AFDRUK_VEL.hidden = false;
+    AFDRUK_VEL.querySelector("[data-veltitel]").textContent = titel || "Incheckformulier";
+    AFDRUK_VEL.querySelector("iframe").srcdoc = html;
   }
 
   /* ---------- klant aanmaken, ook in bulk ---------- */
