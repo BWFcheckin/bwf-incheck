@@ -2372,7 +2372,7 @@ function tekenPersoneelKaart(r) {
       kaartRegel("Soort", esc(TYPES[r.type] || r.type)),
       kaartRegel("Personen", r.personen ? esc(r.personen) : ""),
       kaartRegel("Status", esc(STATUSSEN[r.status] || r.status))
-    ]) +
+    ], true) +
     kaartVak("Gastgegevens", [
       kaartRegel("Naam", esc(gastNaam(r) || "—")),
       kaartRegel("Telefoon", tel
@@ -2381,7 +2381,7 @@ function tekenPersoneelKaart(r) {
         : ""),
       kaartRegel("E-mail", r.gast_email
         ? '<a href="mailto:' + esc(r.gast_email) + '">' + esc(r.gast_email) + "</a>" : "")
-    ]) +
+    ], true) +
     kaartVak("Betalingsgegevens", [
       kaartRegel("Totaalbedrag", totaal != null ? "&euro; " + esc(euro(totaal))
         : afgeleid ? "&euro; " + esc(euro(uitBron.bedrag)) +
@@ -2394,17 +2394,25 @@ function tekenPersoneelKaart(r) {
             "&euro; " + esc(euro((open != null ? open : 0) + extraNaCall)))
         : "",
       kaartRegel("Betaald via", esc(r.betaald_via || "nog niet bekend"))
-    ]) +
-    kaartVak("Arrangementen vooraf geboekt",
-      vooraf.length ? vooraf.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
-    kaartVak("Arrangementen bijgeboekt bij de reservering",
-      bijgeboekt.length ? bijgeboekt.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
-    kaartVak("Arrangementen geboekt na de welkomstcall",
-      naCall.length ? naCall.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    ], true) +
+    /* Angela, 04-10-2026: "ik wil in de reserveringskaart bepaalde gegevens
+       standaard uitgeklapt zien" - de drie blokken hierboven plus de
+       arrangementen die vooraf geboekt zijn. Dat is wat je wilt weten op het
+       moment dat je de kaart opent; de rest klap je open als je het nodig hebt.
+
+       En: een arrangementenblok dat leeg is komt er niet meer. Dat waren vier
+       vakken onder elkaar met alleen "Geen" erin - scrollwerk dat niets zegt.
+       Staat er nu een arrangementenblok, dan zit er ook echt iets in. */
+    (vooraf.length ? kaartVak("Arrangementen vooraf geboekt",
+      vooraf.map((a) => "<div>" + noem(a) + "</div>"), true) : "") +
+    (bijgeboekt.length ? kaartVak("Arrangementen bijgeboekt bij de reservering",
+      bijgeboekt.map((a) => "<div>" + noem(a) + "</div>")) : "") +
+    (naCall.length ? kaartVak("Arrangementen geboekt na de welkomstcall",
+      naCall.map((a) => "<div>" + noem(a) + "</div>")) : "") +
     /* Angela, 20-09-2026: apart vak, zodat je ziet wat er tijdens het verblijf
        is bijgekomen en door wie. */
-    kaartVak("Extra's bijgeboekt op locatie",
-      opLocatie.length ? opLocatie.map((a) => "<div>" + noem(a) + "</div>") : ["<div>Geen</div>"]) +
+    (opLocatie.length ? kaartVak("Extra's bijgeboekt op locatie",
+      opLocatie.map((a) => "<div>" + noem(a) + "</div>")) : "") +
     /* Handmatig gegeven korting. Staat open als er iets staat: wie een rekening
        narekent moet meteen zien waarom er minder betaald is dan de optelsom
        van de regels. Is er niets, dan komt het vak er helemaal niet. */
