@@ -309,7 +309,7 @@ let CATALOGUS = [
      incheckformulier en in de lijst met extra's; hier ontbraken ze nog, zodat
      een gast ze zelf niet kon bestellen. Geen foto: er is er geen van, en een
      verkeerde foto is erger dan geen. */
-  { id:'drank_bier', groep:'drank', naam:'Bier per fles', prijs:6, suites:['angie','jacuzzi','deluxe'], maxAantal:12,
+  { id:'drank_bier', groep:'drank', naam:'Bier per fles', prijs:6, img:'drank-bier.svg', suites:['angie','jacuzzi','deluxe'], maxAantal:12,
     oms:'Per fles, gekoeld klaargezet.' },
 
   /* --- Services --- */
@@ -326,7 +326,7 @@ let CATALOGUS = [
                       niet vermelden, er valt niets te bestellen
        Malina Jacuzzi geen rookgelegenheid
      Ik had dit eerst precies omgekeerd en op beide Malina-suites gezet. */
-  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, suites:['angie'], maxAantal:1,
+  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, img:'srv-rookterras.svg', suites:['angie'], maxAantal:1,
     oms:'Gebruik van het rookterras tijdens je verblijf.' },
 
   /* Angela, 02 en 03-10-2026. Deze twee stonden alleen in de migratie, die de
@@ -334,19 +334,29 @@ let CATALOGUS = [
      rij bestaat niet, dus die update raakte niets en de gast zag ze niet. Ze
      horen hier, in de ingebouwde lijst die dan geldt. */
   { id:'srv_badlinnen', groep:'srv', naam:'Badlinnenpakket extra', prijs:20,
-    suites:['angie','jacuzzi','deluxe'], maxAantal:4,
+    img:'srv-badlinnen.svg', suites:['angie','jacuzzi','deluxe'], maxAantal:4,
     oms:'Een extra set handdoeken en badlinnen.' },
 
-  /* Later aankomen. Tot 22:00 kost het niets, maar het staat er wel bij: dan
-     weet de locatiemanager hoe laat hij je kan verwachten. Na 22:00 is het
-     EUR 25 per uur; later dan 00:00 inchecken kan niet, dus daar stopt de
-     lijst. */
+  /* Later aankomen. Angela, 04-10-2026: "aankomsttijd is alleen geldig bij
+     overnachtingen. Houd de aankomsttijd aan zoals bij de reservering staat
+     vermeld; klant vult alleen in indien anders. Geeft de klant aan hoe laat,
+     dus 19:00, 20:00, 21:00, 22:00; na 22:00 geldt de toeslag."
+
+     Tot en met 22:00 kost het niets - dat is alleen doorgeven hoe laat je
+     komt. Daarna EUR 25 per uur, en bij 00:00 houdt het op.
+
+     `alleenOvernachting` houdt dit weg bij een dagverblijf; zie zichtbaar()
+     in renderCatalogus. */
   { id:'srv_laat', groep:'srv', naam:'Later aankomen', prijs:0,
-    suites:['angie','jacuzzi','deluxe'], maxAantal:1,
-    oms:'Geef door hoe laat je verwacht aan te komen. Tot 22:00 kost dat niets. Daarna rekenen we € 25 per uur; later dan 00:00 inchecken kan niet.',
-    varianten:[ {id:'voor22', naam:'Vóór 22:00', prijs:0},
-                {id:'tot23',  naam:'Tussen 22:00 en 23:00', prijs:25},
-                {id:'tot24',  naam:'Tussen 23:00 en 00:00', prijs:50} ] },
+    img:'srv-later.svg', suites:['angie','jacuzzi','deluxe'], maxAantal:1,
+    alleenOvernachting:true,
+    oms:'We houden de tijd aan die in je reservering staat. Kom je later? Geef het hier door. Na 22:00 rekenen we € 25 per uur; later dan 00:00 inchecken kan niet.',
+    varianten:[ {id:'t19', naam:'19:00', prijs:0},
+                {id:'t20', naam:'20:00', prijs:0},
+                {id:'t21', naam:'21:00', prijs:0},
+                {id:'t22', naam:'22:00', prijs:0},
+                {id:'t23', naam:'23:00', prijs:25},
+                {id:'t24', naam:'00:00', prijs:50} ] },
 ];
 
 /* ================= CATALOGUS UIT BEHEER ================= */
@@ -418,7 +428,8 @@ async function laadVeiligeLink(){
     if(rij) g = {
       reservation_id: rij.reservering_id, location: rij.suite,
       arrival: rij.aankomst, first_name: rij.voornaam, last_name: rij.achternaam,
-      email: rij.email, phone: rij.telefoon
+      email: rij.email, phone: rij.telefoon,
+      soort: rij.soort, incheck_tijd: rij.incheck_tijd
     };
   }catch(e){ /* hieronder nog de oude weg proberen */ }
 
@@ -433,6 +444,11 @@ async function laadVeiligeLink(){
   }
 
   resCode = String(g.reservation_id||'');
+  /* Verblijftype en aankomsttijd onthouden: het eerste bepaalt of "Later
+     aankomen" in de lijst hoort, het tweede welke tijd er voorgeselecteerd
+     staat. */
+  RES_SOORT = String(g.soort || g.type || '');
+  RES_TIJD  = String(g.incheck_tijd || '').slice(0,5);
   const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
   if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
   if(g.arrival) document.getElementById('g_datum').value=g.arrival;
@@ -458,8 +474,22 @@ function itemPrijs(it){
   if(it.varianten){ const v = it.varianten.find(x=>x.id===(k?k.variant:it.varianten[0].id)) || it.varianten[0]; return v.prijs; }
   return it.prijs;
 }
+/* Welke variant staat voorgeselecteerd. Normaal de eerste, maar bij "Later
+   aankomen" de tijd die in de reservering staat: Angela, 04-10-2026 - "houd de
+   aankomsttijd aan zoals bij de reservering staat vermeld, klant vult alleen
+   in indien anders". Staat er 19:00, dan hoeft de gast niets te doen. */
+function standaardVariant(it){
+  if(!it.varianten) return null;
+  if(it.id === 'srv_laat' && RES_TIJD){
+    const uur = RES_TIJD.slice(0,2);
+    const raak = it.varianten.find(v => v.naam.slice(0,2) === uur);
+    if(raak) return raak.id;
+  }
+  return it.varianten[0].id;
+}
+
 function prodHTML(it){
-  const k = keuze[it.id] || { aantal:0, variant: it.varianten ? it.varianten[0].id : null };
+  const k = keuze[it.id] || { aantal:0, variant: standaardVariant(it) };
   /* Kost het niets, dan staat er "Gratis" en geen "€ 0,00" - dat laatste leest
      als een fout. Er staat op dit moment niets gratis in de lijst; deze regel
      voorkomt het als er ooit iets bijkomt. */
@@ -481,9 +511,25 @@ function prodHTML(it){
       <div class="ctl">${ctl}</div>
     </div></div>`;
 }
+/* Wat we uit de reservering weten. Komt binnen via de veilige link; bij een
+   kale link blijft het leeg. Angela, 04-10-2026: de aankomsttijd geldt alleen
+   bij overnachtingen, en de tijd uit de reservering is leidend. */
+let RES_SOORT = '';   /* 'Overnachting', 'Dagverblijf' of leeg = onbekend */
+let RES_TIJD  = '';   /* bijvoorbeeld '19:00' */
+
+const isDagverblijf = () => /dag/i.test(RES_SOORT);
+
 function renderCatalogus(){
   const suite = huidigeSuite();
-  const zichtbaar = it => !suite || it.suites.includes(suite);
+  const zichtbaar = it => {
+    if(suite && !it.suites.includes(suite)) return false;
+    /* Alleen weglaten als we ZEKER weten dat het een dagverblijf is. Weten we
+       het niet - bijvoorbeeld bij een link zonder token - dan tonen we het
+       liever wel: een overnachtingsgast die zijn tijd niet kan doorgeven is
+       erger dan een dagverblijfgast die een regel ziet die hij overslaat. */
+    if(it.alleenOvernachting && isDagverblijf()) return false;
+    return true;
+  };
   const grids = { arr:'arrGrid', menu:'menuGrid', drank:'drankGrid', srv:'srvGrid' };
   for(const [g,id] of Object.entries(grids)){
     const items = CATALOGUS.filter(it=>it.groep===g && zichtbaar(it));
@@ -497,7 +543,7 @@ function renderCatalogus(){
 }
 function wijzigAantal(id, delta){
   const it = CATALOGUS.find(x=>x.id===id);
-  const k = keuze[id] || { aantal:0, variant: it.varianten ? it.varianten[0].id : null };
+  const k = keuze[id] || { aantal:0, variant: standaardVariant(it) };
   k.aantal = Math.max(0, Math.min(it.maxAantal, k.aantal + delta));
   if(k.aantal) keuze[id] = k; else delete keuze[id];
   const el = document.getElementById('prod_'+id); if(el) el.outerHTML = prodHTML(it);

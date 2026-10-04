@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Rookterras">
+  <rect width="400" height="300" fill="#E7E3DC"/>
+  <rect y="196" width="400" height="104" fill="#D6CCBE"/>
+  <!-- vlonderplanken -->
+  <g stroke="#C6B9A8" stroke-width="2">
+    <path d="M0 220H400"/><path d="M0 246H400"/><path d="M0 272H300"/>
+  </g>
+  <!-- loungestoel -->
+  <g transform="translate(250 196)">
+    <path d="M-52 0v-30a10 10 0 0 1 10-10h58a10 10 0 0 1 10 10V0Z" fill="#6E6257"/>
+    <path d="M-52 -30 l-14 -54a9 9 0 0 1 7 -11l12 -2a8 8 0 0 1 9 7l6 46Z" fill="#7D7065"/>
+    <path d="M-44 0v16M20 0v16" stroke="#564C43" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <!-- plant -->
+  <g transform="translate(96 196)">
+    <path d="M-20 0h40l-6 -34h-28Z" fill="#8F7A5E"/>
+    <g stroke="#4F6B4B" stroke-width="7" stroke-linecap="round" fill="none">
+      <path d="M0 -34C-4 -62 -22 -70 -28 -86"/>
+      <path d="M0 -34C2 -66 20 -74 28 -90"/>
+      <path d="M0 -34V-78"/>
+    </g>
+  </g>
+  <!-- rookpluim -->
+  <g stroke="#B9B1A6" stroke-width="5" stroke-linecap="round" fill="none" opacity=".85">
+    <path d="M186 150c12-10 0-22 10-32s0-22 10-31"/>
+  </g>
+  <circle cx="186" cy="156" r="5" fill="#A34434"/>
+</svg>

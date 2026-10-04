@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Badlinnenpakket">
+  <rect width="400" height="300" fill="#EFE8E1"/>
+  <g transform="translate(200 150)">
+    <!-- onderste gevouwen handdoek -->
+    <rect x="-95" y="18" width="190" height="52" rx="10" fill="#FFFFFF" stroke="#D9CCBD" stroke-width="2"/>
+    <path d="M-95 44 H95" stroke="#E6DACB" stroke-width="2"/>
+    <rect x="-95" y="36" width="190" height="9" fill="#9A7B4F" opacity=".5"/>
+    <!-- middelste -->
+    <rect x="-86" y="-32" width="172" height="50" rx="10" fill="#FBF8F4" stroke="#D9CCBD" stroke-width="2"/>
+    <rect x="-86" y="-14" width="172" height="9" fill="#9A7B4F" opacity=".35"/>
+    <!-- opgerolde handdoek bovenop -->
+    <ellipse cx="0" cy="-56" rx="42" ry="26" fill="#FFFFFF" stroke="#D9CCBD" stroke-width="2"/>
+    <ellipse cx="0" cy="-56" rx="25" ry="15" fill="none" stroke="#D9CCBD" stroke-width="2"/>
+    <ellipse cx="0" cy="-56" rx="10" ry="6" fill="none" stroke="#CDBCA8" stroke-width="2"/>
+  </g>
+</svg>

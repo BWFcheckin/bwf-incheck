@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Bier per fles">
+  <rect width="400" height="300" fill="#EFE8E1"/>
+  <!-- fles -->
+  <g transform="translate(150 150)">
+    <path d="M-26 86V-14c0-14 9-20 9-32v-22h34v22c0 12 9 18 9 32V86a8 8 0 0 1-8 8h-36a8 8 0 0 1-8-8Z" fill="#6B4A22"/>
+    <path d="M-17 -68h34v10h-34z" fill="#9A7B4F"/>
+    <rect x="-26" y="6" width="52" height="42" fill="#F3E6CE"/>
+    <path d="M-10 20h20M-14 32h28" stroke="#9A7B4F" stroke-width="3" stroke-linecap="round"/>
+    <path d="M-18 -10c6 4 12 4 18 0s12-4 18 0" stroke="#8A6534" stroke-width="3" fill="none" opacity=".6"/>
+  </g>
+  <!-- glas met schuim -->
+  <g transform="translate(268 162)">
+    <path d="M-34 -36h68l-8 108a8 8 0 0 1-8 7h-36a8 8 0 0 1-8-7Z" fill="#E3A32B"/>
+    <path d="M-34 -36h68l-2 24h-64Z" fill="#F0C266"/>
+    <path d="M-36 -36c0-16 14-20 20-14 2-12 20-14 25-4 10-6 23 2 21 14 0 3-2 4-4 4h-60c-1 0-2-1-2-4Z" fill="#FBF6EC"/>
+    <path d="M34 -16h10a14 14 0 0 1 0 44h-7" fill="none" stroke="#E3A32B" stroke-width="9"/>
+  </g>
+</svg>
