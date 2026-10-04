@@ -1648,6 +1648,18 @@ div.ag-blok{cursor:default}
     <!-- Twee uitklapmenu's onder de drie blokken (Angela, 21-09-2026): wat
          gasten zelf hebben bijgeboekt bij het online inchecken, en welke
          formulieren nog aan een reservering gekoppeld moeten worden. -->
+    <!-- Angela, 04-10-2026: "ik wil de gastaanmeldingen op de dagstart
+         terugzien met een belletje boven in de menubalk." Het belletje in de
+         balk telt ze al; dit is de lijst zelf. Staat open, want het is werk
+         dat vandaag gedaan moet worden. -->
+    <details class="dg-uitklap" id="dgAanmeldVak" open>
+      <summary>Gastaanmeldingen
+        <button class="dg-bel" type="button" id="dgBelAanmeld" hidden
+          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
+        <span class="dg-telling" id="dgAanmeldTel"></span></summary>
+      <div class="dg-lijst" id="dgAanmeld"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+    </details>
+
     <details class="dg-uitklap" id="dgExtrasVak">
       <summary>Bijgeboekt via het incheckformulier
         <button class="dg-bel" type="button" id="dgBelExtras" hidden
@@ -4678,7 +4690,11 @@ if($('#dgMeldBewaar')) $('#dgMeldBewaar').addEventListener('click', dgMeldBewaar
    uit vier verschillende tabellen, en bij "nog te verwerken" zou een vlaggetje
    botsen met wat die lijst betekent (die vraagt juist of een boeking al is
    nagelopen). */
-const AFGEVINKT = { spoed: {}, nieuw: {}, extras: {}, formulieren: {} };
+/* Elke lijst die afvinkbaar is MOET hier staan. laadAfgevinkt() slaat een rij
+   over waarvan de lijstnaam hier ontbreekt, en vinkAf() zou schrijven in
+   undefined. Dat gaat stil mis: je vinkt af, er gebeurt niets zichtbaars, en
+   na verversen staat alles er weer. "aanmeldingen" erbij op 04-10-2026. */
+const AFGEVINKT = { spoed: {}, nieuw: {}, extras: {}, formulieren: {}, aanmeldingen: {} };
 
 async function laadAfgevinkt(){
   try{
@@ -5072,6 +5088,45 @@ function renderDagstart(){
     nieuw.className = 'dg-kaarten';
     /* Belletje: boekingen die je nog niet gezien hebt. */
     dgBel('dgBelNieuw', 'nieuw', nietVerwerkt.map(r => r.resId || r.ref || ''));
+  }
+
+  /* ---- gastaanmeldingen ----
+     Angela, 04-10-2026: "ik wil de gastaanmeldingen op de dagstart terugzien."
+
+     Alleen wat de GAST zelf heeft ingestuurd (_soort 'aanmelding') en nog niet
+     verwerkt is. Het blok hieronder over losse formulieren toont ook
+     incheckformulieren en gaat over koppelen; dit gaat over wie zich heeft
+     aangemeld. Wie lid wil worden of extra's heeft besteld staat erbij - dat
+     is het eerste wat je wilt weten als je zo'n aanmelding oppakt. */
+  const aanVak = $('#dgAanmeld'), aanTel = $('#dgAanmeldTel');
+  if(aanVak){
+    const aanmeldingen = (typeof FORMS !== 'undefined' ? FORMS : [])
+      .filter(f => f._soort === 'aanmelding')
+      .filter(f => !f.status || f.status === 'nieuw')
+      .sort((a, b) => String(b.created_at || b.datum || '')
+                       .localeCompare(String(a.created_at || a.datum || '')));
+    const aanOpen = nogOpen('aanmeldingen', aanmeldingen, formSleutel);
+    if(aanTel) aanTel.textContent = aanOpen.length ? String(aanOpen.length) : '';
+    aanVak.innerHTML = (aanOpen.length
+      ? aanOpen.slice(0, 12).map(f => {
+          const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') || 'zonder naam';
+          const merk = [];
+          if(f.lid === true) merk.push('wil lid worden');
+          if(Array.isArray(f.extras) && f.extras.length) merk.push(f.extras.length + ' extra’s');
+          const bij = [f.locatie, f.code ? 'res. ' + f.code : '', merk.join(' · ')]
+            .filter(Boolean).join(' · ');
+          return `<div class="dg-spoedregel metvink">
+            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
+            <div><strong>${esc(naam)}</strong><small>${esc(bij)}</small></div>
+            <button type="button" class="dg-vink" title="Afvinken"
+              aria-label="${esc(naam)} afvinken"
+              data-afvink="aanmeldingen" data-kenmerk="${esc(formSleutel(f))}"
+              data-titel="${esc(naam)}">&#10003;</button>
+          </div>`;
+        }).join('')
+      : '<p class="dg-leeg">Geen nieuwe gastaanmeldingen.</p>')
+      + archiefBlok('aanmeldingen');
+    dgBel('dgBelAanmeld', 'aanmeldingen', aanOpen.map(formSleutel));
   }
 
   /* ---- uitklap 1: wat gasten zelf hebben bijgeboekt ----
@@ -12515,7 +12570,10 @@ $('#whoBtn').addEventListener('click', ()=>{
     }
     paneel.innerHTML =
       rij('Nieuwe reserveringen', t.reserveringen, 'reserveringen') +
-      rij('Nieuwe gastaanmeldingen', t.aanmeldingen, 'klantbeheer') +
+      /* Naar de dagstart en niet naar klantbeheer: daar staan de
+         gastaanmeldingen sinds 04-10-2026 in een eigen blok, met de namen
+         erbij en een vinkje om ze af te werken. */
+      rij('Nieuwe gastaanmeldingen', t.aanmeldingen, 'overzicht') +
       (t.aanmeldingen
         ? '<p class="bel-sub">Daarvan ' + t.bijboekingen +
           (t.bijboekingen === 1 ? ' met bijgeboekte extra’s' : ' met bijgeboekte extra’s') +
