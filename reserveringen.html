@@ -2267,6 +2267,23 @@ function tekenPersoneelKaart(r) {
   const kortingen = metPlek.filter((x) => x.a && x.a.korting === true);
   const vooraf = metPlek.filter((x) => !(x.a && x.a.bron) &&
     !(x.a && x.a.member === true) && !(x.a && x.a.korting === true));
+  /* ---- vangnet: niets mag ongezien van de kaart vallen ----
+     Angela, 04-10-2026: "graag een vangnet maken."
+
+     De groepen hierboven zijn zes filters naast elkaar, geen verdeling. Een
+     regel met een herkomst die hier niet bekend is - iets anders dan leeg,
+     "bijgeboekt", "welkomstcall" of "op_locatie" - viel door alle zes heen en
+     verdween zonder melding van de kaart, inclusief het bedrag. Het staat dan
+     nog wel in de boeking en telt nog mee in het totaal, maar je ziet niet
+     meer waarvoor je afrekent.
+
+     Nu wordt bijgehouden wat ergens is geland en krijgt de rest een eigen vak,
+     open, met de herkomst erbij. Komt dat vak ooit in beeld, dan is dat een
+     sein dat er iets wegschrijft met een waarde die dit scherm niet kent. */
+  const geplaatst = new Set();
+  [naCall, bijgeboekt, opLocatie, voordeel, kortingen, vooraf]
+    .forEach((groep) => groep.forEach((x) => geplaatst.add(x.i)));
+  const overig = metPlek.filter((x) => x.a && !geplaatst.has(x.i));
   /* Wie het heeft bijgeboekt en wanneer, als dat is vastgelegd. Regels van
      vóór 20-09-2026 hebben dat niet; daar blijft het gewoon weg. */
   const doorWie = (a) => {
@@ -2413,6 +2430,20 @@ function tekenPersoneelKaart(r) {
        is bijgekomen en door wie. */
     (opLocatie.length ? kaartVak("Extra's bijgeboekt op locatie",
       opLocatie.map((a) => "<div>" + noem(a) + "</div>")) : "") +
+    /* Het vangnet. Staat open, want als hier iets in staat moet je het zien.
+       De uitleg hangt aan de laatste regel vast en niet als eigen regel in de
+       lijst: anders telt de kop er eentje te veel. */
+    (overig.length ? kaartVak("Arrangementen met een onbekende herkomst",
+      overig.map((x, i) =>
+        '<div>' + noem(x) +
+        ' <span style="color:#B3261E;font-size:12px">herkomst &ldquo;' +
+        esc(String((x.a && x.a.bron) || "onbekend")) + '&rdquo;</span>' +
+        (i === overig.length - 1
+          ? '<div style="color:var(--muted);font-size:12px;margin-top:6px">' +
+            "Deze regels horen bij de boeking en tellen mee in het totaal, maar " +
+            "dit scherm kent hun herkomst niet. Meld het even, dan zoeken we uit " +
+            "wat ze wegschrijft.</div>"
+          : "") + "</div>"), true) : "") +
     /* Handmatig gegeven korting. Staat open als er iets staat: wie een rekening
        narekent moet meteen zien waarom er minder betaald is dan de optelsom
        van de regels. Is er niets, dan komt het vak er helemaal niet. */
