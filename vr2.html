@@ -1191,7 +1191,16 @@ div.ag-blok{cursor:default}
    bijbehorende onderdeel springt; de pijl rechts laat dat zien.
    Eigen klassenamen (dg-) omdat .stat en .stats in dit bestand al bezet zijn
    door de cijfers bij Werkzaamheden en bij De drie locaties. */
-#ovStats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+/* Vijf blokken sinds 04-10-2026; auto-fit zodat ze bij elke breedte netjes
+   uitkomen in plaats van op een vast aantal kolommen te blijven hangen. */
+#ovStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
+  gap:12px;margin-bottom:18px}
+/* Het rode bolletje rechtsboven: hetzelfde rood als op de tabbladen. Alleen
+   zichtbaar als er iets te doen is - de tegel zelf tekent hem niet bij nul. */
+.dg-stat .dg-stip{position:absolute;top:10px;right:10px;min-width:20px;height:20px;
+  padding:0 6px;border-radius:999px;background:#B3261E;color:#fff;
+  font:600 11.5px/20px var(--f-mono,monospace);text-align:center;
+  box-shadow:0 0 0 2px var(--surface)}
 .dg-stat{position:relative;min-height:108px;padding:17px 19px;text-align:left;
   background:var(--surface);border:2px solid var(--line);border-radius:var(--r-l);
   cursor:pointer;transition:transform .18s ease,border-color .18s ease}
@@ -1555,7 +1564,10 @@ div.ag-blok{cursor:default}
       </div>
     </div>
     <nav class="tabs" id="groeptabs" role="tablist" aria-label="Dashboardonderdelen">
-      <button class="tab" role="tab" data-groep="overzicht" aria-selected="true">Dagstart</button>
+      <!-- Angela, 04-10-2026: "ik wil dit bovenaan de pagina zien en in de
+           menubalk." Dagstart was het enige tabblad zonder teller. Hij telt de
+           nieuwe gastaanmeldingen, want dat is wat daar bovenaan staat. -->
+      <button class="tab" role="tab" data-groep="overzicht" aria-selected="true">Dagstart<span class="badge" id="badge-groep-overzicht" hidden>0</span></button>
       <button class="tab" role="tab" data-groep="planning">Planning<span class="badge" id="badge-groep-planning" hidden>0</span></button>
       <button class="tab" role="tab" data-groep="reserveringen">Reserveringen<span class="badge" id="badge-groep-reserveringen">0</span></button>
       <button class="tab" role="tab" data-groep="takencalls">Taken &amp; welkomstcalls<span class="badge" id="badge-groep-takencalls">0</span></button>
@@ -1610,6 +1622,18 @@ div.ag-blok{cursor:default}
          renderOverzicht() vulde hem altijd al (open taken, werkzaamheden en uren
          deze maand, nog niet afgerekend, openstaande overdracht); alleen het
          tonen stond uit. -->
+    <!-- Angela, 04-10-2026: eerst "op de dagstart terugzien", daarna "ik wil
+         dit bovenaan de pagina zien". Daarom staat dit blok boven de kalender
+         en de spoedlijst: het is het eerste wat je 's ochtends oppakt, en
+         onderaan tussen de uitklappers scrolde het uit beeld. -->
+    <details class="dg-uitklap" id="dgAanmeldVak" open style="margin-top:14px">
+      <summary>Gastaanmeldingen
+        <button class="dg-bel" type="button" id="dgBelAanmeld" hidden
+          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
+        <span class="dg-telling" id="dgAanmeldTel"></span></summary>
+      <div class="dg-lijst" id="dgAanmeld"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
+    </details>
+
     <div id="ovStats"></div>
 
     <!-- De dagstart toont drie blokken (Angela, 21-09-2026): de planning als
@@ -1648,18 +1672,6 @@ div.ag-blok{cursor:default}
     <!-- Twee uitklapmenu's onder de drie blokken (Angela, 21-09-2026): wat
          gasten zelf hebben bijgeboekt bij het online inchecken, en welke
          formulieren nog aan een reservering gekoppeld moeten worden. -->
-    <!-- Angela, 04-10-2026: "ik wil de gastaanmeldingen op de dagstart
-         terugzien met een belletje boven in de menubalk." Het belletje in de
-         balk telt ze al; dit is de lijst zelf. Staat open, want het is werk
-         dat vandaag gedaan moet worden. -->
-    <details class="dg-uitklap" id="dgAanmeldVak" open>
-      <summary>Gastaanmeldingen
-        <button class="dg-bel" type="button" id="dgBelAanmeld" hidden
-          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
-        <span class="dg-telling" id="dgAanmeldTel"></span></summary>
-      <div class="dg-lijst" id="dgAanmeld"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
-    </details>
-
     <details class="dg-uitklap" id="dgExtrasVak">
       <summary>Bijgeboekt via het incheckformulier
         <button class="dg-bel" type="button" id="dgBelExtras" hidden
@@ -4860,19 +4872,52 @@ function renderDagstart(){
   const calls = (S.calls || []).filter(c => c.status !== 'afgerond' && c.status !== 'gebeld');
   const aankVandaag = RES.filter(r => String(r.start || '').slice(0,10) === vd);
 
+  /* De blokken bovenaan. Angela, 04-10-2026: "ik wil deze blokken aanpassen
+     naar nieuwe reservering gastgegevens controleren, spoedreserveringen
+     binnen 24 uur, gastaanmeldingen, VIP-aanmeldingen, bijgeboekt via
+     incheckformulier, en een rood belletje plaatsen."
+
+     Er stonden vier tegels met een aantal: reserveringen vanaf vandaag (646),
+     openstaande taken, welkomstcalls, aankomsten vandaag. Een getal dat er
+     altijd staat leest niemand meer - 646 is geen signaal. Deze vijf gaan
+     allemaal over werk dat nu klaarligt, en krijgen daarom een rood bolletje
+     zodra er iets is. Is er niets, dan staat er een nul zonder bolletje.
+
+     Het belletje is hetzelfde rood als op de tabbladen (--crit, #B3261E). */
   const tegel = (teken, getal, wat, naar) =>
     `<button class="dg-stat" type="button" data-dgnaar="${naar}">
        <span class="dg-teken">${teken}</span>
+       ${getal ? `<span class="dg-stip">${getal > 99 ? '99+' : getal}</span>` : ''}
        <span class="dg-getal">${getal}</span>
        <span class="dg-wat">${wat}</span>
        <span class="dg-pijl">&rarr;</span></button>`;
 
+  /* De aanmeldingen van gasten: zelfde maatstaf als het blok eronder en als de
+     bel in de balk, zodat de drie nooit uiteen kunnen lopen. */
+  const aanmeldingen = (typeof FORMS !== 'undefined' ? FORMS : [])
+    .filter(f => f._soort === 'aanmelding' && (!f.status || f.status === 'nieuw'));
+  const vips = aanmeldingen.filter(f => f.lid === true);
+  const metExtras = (typeof FORMS !== 'undefined' ? FORMS : [])
+    .filter(f => Array.isArray(f.extras) && f.extras.length);
+
+  /* Spoed: aankomst binnen 24 uur, vanaf nu. Niet "vandaag", want om 23:00
+     is morgenochtend 09:00 dichterbij dan vanmiddag was. */
+  const nu = Date.now();
+  const binnen24 = RES.filter(r => {
+    if(r.geannuleerd) return false;
+    const t = Date.parse(String(r.start || '').length <= 10
+      ? String(r.start || '') + 'T12:00:00' : String(r.start || ''));
+    return !isNaN(t) && t >= nu && t - nu <= 86400000;
+  });
+
   const balk = $('#ovStats');
   if(balk) balk.innerHTML =
-    tegel('&#9831;', RES.length,         'Reserveringen vanaf vandaag', 'reserveringen') +
-    tegel('&#10003;', open.length,       'Openstaande taken',           'takencalls') +
-    tegel('&#9742;', calls.length,       'Welkomstcalls te doen',       'takencalls') +
-    tegel('&#9817;', aankVandaag.length, 'Aankomsten vandaag',          'planning');
+    tegel('&#9998;', onverwerkteBoekingen().length, 'Gastgegevens controleren',   'reserveringen') +
+    tegel('&#9201;', binnen24.length,               'Aankomst binnen 24 uur',     'reserveringen') +
+    tegel('&#9993;', aanmeldingen.length,           'Gastaanmeldingen',           'overzicht') +
+    tegel('&#9733;', vips.length,                   'VIP-aanmeldingen',           'overzicht') +
+    tegel('&#128722;', nogOpen('extras', metExtras, formSleutel).length,
+                                                    'Bijgeboekt via incheck',     'overzicht');
 
   /* ---- nu doen: hoge prioriteit eerst, daarna de vroegste deadline ---- */
   const dringend = open.slice().sort((a,b) => {
@@ -6889,14 +6934,18 @@ function badges(){
   /* Bij de reserveringen telt het bolletje wat er nog te verwerken valt. Is dat
      nul, dan hoort er niets te staan: een teller die er altijd staat leest
      niemand meer. */
-  const zetNieuw = (id,v)=>{
+  const zetNieuw = (id,v,enkel,meer)=>{
     const el = $('#badge-' + id); if(!el) return;
     el.textContent = v;
     el.hidden = !v;
     if(v) el.setAttribute('data-nieuw','1'); else el.removeAttribute('data-nieuw');
     const tab = el.closest('.tab');
+    /* De woorden erbij, want "3 staat nog te verwerken" slaat nergens op zodra
+       dit voor meer dan boekingen wordt gebruikt. Angela, 04-10-2026: de
+       dagstart telt nu gastaanmeldingen. */
     if(tab) tab.title = v
-      ? v + (v === 1 ? ' boeking staat' : ' boekingen staan') + ' nog te verwerken'
+      ? v + ' ' + (v === 1 ? (enkel || 'boeking staat') : (meer || 'boekingen staan')) +
+        ' nog te verwerken'
       : '';
   };
   zet('taken', mijnTaken().filter(t=>t.status!=='klaar').length);
@@ -6914,6 +6963,14 @@ function badges(){
      bolletje zonder foutmelding. Taken en welkomstcalls delen nu een tabblad,
      dus hun aantallen worden opgeteld. */
   const groepTeller = {
+    /* Dagstart telt de nieuwe gastaanmeldingen: dat is wat daar bovenaan
+       staat, en het is het enige op dat tabblad waar iets mee moet gebeuren.
+       Angela, 04-10-2026. Dezelfde maatstaf als het blok zelf gebruikt -
+       aanmeldingen van gasten die nog niet verwerkt zijn - zodat de teller en
+       de lijst nooit uiteen kunnen lopen. */
+    overzicht: (typeof FORMS !== 'undefined' ? FORMS : [])
+      .filter(f => f._soort === 'aanmelding' && (!f.status || f.status === 'nieuw'))
+      .length,
     takencalls: mijnTaken().filter(t=>t.status!=='klaar').length +
                 (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
     /* Angela, 22-09-2026: "een rood belletje op het pictogram van het
@@ -6929,6 +6986,12 @@ function badges(){
     /* Reserveringen krijgt het rode belletje: daar gaat het om werk dat nog
        moet gebeuren. De andere tellers blijven gewoon een aantal. */
     if(g === 'reserveringen'){ zetNieuw('groep-' + g, groepTeller[g]); return; }
+    /* De dagstart krijgt hetzelfde rode bolletje: ook daar gaat het om wat er
+       nieuw binnen is en nog moet gebeuren, niet om een aantal. */
+    if(g === 'overzicht'){
+      zetNieuw('groep-' + g, groepTeller[g], 'gastaanmelding staat', 'gastaanmeldingen staan');
+      return;
+    }
     const el = document.getElementById('badge-groep-'+g);
     if(el){ el.textContent = groepTeller[g]; el.hidden = !groepTeller[g]; }
   });
