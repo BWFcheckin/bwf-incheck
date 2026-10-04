@@ -1954,6 +1954,34 @@ function leesUitBron(tekst) {
 
    Een blok mag open beginnen met `open = true`; dat is voor wat je bij het
    openslaan sowieso wilt zien. */
+/* ---- de stand van het incheckformulier, op één plek ----------------------
+   Angela, 05-10-2026: "nee er komt geen pdf."
+
+   Het blok Incheckformulier in de kaart zette er altijd dezelfde knop neer,
+   naar een leeg formulier voor deze boeking - nooit de pdf, ook niet als er
+   een definitief formulier lag. De regel in Koppelingen deed het wél goed. Dat
+   is dezelfde val als eerder: twee blokken naast elkaar, door verschillende
+   functies gevuld, die uiteen gaan lopen.
+
+   Nu rekent alleen vulKoppelingen() het uit en zet het hier neer;
+   tekenPersoneelKaart() tekent eruit. Dat is nodig omdat de kaart op vijf
+   plekken opnieuw getekend wordt zonder dat de koppelingen opnieuw geladen
+   worden - zonder dit geheugen bleef het blok dan op "wordt geladen" staan. */
+const FORMSTAND = {};
+function incheckVakHtml(resId) {
+  const s = FORMSTAND[resId];
+  if (!s) return '<span style="color:var(--muted)">wordt geladen&hellip;</span>';
+  return '<div style="margin-bottom:8px">' + esc(s.stand) + "</div>" +
+    '<a class="knop sec klein" href="' + esc(s.link) + '" target="_blank" rel="noopener">' +
+      esc(s.knop) + "</a>" +
+    /* De andere weg blijft bereikbaar: soms wil je het formulier juist
+       aanpassen en niet afdrukken. */
+    (s.bewerkId
+      ? ' <a class="knop sec klein" href="incheckformulier.html?formulier=' +
+        esc(encodeURIComponent(s.bewerkId)) + '" target="_blank" rel="noopener">Aanpassen</a>'
+      : "");
+}
+
 function kaartVak(kop, regels, open) {
   const inhoud = regels.filter(Boolean).join("");
   if (!inhoud) return "";
@@ -2473,16 +2501,17 @@ function tekenPersoneelKaart(r) {
       (!r.omschrijving && !r.notitie && !r.import_opmerking) ? "<div>Geen</div>" : ""
     ]) +
     kaartVak("Incheckformulier", [
-      '<div id="vKaartIncheck" style="color:var(--muted)">wordt geladen&hellip;</div>'
+      '<div id="vKaartIncheck">' + incheckVakHtml(r.id) + "</div>"
     ]) +
     /* Het reviewblok staat open: na afloop van een verblijf is dit het enige
        wat er nog moet gebeuren, en dan wil je er niet eerst naar zoeken. */
     kaartVak("Review", ['<div id="vReviewVak">' + reviewVakInhoud(r) + "</div>"], true);
 
-  /* De koppelingen worden apart geladen; die vullen dit blok zodra ze binnen zijn. */
-  const vak = $("#vKaartIncheck");
-  if (vak) vak.innerHTML = '<a class="knop sec klein" href="incheckformulier.html?reservering=' +
-    esc(encodeURIComponent(r.id)) + '" target="_blank" rel="noopener">Incheckformulier bekijken of aanpassen</a>';
+  /* De koppelingen worden apart geladen; vulKoppelingen() vult dit blok zodra
+     ze binnen zijn, met de knop die bij de stand hoort - "Open pdf" als er een
+     definitief formulier is. Hier stond eerder vast "bekijken of aanpassen"
+     naar een leeg formulier, en dat overschreef het goede antwoord.
+     Angela, 05-10-2026. */
 
   /* het afrondblok vullen met wat er nu staat */
   $("#vAfrondStatus").innerHTML = opties(BETAAL, r.betaalstatus || "open");
@@ -2955,18 +2984,30 @@ async function vulKoppelingen(r) {
     const forms = [].concat(checkin || [], gekoppeldeForms || []).filter(Boolean);
     const definitief = forms.find((x) => x.status === "definitief");
     const concept = forms.find((x) => x.status === "concept");
-    regels.push(rijKoppeling("Incheckformulier",
-      definitief ? esc("definitief" + (definitief.datum ? " · " + definitief.datum : ""))
-        : concept ? esc("klaargezet, nog niet afgerond" + (concept.datum ? " · " + concept.datum : ""))
-        : "nog geen formulier",
-      /* Is er een formulier gekoppeld, dan opent de knop dát formulier en niet
-         de algemene pagina. Bij een definitief formulier gaat hij meteen naar
-         de afdrukweergave, waar de browser hem als pdf kan opslaan. Zonder
-         formulier blijft het zoals het was: een nieuw formulier aanmaken. */
-      definitief ? "incheckformulier.html?pdf=" + encodeURIComponent(definitief.id)
-        : concept ? "incheckformulier.html?formulier=" + encodeURIComponent(concept.id)
-        : "incheckformulier.html?reservering=" + encodeURIComponent(r.id),
-      definitief ? "Open pdf" : concept ? "Openen" : "Aanmaken"));
+    /* Is er een formulier gekoppeld, dan opent de knop dát formulier en niet
+       de algemene pagina. Bij een definitief formulier gaat hij meteen naar de
+       afdrukweergave, waar de browser hem als pdf kan opslaan. Zonder formulier
+       blijft het zoals het was: een nieuw formulier aanmaken. */
+    const formStand = definitief ? "definitief" + (definitief.datum ? " · " + definitief.datum : "")
+      : concept ? "klaargezet, nog niet afgerond" + (concept.datum ? " · " + concept.datum : "")
+      : "nog geen formulier";
+    const formLink = definitief ? "incheckformulier.html?pdf=" + encodeURIComponent(definitief.id)
+      : concept ? "incheckformulier.html?formulier=" + encodeURIComponent(concept.id)
+      : "incheckformulier.html?reservering=" + encodeURIComponent(r.id);
+    const formKnop = definitief ? "Open pdf" : concept ? "Openen" : "Aanmaken";
+    regels.push(rijKoppeling("Incheckformulier", esc(formStand), formLink, formKnop));
+
+    /* Dezelfde uitkomst onthouden voor het blok Incheckformulier in de kaart,
+       en dat blok meteen bijwerken als het al in beeld staat. Zie FORMSTAND. */
+    FORMSTAND[r.id] = {
+      stand: formStand,
+      link: formLink,
+      knop: definitief ? "Formulier openen als pdf"
+        : concept ? "Klaargezet formulier openen" : "Incheckformulier aanmaken",
+      bewerkId: (definitief || concept) ? (definitief || concept).id : ""
+    };
+    const kaartVakIncheck = $("#vKaartIncheck");
+    if (kaartVakIncheck) kaartVakIncheck.innerHTML = incheckVakHtml(r.id);
 
     /* Angela, 04-10-2026: "ik wil bij oude reserveringen een ingevuld gescand
        formulier kunnen koppelen als pdf, zodat die wordt ingeladen en zichtbaar
