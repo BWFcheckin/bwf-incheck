@@ -1169,6 +1169,37 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <span class="v-melding" id="vAfrekenNote"></span>
         </div>
       </div>
+      <!-- ===============================================================
+           Betaallink naar de gast - Angela, 05-10-2026
+           ===============================================================
+           "Je moet ook een betaallink naar de gast kunnen sturen."
+
+           Dit kon al, maar alleen in Bevestiging & factuur, en die fieldset
+           is voor een locatiemanager verborgen. Hier staat hij binnen het
+           afrondvak, dat juist voor hem openstaat - en meteen op het bedrag
+           dat nog openstaat, want dat is wat je bij het afrekenen stuurt.
+           Er wordt niets vanzelf verstuurd: de knoppen zetten het bericht
+           klaar, versturen doe je zelf. -->
+      <div id="vUcLinkVak" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft)">
+        <strong style="display:block;margin-bottom:6px">Betaallink naar de gast</strong>
+        <div id="vUcLinkStand" class="uitleg" style="margin:0 0 8px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <label style="font-size:13px">Bedrag &euro;
+            <input type="text" inputmode="decimal" id="vUcLinkBedrag" placeholder="0,00" style="width:104px"></label>
+          <button type="button" class="knop sec klein" id="vUcLinkMaak">Betaallink maken</button>
+          <span class="v-melding" id="vUcLinkNote"></span>
+        </div>
+        <div id="vUcLinkUit" hidden style="margin-top:9px">
+          <input type="text" id="vUcLink" readonly
+            style="width:100%;font-size:12.5px" onclick="this.select()">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px">
+            <button type="button" class="knop sec klein" id="vUcLinkKopieer">Kopieer link</button>
+            <a class="knop sec klein" id="vUcLinkApp" target="_blank" rel="noopener">WhatsApp</a>
+            <a class="knop sec klein" id="vUcLinkMail" target="_blank" rel="noopener">E-mail</a>
+          </div>
+        </div>
+      </div>
+
       <div style="margin-top:10px"><button type="button" class="knop" id="vAfrondOpslaan">Afronden</button>
         <span class="v-melding" id="vAfrondNote"></span></div>
     </div>
@@ -2041,6 +2072,7 @@ function openVenster(id) {
   if (beperkt || bewerk) {
     tekenAfrekenVak(r);
     const note = $("#vAfrekenNote"); if (note) note.textContent = "";
+    ucLinkVul(r);
   }
 
   /* detail: wat er aan deze reservering hangt, wat eraan veranderd is en het bronmateriaal */
@@ -3575,6 +3607,85 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("change", (e) => {
   if (e.target.closest && e.target.closest("#vUcPunten")) ucToonExtras();
+});
+
+/* ---- betaallink naar de gast, onder het afrekenen --------------------- */
+function ucLinkVul(r) {
+  const vak = $("#vUcLinkVak"); if (!vak || !r) return;
+  const open = ucOpenstaand(r);
+  const stand = $("#vUcLinkStand");
+  if (stand) stand.textContent = open > 0
+    ? "Nog te betalen: € " + euro(open) + ". De link is 48 uur geldig."
+    : "Er staat niets meer open. Je kunt alsnog een link maken voor een ander bedrag.";
+  const bedrag = $("#vUcLinkBedrag");
+  if (bedrag) bedrag.value = open > 0 ? euro(open) : "";
+  const uit = $("#vUcLinkUit"); if (uit) uit.hidden = true;
+  const note = $("#vUcLinkNote"); if (note) { note.textContent = ""; note.style.color = ""; }
+}
+
+/* Het bericht dat met de link meegaat. Kort, want het gaat per WhatsApp. */
+function ucLinkBericht(r, link, bedrag) {
+  return "Hallo " + ((r.gast_voornaam || "").trim() || "") + ",\n\n" +
+    "Hierbij de betaallink voor je verblijf bij Bed & Wellness Flevoland" +
+    (resNummer(r) ? " (reservering " + resNummer(r) + ")" : "") + ".\n" +
+    "Bedrag: € " + euro(bedrag) + "\n" + link + "\n\n" +
+    "De link is 48 uur geldig. Hartelijke groet,\nBed & Wellness Flevoland";
+}
+
+async function ucLinkMaak() {
+  const r = HUIDIG; if (!r) return;
+  const knop = $("#vUcLinkMaak"), note = $("#vUcLinkNote");
+  const zeg = (t, fout) => { if (note) { note.textContent = t; note.style.color = fout ? "var(--crit)" : ""; } };
+  const bedrag = leesBedrag($("#vUcLinkBedrag").value);
+  if (!Number.isFinite(bedrag) || bedrag < 0.01) { zeg("Vul een bedrag van minimaal € 0,01 in.", true); return; }
+  knop.disabled = true;
+  zeg("De betaallink wordt aangemaakt bij Mollie…");
+  try {
+    const d = await mollieLinkMaken(r, bedrag);
+    if (!d.checkoutUrl) { zeg("Betaallink maken lukte niet: " + (d.error || "onbekende fout"), true); return; }
+    $("#vUcLink").value = d.checkoutUrl;
+    $("#vUcLinkUit").hidden = false;
+
+    const tekst = ucLinkBericht(r, d.checkoutUrl, bedrag);
+    /* Alleen een cijfernummer kan naar wa.me; staat er geen telefoon, dan
+       verdwijnt die knop in plaats van naar een kapotte link te wijzen. */
+    const tel = String(r.gast_telefoon || "").replace(/\D/g, "").replace(/^0/, "31");
+    const app = $("#vUcLinkApp");
+    app.hidden = !tel;
+    if (tel) app.href = "https://wa.me/" + tel + "?text=" + encodeURIComponent(tekst);
+    const mail = $("#vUcLinkMail");
+    mail.hidden = !r.gast_email;
+    if (r.gast_email) mail.href = "mailto:" + encodeURIComponent(r.gast_email) +
+      "?subject=" + encodeURIComponent("Betaallink Bed & Wellness Flevoland") +
+      "&body=" + encodeURIComponent(tekst);
+
+    /* De stand van de betaallinks elders op de kaart meteen bijwerken. */
+    try { toonMollieStand(r); } catch (e) {}
+    zeg(String(d.mode) === "test"
+      ? "Link van € " + euro(bedrag) + " aangemaakt — LET OP: dit is een TESTbetaling."
+      : "Link van € " + euro(bedrag) + " aangemaakt.", String(d.mode) === "test");
+    if (d.waarschuwing) zeg("Let op: " + d.waarschuwing, true);
+  } catch (e) {
+    zeg("De verbinding met Mollie lukte niet: " + e.message, true);
+  } finally { knop.disabled = false; }
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest && e.target.closest("#vUcLinkMaak")) { e.preventDefault(); ucLinkMaak(); return; }
+  const kop = e.target.closest && e.target.closest("#vUcLinkKopieer");
+  if (kop) {
+    e.preventDefault();
+    const veld = $("#vUcLink");
+    veld.select();
+    /* Het klembord via de nieuwe weg, met de oude als terugval: op een iPhone
+       in een iframe weigert navigator.clipboard soms zonder melding. */
+    const klaar = () => { const n = $("#vUcLinkNote"); if (n) { n.textContent = "Link gekopieerd."; n.style.color = ""; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(veld.value).then(klaar, () => {
+        try { document.execCommand("copy"); klaar(); } catch (x) {}
+      });
+    } else { try { document.execCommand("copy"); klaar(); } catch (x) {} }
+  }
 });
 
 async function ucOpslaan() {
@@ -6079,6 +6190,31 @@ function vulBetaalvak(r) {
   $("#vBericht").value = vBerichtTekst(r);
 }
 
+/* De link bij Mollie aanmaken. Op één plek, want hij wordt vanaf twee knoppen
+   aangeroepen: "Betaallink maken" in Bevestiging & factuur, en "Betaallink
+   sturen" onder het afrekenen. Twee eigen versies van hetzelfde verzoek lopen
+   gegarandeerd uiteen - dat is in dit bestand al eerder gebeurd.
+   Geeft het antwoord van de Edge Function terug; gooit alleen bij een kapotte
+   verbinding. */
+async function mollieLinkMaken(r, bedrag, soort) {
+  const token = await geldigToken();
+  const res = await fetch(MOLLIE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: CFG.key, Authorization: "Bearer " + token },
+    body: JSON.stringify({
+      bedrag: Number(Number(bedrag).toFixed(2)),
+      omschrijving: [gastNaam(r), resNummer(r)].filter(Boolean).join(" · ") || "Bed & Wellness Flevoland",
+      reservering: resNummer(r),
+      reservering_id: r.id,
+      soort: soort || "restant",
+      gast: gastNaam(r) || ""
+    })
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok && !d.error) d.error = "fout " + res.status;
+  return d;
+}
+
 /* bron: de knop waarop gedrukt is. Dat kan "Betaallink maken" zijn of
    "Nieuwe link maken" bij de stand; degene die je indrukt gaat op slot. */
 async function maakBetaallink(bron) {
@@ -6093,22 +6229,9 @@ async function maakBetaallink(bron) {
   knop.disabled = true;
   note.textContent = "De betaallink wordt aangemaakt bij Mollie\u2026";
   try {
-    const token = await geldigToken();
-    const res = await fetch(MOLLIE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: CFG.key, Authorization: "Bearer " + token },
-      body: JSON.stringify({
-        bedrag: Number(bedrag.toFixed(2)),
-        omschrijving: [gastNaam(r), resNummer(r)].filter(Boolean).join(" \u00b7 ") || "Bed & Wellness Flevoland",
-        reservering: resNummer(r),
-        reservering_id: r.id,
-        soort: "restant",
-        gast: gastNaam(r) || ""
-      })
-    });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok || !d.checkoutUrl) {
-      note.textContent = "Betaallink maken lukte niet: " + (d.error || ("fout " + res.status));
+    const d = await mollieLinkMaken(r, bedrag);
+    if (!d.checkoutUrl) {
+      note.textContent = "Betaallink maken lukte niet: " + (d.error || "onbekende fout");
     } else {
       $("#vBetaallink").value = d.checkoutUrl;
       $("#vBericht").value = vBerichtTekst(r);
