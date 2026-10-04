@@ -87,6 +87,21 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
   margin-top:20px; border-top:1px solid var(--line-soft); padding-top:14px; font-weight:500; }
 .hint{ font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
 .status{ margin-top:10px; font-size:13px; font-weight:600; }
+/* De uitklapbare gastaanmelding: bekijken, aanpassen, koppelen, verwijderen. */
+.fm-aanmeld{ display:grid; grid-template-columns:1fr auto; gap:10px 12px; align-items:start; }
+.fm-aanmeld.open{ border-color:var(--brass); }
+.fm-aanmeld .fm-detail{ grid-column:1/-1; border-top:1px solid var(--line-soft);
+  padding-top:10px; margin-top:2px; }
+.fm-rij{ display:flex; justify-content:space-between; gap:14px; padding:4px 0;
+  font-size:13px; border-bottom:1px solid var(--line-soft); }
+.fm-rij:last-of-type{ border-bottom:0; }
+.fm-rij span:first-child{ color:var(--muted); flex:0 0 auto; }
+.fm-rij span:last-child{ text-align:right; font-weight:600; min-width:0;
+  overflow-wrap:anywhere; }
+.fm-handtekening{ max-width:150px; max-height:54px; background:#fff;
+  border:1px solid var(--line); border-radius:4px; }
+.fm-knoppen{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
 /* De drie tegels bovenaan, in dezelfde vorm als de dagstart van het
    VR-dashboard: een knop met een aantal, een rood bolletje als er iets te
    doen is, en de lijst die eronder openklapt. */
@@ -1784,6 +1799,7 @@ function aanmeldingVoorConcept(conceptId){
    "17-09 geeft niets" op.
    ========================================================= */
 let FM_OPEN = '';
+let FM_DETAIL = '';   /* welke aanmelding staat uitgeklapt */
 
 function fmNaamVan(x){
   return [x.voornaam, x.achternaam].filter(Boolean).join(' ').trim();
@@ -1834,14 +1850,7 @@ function fmVul(sleutel){
   if(sleutel === 'aanmeldingen'){
     naam = 'Gastaanmeldingen';
     rijen = aanmeldingen.filter(a => (!a.status || a.status === 'nieuw') && fmPast(a));
-    html = rijen.length
-      ? rijen.map(a => `<div class="aanmeld">
-          <div class="info"><strong>${escapeHtml(fmNaamVan(a) || 'zonder naam')}</strong>
-            <small>${escapeHtml([fmDatumVan(a) ? new Date(fmDatumVan(a)).toLocaleDateString('nl-NL') : '',
-              locName(a.locatie), a.code ? 'res. ' + a.code : '',
-              a.lid ? 'wil lid worden' : ''].filter(Boolean).join(' · '))}</small></div>
-          <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Koppelen</button>
-        </div>`).join('')
+    html = rijen.length ? rijen.map(fmAanmeldKaart).join('')
       : '<div class="aanmeld-leeg">Niets gevonden.</div>';
   }else if(sleutel === 'concepten'){
     naam = 'Klaargezette formulieren';
@@ -1880,6 +1889,131 @@ function fmVul(sleutel){
     : '';
   fmTegels();
 }
+
+/* Wat de gast zelf heeft ingestuurd. Angela, 04-10-2026: "ik wil ook de
+   incheckformulieren van fase 1 voor de gastenlink kunnen opzoeken, bekijken,
+   aanpassen, koppelen en of verwijderen."
+
+   Opzoeken en koppelen kon al. Bekijken en aanpassen niet: je zag alleen een
+   naam en een datum, terwijl de gast ook nationaliteit, woonplaats, een
+   handtekening en soms een bestelling heeft achtergelaten. Dat is juist wat je
+   wilt controleren voordat je koppelt - een verkeerd gespelde naam of een
+   ontbrekende nationaliteit houdt het nachtregister tegen.
+
+   De kaart klapt open met alles erin; "Aanpassen" maakt de velden bewerkbaar
+   en schrijft rechtstreeks terug naar gast_aanmeldingen. */
+function fmAanmeldKaart(a){
+  const open = FM_DETAIL === a.id;
+  const regel = (l, w) => w ? `<div class="fm-rij"><span>${escapeHtml(l)}</span>
+    <span>${escapeHtml(String(w))}</span></div>` : '';
+  const extras = Array.isArray(a.extras) ? a.extras : [];
+  return `<div class="aanmeld fm-aanmeld${open ? ' open' : ''}">
+    <div class="info" style="cursor:pointer" data-fmdetail="${a.id}">
+      <strong>${escapeHtml(fmNaamVan(a) || 'zonder naam')}</strong>
+      <small>${escapeHtml([fmDatumVan(a) ? new Date(fmDatumVan(a)).toLocaleDateString('nl-NL') : '',
+        locName(a.locatie), a.code ? 'res. ' + a.code : '',
+        a.lid ? 'wil lid worden' : '',
+        extras.length ? extras.length + ' extra\u2019s' : '',
+        a.handtekening ? '\u2713 getekend' : 'nog niet getekend'].filter(Boolean).join(' \u00b7 '))}</small>
+    </div>
+    <button class="btn sm" type="button" onclick="gebruikAanmelding('${a.id}')">Koppelen</button>
+    ${open ? `<div class="fm-detail">
+      ${regel('E-mailadres', a.email)}
+      ${regel('Telefoon', a.telefoon)}
+      ${regel('Woonplaats', a.woonplaats)}
+      ${regel('Nationaliteit', a.nationaliteit)}
+      ${regel('Suite', locName(a.locatie))}
+      ${regel('Datum', a.datum)}
+      ${regel('Reserveringsnummer', a.code)}
+      ${regel('Lid worden', a.lid ? 'ja' : 'nee')}
+      ${regel('Huisregels', a.akkoord ? 'akkoord' : 'nog niet')}
+      ${regel('Voorwaarden', a.akkoord_voorwaarden ? 'akkoord' : 'nog niet')}
+      ${regel('Opmerking', a.opmerking)}
+      ${extras.length ? `<div class="fm-rij"><span>Bijgeboekt</span><span>${
+        escapeHtml(extras.map(x => (x.aantal > 1 ? x.aantal + '\u00d7 ' : '') + (x.naam || '')).join(', '))
+      }${a.extras_totaal ? ' \u2014 ' + euro(a.extras_totaal) : ''}</span></div>` : ''}
+      ${a.betaalwijze ? regel('Betaalwijze', a.betaalwijze) : ''}
+      ${a.handtekening ? `<div class="fm-rij"><span>Handtekening</span>
+        <span><img src="${a.handtekening}" alt="handtekening" class="fm-handtekening"></span></div>` : ''}
+      <div class="fm-knoppen">
+        <button class="btn secondary sm" type="button" data-fmbewerk="${a.id}">Aanpassen</button>
+        <button class="btn danger sm" type="button" onclick="verwijderAanmelding('${a.id}')">Verwijderen</button>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+/* Aanpassen: de velden die ertoe doen voor het nachtregister en het contact.
+   De handtekening en de akkoorden blijven zoals de gast ze gaf - die mag je
+   niet namens hem veranderen. */
+function fmBewerk(id){
+  const a = aanmeldingen.find(x => x.id === id);
+  if(!a) return;
+  const vak = document.querySelector(`[data-fmdetail="${id}"]`);
+  const kaart = vak ? vak.closest('.fm-aanmeld') : null;
+  const detail = kaart ? kaart.querySelector('.fm-detail') : null;
+  if(!detail) return;
+  const veld = (n, l, w, t) => `<label style="margin:8px 0 0">${l}
+    <input type="${t || 'text'}" data-fmveld="${n}" value="${escapeHtml(w == null ? '' : String(w))}"></label>`;
+  detail.innerHTML = `
+    <div class="g2">
+      ${veld('voornaam', 'Voornaam', a.voornaam)}
+      ${veld('achternaam', 'Achternaam', a.achternaam)}
+      ${veld('email', 'E-mailadres', a.email, 'email')}
+      ${veld('telefoon', 'Telefoon', a.telefoon, 'tel')}
+      ${veld('woonplaats', 'Woonplaats', a.woonplaats)}
+      ${veld('nationaliteit', 'Nationaliteit', a.nationaliteit)}
+      ${veld('code', 'Reserveringsnummer', a.code)}
+      ${veld('datum', 'Datum', a.datum, 'date')}
+    </div>
+    <label style="margin:10px 0 0;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" data-fmveld="lid" ${a.lid ? 'checked' : ''} style="width:16px">
+      Wil lid worden</label>
+    <div class="fm-knoppen">
+      <button class="btn sm" type="button" data-fmbewaar="${id}">Opslaan</button>
+      <button class="btn secondary sm" type="button" data-fmannuleer="${id}">Annuleren</button>
+    </div>
+    <div class="status" data-fmstatus="${id}"></div>`;
+}
+
+async function fmBewaar(id){
+  const kaart = document.querySelector(`[data-fmdetail="${id}"]`);
+  const detail = kaart ? kaart.closest('.fm-aanmeld').querySelector('.fm-detail') : null;
+  const st = detail ? detail.querySelector('[data-fmstatus]') : null;
+  if(!detail) return;
+  const patch = {};
+  detail.querySelectorAll('[data-fmveld]').forEach(el => {
+    const n = el.getAttribute('data-fmveld');
+    patch[n] = el.type === 'checkbox' ? el.checked : (el.value.trim() || null);
+  });
+  if(st){ st.className = 'status busy'; st.textContent = 'Bezig met opslaan…'; }
+  try{
+    await sb('gast_aanmeldingen?id=eq.' + encodeURIComponent(id),
+      { method:'PATCH', body: JSON.stringify(patch), prefer:'return=minimal' });
+    const a = aanmeldingen.find(x => x.id === id);
+    if(a) Object.assign(a, patch);
+    FM_DETAIL = id;
+    fmVul('aanmeldingen');
+  }catch(e){
+    if(st){ st.className = 'status err'; st.textContent = 'Opslaan lukte niet: ' + e.message; }
+  }
+}
+
+document.addEventListener('click', function(e){
+  const open = e.target.closest && e.target.closest('[data-fmdetail]');
+  if(open){
+    const id = open.getAttribute('data-fmdetail');
+    FM_DETAIL = (FM_DETAIL === id) ? '' : id;
+    fmVul('aanmeldingen');
+    return;
+  }
+  const bew = e.target.closest && e.target.closest('[data-fmbewerk]');
+  if(bew){ fmBewerk(bew.getAttribute('data-fmbewerk')); return; }
+  const bew2 = e.target.closest && e.target.closest('[data-fmbewaar]');
+  if(bew2){ fmBewaar(bew2.getAttribute('data-fmbewaar')); return; }
+  const ann = e.target.closest && e.target.closest('[data-fmannuleer]');
+  if(ann){ fmVul('aanmeldingen'); return; }
+});
 
 function fmDicht(){
   const vak = document.getElementById('fmOpen');
