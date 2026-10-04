@@ -89,6 +89,9 @@ form input:focus, form select:focus, form textarea:focus{ outline:2px solid var(
 .status{ margin-top:10px; font-size:13px; font-weight:600; }
 .status.ok{ color:var(--ok); }
 .status.err{ color:var(--crit); }
+/* Opgeslagen, maar er ontbreekt nog iets. Niet groen (dan lees je de
+   waarschuwing niet) en niet rood (het is wél opgeslagen). */
+.status.let{ color:var(--warn); }
 
 .mini-check{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin:4px 0 8px; }
 .mini-check input{ width:15px; height:15px; accent-color:var(--accent); }
@@ -1958,11 +1961,21 @@ function resIdBijNummer(nr){
 
 async function saveCheckin(alsConcept){
   const statusEl = document.getElementById('checkinStatus');
-  if(!alsConcept && !guestData){
-    statusEl.textContent = '\u2715 Definitief opslaan lukt pas als de gast het formulier heeft ingevuld en ondertekend. Koppel een aanmelding in blok 1, of sla dit nu op als concept.';
-    statusEl.className = 'status err';
-    throw new Error('Gastgegevens ontbreken');
-  }
+  /* HIER STOND EEN BLOKKADE: definitief opslaan weigerde zolang er geen
+     gastaanmelding was gekoppeld. Angela, 04-10-2026: "ik wil normale
+     incheckformulieren kunnen opslaan zonder dat de locatiemanager ingevuld
+     hoeft te worden en zonder dat de gastenlink wordt gekoppeld."
+
+     De bedoeling erachter klopt wel - een incheckformulier zonder
+     handtekening mist het akkoord op de huisregels en de gegevens voor het
+     nachtregister - maar het hield tegen wat in de praktijk gewoon gebeurt:
+     het formulier vooraf klaarzetten, of een gast die ter plekke tekent op
+     papier. Een melding die je tegenhoudt is dan erger dan een melding die je
+     waarschuwt.
+
+     Opslaan kan nu altijd. Ontbreekt de handtekening, dan staat dat na afloop
+     in de bevestiging, zodat je het weet en er nog iets aan kunt doen. */
+  const zonderHandtekening = !alsConcept && !guestData;
   const data = collectCheckinData();
   let koppelMelding = false;   /* koppelen aan de reservering geweigerd (rechten) */
   data.status = alsConcept ? 'concept' : 'definitief';
@@ -2014,8 +2027,13 @@ async function saveCheckin(alsConcept){
       : `✓ Incheckformulier ${isEdit ? 'bijgewerkt' : 'opgeslagen'}.`)
       + (koppelMelding
          ? ' Let op: vastzetten bij de reservering mocht niet met jouw account — vraag Kelly of Angela om te koppelen.'
+         : '')
+      /* Geen blokkade meer, wel een herinnering: zonder handtekening ontbreekt
+         het akkoord op de huisregels en de gegevens voor het nachtregister. */
+      + (zonderHandtekening
+         ? ' Let op: de gast heeft nog niet getekend. Laat hem het gastformulier nog invullen, of vink de huisregels op papier af.'
          : '');
-    statusEl.className = 'status ok';
+    statusEl.className = zonderHandtekening ? 'status let' : 'status ok';
     return data;
   }catch(err){
     console.error('Fout bij opslaan incheckformulier:', err);
@@ -4525,6 +4543,7 @@ table th{background:#f8fafd;color:#68768d}
 table td,table th{border-color:var(--line-soft)}
 .status.ok{background:var(--ok-soft);color:var(--ok)}
 .status.err{background:var(--crit-soft);color:var(--crit)}
+.status.let{background:var(--warn-soft);color:var(--warn)}
 dialog{border:0;border-radius:22px;box-shadow:0 26px 80px rgba(20,32,51,.24)}
 dialog::backdrop{background:rgba(20,32,51,.38)}
 
