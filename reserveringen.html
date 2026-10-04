@@ -131,6 +131,46 @@ section[hidden]{display:none}
 .afr-wijzekop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
   margin:12px 0 8px;flex-wrap:wrap}
 .afr-wijzekop span{font-weight:700;font-size:16px}
+/* ---- uitchecken met de gast (Angela, 05-10-2026) ----
+   Eigen namen (uc-) zodat ze niet botsen met de afr- van het afrekenblok dat er
+   vlak boven staat. De knop is bewust groot: dit is de laatste handeling van
+   een verblijf en moet je op een telefoon met een duim kunnen raken. */
+.uc-knop{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
+  padding:15px 16px;border-radius:14px;background:var(--groen);color:#fff;
+  font-weight:600;font-size:16px;user-select:none}
+.uc-knop::-webkit-details-marker{display:none}
+.uc-knop::after{content:"\25BE";margin-left:auto;font-size:14px;opacity:.85}
+details[open] > .uc-knop::after{content:"\25B4"}
+.uc-knop-tekst{flex:0 0 auto}
+.uc-stand{font-weight:400;font-size:13px;opacity:.9;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+/* Op een telefoon passen "Klant uitchecken" en "uitgecheckt door Jerry op
+   4-10-2026" niet naast elkaar; de stand werd dan afgekapt tot "uitgecheckt …".
+   Laat hem daar op een eigen regel zakken. */
+@media(max-width:480px){
+  .uc-knop{flex-wrap:wrap}
+  .uc-stand{flex:1 1 100%;white-space:normal;order:3}
+  .uc-knop::after{order:2}
+}
+.uc-lijf{padding:14px 2px 2px}
+.uc-vier{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+.uc-kies{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:12px 8px;border:1px solid var(--line-soft);border-radius:12px;cursor:pointer;
+  background:var(--surface,#fff);font:inherit;font-size:13.5px;color:inherit;
+  text-align:center;min-height:66px;transition:.12s}
+.uc-kies .ico{font-size:19px;line-height:1}
+.uc-kies:hover{border-color:var(--groen-2)}
+.uc-kies[aria-pressed="true"]{border-color:var(--groen);background:var(--groen-zacht);
+  box-shadow:inset 0 0 0 1px var(--groen)}
+.uc-kop{font-weight:700;font-size:13.5px;margin:14px 0 7px}
+.uc-lijst{display:grid;gap:2px}
+.uc-punt{display:flex;gap:9px;align-items:flex-start;padding:8px 9px;border-radius:9px;
+  cursor:pointer;font-size:13.5px;line-height:1.35}
+.uc-punt:hover{background:var(--surface-2,#f7f5f2)}
+.uc-punt input{margin:2px 0 0;flex:0 0 auto;width:17px;height:17px}
+.uc-extra{margin-top:9px;padding:10px 11px;border-radius:10px;
+  background:var(--surface-2,#f7f5f2);border-left:3px solid var(--groen-2)}
+.uc-voet{margin-top:12px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
 .afr-wijzen{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
 .afr-wijze{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   padding:12px 8px;border:1px solid var(--line-soft);border-radius:12px;cursor:pointer;
@@ -1133,6 +1173,102 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <span class="v-melding" id="vAfrondNote"></span></div>
     </div>
 
+    <!-- ===================================================================
+         Uitchecken met de gast - Angela, 05-10-2026
+         ===================================================================
+         "Grote knop klant uitchecken met dropdown. Daaronder komt een
+         notitieveld bij uitchecken, een korte lijst met afronden boeking.
+         Maak eerst 4 knoppen: tevreden, ontevreden, actie, overdracht."
+
+         Dit blok wordt door tekenPersoneelKaart() verplaatst naar onder het
+         afrekenblok in de kaart; het staat hier alleen omdat het bij het
+         formulier hoort. -->
+    <div id="vUitcheckVak" hidden style="padding:0 18px 16px">
+      <details id="vUitcheck">
+        <summary class="uc-knop">
+          <span class="uc-knop-tekst">Klant uitchecken</span>
+          <span class="uc-stand" id="vUcStand"></span>
+        </summary>
+        <div class="uc-lijf">
+
+          <!-- de vier knoppen -->
+          <div class="uc-vier" id="vUcVier">
+            <button type="button" class="uc-kies" data-ucstem="tevreden">
+              <span class="ico">&#128522;</span><span>Tevreden</span></button>
+            <button type="button" class="uc-kies" data-ucstem="ontevreden">
+              <span class="ico">&#128577;</span><span>Ontevreden</span></button>
+            <button type="button" class="uc-kies" data-ucstem="actie">
+              <span class="ico">&#9888;</span><span>Actie nodig</span></button>
+            <button type="button" class="uc-kies" id="vUcOverdracht" data-ucover="1">
+              <span class="ico">&#128229;</span><span>Overdracht</span></button>
+          </div>
+
+          <!-- de afrondlijst -->
+          <div class="uc-kop">Boeking afronden</div>
+          <div class="uc-lijst" id="vUcPunten">
+            <label class="uc-punt"><input type="checkbox" value="netjes">
+              <span>Klant heeft de spa netjes achtergelaten en is tevreden</span></label>
+            <label class="uc-punt"><input type="checkbox" value="ontevreden">
+              <span>Klant is ontevreden &mdash; toelichting, contact opnemen, taak voor Angela</span></label>
+            <label class="uc-punt"><input type="checkbox" value="niet_netjes">
+              <span>Klant heeft de spa niet netjes achtergelaten</span></label>
+            <label class="uc-punt"><input type="checkbox" value="zwarte_lijst">
+              <span>Klant op de zwarte lijst plaatsen</span></label>
+            <label class="uc-punt"><input type="checkbox" value="schade">
+              <span>Klant heeft schade gemaakt &mdash; meteen contact opnemen, bedrag overleggen met Angela</span></label>
+            <label class="uc-punt"><input type="checkbox" value="gerookt">
+              <span>Klant heeft gerookt &mdash; &euro; 150 op de rekening</span></label>
+          </div>
+
+          <!-- wat er bij een punt nog bij moet -->
+          <div id="vUcSchadeVak" hidden class="uc-extra">
+            <label class="veld">Schadebedrag &euro;
+              <input type="text" inputmode="decimal" id="vUcSchade" placeholder="0,00"></label>
+            <p class="uitleg" style="margin:4px 0 0">Komt als regel op de rekening en in het schadeoverzicht.
+              Overleg het bedrag eerst met Angela.</p>
+          </div>
+          <div id="vUcZwartVak" hidden class="uc-extra">
+            <label class="veld">Reden voor de zwarte lijst
+              <input type="text" id="vUcZwartReden" placeholder="waarom deze gast niet meer welkom is"></label>
+            <p class="uitleg" style="margin:4px 0 0">Dit blijft bij de klant staan, dus je ziet het ook bij een
+              volgende boeking.</p>
+          </div>
+
+          <label class="veld" style="margin-top:10px">Toelichting
+            <span style="color:var(--muted);font-weight:400">(bij ontevreden of actie)</span>
+            <textarea id="vUcToelichting" rows="2" placeholder="wat is er gebeurd en wat is er afgesproken"></textarea></label>
+
+          <label class="veld" style="margin-top:8px">Notitie bij het uitchecken
+            <span style="color:var(--muted);font-weight:400">(optioneel)</span>
+            <textarea id="vUcNotitie" rows="2" placeholder="bijv. sleutel ingeleverd, bad geleegd"></textarea></label>
+
+          <!-- overdracht: alleen als je de gast niet zelf uitcheckt -->
+          <div id="vUcOverVak" hidden class="uc-extra">
+            <div class="uc-kop" style="margin-top:0">Overdracht aan de locatiemanager</div>
+            <p class="uitleg" style="margin:0 0 7px">Alleen invullen als jij de gast niet zelf uitcheckt.
+              Wat moet er nog voor deze klant gebeuren?</p>
+            <div class="uc-lijst" id="vUcOverPunten">
+              <label class="uc-punt"><input type="checkbox" value="ontbijt"><span>Ontbijt</span></label>
+              <label class="uc-punt"><input type="checkbox" value="service"><span>Service</span></label>
+              <label class="uc-punt"><input type="checkbox" value="betaling"><span>Betaling afronden</span></label>
+            </div>
+            <label class="veld" style="margin-top:8px">Anders &mdash; toelichting
+              <textarea id="vUcOverTekst" rows="2" placeholder="wat moet de locatiemanager nog doen"></textarea></label>
+          </div>
+
+          <div class="uc-voet">
+            <button type="button" class="knop vol" id="vUcOpslaan">Uitchecken opslaan</button>
+            <span class="v-melding" id="vUcNote"></span>
+          </div>
+          <p class="uitleg" id="vUcOpen" style="margin:7px 0 0"></p>
+        </div>
+      </details>
+    </div>
+
+    <!-- Stalling voor de blokken die tekenPersoneelKaart() in de kaart zet.
+         Zonder deze plek zouden ze sneuvelen zodra de kaart hertekent. -->
+    <div id="vParkeer" hidden></div>
+
     <div class="v-voet">
       <span class="v-melding" id="vMelding"></span>
       <a class="knop sec" id="vKlantkaart" target="_blank" rel="noopener" hidden>Klantkaart</a>
@@ -1853,6 +1989,12 @@ function openVenster(id) {
        bewerken. Die van het gesprekslog moeten juist bruikbaar blijven. */
     gv.querySelectorAll("input,select,textarea,button").forEach((el) => { el.disabled = false; });
   }
+  /* Net als het gesprekslog: het uitchecken is juist het werk van de
+     locatiemanager, dus die velden moeten bruikbaar blijven terwijl de rest
+     van het formulier voor hem op slot staat. Angela, 05-10-2026. */
+  const ucVakNu = $("#vUitcheckVak");
+  if (ucVakNu) ucVakNu.querySelectorAll("input,select,textarea,button")
+    .forEach((el) => { el.disabled = false; });
   /* Angela, 21-09-2026: een locatiemanager moet op locatie extra's kunnen
      bijboeken en de boeking kunnen afronden. Dat kon geen van beide:
 
@@ -1905,6 +2047,10 @@ function openVenster(id) {
   $("#vBestandNote").textContent = "";
   vulBijlagen(r);
   vulKoppelingen(r);
+  /* Het uitchecken ophalen en het blok invullen. Apart van de kaart, want het
+     komt uit een eigen tabel. ucVul() wordt daarna ook door
+     tekenPersoneelKaart() aangeroepen, zodat hertekenen niets wist. */
+  ucLaad(r.id).then(() => { try { ucVul(r); } catch (e) {} });
   vulLog(r);
 
   /* Het springmenu vullen met de onderdelen die deze rol te zien krijgt, en de
@@ -2407,6 +2553,15 @@ function tekenPersoneelKaart(r) {
       "</div>" +
     "</div>";
 
+  /* Eerst de twee verplaatste blokken in veiligheid brengen. Ze staan sinds de
+     vorige keer IN deze kaart, en de regel hieronder gooit de hele inhoud weg -
+     inclusief die blokken, die dan voorgoed verdwenen zouden zijn. Parkeren,
+     hertekenen, en onderaan weer terugzetten. */
+  const parkeer = $("#vParkeer");
+  if (parkeer) ["#vAfrondVak", "#vUitcheckVak"].forEach((kies) => {
+    const el = $(kies); if (el) parkeer.appendChild(el);
+  });
+
   doel.innerHTML =
     kopBalk +
     kaartVak("Reserveringsgegevens", [
@@ -2503,9 +2658,29 @@ function tekenPersoneelKaart(r) {
     kaartVak("Incheckformulier", [
       '<div id="vKaartIncheck">' + incheckVakHtml(r.id) + "</div>"
     ]) +
+    /* Angela, 05-10-2026: "kun je het afrekenblok verschuiven naar boven, net
+       onder het incheckformulier. Onder afrekenen komt de betaaloptie en de
+       reviewlink, daaronder een grote knop klant uitchecken."
+
+       Het afrekenblok en het uitcheckblok staan verderop in het formulier,
+       buiten deze kaart - daar horen ze ook, want ze schrijven weg. Ze worden
+       hierheen VERPLAATST en niet opnieuw opgebouwd: een verplaatste knop
+       houdt zijn afhandeling, een nagebouwde niet. */
+    '<div id="vAfrondPlek"></div>' +
     /* Het reviewblok staat open: na afloop van een verblijf is dit het enige
        wat er nog moet gebeuren, en dan wil je er niet eerst naar zoeken. */
-    kaartVak("Review", ['<div id="vReviewVak">' + reviewVakInhoud(r) + "</div>"], true);
+    kaartVak("Review", ['<div id="vReviewVak">' + reviewVakInhoud(r) + "</div>"], true) +
+    '<div id="vUitcheckPlek"></div>';
+
+  /* De twee blokken op hun plek zetten: afrekenen vlak onder het
+     incheckformulier, uitchecken onderaan na de reviewlink. appendChild
+     verplaatst het bestaande element - er wordt niets gekopieerd, dus alle
+     knoppen erin blijven doen wat ze deden. */
+  const afrondPlek = $("#vAfrondPlek"), afrondVak = $("#vAfrondVak");
+  if (afrondPlek && afrondVak) afrondPlek.appendChild(afrondVak);
+  const ucPlek = $("#vUitcheckPlek"), ucVak = $("#vUitcheckVak");
+  if (ucPlek && ucVak) ucPlek.appendChild(ucVak);
+  ucVul(r);
 
   /* De koppelingen worden apart geladen; vulKoppelingen() vult dit blok zodra
      ze binnen zijn, met de knop die bij de stand hoort - "Open pdf" als er een
@@ -3277,6 +3452,277 @@ function tekenBalk(r, w) {
     '<span class="stap ' + (ja ? "ja" : "nee") + '"><i>' + (ja ? "&#10003;" : "&#10007;") +
     "</i>" + esc(naam) + "</span>").join("");
 }
+
+/* =========================================================
+   Uitchecken met de gast
+   =========================================================
+   Angela, 05-10-2026. Het laatste dat bij een verblijf hoort: is de gast
+   tevreden, is de spa netjes achtergelaten, moet er nog iets gebeuren, en wie
+   heeft het afgerond.
+
+   Het schrijft naar de aparte tabel `uitcheck` en niet naar kolommen op
+   reserveringen: daar staat de trigger bwf_reservering_beperkt op, die velden
+   voor een locatiemanager stil terugdraait - en juist die vult dit in.
+
+   Opslaan mag ook met een openstaand bedrag; het scherm waarschuwt en legt
+   vast hoeveel er openstond ("opslaan mag, met waarschuwing", Angela). Een
+   gast staat soms al buiten terwijl de betaling nog loopt. */
+const UITCHECK = {};           /* per reservering-id de laatst gelezen rij */
+/* Deze pagina heeft bewust geen $$-hulpfunctie (zie de opmerking in
+   openVenster); vandaar een eigen, duidelijk benoemde. */
+const ucAlle = (s) => Array.from(document.querySelectorAll(s));
+let UC_BEZIG = false;
+
+/* Wat staat er nog open? Dezelfde afleiding als op de leeskaart: de
+   betaalstatus is leidend, want het bewerkvenster vult betaald_bedrag en
+   restant_bedrag vaak niet. Zie het geheugen "controle-discipline": niet
+   zelf opnieuw uitrekenen wat er al ergens staat. */
+function ucOpenstaand(r) {
+  if (!r) return 0;
+  if (String(r.betaalstatus || "") === "betaald") return 0;
+  if (r.restant_bedrag != null) return Math.max(0, Number(r.restant_bedrag));
+  if (r.bedrag_totaal != null && r.betaald_bedrag != null)
+    return Math.max(0, Number(r.bedrag_totaal) - Number(r.betaald_bedrag));
+  return r.bedrag_totaal != null ? Number(r.bedrag_totaal) : 0;
+}
+
+async function ucLaad(resId) {
+  if (!resId) return null;
+  try {
+    const rij = await api("uitcheck?select=*&reservering_id=eq." + encodeURIComponent(resId),
+      { stil: true });
+    UITCHECK[resId] = (rij && rij[0]) || null;
+  } catch (e) { UITCHECK[resId] = null; }
+  return UITCHECK[resId];
+}
+
+/* De vinkjes en de knoppen terugzetten zoals ze bewaard zijn. */
+function ucVul(r) {
+  const vak = $("#vUitcheckVak"); if (!vak || !r) return;
+  /* Een geannuleerde boeking checkt niemand uit. */
+  vak.hidden = !((magBewerken() || magBeperkt()) && r.status !== "geannuleerd");
+  if (vak.hidden) return;
+
+  const u = UITCHECK[r.id] || null;
+  const punten = (u && Array.isArray(u.punten)) ? u.punten : [];
+  const over = (u && Array.isArray(u.overdracht_punten)) ? u.overdracht_punten : [];
+
+  ucAlle("#vUcVier [data-ucstem]").forEach((b) =>
+    b.setAttribute("aria-pressed", String(!!u && u.stemming === b.dataset.ucstem)));
+  const knopOver = $("#vUcOverdracht");
+  if (knopOver) knopOver.setAttribute("aria-pressed", String(!!(u && u.overdracht)));
+
+  ucAlle("#vUcPunten input").forEach((c) => { c.checked = punten.includes(c.value); });
+  ucAlle("#vUcOverPunten input").forEach((c) => { c.checked = over.includes(c.value); });
+
+  $("#vUcToelichting").value = (u && u.toelichting) || "";
+  $("#vUcNotitie").value     = (u && u.notitie) || "";
+  $("#vUcOverTekst").value   = (u && u.overdracht_tekst) || "";
+  $("#vUcSchade").value      = (u && u.schade_bedrag != null) ? euro(u.schade_bedrag) : "";
+  $("#vUcZwartReden").value  = "";
+
+  ucToonExtras();
+  ucStand(r);
+}
+
+/* De vakjes die bij een aangevinkt punt horen in of uit beeld. */
+function ucToonExtras() {
+  const aan = (w) => { const c = ucAlle("#vUcPunten input").find((x) => x.value === w); return !!(c && c.checked); };
+  $("#vUcSchadeVak").hidden = !aan("schade");
+  $("#vUcZwartVak").hidden  = !aan("zwarte_lijst");
+  const knopOver = $("#vUcOverdracht");
+  $("#vUcOverVak").hidden = !(knopOver && knopOver.getAttribute("aria-pressed") === "true");
+}
+
+/* De regel op de grote knop, plus de waarschuwing over een openstaand bedrag. */
+function ucStand(r) {
+  const u = UITCHECK[r.id] || null;
+  const stand = $("#vUcStand");
+  if (stand) {
+    stand.textContent = u && u.afgerond_op
+      ? "· uitgecheckt door " + (u.door || "onbekend") +
+        " op " + String(u.afgerond_op).slice(0, 10).split("-").reverse().join("-")
+      : "";
+  }
+  const open = ucOpenstaand(r);
+  const melding = $("#vUcOpen");
+  if (melding) {
+    melding.textContent = open > 0
+      ? "Let op: er staat nog € " + euro(open) + " open. Je kunt het uitchecken wel opslaan; " +
+        "het bedrag blijft gewoon openstaan bij de reservering."
+      : "";
+    melding.style.color = open > 0 ? "var(--crit)" : "";
+  }
+}
+
+/* De vier knoppen en de vinkjes. Gedelegeerd, want het blok wordt verplaatst. */
+document.addEventListener("click", (e) => {
+  const stem = e.target.closest && e.target.closest("#vUcVier [data-ucstem]");
+  if (stem) {
+    e.preventDefault();
+    const aanNu = stem.getAttribute("aria-pressed") === "true";
+    ucAlle("#vUcVier [data-ucstem]").forEach((b) => b.setAttribute("aria-pressed", "false"));
+    /* Nog een keer op dezelfde knop zet hem weer uit - anders zit je eraan vast. */
+    stem.setAttribute("aria-pressed", String(!aanNu));
+    return;
+  }
+  const over = e.target.closest && e.target.closest("#vUcOverdracht");
+  if (over) {
+    e.preventDefault();
+    over.setAttribute("aria-pressed", String(over.getAttribute("aria-pressed") !== "true"));
+    ucToonExtras();
+  }
+});
+document.addEventListener("change", (e) => {
+  if (e.target.closest && e.target.closest("#vUcPunten")) ucToonExtras();
+});
+
+async function ucOpslaan() {
+  const r = HUIDIG; if (!r) return;
+  const note = $("#vUcNote");
+  const zeg = (t, fout) => { if (note) { note.textContent = t; note.style.color = fout ? "var(--crit)" : ""; } };
+  if (UC_BEZIG) return;
+
+  const gekozen = ucAlle("#vUcVier [data-ucstem]").find((b) => b.getAttribute("aria-pressed") === "true");
+  const stemming = gekozen ? gekozen.dataset.ucstem : null;
+  const punten = ucAlle("#vUcPunten input").filter((c) => c.checked).map((c) => c.value);
+  const overAan = $("#vUcOverdracht").getAttribute("aria-pressed") === "true";
+  const overPunten = ucAlle("#vUcOverPunten input").filter((c) => c.checked).map((c) => c.value);
+  const toelichting = $("#vUcToelichting").value.trim();
+  const notitie = $("#vUcNotitie").value.trim();
+  const overTekst = $("#vUcOverTekst").value.trim();
+  const schade = punten.includes("schade") ? leesBedrag($("#vUcSchade").value) : null;
+  const zwartReden = $("#vUcZwartReden").value.trim();
+
+  if (!stemming && !punten.length && !overAan) {
+    zeg("Kies eerst hoe het ging, of vink minstens één punt aan.", true); return;
+  }
+  if (punten.includes("schade") && (!Number.isFinite(schade) || schade <= 0)) {
+    zeg("Vul het schadebedrag in, of haal het vinkje weg.", true); return;
+  }
+  if (punten.includes("zwarte_lijst") && !zwartReden) {
+    zeg("Vul een reden in voor de zwarte lijst.", true); return;
+  }
+  if ((stemming === "ontevreden" || punten.includes("ontevreden")) && !toelichting) {
+    zeg("Vul een toelichting in bij een ontevreden gast.", true); return;
+  }
+
+  UC_BEZIG = true; zeg("Bezig…");
+  const open = ucOpenstaand(r);
+  try {
+    /* 1. het uitchecken zelf. Een reservering heeft er hoogstens een; de
+          unique op reservering_id maakt hier een bijwerken van. */
+    const rij = await api("uitcheck?on_conflict=reservering_id&select=*", {
+      method: "POST",
+      prefer: "resolution=merge-duplicates,return=representation",
+      body: [{
+        reservering_id: r.id,
+        stemming, punten, toelichting: toelichting || null, notitie: notitie || null,
+        overdracht: overAan,
+        overdracht_punten: overAan ? overPunten : [],
+        overdracht_tekst: overAan ? (overTekst || null) : null,
+        gerookt_bedrag: punten.includes("gerookt") ? 150 : null,
+        schade_bedrag: Number.isFinite(schade) ? schade : null,
+        /* Angela: "als er geen betaling meer openstaat en de uitchecklijst is
+           ingevuld, dan graag opslaan en naam locatiemanager invullen."
+           De naam gaat er altijd bij - wie het invulde wil je ook weten als er
+           nog iets openstaat - en wat er openstond wordt erbij vastgelegd. */
+        door: NAAM || null,
+        afgerond_op: new Date().toISOString(),
+        openstaand_bij_afronden: open
+      }]
+    });
+    UITCHECK[r.id] = (rij && rij[0]) || null;
+
+    /* 2. wat er op de rekening bij komt: roken vast 150, schade het bedrag dat
+          met Angela is overlegd. Allebei als regel bij de arrangementen, zodat
+          ze meetellen in het totaal en in wat er nog te betalen is - net als de
+          andere bijboekingen op locatie. */
+    const bestaand = Array.isArray(r.arrangementen) ? r.arrangementen.slice() : [];
+    const heeftAl = (naam) => bestaand.some((a) => a && a.bron === "op_locatie" && a.naam === naam);
+    const nieuw = [];
+    if (punten.includes("gerookt") && !heeftAl("Roken in de suite"))
+      nieuw.push({ naam: "Roken in de suite", bedrag: 150, aantal: 1, bron: "op_locatie",
+                   door: NAAM, tijdstip: new Date().toISOString() });
+    if (Number.isFinite(schade) && schade > 0 && !heeftAl("Schade"))
+      nieuw.push({ naam: "Schade", bedrag: schade, aantal: 1, bron: "op_locatie",
+                   door: NAAM, tijdstip: new Date().toISOString() });
+    if (nieuw.length) {
+      const erbij = nieuw.reduce((t, a) => t + Number(a.bedrag), 0);
+      const d = { arrangementen: bestaand.concat(nieuw), gewijzigd_door: NAAM };
+      if (r.bedrag_totaal != null)
+        d.bedrag_totaal = Math.round((Number(r.bedrag_totaal) + erbij) * 100) / 100;
+      if (r.restant_bedrag != null)
+        d.restant_bedrag = Math.round((Number(r.restant_bedrag) + erbij) * 100) / 100;
+      const bij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+        { method: "PATCH", body: d });
+      if (bij && bij.length) {
+        Object.assign(r, bij[0]);
+        const i = RIJEN.findIndex((x) => x.id === r.id);
+        if (i >= 0) RIJEN[i] = r;
+      }
+    }
+
+    /* 3. schade apart vastleggen, zodat het in het schadeoverzicht staat. */
+    if (Number.isFinite(schade) && schade > 0) {
+      try {
+        await api("schade", { method: "POST", prefer: "return=minimal", stil: true,
+          body: [{ reservering_id: r.id, bedrag: schade, status: "open",
+                   omschrijving: "Bij het uitchecken vastgesteld door " + (NAAM || "onbekend") +
+                     (toelichting ? " — " + toelichting : "") }] });
+      } catch (e) { /* het staat al op de rekening; dit is een extra */ }
+    }
+
+    /* 4. de zwarte lijst hangt aan de KLANT, niet aan deze boeking: je wilt
+          hem herkennen bij de volgende reservering. */
+    if (punten.includes("zwarte_lijst")) {
+      const k = klantVan(r);
+      if (k && k.id) {
+        await api("wz_klantbeheer?id=eq." + encodeURIComponent(k.id), {
+          method: "PATCH", prefer: "return=minimal",
+          body: { zwarte_lijst: true, zwarte_lijst_reden: zwartReden,
+                  zwarte_lijst_op: new Date().toISOString(), zwarte_lijst_door: NAAM || null }
+        });
+        k.zwarte_lijst = true; k.zwarte_lijst_reden = zwartReden;
+      } else {
+        zeg("Opgeslagen, maar deze gast staat nog niet in het klantenbestand — " +
+            "de zwarte lijst kon niet worden gezet. Maak eerst de klant aan.", true);
+      }
+    }
+
+    /* 5. een ontevreden gast of schade is iets voor Angela. */
+    if (stemming === "ontevreden" || punten.includes("ontevreden") || punten.includes("schade")) {
+      try {
+        const wat = punten.includes("schade") ? "Schade bij het uitchecken" : "Ontevreden gast";
+        await api("wz_taken", { method: "POST", prefer: "return=minimal", stil: true,
+          body: [{
+            titel: wat + " — " + ([r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ") || "gast onbekend"),
+            omschrijving: [
+              "Reservering " + (r.kanaal_ref || r.id),
+              SUITES[r.suite] ? SUITES[r.suite].naam : r.suite,
+              toelichting || "",
+              Number.isFinite(schade) && schade > 0 ? "Schadebedrag € " + euro(schade) + " — bedrag overleggen" : "",
+              "Vastgelegd bij het uitchecken door " + (NAAM || "onbekend")
+            ].filter(Boolean).join("\n"),
+            status: "open", prioriteit: "hoog", locatie: r.suite || null,
+            aangemaakt_door: NAAM || null
+          }] });
+      } catch (e) { /* de uitcheck staat er; een mislukte taak mag dat niet terugdraaien */ }
+    }
+
+    ucVul(r);
+    try { tekenPersoneelKaart(r); } catch (e) {}
+    zeg(open > 0
+      ? "Opgeslagen. Er staat nog € " + euro(open) + " open."
+      : "Opgeslagen en afgerond door " + (NAAM || "onbekend") + ".");
+  } catch (e) {
+    zeg("Opslaan lukte niet: " + e.message, true);
+  } finally { UC_BEZIG = false; }
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest && e.target.closest("#vUcOpslaan")) { e.preventDefault(); ucOpslaan(); }
+});
 
 function rijKoppeling(kop, waarde, link, knop) {
   return '<div style="display:flex;gap:10px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--lijn,#eee)">' +
