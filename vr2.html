@@ -1197,6 +1197,20 @@ div.ag-blok{cursor:default}
   gap:12px;margin-bottom:18px}
 /* Het rode bolletje rechtsboven: hetzelfde rood als op de tabbladen. Alleen
    zichtbaar als er iets te doen is - de tegel zelf tekent hem niet bij nul. */
+/* De aangeklikte tegel blijft zichtbaar als bron van wat eronder staat. */
+.dg-stat.open{border-color:var(--groen);background:var(--groen-zacht,#e7efea)}
+.dg-stat.open .dg-pijl{transform:rotate(180deg)}
+.dg-stat .dg-pijl{display:inline-block;transition:transform .15s}
+/* Het vak waar de lijst van de aangeklikte tegel in komt. */
+#ovOpen{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);
+  margin:-6px 0 18px;overflow:hidden}
+#ovOpen[hidden]{display:none!important}
+.ovOpen-kop{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 16px 9px;border-bottom:1px solid var(--line-soft,#f0ece4)}
+.ovOpen-kop h2{margin:0;font-size:17px}
+#ovOpenDicht{font-size:21px;line-height:1;padding:0 6px;background:none;border:0;
+  cursor:pointer;color:var(--muted)}
+#ovOpenDicht:hover{color:var(--ink)}
 .dg-stat .dg-stip{position:absolute;top:10px;right:10px;min-width:20px;height:20px;
   padding:0 6px;border-radius:999px;background:#B3261E;color:#fff;
   font:600 11.5px/20px var(--f-mono,monospace);text-align:center;
@@ -1622,19 +1636,23 @@ div.ag-blok{cursor:default}
          renderOverzicht() vulde hem altijd al (open taken, werkzaamheden en uren
          deze maand, nog niet afgerekend, openstaande overdracht); alleen het
          tonen stond uit. -->
-    <!-- Angela, 04-10-2026: eerst "op de dagstart terugzien", daarna "ik wil
-         dit bovenaan de pagina zien". Daarom staat dit blok boven de kalender
-         en de spoedlijst: het is het eerste wat je 's ochtends oppakt, en
-         onderaan tussen de uitklappers scrolde het uit beeld. -->
-    <details class="dg-uitklap" id="dgAanmeldVak" open style="margin-top:14px">
-      <summary>Gastaanmeldingen
-        <button class="dg-bel" type="button" id="dgBelAanmeld" hidden
-          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
-        <span class="dg-telling" id="dgAanmeldTel"></span></summary>
-      <div class="dg-lijst" id="dgAanmeld"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
-    </details>
-
     <div id="ovStats"></div>
+
+    <!-- Angela, 04-10-2026: "ik wil de gastaanmelding gewoon onder de knop
+         hebben; ik wil bij alle knoppen als ik erop druk bij de items komen
+         die eronder staan."
+
+         Elke tegel hierboven is een knop; dit is het vak waar zijn lijst in
+         komt. Eén vak voor alle vijf, want twee lijsten tegelijk openzetten
+         maakt de pagina weer net zo lang als hij was. Nog eens op dezelfde
+         tegel tikken klapt hem dicht. -->
+    <div id="ovOpen" hidden>
+      <div class="ovOpen-kop">
+        <h2 id="ovOpenTitel"></h2>
+        <button class="dg-link" type="button" id="ovOpenDicht" aria-label="Sluiten">&times;</button>
+      </div>
+      <div class="dg-lijst" id="ovOpenLijst"></div>
+    </div>
 
     <!-- De dagstart toont drie blokken (Angela, 21-09-2026): de planning als
          kalender, wat er vandaag met spoed moet, en de nieuwe boekingen
@@ -1651,34 +1669,29 @@ div.ag-blok{cursor:default}
         <div class="card-body" style="padding-top:0"><div id="dgStartKalender"></div></div>
       </div>
 
-      <div class="card">
-        <div class="card-head"><div><span class="dg-eyebrow">Vandaag</span><h2>Spoed</h2></div>
-          <button class="dg-link" type="button" data-dgnaar="planning">Aankomsten &rarr;</button></div>
-        <div class="dg-lijst" id="dgSpoed"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
-      </div>
+    </div>
 
-      <div class="card">
-        <div class="card-head"><div><span class="dg-eyebrow">Nieuw</span><h2>Nog te verwerken</h2></div>
-          <button class="dg-bel" type="button" id="dgBelNieuw" hidden
-            title="Nieuw binnengekomen sinds je hier voor het laatst keek. Klik om af te vinken.">
-            <span class="klok">&#128276;</span><span class="aantal"></span></button>
-          <button class="dg-link" type="button" data-dgnaar="reserveringen">Alle boekingen &rarr;</button></div>
-        <p class="hint" style="padding:0 16px 6px;margin:0">Binnengekomen via Booking.com, Origineel
-          Overnachten of de privésauna, en nog door niemand nagelopen.</p>
-        <div class="dg-lijst" id="dgNieuw"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
-      </div>
+    <!-- Spoed en "Nog te verwerken" stonden hier als losse kaarten. Ze zitten
+         sinds 04-10-2026 onder hun eigen tegel bovenaan; deze verborgen
+         vakken blijven staan omdat renderDagstart() ze vult en de inhoud
+         vandaaruit in het open vak wordt gezet. -->
+    <div hidden>
+      <div class="dg-lijst" id="dgSpoed"></div>
+      <div class="dg-lijst" id="dgNieuw"></div>
+      <div class="dg-lijst" id="dgAanmeld"></div>
+      <button type="button" id="dgBelNieuw" hidden><span class="klok"></span><span class="aantal"></span></button>
+      <button type="button" id="dgBelAanmeld" hidden><span class="klok"></span><span class="aantal"></span></button>
+      <span id="dgAanmeldTel"></span>
     </div>
 
     <!-- Twee uitklapmenu's onder de drie blokken (Angela, 21-09-2026): wat
          gasten zelf hebben bijgeboekt bij het online inchecken, en welke
          formulieren nog aan een reservering gekoppeld moeten worden. -->
-    <details class="dg-uitklap" id="dgExtrasVak">
-      <summary>Bijgeboekt via het incheckformulier
-        <button class="dg-bel" type="button" id="dgBelExtras" hidden
-          title="Nieuw sinds je hier voor het laatst keek"><span class="klok">&#128276;</span><span class="aantal"></span></button>
-        <span class="dg-telling" id="dgExtrasTel"></span></summary>
-      <div class="dg-lijst" id="dgExtras"><p class="dg-leeg">Bezig met laden&hellip;</p></div>
-    </details>
+    <div hidden>
+      <div class="dg-lijst" id="dgExtras"></div>
+      <button type="button" id="dgBelExtras" hidden><span class="klok"></span><span class="aantal"></span></button>
+      <span id="dgExtrasTel"></span>
+    </div>
 
     <details class="dg-uitklap" id="dgLosVak">
       <summary>Formulieren nog te koppelen
@@ -4766,6 +4779,9 @@ async function vinkAf(lijst, kenmerk, titel, toelichting){
     afgevinkt_door: (typeof IK !== 'undefined' && IK && IK.naam) ? IK.naam : ''
   };
   renderDagstart();
+  /* Ook de tellers in de menubalk: die telt dezelfde dingen, en liep anders
+     achter tot de volgende keer dat er iets anders hertekende. */
+  try{ badges(); }catch(e){}
   try{
     await api('bwf_afgevinkt', { method:'POST',
       prefer: 'resolution=merge-duplicates,return=minimal',
@@ -4791,12 +4807,14 @@ async function zetTerug(lijst, kenmerk){
   const bewaard = AFGEVINKT[lijst][String(kenmerk)];
   delete AFGEVINKT[lijst][String(kenmerk)];
   renderDagstart();
+  try{ badges(); }catch(e){}
   try{
     await api('bwf_afgevinkt?lijst=eq.' + encodeURIComponent(lijst) +
       '&kenmerk=eq.' + encodeURIComponent(String(kenmerk)), { method:'DELETE' });
   }catch(e){
     if(bewaard) AFGEVINKT[lijst][String(kenmerk)] = bewaard;
     renderDagstart();
+    try{ badges(); }catch(e2){}
     toast('Terugzetten lukte niet: ' + e.message);
   }
 }
@@ -4866,6 +4884,64 @@ function dgKaart(k){
   </div>`;
 }
 
+/* =========================================================
+   De tegels op de dagstart klappen hun lijst eronder open
+   =========================================================
+   Angela, 04-10-2026: "ik wil de gastaanmelding gewoon onder de knop hebben;
+   ik wil bij alle knoppen als ik erop druk bij de items komen die eronder
+   staan."
+
+   DG_LIJSTEN wordt elke keer dat de dagstart hertekent opnieuw gevuld, met per
+   tegel ofwel een verwijzing naar een vak dat renderDagstart() toch al vult,
+   ofwel een eigen stukje html. DG_OPEN onthoudt welke tegel openstaat, zodat
+   de lijst na het afvinken van een regel niet dichtklapt - renderDagstart()
+   draait dan namelijk opnieuw. */
+let DG_LIJSTEN = {};
+let DG_OPEN = '';
+
+function ovOpenVul(sleutel){
+  const vak = $('#ovOpen'), titel = $('#ovOpenTitel'), lijst = $('#ovOpenLijst');
+  if(!vak || !lijst) return;
+  const def = DG_LIJSTEN[sleutel];
+  if(!def){ ovOpenDicht(); return; }
+  titel.textContent = def.titel;
+  /* Uit een bestaand vak overnemen in plaats van opnieuw opbouwen: dat vak is
+     al gevuld door renderDagstart(), met afvinkknoppen en archief en al. */
+  const bron = def.uit ? $(def.uit) : null;
+  lijst.innerHTML = bron ? bron.innerHTML : (def.html ? def.html() : '');
+  vak.hidden = false;
+  DG_OPEN = sleutel;
+  document.querySelectorAll('#ovStats .dg-stat').forEach(b => {
+    const aan = b.getAttribute('data-dgtoon') === sleutel;
+    b.setAttribute('aria-expanded', aan ? 'true' : 'false');
+    b.classList.toggle('open', aan);
+  });
+}
+
+function ovOpenDicht(){
+  const vak = $('#ovOpen');
+  if(vak) vak.hidden = true;
+  DG_OPEN = '';
+  document.querySelectorAll('#ovStats .dg-stat').forEach(b => {
+    b.setAttribute('aria-expanded', 'false');
+    b.classList.remove('open');
+  });
+}
+
+document.addEventListener('click', function(e){
+  const dicht = e.target.closest && e.target.closest('#ovOpenDicht');
+  if(dicht){ e.preventDefault(); ovOpenDicht(); return; }
+  const knop = e.target.closest && e.target.closest('[data-dgtoon]');
+  if(!knop) return;
+  e.preventDefault();
+  const sleutel = knop.getAttribute('data-dgtoon');
+  /* Nog eens op dezelfde tegel: dicht. */
+  if(DG_OPEN === sleutel){ ovOpenDicht(); return; }
+  ovOpenVul(sleutel);
+  const vak = $('#ovOpen');
+  if(vak) vak.scrollIntoView({ behavior:'smooth', block:'nearest' });
+});
+
 function renderDagstart(){
   const vd = vandaag();
   const open = dgOpenTaken();
@@ -4884,18 +4960,25 @@ function renderDagstart(){
      zodra er iets is. Is er niets, dan staat er een nul zonder bolletje.
 
      Het belletje is hetzelfde rood als op de tabbladen (--crit, #B3261E). */
-  const tegel = (teken, getal, wat, naar) =>
-    `<button class="dg-stat" type="button" data-dgnaar="${naar}">
+  /* Elke tegel is een knop die zijn eigen lijst eronder openklapt. De pijl is
+     een chevron geworden: hij wijst naar beneden, want daar komt de lijst, en
+     niet meer naar rechts alsof je naar een ander scherm springt. */
+  const tegel = (teken, getal, wat, sleutel) =>
+    `<button class="dg-stat" type="button" data-dgtoon="${sleutel}"
+       aria-expanded="false" aria-controls="ovOpen">
        <span class="dg-teken">${teken}</span>
        ${getal ? `<span class="dg-stip">${getal > 99 ? '99+' : getal}</span>` : ''}
        <span class="dg-getal">${getal}</span>
        <span class="dg-wat">${wat}</span>
-       <span class="dg-pijl">&rarr;</span></button>`;
+       <span class="dg-pijl">&#8964;</span></button>`;
 
   /* De aanmeldingen van gasten: zelfde maatstaf als het blok eronder en als de
      bel in de balk, zodat de drie nooit uiteen kunnen lopen. */
-  const aanmeldingen = (typeof FORMS !== 'undefined' ? FORMS : [])
+  const aanmeldingenAlles = (typeof FORMS !== 'undefined' ? FORMS : [])
     .filter(f => f._soort === 'aanmelding' && (!f.status || f.status === 'nieuw'));
+  /* Door nogOpen() heen, net als de lijst eronder: anders blijft het getal op
+     de tegel staan nadat je een regel hebt afgevinkt. */
+  const aanmeldingen = nogOpen('aanmeldingen', aanmeldingenAlles, formSleutel);
   const vips = aanmeldingen.filter(f => f.lid === true);
   const metExtras = (typeof FORMS !== 'undefined' ? FORMS : [])
     .filter(f => Array.isArray(f.extras) && f.extras.length);
@@ -4912,12 +4995,46 @@ function renderDagstart(){
 
   const balk = $('#ovStats');
   if(balk) balk.innerHTML =
-    tegel('&#9998;', onverwerkteBoekingen().length, 'Gastgegevens controleren',   'reserveringen') +
-    tegel('&#9201;', binnen24.length,               'Aankomst binnen 24 uur',     'reserveringen') +
-    tegel('&#9993;', aanmeldingen.length,           'Gastaanmeldingen',           'overzicht') +
-    tegel('&#9733;', vips.length,                   'VIP-aanmeldingen',           'overzicht') +
+    tegel('&#9998;', onverwerkteBoekingen().length, 'Gastgegevens controleren', 'nieuw') +
+    tegel('&#9201;', binnen24.length,               'Aankomst binnen 24 uur',   'spoed24') +
+    tegel('&#9993;', aanmeldingen.length,           'Gastaanmeldingen',         'aanmeldingen') +
+    tegel('&#9733;', vips.length,                   'VIP-aanmeldingen',         'vip') +
     tegel('&#128722;', nogOpen('extras', metExtras, formSleutel).length,
-                                                    'Bijgeboekt via incheck',     'overzicht');
+                                                    'Bijgeboekt via incheck',   'extras');
+
+  /* De lijsten die onder een tegel horen. De eerste vier komen uit de vakken
+     die renderDagstart() toch al vult; alleen "binnen 24 uur" en "VIP" zijn
+     nieuw en worden hier opgebouwd. Zo blijft er één plek waar een lijst
+     gemaakt wordt - twee keer dezelfde lijst bouwen loopt gegarandeerd uiteen. */
+  DG_LIJSTEN = {
+    nieuw:        { titel: 'Gastgegevens controleren', uit: '#dgNieuw' },
+    aanmeldingen: { titel: 'Gastaanmeldingen',         uit: '#dgAanmeld' },
+    extras:       { titel: 'Bijgeboekt via incheck',   uit: '#dgExtras' },
+    spoed24: { titel: 'Aankomst binnen 24 uur', html: () => binnen24.length
+      ? binnen24.slice().sort((a,b) => String(a.start||'').localeCompare(String(b.start||'')))
+          .map(r => dgKaart({
+            naam: r.naam || 'zonder naam', sub: r.locatie || '', suite: r.suiteRuw,
+            merk: String(r.start||'').slice(11,16) || dmy(String(r.start||'').slice(0,10)),
+            resId: r.resId || '',
+            rijen: [['aankomst', dmy(String(r.start||'').slice(0,10)) + ' ' + String(r.start||'').slice(11,16)],
+                    ['via', r.bron || 'onbekend kanaal'], ['nummer', r.ref || '']]
+          })).join('')
+      : '<p class="dg-leeg">Niemand komt binnen 24 uur aan.</p>' },
+    vip: { titel: 'VIP-aanmeldingen', html: () => vips.length
+      ? vips.map(f => {
+          const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') || 'zonder naam';
+          return `<div class="dg-spoedregel metvink">
+            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
+            <div><strong>${esc(naam)}</strong><small>${esc([f.locatie,
+              f.code ? 'res. ' + f.code : '', 'wil lid worden'].filter(Boolean).join(' · '))}</small></div>
+            <button type="button" class="dg-vink" title="Afvinken" aria-label="${esc(naam)} afvinken"
+              data-afvink="aanmeldingen" data-kenmerk="${esc(formSleutel(f))}"
+              data-titel="${esc(naam)}">&#10003;</button></div>`;
+        }).join('')
+      : '<p class="dg-leeg">Niemand wil op dit moment lid worden.</p>' }
+  };
+  /* Niet hier al ovOpenVul() aanroepen: de vakken die het overneemt worden
+     verderop in deze functie pas gevuld. Dat gebeurt onderaan. */
 
   /* ---- nu doen: hoge prioriteit eerst, daarna de vroegste deadline ---- */
   const dringend = open.slice().sort((a,b) => {
@@ -5235,6 +5352,10 @@ function renderDagstart(){
       + archiefBlok('formulieren');
     dgBel('dgBelLos', 'los', losOpen.map(formSleutel));
   }
+
+  /* Het open vak bijwerken nu alle lijsten gevuld zijn. Stond dit bovenaan,
+     dan nam het de vorige inhoud over en bleef een afgevinkte regel staan. */
+  if(DG_OPEN) ovOpenVul(DG_OPEN);
 
   /* ---- uitklap 3: voorraad bijvullen ---- */
   maakDgVoorraad();
@@ -6968,9 +7089,10 @@ function badges(){
        Angela, 04-10-2026. Dezelfde maatstaf als het blok zelf gebruikt -
        aanmeldingen van gasten die nog niet verwerkt zijn - zodat de teller en
        de lijst nooit uiteen kunnen lopen. */
-    overzicht: (typeof FORMS !== 'undefined' ? FORMS : [])
-      .filter(f => f._soort === 'aanmelding' && (!f.status || f.status === 'nieuw'))
-      .length,
+    overzicht: nogOpen('aanmeldingen',
+      (typeof FORMS !== 'undefined' ? FORMS : [])
+        .filter(f => f._soort === 'aanmelding' && (!f.status || f.status === 'nieuw')),
+      formSleutel).length,
     takencalls: mijnTaken().filter(t=>t.status!=='klaar').length +
                 (S.calls||[]).filter(c=>!/^afgesloten|^afgerond/i.test(String(c.status||''))).length,
     /* Angela, 22-09-2026: "een rood belletje op het pictogram van het
