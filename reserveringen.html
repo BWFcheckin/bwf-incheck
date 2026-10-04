@@ -643,33 +643,30 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
     </div>
   </section>
 
+  <!-- Angela, 04-10-2026: "op de reserveringspagina tabblad
+       incheckformulieren moet de gehele pagina vervangen worden voor
+       incheckformulier.html."
+
+       Hier stond een eigen lijst met de formulierstatus per reservering.
+       Die stond los van het echte incheckformulier, dus je kon er wel in
+       kijken maar niets afmaken. Nu staat de pagina zelf hier, zoals het
+       VR-dashboard de reserveringen ook in een venster toont.
+
+       De pagina wordt pas geladen als je dit tabblad opent, met een
+       cache-buster erachter: zonder dat houdt de browser een oude versie vast
+       en zie je wijzigingen niet. Inloggen hoeft niet opnieuw - de sessie
+       staat in dezelfde opslag. -->
   <section id="sectie-incheck" hidden>
-    <div class="card filters">
-      <label class="veld">Periode
-        <select id="iPeriode">
-          <option value="7">Vandaag + 7 dagen</option>
-          <option value="0">Alleen vandaag</option>
-          <option value="30">Vandaag + 30 dagen</option>
-        </select></label>
-      <label class="veld">Suite
-        <select id="iSuite"><option value="">Alle suites</option></select></label>
-      <label class="veld">Alleen
-        <select id="iFilter">
-          <option value="">Alles tonen</option>
-          <option value="geen">Nog geen formulier</option>
-          <option value="concept">Klaargezet, nog niet afgerond</option>
-          <option value="definitief">Definitief</option>
-        </select></label>
-      <div><button type="button" class="knop sec" id="iVernieuwen">Vernieuwen</button></div>
-    </div>
-    <div class="telling" id="iTelling"></div>
-    <div class="card table-wrap">
-      <table>
-        <thead><tr>
-          <th>Aankomst</th><th>Suite</th><th>Gast</th><th>Nummer</th><th>Formulier</th><th>Gast ingevuld</th><th></th>
-        </tr></thead>
-        <tbody id="iLijst"><tr><td colspan="7" class="leeg">Laden…</td></tr></tbody>
-      </table>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  gap:10px;padding:10px 14px;border-bottom:1px solid var(--lijn,#eee)">
+        <span class="telling" style="margin:0">Incheckformulieren</span>
+        <a class="knop sec klein" href="incheckformulier.html" target="_blank"
+           rel="noopener">In eigen venster openen</a>
+      </div>
+      <iframe id="incheckFrame" data-src="incheckformulier.html"
+              title="Incheckformulieren"
+              style="display:block;width:100%;height:calc(100vh - 230px);min-height:560px;border:0"></iframe>
     </div>
   </section>
 </main>
@@ -3553,7 +3550,12 @@ function toonTab(naam) {
   });
   document.querySelectorAll(".tabs button").forEach((b) =>
     b.setAttribute("aria-selected", String(b.dataset.tab === naam)));
-  if (naam === "incheck" && !ICHECK_GELADEN) laadIncheck();
+  if (naam === "incheck") {
+    /* Pas laden als je het tabblad echt opent, en met een cache-buster: zonder
+       die ?v= houdt de browser een oude versie vast in het venster. */
+    const f = document.getElementById("incheckFrame");
+    if (f && !f.src && f.dataset.src) f.src = f.dataset.src + "?v=" + Date.now();
+  }
   if (naam === "beheer" && !BEHEER_GELADEN) laadBeheer();
 }
 
@@ -5999,7 +6001,10 @@ async function start() {
   if (magBeperkt()) melding("Je kunt bij je eigen suites de gastgegevens, het aantal personen en de in- en uitchecktijden aanvullen. " +
     "Bedragen, status en annuleren doet Kelly of Angela.");
   else if (!magBewerken()) melding("Je kunt reserveringen van je eigen suites bekijken, maar niet wijzigen.");
-  $("#iSuite").insertAdjacentHTML("beforeend", Object.entries(SUITES).map(([w, s]) =>
+  /* #iSuite hoorde bij de eigen incheck-lijst en bestaat sinds 04-10-2026 niet
+     meer; dit draaide bij elke start en zou de rest van start() meeslepen. */
+  const iSuite = $("#iSuite");
+  if (iSuite) iSuite.insertAdjacentHTML("beforeend", Object.entries(SUITES).map(([w, s]) =>
     '<option value="' + w + '">' + esc(s.naam) + "</option>").join(""));
   vulNieuwKeuzes();
   if (!magBewerken()) {
@@ -6253,13 +6258,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("#nBewaar").addEventListener("click", maakReservering);
   $("#nLeeg").addEventListener("click", leegNieuw);
-  ["#iPeriode", "#iSuite", "#iFilter"].forEach((s) =>
-    $(s).addEventListener("change", s === "#iPeriode" ? laadIncheck : tekenIncheck));
-  $("#iVernieuwen").addEventListener("click", laadIncheck);
-  $("#iLijst").addEventListener("click", (e) => {
-    const tr = e.target.closest("tr[data-id]");
-    if (tr && !e.target.closest("a")) openVenster(tr.getAttribute("data-id"));
-  });
+  /* De eigen incheck-lijst is op 04-10-2026 vervangen door de pagina zelf in
+     een venster; deze velden bestaan niet meer. $() geeft dan null terug en
+     addEventListener daarop breekt de hele opstart af - vandaar dat ze hier
+     weg zijn in plaats van blijven staan "voor het geval dat".
+     De functies laadIncheck() en tekenIncheck() blijven wel bestaan: ze doen
+     geen kwaad en maken terugzetten een kwestie van dit blok herstellen. */
   $("#uitloggen").addEventListener("click", () => {
     try { localStorage.removeItem(CFG.ls); } catch (e) {}
     location.reload();

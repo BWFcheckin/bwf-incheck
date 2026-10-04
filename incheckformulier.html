@@ -1038,8 +1038,29 @@ const SUPABASE_KEY = 'sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U';
 const AUTH_STORE = 'bwf_auth';
 let auth = null;   // { access_token, refresh_token, email }
 
+/* De andere schermen (reserveringen, agenda, financieel) bewaren hun inlog
+   onder de Supabase-sleutel; deze pagina onder 'bwf_auth'. Dezelfde velden,
+   andere naam - en daardoor moest je hier apart inloggen.
+
+   Dat viel niet op zolang dit een losse pagina was. Sinds 04-10-2026 staat hij
+   in een venster op het tabblad Incheckformulieren van de reserveringspagina,
+   en dan krijg je midden in dat scherm een tweede inlogvenster. Daarom: is
+   bwf_auth leeg maar staat er wel een geldige Supabase-sessie, neem die dan
+   over. Andersom gebeurt niets - de andere schermen blijven hun eigen sleutel
+   lezen. */
+const SB_STORE = 'sb-iuyjvtlauktnjprbmbjj-auth-token';
+
 function laadAuth(){
   try{ auth = JSON.parse(localStorage.getItem(AUTH_STORE) || 'null'); }catch(e){ auth = null; }
+  if(auth && auth.access_token) return auth;
+  try{
+    const sb = JSON.parse(localStorage.getItem(SB_STORE) || 'null');
+    if(sb && sb.access_token){
+      auth = { access_token: sb.access_token, refresh_token: sb.refresh_token,
+               email: (sb.user && sb.user.email) || '' };
+      localStorage.setItem(AUTH_STORE, JSON.stringify(auth));
+    }
+  }catch(e){}
   return auth;
 }
 function bewaarAuth(data, email){
