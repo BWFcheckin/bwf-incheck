@@ -1396,21 +1396,30 @@ div.ag-blok{cursor:default}
 .dg-kaart:hover{border-color:var(--groen,#14342A)}
 .dg-kaart:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .dg-kaart[disabled],.dg-kaart.geenklik{cursor:default}
-.dg-kaartfoto{position:relative;min-height:74px;padding:8px 10px;display:flex;align-items:flex-end;
+/* Angela, 04-10-2026: "de afbeeldingen mogen een klein vierkantje zijn met
+   duidelijk de suitenaam vermeld, niet de hele balk vullen met de foto."
+
+   De foto was een brede banner met de naam er wit overheen. Dat werkte tegen
+   zichzelf: de naam stond op een donkere wasfilter over een foto die je toch
+   niet goed zag, en de suitenaam verdween in de ruis. Nu een vierkantje van
+   46px naast de tekst, en de namen staan gewoon zwart op wit. */
+.dg-kaartfoto{position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 10px;background:none}
+.dg-kaartvk{flex:0 0 46px;width:46px;height:46px;border-radius:10px;
   background-size:cover;background-position:center;background-color:var(--groen,#14342A)}
-.dg-kaartfoto.foto-angie {background-image:var(--foto-angie)}
-.dg-kaartfoto.foto-malina{background-image:var(--foto-malina)}
-.dg-kaartfoto.foto-deluxe{background-image:var(--foto-deluxe)}
-.dg-kaartfoto::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(transparent 30%,rgba(0,0,0,.74))}
-.dg-kaartop{position:relative;z-index:1;color:#fff;min-width:0;width:100%}
+.dg-kaartvk.foto-angie {background-image:var(--foto-angie)}
+.dg-kaartvk.foto-malina{background-image:var(--foto-malina)}
+.dg-kaartvk.foto-deluxe{background-image:var(--foto-deluxe)}
+.dg-kaartop{min-width:0;flex:1;color:var(--ink,#1D2420)}
 .dg-kaartop b{display:block;font-size:14px;line-height:1.25;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dg-kaartop span{font-size:11.5px;opacity:.93;
+/* De suitenaam: niet weggemoffeld, maar leesbaar en in de huiskleur. */
+.dg-kaartop span{font-size:12px;color:var(--groen-2,#1F4D3D);font-weight:600;
   display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Het merkje rechtsboven: het tijdstip, of waarom deze kaart er staat. */
-.dg-kaartmerk{position:absolute;top:7px;right:7px;z-index:1;font-size:11px;font-weight:700;
-  background:rgba(255,255,255,.93);color:#14342A;border-radius:999px;padding:2px 9px;
+/* Het merkje: het tijdstip, of waarom deze kaart er staat. Staat nu in de rij
+   mee in plaats van over de foto heen. */
+.dg-kaartmerk{flex:0 0 auto;font-size:11px;font-weight:700;
+  background:var(--groen-zacht,#E7EFEA);color:#14342A;border-radius:999px;padding:2px 9px;
   line-height:1.5}
 .dg-kaartmerk.nieuw{background:#B3261E;color:#fff}
 .dg-kaartmerk.taak{background:#B8860B;color:#fff}
@@ -1420,11 +1429,11 @@ div.ag-blok{cursor:default}
 .dg-kaartlijf .rij span:last-child{color:var(--ink,#1D2420);font-weight:600;
   text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Een taak heeft geen suite en dus geen foto: dan een effen kop. */
-.dg-kaart.istaak .dg-kaartfoto{min-height:0;padding:9px 10px;background-image:none;
-  background:var(--goud-zacht,#F6EFE1)}
-.dg-kaart.istaak .dg-kaartfoto::after{display:none}
-.dg-kaart.istaak .dg-kaartop{color:var(--ink,#1D2420)}
-.dg-kaart.istaak .dg-kaartop span{opacity:.7}
+/* Een taak heeft geen suite en dus geen foto: dan een effen vlakje. */
+.dg-kaart.istaak .dg-kaartfoto{background:var(--goud-zacht,#F6EFE1)}
+.dg-kaart.istaak .dg-kaartvk{background-image:none;background:var(--goud,#B9975B);
+  opacity:.25}
+.dg-kaart.istaak .dg-kaartop span{color:var(--muted,#7E8A82)}
 @media(max-width:860px){ .dg-drie{grid-template-columns:1fr} }
 .dg-spoedregel{display:flex;gap:11px;align-items:flex-start;padding:9px 16px;
   border-bottom:1px solid var(--line-soft,#efe8e1)}
@@ -4885,10 +4894,11 @@ function dgKaart(k){
   return `<div class="dg-kaartrij">
     <button type="button" class="dg-kaart${k.taak ? ' istaak' : ''}${
       k.resId ? '' : ' geenklik'}"${klik}${k.resId ? '' : ' disabled'}>
-      <div class="dg-kaartfoto ${dgFotoKlasse(k.suite)}">
-        ${k.merk ? `<span class="dg-kaartmerk${k.merkSoort ? ' ' + k.merkSoort : ''}">${esc(k.merk)}</span>` : ''}
+      <div class="dg-kaartfoto">
+        <span class="dg-kaartvk ${dgFotoKlasse(k.suite)}"></span>
         <span class="dg-kaartop"><b>${esc(k.naam || 'zonder naam')}</b>
           <span>${esc(k.sub || '')}</span></span>
+        ${k.merk ? `<span class="dg-kaartmerk${k.merkSoort ? ' ' + k.merkSoort : ''}">${esc(k.merk)}</span>` : ''}
       </div>
       ${rijen ? `<div class="dg-kaartlijf">${rijen}</div>` : ''}
     </button>${vink}
