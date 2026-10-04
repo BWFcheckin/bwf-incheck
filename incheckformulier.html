@@ -2272,6 +2272,26 @@ function gebruikAanmelding(id){
       ' overgenomen. Koppel hierboven de bijbehorende reservering, dan staat alles bij elkaar.';
   }
   if(window.bwfOpenSectie) window.bwfOpenSectie('Boekingsgegevens');
+
+  /* Angela, 04-10-2026: "maak klant aan in het klantenbestand automatisch,
+     voorkom dubbele klanten."
+
+     klantUitGastgegevens() deed dit al, maar je moest er zelf op klikken - en
+     dan vergeet je het bij de helft. Hij zoekt eerst op e-mailadres en daarna
+     op de laatste negen cijfers van het telefoonnummer; vindt hij iemand, dan
+     werkt hij die bij in plaats van een tweede regel aan te maken. Een leeg
+     veld overschrijft nooit iets dat al gevuld is, en een lidmaatschap kan er
+     niet mee worden stopgezet.
+
+     Daarom kan hij hier gewoon mee: hij is veilig om vaker te draaien. Loopt
+     het mis - geen rechten, geen verbinding - dan blijft het koppelen zelf
+     staan; de knop "Klant aanmaken of bijwerken" is er nog om het alsnog te
+     doen. */
+  if(typeof klantUitGastgegevens === 'function'){
+    Promise.resolve().then(klantUitGastgegevens).catch(function(e){
+      console.warn('Klant automatisch bijwerken lukte niet:', e && e.message);
+    });
+  }
 }
 
 async function verwerkteAanmeldingWegstrepen(checkinId){
