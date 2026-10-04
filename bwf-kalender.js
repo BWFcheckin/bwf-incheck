@@ -60,6 +60,11 @@
        SMG-planning staat daar of het een boeking is of een dichtgezette dag -
        de gastvelden zijn daar namelijk vrijwel altijd leeg, ook bij een echte
        boeking. Zie geenGast(). Angela, 21-09-2026. */
+    /* notitie, checkin_id en betaalstatus zijn erbij gekomen voor de stand van
+       zaken op de kaart. Angela, 04-10-2026: "de kaartjes worden de volledige
+       reserveringskaart met de status van gastgegevens en incheckformulier",
+       en "belangrijke notities meteen zichtbaar". */
+    "notitie,checkin_id,betaalstatus," +
     "omschrijving,import_opmerking,brongegevens";
   var MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
 
@@ -109,6 +114,62 @@
     });
   }
   function gastNaam(r) { return [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" "); }
+
+  /* ---- de stand van zaken van één boeking -------------------------------
+     Angela, 04-10-2026: "de kaartjes worden de volledige reserveringskaart met
+     de status van gastgegevens en incheckformulier", "verwachte aankomsttijd
+     meteen zichtbaar", "belangrijke notities meteen zichtbaar", en daarna "ik
+     bedoel ook de kaarten op de dagstart, alle kaarten moeten dezelfde info
+     geven".
+
+     vr2.html heeft hetzelfde onder de namen rkVlaggen/rkNotitie. Die functies
+     staan daar in het paginascript en zijn hier niet te bereiken, dus staat het
+     hier nog een keer - met dezelfde maatstaven, zodat een boeking op beide
+     plekken hetzelfde oordeel krijgt. Alles komt uit KOLOMMEN; er gaat geen
+     extra bevraging overheen. */
+  function statusVlaggen(r) {
+    if (!r) return "";
+    var v = [];
+    var naam = r.gast_voornaam || r.gast_achternaam;
+    var contact = r.gast_telefoon || r.gast_email;
+    if (naam && contact) {
+      v.push('<span class="bwfk-vlag ok">gastgegevens compleet</span>');
+    } else {
+      v.push('<span class="bwfk-vlag let">gastgegevens ' +
+        (!naam && !contact ? "ontbreken" : (!naam ? "zonder naam" : "geen contact")) + "</span>");
+    }
+    v.push(r.checkin_id
+      ? '<span class="bwfk-vlag ok">incheckformulier</span>'
+      : '<span class="bwfk-vlag">geen incheckformulier</span>');
+    /* Een lege betaalstatus betekent "nog niet nagelopen" en niet "niet
+       betaald"; daar hoort dus geen rood vlaggetje bij. */
+    var st = String(r.betaalstatus || "");
+    if (st === "betaald") v.push('<span class="bwfk-vlag ok">betaald</span>');
+    else if (st === "deels") v.push('<span class="bwfk-vlag let">deels betaald</span>');
+    else if (st) v.push('<span class="bwfk-vlag uit">' + esc(st) + "</span>");
+    return '<div class="bwfk-vlaggen">' + v.join("") + "</div>";
+  }
+
+  /* De notitie bij een boeking. Staat er niets, dan ook geen leeg vak.
+
+     Bewust NIET omschrijving: dat is de titel zoals die uit de feed komt
+     ("Privésauna 3 uur") en staat bij vrijwel elke boeking. Die in een
+     opvallend vak zetten maakt het vak waardeloos - dan kijk je er overheen
+     op het moment dat er wél iets bijzonders staat. Alleen wat iemand zelf
+     heeft opgeschreven telt hier. */
+  function statusNotitie(r) {
+    if (!r) return "";
+    var t = String((r.notitie || r.import_opmerking || "")).trim();
+    if (!t) return "";
+    return '<div class="bwfk-notitie"><b>notitie</b>' +
+      esc(t.length > 220 ? t.slice(0, 220) + "…" : t) + "</div>";
+  }
+
+  /* Vlaggetjes en notitie samen, zoals elke kaart ze onderaan krijgt. Een
+     blokkade heeft geen gast en dus ook geen stand van zaken. */
+  function statusBlok(r) {
+    return (!r || geenGast(r)) ? "" : statusVlaggen(r) + statusNotitie(r);
+  }
 
   /* Angela, 22-09-2026: "de reserveringenlijst onder de kalender moet ook een
      suitefoto krijgen." De foto's staan als CSS-variabele in
@@ -292,6 +353,24 @@
       ".bwfk-kaartrij{display:flex;justify-content:space-between;gap:8px;align-items:baseline}",
       ".bwfk-kaartrij>span:first-child{color:var(--k-muted)}",
       ".bwfk-kaart .bwfk-acties{padding:0 10px 10px;display:flex;flex-wrap:wrap;gap:5px}",
+      /* ---- stand van zaken op de kaart ----
+         Angela, 04-10-2026: "alle kaarten moeten dezelfde info geven". In vr2
+         heten deze blokken rk-vlag en rk-notitie; die stijllaag wordt hier niet
+         geladen, dus staan ze hier onder eigen namen met dezelfde opmaak. */
+      ".bwfk-vlaggen{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 8px}",
+      ".bwfk-vlag{font-size:10.5px;line-height:1.5;padding:2px 7px;border-radius:999px;",
+      "  white-space:nowrap;border:1px solid var(--k-line);background:var(--k-zacht,rgba(0,0,0,.035));",
+      "  color:var(--k-muted)}",
+      ".bwfk-vlag.ok{border-color:#3F7A55;background:#3F7A5518;color:#2F5C40}",
+      ".bwfk-vlag.let{border-color:#8F6420;background:#8F642018;color:#7A5519}",
+      ".bwfk-vlag.uit{border-color:#A34434;background:#A3443418;color:#8C382B}",
+      ".bwfk-notitie{margin:0 10px 10px;padding:7px 9px;border-radius:7px;font-size:11.5px;",
+      "  line-height:1.45;text-align:left;background:#8F642014;border-left:3px solid #8F6420}",
+      ".bwfk-notitie b{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;",
+      "  color:#7A5519;font-weight:700;margin-bottom:2px}",
+      /* In de tabel staan de vlaggetjes in de naamkolom, dus zonder buitenruimte. */
+      ".bwfk-naam .bwfk-vlaggen{padding:4px 0 0}",
+      ".bwfk-naam .bwfk-notitie{margin:4px 0 0}",
       "@media(max-width:560px){ .bwfk-kaartjes{grid-template-columns:1fr;padding:10px} }",
 
       /* ---- verticale weergave: dagen onder elkaar ---- */
@@ -936,7 +1015,12 @@
            een incheck op de 18e terwijl de gast op de 17e aankomt. Angela liep
            daar op 17-09-2026 tegenaan; vandaar de labels en de dag erbij.
            Een blokkade heeft geen gast, dus daar heet het van en tot. */
-        var beginTekst = (isRes ? "aankomst " : "van ") + dagKort(s.datum) + " " + s.tijd;
+        /* Angela, 04-10-2026: "verwachte aankomsttijd meteen zichtbaar". Is er
+           een inchecktijd afgesproken, dan heet het "verwacht" en niet
+           "aankomst" - dan weet je dat de tijd die er staat de afspraak is en
+           niet de standaardtijd van het blok. */
+        var beginTekst = (isRes ? (eigenTijd ? "verwacht " : "aankomst ") : "van ") +
+          dagKort(s.datum) + " " + s.tijd;
         var eindTekst = (isRes ? "vertrek " : "tot ") + dagKort(e.datum) + " " + e.tijd;
         /* Valt de gekozen dag tussen aankomst en vertrek in, dan is dat het
            enige wat je verder nog moet weten. Die aanduiding stond er eerder
@@ -973,6 +1057,7 @@
               '<span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span></div>" +
             (resNummer(r) ? '<div class="bwfk-kaartrij"><span>nummer</span><b>' + esc(resNummer(r)) + "</b></div>" : "") +
           "</div>" +
+          statusBlok(r) +
           '<div class="bwfk-acties"><a href="' + esc(beheerUrl + "?id=" + encodeURIComponent(r.id)) + '" target="_top">Reservering</a>' +
             '<a href="' + esc(incheckLink(r)) + '" target="_top">Incheckformulier</a>' +
             (magWc ? '<a href="' + esc(welkomstcallLink(r)) + '" target="_top">Welkomstcall</a>' : "") +
@@ -989,7 +1074,10 @@
             (zonderGast
               ? '<span class="bwfk-blokmerk">blokkade</span>' + esc(blokBron(r))
               : (gastNaam(r) ? esc(gastNaam(r)) : '<span style="color:var(--k-muted)">gast onbekend</span>')) +
-            (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") + "</td>" +
+            (r.personen ? "<small>" + esc(r.personen) + " pers.</small>" : "") +
+            /* Dezelfde stand van zaken als op de kaart; de tabel is alleen een
+               andere weergave van dezelfde lijst. Angela, 04-10-2026. */
+            statusBlok(r) + "</td>" +
           '<td><span class="bwfk-kanaal" style="--kk:' + kanaal.kleur + '"><i></i>' + esc(kanaal.naam) + "</span>" + (resNummer(r) ? "<small>nr. " + esc(resNummer(r)) + "</small>" : "") + "</td>" +
           '<td><span class="bwfk-pil ' + esc(r.status) + '">' + esc(STATUSSEN[r.status] || r.status) + "</span></td>" +
           '<td><div class="bwfk-acties"><a href="' + esc(beheerUrl + "?id=" + encodeURIComponent(r.id)) + '" target="_top">Reservering</a>' +

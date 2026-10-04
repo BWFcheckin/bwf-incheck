@@ -628,6 +628,27 @@ button.dk-dienst:focus-visible{outline:2px solid currentColor;outline-offset:1px
 .ov-reslijf .rij{display:flex;justify-content:space-between;gap:8px}
 .ov-reslijf .rij span:first-child{color:var(--muted)}
 @media(max-width:560px){ .ov-reskaarten{grid-template-columns:1fr} }
+/* De stand van zaken op een reserveringskaart: vlaggetjes en de notitie.
+   Angela, 04-10-2026: "alle kaarten moeten dezelfde info geven". Daarom staan
+   deze namen los van dg-, ov- en reskaart-: ze worden door alle drie gebruikt.
+   De gedeelde kalender (bwf-kalender.js) heeft dezelfde blokken onder eigen
+   namen (bwfk-vlag), want die laadt deze stijllaag niet. */
+.rk-vlaggen{display:flex;flex-wrap:wrap;gap:4px;padding:0 11px 9px}
+.rk-vlag{font-size:10.5px;line-height:1.5;padding:2px 7px;border-radius:30px;white-space:nowrap;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--muted)}
+.rk-vlag.ok{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.rk-vlag.let{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.rk-vlag.uit{border-color:var(--crit);background:var(--crit-soft);color:var(--crit)}
+.rk-notitie{margin:0 11px 10px;padding:7px 9px;border-radius:var(--r-s);font-size:11.5px;
+  line-height:1.45;text-align:left;color:var(--ink-2);background:var(--warn-soft);
+  border-left:3px solid var(--warn)}
+.rk-notitie b{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--warn);font-weight:700;margin-bottom:2px}
+/* In de reserveringenlijst zit de kaart anders in elkaar: daar staan de
+   vlaggetjes en de notitie binnen reskaart-body en hebben ze geen eigen
+   buitenruimte nodig. */
+.reskaart-body .rk-vlaggen{padding:6px 0 0}
+.reskaart-body .rk-notitie{margin:6px 0 0}
 .reskaart{display:flex;align-items:stretch;position:relative;cursor:pointer;
   background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px;
   transition:border-color .16s ease}
@@ -1423,6 +1444,7 @@ div.ag-blok{cursor:default}
   line-height:1.5}
 .dg-kaartmerk.nieuw{background:#B3261E;color:#fff}
 .dg-kaartmerk.taak{background:#B8860B;color:#fff}
+.dg-kaartmerk.vip{background:var(--brass,#9A7B4F);color:#fff}
 .dg-kaartlijf{padding:8px 10px;font-size:12.5px;color:var(--ink-2,#46514A);
   display:grid;gap:2px}
 .dg-kaartlijf .rij{display:flex;justify-content:space-between;gap:8px}
@@ -3329,7 +3351,7 @@ div.ag-blok{cursor:default}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
-<script src="bwf-kalender.js?v=23"></script>
+<script src="bwf-kalender.js?v=24"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script src="bwf-chats.js?v=2"></script>
 <script src="bwf-planweergave.js?v=1"></script>
@@ -4496,6 +4518,7 @@ function renderAankomsten(){
     const eind = String(r.eind||'').slice(0,10);
     const eindTijd = String(r.eind||'').slice(11,16);
     const bedrag = (r.kop && r.kop.totaal != null) ? eur(r.kop.totaal) : '';
+    const aank = rkAankomstRij(r);
     /* De hele kaart is de knop naar de reservering, net als in de daglijst. */
     return `<button type="button" class="ov-reskaart"${r.resId ? ` data-resopen="${esc(r.resId)}"` : ''}
       title="${esc((r.naam || 'Reservering') + ' openen')}">
@@ -4504,11 +4527,12 @@ function renderAankomsten(){
           <span>${esc(r.locatie || 'onbekend')}</span></span>
       </span>
       <span class="ov-reslijf">
-        <span class="rij"><span>aankomst</span><b>${esc(dmy(s))}${tijd ? ' ' + esc(tijd) : ''}</b></span>
+        <span class="rij"><span>${esc(aank[0])}</span><b>${esc(aank[1])}</b></span>
         ${eind ? `<span class="rij"><span>vertrek</span><b>${esc(dmy(eind))}${eindTijd ? ' ' + esc(eindTijd) : ''}</b></span>` : ''}
         ${r.bron ? `<span class="rij"><span>via</span><span>${esc(r.bron)}</span></span>` : ''}
         ${bedrag ? `<span class="rij"><span>bedrag</span><b>${esc(bedrag)}</b></span>` : ''}
       </span>
+      ${rkInfo(r.ruw)}
     </button>`;
   }).join('')
     : `<div class="empty"><strong>Geen aankomsten</strong>${
@@ -4877,6 +4901,112 @@ function dgFotoKlasse(suiteRuw){
   return '';
 }
 
+/* =========================================================
+   De stand van zaken van één boeking, voor élke kaart
+   =========================================================
+   Angela, 04-10-2026: "de kaartjes worden de volledige reserveringskaart met de
+   status van gastgegevens en incheckformulier", "verwachte aankomsttijd meteen
+   zichtbaar", "belangrijke notities meteen zichtbaar", en daarna: "ik bedoel
+   ook de kaarten op de dagstart, alle kaarten moeten dezelfde info geven".
+
+   Daarom staat het hier één keer en gebruiken alle drie de kaartsoorten in dit
+   bestand het: de tegels op de dagstart (dgKaart), de aankomsten op de dagstart
+   (ov-reskaart) en de reserveringenlijst in de agenda (reskaart). De gedeelde
+   kalender heeft dezelfde blokken in bwf-kalender.js staan, want die laadt deze
+   functies niet.
+
+   Alles komt uit de reservering zelf; die velden zitten al in de veldenlijst
+   van laadOverzicht, er gaat dus geen extra bevraging overheen. */
+
+function rkVlaggen(b){
+  if(!b) return '';
+  const v = [];
+  const naam    = (b.gast_voornaam || b.gast_achternaam);
+  const contact = (b.gast_telefoon || b.gast_email);
+  if(naam && contact){
+    v.push('<span class="rk-vlag ok">gastgegevens compleet</span>');
+  }else{
+    v.push('<span class="rk-vlag let">gastgegevens ' +
+      (!naam && !contact ? 'ontbreken' : (!naam ? 'zonder naam' : 'geen contact')) + '</span>');
+  }
+  v.push(b.checkin_id
+    ? '<span class="rk-vlag ok">incheckformulier</span>'
+    : '<span class="rk-vlag">geen incheckformulier</span>');
+  /* De betaalstand staat er alleen als hij bekend is. Een lege betaalstatus
+     betekent "nog niet nagelopen" en niet "niet betaald"; daar hoort dus geen
+     rood vlaggetje bij. */
+  const st = String(b.betaalstatus || '');
+  if(st === 'betaald')     v.push('<span class="rk-vlag ok">betaald</span>');
+  else if(st === 'deels')  v.push('<span class="rk-vlag let">deels betaald</span>');
+  else if(st)              v.push('<span class="rk-vlag uit">' + esc(st) + '</span>');
+  return '<div class="rk-vlaggen">' + v.join('') + '</div>';
+}
+
+/* De notitie bij een boeking. Staat er niets, dan ook geen leeg vak - maar
+   staat er wel iets, dan hoort het meteen in beeld en niet pas als je de
+   reservering opent.
+
+   Bewust NIET omschrijving: dat is de titel zoals die uit de feed komt
+   ("Privésauna 3 uur") en staat bij vrijwel elke boeking. Die in een opvallend
+   vak zetten maakt het vak waardeloos - dan kijk je er overheen op het moment
+   dat er wél iets bijzonders staat. Alleen wat iemand zelf heeft opgeschreven
+   telt hier. */
+function rkNotitie(b){
+  if(!b) return '';
+  const t = String(b.notitie || b.import_opmerking || '').trim();
+  if(!t) return '';
+  return '<div class="rk-notitie"><b>notitie</b>' +
+    esc(t.length > 220 ? t.slice(0, 220) + '…' : t) + '</div>';
+}
+
+/* De vlaggetjes en de notitie samen, zoals elke kaart ze onderaan krijgt. */
+function rkInfo(b){ return b ? rkVlaggen(b) + rkNotitie(b) : ''; }
+
+/* De regel verwachte aankomst, als [kopje, tekst] - precies wat dgKaart in
+   zijn rijen verwacht.
+
+   Het kopje is "verwacht" als er een inchecktijd is afgesproken en anders
+   "aankomst". Dat verschil is belangrijk: 14:00 zonder afspraak is alleen de
+   standaardtijd van het blok, en wie zich daarop voorbereidt staat voor niets
+   klaar. De gedeelde kalender maakt hetzelfde onderscheid. */
+function rkAankomstRij(r){
+  if(!r) return ['verwacht', ''];
+  const d = String(r.start || '').slice(0,10);
+  if(!d) return ['verwacht', ''];
+  const afgesproken = String((r.ruw && r.ruw.incheck_tijd) || '').slice(0,5);
+  const t = afgesproken || String(r.start || '').slice(11,16);
+  return [afgesproken ? 'verwacht' : 'aankomst', dmy(d) + (t ? ' om ' + t : '')];
+}
+
+/* Bij welke reservering hoort een ingestuurd formulier?
+   Angela, 04-10-2026: "alle kaarten moeten dezelfde info geven" en "op een
+   klant drukken, die kaart open om te wijzigen en bij te boeken". De lijsten
+   met gastaanmeldingen, bijgeboekte extra's en VIP-aanmeldingen komen uit
+   FORMS en niet uit RES; zonder deze stap hebben ze geen reservering om naar
+   te wijzen en dus ook geen stand van zaken te tonen.
+
+   Twee wegen, in deze volgorde:
+   1. een incheckformulier staat als checkin_id bij de boeking - dat is een
+      harde koppeling en gaat dus voor;
+   2. een gastaanmelding draagt de reserveringscode mee; die staat bij de
+      boeking als kanaal_ref, in RES overgenomen als ref.
+   Vindt hij niets, dan null: de kaart blijft dan gewoon zonder stand van
+   zaken staan en is niet aanklikbaar. */
+function rkResVanForm(f){
+  if(!f) return null;
+  const id = String(f.id || '');
+  if(id){
+    const viaChk = RES.find(r => r.ruw && String(r.ruw.checkin_id || '') === id);
+    if(viaChk) return viaChk;
+  }
+  const code = String(f.code || '').trim().toLowerCase();
+  if(code){
+    const viaCode = RES.find(r => String(r.ref || '').trim().toLowerCase() === code);
+    if(viaCode) return viaCode;
+  }
+  return null;
+}
+
 function dgKaart(k){
   const rijen = (k.rijen || []).filter(r => r && r[1])
     .map(r => `<div class="rij"><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`)
@@ -4901,6 +5031,7 @@ function dgKaart(k){
         ${k.merk ? `<span class="dg-kaartmerk${k.merkSoort ? ' ' + k.merkSoort : ''}">${esc(k.merk)}</span>` : ''}
       </div>
       ${rijen ? `<div class="dg-kaartlijf">${rijen}</div>` : ''}
+      ${rkInfo(k.ruw)}
     </button>${vink}
   </div>`;
 }
@@ -4930,6 +5061,11 @@ function ovOpenVul(sleutel){
      al gevuld door renderDagstart(), met afvinkknoppen en archief en al. */
   const bron = def.uit ? $(def.uit) : null;
   lijst.innerHTML = bron ? bron.innerHTML : (def.html ? def.html() : '');
+  /* De opmaak hoort bij wat er in staat: kaarten hebben een ander raster dan
+     losse regels. Het bronvak zet zijn eigen klasse (dg-kaarten), dus die
+     nemen we over; de lijsten die hier ter plekke worden opgebouwd zijn
+     allemaal kaarten. Angela, 04-10-2026: alle kaarten gelijk. */
+  lijst.className = bron ? (bron.className || 'dg-lijst') : 'dg-kaarten';
   vak.hidden = false;
   DG_OPEN = sleutel;
   document.querySelectorAll('#ovStats .dg-stat').forEach(b => {
@@ -5036,21 +5172,34 @@ function renderDagstart(){
           .map(r => dgKaart({
             naam: r.naam || 'zonder naam', sub: r.locatie || '', suite: r.suiteRuw,
             merk: String(r.start||'').slice(11,16) || dmy(String(r.start||'').slice(0,10)),
-            resId: r.resId || '',
-            rijen: [['aankomst', dmy(String(r.start||'').slice(0,10)) + ' ' + String(r.start||'').slice(11,16)],
+            resId: r.resId || '', ruw: r.ruw,
+            rijen: [rkAankomstRij(r),
                     ['via', r.bron || 'onbekend kanaal'], ['nummer', r.ref || '']]
           })).join('')
       : '<p class="dg-leeg">Niemand komt binnen 24 uur aan.</p>' },
     vip: { titel: 'VIP-aanmeldingen', html: () => vips.length
       ? vips.map(f => {
           const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') || 'zonder naam';
-          return `<div class="dg-spoedregel metvink">
-            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
-            <div><strong>${esc(naam)}</strong><small>${esc([f.locatie,
-              f.code ? 'res. ' + f.code : '', 'wil lid worden'].filter(Boolean).join(' · '))}</small></div>
-            <button type="button" class="dg-vink" title="Afvinken" aria-label="${esc(naam)} afvinken"
-              data-afvink="aanmeldingen" data-kenmerk="${esc(formSleutel(f))}"
-              data-titel="${esc(naam)}">&#10003;</button></div>`;
+          const res = rkResVanForm(f);
+          return dgKaart({
+            naam,
+            sub: (res && res.locatie) || f.locatie || '',
+            suite: res ? res.suiteRuw : '',
+            merk: 'wil lid worden', merkSoort: 'vip',
+            resId: res ? (res.resId || '') : '',
+            ruw: res ? res.ruw : null,
+            lijst: 'aanmeldingen', kenmerk: formSleutel(f),
+            rijen: [
+              rkAankomstRij(res),
+              /* Eerlijk zijn over de koppeling: een code die nergens op
+                 slaat las eerst als "gekoppeld aan res. X", terwijl er geen
+                 reservering bij gevonden is. */
+              ['reservering', res ? 'res. ' + (res.ref || '—')
+                 : (f.code ? 'res. ' + f.code + ' — niet gevonden'
+                           : 'nog niet gekoppeld')],
+              ['aangemeld', f.datum ? dmy(String(f.datum).slice(0,10)) : '']
+            ]
+          });
         }).join('')
       : '<p class="dg-leeg">Niemand wil op dit moment lid worden.</p>' }
   };
@@ -5257,10 +5406,10 @@ function renderDagstart(){
             sub: r.locatie || '',
             suite: r.suiteRuw,
             merk: dmy(String(r.start || '').slice(0,10)),
-            resId: r.resId || '',
+            resId: r.resId || '', ruw: b,
             lijst: 'nieuw', kenmerk: r.resId || r.ref || '',
             rijen: [
-              ['aankomst', String(r.start || '').slice(11,16)],
+              rkAankomstRij(r),
               ['via', r.bron || 'onbekend kanaal'],
               ['nummer', r.ref || ''],
               ['mist nog', mist]
@@ -5296,19 +5445,32 @@ function renderDagstart(){
           const merk = [];
           if(f.lid === true) merk.push('wil lid worden');
           if(Array.isArray(f.extras) && f.extras.length) merk.push(f.extras.length + ' extra’s');
-          const bij = [f.locatie, f.code ? 'res. ' + f.code : '', merk.join(' · ')]
-            .filter(Boolean).join(' · ');
-          return `<div class="dg-spoedregel metvink">
-            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
-            <div><strong>${esc(naam)}</strong><small>${esc(bij)}</small></div>
-            <button type="button" class="dg-vink" title="Afvinken"
-              aria-label="${esc(naam)} afvinken"
-              data-afvink="aanmeldingen" data-kenmerk="${esc(formSleutel(f))}"
-              data-titel="${esc(naam)}">&#10003;</button>
-          </div>`;
+          /* Dezelfde kaart als elders, dus met de stand van zaken en een klik
+             naar de reserveringskaart. Angela, 04-10-2026. */
+          const res = rkResVanForm(f);
+          return dgKaart({
+            naam,
+            sub: (res && res.locatie) || f.locatie || '',
+            suite: res ? res.suiteRuw : '',
+            merk: f.datum ? dmy(String(f.datum).slice(0,10)) : 'aanmelding',
+            resId: res ? (res.resId || '') : '',
+            ruw: res ? res.ruw : null,
+            lijst: 'aanmeldingen', kenmerk: formSleutel(f),
+            rijen: [
+              rkAankomstRij(res),
+              /* Eerlijk zijn over de koppeling: een code die nergens op
+                 slaat las eerst als "gekoppeld aan res. X", terwijl er geen
+                 reservering bij gevonden is. */
+              ['reservering', res ? 'res. ' + (res.ref || '—')
+                 : (f.code ? 'res. ' + f.code + ' — niet gevonden'
+                           : 'nog niet gekoppeld')],
+              ['aangemeld', merk.join(' · ')]
+            ]
+          });
         }).join('')
       : '<p class="dg-leeg">Geen nieuwe gastaanmeldingen.</p>')
       + archiefBlok('aanmeldingen');
+    aanVak.className = 'dg-kaarten';
     dgBel('dgBelAanmeld', 'aanmeldingen', aanOpen.map(formSleutel));
   }
 
@@ -5329,20 +5491,29 @@ function renderDagstart(){
             (x && (x.naam || x.titel || x.omschrijving) || '') +
             (Number(x && x.aantal) > 1 ? ' ×' + x.aantal : '')).filter(Boolean).join(' · ');
           const naam = [f.voornaam, f.achternaam].filter(Boolean).join(' ') || 'zonder naam';
-          const bedrag = Number(f.extras_totaal) ? ' — € ' + num(f.extras_totaal) : '';
-          return `<div class="dg-spoedregel metvink">
-            <span class="dg-spoedtijd">${esc(f.datum ? dmy(String(f.datum).slice(0,10)) : '')}</span>
-            <div><strong>${esc(naam)}${esc(bedrag)}</strong>
-              <small>${esc([wat, f.locatie, f.betaalwijze ? 'betaalwijze: ' + f.betaalwijze : '']
-                .filter(Boolean).join(' · '))}</small></div>
-            <button type="button" class="dg-vink" title="Afvinken"
-              aria-label="${esc(naam)} afvinken"
-              data-afvink="extras" data-kenmerk="${esc(formSleutel(f))}"
-              data-titel="${esc(naam + bedrag)}">&#10003;</button>
-          </div>`;
+          const bedrag = Number(f.extras_totaal) ? '€ ' + num(f.extras_totaal) : '';
+          const res = rkResVanForm(f);
+          return dgKaart({
+            naam,
+            sub: (res && res.locatie) || f.locatie || '',
+            suite: res ? res.suiteRuw : '',
+            merk: bedrag || (f.datum ? dmy(String(f.datum).slice(0,10)) : ''),
+            resId: res ? (res.resId || '') : '',
+            ruw: res ? res.ruw : null,
+            lijst: 'extras', kenmerk: formSleutel(f),
+            rijen: [
+              rkAankomstRij(res),
+              ['reservering', res ? 'res. ' + (res.ref || '—')
+                 : (f.code ? 'res. ' + f.code + ' — niet gevonden'
+                           : 'nog niet gekoppeld')],
+              ['bijgeboekt', wat],
+              ['betaalwijze', f.betaalwijze || '']
+            ]
+          });
         }).join('')
       : '<p class="dg-leeg">Niemand heeft iets bijgeboekt via het formulier.</p>')
       + archiefBlok('extras');
+    exVak.className = 'dg-kaarten';
     dgBel('dgBelExtras', 'extras', exOpen.map(formSleutel));
   }
 
@@ -9956,6 +10127,7 @@ function renderKalender(){
     const gast    = (r.kop&&r.kop.gast) || (r.ontleed||{}).naam || r.naam || '—';
     const bedrag  = (r.kop && r.kop.totaal  != null) ? eur(r.kop.totaal)  : '';
     const betaald = (r.kop && r.kop.betaald != null) ? eur(r.kop.betaald) : '';
+    const aank = rkAankomstRij(r);
     return `
     <article class="reskaart resrij" data-res="${i}">
       <span class="reskaart-foto ${resFotoKlasse(r.suiteRuw)}"></span>
@@ -9969,10 +10141,11 @@ function renderKalender(){
         <p><span class="kal-dot" style="--c:${KAL_KLEUR[r.locatie]||'var(--muted)'}"></span>${
           esc(r.locatie||'onbekend')}</p>
         <div class="reskaart-regels">
-          <span>${esc(dmy(String(r.start||'').slice(0,10)))}${l.tijd?' · '+esc(l.tijd):''}</span>
+          <span>${esc(aank[0])} ${esc(aank[1])}</span>
           <span>tot ${esc(r.eind ? dmy(String(r.eind).slice(0,10)) : '—')}</span>${
           bedrag ? `<span>${esc(bedrag)}${betaald?' · betaald '+esc(betaald):''}</span>` : ''}
         </div>
+        ${rkInfo(r.ruw)}
       </div>
       <span class="pijl">›</span>
     </article>
