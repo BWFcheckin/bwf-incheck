@@ -557,8 +557,15 @@ function wisHulp(tarId) {
   telHulpOp(tarId);
 }
 
+/* De id komt uit een data-attribuut en is dus ALTIJD tekst; wz_tarieven.id is
+   een getal. Met === vond hij nooit iets, keerde zonder melding terug, en dan
+   bleef het bedrag op nul en deed "Zet erbij" niets. Kelly kon daardoor geen
+   enkele werkzaamheid registreren. Angela, 05-10-2026. Vergelijk daarom als
+   tekst - dat werkt ongeacht of de database een getal of een uuid teruggeeft. */
+const zelfdeId = (a, b) => String(a) === String(b);
+
 function herrekenRij(id) {
-  const t = TARIEVEN.find((x) => x.id === id);
+  const t = TARIEVEN.find((x) => zelfdeId(x.id, id));
   const veld = document.getElementById("in-" + id);
   const uit = document.getElementById("uit-" + id);
   if (!t || !veld || !uit) return;
@@ -568,11 +575,16 @@ function herrekenRij(id) {
 }
 
 async function zetErbij(id) {
-  const t = TARIEVEN.find((x) => x.id === id);
+  const t = TARIEVEN.find((x) => zelfdeId(x.id, id));
   const veld = document.getElementById("in-" + id);
   const notitie = document.getElementById("nt-" + id);
   const knop = document.querySelector("[data-zet='" + id + "']");
-  if (!t || !veld) return;
+  /* Nooit stil teruggaan: hier zat de fout van 05-10-2026 en die was van buiten
+     niet te zien - je drukt, en er gebeurt niets. */
+  if (!t || !veld) {
+    melding("Deze taak kon niet worden gevonden. Ververs de pagina en probeer het opnieuw.", "fout");
+    return;
+  }
 
   const invoer = Number(veld.value) || 0;
   if (invoer <= 0) {
@@ -729,7 +741,7 @@ async function zetBetaald(id) {
   } catch (e) { melding("Dat lukte niet: " + e.message, "fout"); }
 }
 async function haalWeg(id) {
-  const w = WERK.find((x) => x.id === id);
+  const w = WERK.find((x) => zelfdeId(x.id, id));
   const wat = w ? (w.taak_naam + " van " + datumKort(w.datum) + " (" + eur(w.bedrag) + ")") : "deze regel";
   if (!window.confirm("Weet je het zeker? " + wat + " wordt verwijderd.")) return;
   try {
