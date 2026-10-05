@@ -3659,7 +3659,23 @@ function balkStand(r, w) {
   const call = !!w && (w.nodig === false || !!w.afgerond_op || !!w.gebeld_op ||
     w.status === "afgerond" || w.status === "gebeld");
   const incheck = !!r.checkin_id;
-  const betaling = r.betaalstatus === "betaald";
+  /* Angela, 05-10-2026: een boeking van 701 euro stond op "Betaald 701, nog te
+     betalen 0,00" en toch bleef deze stap rood. De stap keek alleen naar
+     betaalstatus, terwijl het bedrag erboven uit restant_bedrag wordt afgeleid.
+     Staat de status nog op "deels" terwijl er niets meer openstaat, dan zie je
+     twee verschillende antwoorden op dezelfde vraag.
+
+     Nu is de stap rond zodra de status het zegt, of zodra er een bekend totaal
+     is waarvan niets meer openstaat. De status blijft leidend als hij op
+     "betaald" staat; zie het geheugen "controle-discipline" - niet opnieuw
+     uitrekenen wat er al ergens staat, maar wel hetzelfde antwoord geven als
+     wat de gebruiker op het scherm leest. */
+  const bTotaal  = r.bedrag_totaal  != null ? Number(r.bedrag_totaal)  : null;
+  const bBetaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : null;
+  const bRestant = r.restant_bedrag != null ? Number(r.restant_bedrag) : null;
+  const betaling = r.betaalstatus === "betaald"
+    || (bTotaal != null && bTotaal > 0 && bRestant != null && bRestant <= 0)
+    || (bTotaal != null && bTotaal > 0 && bBetaald != null && bBetaald + 0.005 >= bTotaal);
   /* De reviewstap is afgehandeld zodra er iets over bekend is: de link is
      verstuurd, de gast heeft het bordje gescand, of je hebt bewust besloten
      geen review te vragen. Dat laatste is óók klaar - het zou onzin zijn die

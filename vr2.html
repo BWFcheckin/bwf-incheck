@@ -5061,8 +5061,18 @@ function rkVlaggen(b){
   /* De betaalstand staat er alleen als hij bekend is. Een lege betaalstatus
      betekent "nog niet nagelopen" en niet "niet betaald"; daar hoort dus geen
      rood vlaggetje bij. */
+  /* Dezelfde afleiding als de controlebalk in reserveringen.html: een boeking
+     waarvan het restant op nul staat is rond, ook als de status nog op "deels"
+     staat. Anders leest de kaart "nog te betalen 0,00" met een oranje vlaggetje
+     ernaast. Angela, 05-10-2026. */
   const st = String(b.betaalstatus || '');
-  if(st === 'betaald')     v.push('<span class="rk-vlag ok">betaald</span>');
+  const bT = b.bedrag_totaal  != null ? Number(b.bedrag_totaal)  : null;
+  const bB = b.betaald_bedrag != null ? Number(b.betaald_bedrag) : null;
+  const bR = b.restant_bedrag != null ? Number(b.restant_bedrag) : null;
+  const rond = st === 'betaald'
+    || (bT != null && bT > 0 && bR != null && bR <= 0)
+    || (bT != null && bT > 0 && bB != null && bB + 0.005 >= bT);
+  if(rond)                 v.push('<span class="rk-vlag ok">betaald</span>');
   else if(st === 'deels')  v.push('<span class="rk-vlag let">deels betaald</span>');
   else if(st)              v.push('<span class="rk-vlag uit">' + esc(st) + '</span>');
   return '<div class="rk-vlaggen">' + v.join('') + '</div>';
