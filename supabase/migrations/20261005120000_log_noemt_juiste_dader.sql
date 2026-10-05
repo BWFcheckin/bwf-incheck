@@ -57,8 +57,14 @@ begin
     -- Alleen tellen als de schrijver de naam in DEZE wijziging heeft meegestuurd.
     -- Anders is het de naam van de vorige schrijver en wijst het log de
     -- verkeerde aan.
+    -- NULLIF is SQL-grammatica en geen functie: schrijf hem NOOIT als
+    -- pg_catalog.nullif(). Dat zoekt een echte functie met die naam, die
+    -- bestaat niet, en dan valt deze trigger om bij ELKE wijziging aan een
+    -- reservering. Overkomen op 05-10-2026; alle schrijfacties lagen stil tot
+    -- het hersteld was. Hetzelfde geldt voor COALESCE, CASE, GREATEST en LEAST:
+    -- die werken gewoon onder search_path = ''.
     case when new.gewijzigd_door is distinct from old.gewijzigd_door
-         then pg_catalog.nullif(new.gewijzigd_door, '')
+         then nullif(new.gewijzigd_door, '')
     end,
     (select m.naam from public.wz_medewerkers m where m.auth_id = auth.uid()),
     -- Geen ingelogde gebruiker = een achtergrondproces. Dat is de import of een
