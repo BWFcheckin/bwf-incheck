@@ -6364,13 +6364,18 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         geboortedatum: veld(c,['geboortedatum'],'') || null,
         woonplaats:  veld(c,['woonplaats'],'') || '',
         nationaliteit: veld(c,['nationaliteit'],'') || '',
-        locatie:     hoofdnaam(veld(c,['locatie'],'')),
-        datum:       cfDatum(c) || null,
+        /* De kolommen van wz_klantbeheer heten locatie_id, datum_in en
+           totaal_betaald. Hier stond locatie, datum en totaal - namen die niet
+           bestaan - en PostgREST weigert dan de HELE rij. Daardoor lukte
+           "klant aanmaken" hier nooit. Angela, 06-10-2026; in
+           reserveringen.html staat dezelfde waarschuwing al sinds 20-09. */
+        locatie_id:  hoofdnaam(veld(c,['locatie'],'')),
+        datum_in:    cfDatum(c) || null,
         type:        n > 0 ? 'overnachting' : 'dagverblijf',
         nachten:     n,
         personen:    parseInt(veld(c,['personen'],1),10) || 1,
         kinderen:    parseInt(veld(c,['aantal_kinderen'],0),10) || 0,
-        totaal:      parseFloat(veld(c,['totaal'],0)) || 0,
+        totaal_betaald: parseFloat(veld(c,['totaal'],0)) || 0,
         member:      !!c.lid,
         bron:        'incheckformulier',
         notitie:     [voor ? 'Voornaam: '+voor : '', veld(c,['opmerkingen'],'')].filter(Boolean).join(' \u2014 ')
@@ -7254,10 +7259,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         email: k.email || n2.email || r.email || '',
         telefoon: k.telefoon || n2.telefoon || r.telefoon || '',
         woonplaats: n2.woonplaats || '',
-        locatie: hoofdnaam(r.locatie), datum: r.aankomst || null,
+        /* locatie_id, datum_in en totaal_betaald - zie de opmerking hierboven;
+           met locatie, datum of totaal weigert PostgREST de hele rij. */
+        locatie_id: hoofdnaam(r.locatie), datum_in: r.aankomst ? String(r.aankomst).slice(0,10) : null,
         type: nn > 0 ? 'overnachting' : 'dagverblijf',
         nachten: nn, personen: parseInt(k.personen || n2.personen || r.personen, 10) || 1,
-        totaal: bedragen(r).totaal, member: false, bron: 'reservering',
+        totaal_betaald: bedragen(r).totaal, member: false, bron: 'reservering',
         /* Het reserveringsnummer erbij, zodat in het klantenbestand te zien is
            uit welke boeking deze klant is ontstaan. Angela, 20-09-2026. */
         referentie: n2.nummer || r.nummer || '',
