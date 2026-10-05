@@ -503,7 +503,16 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <option value="0">Alleen vandaag</option>
           <option value="-30">Afgelopen 30 dagen</option>
           <option value="alles">Alles</option>
+          <option value="eigen">Zelf een datum kiezen&hellip;</option>
         </select></label>
+    <!-- Angela, 05-10-2026: "een datum kunnen kiezen in het reserveringen
+         scherm." Verschijnt alleen als je bij Periode "zelf kiezen" staat;
+         anders zijn het twee lege vakjes die alleen maar in de weg staan.
+         Alleen "van" invullen mag: dan is het alles vanaf die dag. -->
+    <label class="veld" id="fVanVak" hidden>Van
+      <input type="date" id="fVan"></label>
+    <label class="veld" id="fTotVak" hidden>Tot en met
+      <input type="date" id="fTot"></label>
       <label class="veld">Suite
         <select id="fSuite"><option value="">Alle suites</option></select></label>
       <label class="veld">Kanaal
@@ -555,6 +564,13 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         <label class="veld">Uitcheck-tijd <input id="nUitcheck" type="time"></label>
         <!-- Bestaande klant kiezen vult de vier velden hieronder. Leeg laten mag:
              dan wordt er geen klant aan de reservering gekoppeld. -->
+        <!-- Angela, 05-10-2026: "bij klant zoeken in klantbestand wil ik een
+             naam kunnen intikken." De keuzelijst eronder bevat het hele
+             klantenbestand; zoeken was scrollen. Dit vakje dunt de lijst uit
+             terwijl je typt - op naam, woonplaats, e-mail of telefoon. -->
+        <label class="veld breed">Klant zoeken
+          <input type="search" id="nKlantZoek" placeholder="naam, plaats, e-mail of telefoon"
+            autocomplete="off" spellcheck="false"></label>
         <label class="veld breed">Bestaande klant <select id="nKlant"></select></label>
         <!-- Meldt dat deze klant member is, met wat dat hier oplevert.
              Angela, 28-09-2026. Blijft leeg zolang er geen member gekozen is. -->
@@ -1752,11 +1768,50 @@ function teken() {
 
 function begin(dagen) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dagen); return d.toISOString(); }
 
+/* Middernacht van een gekozen datum, eventueel een aantal dagen verder.
+   Uit de losse jaar/maand/dag opgebouwd en niet met new Date("2026-10-05"):
+   die laatste leest de tekst als UTC, en dan begint "5 oktober" hier op
+   4 oktober 22:00. Zie het geheugen over tijdzones. */
+function dagGrens(iso, plusDagen) {
+  const d = String(iso || "").split("-").map(Number);
+  if (d.length !== 3 || !d[0]) return begin(0);
+  const x = new Date(d[0], d[1] - 1, d[2] + (plusDagen || 0));
+  x.setHours(0, 0, 0, 0);
+  return x.toISOString();
+}
+
 async function laad() {
   $("#telling").textContent = "Laden…";
   const p = $("#fPeriode") ? $("#fPeriode").value : "30";
+  /* De twee datumvakjes horen bij de keuze "zelf kiezen" en staan er anders niet. */
+  const eigen = p === "eigen";
+  if ($("#fVanVak")) $("#fVanVak").hidden = !eigen;
+  if ($("#fTotVak")) $("#fTotVak").hidden = !eigen;
+
   let venster;
-  if (p === "alles")     venster = "&aankomst=gte." + encodeURIComponent(begin(-730));
+  if (eigen) {
+    /* Angela, 05-10-2026. Een losse dag kiezen betekent: alles wat die dag
+       loopt, dus ook een gast die eergisteren aankwam en morgen vertrekt.
+       Daarom aankomst < einde en vertrek > begin, net als bij de vaste
+       periodes hierboven.
+
+       Dag nul tot en met dag nul is één dag, dus "tot en met" krijgt er een
+       dag bij; zonder dat valt de gekozen einddag er net buiten. Alleen "van"
+       invullen mag: dan is er geen bovengrens. */
+    const van = String(($("#fVan") || {}).value || "");
+    const tot = String(($("#fTot") || {}).value || "");
+    if (!van && !tot) {
+      venster = "&aankomst=lt." + encodeURIComponent(begin(31)) +
+                "&vertrek=gt."  + encodeURIComponent(begin(0));
+    } else {
+      venster = "";
+      if (tot) venster += "&aankomst=lt." + encodeURIComponent(dagGrens(tot, 1));
+      if (van) venster += "&vertrek=gt."  + encodeURIComponent(dagGrens(van, 0));
+    }
+  }
+  /* "Alles" was alles vanaf twee jaar terug. Dat heet geen alles: de oudste
+     boekingen vielen er stil buiten. Nu zonder ondergrens. Angela, 05-10-2026. */
+  else if (p === "alles") venster = "";
   else if (p === "-30")  venster = "&aankomst=gte." + encodeURIComponent(begin(-30)) +
                                    "&aankomst=lt."  + encodeURIComponent(begin(1));
   else                   venster = "&aankomst=lt."  + encodeURIComponent(begin(Number(p) + 1)) +
@@ -4362,6 +4417,51 @@ function klantNaam(k) {
   return (naam || "zonder naam") + (erbij ? " — " + erbij : "");
 }
 
+/* Waarop je een klant kunt vinden. Telefoon staat er ook in, maar zonder
+   streepjes en spaties: wie "06 12 34" intikt moet 0612345678 vinden. */
+function klantZoektekst(k) {
+  return [k.voornaam, k.voorletters, k.achternaam, k.woonplaats, k.email,
+          String(k.telefoon || "").replace(/\D/g, "")]
+    .filter(Boolean).join(" ").toLowerCase();
+}
+
+/* De keuzelijst met bestaande klanten, uitgedund op wat er in het zoekvakje
+   staat. Angela, 05-10-2026: "ik wil een naam kunnen intikken."
+   Een al gekozen klant blijft altijd in de lijst staan, ook als hij niet op de
+   zoekterm past - anders verspringt je keuze zodra je verder typt. */
+function vulKlantKeuze() {
+  const lijst = $("#nKlant"); if (!lijst) return;
+  const gekozen = lijst.value || "";
+  const zoek = String((($("#nKlantZoek") || {}).value) || "").toLowerCase().trim();
+  const delen = zoek.split(/\s+/).filter(Boolean);
+  const past = (k) => !delen.length ||
+    delen.every((d) => klantZoektekst(k).includes(d));
+  const treffers = KLANTEN.filter((k) => past(k) || String(k.id) === gekozen);
+  lijst.innerHTML = '<option value="">— geen bestaande klant —</option>' +
+    treffers.map((k) => '<option value="' + esc(k.id) + '">' + esc(klantNaam(k)) + "</option>").join("");
+  lijst.value = gekozen;
+  /* Zegt hoeveel er over zijn, zodat je weet of je verder moet typen of dat
+     deze gast er simpelweg niet in staat. */
+  const vak = $("#nKlantZoek");
+  if (vak) vak.setAttribute("aria-describedby", "nKlantTel");
+  let tel = $("#nKlantTel");
+  if (!tel && vak && vak.parentElement) {
+    tel = document.createElement("small");
+    tel.id = "nKlantTel";
+    tel.style.cssText = "display:block;color:var(--muted);font-weight:400;margin-top:3px";
+    vak.parentElement.appendChild(tel);
+  }
+  if (tel) tel.textContent = !delen.length
+    ? KLANTEN.length + " klanten in het bestand"
+    : treffers.length === 0
+      ? "Geen klant gevonden — maak hem hieronder aan"
+      : treffers.length + (treffers.length === 1 ? " klant gevonden" : " klanten gevonden");
+}
+
+document.addEventListener("input", (e) => {
+  if (e.target && e.target.id === "nKlantZoek") vulKlantKeuze();
+});
+
 const SUITE_TARIEF = { angie: "angie", malina_jacuzzi: "jacuzzi", malina_deluxe: "zwembad" };
 const SUITE_LOCATIE = { angie: "Almere", malina_jacuzzi: "Lelystad", malina_deluxe: "Lelystad" };
 
@@ -4449,8 +4549,7 @@ function vulNieuwKeuzes() {
      stilzwijgend de herkomst van elke boeking waarbij niemand die keuze
      aanraakt. */
   $("#nKanaal").innerHTML = opties(KANALEN, "handmatig");
-  $("#nKlant").innerHTML = '<option value="">— geen bestaande klant —</option>' +
-    KLANTEN.map((k) => '<option value="' + esc(k.id) + '">' + esc(klantNaam(k)) + "</option>").join("");
+  vulKlantKeuze();
   const vandaag = new Date();
   const iso = new Date(vandaag.getTime() - vandaag.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   $("#nAankomst").value = iso;
@@ -4474,6 +4573,9 @@ function leegNieuw() {
   /* ook de klantkeuze terug: anders koppelt de volgende boeking stilzwijgend
      de klant van de vorige */
   if ($("#nKlant")) $("#nKlant").value = "";
+  /* Ook het zoekvakje leeg, anders staat de lijst bij een volgende boeking nog
+     uitgedund op de vorige gast. */
+  if ($("#nKlantZoek")) { $("#nKlantZoek").value = ""; vulKlantKeuze(); }
   $("#nMelding").textContent = "";
   /* ook de aangevinkte extra's wissen, anders erft de volgende boeking
      stilzwijgend de keuzes van de vorige - met geld erin */
@@ -7026,6 +7128,10 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#fZoek").addEventListener("input", teken);
   $("#vernieuwen").addEventListener("click", laad);
   $("#fPeriode").addEventListener("change", laad);
+  /* De twee datumvakjes laden opnieuw zodra je er een datum in zet. */
+  ["#fVan", "#fTot"].forEach((kies) => {
+    const el = $(kies); if (el) el.addEventListener("change", laad);
+  });
 
   document.querySelector(".tabs").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-tab]");
