@@ -3023,23 +3023,22 @@ div.ag-blok{cursor:default}
       <div class="card-foot"><span class="note" style="margin:0">Klopt er iets niet? Geef het door aan Angela — zij beheert de tarieven.</span></div>
     </div>
 
+    <!-- Angela, 06-10-2026: "Kelly zat in een verkeerd veld, vervang het
+         bovenste blok voor werkzaamheden.html."
+
+         Hier stond een tweede invoerscherm met een eigen keuzelijst en een
+         eigen berekening, naast de echte pagina werkzaamheden.html. Twee
+         schermen voor hetzelfde werk lopen gegarandeerd uiteen - en dat deden
+         ze ook: dit blok kende "Losse uren" en Kelly's tarieven stonden er
+         niet in. Nu staat de echte pagina hier in een venster, zodat er maar
+         één plek is waar werkzaamheden ingevoerd worden. -->
     <div class="card" data-dggroep="registreren">
-      <div class="card-head"><h2>Werkzaamheid registreren</h2></div>
-      <div class="card-body">
-        <div class="grid-form">
-          <div class="field"><label for="wzDatum">Datum</label><input type="date" id="wzDatum"></div>
-          <div class="field"><label for="wzMw">Wie</label><select id="wzMw"></select></div>
-          <div class="field" style="grid-column:span 2"><label for="wzTarief">Werkzaamheid</label><select id="wzTarief"></select></div>
-          <div class="field"><label for="wzAantal">Aantal</label><input type="number" id="wzAantal" value="1" min="0" step="0.25"></div>
-          <div class="field wide"><label for="wzNotitie">Notitie <span style="font-weight:400;color:var(--muted)">(optioneel)</span></label>
-            <input type="text" id="wzNotitie" placeholder="bv. suite Malina Jacuzzi, reservering 12345"></div>
-        </div>
-        <div class="preview">
-          <strong id="wzBedrag">€ 0,00</strong>
-          <span class="sep"></span>
-          <span class="opbouw" id="wzOpbouw">Kies een werkzaamheid</span>
-          <span style="margin-left:auto"><button class="btn" id="wzOpslaan" type="button">Registreren</button></span>
-        </div>
+      <div class="card-head"><h2>Werkzaamheid registreren</h2>
+        <a class="btn ghost small" href="werkzaamheden.html" target="_blank" rel="noopener">In eigen venster openen</a>
+      </div>
+      <div class="card-body" style="padding:0">
+        <iframe id="wzPaginaFrame" data-src="werkzaamheden.html" title="Werkzaamheden registreren"
+          style="width:100%;height:78vh;min-height:520px;border:0;border-radius:0 0 12px 12px;background:#fff"></iframe>
       </div>
     </div>
 
@@ -3935,6 +3934,10 @@ function laadResFrameIndienZichtbaar(){
      die al gerepareerd was, maar onzichtbaar bleef. De guard hierboven kijkt
      naar !f.src, en die blijft werken omdat src na toekenning gevuld is. */
   if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de werkzaamhedenpagina in het tabblad Werk & tarieven. */
+  const w = document.getElementById('wzPaginaFrame');
+  if(w && !w.src && w.dataset.src && w.offsetParent !== null)
+    w.src = w.dataset.src + '?v=' + Date.now();
 }
 /* Afvinken en terugzetten. Vóór de andere klikafhandeling, en met
    stopPropagation: een tik op het vinkje mag de reservering niet openen. */
@@ -4015,6 +4018,10 @@ function laadFinancieelIndienZichtbaar(){
   const f = document.getElementById('financieelFrame');
   const p = document.getElementById('panel-financieel');
   if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de werkzaamhedenpagina in het tabblad Werk & tarieven. */
+  const w = document.getElementById('wzPaginaFrame');
+  if(w && !w.src && w.dataset.src && w.offsetParent !== null)
+    w.src = w.dataset.src + '?v=' + Date.now();
 }
 document.addEventListener('click', function(){ setTimeout(laadFinancieelIndienZichtbaar, 60); });
 setTimeout(laadFinancieelIndienZichtbaar, 1500);
@@ -4081,6 +4088,10 @@ function laadHandleidingIndienZichtbaar(){
   const f = document.getElementById('handleidingFrame');
   const p = document.getElementById('panel-handleiding');
   if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de werkzaamhedenpagina in het tabblad Werk & tarieven. */
+  const w = document.getElementById('wzPaginaFrame');
+  if(w && !w.src && w.dataset.src && w.offsetParent !== null)
+    w.src = w.dataset.src + '?v=' + Date.now();
 }
 document.addEventListener('click', function(){ setTimeout(laadHandleidingIndienZichtbaar, 60); });
 setTimeout(laadHandleidingIndienZichtbaar, 1500);
@@ -4149,6 +4160,10 @@ function laadBonnenFrameIndienZichtbaar(){
   const f = document.getElementById('bonnenFrame');
   const p = document.getElementById('panel-bonnen');
   if(f && p && !p.hidden && !f.src && f.dataset.src) f.src = f.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de werkzaamhedenpagina in het tabblad Werk & tarieven. */
+  const w = document.getElementById('wzPaginaFrame');
+  if(w && !w.src && w.dataset.src && w.offsetParent !== null)
+    w.src = w.dataset.src + '?v=' + Date.now();
 }
 document.addEventListener('click', function(){ setTimeout(laadBonnenFrameIndienZichtbaar, 60); });
 setTimeout(laadBonnenFrameIndienZichtbaar, 1500);
@@ -4274,15 +4289,13 @@ function vulSelects(){
   if(!$('#gaAan').value){ const m=new Date(); m.setDate(m.getDate()+1);
     $('#gaAan').value = vandaag(); $('#gaVer').value = m.toISOString().slice(0,10); }
   gaHerbereken();
-  $('#wzMw').innerHTML  = mwOpties(null);
+  /* Het invoerblok is op 06-10-2026 vervangen door de pagina
+     werkzaamheden.html in een venster; deze velden bestaan dus niet meer.
+     De code eromheen blijft staan voor het overzicht eronder, maar mag niet
+     omvallen op wat er niet is. */
   $('#fWie').innerHTML  = mwOpties('Iedereen');
   $('#belToewijzen').innerHTML = mwOpties('Iedereen');
-  if(!isEigenaar()){ $('#wzMw').value = IK.id; $('#fWie').value = IK.id; }
-  $('#wzTarief').innerHTML = S.tarieven.filter(t=>t.actief!==false)
-    .map(t=>`<option value="${t.id}">${esc(t.taak)} — ${t.soort==='uur'
-      ? num(t.uren)+' u per '+esc(t.eenheid)
-      : eur(t.tarief)+' per '+esc(t.eenheid)}</option>`).join('');
-  if(!$('#wzDatum').value) $('#wzDatum').value = vandaag();
+  if(!isEigenaar()) $('#fWie').value = IK.id;
   if(!$('#fMaand').value)  $('#fMaand').value  = vandaag().slice(0,7);
   berekenBedrag();
 }
@@ -6913,7 +6926,13 @@ $('#emPlakOk').addEventListener('click', async ()=>{
 });
 
 /* ---------------- WERKZAAMHEDEN ---------------- */
-function huidigTarief(){ return S.tarieven.find(t=>t.id===$('#wzTarief').value) || null; }
+function huidigTarief(){
+  const kies = $('#wzTarief'); if(!kies) return null;
+  /* Als tekst vergelijken: een keuzelijst geeft altijd tekst terug en
+     wz_tarieven.id is een getal. Dezelfde val als in werkzaamheden.html,
+     waardoor Kelly daar niets kon registreren. Angela, 05-10-2026. */
+  return S.tarieven.find(t=>String(t.id)===String(kies.value)) || null;
+}
 function uurloonVan(id){ const m = S.medewerkers.find(x=>x.id===id); return Number(m && m.uurtarief || 0); }
 
 /* rekenkern: stukprijs = aantal x tarief, uurwerk = aantal x uren x uurtarief van de persoon */
@@ -6932,15 +6951,21 @@ function rekenRegel(t, aantal, mwId){
     opbouw: `${num(aantal)} × ${eur(tar)} per ${t.eenheid}`,
     waarschuwing: tar===0 ? 'het tarief staat nog op € 0,00' : null};
 }
+/* Het oude invoerblok is weg (zie hierboven). Deze functie blijft bestaan omdat
+   er elders naar verwezen wordt; hij doet niets meer zolang de velden er niet
+   zijn. */
 function berekenBedrag(){
-  const t = huidigTarief();
-  const r = rekenRegel(t, $('#wzAantal').value, $('#wzMw').value || (IK&&IK.id));
-  $('#wzBedrag').textContent = eur(r.bedrag);
-  $('#wzOpbouw').textContent = r.opbouw + (r.waarschuwing ? ' — let op: '+r.waarschuwing : '');
+  const aantal = $('#wzAantal'), bedrag = $('#wzBedrag'), opbouw = $('#wzOpbouw');
+  if(!aantal || !bedrag || !opbouw) return;
+  const r = rekenRegel(huidigTarief(), aantal.value, ($('#wzMw')||{}).value || (IK&&IK.id));
+  bedrag.textContent = eur(r.bedrag);
+  opbouw.textContent = r.opbouw + (r.waarschuwing ? ' — let op: '+r.waarschuwing : '');
 }
-['#wzTarief','#wzAantal','#wzMw'].forEach(s=>$(s).addEventListener('input', berekenBedrag));
+['#wzTarief','#wzAantal','#wzMw'].forEach(kies=>{
+  const el = $(kies); if(el) el.addEventListener('input', berekenBedrag);
+});
 
-$('#wzOpslaan').addEventListener('click', async ()=>{
+if($('#wzOpslaan')) $('#wzOpslaan').addEventListener('click', async ()=>{
   const t = huidigTarief(); if(!t){ toast('Kies eerst een werkzaamheid.'); return; }
   const aantal = Number($('#wzAantal').value)||0;
   if(aantal<=0){ toast('Vul een aantal groter dan 0 in.'); return; }
