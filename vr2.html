@@ -1410,6 +1410,28 @@ div.ag-blok{cursor:default}
 
    De blokken Spoed en Nog te verwerken staan in smalle kolommen, dus de foto
    is lager dan in de kalender en de gegevens staan compacter. */
+/* Dubbel verkocht. Rood en bovenaan: dit is het enige op de dagstart waar een
+   gast vanavond voor een dichte deur kan staan. Angela, 05-10-2026. */
+#obBalk{margin:0 0 14px;border:1px solid var(--crit);border-radius:var(--r-l);
+  background:var(--crit-soft);overflow:hidden}
+.ob-kop{display:flex;gap:11px;align-items:flex-start;padding:13px 15px;
+  background:var(--crit);color:#fff}
+.ob-kop .ob-ico{font-size:19px;line-height:1.2;flex:0 0 auto}
+.ob-kop b{display:block;font-size:15.5px}
+.ob-kop span{display:block;font-size:13px;opacity:.92;margin-top:2px;max-width:56ch}
+.ob-paar{padding:12px 15px;border-top:1px solid var(--crit)}
+.ob-wanneer{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--crit);margin-bottom:7px}
+.ob-twee{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.ob-boeking{display:block;text-align:left;border:1px solid var(--line);border-radius:var(--r-m);
+  background:var(--surface);padding:9px 11px;font:inherit;color:inherit;cursor:pointer}
+.ob-boeking:hover{border-color:var(--crit)}
+.ob-boeking b{display:block;font-size:14.5px}
+.ob-boeking span{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}
+.ob-vink{margin-top:9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);
+  font:inherit;font-size:13px;color:var(--ink-2);padding:6px 13px;cursor:pointer}
+.ob-vink:hover{border-color:var(--ink-2)}
+@media(max-width:560px){ .ob-twee{grid-template-columns:1fr} }
 .dg-kaarten{display:grid;gap:10px;padding:10px 14px 14px}
 .dg-kaart{border:1px solid var(--line);border-radius:12px;overflow:hidden;
   background:var(--surface);display:flex;flex-direction:column;text-align:left;
@@ -1662,6 +1684,10 @@ div.ag-blok{cursor:default}
       <h1 id="welkomKop">Dagstart</h1>
       <p id="startUitleg">Klik op een tegel om hem te openen of te sluiten.</p>
     </div>
+    <!-- Dubbel verkocht. Staat bewust helemaal bovenaan en niet in het
+         belletje: dit is het enige op deze pagina waar een gast vanavond voor
+         een dichte deur kan staan. Angela, 05-10-2026. -->
+    <div id="obBalk" hidden></div>
     <div class="linkstrook" data-linktab="start"></div>
     <!-- De cijferbalk staat weer aan, in de vormtaal van de startpagina.
          renderOverzicht() vulde hem altijd al (open taken, werkzaamheden en uren
@@ -3637,7 +3663,11 @@ async function maak(key, obj){
     chip('saving','Opslaan…');
     try{
       const r = await api(TBL[key], {method:'POST', headers:heads({'Prefer':'return=representation'}), body:JSON.stringify(obj)});
-      const rows = Array.isArray(r)?r:[r];
+      /* Geeft de database een leeg antwoord (of een 204), dan is r null en
+         zou hier een null in de lijst belanden. Alles wat die lijst daarna
+         doorloopt klapt daarop stuk - renderDagstart() en badges() lezen
+         c.status - en dat is van buiten niet te zien. Angela, 05-10-2026. */
+      const rows = (Array.isArray(r) ? r : [r]).filter(x => x && typeof x === 'object');
       S[key].unshift(...rows); chip('saved','Bewaard'); return rows;
     }catch(e){ console.error(e); LAATSTE_FOUT = e.message; chip('fout','Niet bewaard'); toast('Opslaan mislukt: '+e.message); return null; }
   }
@@ -4752,7 +4782,8 @@ if($('#dgMeldBewaar')) $('#dgMeldBewaar').addEventListener('click', dgMeldBewaar
    over waarvan de lijstnaam hier ontbreekt, en vinkAf() zou schrijven in
    undefined. Dat gaat stil mis: je vinkt af, er gebeurt niets zichtbaars, en
    na verversen staat alles er weer. "aanmeldingen" erbij op 04-10-2026. */
-const AFGEVINKT = { spoed: {}, nieuw: {}, extras: {}, formulieren: {}, aanmeldingen: {} };
+const AFGEVINKT = { spoed: {}, nieuw: {}, extras: {}, formulieren: {}, aanmeldingen: {},
+                    overboeking: {} };
 
 async function laadAfgevinkt(){
   try{
@@ -4796,6 +4827,96 @@ function formSleutel(f){
 const nogOpen = (lijst, items, kenmerkVan) =>
   (items || []).filter(x => !isAfgevinkt(lijst, kenmerkVan(x)));
 
+/* =========================================================
+   Dubbel verkocht: twee boekingen op dezelfde suite en nacht
+   =========================================================
+   Angela, 05-10-2026. Op 5 oktober verkochten SMG en Booking.com allebei
+   dezelfde nacht in Malina Deluxe. De import "loste" dat stil op door de
+   Booking.com-kant te annuleren - met gast, met 612 euro betaald, en met
+   aankomst diezelfde avond. Dat kwam pas een halve dag later uit.
+
+   Dit blok lost niets op; het maakt het zichtbaar. Binnen een kwartier, want
+   zo vaak draait de import.
+
+   WAT TELT ALS EEN ECHTE BOEKING
+   Niet elke overlap is fout. De agenda staat vol met planningsregels uit de
+   SMG-feed (kanaal_ref begint met "smg-regel:"), en die spiegelen een boeking
+   die er al is - die hoort dus te overlappen. Ze hebben geen gastnaam en geen
+   bedrag. Daarom telt alleen mee wat een naam of een bedrag heeft; dezelfde
+   maatstaf als het slot in de database (bwf_beschermd_tegen_import). Zonder
+   die grens zou er elke dag een valse waarschuwing staan, en dan kijkt
+   niemand er meer naar. */
+function obEcht(r){
+  if(!r || r.verleden) return false;
+  const b = r.ruw || {};
+  const st = String(b.status || '').toLowerCase();
+  if(st === 'geannuleerd' || st === 'no_show') return false;
+  const naam = String(b.gast_voornaam || '').trim() || String(b.gast_achternaam || '').trim();
+  const bedrag = Number(b.bedrag_totaal || 0) || Number(b.betaald_bedrag || 0);
+  return !!(naam || bedrag);
+}
+
+/* De balk tekenen. Niets gevonden = niets in beeld; een waarschuwing die er
+   altijd staat leest niemand meer. */
+function tekenOverboeking(){
+  const vak = $('#obBalk'); if(!vak) return;
+  let paren = [];
+  try{ paren = overboekingen(); }catch(e){ paren = []; }
+  if(!paren.length){ vak.hidden = true; vak.innerHTML = ''; return; }
+
+  const regel = (r) => {
+    const b = r.ruw || {};
+    const naam = [b.gast_voornaam, b.gast_achternaam].filter(Boolean).join(' ') || r.naam || 'zonder naam';
+    const bedrag = b.bedrag_totaal != null ? ' · € ' + num(b.bedrag_totaal) : '';
+    const betaald = String(b.betaalstatus || '') === 'betaald' ? ' · betaald' : '';
+    return '<button type="button" class="ob-boeking"' +
+      (r.resId ? ' data-resopen="' + esc(r.resId) + '"' : '') + '>' +
+      '<b>' + esc(naam) + '</b><span>' + esc((r.bron || 'onbekend kanaal') +
+      (r.ref ? ' · ' + r.ref : '') + bedrag + betaald) + '</span></button>';
+  };
+
+  vak.hidden = false;
+  vak.innerHTML = '<div class="ob-kop"><span class="ob-ico">&#9888;</span>' +
+    '<div><b>' + paren.length + ' keer dubbel verkocht</b>' +
+    '<span>Twee boekingen op dezelfde suite en dezelfde nacht. Los dit op met de ' +
+    'kanalen voordat de gasten komen.</span></div></div>' +
+    paren.map(p =>
+      '<div class="ob-paar">' +
+        '<div class="ob-wanneer">' + esc(ovLocNaam(p.a.suiteRuw) || p.a.locatie || '') +
+          ' &middot; ' + esc(dmy(String(p.a.start||'').slice(0,10))) + '</div>' +
+        '<div class="ob-twee">' + regel(p.a) + regel(p.b) + '</div>' +
+        '<button type="button" class="ob-vink" data-afvink="overboeking" ' +
+          'data-kenmerk="' + esc(p.kenmerk) + '" ' +
+          'data-titel="dubbel verkocht ' + esc(dmy(String(p.a.start||'').slice(0,10))) + '">' +
+          'Nagekeken, klopt' +
+        '</button>' +
+      '</div>').join('');
+}
+
+/* Een vast kenmerk voor een paar, zodat afvinken blijft hangen ongeacht de
+   volgorde waarin de twee boekingen langskomen. */
+const obSleutel = (a, b) => [a.resId || a.ref || '', b.resId || b.ref || ''].sort().join('|');
+
+function overboekingen(){
+  const vd = vandaag();
+  const mee = RES.filter(r => obEcht(r) && String(r.eind || r.start || '').slice(0,10) >= vd);
+  const paren = [];
+  for(let i = 0; i < mee.length; i++){
+    for(let j = i + 1; j < mee.length; j++){
+      const a = mee[i], b = mee[j];
+      if(String(a.suiteRuw || '') !== String(b.suiteRuw || '')) continue;
+      if(!a.suiteRuw) continue;
+      /* Overlappen in tijd? Aankomst van de een vóór vertrek van de ander, en
+         andersom. Aansluitende boekingen (de een vertrekt als de ander komt)
+         overlappen niet. */
+      const aS = String(a.start||''), aE = String(a.eind||'') || aS;
+      const bS = String(b.start||''), bE = String(b.eind||'') || bS;
+      if(aS < bE && bS < aE) paren.push({a, b, kenmerk: obSleutel(a, b)});
+    }
+  }
+  return nogOpen('overboeking', paren, p => p.kenmerk);
+}
+
 async function vinkAf(lijst, kenmerk, titel, toelichting){
   /* Nooit stil niets doen: zonder kenmerk valt er niets vast te leggen, en dan
      hoort de gebruiker dat te weten in plaats van te denken dat de knop stuk
@@ -4811,7 +4932,12 @@ async function vinkAf(lijst, kenmerk, titel, toelichting){
     afgevinkt_op: new Date().toISOString(),
     afgevinkt_door: (typeof IK !== 'undefined' && IK && IK.naam) ? IK.naam : ''
   };
-  renderDagstart();
+  /* Afgeschermd. Struikelt het hertekenen ergens over, dan mag het WEGSCHRIJVEN
+     daar niet aan onderdoor gaan: de rest van deze functie wordt dan nooit
+     bereikt en het afvinken verdwijnt bij de eerstvolgende verversing, zonder
+     dat iemand een foutmelding ziet. Gemeten op 05-10-2026: één onbruikbare
+     regel in S.calls liet elk afvinken stil mislukken. */
+  try{ renderDagstart(); }catch(e){ console.error('hertekenen na afvinken mislukte:', e); }
   /* Ook de tellers in de menubalk: die telt dezelfde dingen, en liep anders
      achter tot de volgende keer dat er iets anders hertekende. */
   try{ badges(); }catch(e){}
@@ -5100,9 +5226,13 @@ document.addEventListener('click', function(e){
 });
 
 function renderDagstart(){
+  /* Als eerste, want dit is het enige op deze pagina waar vanavond een gast
+     voor een dichte deur kan staan. Afgeschermd: gaat hier iets mis, dan mag
+     de rest van de dagstart niet wegvallen. */
+  try{ tekenOverboeking(); }catch(e){}
   const vd = vandaag();
   const open = dgOpenTaken();
-  const calls = (S.calls || []).filter(c => c.status !== 'afgerond' && c.status !== 'gebeld');
+  const calls = (S.calls || []).filter(c => c && c.status !== 'afgerond' && c.status !== 'gebeld');
   const aankVandaag = RES.filter(r => String(r.start || '').slice(0,10) === vd);
 
   /* De blokken bovenaan. Angela, 04-10-2026: "ik wil deze blokken aanpassen
@@ -7262,7 +7392,7 @@ function badges(){
       : '';
   };
   zet('taken', mijnTaken().filter(t=>t.status!=='klaar').length);
-  zet('welkomstcall', S.calls.filter(c=>c.status!=='afgerond' && c.status!=='gebeld').length);
+  zet('welkomstcall', (S.calls||[]).filter(c=>c && c.status!=='afgerond' && c.status!=='gebeld').length);
   zet('klanten', S.klanten.length);
   zet('bellen', S.belitems.filter(i=>{
         const l = S.bellijsten.find(b=>b.id===i.lijst_id);
