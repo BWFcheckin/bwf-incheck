@@ -188,6 +188,49 @@ body.bwf-vergrendeld .wrap{display:none}
     <div id="werkLijst"></div>
   </div>
 
+  <!-- ============ uren bijhouden ============
+       Angela, 06-10-2026: "een invoerveld waarin per dag met datum uren
+       geplaatst kunnen worden, keuze aantal uur of start- en eindtijd, zonder
+       bedrag. Dit is om de maanduren bij te houden."
+
+       Bewust een eigen blok en niet een extra tarief: hier hoort geen bedrag
+       bij, en een tarief van 0,00 tussen de echte tarieven nodigt uit tot
+       vergissingen. De regels komen wel in hetzelfde overzicht terecht, zodat
+       je ze per maand bij elkaar ziet. -->
+  <div class="kaart geen-print" id="kaartUren" hidden>
+    <div class="kaart-kop">
+      <h2>Uren bijhouden</h2>
+      <span class="hint">zonder bedrag &mdash; alleen om de maanduren bij te houden</span>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <label class="veld">Datum <input type="date" id="uDatum"></label>
+      <label class="veld" id="uWieVak" hidden>Voor wie <select id="uWie"></select></label>
+      <label class="veld">Invoeren als
+        <select id="uWijze">
+          <option value="aantal">Aantal uur</option>
+          <option value="tijden">Start- en eindtijd</option>
+        </select></label>
+      <!-- Bewust type=text en geen type=number: een getalveld weigert de komma,
+           en dan leest "3,5" als leeg. Gemeten op 06-10-2026: het vakje zei
+           dan 0 uur terwijl er 3,5 stond. -->
+      <label class="veld" id="uAantalVak">Aantal uur
+        <input type="text" id="uAantal" inputmode="decimal" autocomplete="off"
+               placeholder="bijv. 3,5"></label>
+      <label class="veld" id="uVanVak" hidden>Van <input type="time" id="uVan"></label>
+      <label class="veld" id="uTotVak" hidden>Tot <input type="time" id="uTot"></label>
+    </div>
+
+    <label class="veld" style="display:block;margin-top:10px">Notitie
+      <span style="color:var(--stil,#6E7872);font-weight:400">(mag leeg)</span>
+      <input type="text" id="uNotitie" placeholder="bijv. voorbereiding weekend, administratie"></label>
+
+    <div class="werk-voet" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">
+      <div class="werk-uit" id="uUit">0 uur</div>
+      <button class="knop vol" type="button" id="uZet">Uren erbij zetten</button>
+    </div>
+  </div>
+
   <!-- ============ overzicht ============ -->
   <div class="kaart">
     <div class="kaart-kop">
@@ -691,6 +734,9 @@ function tekenOverzicht() {
     "<div class='tegel'><span>Totaal deze maand</span><b>" + eur(totaal) + "</b></div>" +
     "<div class='tegel open'><span>Nog te ontvangen</span><b>" + eur(open) + "</b></div>" +
     "<div class='tegel uitbetaald'><span>Al uitbetaald</span><b>" + eur(uit) + "</b></div>" +
+    "<div class='tegel'><span>Uren deze maand</span><b>" +
+      uurTekst(lijst.reduce((s2, w) => s2 + (isUren(w) ? (Number(w.uren) || Number(w.aantal) || 0) : 0), 0)) +
+      "</b></div>" +
     "<div class='tegel'><span>Regels</span><b>" + lijst.length + "</b></div>";
 
   if (!lijst.length) {
@@ -710,13 +756,18 @@ function tekenOverzicht() {
       regels.map((w) => {
         const wie = MENSEN.find((m) => m.id === w.medewerker_id);
         const toon = (ROL === "eigenaar" && wie && IK && wie.id !== IK.id) ? " · " + esc(wie.naam) : "";
-        const hoe = w.eenheid === "omzet"
+        /* Een urenregel heeft geen tarief en geen bedrag; "3 × € 0,00" is dan
+           onzin. Toon het aantal uur, met de tijden erbij als die er zijn. */
+        const hoe = isUren(w)
+          ? uurTekst(w.uren != null ? w.uren : w.aantal) +
+            (w.begintijd && w.eindtijd ? " (" + hhmm(w.begintijd) + "–" + hhmm(w.eindtijd) + ")" : "")
+          : w.eenheid === "omzet"
           ? pct(w.tarief) + " van " + eur(w.aantal)
           : (Number(w.aantal) || 0) + " × " + eur(w.tarief);
         return "<div class='regel'>" +
           "<div class='wat'>" + esc(w.taak_naam || "") +
             "<em> — " + esc(hoe) + (w.notitie ? " · " + esc(w.notitie) : "") + esc(toon) + "</em></div>" +
-          "<div class='bed'>" + eur(w.bedrag) + "</div>" +
+          "<div class='bed'>" + (isUren(w) ? uurTekst(w.uren != null ? w.uren : w.aantal) : eur(w.bedrag)) + "</div>" +
           (w.betaald
             ? "<span class='vlag uit'>uitbetaald</span>"
             : "<span class='vlag'>open</span>") +
@@ -730,6 +781,117 @@ function tekenOverzicht() {
       }).join("") +
     "</div>";
   }).join("");
+}
+
+/* =========================================================
+   Uren bijhouden
+   =========================================================
+   Angela, 06-10-2026. Losse uren per dag, zonder bedrag, om de maanduren bij
+   te houden. Een urenregel herken je eraan dat er geen tarief aan hangt en de
+   eenheid 'uur' is - dan hoort er ook geen bedrag bij. */
+const UREN_TAAK = "Uren";
+function isUren(w) {
+  return !!w && !w.tarief_id && String(w.eenheid || "") === "uur";
+}
+function hhmm(t) { return String(t || "").slice(0, 5); }
+function uurTekst(u) {
+  const n = Math.round((Number(u) || 0) * 100) / 100;
+  return (Number.isInteger(n) ? String(n) : String(n).replace(".", ",")) + " uur";
+}
+
+/* Uit twee tijden het aantal uren. Loopt de eindtijd vóór de begintijd, dan is
+   het over middernacht heen gegaan - dan telt de nacht mee in plaats van een
+   negatief getal te geven. */
+function urenTussen(van, tot) {
+  const d = (t) => { const p = String(t || "").split(":"); return p.length >= 2 ? Number(p[0]) * 60 + Number(p[1]) : NaN; };
+  const a = d(van), b = d(tot);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return NaN;
+  let m = b - a;
+  if (m < 0) m += 24 * 60;
+  return Math.round((m / 60) * 100) / 100;
+}
+
+function urenNu() {
+  const wijze = $("#uWijze") ? $("#uWijze").value : "aantal";
+  if (wijze === "tijden") return urenTussen($("#uVan").value, $("#uTot").value);
+  const n = Number(String($("#uAantal").value).replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function urenToon() {
+  const wijze = $("#uWijze") ? $("#uWijze").value : "aantal";
+  const tijden = wijze === "tijden";
+  if ($("#uAantalVak")) $("#uAantalVak").hidden = tijden;
+  if ($("#uVanVak"))    $("#uVanVak").hidden = !tijden;
+  if ($("#uTotVak"))    $("#uTotVak").hidden = !tijden;
+  const u = urenNu();
+  if ($("#uUit")) $("#uUit").textContent = Number.isFinite(u) && u > 0 ? uurTekst(u) : "0 uur";
+}
+
+function urenVoorbereiden() {
+  const vak = $("#kaartUren"); if (!vak) return;
+  vak.hidden = false;
+  if ($("#uDatum") && !$("#uDatum").value) $("#uDatum").value = new Date().toISOString().slice(0, 10);
+  /* De eigenaar mag uren voor een ander wegzetten; een medewerker alleen voor
+     zichzelf - de database houdt dat ook tegen. */
+  if (ROL === "eigenaar" && MENSEN.length) {
+    $("#uWieVak").hidden = false;
+    $("#uWie").innerHTML = MENSEN.map((m) =>
+      "<option value='" + esc(m.id) + "'" + (IK && m.id === IK.id ? " selected" : "") +
+      ">" + esc(m.naam) + "</option>").join("");
+  }
+  urenToon();
+}
+
+async function urenErbij() {
+  const knop = $("#uZet"); if (!knop) return;
+  const u = urenNu();
+  if (!Number.isFinite(u) || u <= 0) {
+    melding($("#uWijze").value === "tijden"
+      ? "Vul een begin- en een eindtijd in."
+      : "Vul een aantal uur in.", "let");
+    return;
+  }
+  if (u > 24) { melding("Meer dan 24 uur op één dag kan niet kloppen.", "let"); return; }
+  const datum = $("#uDatum").value || new Date().toISOString().slice(0, 10);
+  const mwId = (ROL === "eigenaar" && $("#uWie") && !$("#uWieVak").hidden && $("#uWie").value)
+    ? $("#uWie").value : (IK && IK.id);
+  if (!mwId) { melding("Ik weet niet wie je bent in het medewerkersbestand. Vraag Angela.", "fout"); return; }
+
+  const tijden = $("#uWijze").value === "tijden";
+  knop.disabled = true; knop.textContent = "Bezig…";
+  try {
+    await api("wz_werkzaamheden", { method: "POST", body: {
+      datum: datum,
+      medewerker_id: mwId,
+      tarief_id: null,
+      taak_naam: UREN_TAAK,
+      eenheid: "uur",
+      aantal: u,
+      uren: u,
+      tarief: 0,
+      bedrag: 0,
+      begintijd: tijden ? $("#uVan").value || null : null,
+      eindtijd:  tijden ? $("#uTot").value || null : null,
+      notitie: $("#uNotitie").value.trim() || null,
+      betaald: false
+    }});
+    if ($("#uAantal")) $("#uAantal").value = "";
+    if ($("#uVan")) $("#uVan").value = "";
+    if ($("#uTot")) $("#uTot").value = "";
+    if ($("#uNotitie")) $("#uNotitie").value = "";
+    urenToon();
+    /* Net als bij de werkzaamheden: springt de maand van het overzicht niet
+       mee, dan lijkt het alsof er niets is opgeslagen. */
+    if ($("#fMaand") && $("#fMaand").value !== String(datum).slice(0, 7))
+      $("#fMaand").value = String(datum).slice(0, 7);
+    if ($("#fStand") && $("#fStand").value === "uitbetaald") $("#fStand").value = "";
+    await laad();
+    melding(uurTekst(u) + " op " + datumKort(datum) + " erbij gezet.", "goed");
+  } catch (e) {
+    melding("Dat lukte niet: " + e.message, "fout");
+  }
+  knop.disabled = false; knop.textContent = "Uren erbij zetten";
 }
 
 async function zetBetaald(id) {
@@ -877,7 +1039,7 @@ async function start() {
     MENSEN = IK ? [IK] : [];
   }
 
-  if (IK) { $("#kaartInvoer").hidden = false; tekenInvoer(); }
+  if (IK) { $("#kaartInvoer").hidden = false; tekenInvoer(); urenVoorbereiden(); }
 
   $("#voetnoot").textContent = "Uitbetaling loopt via Angela. Een regel die op " +
     "uitbetaald staat kun je niet meer weghalen — klopt er iets niet, geef het dan door.";
@@ -886,7 +1048,11 @@ async function start() {
 }
 
 /* ---------- klikken en typen ---------- */
+document.addEventListener("change", (e) => {
+  if (e.target && ["uWijze","uVan","uTot"].indexOf(e.target.id) >= 0) urenToon();
+});
 document.addEventListener("input", (e) => {
+  if (e.target && ["uAantal","uVan","uTot"].indexOf(e.target.id) >= 0) { urenToon(); return; }
   const d = e.target && e.target.dataset;
   if (!d) return;
   if (d.in)  { herrekenRij(d.in); return; }
@@ -912,6 +1078,7 @@ document.addEventListener("click", (e) => {
   if (k.dataset.zet)    { zetErbij(k.dataset.zet); return; }
   if (k.dataset.betaal) { zetBetaald(k.dataset.betaal); return; }
   if (k.dataset.weg)    { haalWeg(k.dataset.weg); return; }
+  if (k.id === "uZet")      { urenErbij(); return; }
   if (k.id === "fVernieuw") { laad(); return; }
   if (k.id === "fCsv")      { csv(); return; }
   if (k.id === "lgKnop")    { inloggen(); return; }
