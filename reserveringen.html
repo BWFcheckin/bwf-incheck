@@ -135,6 +135,14 @@ section[hidden]{display:none}
    Eigen namen (uc-) zodat ze niet botsen met de afr- van het afrekenblok dat er
    vlak boven staat. De knop is bewust groot: dit is de laatste handeling van
    een verblijf en moet je op een telefoon met een duim kunnen raken. */
+/* Het blokje "andere klant koppelen" in de koppelingenlijst. Ingeklapt, want
+   bij de meeste boekingen klopt de koppeling al. */
+.klantkoppel{padding:4px 0;border-bottom:1px solid var(--lijn,#eee)}
+.klantkoppel>summary{cursor:pointer;font-size:13.5px;color:var(--groen-2);
+  list-style:none;padding:4px 0}
+.klantkoppel>summary::-webkit-details-marker{display:none}
+.klantkoppel>summary::before{content:"\25B8 ";font-size:11px}
+.klantkoppel[open]>summary::before{content:"\25BE "}
 .uc-knop{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
   padding:15px 16px;border-radius:14px;background:var(--groen);color:#fff;
   font-weight:600;font-size:16px;user-select:none}
@@ -3292,6 +3300,30 @@ async function vulKoppelingen(r) {
       k ? esc([k.voorletters, k.achternaam].filter(Boolean).join(" ") || k.email || k.id) : "nog niet gekoppeld",
       "klantbeheer.html" + (zoek ? "?zoek=" + encodeURIComponent(zoek) : ""), "Klantbeheer openen"));
 
+    /* Angela, 05-10-2026: "bij bestaande boekingen wil ik ook klanten kunnen
+       koppelen." Tot nu toe kon je hier alleen een NIEUWE klant aanmaken; een
+       gast die al in het bestand stond, moest je via klantbeheer koppelen - en
+       dat gaf regelmatig een tweede klant voor dezelfde persoon.
+
+       Hetzelfde zoekvakje als bij een nieuwe reservering: typen dunt de lijst
+       uit op naam, plaats, e-mail of telefoon. Het staat ingeklapt, want bij
+       de meeste boekingen klopt de koppeling al. */
+    if (magBewerken() || magBeperkt()) {
+      regels.push(
+        '<details class="klantkoppel" id="vKlantKoppelVak">' +
+        "<summary>" + (k ? "Een andere klant koppelen" : "Klant uit het bestand koppelen") + "</summary>" +
+        '<div style="padding:8px 0 4px">' +
+          '<input type="search" id="vKlantZoek" placeholder="naam, plaats, e-mail of telefoon"' +
+            ' autocomplete="off" spellcheck="false" style="width:100%">' +
+          '<small id="vKlantTel" style="display:block;color:var(--muted);margin:3px 0 7px"></small>' +
+          '<select id="vKlantKeuze" style="width:100%"></select>' +
+          '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">' +
+            '<button type="button" class="knop sec klein" id="vKlantKoppel">Koppelen aan deze reservering</button>' +
+            '<span class="v-melding" id="vKlantKoppelNote"></span>' +
+          "</div>" +
+        "</div></details>");
+    }
+
     /* Drie staten: klaargezet (concept), definitief, of nog geen formulier. */
     const forms = [].concat(checkin || [], gekoppeldeForms || []).filter(Boolean);
     const definitief = forms.find((x) => x.status === "definitief");
@@ -3432,6 +3464,9 @@ async function vulKoppelingen(r) {
       "", ""));
 
     doel.innerHTML = regels.join("");
+    /* De keuzelijst vullen zodra het blok er staat. Zonder zoekterm toont hij
+       het hele bestand, net als bij een nieuwe reservering. */
+    vulKlantKoppelKeuze();
     /* Nu de welkomstcall bekend is, de balk opnieuw tekenen. Hij wordt ook
        bewaard, zodat een latere hertekening (bijvoorbeeld na het zetten van de
        reviewstand) deze stap niet weer op rood zet. */
@@ -4460,6 +4495,92 @@ function vulKlantKeuze() {
 
 document.addEventListener("input", (e) => {
   if (e.target && e.target.id === "nKlantZoek") vulKlantKeuze();
+  if (e.target && e.target.id === "vKlantZoek") vulKlantKoppelKeuze();
+});
+
+/* ---- een bestaande klant aan een bestaande boeking hangen ----------------
+   Angela, 05-10-2026. Dezelfde zoekregels als bij een nieuwe reservering; de
+   lijst staat alleen in het koppelingenblok van de reserveringskaart. */
+function vulKlantKoppelKeuze() {
+  const lijst = $("#vKlantKeuze"); if (!lijst) return;
+  const r = HUIDIG;
+  const gekozen = lijst.value || (r && r.klant_id ? String(r.klant_id) : "");
+  const zoek = String((($("#vKlantZoek") || {}).value) || "").toLowerCase().trim();
+  const delen = zoek.split(/\s+/).filter(Boolean);
+  const past = (k) => !delen.length || delen.every((d) => klantZoektekst(k).includes(d));
+  const treffers = KLANTEN.filter((k) => past(k) || String(k.id) === gekozen);
+  lijst.innerHTML = '<option value="">— kies een klant —</option>' +
+    treffers.map((k) => '<option value="' + esc(k.id) + '">' + esc(klantNaam(k)) + "</option>").join("");
+  lijst.value = gekozen;
+  /* Tellen op wat er écht past, niet op de lengte van de lijst: de al
+     gekoppelde klant blijft er altijd in staan, en die moet het aantal niet
+     opdrijven. Zoeken op "petra" zei anders "2 gevonden". */
+  const gevonden = KLANTEN.filter(past).length;
+  const tel = $("#vKlantTel");
+  if (tel) tel.textContent = !delen.length
+    ? KLANTEN.length + " klanten in het bestand"
+    : gevonden === 0
+      ? "Geen klant gevonden — gebruik anders “Klant aanmaken en koppelen” onderaan"
+      : gevonden + (gevonden === 1 ? " klant gevonden" : " klanten gevonden");
+}
+
+async function klantKoppelen() {
+  const r = HUIDIG; if (!r) return;
+  const note = $("#vKlantKoppelNote"), knop = $("#vKlantKoppel");
+  const zeg = (t, fout) => { if (note) { note.textContent = t; note.style.color = fout ? "var(--crit)" : ""; } };
+  const id = ($("#vKlantKeuze") || {}).value || "";
+  if (!id) { zeg("Kies eerst een klant uit de lijst.", true); return; }
+  if (String(r.klant_id || "") === String(id)) { zeg("Deze klant hangt er al aan.", true); return; }
+  if (knop) knop.disabled = true;
+  zeg("Bezig met koppelen…");
+  try {
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: { klant_id: id, gewijzigd_door: NAAM } });
+    if (!rij || !rij.length) throw new Error("je mag deze reservering niet bijwerken");
+    /* Dezelfde controle als bij "Klant aanmaken en koppelen": de trigger
+       bwf_reservering_beperkt draait velden voor een locatiemanager terug
+       zonder een fout te geven. Zonder deze regel zou het scherm zeggen dat
+       het gelukt is terwijl er niets is veranderd. */
+    if (String(rij[0].klant_id || "") !== String(id))
+      throw new Error("de database heeft de koppeling teruggedraaid");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    /* De bevestiging gaat naar de meldingsregel van het venster zelf en niet
+       naar het regeltje hiernaast: vulKoppelingen() hieronder bouwt dit hele
+       blok opnieuw op, en daarmee zou de bevestiging meteen weer verdwijnen.
+       melding() is hier ongeschikt - dat schrijft op de pagina áchter het
+       venster, en die zie je bij een modaal venster niet. */
+    const gekozenKlant = KLANTEN.find((x) => String(x.id) === String(id)) || {};
+    const kortNaam = [gekozenKlant.voornaam || gekozenKlant.voorletters, gekozenKlant.achternaam]
+      .filter(Boolean).join(" ").trim() || gekozenKlant.email || "deze klant";
+    const vm = $("#vMelding");
+    if (vm) {
+      vm.textContent = "Gekoppeld aan " + kortNaam + ".";
+      /* .v-melding is standaard rood; dit is geen fout. */
+      vm.style.color = "var(--groen-2)";
+    }
+    /* De knop "Klant aanmaken en koppelen" hoort nu weg, en de Klantkaart
+       erbij. Die twee worden alleen door openVenster gezet, dus hier handmatig
+       bijwerken - anders staat er een knop die een tweede klant zou maken. */
+    const gk2 = $("#vGastNaarKlant"); if (gk2) gk2.hidden = true;
+    const kk2 = $("#vKlantkaart");
+    if (kk2) {
+      kk2.hidden = false;
+      kk2.href = "klantbeheer.html?klant=" + encodeURIComponent(
+        [gekozenKlant.achternaam || "", gekozenKlant.voorletters || "", gekozenKlant.woonplaats || ""]
+          .join("|").toLowerCase());
+    }
+    vulKoppelingen(rij[0]);
+    tekenPersoneelKaart(rij[0]);
+    teken();
+  } catch (e) {
+    zeg("Koppelen lukte niet: " + e.message, true);
+  }
+  if (knop) knop.disabled = false;
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest && e.target.closest("#vKlantKoppel")) { e.preventDefault(); klantKoppelen(); }
 });
 
 const SUITE_TARIEF = { angie: "angie", malina_jacuzzi: "jacuzzi", malina_deluxe: "zwembad" };
