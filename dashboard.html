@@ -6375,6 +6375,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         bron:        'incheckformulier',
         notitie:     [voor ? 'Voornaam: '+voor : '', veld(c,['opmerkingen'],'')].filter(Boolean).join(' \u2014 ')
       };
+      /* wz_klantbeheer.id is verplicht en heeft geen standaardwaarde; zonder
+         id weigert de database de rij en lukt het aanmaken niet. Zelfde vorm
+         als klantbeheer.html. Angela, 06-10-2026. */
+      if(!rec.id) rec.id = 'k' + Date.now() + '-' + Math.floor(Math.random()*100000);
       var res = await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
       if(res && res[0]) KLANTEN.push(res[0]);
       tekenSectie();
@@ -7260,6 +7264,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         aangemaakt_door: wieRekentAf() || 'dashboard',
         notitie: (voor ? 'Voornaam: '+voor : '') +
           (n2.nummer || r.nummer ? (voor ? ' · ' : '') + 'Uit reservering ' + (n2.nummer || r.nummer) : '') };
+      /* wz_klantbeheer.id is verplicht en heeft geen standaardwaarde; zonder
+         id weigert de database de rij en lukt het aanmaken niet. Zelfde vorm
+         als klantbeheer.html. Angela, 06-10-2026. */
+      if(!rec.id) rec.id = 'k' + Date.now() + '-' + Math.floor(Math.random()*100000);
       var res = await sb('wz_klantbeheer', { method:'POST', body:JSON.stringify(rec) });
       var id = (res && res[0] && res[0].id) ? String(res[0].id) : '';
       if(!id) throw new Error('de klant is niet aangemaakt');

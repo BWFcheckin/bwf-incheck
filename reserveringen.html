@@ -5280,6 +5280,11 @@ async function maakKlantEnKoppel() {
     let id = bestaand ? String(bestaand.id) : "";
     if (!id) {
       const nieuw = await api("wz_klantbeheer", { method: "POST", body: {
+        /* wz_klantbeheer.id is verplicht en heeft GEEN standaardwaarde: zonder
+           deze regel weigert de database de hele rij en lukt "Klant aanmaken en
+           koppelen" niet. Dezelfde vorm als klantbeheer.html gebruikt, zodat de
+           ids overal op elkaar lijken. Angela, 06-10-2026. */
+        id: "k" + Date.now() + "-" + Math.floor(Math.random() * 100000),
         voornaam: voor,
         voorletters: voor ? voor.charAt(0).toUpperCase() + "." : "",
         achternaam: achter || voor,
