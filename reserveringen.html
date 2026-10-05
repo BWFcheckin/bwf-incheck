@@ -3565,14 +3565,80 @@ async function bewaarWelkomstcall() {
     if (!rij || !rij.length) throw new Error("Bewaren lukte niet: je hebt geen rechten om welkomstcalls te wijzigen.");
     WC_HUIDIG = rij[0];
     vulWelkomstcall(rij[0], r);
-    vulKoppelingen(r);
+    /* Eerst wachten tot de koppelingen bijgewerkt zijn. Die halen de call
+       opnieuw op en wissen daarbij deze meldingsregel - zette je de tekst
+       ervoor, dan was hij een tel later weg en leek het alsof er niets was
+       gebeurd. Angela, 05-10-2026. */
+    try { await vulKoppelingen(r); } catch (x) {}
     note.textContent = keuze === "nvt" ? "Genoteerd: voor deze boeking is geen call nodig."
       : keuze === "afgerond" ? "Welkomstcall afgerond en bewaard."
       : "Bewaard; de call staat nog open.";
   } catch (e) {
-    note.textContent = e.message;
+    /* Angela, 05-10-2026: 'duplicate key value violates unique constraint
+       "welkomstcall_uniek"'.
+
+       Er bestond al een welkomstcall die deze pagina niet had gevonden - dat
+       gebeurt bijvoorbeeld als een boeking opnieuw is aangemaakt en de oude
+       call nog aan de vorige regel hangt. De pagina maakte er dan een tweede
+       aan, en de database hield dat tegen.
+
+       In plaats van de ruwe databasetekst te tonen: de bestaande call opzoeken
+       en díé bijwerken, en hem meteen aan deze reservering hangen. Lukt dat
+       ook niet, dan een melding in gewone taal - niemand heeft iets aan
+       "violates unique constraint". */
+    if (/duplicate key|23505|uniek/i.test(String(e.message || ""))) {
+      try {
+        const gevonden = await zoekBestaandeCall(r);
+        if (gevonden && gevonden.id) {
+          const bij = await api("wz_welkomstcalls?id=eq." + encodeURIComponent(gevonden.id) +
+            "&select=id,status,nodig,samenvatting,notities,gebeld_op,afgerond_op,regels,automatisch",
+            { method: "PATCH", body: Object.assign({ reservering_id: r.id }, d) });
+          if (bij && bij.length) {
+            WC_HUIDIG = bij[0];
+            vulWelkomstcall(bij[0], r);
+            try { await vulKoppelingen(r); } catch (x) {}
+            note.textContent = "Er stond al een welkomstcall voor deze gast; die is bijgewerkt.";
+            knop.disabled = false;
+            return;
+          }
+        }
+        note.textContent = "Er bestaat al een welkomstcall voor deze gast, maar ik kan hem niet " +
+          "openen. Zoek hem op bij Taken & welkomstcalls.";
+      } catch (e2) {
+        note.textContent = "Er bestaat al een welkomstcall voor deze gast. Zoek hem op bij " +
+          "Taken & welkomstcalls.";
+      }
+    } else {
+      note.textContent = e.message;
+    }
   }
   knop.disabled = false;
+}
+
+/* De welkomstcall die al bestaat maar niet aan deze reservering hangt. Eerst op
+   het reserveringsnummer, want dat is wat de kanalen meegeven en wat bij een
+   opnieuw aangemaakte boeking hetzelfde blijft; anders op naam en aankomstdag.
+   Angela, 05-10-2026. */
+async function zoekBestaandeCall(r) {
+  const probeer = async (vraag) => {
+    try {
+      const rij = await api("wz_welkomstcalls?select=id,status,nodig,samenvatting,notities," +
+        "gebeld_op,afgerond_op,regels,automatisch,reservering_id,referentie,naam,datum&" +
+        vraag + "&limit=1", { stil: true });
+      return (rij && rij[0]) || null;
+    } catch (x) { return null; }
+  };
+  if (r.kanaal_ref) {
+    const op = await probeer("referentie=eq." + encodeURIComponent(r.kanaal_ref));
+    if (op) return op;
+  }
+  const naam = gastNaam(r);
+  const dag = String(r.aankomst || "").slice(0, 10);
+  if (naam && dag) {
+    const op = await probeer("naam=eq." + encodeURIComponent(naam) + "&datum=eq." + encodeURIComponent(dag));
+    if (op) return op;
+  }
+  return null;
 }
 
 /* ---------- controlebalk ----------
