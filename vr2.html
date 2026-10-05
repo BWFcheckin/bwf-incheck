@@ -3042,24 +3042,11 @@ div.ag-blok{cursor:default}
       </div>
     </div>
 
-    <div class="card" data-dggroep="registreren">
-      <div class="card-head"><h2>Geregistreerd</h2><span class="hint" id="wzHint"></span></div>
-      <div class="card-body" style="padding-bottom:0">
-        <div class="filters">
-          <div class="field"><label for="fWie">Wie</label><select id="fWie"></select></div>
-          <div class="field"><label for="fMaand">Maand</label><input type="month" id="fMaand"></div>
-          <div class="field"><label for="fBetaald">Betaling</label><select id="fBetaald">
-            <option value="alles">Alles</option><option value="open">Nog te betalen</option><option value="betaald">Betaald</option></select></div>
-        </div>
-      </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Datum</th><th>Wie</th><th>Werkzaamheid</th><th class="num">Aantal</th><th class="num">Uren</th><th class="num">Per eenheid</th><th class="num">Bedrag</th><th>Betaald</th><th></th></tr></thead>
-        <tbody id="wzLijst"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="wzTotaal"></span>
-        <span><button class="btn ghost small" id="wzMarkeer" type="button">Selectie op betaald</button>
-        <button class="btn ghost small" id="wzExport" type="button">Exporteer CSV</button></span></div>
-    </div>
+    <!-- Angela, 06-10-2026: "je mag Geregistreerd verwijderen."
+         Het overzicht stond hier dubbel: de pagina werkzaamheden.html in het
+         venster hierboven toont dezelfde regels, met dezelfde filters en
+         dezelfde uitbetaalknop. Twee lijsten over hetzelfde lopen uiteen; dat
+         is in dit project al een paar keer de oorzaak geweest. -->
     <h2 style="font-family:var(--f-display);font-size:17px;margin:26px 0 12px" id="tarKop">Tarievenlijst en mensen</h2>
 <div class="card" data-dggroep="beheer">
       <div class="card-head"><h2>Tarieven</h2><span class="hint">wijzigingen worden direct bewaard</span></div>
@@ -6983,16 +6970,24 @@ if($('#wzOpslaan')) $('#wzOpslaan').addEventListener('click', async ()=>{
   renderWerk(); renderOverzicht(); badges(); toast('Werkzaamheid geregistreerd.');
 });
 
+/* Het blok "Geregistreerd" is op 06-10-2026 uit dit scherm gehaald; de pagina
+   werkzaamheden.html in het venster erboven toont dezelfde regels. De code
+   hieronder blijft staan omdat renderOverzicht() en de tellers hem gebruiken,
+   maar hij mag niet omvallen op velden die er niet meer zijn. */
+const veldWaarde = (kies, standaard) => { const el = $(kies); return el ? el.value : (standaard || ''); };
+
 function gefilterdWerk(){
   let lijst = mijnWerk();
-  const wie = $('#fWie').value, maand = $('#fMaand').value, bet = $('#fBetaald').value;
+  const wie = veldWaarde('#fWie'), maand = veldWaarde('#fMaand'), bet = veldWaarde('#fBetaald', 'alles');
   if(wie)   lijst = lijst.filter(w=>w.medewerker_id===wie);
   if(maand) lijst = lijst.filter(w=>String(w.datum).slice(0,7)===maand);
   if(bet==='open')    lijst = lijst.filter(w=>!w.betaald);
   if(bet==='betaald') lijst = lijst.filter(w=>w.betaald);
   return lijst.slice().sort((a,b)=> a.datum<b.datum?1:-1);
 }
-['#fWie','#fMaand','#fBetaald'].forEach(s=>$(s).addEventListener('input', renderWerk));
+['#fWie','#fMaand','#fBetaald'].forEach(kies=>{
+  const el = $(kies); if(el) el.addEventListener('input', renderWerk);
+});
 
 /* eigen tarievenoverzicht voor een medewerker */
 function renderMijnTarieven(){
@@ -7016,6 +7011,8 @@ function renderMijnTarieven(){
 
 function renderWerk(){
   renderMijnTarieven();
+  /* De tabel staat niet meer in dit scherm; dan valt er ook niets te tekenen. */
+  if(!$('#wzLijst')) return;
   const lijst = gefilterdWerk();
   $('#wzLijst').innerHTML = lijst.length ? lijst.map(w=>`
     <tr>
@@ -7048,7 +7045,7 @@ document.addEventListener('click', async e=>{
   if(d){ if(!confirm('Deze registratie verwijderen?')) return;
     await verwijder('werk', d.dataset.delwerk); renderWerk(); renderOverzicht(); badges(); }
 });
-$('#wzMarkeer').addEventListener('click', async ()=>{
+if($('#wzMarkeer')) $('#wzMarkeer').addEventListener('click', async ()=>{
   if(!isEigenaar()){ toast('Alleen de eigenaar kan op betaald zetten.'); return; }
   const lijst = gefilterdWerk().filter(w=>!w.betaald);
   if(!lijst.length){ toast('Er staat niets open in deze selectie.'); return; }
@@ -7056,7 +7053,7 @@ $('#wzMarkeer').addEventListener('click', async ()=>{
   for(const w of lijst) await wijzig('werk', w.id, {betaald:true});
   renderWerk(); renderOverzicht(); toast('Op betaald gezet.');
 });
-$('#wzExport').addEventListener('click', ()=>{
+if($('#wzExport')) $('#wzExport').addEventListener('click', ()=>{
   const rows = [['Datum','Wie','Werkzaamheid','Aantal','Eenheid','Uren','Per eenheid','Bedrag','Notitie','Betaald']];
   gefilterdWerk().forEach(w=>rows.push([w.datum, mwNaam(w.medewerker_id), w.taak_naam, w.aantal, w.eenheid||'',
     String(w.uren??0).replace('.',','), String(w.tarief).replace('.',','), String(w.bedrag).replace('.',','),
