@@ -2712,7 +2712,11 @@ function tekenPersoneelKaart(r) {
   if (afrondPlek && afrondVak) afrondPlek.appendChild(afrondVak);
   const ucPlek = $("#vUitcheckPlek"), ucVak = $("#vUitcheckVak");
   if (ucPlek && ucVak) ucPlek.appendChild(ucVak);
-  ucVul(r);
+  /* Afgeschermd: hieronder staan nog de regels die de betaalstatus en de
+     betaalwijze invullen. Zou het uitcheckblok ooit struikelen, dan mogen die
+     twee keuzelijsten niet leeg blijven staan - want een lege lijst is precies
+     wat er daarna overheen geschreven wordt. Angela, 05-10-2026. */
+  try { ucVul(r); } catch (e) {}
 
   /* De koppelingen worden apart geladen; vulKoppelingen() vult dit blok zodra
      ze binnen zijn, met de knop die bij de stand hoort - "Open pdf" als er een
@@ -2730,6 +2734,14 @@ function tekenPersoneelKaart(r) {
     via.value = bv;
   }
   $("#vAfrondNote").textContent = "";
+  /* Vastleggen WAARVOOR deze twee keuzelijsten zijn ingevuld en met welke
+     waarden. De knop Afronden stuurt straks alleen door wat hier van afwijkt.
+     Zie AFROND_START en het geheugen "opslaan overschrijft stil". */
+  AFROND_START = {
+    id: r.id,
+    status: $("#vAfrondStatus").value,
+    via: via ? via.value : ""
+  };
 }
 
 /* Afronden door personeel: alleen de betaalstatus en de betaalwijze. */
@@ -3113,15 +3125,50 @@ document.addEventListener("input", (e) => {
   if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-vsplit") && HUIDIG) tekenAfrSplit(HUIDIG);
 });
 
+/* Waarvoor en waarmee de twee keuzelijsten van het afrondblok zijn gevuld.
+   Angela, 05-10-2026: "betalingen die eerder verwerkt waren lijken gewijzigd."
+   In reservering_log stond: betaalstatus betaald -> open en betaald_via Online
+   -> NULL, binnen dertien seconden na haar eigen betaling, door haarzelf.
+
+   Die twee waarden komen precies overeen met een lege keuzelijst. De knop
+   Afronden stuurde namelijk ALTIJD allebei de lijsten mee, ook als je ze niet
+   had aangeraakt. Staat er op dat moment per ongeluk nog niets in - omdat het
+   vullen is overgeslagen of omdat je net een andere reservering open had - dan
+   schrijft hij "open" en leeg over een betaling heen, zonder iets te vragen.
+
+   Zie het geheugen "opslaan overschrijft stil": stuur alleen mee wat de
+   gebruiker zelf heeft veranderd. */
+let AFROND_START = null;
+
 document.addEventListener("click", async (e) => {
   if (!e.target.closest("#vAfrondOpslaan")) return;
   const r = HUIDIG; if (!r) return;
   const note = $("#vAfrondNote");
-  const d = {
-    betaalstatus: $("#vAfrondStatus").value,
-    betaald_via: $("#vAfrondVia").value || null,
-    gewijzigd_door: NAAM
-  };
+
+  /* Zijn de lijsten wel voor DEZE reservering gevuld? Zo niet, dan staat er
+     iets van een andere boeking in en mag er niets weg. */
+  if (!AFROND_START || AFROND_START.id !== r.id) {
+    note.textContent = "Het afrondblok hoort nog niet bij deze reservering. " +
+      "Sluit het venster en open de boeking opnieuw.";
+    return;
+  }
+  const nuStatus = $("#vAfrondStatus").value;
+  const nuVia = $("#vAfrondVia").value;
+  const d = { gewijzigd_door: NAAM };
+  if (nuStatus !== AFROND_START.status) d.betaalstatus = nuStatus;
+  if (nuVia !== AFROND_START.via) d.betaald_via = nuVia || null;
+  if (d.betaalstatus === undefined && d.betaald_via === undefined) {
+    note.textContent = "Er is niets gewijzigd om op te slaan.";
+    return;
+  }
+  /* Een betaling terugzetten naar open kan kloppen, maar het is zelden wat je
+     bedoelt. Even bevestigen, want dit is precies wat er stil misging. */
+  if (AFROND_START.status === "betaald" && d.betaalstatus && d.betaalstatus !== "betaald" &&
+      !confirm("Deze reservering staat nu op betaald.\n\nWil je dat echt terugzetten naar “" +
+               nuStatus + "”?")) {
+    note.textContent = "Niet opgeslagen.";
+    return;
+  }
   note.textContent = "Bezig met opslaan…";
   try {
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
@@ -3129,6 +3176,9 @@ document.addEventListener("click", async (e) => {
     if (!rij || !rij.length) throw new Error("je mag deze reservering niet bijwerken");
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
     HUIDIG = rij[0];
+    /* Wat er nu staat is het nieuwe vertrekpunt; nog een keer drukken mag dan
+       niets meer wegschrijven. */
+    AFROND_START = { id: rij[0].id, status: $("#vAfrondStatus").value, via: $("#vAfrondVia").value };
     note.textContent = "Afgerond en opgeslagen.";
     teken();
   } catch (err) {
