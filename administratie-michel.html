@@ -577,6 +577,27 @@
   } catch (err) { /* verse start */ }
 
   var view = { month: monthKey(todayISO()), editing: null, editingBet: null, saveState: "idle", paste: "", pasteOpen: false, tab: "bwf", editingDienst: null };
+  /* ---------- diensten uit het dashboard ----------
+     Angela, 06-10-2026: "kunnen de reserveringen die aan zijn naam gekoppeld
+     zijn ook in dit overzicht terechtkomen nadat ze gekoppeld zijn?"
+
+     Ja - maar niet door ze te kopiëren. Een kopie loopt uit de pas zodra de
+     reservering verandert of wordt geannuleerd. Daarom worden ze hier gelezen
+     en getoond zoals ze zijn, met per regel een knop die het
+     boekingsformulier alvast invult. De vergoeding vul je zelf in; dat is
+     precies het stuk dat het dashboard niet weet.
+
+     MIJN_ID is het id uit wz_medewerkers van wie is ingelogd. Dat is ook wat
+     bij een nieuwe regel wordt meegestuurd, zodat de beveiligingsregel van de
+     database weet van wie de regel is. */
+  var MIJN_ID = null;
+  var MIJN_NAAM = "";
+  var DIENSTEN_RES = [];
+  var DIENSTEN_FOUT = "";
+
+  var SUITE_NAAR_LOC = { angie: "PSA", malina_jacuzzi: "PSM", malina_deluxe: "PSMD" };
+  var SUITE_NAAM = { angie: "Suite Angie", malina_jacuzzi: "Malina Jacuzzi", malina_deluxe: "Malina Deluxe" };
+
   var draft = leegDraft();
   var betDraft = leegBetaling();
   var dienstDraft = leegDienst();
@@ -753,23 +774,23 @@
       var extra = {};
       DIENST_VELDEN.forEach(function (k) { if (e[k] !== "" && e[k] !== null && e[k] !== undefined) extra[k] = e[k]; });
       return {
-        medewerker: NAAM, soort: "dienst", datum: e.date, boeking_nr: e.dienstnr || null,
+        medewerker: NAAM, medewerker_id: MIJN_ID, soort: "dienst", datum: e.date, boeking_nr: e.dienstnr || null,
         bedrag: numOrNull(e.bedrag), km: numOrNull(e.totaalKm),
         opmerking: e.note || null, data: extra
       };
     }
     if (e.soort === "maand") {
-      return { medewerker: NAAM, soort: "maand", datum: e.date, voldaan: !!e.voldaan, opmerking: e.note || null };
+      return { medewerker: NAAM, medewerker_id: MIJN_ID, soort: "maand", datum: e.date, voldaan: !!e.voldaan, opmerking: e.note || null };
     }
     if (e.soort === "betaling") {
       return {
-        medewerker: NAAM, soort: "betaling", datum: e.date, factuur_nr: e.ref || null,
+        medewerker: NAAM, medewerker_id: MIJN_ID, soort: "betaling", datum: e.date, factuur_nr: e.ref || null,
         bedrag: numOrNull(e.bedrag), btw: numOrNull(e.btw), wijze: e.wijze || null,
         voldaan: !!e.voldaan, opmerking: e.note || null
       };
     }
     return {
-      medewerker: NAAM, soort: "boeking", datum: e.date, locatie: e.loc || null,
+      medewerker: NAAM, medewerker_id: MIJN_ID, soort: "boeking", datum: e.date, locatie: e.loc || null,
       boeking_nr: e.ref || null, tijd_van: e.van || null, tijd_tot: e.tot || null,
       arrangement: e.arr || null, bedrag: numOrNull(e.bedrag),
       bank_op_locatie: numOrNull(e.bank), cash_op_locatie: numOrNull(e.cash),
@@ -824,6 +845,42 @@
     if (msg) flashNotice(msg);
   }
 
+  /* Wie ben ik in wz_medewerkers? De database heeft daar een functie voor, en
+     die is exact - anders dan een naam, waar "Michel" en "Michel S." allebei
+     voorkomen. Lukt het niet, dan blijft MIJN_ID leeg en zegt het blok dat
+     eerlijk; er wordt niets gegokt. */
+  function haalMijnId() {
+    if (localMode || !configured) return Promise.resolve();
+    return api("rpc/bwf_medewerker_id", { method: "POST", body: {} })
+      .then(function (d) {
+        MIJN_ID = (typeof d === "string" && d) ? d : (d && d.id) || null;
+        return MIJN_ID ? api("wz_medewerkers?select=naam&id=eq." + encodeURIComponent(MIJN_ID)) : null;
+      })
+      .then(function (rows) {
+        if (rows && rows[0] && rows[0].naam) MIJN_NAAM = String(rows[0].naam);
+      })
+      .catch(function () { MIJN_ID = null; });
+  }
+
+  /* De reserveringen die aan mij gekoppeld zijn. De twee kolommen zijn nieuw;
+     bestaan ze nog niet, dan weigert PostgREST de hele vraag en zeggen we dat
+     in het blok in plaats van een lege lijst te laten zien die niets uitlegt. */
+  function haalDiensten() {
+    if (localMode || !configured || !MIJN_ID) { DIENSTEN_RES = []; return Promise.resolve(); }
+    var velden = "id,kanaal_ref,suite,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
+      "gast_voornaam,gast_achternaam,bedrag_totaal,arrangementen,locatiemanager,locatiemanager_id";
+    return api("reserveringen?select=" + velden +
+        "&locatiemanager_id=eq." + encodeURIComponent(MIJN_ID) +
+        "&status=neq.geannuleerd&order=aankomst.asc&limit=1000")
+      .then(function (rows) { DIENSTEN_RES = rows || []; DIENSTEN_FOUT = ""; })
+      .catch(function (err) {
+        DIENSTEN_RES = [];
+        DIENSTEN_FOUT = /locatiemanager/.test(String(err.message))
+          ? "De kolommen locatiemanager_id en locatiemanager staan nog niet in de database. Zodra die migratie is gedraaid, verschijnen hier de diensten die aan jou gekoppeld zijn."
+          : "De diensten konden niet worden opgehaald: " + err.message;
+      });
+  }
+
   function pull(silent) {
     if (localMode || !configured) { setSave("local"); return Promise.resolve(); }
     return api(TABEL + "?select=*&medewerker=eq." + encodeURIComponent(NAAM) + "&order=datum.asc")
@@ -867,6 +924,8 @@
         return api(TABEL, { method: "POST", body: chunk.map(toRow), prefer: "return=minimal" });
       });
     }, Promise.resolve())
+      .then(function () { return haalMijnId(); })
+      .then(function () { return haalDiensten(); })
       .then(function () { return pull(false); })
       .catch(function (err) { if (err && err.missingTable) gaLokaal(); else setSave("error"); });
   }
@@ -1524,6 +1583,112 @@
   }
 
 
+  /* ---------- de diensten die aan mij gekoppeld zijn ----------
+     Wat hier staat komt rechtstreeks uit `reserveringen`; er wordt niets
+     gekopieerd. Een regel die al in de administratie staat (zelfde
+     boekingsnummer in dezelfde maand) wordt als overgenomen gemarkeerd, zodat
+     je niet per ongeluk dubbel invoert. */
+  function dienstDatum(r) { return String(r.aankomst || "").slice(0, 10); }
+  function dienstTijd(r, welk) {
+    var vast = welk === "van" ? r.incheck_tijd : r.uitcheck_tijd;
+    if (vast) return String(vast).slice(0, 5);
+    /* Geen eigen tijd? Dan die uit de tijdstempel, en wel de lokale - uit de
+       tekst zelf, niet via new Date(), want dat verschuift een uur. */
+    var bron = String(welk === "van" ? r.aankomst : r.vertrek || "");
+    var m = bron.match(/T(\d{2}:\d{2})/);
+    return m ? m[1] : "";
+  }
+  function dienstGast(r) {
+    return String((r.gast_voornaam || "") + " " + (r.gast_achternaam || "")).trim();
+  }
+  function dienstArr(r) {
+    /* Alleen wat er bijgeboekt is; de verblijfregel zelf zegt niets extra. */
+    var lijst = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+    return lijst.filter(function (a) { return a && a.bron; })
+      .map(function (a) { return a.naam || ""; }).filter(Boolean).join(" / ");
+  }
+  function alOvergenomen(r, maandlijst) {
+    var nr = String(r.kanaal_ref || "").trim();
+    if (!nr) return false;
+    return maandlijst.some(function (e) { return String(e.ref || "").trim() === nr; });
+  }
+
+  function dienstenHtml(maandlijst) {
+    var html = '<div class="section-title"><h2>Jouw diensten uit het dashboard</h2>' +
+      '<span class="hint">' + esc(monthLabel(view.month)) + "</span></div>";
+
+    if (DIENSTEN_FOUT) {
+      return html + '<div class="card"><p class="mini">' + esc(DIENSTEN_FOUT) + "</p></div>";
+    }
+    if (!MIJN_ID) {
+      return html + '<div class="card"><p class="mini">Je account is niet aan een medewerker ' +
+        "in het personeelsbestand gekoppeld, dus ik weet niet welke diensten van jou zijn. " +
+        "Vraag Angela om dat te koppelen.</p></div>";
+    }
+    var mijn = DIENSTEN_RES.filter(function (r) {
+      return dienstDatum(r).slice(0, 7) === view.month;
+    });
+    if (!mijn.length) {
+      return html + '<div class="card"><p class="mini">Er zijn deze maand nog geen ' +
+        "reserveringen aan jouw naam gekoppeld. Zodra dat in het dashboard gebeurt, " +
+        "staan ze hier \u2014 dan hoef je datum, tijden en locatie niet meer zelf op te zoeken.</p></div>";
+    }
+    var open = mijn.filter(function (r) { return !alOvergenomen(r, maandlijst); }).length;
+    html += '<div class="card"><p class="mini">' + mijn.length +
+      (mijn.length === 1 ? " dienst" : " diensten") + " aan jouw naam" +
+      (open ? ", waarvan " + open + " nog niet in je administratie" : " \u2014 allemaal overgenomen") +
+      '. Druk op \u201cOvernemen\u201d, vul de vergoeding in en sla op.</p>';
+    html += '<div class="table-wrap"><table><thead><tr>' +
+      "<th>Datum</th><th>Locatie</th><th>Gast</th><th>Van</th><th>Tot</th>" +
+      "<th>Boeking#</th><th>Arrangement</th><th class=\"num\">Omzet</th><th></th>" +
+      "</tr></thead><tbody>";
+    mijn.forEach(function (r) {
+      var gedaan = alOvergenomen(r, maandlijst);
+      html += "<tr" + (gedaan ? ' style="opacity:.55"' : "") + ">" +
+        "<td>" + esc(dienstDatum(r)) + "</td>" +
+        "<td>" + esc(SUITE_NAAM[r.suite] || r.suite || "") + "</td>" +
+        "<td>" + esc(dienstGast(r) || "\u2014") + "</td>" +
+        "<td>" + esc(dienstTijd(r, "van") || "\u2014") + "</td>" +
+        "<td>" + esc(dienstTijd(r, "tot") || "\u2014") + "</td>" +
+        "<td>" + esc(r.kanaal_ref || "\u2014") + "</td>" +
+        "<td>" + esc(dienstArr(r) || "") + "</td>" +
+        '<td class="num">' + (r.bedrag_totaal != null ? money(num(r.bedrag_totaal)) : "") + "</td>" +
+        "<td>" + (gedaan
+          ? '<span class="mini">\u2713 overgenomen</span>'
+          : '<button type="button" class="btn small" data-act="neem-over" data-res="' +
+            esc(r.id) + '">Overnemen</button>') + "</td></tr>";
+    });
+    html += "</tbody></table></div></div>";
+    return html;
+  }
+
+  /* Eén dienst in het boekingsformulier zetten. Alleen wat het dashboard zeker
+     weet; de vergoeding blijft leeg, want die hoort bij de afspraak en niet
+     bij de reservering. */
+  function neemDienstOver(id) {
+    var r = DIENSTEN_RES.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!r) return;
+    view.editing = null;
+    draft = leegDraft();
+    draft.date = dienstDatum(r) || draft.date;
+    draft.loc = SUITE_NAAR_LOC[r.suite] || draft.loc;
+    draft.ref = String(r.kanaal_ref || "");
+    draft.van = dienstTijd(r, "van");
+    draft.tot = dienstTijd(r, "tot");
+    draft.arr = dienstArr(r);
+    draft.bedrag = r.bedrag_totaal != null ? String(r.bedrag_totaal) : "";
+    draft.verblijf = String(r.type || "") === "dagverblijf" ? "dag" : "nacht";
+    var gast = dienstGast(r);
+    draft.note = gast ? "gast: " + gast : "";
+    /* De maand van het formulier meebewegen, anders lijkt het alsof er niets
+       gebeurt wanneer de dienst in een andere maand valt. */
+    if (monthKey(draft.date) !== view.month) view.month = monthKey(draft.date);
+    herbereken();
+    render();
+    var veld = document.getElementById("f-verg") || document.getElementById("f-date");
+    if (veld && veld.scrollIntoView) veld.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   function bwfHtml() {
     var html = "";
     var list = boekingenVanMaand(view.month);
@@ -1578,6 +1743,9 @@
     html += '<button type="button" class="btn small" data-act="lees-plak">Formulier inlezen</button>';
     html += '<button type="button" class="btn ghost small" data-act="wis-plak">Leegmaken</button>';
     html += "</div></div></details>";
+
+    /* diensten uit het dashboard */
+    html += dienstenHtml(list);
 
     /* formulier boeking */
     html += '<div class="section-title"><h2>' + (editing ? "Boeking bewerken" : "Boeking toevoegen") + '</h2><span class="hint">' + (editing ? "Je past een bestaande regel aan." : "Alleen datum, locatie en vergoeding zijn nodig \u2014 de rest mag je later aanvullen.") + "</span></div>";
@@ -1809,7 +1977,17 @@
     html += '<code class="sql">create table public.' + esc(TABEL) + " (\n";
     html += "  id uuid primary key default gen_random_uuid(),\n  medewerker text not null,\n  soort text not null default 'boeking',\n  datum date not null,\n  locatie text,\n  boeking_nr text,\n  tijd_van text,\n  tijd_tot text,\n  arrangement text,\n  bedrag numeric,\n  bank_op_locatie numeric,\n  cash_op_locatie numeric,\n  vergoeding numeric,\n  factuur_nr text,\n  btw numeric,\n  wijze text,\n  voldaan boolean default false,\n  km numeric,\n  data jsonb,\n  opmerking text,\n  created_at timestamptz default now()\n);\n\n";
     html += "alter table public." + esc(TABEL) + " enable row level security;\n\n";
-    html += "create policy \"ingelogd lezen en schrijven\" on public." + esc(TABEL) + "\n  for all to authenticated using (true) with check (true);</code>";
+    /* Hier stond een policy met `using (true)`: iedereen die kan inloggen mocht
+       alle administraties lezen en wijzigen. Gevonden 06-10-2026. De regel
+       hieronder laat alleen de eigenaar en de medewerker zelf erbij, net als
+       bij wz_werkzaamheden. Zie de migraties 20261006110000 en 20261006110100. */
+    html += "create policy \"bwf rechten psm administratie\" on public." + esc(TABEL) + "\n" +
+      "  for all to authenticated\n" +
+      "  using ((select public.bwf_toegangsrol()) = 'eigenaar'\n" +
+      "         or medewerker_id = (select public.bwf_medewerker_id()))\n" +
+      "  with check ((select public.bwf_toegangsrol()) = 'eigenaar'\n" +
+      "         or medewerker_id = (select public.bwf_medewerker_id()));</code>";
+    html += '<p class="mini">Let op: die regel werkt alleen als de kolom <code>medewerker_id</code> bestaat en gevuld is. De twee migraties in de map <code>supabase/migrations</code> van 06-10-2026 doen dat, in die volgorde.</p>';
     html += '<p class="mini" style="margin-top:12px;">Bestaat de tabel al van een eerdere versie? Voer dan alleen dit uit, voor de rittenregistratie:</p>';
     html += '<code class="sql">alter table public.' + esc(TABEL) + " add column if not exists km numeric,\n  add column if not exists data jsonb;</code>";
     html += "</div></details>";
@@ -2094,6 +2272,7 @@
       if (pv) pv.value = "";
       return;
     }
+    if (act === "neem-over") { leesForm(); neemDienstOver(btn.getAttribute("data-res")); return; }
     if (act === "prev-month") { view.month = shiftMonth(view.month, -1); render(); }
     else if (act === "next-month") { view.month = shiftMonth(view.month, 1); render(); }
     else if (act === "this-month") { view.month = monthKey(todayISO()); render(); }
@@ -2401,6 +2580,10 @@
   function start() {
     render();
     pull(false);
+    /* Wie ben ik, en welke reserveringen staan op mijn naam? Beide hoeven maar
+       één keer, en het scherm staat er al - lukt het niet, dan zegt het blok
+       dat zelf en werkt de rest gewoon door. */
+    haalMijnId().then(haalDiensten).then(render);
     if (!pollTimer && !localMode) {
       pollTimer = setInterval(function () {
         if (!document.hidden && session && !localMode) pull(true);

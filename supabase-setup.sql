@@ -67,11 +67,24 @@ alter table public.psm_administratie enable row level security;
 
 drop policy if exists "ingelogd lezen en schrijven" on public.psm_administratie;
 
-create policy "ingelogd lezen en schrijven" on public.psm_administratie
+-- LET OP, gewijzigd 06-10-2026. Hier stond:
+--   using (true) with check (true)
+-- Dat betekende: iedereen die kan inloggen leest en wijzigt ALLE
+-- administraties. Nu alleen de eigenaar en de medewerker zelf. Dit werkt
+-- alleen met de kolom medewerker_id; zie de migraties
+-- 20261006110000_psm_administratie_koppelen.sql en
+-- 20261006110100_psm_administratie_dichtzetten.sql.
+create policy "bwf rechten psm administratie" on public.psm_administratie
   for all
   to authenticated
-  using (true)
-  with check (true);
+  using (
+    (select public.bwf_toegangsrol()) = 'eigenaar'
+    or medewerker_id = (select public.bwf_medewerker_id())
+  )
+  with check (
+    (select public.bwf_toegangsrol()) = 'eigenaar'
+    or medewerker_id = (select public.bwf_medewerker_id())
+  );
 
 -- ============================================================
 --  Draaide je een eerdere versie van deze pagina en bestaat de
