@@ -6582,11 +6582,25 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }
     h += '</div>';
 
+    /* Schade melden, en de opvolging meteen op naam zetten (Angela, 06-10-2026).
+       Een schademelding vraagt bijna altijd om iets erna: bedrag overleggen,
+       de gast nabellen, een reparatie regelen. Dat bleef liggen zolang het
+       alleen een melding was, dus staat het toewijzen nu in hetzelfde blok. */
     var mijnSchade = SCHADE.filter(function(s){ return String(s.res_sleutel)===sleutel(r); });
-    h += '<div class="actie"><b>Schade</b>'+
-      '<span class="vlag '+(mijnSchade.length ? 'nee' : 'ja')+'">'+
-        (mijnSchade.length ? mijnSchade.length+' melding'+(mijnSchade.length===1?'':'en') : 'Geen')+'</span>'+
-      '<span class="rechts"><button class="knop klein" type="button" id="rkSchade">Schade melden</button></span></div>';
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Schade</b>'+
+        '<span class="vlag '+(mijnSchade.length ? 'nee' : 'ja')+'">'+
+          (mijnSchade.length ? mijnSchade.length+' melding'+(mijnSchade.length===1?'':'en') : 'Geen')+'</span>'+
+        '<span class="rechts" style="margin-left:auto">'+
+          '<button class="knop klein" type="button" id="rkSchade">Schade melden</button></span>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+        '<div class="field" style="min-width:180px"><label for="rkSchadeWie">Taak toewijzen aan</label>'+
+          mensenKeuze('rkSchadeWie', 'angela')+'</div>'+
+        '<button class="knop klein" type="button" id="rkSchadeTaak">Taak toewijzen</button>'+
+        '<span id="rkSchadeMeld" style="font-size:13px;opacity:.75"></span>'+
+      '</div></div>';
 
     h += '<div class="actie" style="display:block"><b>Tijden aanpassen</b>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">'+
@@ -6641,6 +6655,37 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           (laatsteBetaling.tijdstip ? ' op '+esc(dtKort(laatsteBetaling.tijdstip)) : '')+'</div>'
         : '')+
       '<div id="rkBetaling" hidden style="margin-top:10px"></div>'+
+      '</div>';
+
+    /* Betaallink voor de klant (Angela, 06-10-2026). Staat vlak onder het
+       afrekenen: lukt pinnen niet of wil de gast later betalen, dan stuur je
+       hier meteen een link voor het openstaande bedrag. Dit gebruikt dezelfde
+       Mollie-functie als het reserveringenscherm - geen tweede weg erbij. */
+    var openNu = teBetalen(r, 'alles');
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Betaallink voor de klant</b>'+
+        (openNu > 0
+          ? '<span class="vlag nee">'+esc(euro(openNu))+' open</span>'
+          : '<span class="vlag ja">Niets open</span>')+
+      '</div>'+
+      (r.resId
+        ? '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+            '<div class="field" style="max-width:150px"><label for="rkLinkBedrag">Bedrag</label>'+
+              '<input type="text" inputmode="decimal" id="rkLinkBedrag" value="'+
+                esc(openNu > 0 ? String(openNu).replace('.', ',') : '')+'"></div>'+
+            '<button class="knop klein vol" type="button" id="rkLinkMaak">Betaallink maken</button>'+
+            '<span id="rkLinkMeld" style="font-size:13px;opacity:.75"></span>'+
+          '</div>'+
+          '<div id="rkLinkUit" hidden style="margin-top:10px">'+
+            '<input type="text" id="rkLink" readonly style="width:100%;font-size:13px">'+
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+
+              '<button class="knop klein" type="button" id="rkLinkKopieer">Kopiëren</button>'+
+              '<a class="knop klein whatsapp" id="rkLinkApp" target="_blank" rel="noopener" hidden>WhatsApp</a>'+
+              '<a class="knop klein gmail" id="rkLinkMail" hidden>E-mail</a>'+
+            '</div></div>'
+        : '<div style="margin-top:8px;font-size:13px;opacity:.7">'+
+          'Deze regel hangt niet aan een reservering, dus er kan geen betaallink bij.</div>')+
       '</div>';
 
     /* Overdracht aanmaken (Angela, 19-09-2026, stap 4). Een uitklapmenu, want
@@ -6706,12 +6751,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     { titel: '2 · Locatiemanager',
       uitleg: 'Het werk op locatie: ontvangen, bijboeken, afrekenen en uitchecken.',
       blokken: ["Extra's bijboeken op locatie", 'Welkomstcall', 'Incheckformulier',
-                'Tijden aanpassen', 'Borg', 'Schade',
-                'Betaling met de klant afronden', 'Overdracht'] },
+                'Tijden aanpassen', 'Borg', 'Schade', 'Taak bij deze reservering',
+                'Betaling met de klant afronden', 'Betaallink voor de klant',
+                'Overdracht'] },
     { titel: '3 · VR-assistent en overige functies',
       uitleg: 'Dezelfde rechten als voorheen - alleen apart gezet voor het overzicht.',
-      blokken: ['Review, kaart & tarieven', 'Geboekt via', 'Taak bij deze reservering',
-                'Uit het overzicht halen'] },
+      blokken: ['Review, kaart & tarieven', 'Geboekt via', 'Uit het overzicht halen'] },
     { titel: '4 · Historie',
       uitleg: 'Wat er met deze boeking is gebeurd.',
       blokken: [] }
@@ -7115,6 +7160,123 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     };
   }
 
+  /* ---------- een taak bij deze boeking op naam zetten ----------
+     Angela, 06-10-2026. Eén keuzelijst en één opslagweg, gebruikt door het
+     schadeblok en door de overdracht. De waarde is het id uit wz_medewerkers,
+     want daar hangt wz_taken.medewerker_id aan - een naam is niet exact
+     ("Ruth" en "Ruth Tilburg" komen beide voor). */
+  function mensenKeuze(id, voorkeur){
+    var mensen = (MEDEWERKERS || []).filter(function(m){ return m && m.naam && m.actief !== false; });
+    var gekozen = '';
+    if(voorkeur){
+      for(var i=0;i<mensen.length;i++){
+        if(String(mensen[i].naam).toLowerCase().indexOf(String(voorkeur).toLowerCase()) > -1){
+          gekozen = String(mensen[i].id); break; }
+      }
+    }
+    return '<select id="'+esc(id)+'"><option value="">— kies iemand —</option>'+
+      mensen.map(function(m){
+        return '<option value="'+esc(m.id)+'"'+(String(m.id) === gekozen ? ' selected' : '')+'>'+
+          esc(m.naam)+'</option>'; }).join('')+'</select>';
+  }
+
+  /* De taak zelf. Geeft de opgeslagen rij terug, of null als het niet lukte -
+     dan staat de reden in het meldingsveld en gaat er niets stil verloren. */
+  async function taakToewijzen(r, keuzeId, meldId, titel, extra){
+    var meld = meldId ? document.getElementById(meldId) : null;
+    var sel = document.getElementById(keuzeId);
+    var wie = sel ? sel.value : '';
+    if(!wie){ if(meld) meld.textContent = '✕ Kies eerst aan wie.'; return null; }
+    var n2 = naw(r);
+    var obj = {
+      titel: titel,
+      omschrijving: 'Reservering ' + (n2.nummer || sleutel(r)) + ' · ' + hoofdnaam(r.locatie) +
+        ' · ' + (r.aankomst || 'zonder datum') + ' · ' + gastnaam(r) +
+        (extra ? '\n' + extra : ''),
+      locatie: tkPlaats(hoofdnaam(r.locatie)),
+      status: 'open',
+      medewerker_id: wie,
+      aangemaakt: new Date().toISOString()
+    };
+    var ik = tkMijnId(); if(ik) obj.aangemaakt_door = ik;
+    if(meld) meld.textContent = 'Bezig…';
+    try{
+      var res = await sb('wz_taken', { method:'POST', body:JSON.stringify(obj) });
+      if(res && res[0]) TAKEN.unshift(res[0]);
+      var naam = (sel.options[sel.selectedIndex] || {}).text || 'de collega';
+      if(meld) meld.textContent = '✓ Taak aangemaakt voor ' + naam + '.';
+      tekenTaken();
+      return (res && res[0]) ? res[0] : obj;
+    }catch(e){
+      if(meld) meld.textContent = '✕ Taak aanmaken lukte niet: ' + e.message;
+      return null;
+    }
+  }
+
+  /* ---------- betaallink voor de klant ----------
+     Dezelfde Edge-functie als het reserveringenscherm; de sleutel blijft daar
+     en komt nooit in dit bestand. */
+  var MOLLIE_FUNCTIE = SB_URL.replace(/\/$/, '') + '/functions/v1/mollie-create-payment';
+
+  function naarBedrag(v){
+    return Math.round((parseFloat(String(v == null ? '' : v)
+      .replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
+  }
+  function linkBericht(r, url, bedrag){
+    return 'Hallo ' + (gastnaam(r) || '') + ',\n\n' +
+      'Hierbij de betaallink voor ' + euro(bedrag) + ' bij Bed & Wellness Flevoland:\n' +
+      url + '\n\nHartelijk dank!';
+  }
+  async function maakBetaallink(r){
+    var meld = document.getElementById('rkLinkMeld');
+    var knop = document.getElementById('rkLinkMaak');
+    var bedrag = naarBedrag((document.getElementById('rkLinkBedrag') || {}).value);
+    if(!(bedrag > 0)){ if(meld) meld.textContent = '✕ Vul eerst een bedrag in.'; return; }
+    if(!r.resId){ if(meld) meld.textContent = '✕ Deze regel hangt niet aan een reservering.'; return; }
+    if(knop) knop.disabled = true;
+    if(meld) meld.textContent = 'Bezig met aanmaken…';
+    try{
+      var n2 = naw(r), k2 = kop(r);
+      var res = await fetch(MOLLIE_FUNCTIE, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + token() },
+        body: JSON.stringify({
+          bedrag: bedrag,
+          omschrijving: [gastnaam(r), n2.nummer].filter(Boolean).join(' · ') || 'Bed & Wellness Flevoland',
+          reservering: n2.nummer || '',
+          reservering_id: r.resId,
+          soort: 'restant',
+          gast: gastnaam(r) || ''
+        })
+      });
+      var d = await res.json().catch(function(){ return {}; });
+      if(!res.ok && !d.error) d.error = 'fout ' + res.status;
+      if(!d.checkoutUrl) throw new Error(d.error || 'onbekende fout');
+
+      document.getElementById('rkLink').value = d.checkoutUrl;
+      document.getElementById('rkLinkUit').hidden = false;
+      var tekst = linkBericht(r, d.checkoutUrl, bedrag);
+      /* Alleen een cijfernummer kan naar wa.me; staat er geen telefoon, dan
+         verdwijnt die knop in plaats van naar een kapotte link te wijzen. */
+      var tel = String(k2.telefoon || n2.telefoon || '').replace(/\D/g, '').replace(/^0/, '31');
+      var app = document.getElementById('rkLinkApp');
+      app.hidden = !tel;
+      if(tel) app.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(tekst);
+      var adres = k2.email || n2.email || '';
+      var mail = document.getElementById('rkLinkMail');
+      mail.hidden = !adres;
+      if(adres) mail.href = 'mailto:' + encodeURIComponent(adres) +
+        '?subject=' + encodeURIComponent('Betaallink Bed & Wellness Flevoland') +
+        '&body=' + encodeURIComponent(tekst);
+
+      if(meld) meld.textContent = String(d.mode) === 'test'
+        ? '✓ Link van ' + euro(bedrag) + ' aangemaakt — LET OP: dit is een TESTbetaling.'
+        : '✓ Link van ' + euro(bedrag) + ' aangemaakt.';
+    }catch(e){
+      if(meld) meld.textContent = '✕ Betaallink maken lukte niet: ' + e.message;
+    }finally{ if(knop) knop.disabled = false; }
+  }
+
   /* Een taak voor Angela klaarzetten. Gebruikt dezelfde kolommen als het
      takenblok: medewerker_id met een wz_medewerkers.id, en locatie die alleen
      Almere of Lelystad mag zijn. */
@@ -7444,6 +7606,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '</div>'+
       '<div class="field" style="margin-top:10px"><label for="rkOverTekst">Bijzonderheden</label>'+
         '<textarea id="rkOverTekst" rows="3" placeholder="Wat moet de volgende dienst weten over deze boeking?"></textarea></div>'+
+      /* Angela, 06-10-2026: een overdracht bleef liggen als er geen taak bij
+         stond. Is er iemand gekozen, dan komt de overdracht ook als taak op
+         zijn naam. Staat de keuze op "iedereen", dan kan er geen taak bij -
+         dat zegt de regel eronder er ook bij. */
+      '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13.5px">'+
+        '<input type="checkbox" id="rkOverTaak" checked> '+
+        'Ook een taak aanmaken op naam van deze persoon</label>'+
+      '<div style="font-size:12.5px;opacity:.65;margin-top:4px">'+
+        'Kies hierboven wie het overneemt; bij “iedereen” wordt er geen taak aangemaakt.</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">'+
         '<button class="knop vol" type="button" id="rkOverOk">Overdracht opslaan</button>'+
         '<span id="rkOverMeld" style="font-size:13.5px"></span>'+
@@ -7487,8 +7658,42 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       if(veldTekst) veldTekst.value = '';
       /* Meteen in de lijst zetten, zodat de kaart hem toont zonder herladen. */
       OVERDRACHTEN.unshift(terug[0]);
+
+      /* En de taak erbij, als er iemand is gekozen. Lukt de taak niet, dan
+         blijft de overdracht wél staan - die is al opgeslagen. Dat zeggen we
+         dan ook, zodat niemand denkt dat alles mislukte. */
+      var wilTaak = !!(document.getElementById('rkOverTaak') || {}).checked;
+      var taakTekst = '';
+      if(wilTaak && aan){
+        var wie2 = (MEDEWERKERS || []).filter(function(m){
+          return m && String(m.naam) === String(aan); })[0];
+        if(!wie2){
+          taakTekst = ' De taak kon niet op naam worden gezet: ' + aan + ' staat niet in de medewerkerslijst.';
+        }else{
+          var taak = {
+            titel: '[Overdracht] ' + gastnaam(r) + ' — ' + hoofdnaam(r.locatie),
+            omschrijving: verwijzing + '\n' + tekst,
+            locatie: tkPlaats(hoofdnaam(r.locatie)),
+            status: 'open',
+            medewerker_id: wie2.id,
+            aangemaakt: new Date().toISOString()
+          };
+          var ik2 = tkMijnId(); if(ik2) taak.aangemaakt_door = ik2;
+          try{
+            var tres = await sb('wz_taken', { method:'POST', body: JSON.stringify(taak) });
+            if(tres && tres[0]) TAKEN.unshift(tres[0]);
+            tekenTaken();
+            taakTekst = ' Er staat ook een taak op naam van ' + aan + '.';
+          }catch(e2){
+            taakTekst = ' Let op: de taak aanmaken lukte niet (' + e2.message + ').';
+          }
+        }
+      }
       if(meld) meld.textContent = '✓ Overdracht opgeslagen' + (aan ? ' voor ' + aan : '') +
-        '. Hij staat op het tabblad Overdracht.';
+        '. Hij staat op het tabblad Overdracht.' + taakTekst;
+      /* De kaart wordt hieronder opnieuw getekend, dus de melding hierboven
+         verdwijnt. Daarom gaat het bericht ook als balk over het scherm. */
+      melding('Overdracht opgeslagen' + (aan ? ' voor ' + aan : '') + '.' + taakTekst, true);
       if(knop) knop.disabled = false;
       openKaart(sleutel(r));
     }catch(e){
@@ -7739,6 +7944,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     var sch = document.getElementById('rkSchade');
     if(sch) sch.onclick = function(){ openSchade(r); };
+
+    /* Schade toewijzen en de betaallink (Angela, 06-10-2026). */
+    var schTaak = document.getElementById('rkSchadeTaak');
+    if(schTaak) schTaak.onclick = function(){
+      taakToewijzen(r, 'rkSchadeWie', 'rkSchadeMeld',
+        '[Schade] ' + gastnaam(r) + ' — ' + hoofdnaam(r.locatie),
+        'Er is schade bij deze boeking. Bedrag en vervolg overleggen.');
+    };
+    var lm = document.getElementById('rkLinkMaak');
+    if(lm) lm.onclick = function(){ maakBetaallink(r); };
+    var lk = document.getElementById('rkLinkKopieer');
+    if(lk) lk.onclick = function(){
+      var v = document.getElementById('rkLink');
+      if(!v) return;
+      v.select();
+      /* Het klembord via de nieuwe weg, met de oude als terugval: op een
+         iPhone weigert navigator.clipboard soms zonder melding. */
+      var klaar = function(){
+        var m = document.getElementById('rkLinkMeld');
+        if(m) m.textContent = '✓ Link gekopieerd.';
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(v.value).then(klaar, function(){
+          try{ document.execCommand('copy'); klaar(); }catch(x){} });
+      }else{ try{ document.execCommand('copy'); klaar(); }catch(x){} }
+    };
 
     /* De vlag "Nieuw \u00b7 klant aanmaken" maakte blind een klant aan, zonder te
        kijken of die er al stond - bij elke herhaalbezoeker een dubbele. En hij
