@@ -51,6 +51,11 @@ begin
 end $$;
 
 drop policy if exists "ingelogd lezen en schrijven" on public.psm_administratie;
+-- Ook de nieuwe naam eerst weghalen. Zonder deze regel geeft een tweede keer
+-- draaien "42710: policy already exists" en lijkt het alsof er iets mis is,
+-- terwijl de eerste keer gewoon gelukt was. Angela liep daar tegenaan op
+-- 06-10-2026. Een migratie hoort twee keer te kunnen draaien zonder drama.
+drop policy if exists "bwf rechten psm administratie" on public.psm_administratie;
 
 create policy "bwf rechten psm administratie" on public.psm_administratie
   for all to authenticated
