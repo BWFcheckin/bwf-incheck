@@ -2154,6 +2154,22 @@ div.ag-blok{cursor:default}
     </div>
     <!-- Fase 3: gedeelde kalender uit reserveringen + blokkades. De oude kalender (Google Agenda) is verborgen. -->
     <div class="card" style="padding:14px 16px;margin-bottom:14px"><div id="vrKalender"></div></div>
+
+    <!-- Angela, 06-10-2026: "ik wil de planning ook via het vr-dashboard
+         kunnen bereiken." De personeelsplanning staat op het dashboard en
+         wordt hier getoond, niet nagebouwd: twee planningschermen zouden uit
+         elkaar gaan lopen en dan weet niemand welke klopt. Zelfde aanpak als
+         bij werkzaamheden.html hieronder. Het venster wordt pas opgehaald als
+         je dit tabblad opent. -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><h2>Personeelsplanning</h2>
+        <a class="btn ghost small" href="dashboard.html#planning" target="_blank" rel="noopener">In eigen venster openen</a>
+      </div>
+      <div class="card-body" style="padding:0">
+        <iframe id="planPaginaFrame" data-src="dashboard.html#planning" title="Personeelsplanning"
+          style="width:100%;height:78vh;min-height:520px;border:0;border-radius:0 0 12px 12px;background:#fff"></iframe>
+      </div>
+    </div>
     <div class="card ag-dagkaart" hidden style="display:none">
       <div class="ag-dagrij">
         <button class="ag-rond" id="kalVorige" type="button" aria-label="Vorige">&larr;</button>
@@ -3925,6 +3941,13 @@ function laadResFrameIndienZichtbaar(){
   const w = document.getElementById('wzPaginaFrame');
   if(w && !w.src && w.dataset.src && w.offsetParent !== null)
     w.src = w.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de planning op het tabblad Agenda. Het adres heeft een
+     #planning erachter, dus het cijfer ervóór zetten - anders staat de hash
+     midden in de vraagtekst en opent het dashboard gewoon zijn eerste
+     tabblad. */
+  const pl = document.getElementById('planPaginaFrame');
+  if(pl && !pl.src && pl.dataset.src && pl.offsetParent !== null)
+    pl.src = pl.dataset.src.replace('#', '?v=' + Date.now() + '#');
 }
 /* Afvinken en terugzetten. Vóór de andere klikafhandeling, en met
    stopPropagation: een tik op het vinkje mag de reservering niet openen. */
@@ -4009,6 +4032,13 @@ function laadFinancieelIndienZichtbaar(){
   const w = document.getElementById('wzPaginaFrame');
   if(w && !w.src && w.dataset.src && w.offsetParent !== null)
     w.src = w.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de planning op het tabblad Agenda. Het adres heeft een
+     #planning erachter, dus het cijfer ervóór zetten - anders staat de hash
+     midden in de vraagtekst en opent het dashboard gewoon zijn eerste
+     tabblad. */
+  const pl = document.getElementById('planPaginaFrame');
+  if(pl && !pl.src && pl.dataset.src && pl.offsetParent !== null)
+    pl.src = pl.dataset.src.replace('#', '?v=' + Date.now() + '#');
 }
 document.addEventListener('click', function(){ setTimeout(laadFinancieelIndienZichtbaar, 60); });
 setTimeout(laadFinancieelIndienZichtbaar, 1500);
@@ -4079,6 +4109,13 @@ function laadHandleidingIndienZichtbaar(){
   const w = document.getElementById('wzPaginaFrame');
   if(w && !w.src && w.dataset.src && w.offsetParent !== null)
     w.src = w.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de planning op het tabblad Agenda. Het adres heeft een
+     #planning erachter, dus het cijfer ervóór zetten - anders staat de hash
+     midden in de vraagtekst en opent het dashboard gewoon zijn eerste
+     tabblad. */
+  const pl = document.getElementById('planPaginaFrame');
+  if(pl && !pl.src && pl.dataset.src && pl.offsetParent !== null)
+    pl.src = pl.dataset.src.replace('#', '?v=' + Date.now() + '#');
 }
 document.addEventListener('click', function(){ setTimeout(laadHandleidingIndienZichtbaar, 60); });
 setTimeout(laadHandleidingIndienZichtbaar, 1500);
@@ -4151,6 +4188,13 @@ function laadBonnenFrameIndienZichtbaar(){
   const w = document.getElementById('wzPaginaFrame');
   if(w && !w.src && w.dataset.src && w.offsetParent !== null)
     w.src = w.dataset.src + '?v=' + Date.now();
+  /* Hetzelfde voor de planning op het tabblad Agenda. Het adres heeft een
+     #planning erachter, dus het cijfer ervóór zetten - anders staat de hash
+     midden in de vraagtekst en opent het dashboard gewoon zijn eerste
+     tabblad. */
+  const pl = document.getElementById('planPaginaFrame');
+  if(pl && !pl.src && pl.dataset.src && pl.offsetParent !== null)
+    pl.src = pl.dataset.src.replace('#', '?v=' + Date.now() + '#');
 }
 document.addEventListener('click', function(){ setTimeout(laadBonnenFrameIndienZichtbaar, 60); });
 setTimeout(laadBonnenFrameIndienZichtbaar, 1500);

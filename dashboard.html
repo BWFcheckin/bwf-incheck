@@ -308,6 +308,9 @@ details[open] > .admbalk::before{transform:rotate(90deg)}
   text-transform:uppercase;opacity:.55}
 .admsoort + .admjij{margin-left:10px}
 .admlijf{margin:-4px 0 14px}
+.kal-chip[data-plan]{cursor:pointer}
+.kal-chip[data-plan]:hover{filter:brightness(.96);text-decoration:underline}
+.kal-chip[data-plan]:focus-visible{outline:2px solid var(--c);outline-offset:2px}
 .admlijst{border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px;
   background:var(--surface)}
 .admframe{width:100%;height:1400px;border:1px solid var(--line);
@@ -1658,8 +1661,14 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option><option value="Almere">Almere</option></select></div>
           <div class="field"><label for="p-dienst">Soort</label><select id="p-dienst"><option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option><option value="schoonmaak">Alleen schoonmaak</option></select></div>
           <div class="field" style="grid-column:span 2"><label for="p-notitie">Notitie</label><input type="text" id="p-notitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
-          <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Inplannen</button></div>
+          <div class="field" style="display:flex;gap:8px;align-items:flex-end">
+            <button class="btn" type="submit" id="p-opslaan">Inplannen</button>
+            <button class="btn ghost small" type="button" id="p-weg" hidden
+                    style="border-color:#C13E50;color:#C13E50">Verwijderen</button>
+            <button class="btn ghost small" type="button" id="p-annuleer" hidden>Annuleren</button>
+          </div>
         </form>
+        <p class="hint" id="p-melding" style="margin:8px 0 0">Tik in de kalender op een naam om die dienst te wijzigen.</p>
       </div>
     </div>
 
@@ -2553,7 +2562,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         lijst.map(function(r){
           var m = mwById(r.medewerkerId);
           var afw = r.dienst === "afwezig";
-          return '<span class="kal-chip" style="--c:' + (afw ? "#B9AFA4" : kleurVan(r.medewerkerId)) + (afw ? ";opacity:.85;text-decoration:line-through" : "") + '" title="' + esc((m ? m.naam : "") + " · " + soortLabel(r.dienst) + (r.notitie ? " · " + r.notitie : "")) + '">' +
+          /* Angela, 06-10-2026: "ik wil in de kalender de namen kunnen
+             wijzigen." De chip is nu een knop: erop tikken zet die dienst in
+             het formulier eronder, waar je de naam, het soort en de notitie
+             kunt aanpassen - of hem weghalen. */
+          return '<span class="kal-chip" role="button" tabindex="0" data-plan="' + esc(r.id) + '" ' +
+            'style="--c:' + (afw ? "#B9AFA4" : kleurVan(r.medewerkerId)) + (afw ? ";opacity:.85;text-decoration:line-through" : "") + '" title="' + esc((m ? m.naam : "") + " · " + soortLabel(r.dienst) + (r.notitie ? " · " + r.notitie : "") + " \u2014 tik om te wijzigen") + '">' +
             '<span class="kal-dot"></span>' + esc(voornaam(m ? m.naam : "?")) +
             (r.dienst === "nacht" ? '<span class="kal-nacht" aria-hidden="true">&#9789;</span>' : "") + "</span>";
         }).join("") + "</button>";
@@ -2568,9 +2582,76 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }).join("") + '<span class="leg" style="color:var(--muted)">&#9789; = nachtverblijf</span>';
   }
   document.getElementById("kalender").addEventListener("click", function(e){
+    var chip = e.target.closest(".kal-chip");
+    if (chip && chip.dataset.plan) { e.preventDefault(); e.stopPropagation(); planBewerk(chip.dataset.plan); return; }
     var cel = e.target.closest(".kal-cel"); if (!cel || !cel.dataset.dag) return;
+    planStopBewerken();
     document.getElementById("p-datum").value = cel.dataset.dag;
     document.getElementById("p-mw").focus();
+  });
+  document.getElementById("kalender").addEventListener("keydown", function(e){
+    if (e.key !== "Enter" && e.key !== " ") return;
+    var chip = e.target.closest && e.target.closest(".kal-chip");
+    if (chip && chip.dataset.plan) { e.preventDefault(); planBewerk(chip.dataset.plan); }
+  });
+
+  /* ---- een bestaande dienst wijzigen ----
+     Angela, 06-10-2026. Het formulier doet dubbel dienst: leeg is inplannen,
+     met een dienst erin is wijzigen. Eén formulier dus, geen tweede dat kan
+     gaan afwijken. */
+  var PLAN_BEWERK = null;
+  function planMeld(t){
+    var el = document.getElementById("p-melding");
+    if (el) el.textContent = t || "Tik in de kalender op een naam om die dienst te wijzigen.";
+  }
+  function planStopBewerken(stil){
+    PLAN_BEWERK = null;
+    var ok = document.getElementById("p-opslaan");
+    if (ok) ok.textContent = "Inplannen";
+    ["p-weg", "p-annuleer"].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.hidden = true;
+    });
+    var nt = document.getElementById("p-notitie"); if (nt) nt.value = "";
+    if (!stil) planMeld("");
+  }
+  function planBewerk(id){
+    var r = (state.planning || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if (!r) return;
+    PLAN_BEWERK = String(id);
+    document.getElementById("p-datum").value = r.datum || "";
+    document.getElementById("p-mw").value = r.medewerkerId || "";
+    var loc = document.getElementById("p-loc"); if (loc && r.locatie) loc.value = r.locatie;
+    var srt = document.getElementById("p-dienst");
+    /* "afwezig" staat niet in deze keuzelijst; die regels maak je bij "Niet
+       beschikbaar". De naam wijzigen mag wel, dus die soort blijft wat hij is. */
+    if (srt && r.dienst && r.dienst !== "afwezig") srt.value = r.dienst;
+    document.getElementById("p-notitie").value = r.notitie || "";
+    document.getElementById("p-opslaan").textContent = "Wijziging opslaan";
+    ["p-weg", "p-annuleer"].forEach(function(x){
+      var el = document.getElementById(x); if (el) el.hidden = false;
+    });
+    var m = mwById(r.medewerkerId);
+    planMeld("Je wijzigt de dienst van " + ((m && m.naam) || "onbekend") + " op " + (r.datum || "") + ".");
+    var veld = document.getElementById("p-mw");
+    if (veld) { try { veld.focus({ preventScroll: true }); } catch (err) { veld.focus(); } }
+    var kaart = document.getElementById("planForm");
+    if (kaart && kaart.scrollIntoView) kaart.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  document.getElementById("p-annuleer").addEventListener("click", function(){ planStopBewerken(); });
+  document.getElementById("p-weg").addEventListener("click", function(){
+    if (!PLAN_BEWERK) return;
+    var r = (state.planning || []).filter(function(x){ return String(x.id) === String(PLAN_BEWERK); })[0];
+    if (!r) { planStopBewerken(); return; }
+    var m = mwById(r.medewerkerId);
+    if (!confirm("Deze dienst uit de kalender halen?\n\n" + (r.datum || "") + " \u00b7 " +
+        ((m && m.naam) || "onbekend") + " \u00b7 " + soortLabel(r.dienst) +
+        "\n\nDit kan niet ongedaan worden gemaakt.")) return;
+    var weg = String(PLAN_BEWERK);
+    planStopBewerken(true);
+    mutate(function(){
+      state.planning = state.planning.filter(function(x){ return String(x.id) !== weg; });
+    });
+    planMeld("De dienst is uit de kalender gehaald.");
   });
 
   /* ---------------- render: planning ---------------- */
@@ -2923,6 +3004,23 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       notitie: document.getElementById("p-notitie").value };
     if (!r.datum || !r.medewerkerId) return;
     kalYm = r.datum.slice(0, 7);
+    if (PLAN_BEWERK) {
+      /* Wijzigen: de bestaande regel bijwerken en zijn id houden, zodat er
+         geen tweede dienst naast komt te staan. */
+      var bewerkt = String(PLAN_BEWERK);
+      var naam = (mwById(r.medewerkerId) || {}).naam || "";
+      planStopBewerken(true);
+      mutate(function(){
+        state.planning = state.planning.map(function(x){
+          if (String(x.id) !== bewerkt) return x;
+          return { id: x.id, datum: r.datum, medewerkerId: r.medewerkerId,
+                   locatie: r.locatie, dienst: x.dienst === "afwezig" ? "afwezig" : r.dienst,
+                   notitie: r.notitie };
+        });
+      });
+      planMeld("De dienst staat nu op naam van " + naam + ".");
+      return;
+    }
     mutate(function(){ state.planning.push(r); });
     document.getElementById("p-notitie").value = "";
   });
@@ -6590,6 +6688,21 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   if((location.hash || '').toLowerCase() === '#voorraad') setTimeout(naarVoorraad, 400);
   window.addEventListener('hashchange', function(){
     if((location.hash || '').toLowerCase() === '#voorraad') naarVoorraad();
+  });
+
+  /* Angela, 06-10-2026: "ik wil de planning ook via het vr-dashboard kunnen
+     bereiken." Met dashboard.html#planning opent dit scherm meteen dat
+     tabblad; vr2 toont die pagina in een venster. Zelfde aanpak als #voorraad
+     hierboven - geen tweede planningscherm dat kan gaan afwijken. */
+  function naarPlanning(){
+    var tab = document.getElementById('tab-planning');
+    if(!tab) return;
+    tab.click();
+    window.scrollTo({ top:0, behavior:'auto' });
+  }
+  if((location.hash || '').toLowerCase() === '#planning') setTimeout(naarPlanning, 400);
+  window.addEventListener('hashchange', function(){
+    if((location.hash || '').toLowerCase() === '#planning') naarPlanning();
   });
 
   /* Voorraad staat niet meer in de tabbalk maar onderaan bij Contact */
