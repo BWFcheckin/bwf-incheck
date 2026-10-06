@@ -406,9 +406,29 @@
   ];
   /* =================================================================== */
 
-  var LS_KEY = "psm-admin-v1";
+  /* De opslag in de browser krijgt een eigen naam per administratie.
+
+     Dit ging mis op 06-10-2026, toen deze pagina per persoon in een balk in
+     het dashboard kwam te staan: alle balken schreven hun gegevens onder
+     dezelfde sleutel "psm-admin-v1" weg en lazen die ook weer terug. Bij elke
+     naam stond daardoor de administratie van degene die als laatste klaar was
+     - in de praktijk steeds die van Michel. De sessie en het e-mailadres
+     blijven wél gedeeld: dat is één inlog, en dat hoort zo.
+
+     Let op: location.search is hier nog nodig vóór gevraagdeMedewerker()
+     bestaat, dus die regel staat hier uitgeschreven. */
+  var ADM_WIE = (function () {
+    try {
+      var p = new URLSearchParams(location.search).get("mw");
+      return p ? String(p).trim() : "";
+    } catch (err) { return ""; }
+  })();
+  var LS_KEY = "psm-admin-v1" + (ADM_WIE ? ":" + ADM_WIE : "");
+  /* Bij welke naam hoort wat er in LS_KEY staat? Alleen nodig voor het geval
+     zonder ?mw, waar de opslagnaam voor iedereen gelijk is. */
+  var NAAM_KEY = "psm-admin-naam" + (ADM_WIE ? ":" + ADM_WIE : "");
   var SESSION_KEY = "psm-admin-sessie";
-  var LOCAL_FLAG = "psm-admin-lokaal";
+  var LOCAL_FLAG = "psm-admin-lokaal" + (ADM_WIE ? ":" + ADM_WIE : "");
   var EMAIL_KEY = "psm-admin-email";
   var POLL_MS = 20000;
 
@@ -889,12 +909,7 @@
      van de policy toch niets te zien. Hier wordt hij alleen genegeerd, zodat
      hij zijn eigen administratie houdt in plaats van een lege lijst met de
      naam van een collega erboven. Angela, 06-10-2026. */
-  function gevraagdeMedewerker() {
-    try {
-      var p = new URLSearchParams(location.search).get("mw");
-      return p ? String(p).trim() : "";
-    } catch (err) { return ""; }
-  }
+  function gevraagdeMedewerker() { return ADM_WIE; }
 
   function haalMijnId() {
     if (localMode || !configured) return Promise.resolve();
@@ -922,6 +937,19 @@
           /* De pagina draait voortaan op de ingelogde persoon. Dit moet vóór
              pull(), want die filtert op medewerker=eq.NAAM. */
           NAAM = MIJN_NAAM;
+          /* Hoort wat er in de browseropslag staat bij iemand anders, gooi het
+             dan weg. Zonder ?mw in het adres is de opslagnaam voor iedereen
+             gelijk, en dan zag je bij het openen eerst de regels van degene
+             die deze browser als laatste gebruikte - in de praktijk Michel.
+             Gevonden door Angela op 06-10-2026. */
+          try {
+            var vorige = localStorage.getItem(NAAM_KEY);
+            if (vorige && vorige !== NAAM) {
+              state.entries = [];
+              localStorage.removeItem(LS_KEY);
+            }
+            localStorage.setItem(NAAM_KEY, NAAM);
+          } catch (err) { /* geen opslag, dan ook geen vervuiling */ }
         }
       })
       .catch(function () { MIJN_ID = null; });
