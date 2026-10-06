@@ -308,6 +308,8 @@ details[open] > .admbalk::before{transform:rotate(90deg)}
   text-transform:uppercase;opacity:.55}
 .admsoort + .admjij{margin-left:10px}
 .admlijf{margin:-4px 0 14px}
+.admlijst{border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px;
+  background:var(--surface)}
 .admframe{width:100%;height:1400px;border:1px solid var(--line);
   border-radius:var(--r-m);display:block;background:var(--surface)}
 @media (max-width:700px){ .admframe{height:1100px} }
@@ -5235,6 +5237,68 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
      Dit is een weergave, geen rechtenstructuur: wie wat mag staat sinds
      vanochtend in de policy "bwf rechten psm administratie" op de database. */
+  /* Wie rekent waarmee. Angela, 06-10-2026:
+       - Michel: boekingen met de tarievenlijst per verblijf (PSA/PSM/PSMD).
+       - Ruth en Gildo: de urenstaat met uurtarief en vakantiegeld; Gildo
+         rekent precies hetzelfde als Ruth.
+       - Kelly: werkzaamheden met eigen tarieven per taak.
+       - Jerry: "uitsluitend diensten registreren zonder tarief" - hij ziet
+         alleen de lijst van zijn diensten, er valt niets in te vullen.
+
+     Op voornaam, want dat staat in wz_medewerkers en dat gebruikt Angela zelf.
+     Staat iemand er niet bij, dan telt zijn rol: vr krijgt werkzaamheden, de
+     rest boekingen. Iemand anders indelen is hier één regel. */
+  var ADM_PER_NAAM = { ruth: 'uren', gildo: 'uren', jerry: 'lijst', michel: 'boekingen' };
+  var ADM_PAGINA = {
+    boekingen: 'administratie-michel.html',
+    uren: 'uren-ruth.html',
+    werkzaamheden: 'werkzaamheden.html'
+  };
+  var ADM_LABEL = { boekingen: 'boekingen', uren: 'urenstaat',
+                    werkzaamheden: 'werkzaamheden', lijst: 'alleen diensten' };
+
+  function admSoortVan(m){
+    var voor = String((m && m.naam) || '').trim().split(/\s+/)[0].toLowerCase();
+    if(ADM_PER_NAAM[voor]) return ADM_PER_NAAM[voor];
+    var rol = String((m && (m.toegangsrol || m.rol)) || '').toLowerCase();
+    return rol === 'vr' ? 'werkzaamheden' : 'boekingen';
+  }
+
+  function dienstenLijstHtml(m){
+    var mijn = (ALLES || []).filter(function(r){
+      return r && r.ruw && String(r.ruw.locatiemanager_id || '') === String(m.id);
+    }).sort(function(a, b){ return String(b.aankomst).localeCompare(String(a.aankomst)); });
+    if(!mijn.length){
+      return '<p class="hint" style="margin:0">Er staan nog geen reserveringen op naam van ' +
+        esc(m.naam) + '. Zodra je er een koppelt in de reserveringskaart, staat hij hier.</p>';
+    }
+    var permaand = {};
+    mijn.forEach(function(r){
+      var mnd = String(r.aankomst || '').slice(0,7);
+      (permaand[mnd] = permaand[mnd] || []).push(r);
+    });
+    return Object.keys(permaand).sort().reverse().map(function(mnd){
+      var rijen = permaand[mnd];
+      var jaar = mnd.slice(0,4), nr = parseInt(mnd.slice(5,7), 10) - 1;
+      return '<div style="margin-bottom:14px">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;margin:0 0 6px">' +
+          '<b>' + esc((MAANDEN[nr] || mnd) + ' ' + jaar) + '</b>' +
+          '<span class="hint">' + rijen.length + (rijen.length === 1 ? ' dienst' : ' diensten') + '</span>' +
+        '</div>' +
+        '<div class="table-wrap"><table class="res"><thead><tr>' +
+          '<th>Datum</th><th>Suite</th><th>Gast</th><th>Incheck</th><th>Uitcheck</th>' +
+        '</tr></thead><tbody>' +
+        rijen.map(function(r){
+          return '<tr><td>' + esc(dmyKort(r.aankomst)) + '</td>' +
+            '<td>' + esc(hoofdnaam(r.locatie)) + '</td>' +
+            '<td>' + esc(gastnaam(r)) + '</td>' +
+            '<td>' + esc(r.tijdIn || '\u2014') + '</td>' +
+            '<td>' + esc(r.tijdUit || '\u2014') + '</td></tr>';
+        }).join('') +
+        '</tbody></table></div></div>';
+    }).join('');
+  }
+
   function admMensen(){
     /* Iemand die uit dienst is blijft voor de eigenaar in de lijst staan, met
        "niet meer in dienst" erbij: zijn oude maanden moeten op te zoeken
@@ -5294,10 +5358,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
        Kelly doet backoffice-werk met eigen tarieven per taak; dat staat in
        werkzaamheden.html. Allebei bestaande pagina's - hier wordt alleen
        gekozen welke er in de balk komt. */
-    var adminPagina = function(m){
-      var rol = String((m && (m.toegangsrol || m.rol)) || '').toLowerCase();
-      return rol === 'vr' ? 'werkzaamheden.html' : 'administratie-michel.html';
-    };
+    var adminSoort = function(m){ return admSoortVan(m); };
+    var adminPagina = function(m){ return ADM_PAGINA[admSoortVan(m)] || ADM_PAGINA.boekingen; };
 
     if(eigenOnbekend){
       vak.innerHTML = '<details open><summary class="admbalk"><span>Mijn administratie</span></summary>' +
@@ -5310,14 +5372,17 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
            grote pagina's tegelijk gaan laden. */
         return '<details' + (ikzelf || toon.length === 1 ? ' open' : '') + '>' +
           '<summary class="admbalk"><span>' + esc(m.naam) + '</span>' +
-          '<span class="admsoort">' +
-            (adminPagina(m) === 'werkzaamheden.html' ? 'werkzaamheden' : 'boekingen') + '</span>' +
+          '<span class="admsoort">' + esc(ADM_LABEL[adminSoort(m)] || '') + '</span>' +
           (ikzelf ? '<span class="admjij">jij</span>'
                   : (m.actief === false ? '<span class="admjij">niet meer in dienst</span>' : '')) +
           '</summary>' +
-          '<div class="admlijf"><iframe class="admframe" data-adm="' + esc(m.id) +
-            '" data-naam="' + esc(m.naam) + '" data-pagina="' + esc(adminPagina(m)) +
-            '" title="Administratie ' + esc(m.naam) + '"></iframe></div></details>';
+          '<div class="admlijf">' +
+            (adminSoort(m) === 'lijst'
+              ? '<div class="admlijst">' + dienstenLijstHtml(m) + '</div>'
+              : '<iframe class="admframe" data-adm="' + esc(m.id) +
+                '" data-naam="' + esc(m.naam) + '" data-pagina="' + esc(adminPagina(m)) +
+                '" title="Administratie ' + esc(m.naam) + '"></iframe>') +
+          '</div></details>';
       }).join('');
     }
 

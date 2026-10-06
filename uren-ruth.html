@@ -311,7 +311,29 @@
 
   var RATE = 16.5;
   var HOLIDAY_PCT = 0.08;
-  var LS_KEY = "urenstaat-ruth-v1";
+  /* Deze urenstaat stond vast op één naam. Sinds 06-10-2026 staat hij per
+     persoon in een balk in het dashboard, en daar horen Ruth en Gildo allebei
+     op dezelfde berekening - alleen met hun eigen regels. Met ?naam=<naam>
+     achter het adres rekent de pagina voor die persoon.
+
+     De opslag in de browser krijgt daarom ook een eigen naam per persoon.
+     Deed hij dat niet, dan zouden twee balken elkaars gegevens overschrijven
+     en stond bij allebei dezelfde urenstaat - precies wat er bij de
+     administratie van Michel misging. */
+  var UR_WIE = (function () {
+    try {
+      var p = new URLSearchParams(location.search).get("mw");
+      return p ? String(p).trim() : "";
+    } catch (err) { return ""; }
+  })();
+  var UR_NAAM = (function () {
+    try {
+      var p = new URLSearchParams(location.search).get("naam");
+      return p ? String(p).trim() : "";
+    } catch (err) { return ""; }
+  })();
+  if (UR_NAAM) MEDEWERKER = UR_NAAM;
+  var LS_KEY = "urenstaat-ruth-v1" + (UR_WIE ? ":" + UR_WIE : (UR_NAAM ? ":" + UR_NAAM : ""));
   var SESSION_KEY = "urenstaat-ruth-sessie";
   var POLL_MS = 20000;
 
@@ -460,6 +482,39 @@
   var session = null;
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (err) { session = null; }
 
+  function sessieGeldig(s) {
+    return !!(s && s.access_token && s.expires_at && Date.now() < s.expires_at - 5000);
+  }
+  /* Deze pagina heeft een eigen toegangscode. Staat hij in het dashboard, dan
+     ben je daar al ingelogd en zou je hier opnieuw een code moeten intikken.
+     Daarom: geen geldige eigen sessie, dan die van het portaal uit dezelfde
+     browser. De database bepaalt daarna wat je mag zien. Let op het verschil
+     in eenheid: Supabase rekent expires_at in seconden, deze pagina in
+     milliseconden. */
+  function sessieVanPortaal() {
+    var sleutels = ["sb-iuyjvtlauktnjprbmbjj-auth-token", "bwf_auth", "bwf_sessie"];
+    for (var i = 0; i < sleutels.length; i++) {
+      try {
+        var rauw = localStorage.getItem(sleutels[i]);
+        if (!rauw) continue;
+        var d = JSON.parse(rauw);
+        if (!d || !d.access_token) continue;
+        var tot = d.expires_at ? (d.expires_at > 1e12 ? d.expires_at : d.expires_at * 1000) : 0;
+        if (tot && tot < Date.now() + 30000) continue;
+        return { access_token: d.access_token, refresh_token: d.refresh_token || "",
+                 expires_at: tot || (Date.now() + 1800000) };
+      } catch (err) { /* volgende sleutel */ }
+    }
+    return null;
+  }
+  if (!sessieGeldig(session)) {
+    var vanPortaal = sessieVanPortaal();
+    if (vanPortaal) {
+      session = vanPortaal;
+      try { localStorage.removeItem(SESSION_KEY); } catch (err) { /* geen opslag */ }
+    }
+  }
+
   function storeSession(s) {
     session = s ? {
       access_token: s.access_token,
@@ -506,7 +561,12 @@
     if (!session) return Promise.reject(new Error("niet ingelogd"));
     if (Date.now() < session.expires_at) return Promise.resolve(session.access_token);
     return authCall("refresh_token", { refresh_token: session.refresh_token })
-      .then(function (data) { storeSession(data); return session.access_token; });
+      .then(function (data) { storeSession(data); return session.access_token; })
+      .catch(function (err) {
+        var vers = sessieVanPortaal();
+        if (sessieGeldig(vers)) { session = vers; return session.access_token; }
+        throw err;
+      });
   }
 
   /* ---------- Supabase ---------- */
