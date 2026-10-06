@@ -1742,6 +1742,51 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         <div id="urenLijst" style="margin-top:14px"></div>
       </div>
     </div>
+
+    <!-- ===== Losse uren bijhouden, Angela 06-10-2026 =====
+         "Ik wilde urenregistratie van Michel toevoegen, waarbij hij alleen
+         toegang heeft en ik dezelfde gegevens kan inzien en bewerken." En:
+         "de locatiemanager moet zijn eigen uren kunnen wijzigen, toevoegen en
+         verwijderen indien foutief doorgegeven."
+
+         Dit is hetzelfde formulier als in de urenregistratie van Kelly, met
+         dezelfde velden in dezelfde tabel - zodat er één maandoverzicht
+         bestaat en niet twee die elkaar tegenspreken. Zonder bedrag: het is
+         alleen om de maanduren bij te houden. De kaart hierboven blijft staan
+         voor uren die aan een reservering hangen. -->
+    <div class="card">
+      <div class="card-head"><h2>Losse uren bijhouden</h2>
+        <span class="hint">zonder bedrag &mdash; alleen om de maanduren bij te houden</span></div>
+      <div class="card-body">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div class="field" style="max-width:170px"><label for="du-datum">Datum</label>
+            <input type="date" id="du-datum"></div>
+          <div class="field" id="du-wieVak" style="max-width:200px" hidden>
+            <label for="du-wie">Voor wie</label><select id="du-wie"></select></div>
+          <div class="field" style="max-width:190px"><label for="du-wijze">Invoeren als</label>
+            <select id="du-wijze">
+              <option value="aantal">Aantal uur</option>
+              <option value="tijden">Start- en eindtijd</option>
+            </select></div>
+          <!-- Bewust type=text en geen type=number: een getalveld weigert de
+               komma, en dan leest "3,5" als leeg. -->
+          <div class="field" id="du-aantalVak" style="max-width:150px">
+            <label for="du-aantal">Aantal uur</label>
+            <input type="text" id="du-aantal" inputmode="decimal" autocomplete="off" placeholder="bijv. 3,5"></div>
+          <div class="field" id="du-vanVak" style="max-width:130px" hidden>
+            <label for="du-van">Van</label><input type="time" id="du-van"></div>
+          <div class="field" id="du-totVak" style="max-width:130px" hidden>
+            <label for="du-tot">Tot</label><input type="time" id="du-tot"></div>
+        </div>
+        <div class="field" style="margin-top:10px"><label for="du-notitie">Notitie <span style="opacity:.7">(mag leeg)</span></label>
+          <input type="text" id="du-notitie" placeholder="bijv. voorbereiding weekend, administratie"></div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">
+          <strong id="du-uit" style="font-size:18px">0 uur</strong>
+          <button class="knop vol" type="button" id="du-zet">Uren erbij zetten</button>
+          <span class="hint" id="du-meld"></span>
+        </div>
+      </div>
+    </div>
 </section>
 
   <!-- ============ VOORRAAD ============ -->
@@ -5133,9 +5178,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   async function laadUren(){
+    if(!UREN_ROL) await urenRolOphalen();
     var melding = document.getElementById('urenMelding');
     try{
-      UREN = await sb('wz_werkzaamheden?select=id,datum,uren,notitie,bedrag,betaald,medewerker_id,taak_naam' +
+      UREN = await sb('wz_werkzaamheden?select=id,datum,uren,aantal,eenheid,notitie,bedrag,betaald,' +
+        'medewerker_id,taak_naam,tarief,tarief_id,begintijd,eindtijd' +
         '&order=datum.desc&limit=200') || [];
       if(melding) melding.textContent = '';
     }catch(e){
@@ -5160,7 +5207,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
        voor het geval iemand met ruimere rechten kijkt en toch zijn eigen
        overzicht wil. */
     var eigen = mij ? UREN.filter(function(w){ return String(w.medewerker_id) === String(mij); }) : UREN;
-    var toon = eigen.length ? eigen : UREN;
+    /* Angela, 06-10-2026: "ik kan dezelfde gegevens inzien en bewerken."
+       De eigenaar ziet dus alle regels, met de naam erbij; een locatiemanager
+       ziet alleen de eigen regels - en krijgt van de database ook niets
+       anders. */
+    var toon = urenMagAlles() ? UREN : (eigen.length ? eigen : UREN);
 
     var totaal = toon.reduce(function(a, w){ return a + (Number(w.uren) || 0); }, 0);
     var maand = dstr(new Date()).slice(0, 7);
@@ -5184,16 +5235,332 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var kop = w.taak_naam
         ? esc(w.taak_naam) + ' · ' + esc(urenTekst(w.uren))
         : esc(urenTekst(w.uren));
-      return '<div class="ds-regel">' +
+      /* Angela, 06-10-2026: "de locatiemanager moet zijn eigen uren kunnen
+         wijzigen, toevoegen en verwijderen indien foutief doorgegeven."
+
+         Alleen bij je eigen regels, en alleen zolang ze niet zijn uitbetaald:
+         een uitbetaalde regel aanpassen zou de loonadministratie laten
+         afwijken van wat er is overgemaakt. De database houdt daarnaast zelf
+         tegen dat je aan de regel van een collega komt. */
+      var mijneRegel = urenMagAlles() || (mij && String(w.medewerker_id) === String(mij));
+      var magBij = mijneRegel && !w.betaald;
+      var tijden = (w.begintijd || w.eindtijd)
+        ? ' · ' + esc(duHhmm(w.begintijd)) + '–' + esc(duHhmm(w.eindtijd))
+        : '';
+      var vanWie = (urenMagAlles() && (!mij || String(w.medewerker_id) !== String(mij)))
+        ? urenWieNaam(w.medewerker_id) : '';
+      return '<div class="ds-regel" data-uren="' + esc(w.id) + '">' +
         '<span class="wanneer">' + esc(dsDatum(String(w.datum || '').slice(0,10))) + '</span>' +
-        '<div><strong>' + kop + '</strong><small>' +
+        '<div style="min-width:0"><strong>' + kop +
+          (vanWie ? ' <span style="font-weight:400;opacity:.7">· ' + esc(vanWie) + '</span>' : '') +
+        '</strong><small>' +
         esc([w.notitie || '', w.bedrag ? euro(w.bedrag) : '',
-             w.betaald ? 'uitbetaald' : ''].filter(Boolean).join(' · ')) + '</small></div></div>';
+             w.betaald ? 'uitbetaald' : ''].filter(Boolean).join(' · ')) + tijden + '</small></div>' +
+        (magBij
+          ? '<span class="rechts" style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">' +
+              '<button class="btn ghost small" type="button" data-urenbij="' + esc(w.id) + '">Wijzigen</button>' +
+              '<button class="btn ghost small" type="button" data-urenweg="' + esc(w.id) + '" ' +
+                'style="border-color:#C13E50;color:#C13E50">Verwijderen</button>' +
+            '</span>'
+          : w.betaald
+            ? '<span class="rechts" style="margin-left:auto;font-size:12px;opacity:.6">uitbetaald</span>'
+            : '') +
+        '<div class="urenbewerk" hidden style="flex-basis:100%;margin-top:8px"></div>' +
+        '</div>';
     }).join('') : '<p class="ds-leeg">Nog geen uren geregistreerd.</p>';
 
     /* Nu MEDEWERKERS binnen is, klopt het uurtarief pas. */
     if(urenToonOpnieuw) try{ urenToonOpnieuw(); }catch(e){}
+    /* En nu kan ook de keuzelijst "Voor wie" worden gevuld; die bestaat alleen
+       voor de eigenaar. Angela, 06-10-2026. */
+    try{ duWieVullen(); }catch(e){ console.error('keuzelijst uren mislukte:', e); }
   }
+
+  /* ---- losse uren: invoeren, wijzigen en verwijderen ----
+     Angela, 06-10-2026. Dezelfde velden en dezelfde tabel als de
+     urenregistratie van Kelly, zodat er één maandoverzicht is. Zonder bedrag:
+     dit is om de maanduren bij te houden.
+
+     Wie wat mag, bepaalt de database: de policy "bwf rechten werkzaamheden"
+     laat een locatiemanager alleen bij regels met zijn eigen medewerker_id, en
+     de eigenaar bij alles. Dit scherm doet niets om dat te omzeilen - het
+     verbergt alleen knoppen die toch zouden falen. */
+  var UREN_TAAK_LOS = 'Uren';
+
+  function duHhmm(t){ return String(t == null ? '' : t).slice(0, 5); }
+
+  /* Mag ik de uren van iedereen zien en wijzigen? Alleen de eigenaar.
+
+     Niet via window.BWF: dat object heeft op dit scherm geen `rol` - nagemeten
+     06-10-2026, nergens in de repo wordt BWF.rol gezet - waardoor de
+     gebruikelijke regel `!window.BWF.rol || ...` voor iedereen "ja" zegt. Hier
+     is dat niet goed genoeg: dan zou Michel een keuzelijst "Voor wie" krijgen
+     en knoppen bij regels die de database vervolgens weigert. Daarom vragen we
+     het rechtstreeks aan de database, en tot het antwoord binnen is houden we
+     het op "alleen mijn eigen uren" - liever te weinig dan te veel. */
+  var UREN_ROL = '';
+  async function urenRolOphalen(){
+    try{
+      var d = await sb('rpc/bwf_toegangsrol', { method:'POST', body:'{}' });
+      UREN_ROL = String(d == null ? '' : d).replace(/"/g, '').toLowerCase();
+    }catch(e){ UREN_ROL = ''; }
+  }
+  function urenMagAlles(){ return UREN_ROL === 'eigenaar'; }
+  function urenWieNaam(id){
+    var m = (MEDEWERKERS || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    return m ? veld(m, ['naam','voornaam','email'], '') : '';
+  }
+
+  /* Uit twee tijden het aantal uren. Loopt de eindtijd vóór de begintijd, dan
+     is het over middernacht heen - dan telt de nacht mee in plaats van een
+     negatief getal te geven. */
+  function duTussen(van, tot){
+    var naarMin = function(t){
+      var p = String(t || '').split(':');
+      return p.length >= 2 ? Number(p[0]) * 60 + Number(p[1]) : NaN;
+    };
+    var a = naarMin(van), b = naarMin(tot);
+    if(!isFinite(a) || !isFinite(b)) return NaN;
+    var m = b - a;
+    if(m < 0) m += 24 * 60;
+    return Math.round((m / 60) * 100) / 100;
+  }
+  function duGetal(v){
+    var n = Number(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.'));
+    return isFinite(n) ? n : NaN;
+  }
+  function duNu(){
+    var wijze = (document.getElementById('du-wijze') || {}).value || 'aantal';
+    if(wijze === 'tijden')
+      return duTussen((document.getElementById('du-van') || {}).value,
+                      (document.getElementById('du-tot') || {}).value);
+    return duGetal((document.getElementById('du-aantal') || {}).value);
+  }
+  function duToon(){
+    var wijze = (document.getElementById('du-wijze') || {}).value || 'aantal';
+    var tijden = wijze === 'tijden';
+    var zet = function(id, verborgen){
+      var el = document.getElementById(id); if(el) el.hidden = verborgen;
+    };
+    zet('du-aantalVak', tijden);
+    zet('du-vanVak', !tijden);
+    zet('du-totVak', !tijden);
+    var u = duNu();
+    var uit = document.getElementById('du-uit');
+    if(uit) uit.textContent = (isFinite(u) && u > 0) ? urenTekst(u) : '0 uur';
+  }
+  /* De eigenaar mag uren voor een ander wegzetten; een medewerker alleen voor
+     zichzelf - de database houdt dat ook tegen. */
+  function duWieVullen(){
+    var vak = document.getElementById('du-wieVak');
+    var sel = document.getElementById('du-wie');
+    if(!vak || !sel) return;
+    var magAlles = urenMagAlles();
+    var mensen = (MEDEWERKERS || []).filter(function(m){ return m && m.naam && m.actief !== false; });
+    if(!magAlles || !mensen.length){ vak.hidden = true; return; }
+    var mij = urenMijnId();
+    vak.hidden = false;
+    sel.innerHTML = mensen.map(function(m){
+      return '<option value="' + esc(m.id) + '"' +
+        (mij && String(m.id) === String(mij) ? ' selected' : '') + '>' + esc(m.naam) + '</option>';
+    }).join('');
+  }
+  async function duZetten(){
+    var meld = document.getElementById('du-meld');
+    var knop = document.getElementById('du-zet');
+    var wijze = (document.getElementById('du-wijze') || {}).value || 'aantal';
+    var u = duNu();
+    var zeg = function(t, fout){
+      if(!meld) return;
+      meld.textContent = t; meld.style.color = fout ? '#B3261E' : '';
+    };
+    if(!isFinite(u) || u <= 0){
+      zeg(wijze === 'tijden' ? 'Vul een begin- en een eindtijd in.' : 'Vul een aantal uur in.', true);
+      return;
+    }
+    if(u > 24){ zeg('Meer dan 24 uur op één dag kan niet kloppen.', true); return; }
+    var datum = (document.getElementById('du-datum') || {}).value || dstr(new Date());
+    var vak = document.getElementById('du-wieVak');
+    var sel = document.getElementById('du-wie');
+    var wie = (vak && !vak.hidden && sel && sel.value) ? sel.value : urenMijnId();
+    if(!wie){ zeg('Je naam is hier niet bekend; log opnieuw in of vraag Angela.', true); return; }
+    var tijden = wijze === 'tijden';
+    if(knop) knop.disabled = true;
+    zeg('Bezig met opslaan…');
+    try{
+      await sb('wz_werkzaamheden', { method:'POST', body: JSON.stringify({
+        datum: datum,
+        medewerker_id: wie,
+        tarief_id: null,
+        taak_naam: UREN_TAAK_LOS,
+        eenheid: 'uur',
+        aantal: u,
+        uren: u,
+        tarief: 0,
+        bedrag: 0,
+        begintijd: tijden ? ((document.getElementById('du-van') || {}).value || null) : null,
+        eindtijd:  tijden ? ((document.getElementById('du-tot') || {}).value || null) : null,
+        notitie: ((document.getElementById('du-notitie') || {}).value || '').trim() || null,
+        betaald: false
+      }) });
+      ['du-aantal', 'du-van', 'du-tot', 'du-notitie'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.value = '';
+      });
+      duToon();
+      await laadUren();
+      zeg('✓ ' + urenTekst(u) + ' op ' + dsDatum(datum) + ' erbij gezet.');
+    }catch(e){
+      zeg(/40[13]/.test(String(e.message))
+        ? '✕ Opslaan mag nog niet voor jouw rol. Vraag Angela om de urenregistratie aan te zetten.'
+        : '✕ Opslaan lukte niet: ' + e.message, true);
+    }finally{
+      if(knop) knop.disabled = false;
+    }
+  }
+
+  /* Eén regel openklappen om te wijzigen. Alleen datum, uren en notitie: dat
+     is wat er fout doorgegeven wordt. Hangt er een tarief aan de regel, dan
+     gaat het bedrag mee - anders zou het bedrag bij de oude uren blijven
+     staan en klopt de uitbetaling niet meer. */
+  function urenRegelBewerken(id){
+    var rij = document.querySelector('[data-uren="' + (window.CSS && CSS.escape ? CSS.escape(String(id)) : id) + '"]');
+    if(!rij) return;
+    var vak = rij.querySelector('.urenbewerk');
+    if(!vak) return;
+    if(!vak.hidden){ vak.hidden = true; vak.innerHTML = ''; return; }
+    var w = (UREN || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!w) return;
+    var tijden = !!(w.begintijd || w.eindtijd);
+    vak.hidden = false;
+    vak.innerHTML =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;' +
+           'border-top:1px solid var(--line,#e3dad0);padding-top:10px">' +
+        '<div class="field" style="max-width:160px"><label for="ub-datum">Datum</label>' +
+          '<input type="date" id="ub-datum" value="' + esc(String(w.datum || '').slice(0,10)) + '"></div>' +
+        /* Bij een regel met tijden volgt het aantal uur uit van en tot, dus
+           staat het veld op alleen-lezen en rekent het mee zodra je een tijd
+           aanpast. Gemeten 06-10-2026: zonder dit tikte je "4", bleven de
+           tijden staan en werd je 4 stil overschreven door 8,5. */
+        '<div class="field" style="max-width:130px"><label for="ub-uren">Aantal uur</label>' +
+          '<input type="text" id="ub-uren" inputmode="decimal"' + (tijden ? ' readonly' : '') +
+            ' value="' + esc(String(w.uren == null ? '' : w.uren).replace('.', ',')) + '"></div>' +
+        (tijden
+          ? '<div class="field" style="max-width:120px"><label for="ub-van">Van</label>' +
+              '<input type="time" id="ub-van" value="' + esc(duHhmm(w.begintijd)) + '"></div>' +
+            '<div class="field" style="max-width:120px"><label for="ub-tot">Tot</label>' +
+              '<input type="time" id="ub-tot" value="' + esc(duHhmm(w.eindtijd)) + '"></div>'
+          : '') +
+        '<div class="field" style="flex:1 1 200px"><label for="ub-notitie">Notitie</label>' +
+          '<input type="text" id="ub-notitie" value="' + esc(w.notitie || '') + '"></div>' +
+        '<button class="knop vol" type="button" data-urenok="' + esc(w.id) + '">Opslaan</button>' +
+        '<button class="btn ghost small" type="button" data-urenaf="' + esc(w.id) + '">Annuleren</button>' +
+        '<span class="hint" id="ub-meld"></span>' +
+      '</div>' +
+      (tijden
+        ? '<p class="hint" style="margin:6px 0 0">Het aantal uur volgt uit van en tot; ' +
+          'pas je een tijd aan, dan rekent het meteen mee.</p>'
+        : '');
+    /* De uren meelopen met de tijden, zodat wat je ziet ook is wat er wordt
+       opgeslagen. */
+    if(tijden){
+      var herreken = function(){
+        var u2 = duTussen((document.getElementById('ub-van') || {}).value,
+                          (document.getElementById('ub-tot') || {}).value);
+        var veldje = document.getElementById('ub-uren');
+        if(veldje) veldje.value = isFinite(u2) && u2 > 0 ? String(u2).replace('.', ',') : '';
+      };
+      ['ub-van', 'ub-tot'].forEach(function(id2){
+        var el2 = document.getElementById(id2);
+        if(el2){ el2.addEventListener('change', herreken); el2.addEventListener('input', herreken); }
+      });
+    }
+  }
+
+  async function urenRegelBewaren(id){
+    var meld = document.getElementById('ub-meld');
+    var zeg = function(t, fout){
+      if(!meld) return; meld.textContent = t; meld.style.color = fout ? '#B3261E' : '';
+    };
+    var w = (UREN || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!w) return;
+    var van = document.getElementById('ub-van');
+    var tot = document.getElementById('ub-tot');
+    var uren;
+    if(van && tot && van.value && tot.value) uren = duTussen(van.value, tot.value);
+    else uren = duGetal((document.getElementById('ub-uren') || {}).value);
+    if(!isFinite(uren) || uren <= 0){ zeg('Vul een aantal uur in dat groter is dan nul.', true); return; }
+    if(uren > 24){ zeg('Meer dan 24 uur op één dag kan niet kloppen.', true); return; }
+    var datum = (document.getElementById('ub-datum') || {}).value || String(w.datum || '').slice(0,10);
+    if(!datum){ zeg('Vul een datum in.', true); return; }
+    var d = {
+      datum: datum,
+      uren: Math.round(uren * 100) / 100,
+      notitie: ((document.getElementById('ub-notitie') || {}).value || '').trim() || null
+    };
+    /* aantal liep bij een urenregel gelijk met uren; dat zo houden, anders
+       telt het ene overzicht iets anders dan het andere. */
+    if(String(w.eenheid || '') === 'uur') d.aantal = d.uren;
+    if(van && tot){ d.begintijd = van.value || null; d.eindtijd = tot.value || null; }
+    /* Hangt er een tarief aan, dan het bedrag meerekenen. Staat er geen
+       tarief, dan blijft het bedrag met rust - daar gaat dit scherm niet over. */
+    var tf = Number(w.tarief);
+    if(isFinite(tf) && tf > 0) d.bedrag = Math.round(d.uren * tf * 100) / 100;
+    zeg('Bezig met opslaan…');
+    try{
+      var terug = await sb('wz_werkzaamheden?id=eq.' + encodeURIComponent(id),
+        { method:'PATCH', body: JSON.stringify(d) });
+      if(!terug || !terug.length) throw new Error('de regel kwam niet terug - mag jouw rol dit wijzigen?');
+      await laadUren();
+      melding('Urenregel bijgewerkt: ' + urenTekst(d.uren) + ' op ' + dsDatum(datum) + '.', true);
+    }catch(e){
+      zeg(/40[13]/.test(String(e.message))
+        ? '✕ Wijzigen mag niet voor jouw rol, of het is niet je eigen regel.'
+        : '✕ Wijzigen lukte niet: ' + e.message, true);
+    }
+  }
+
+  async function urenRegelWeg(id){
+    var w = (UREN || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!w) return;
+    if(!confirm('Deze urenregel verwijderen?\n\n' +
+        dsDatum(String(w.datum || '').slice(0,10)) + ' · ' + urenTekst(w.uren) +
+        (w.notitie ? '\n' + w.notitie : '') +
+        '\n\nDit kan niet ongedaan worden gemaakt.')) return;
+    try{
+      await sb('wz_werkzaamheden?id=eq.' + encodeURIComponent(id), { method:'DELETE' });
+      await laadUren();
+      melding('Urenregel verwijderd.', true);
+    }catch(e){
+      melding(/40[13]/.test(String(e.message))
+        ? 'Verwijderen mag niet voor jouw rol, of het is niet je eigen regel.'
+        : 'Verwijderen lukte niet: ' + e.message);
+    }
+  }
+
+  /* Eén luisteraar op de lijst: de regels worden telkens opnieuw getekend, dus
+     losse onclicks zouden na elke herteken verdwijnen. */
+  (function(){
+    var lijst = document.getElementById('urenLijst');
+    if(lijst) lijst.addEventListener('click', function(e){
+      var bij = e.target.closest && e.target.closest('[data-urenbij]');
+      if(bij){ e.preventDefault(); urenRegelBewerken(bij.getAttribute('data-urenbij')); return; }
+      var ok = e.target.closest && e.target.closest('[data-urenok]');
+      if(ok){ e.preventDefault(); urenRegelBewaren(ok.getAttribute('data-urenok')); return; }
+      var af = e.target.closest && e.target.closest('[data-urenaf]');
+      if(af){ e.preventDefault(); urenRegelBewerken(af.getAttribute('data-urenaf')); return; }
+      var weg = e.target.closest && e.target.closest('[data-urenweg]');
+      if(weg){ e.preventDefault(); urenRegelWeg(weg.getAttribute('data-urenweg')); return; }
+    });
+    var datum = document.getElementById('du-datum');
+    if(datum && !datum.value) datum.value = dstr(new Date());
+    ['du-wijze', 'du-aantal', 'du-van', 'du-tot'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.addEventListener('change', duToon); el.addEventListener('input', duToon); }
+    });
+    var zet = document.getElementById('du-zet');
+    if(zet) zet.onclick = duZetten;
+    duToon();
+  })();
 
   /* "1,5 uur" leest prettiger dan "1.5". */
   function urenTekst(n){
