@@ -1678,115 +1678,52 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       </div>
     </div>
   
-    <!-- ===== Urenregistratie, Angela 22-09-2026 =====
-         "Kan je onderaan de pagina urenregistratie toevoegen; iedere gebruiker
-         ziet zijn eigen urenregistratie."
+    <!-- ===== Administratie, Angela 06-10-2026 =====
+         "Ik wil in het dashboard voor de locatiemanager de blokken Losse uren
+         en Mijn uren vervangen voor de inhoud van administratie-michel.html."
 
-         Wat je hier ziet is wat de database teruggeeft. De regels van een ander
-         komen hier dus niet binnen doordat dit scherm ze wegfiltert, maar
-         doordat de rechten in de database ze niet meesturen - dat is de enige
-         plek waar zoiets betrouwbaar te regelen is. -->
-    <div class="card" id="cardUren">
-      <div class="card-head"><h2>Mijn uren</h2>
-        <span class="hint" id="urenTel"></span></div>
-      <div class="card-body">
-        <p class="hint" id="urenMelding" style="margin:0 0 12px"></p>
-        <!-- Angela, 22-09-2026: "ik zie de uren-invoer nog niet zoals ik dat
-             voor Ruth heb ingesteld." Dit formulier vroeg alleen om een
-             aantal uren; je moest zelf uitrekenen wat een overnachting met
-             een arrangement waard was. Nu staat dezelfde rekenbasis erin als
-             in Ruths urenregistratie: je kiest het soort verblijf en wat er
-             bij geboekt is, en de uren volgen vanzelf. Aanpassen mag: het
-             blijft een gewoon veld, en wijkt het af van de richturen dan
-             zegt de regel eronder dat erbij. -->
-        <form class="grid-form" id="urenForm">
-          <div class="field"><label for="u-datum">Datum reservering</label>
-            <input type="date" id="u-datum" required></div>
-          <div class="field"><label for="u-resnr">Reserveringsnummer</label>
-            <input type="text" id="u-resnr" autocomplete="off" placeholder="bijv. 10482"></div>
-          <div class="field"><label for="u-verblijf">Soort verblijf</label>
-            <select id="u-verblijf">
-              <option value="Overnachting">Overnachting</option>
-              <option value="Dagverblijf">Dagverblijf</option>
-            </select></div>
-          <div class="field"><label for="u-check">In- en uitcheck</label>
-            <select id="u-check">
-              <option value="volledig">Volledig &mdash; in- en uitcheck</option>
-              <option value="incheck">Alleen incheck &mdash; 1 uur</option>
-              <option value="uitcheck">Alleen uitcheck + schoonmaak &mdash; 1,5 uur</option>
-            </select></div>
-          <div class="field"><label for="u-arr">Arrangement <span style="opacity:.7">(leeg = geen)</span></label>
-            <input type="text" id="u-arr" autocomplete="off" placeholder="Bijv. Sauna &amp; bubbels"></div>
-          <div class="field"><label for="u-menu">Menu-optie <span style="opacity:.7">(leeg = geen)</span></label>
-            <input type="text" id="u-menu" autocomplete="off" placeholder="Bijv. sushi voor 2"></div>
-          <!-- Bewust geen type="number": zo'n veld weigert een komma, en dan
-               verdwijnt "3,5" zonder dat je het ziet. Met inputmode="decimal"
-               komt op een telefoon nog steeds het cijfertoetsenbord op, en
-               werkt zowel 3,5 als 3.5. Angela, 22-09-2026. -->
-          <div class="field"><label for="u-uren">Actieve uren</label>
-            <input type="text" id="u-uren" inputmode="decimal" autocomplete="off"
-                   placeholder="bijv. 3,5" required></div>
-          <div class="field" style="grid-column:span 2"><label for="u-notitie">Nog iets erbij <span style="opacity:.7">(mag leeg)</span></label>
-            <input type="text" id="u-notitie" placeholder="Bijv. extra schoonmaak na vertrek"></div>
-          <div class="field"><label>&nbsp;</label>
-            <button class="knop vol" type="submit" id="u-bewaar">Uren opslaan</button></div>
-        </form>
-        <details class="ds-uitklap" style="margin-top:12px">
-          <summary>Waar komen deze uren vandaan</summary>
-          <div class="ds-uitklap-lijf">
-            <p class="hint" style="margin:0 0 8px">Dezelfde rekenbasis als in de urenregistratie van Ruth.</p>
-            <div id="urenBasis"></div>
-          </div>
-        </details>
-        <p class="hint" id="urenBedrag" style="margin:8px 0 0"></p>
-        <div id="urenLijst" style="margin-top:14px"></div>
-      </div>
-    </div>
+         De pagina wordt hier GETOOND, niet nagebouwd. Dat is met opzet: die
+         pagina heeft een eigen tarievenlijst, een eigen maandoverzicht, het
+         inlezen van incheckformulieren en de koppeling met de diensten uit het
+         dashboard. Nabouwen zou twee versies geven die uit elkaar lopen, en
+         dan weet niemand meer welke klopt.
 
-    <!-- ===== Losse uren bijhouden, Angela 06-10-2026 =====
-         "Ik wilde urenregistratie van Michel toevoegen, waarbij hij alleen
-         toegang heeft en ik dezelfde gegevens kan inzien en bewerken." En:
-         "de locatiemanager moet zijn eigen uren kunnen wijzigen, toevoegen en
-         verwijderen indien foutief doorgegeven."
+         Hij draait op dezelfde inlog: staat er geen eigen sessie, dan pakt de
+         pagina die van het portaal uit dezelfde browser. En hij laat de naam
+         zien van wie is ingelogd, niet vast "Michel" - dus Jerry en Ruth zien
+         hier hun eigen administratie.
 
-         Dit is hetzelfde formulier als in de urenregistratie van Kelly, met
-         dezelfde velden in dezelfde tabel - zodat er één maandoverzicht
-         bestaat en niet twee die elkaar tegenspreken. Zonder bedrag: het is
-         alleen om de maanduren bij te houden. De kaart hierboven blijft staan
-         voor uren die aan een reservering hangen. -->
+         De oude blokken "Mijn uren" en "Losse uren bijhouden" stonden hier.
+         Ze zijn niet verwijderd uit de database: alles wat daarmee is
+         ingevoerd staat nog in wz_werkzaamheden en is te zien via de
+         urenregistratie van Kelly. -->
     <div class="card">
-      <div class="card-head"><h2>Losse uren bijhouden</h2>
-        <span class="hint">zonder bedrag &mdash; alleen om de maanduren bij te houden</span></div>
-      <div class="card-body">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-          <div class="field" style="max-width:170px"><label for="du-datum">Datum</label>
-            <input type="date" id="du-datum"></div>
-          <div class="field" id="du-wieVak" style="max-width:200px" hidden>
-            <label for="du-wie">Voor wie</label><select id="du-wie"></select></div>
-          <div class="field" style="max-width:190px"><label for="du-wijze">Invoeren als</label>
-            <select id="du-wijze">
-              <option value="aantal">Aantal uur</option>
-              <option value="tijden">Start- en eindtijd</option>
-            </select></div>
-          <!-- Bewust type=text en geen type=number: een getalveld weigert de
-               komma, en dan leest "3,5" als leeg. -->
-          <div class="field" id="du-aantalVak" style="max-width:150px">
-            <label for="du-aantal">Aantal uur</label>
-            <input type="text" id="du-aantal" inputmode="decimal" autocomplete="off" placeholder="bijv. 3,5"></div>
-          <div class="field" id="du-vanVak" style="max-width:130px" hidden>
-            <label for="du-van">Van</label><input type="time" id="du-van"></div>
-          <div class="field" id="du-totVak" style="max-width:130px" hidden>
-            <label for="du-tot">Tot</label><input type="time" id="du-tot"></div>
-        </div>
-        <div class="field" style="margin-top:10px"><label for="du-notitie">Notitie <span style="opacity:.7">(mag leeg)</span></label>
-          <input type="text" id="du-notitie" placeholder="bijv. voorbereiding weekend, administratie"></div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">
-          <strong id="du-uit" style="font-size:18px">0 uur</strong>
-          <button class="knop vol" type="button" id="du-zet">Uren erbij zetten</button>
-          <span class="hint" id="du-meld"></span>
-        </div>
+      <div class="card-head"><h2>Mijn administratie</h2>
+        <span class="hint">uren, boekingen en vergoedingen per maand</span></div>
+      <div class="card-body" style="padding:0">
+        <iframe id="admFrame" title="Mijn administratie"
+                data-src="administratie-michel.html"
+                style="width:100%;height:1400px;border:0;display:block"></iframe>
       </div>
+      <div class="card-foot"><span>Past het niet goed op je scherm?
+        <a href="administratie-michel.html" target="_blank" rel="noopener">Open de administratie in een eigen tabblad</a>.</span></div>
     </div>
+    <script>
+      /* Pas ophalen wanneer de planning echt in beeld komt - zelfde aanpak als
+         bij het reserveringenscherm hierboven. De administratie is een grote
+         pagina en hoeft niet te laden zolang je op een ander tabblad zit. */
+      (function(){
+        function laadAdmFrame(){
+          var f = document.getElementById('admFrame');
+          var p = document.getElementById('panel-planning');
+          if(f && p && !p.hidden && !f.src && f.dataset.src){
+            f.src = f.dataset.src + '?v=' + Date.now();
+          }
+        }
+        document.addEventListener('click', function(){ setTimeout(laadAdmFrame, 60); });
+        setTimeout(laadAdmFrame, 1400);
+      })();
+    </script>
 </section>
 
   <!-- ============ VOORRAAD ============ -->
@@ -5178,6 +5115,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
 
   async function laadUren(){
+    /* De blokken "Mijn uren" en "Losse uren bijhouden" staan sinds 06-10-2026
+       niet meer op dit scherm; de administratiepagina heeft hun plaats
+       ingenomen. De code eronder blijft staan - er is niets verwijderd en
+       alles werkt weer zodra die blokken terugkomen - maar zonder lijst in
+       beeld hoeft er ook niets opgehaald te worden. */
+    if(!document.getElementById('urenLijst')) return;
     if(!UREN_ROL) await urenRolOphalen();
     var melding = document.getElementById('urenMelding');
     try{
