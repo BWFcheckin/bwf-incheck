@@ -620,6 +620,7 @@
   var MIJN_NAAM = "";
   var MIJN_ROL = "";
   var VOOR_ANDER = false;
+  var ADM_FOUT = "";
   var DIENSTEN_RES = [];
   var DIENSTEN_FOUT = "";
 
@@ -990,6 +991,17 @@
           gaLokaal("De tabel " + TABEL + " bestaat nog niet in Supabase. De pagina werkt nu alleen op dit apparaat. Onderaan bij \u201cInstellen\u201d staat de SQL om de tabel aan te maken.");
         } else if (err && err.message !== "sessie verlopen") {
           setSave("error");
+          /* "Geen verbinding" zegt te weinig: dan weet niemand of het aan het
+             netwerk ligt, aan de rechten of aan een tikfout in een kolomnaam.
+             En zolang dit misgaat blijft er oude inhoud in beeld staan, wat
+             leest alsof je de administratie van iemand anders ziet. Angela
+             liep daar tegenaan op 06-10-2026. */
+          ADM_FOUT = String((err && err.message) || "onbekende fout");
+          /* Wat er in de browser stond is niet van deze persoon te vertrouwen:
+             liever leeg met een uitleg dan de regels van een ander. */
+          state.entries = [];
+          try { localStorage.removeItem(LS_KEY); } catch (e2) { /* geen opslag */ }
+          render();
         }
       });
   }
@@ -1784,6 +1796,17 @@
 
   function bwfHtml() {
     var html = "";
+    if (ADM_FOUT) {
+      html += '<div class="card" style="border-color:#B3261E">' +
+        '<p style="margin:0 0 6px;font-weight:600;color:#B3261E">De administratie kon niet worden opgehaald</p>' +
+        '<p class="mini" style="margin:0 0 8px">Daarom staat hieronder niets. Er is niets kwijt: ' +
+        'dit scherm kon de gegevens alleen niet lezen.</p>' +
+        '<p class="mini" style="margin:0"><strong>Melding van de database:</strong> ' + esc(ADM_FOUT) + '</p>' +
+        '<p class="mini" style="margin:6px 0 0">Ingelogd als <strong>' + esc(NAAM) + '</strong>' +
+        (MIJN_ROL ? ' (' + esc(MIJN_ROL) + ')' : ' (rol onbekend)') +
+        (VOOR_ANDER ? ', administratie van een ander opgevraagd' : '') + '.</p>' +
+        "</div>";
+    }
     var list = boekingenVanMaand(view.month);
     var t = totalen(list);
     var bet = betalingenVanMaand(view.month);
