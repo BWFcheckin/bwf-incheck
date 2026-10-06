@@ -1217,6 +1217,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     <div class="ovk" id="ovKalender"></div>
 
+    <!-- Diensten per locatiemanager (Angela, 06-10-2026). Telt per maand de
+         reserveringen waar iemand als locatiemanager aan hangt. -->
+    <div class="lijstkop uitklapkop" id="ovDienstenKop" role="button" tabindex="0" aria-expanded="false">
+      <span class="uitklappijl">&rsaquo;</span>
+      <h2 style="font-size:19px">Diensten per locatiemanager</h2>
+      <span class="ovk-tel" id="ovDienstenTel"></span>
+    </div>
+    <div id="ovDienstenBlok" hidden>
+      <div class="ov-bar" style="margin-bottom:12px;align-items:flex-end">
+        <div class="field" style="max-width:190px">
+          <label for="dnMaand">Maand</label>
+          <input type="month" id="dnMaand">
+        </div>
+        <div class="field" style="max-width:190px">
+          <label for="dnLocatie">Locatie</label>
+          <select id="dnLocatie">
+            <option value="">Alle locaties</option>
+            <option>Suite Angie</option>
+            <option>Malina Jacuzzi</option>
+            <option>Malina Deluxe</option>
+          </select>
+        </div>
+      </div>
+      <div id="ovDiensten"></div>
+    </div>
+
     <div class="lijstkop uitklapkop" id="ovVandaagKop" role="button" tabindex="0" aria-expanded="false">
       <span class="uitklappijl">&rsaquo;</span>
       <h2 style="font-size:19px">Reserveringen vandaag</h2>
@@ -1226,7 +1252,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <table class="res">
       <thead><tr>
         <th>Suite</th><th>Datum</th><th>Incheck</th><th>Uitcheck</th>
-        <th>Verblijf</th><th>Gast</th><th>Openstaand</th><th>Status</th>
+        <th>Verblijf</th><th>Gast</th><th>Locatiemanager</th><th>Openstaand</th><th>Status</th>
       </tr></thead>
       <tbody id="ovVandaag"></tbody>
     </table>
@@ -3682,6 +3708,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* ---------- gegevens ---------- */
   var ALLES=[], KOPPEL={}, KLANTEN=[], MEDEWERKERS=[], CHECKINS=[], CALLS=[], TAKEN=[];
+  /* Staan de kolommen locatiemanager_id/locatiemanager al in de database?
+     Wordt bij het laden vastgesteld; zo nee, dan blijft het veld leeg en
+     zegt het scherm wat er moet gebeuren in plaats van stil te falen. */
+  var LM_KOLOM = true;
   var DIENSTEN=[], TEAM=[], DIENSTKLEUR={}, VOORRAAD=[], AANMELDINGEN=[], SCHADE=[], PLANFOUT='';
   var kalWeergave='maand', anker=new Date(), geladen=false;
 
@@ -4005,8 +4035,22 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         'welkomstcall_id,checkin_id,klant_id,geannuleerd_op,review_taak_id,review_verstuurd,gastlink_verstuurd,' +
         'created_at';
       var dv = new Date(); dv.setDate(dv.getDate()-365);
-      boekingen = (await sb('reserveringen?select='+velden+'&status=neq.geannuleerd' +
-        '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000')||[]).map(uitReservering);
+      var vraag = function(v){
+        return sb('reserveringen?select='+v+'&status=neq.geannuleerd' +
+          '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000');
+      };
+      /* De twee locatiemanagerkolommen zijn nieuw (06-10-2026). Staan ze nog
+         niet in de database, dan weigert PostgREST de hele vraag met 42703 en
+         zou het dashboard leeg blijven. Daarom één keer opnieuw vragen zonder
+         die kolommen: het scherm werkt dan gewoon, alleen zonder dit veld. */
+      try{
+        boekingen = (await vraag(velden + ',locatiemanager_id,locatiemanager') || []).map(uitReservering);
+        LM_KOLOM = true;
+      }catch(e1){
+        LM_KOLOM = false;
+        boekingen = (await vraag(velden) || []).map(uitReservering);
+        console.warn('locatiemanagerkolommen nog niet in de database:', e1.message);
+      }
     }catch(e){ fouten.push('reserveringen'); }
 
     /* reservations en res_koppeling worden niet meer gelezen: die gegevens
@@ -4143,7 +4187,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenDiensten(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -5893,6 +5937,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<td><strong>'+esc(r.tijdIn||'\u2014')+'</strong></td>'+
         '<td>'+esc(r.tijdUit||'\u2014')+'</td>'+
         '<td style="opacity:.6">'+esc(r.blokNaam||'Nog vrij')+'</td>'+
+        '<td style="opacity:.4">—</td>'+
         '<td>'+(r.link ? '<a href="'+esc(r.link)+'" target="_blank" rel="noopener">Boeken</a>' : 'Nog te boeken')+'</td>'+
         '<td>'+(r.tarief ? esc(euro(r.tarief)) : '<span style="opacity:.5">\u2014</span>')+'</td>'+
         '<td><span class="vlag vrij-blok">Boekbaar</span></td></tr>';
@@ -5908,9 +5953,114 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<td>'+esc((r.vertrek||'')+(r.tijdUit?' '+r.tijdUit:''))+'</td>'+
       '<td>'+esc(verblijfType(r) || r.kanaal || SOORTNAAM[r.soort] || '')+'</td>'+
       '<td>'+esc(gastnaam(r))+'</td>'+
+      '<td>'+(lmNaam(r) ? esc(lmNaam(r)) : '<span style="opacity:.45">nog niemand</span>')+'</td>'+
       '<td>'+(b.open>0?'<strong>'+euro(b.open)+'</strong>':'<span style="opacity:.5">voldaan</span>')+'</td>'+
       '<td>'+vlag+'</td></tr>';
   }
+
+  /* ---------- diensten per locatiemanager ----------
+     Angela, 06-10-2026: "zodat ik ook kan zien hoeveel diensten iemand in de
+     maand heeft gedraaid". Dit telt over ALLES, dat al een jaar terug is
+     ingeladen - er gaat dus geen extra vraag naar de database.
+
+     Eén reservering met een locatiemanager = één dienst. Dat is bewust: twee
+     boekingen op dezelfde dag in twee suites zijn twee keer werk. */
+  function lmNaam(r){
+    var ruw = r && r.ruw;
+    if(!ruw) return '';
+    if(ruw.locatiemanager) return String(ruw.locatiemanager);
+    /* Staat alleen de id gevuld (bijvoorbeeld door een reparatie in SQL), dan
+       de naam erbij zoeken in plaats van niets te laten zien. */
+    if(ruw.locatiemanager_id){
+      var m = (MEDEWERKERS || []).filter(function(x){
+        return String(x.id) === String(ruw.locatiemanager_id); })[0];
+      if(m) return veld(m, ['naam','voornaam','email'], '');
+    }
+    return '';
+  }
+  function dnMaandNu(){
+    var el = document.getElementById('dnMaand');
+    if(el && el.value) return el.value;
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+  function tekenDiensten(){
+    var vak = document.getElementById('ovDiensten');
+    if(!vak) return;
+    var maand = dnMaandNu();
+    var loc = (document.getElementById('dnLocatie') || {}).value || '';
+    var tel = {}, zonder = 0, totaal = 0;
+    (ALLES || []).forEach(function(r){
+      if(!r || r.soort === 'blok' || r.soort === 'vrij') return;
+      /* De maand van de aankomst; die staat al als 'jjjj-mm-dd' klaar, dus
+         geen new Date() - dat verschuift een dag door de tijdzone. */
+      if(String(r.aankomst || '').slice(0,7) !== maand) return;
+      if(loc && hoofdnaam(r.locatie) !== loc) return;
+      totaal++;
+      var naam = lmNaam(r);
+      if(!naam){ zonder++; return; }
+      tel[naam] = (tel[naam] || 0) + 1;
+    });
+    var namen = Object.keys(tel).sort(function(a,b){ return tel[b] - tel[a] || a.localeCompare(b); });
+    var tl = document.getElementById('ovDienstenTel');
+    if(tl) tl.textContent = namen.length
+      ? namen.length + ' ' + (namen.length === 1 ? 'persoon' : 'personen')
+      : 'nog niets ingevuld';
+
+    if(!LM_KOLOM){
+      vak.innerHTML = '<p class="note" style="margin:0">De kolommen '+
+        '<code>locatiemanager_id</code> en <code>locatiemanager</code> staan nog niet in de '+
+        'database. Draai eerst de migratie, dan vult deze telling zich vanzelf.</p>';
+      return;
+    }
+    if(!namen.length){
+      vak.innerHTML = '<p style="opacity:.6;font-size:14px;margin:0">'+
+        'Nog geen enkele reservering in deze maand heeft een locatiemanager. '+
+        'Open een reserveringskaart en vul daar “Locatiemanager van deze dienst” in.</p>';
+      return;
+    }
+    var hoogste = tel[namen[0]] || 1;
+    vak.innerHTML =
+      '<table class="res"><thead><tr><th>Locatiemanager</th>'+
+        '<th class="num">Diensten</th><th>Aandeel</th></tr></thead><tbody>'+
+      namen.map(function(n){
+        var breed = Math.round((tel[n] / hoogste) * 100);
+        return '<tr><td>'+esc(n)+'</td>'+
+          '<td class="num"><strong>'+tel[n]+'</strong></td>'+
+          '<td><span style="display:inline-block;height:10px;border-radius:5px;'+
+            'background:var(--ok,#2E8B57);width:'+breed+'%;min-width:6px"></span></td></tr>';
+      }).join('')+
+      '</tbody></table>'+
+      '<p style="font-size:13px;opacity:.7;margin:10px 0 0">'+
+        totaal+' reservering'+(totaal===1?'':'en')+' in deze maand'+
+        (loc ? ' op '+esc(loc) : '')+', waarvan '+zonder+' zonder locatiemanager.</p>';
+  }
+  function dienstenOpen(open){
+    var kop = document.getElementById('ovDienstenKop'),
+        blok = document.getElementById('ovDienstenBlok');
+    if(!kop || !blok) return;
+    if(open === undefined) open = kop.getAttribute('aria-expanded') !== 'true';
+    kop.setAttribute('aria-expanded', String(open));
+    blok.hidden = !open;
+    if(open) tekenDiensten();
+    try{ localStorage.setItem('bw-diensten-open', open ? '1' : '0'); }catch(e){}
+  }
+  (function(){
+    var kop = document.getElementById('ovDienstenKop'); if(!kop) return;
+    kop.addEventListener('click', function(){ dienstenOpen(); });
+    kop.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); dienstenOpen(); }
+    });
+    var m = document.getElementById('dnMaand');
+    if(m){
+      var d = new Date();
+      m.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      m.onchange = tekenDiensten;
+    }
+    var l = document.getElementById('dnLocatie');
+    if(l) l.onchange = tekenDiensten;
+    try{ if(localStorage.getItem('bw-diensten-open') === '1') dienstenOpen(true); }catch(e){}
+  })();
 
   /* De lijst staat standaard dicht; open met de kop of via een teltegel. */
   function vandaagOpen(open){
@@ -6602,6 +6752,36 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<span id="rkSchadeMeld" style="font-size:13px;opacity:.75"></span>'+
       '</div></div>';
 
+    /* Wie draaide de dienst (Angela, 06-10-2026). Niet te verwarren met de
+       kolom medewerker: daar zet de welkomstcall de beller in. Deze naam is
+       waar het maandoverzicht op telt, dus hij komt uit een keuzelijst en
+       wordt nooit ingetikt - "Ruth" en "Ruth Tilburg" zouden anders twee
+       verschillende mensen worden. */
+    var lmNu = (r.ruw && r.ruw.locatiemanager_id) ? String(r.ruw.locatiemanager_id) : '';
+    var lmNaamNu = (r.ruw && r.ruw.locatiemanager) ? String(r.ruw.locatiemanager) : '';
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Locatiemanager van deze dienst</b>'+
+        (lmNaamNu
+          ? '<span class="vlag ja">'+esc(lmNaamNu)+'</span>'
+          : '<span class="vlag nee">Nog niemand</span>')+
+      '</div>'+
+      (LM_KOLOM
+        ? '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+            '<div class="field" style="min-width:180px"><label for="rkLmWie">Wie draaide de dienst</label>'+
+              mensenKeuze('rkLmWie', null, lmNu)+'</div>'+
+            '<button class="knop klein vol" type="button" id="rkLmIk">Dat ben ik</button>'+
+            '<button class="knop klein vol" type="button" id="rkLmOk">Opslaan</button>'+
+            '<span id="rkLmMeld" style="font-size:13px;opacity:.75"></span>'+
+          '</div>'+
+          '<div style="font-size:12.5px;opacity:.65;margin-top:6px">'+
+            'Deze naam komt ook in het reserveringsoverzicht en in de telling '+
+            '“Diensten per locatiemanager”.</div>'
+        : '<div style="margin-top:8px;font-size:13px;color:var(--crit,#b3261e)">'+
+          'Dit veld kan nog niet worden opgeslagen: de kolommen '+
+          'locatiemanager_id en locatiemanager staan nog niet in de database.</div>')+
+      '</div>';
+
     h += '<div class="actie" style="display:block"><b>Tijden aanpassen</b>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">'+
       '<div class="field"><label for="rkTijdIn">Check-in</label>'+
@@ -6751,6 +6931,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     { titel: '2 · Locatiemanager',
       uitleg: 'Het werk op locatie: ontvangen, bijboeken, afrekenen en uitchecken.',
       blokken: ["Extra's bijboeken op locatie", 'Welkomstcall', 'Incheckformulier',
+                'Locatiemanager van deze dienst',
                 'Tijden aanpassen', 'Borg', 'Schade', 'Taak bij deze reservering',
                 'Betaling met de klant afronden', 'Betaallink voor de klant',
                 'Overdracht'] },
@@ -7165,10 +7346,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
      schadeblok en door de overdracht. De waarde is het id uit wz_medewerkers,
      want daar hangt wz_taken.medewerker_id aan - een naam is niet exact
      ("Ruth" en "Ruth Tilburg" komen beide voor). */
-  function mensenKeuze(id, voorkeur){
+  function mensenKeuze(id, voorkeur, gekozenId){
     var mensen = (MEDEWERKERS || []).filter(function(m){ return m && m.naam && m.actief !== false; });
-    var gekozen = '';
-    if(voorkeur){
+    var gekozen = gekozenId ? String(gekozenId) : '';
+    if(!gekozen && voorkeur){
       for(var i=0;i<mensen.length;i++){
         if(String(mensen[i].naam).toLowerCase().indexOf(String(voorkeur).toLowerCase()) > -1){
           gekozen = String(mensen[i].id); break; }
@@ -7210,6 +7391,39 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }catch(e){
       if(meld) meld.textContent = '✕ Taak aanmaken lukte niet: ' + e.message;
       return null;
+    }
+  }
+
+  /* ---------- locatiemanager aan de dienst hangen ----------
+     Angela, 06-10-2026. Id en naam gaan samen weg: de id is de koppeling, de
+     naam is wat elk overzicht laat zien zonder de medewerkerstabel te halen.
+     Daarom altijd beide uit dezelfde keuzelijst, nooit los. */
+  async function bewaarLocatiemanager(r){
+    var meld = document.getElementById('rkLmMeld');
+    var sel = document.getElementById('rkLmWie');
+    if(!sel) return;
+    var id = sel.value;
+    var naam = id ? ((sel.options[sel.selectedIndex] || {}).text || '') : '';
+    if(meld) meld.textContent = 'Bezig met opslaan…';
+    var knop = document.getElementById('rkLmOk');
+    if(knop) knop.disabled = true;
+    try{
+      /* Leegmaken mag: dan is de keuze "— kies iemand —" en gaan beide velden
+         op null, zodat de dienst niet half gevuld achterblijft. */
+      await bewaarKoppeling(r, {
+        locatiemanager_id: id || null,
+        locatiemanager: naam || null
+      });
+      if(r.ruw){ r.ruw.locatiemanager_id = id || null; r.ruw.locatiemanager = naam || null; }
+      if(meld) meld.textContent = id ? '✓ ' + naam + ' staat op deze dienst.' : '✓ Naam weggehaald.';
+      if(knop) knop.disabled = false;
+      /* De lijsten en de telling meteen bijwerken, zonder de pagina te herladen. */
+      try{ tekenVandaag(); }catch(e){}
+      try{ tekenDiensten(); }catch(e){}
+      openKaart(sleutel(r));
+    }catch(e){
+      if(meld) meld.textContent = '✕ Opslaan mislukt: ' + e.message;
+      if(knop) knop.disabled = false;
     }
   }
 
@@ -7945,6 +8159,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var sch = document.getElementById('rkSchade');
     if(sch) sch.onclick = function(){ openSchade(r); };
 
+    /* Locatiemanager van deze dienst (Angela, 06-10-2026). */
+    var lmOk = document.getElementById('rkLmOk');
+    if(lmOk) lmOk.onclick = function(){ bewaarLocatiemanager(r); };
+    var lmIk = document.getElementById('rkLmIk');
+    if(lmIk) lmIk.onclick = function(){
+      var sel = document.getElementById('rkLmWie');
+      var mijn = tkMijnId();
+      var meld = document.getElementById('rkLmMeld');
+      if(!sel) return;
+      if(!mijn){
+        if(meld) meld.textContent = '✕ Je naam is hier niet bekend — log in via het portaal, of kies jezelf uit de lijst.';
+        return;
+      }
+      sel.value = String(mijn);
+      if(!sel.value){
+        if(meld) meld.textContent = '✕ Je staat niet in de keuzelijst (niet actief?). Kies iemand uit de lijst.';
+        return;
+      }
+      bewaarLocatiemanager(r);
+    };
+
     /* Schade toewijzen en de betaallink (Angela, 06-10-2026). */
     var schTaak = document.getElementById('rkSchadeTaak');
     if(schTaak) schTaak.onclick = function(){
@@ -8138,6 +8373,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     borg_terug:'borg_terug', borg_ingehouden:'borg_ingehouden',
     borg_afgehandeld:'borg_afgehandeld', borg_notitie:'borg_notitie',
     notitie:'notitie', medewerker:'medewerker', klant_id:'klant_id', checkin_id:'checkin_id',
+    /* De locatiemanager die de dienst draaide - niet hetzelfde als
+       `medewerker`, waar de beller van de welkomstcall in staat. */
+    locatiemanager_id:'locatiemanager_id', locatiemanager:'locatiemanager',
     tijd_in:'incheck_tijd', tijd_uit:'uitcheck_tijd',
     review_taak_id:'review_taak_id', review_verstuurd:'review_verstuurd',
     gastlink_verstuurd:'gastlink_verstuurd'
