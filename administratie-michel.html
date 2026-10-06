@@ -423,6 +423,16 @@
       return p ? String(p).trim() : "";
     } catch (err) { return ""; }
   })();
+  /* De naam mag ook in het adres staan. Het dashboard weet hem al, en dan
+     hoeft deze pagina hem niet op te zoeken - dat opzoeken kan stuklopen op de
+     rechten van wz_medewerkers, en dan viel de naam terug op de waarde
+     hieronder. Bij elke medewerker stond toen "Michel". */
+  var ADM_NAAM = (function () {
+    try {
+      var p = new URLSearchParams(location.search).get("naam");
+      return p ? String(p).trim() : "";
+    } catch (err) { return ""; }
+  })();
   var LS_KEY = "psm-admin-v1" + (ADM_WIE ? ":" + ADM_WIE : "");
   /* Bij welke naam hoort wat er in LS_KEY staat? Alleen nodig voor het geval
      zonder ?mw, waar de opslagnaam voor iedereen gelijk is. */
@@ -961,6 +971,15 @@
           });
       })
       .then(function (rows) {
+        /* Staat de naam in het adres, dan telt die. Anders wat de database
+           teruggaf. Levert geen van beide iets op, dan blijft NAAM leeg en
+           zegt het scherm dat - liever geen naam dan de verkeerde. */
+        if (!(rows && rows[0] && rows[0].naam) && ADM_NAAM) rows = [{ naam: ADM_NAAM }];
+        if (!(rows && rows[0] && rows[0].naam)) {
+          NAAM = "";
+          ADM_FOUT = "De naam bij deze administratie kon niet worden vastgesteld. " +
+            "Open hem vanuit het dashboard, of vraag Angela om je account te koppelen.";
+        }
         if (rows && rows[0] && rows[0].naam) {
           MIJN_NAAM = String(rows[0].naam);
           /* De pagina draait voortaan op de ingelogde persoon. Dit moet vóór

@@ -5296,6 +5296,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
                   : (m.actief === false ? '<span class="admjij">niet meer in dienst</span>' : '')) +
           '</summary>' +
           '<div class="admlijf"><iframe class="admframe" data-adm="' + esc(m.id) +
+            '" data-naam="' + esc(m.naam) +
             '" title="Administratie ' + esc(m.naam) + '"></iframe></div></details>';
       }).join('');
     }
@@ -5308,7 +5309,16 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         var f = d.querySelector('iframe.admframe');
         if(!f || f.src) return;
         var wie = f.getAttribute('data-adm');
-        f.src = 'administratie-michel.html?v=' + Date.now() + (wie ? '&mw=' + encodeURIComponent(wie) : '');
+        var naam = f.getAttribute('data-naam') || '';
+        /* De naam gaat mee in het adres. Die staat hier al, en de
+           administratiepagina mag hem niet opnieuw hoeven opzoeken: lukt dat
+           opzoeken niet - bijvoorbeeld omdat de rechten op wz_medewerkers het
+           niet toelaten - dan viel die pagina terug op de naam die bovenin
+           haar bestand staat, en zag je bij elke medewerker "Michel".
+           Gevonden door Angela, 06-10-2026. */
+        f.src = 'administratie-michel.html?v=' + Date.now() +
+          (wie ? '&mw=' + encodeURIComponent(wie) : '') +
+          (naam ? '&naam=' + encodeURIComponent(naam) : '');
       };
       d.addEventListener('toggle', laad);
       if(d.open) laad();
