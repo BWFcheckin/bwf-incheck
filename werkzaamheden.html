@@ -274,6 +274,22 @@ const CFG = {
 let SESSIE = null, verversBezig = null;
 let ROL = null, IK = null;          /* IK = {id, naam, uurtarief} uit wz_medewerkers */
 let TARIEVEN = [], WERK = [], MENSEN = [], EXTRAS = [];
+/* Met ?mw=<id> toont deze pagina één persoon in plaats van iedereen. Het
+   dashboard gebruikt dat om per medewerker een eigen balk te tonen. Alleen de
+   eigenaar ziet meer dan zichzelf, dus voor Kelly verandert er niets: de
+   database geeft haar toch alleen haar eigen regels. Angela, 06-10-2026. */
+const ALLEEN_WIE = (function () {
+  try {
+    const p = new URLSearchParams(location.search).get("mw");
+    return p ? String(p).trim() : "";
+  } catch (e) { return ""; }
+})();
+const ALLEEN_NAAM = (function () {
+  try {
+    const p = new URLSearchParams(location.search).get("naam");
+    return p ? String(p).trim() : "";
+  } catch (e) { return ""; }
+})();
 
 /* =========================================================
    sessie en netwerk — zelfde aanpak als het financieel overzicht
@@ -836,8 +852,9 @@ function urenVoorbereiden() {
      zichzelf - de database houdt dat ook tegen. */
   if (ROL === "eigenaar" && MENSEN.length) {
     $("#uWieVak").hidden = false;
+    const uVoorkeur = ALLEEN_WIE || (IK && IK.id);
     $("#uWie").innerHTML = MENSEN.map((m) =>
-      "<option value='" + esc(m.id) + "'" + (IK && m.id === IK.id ? " selected" : "") +
+      "<option value='" + esc(m.id) + "'" + (String(m.id) === String(uVoorkeur) ? " selected" : "") +
       ">" + esc(m.naam) + "</option>").join("");
   }
   urenToon();
@@ -956,15 +973,17 @@ async function laad() {
        zijn eigen regels terug (policy "bwf rechten werkzaamheden"). Hier hoeft
        dus niet nog eens op medewerker_id gefilterd te worden. */
     WERK = await api("wz_werkzaamheden?select=*" +
-      "&datum=gte." + g.van + "&datum=lt." + g.na + "&order=datum.desc") || [];
+      "&datum=gte." + g.van + "&datum=lt." + g.na +
+      (ALLEEN_WIE ? "&medewerker_id=eq." + encodeURIComponent(ALLEEN_WIE) : "") +
+      "&order=datum.desc") || [];
   } catch (e) {
     $("#lijst").innerHTML = "<p class='leeg'>De regels konden niet geladen worden: " + esc(e.message) + "</p>";
     return;
   }
   tekenOverzicht();
-  $("#periodeHint").textContent = ROL === "eigenaar"
-    ? "Je ziet alles van iedereen."
-    : "Je ziet alleen je eigen regels.";
+  $("#periodeHint").textContent = ALLEEN_WIE
+    ? (ALLEEN_NAAM ? "Alleen de regels van " + ALLEEN_NAAM + "." : "Alleen de regels van één persoon.")
+    : (ROL === "eigenaar" ? "Je ziet alles van iedereen." : "Je ziet alleen je eigen regels.");
 }
 
 async function start() {
@@ -1031,8 +1050,12 @@ async function start() {
     try {
       MENSEN = await api("wz_medewerkers?select=id,naam&order=naam") || [];
       $("#wieVak").hidden = false;
+      /* Staat er een persoon in het adres, dan is die alvast gekozen: anders
+         zou de eigenaar in de balk van Kelly per ongeluk op eigen naam
+         wegschrijven. */
+      const voorkeur = ALLEEN_WIE || (IK && IK.id);
       $("#iWie").innerHTML = MENSEN.map((m) =>
-        "<option value='" + esc(m.id) + "'" + (IK && m.id === IK.id ? " selected" : "") +
+        "<option value='" + esc(m.id) + "'" + (String(m.id) === String(voorkeur) ? " selected" : "") +
         ">" + esc(m.naam) + "</option>").join("");
     } catch (e) { MENSEN = IK ? [IK] : []; }
   } else {
