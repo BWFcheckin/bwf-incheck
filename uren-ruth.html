@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Urenstaat">
 <meta name="robots" content="noindex, nofollow">
-<title>Urenstaat Ruth Tilburg</title>
+<title>Urenstaat</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root {
@@ -335,6 +335,7 @@
   if (UR_NAAM) MEDEWERKER = UR_NAAM;
   var LS_KEY = "urenstaat-ruth-v1" + (UR_WIE ? ":" + UR_WIE : (UR_NAAM ? ":" + UR_NAAM : ""));
   var SESSION_KEY = "urenstaat-ruth-sessie";
+  var EMAIL_KEY = "urenstaat-ruth-email";
   var POLL_MS = 20000;
 
   var TYPES = [
@@ -544,9 +545,14 @@
     });
   }
 
-  function login(code) {
-    return authCall("password", { email: TOEGANG_ACCOUNT, password: code })
-      .then(function (data) { storeSession(data); return data; });
+  function login(email, code) {
+    var adres = String(email || "").trim();
+    return authCall("password", { email: adres || TOEGANG_ACCOUNT, password: code })
+      .then(function (data) {
+        storeSession(data);
+        if (adres) { try { localStorage.setItem(EMAIL_KEY, adres.toLowerCase()); } catch (err) {} }
+        return data;
+      });
   }
 
   function logout() {
@@ -601,6 +607,9 @@
   function toRow(e) {
     return {
       medewerker: MEDEWERKER,
+      /* Zonder dit weigert de beveiligingsregel de rij zodra de urenstaat is
+         dichtgezet: with check kijkt naar medewerker_id, niet naar de naam. */
+      medewerker_id: UR_ID,
       datum: e.date,
       soort: e.type,
       verblijf: e.verblijf || "dagverblijf",
@@ -630,9 +639,30 @@
     };
   }
 
+  /* Wie ben ik, of van wie kijk ik de urenstaat? Met ?mw=<id> in het adres is
+     dat die persoon - dat doet het dashboard. Anders het eigen account.
+
+     Dit is nodig omdat er op medewerker_id gefilterd gaat worden in plaats van
+     op de naam als tekst. In de urenstaat staat "Ruth Tilburg" en in
+     wz_medewerkers kan "Ruth" staan; op de naam filteren zou dan de helft van
+     de regels laten verdwijnen zodra er nieuwe bijkomen. Angela, 06-10-2026. */
+  var UR_ID = null;
+  function haalUrenId() {
+    if (!configured) return Promise.resolve();
+    if (UR_WIE) { UR_ID = UR_WIE; return Promise.resolve(); }
+    return api("rpc/bwf_medewerker_id", { method: "POST", body: {} })
+      .then(function (d) { UR_ID = (typeof d === "string" && d) ? d : (d && d.id) || null; })
+      .catch(function () { UR_ID = null; });
+  }
+
   function pull(silent) {
     if (!configured) { setSave("setup"); return Promise.resolve(); }
-    return api(TABEL + "?select=*&medewerker=eq." + encodeURIComponent(MEDEWERKER) + "&order=datum.asc")
+    /* Op het account als dat bekend is, anders nog op de naam - zo blijft de
+       pagina werken zolang de kolom medewerker_id nog niet is gevuld. */
+    var filter = UR_ID
+      ? "medewerker_id=eq." + encodeURIComponent(UR_ID)
+      : "medewerker=eq." + encodeURIComponent(MEDEWERKER);
+    return api(TABEL + "?select=*&" + filter + "&order=datum.asc")
       .then(function (rows) {
         var fresh = (rows || []).map(fromRow);
         var changed = JSON.stringify(fresh) !== JSON.stringify(state.entries);
@@ -681,11 +711,20 @@
     var html = '<div class="wrap login">';
     html += '<div class="card loginbox">';
     html += '<p class="eyebrow">Bed &amp; Wellness Flevoland · Malina, Lelystad</p>';
-    html += "<h1>Urenstaat Ruth Tilburg</h1>";
-    html += '<p class="lede">Vul de toegangscode in om de urenstaat te openen. Je blijft daarna op dit apparaat ingelogd.</p>';
+    html += "<h1>Urenstaat " + esc(MEDEWERKER) + "</h1>";
+    /* Hier stond één gedeelde toegangscode voor iedereen. Daarmee is achteraf
+       niet te zien wie iets heeft ingevuld of weggehaald, en kan de database
+       de urenstaten niet per persoon afschermen - alles stond immers op
+       hetzelfde account. Sinds 06-10-2026 log je in met je eigen e-mailadres;
+       in het dashboard hoeft dat niet, daar ben je al ingelogd. */
+    html += '<p class="lede">Log in met je eigen e-mailadres en wachtwoord. Je blijft daarna op dit apparaat ingelogd.</p>';
     if (msg) html += '<div class="notice">' + esc(msg) + "</div>";
+    var laatste = "";
+    try { laatste = localStorage.getItem(EMAIL_KEY) || ""; } catch (err) { laatste = ""; }
     html += '<form id="loginform">';
-    html += '<div class="field"><label for="f-code">Toegangscode</label>';
+    html += '<div class="field"><label for="f-email">E-mailadres</label>';
+    html += '<input type="email" id="f-email" autocomplete="username" value="' + esc(laatste) + '" required></div>';
+    html += '<div class="field"><label for="f-code">Wachtwoord</label>';
     html += '<input type="password" id="f-code" autocomplete="current-password" required autofocus></div>';
     html += '<button type="submit" class="btn">Openen</button>';
     html += "</form>";
@@ -699,16 +738,19 @@
     if (ev.target.id !== "loginform") return;
     ev.preventDefault();
     var input = document.getElementById("f-code");
+    var mail = document.getElementById("f-email");
     var btn = ev.target.querySelector("button[type=submit]");
     if (!input || !input.value) return;
     btn.disabled = true;
     btn.textContent = "Even geduld…";
-    login(input.value).then(function () {
+    login(mail ? mail.value : "", input.value).then(function () {
       start();
     }).catch(function (err) {
       btn.disabled = false;
       btn.textContent = "Openen";
-      var m = /Invalid login/i.test(err.message) ? "Die code klopt niet. Probeer het opnieuw." : err.message;
+      var m = /Invalid login/i.test(err.message)
+        ? "Dat e-mailadres en wachtwoord kloppen niet samen. Probeer het opnieuw."
+        : err.message;
       renderLogin(m);
     });
   });
@@ -726,7 +768,7 @@
     html += '<header class="page">';
     html += '<div>';
     html += '<p class="eyebrow">Bed &amp; Wellness Flevoland · Malina, Lelystad</p>';
-    html += "<h1>Urenstaat Ruth Tilburg</h1>";
+    html += "<h1>Urenstaat " + esc(MEDEWERKER) + "</h1>";
     html += '<p class="lede">Elke dienst wordt hier per reservering vastgelegd. De uren en het bedrag worden automatisch berekend op basis van de afspraken uit de oproepovereenkomst: ' + eur.format(RATE) + " bruto per actief uur, exclusief 8% vakantiebijslag.</p>";
     html += "</div>";
     html += '<div class="headtools">';
@@ -1112,7 +1154,8 @@
 
   function start() {
     render();
-    pull(false);
+    /* Eerst weten op welk account gefilterd moet worden; pull() gebruikt dat. */
+    haalUrenId().then(function () { return pull(false); });
     if (!pollTimer) {
       pollTimer = setInterval(function () {
         if (!document.hidden && session) pull(true);
