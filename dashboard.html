@@ -1212,6 +1212,32 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
     <div class="ovk" id="ovKalender"></div>
 
+    <!-- Diensten per locatiemanager (Angela, 06-10-2026). Telt per maand de
+         reserveringen waar iemand als locatiemanager aan hangt. -->
+    <div class="lijstkop uitklapkop" id="ovDienstenKop" role="button" tabindex="0" aria-expanded="false">
+      <span class="uitklappijl">&rsaquo;</span>
+      <h2 style="font-size:19px">Diensten per locatiemanager</h2>
+      <span class="ovk-tel" id="ovDienstenTel"></span>
+    </div>
+    <div id="ovDienstenBlok" hidden>
+      <div class="ov-bar" style="margin-bottom:12px;align-items:flex-end">
+        <div class="field" style="max-width:190px">
+          <label for="dnMaand">Maand</label>
+          <input type="month" id="dnMaand">
+        </div>
+        <div class="field" style="max-width:190px">
+          <label for="dnLocatie">Locatie</label>
+          <select id="dnLocatie">
+            <option value="">Alle locaties</option>
+            <option>Suite Angie</option>
+            <option>Malina Jacuzzi</option>
+            <option>Malina Deluxe</option>
+          </select>
+        </div>
+      </div>
+      <div id="ovDiensten"></div>
+    </div>
+
     <div class="lijstkop uitklapkop" id="ovVandaagKop" role="button" tabindex="0" aria-expanded="false">
       <span class="uitklappijl">&rsaquo;</span>
       <h2 style="font-size:19px">Reserveringen vandaag</h2>
@@ -1221,7 +1247,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     <table class="res">
       <thead><tr>
         <th>Suite</th><th>Datum</th><th>Incheck</th><th>Uitcheck</th>
-        <th>Verblijf</th><th>Gast</th><th>Openstaand</th><th>Status</th>
+        <th>Verblijf</th><th>Gast</th><th>Locatiemanager</th><th>Openstaand</th><th>Status</th>
       </tr></thead>
       <tbody id="ovVandaag"></tbody>
     </table>
@@ -3677,6 +3703,10 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   /* ---------- gegevens ---------- */
   var ALLES=[], KOPPEL={}, KLANTEN=[], MEDEWERKERS=[], CHECKINS=[], CALLS=[], TAKEN=[];
+  /* Staan de kolommen locatiemanager_id/locatiemanager al in de database?
+     Wordt bij het laden vastgesteld; zo nee, dan blijft het veld leeg en
+     zegt het scherm wat er moet gebeuren in plaats van stil te falen. */
+  var LM_KOLOM = true;
   var DIENSTEN=[], TEAM=[], DIENSTKLEUR={}, VOORRAAD=[], AANMELDINGEN=[], SCHADE=[], PLANFOUT='';
   var kalWeergave='maand', anker=new Date(), geladen=false;
 
@@ -4000,8 +4030,22 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         'welkomstcall_id,checkin_id,klant_id,geannuleerd_op,review_taak_id,review_verstuurd,gastlink_verstuurd,' +
         'created_at';
       var dv = new Date(); dv.setDate(dv.getDate()-365);
-      boekingen = (await sb('reserveringen?select='+velden+'&status=neq.geannuleerd' +
-        '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000')||[]).map(uitReservering);
+      var vraag = function(v){
+        return sb('reserveringen?select='+v+'&status=neq.geannuleerd' +
+          '&aankomst=gte.'+dstr(dv)+'&order=aankomst.asc&limit=2000');
+      };
+      /* De twee locatiemanagerkolommen zijn nieuw (06-10-2026). Staan ze nog
+         niet in de database, dan weigert PostgREST de hele vraag met 42703 en
+         zou het dashboard leeg blijven. Daarom één keer opnieuw vragen zonder
+         die kolommen: het scherm werkt dan gewoon, alleen zonder dit veld. */
+      try{
+        boekingen = (await vraag(velden + ',locatiemanager_id,locatiemanager') || []).map(uitReservering);
+        LM_KOLOM = true;
+      }catch(e1){
+        LM_KOLOM = false;
+        boekingen = (await vraag(velden) || []).map(uitReservering);
+        console.warn('locatiemanagerkolommen nog niet in de database:', e1.message);
+      }
     }catch(e){ fouten.push('reserveringen'); }
 
     /* reservations en res_koppeling worden niet meer gelezen: die gegevens
@@ -4138,7 +4182,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenDiensten(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -5888,6 +5932,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<td><strong>'+esc(r.tijdIn||'\u2014')+'</strong></td>'+
         '<td>'+esc(r.tijdUit||'\u2014')+'</td>'+
         '<td style="opacity:.6">'+esc(r.blokNaam||'Nog vrij')+'</td>'+
+        '<td style="opacity:.4">—</td>'+
         '<td>'+(r.link ? '<a href="'+esc(r.link)+'" target="_blank" rel="noopener">Boeken</a>' : 'Nog te boeken')+'</td>'+
         '<td>'+(r.tarief ? esc(euro(r.tarief)) : '<span style="opacity:.5">\u2014</span>')+'</td>'+
         '<td><span class="vlag vrij-blok">Boekbaar</span></td></tr>';
@@ -5903,9 +5948,114 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<td>'+esc((r.vertrek||'')+(r.tijdUit?' '+r.tijdUit:''))+'</td>'+
       '<td>'+esc(verblijfType(r) || r.kanaal || SOORTNAAM[r.soort] || '')+'</td>'+
       '<td>'+esc(gastnaam(r))+'</td>'+
+      '<td>'+(lmNaam(r) ? esc(lmNaam(r)) : '<span style="opacity:.45">nog niemand</span>')+'</td>'+
       '<td>'+(b.open>0?'<strong>'+euro(b.open)+'</strong>':'<span style="opacity:.5">voldaan</span>')+'</td>'+
       '<td>'+vlag+'</td></tr>';
   }
+
+  /* ---------- diensten per locatiemanager ----------
+     Angela, 06-10-2026: "zodat ik ook kan zien hoeveel diensten iemand in de
+     maand heeft gedraaid". Dit telt over ALLES, dat al een jaar terug is
+     ingeladen - er gaat dus geen extra vraag naar de database.
+
+     Eén reservering met een locatiemanager = één dienst. Dat is bewust: twee
+     boekingen op dezelfde dag in twee suites zijn twee keer werk. */
+  function lmNaam(r){
+    var ruw = r && r.ruw;
+    if(!ruw) return '';
+    if(ruw.locatiemanager) return String(ruw.locatiemanager);
+    /* Staat alleen de id gevuld (bijvoorbeeld door een reparatie in SQL), dan
+       de naam erbij zoeken in plaats van niets te laten zien. */
+    if(ruw.locatiemanager_id){
+      var m = (MEDEWERKERS || []).filter(function(x){
+        return String(x.id) === String(ruw.locatiemanager_id); })[0];
+      if(m) return veld(m, ['naam','voornaam','email'], '');
+    }
+    return '';
+  }
+  function dnMaandNu(){
+    var el = document.getElementById('dnMaand');
+    if(el && el.value) return el.value;
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+  function tekenDiensten(){
+    var vak = document.getElementById('ovDiensten');
+    if(!vak) return;
+    var maand = dnMaandNu();
+    var loc = (document.getElementById('dnLocatie') || {}).value || '';
+    var tel = {}, zonder = 0, totaal = 0;
+    (ALLES || []).forEach(function(r){
+      if(!r || r.soort === 'blok' || r.soort === 'vrij') return;
+      /* De maand van de aankomst; die staat al als 'jjjj-mm-dd' klaar, dus
+         geen new Date() - dat verschuift een dag door de tijdzone. */
+      if(String(r.aankomst || '').slice(0,7) !== maand) return;
+      if(loc && hoofdnaam(r.locatie) !== loc) return;
+      totaal++;
+      var naam = lmNaam(r);
+      if(!naam){ zonder++; return; }
+      tel[naam] = (tel[naam] || 0) + 1;
+    });
+    var namen = Object.keys(tel).sort(function(a,b){ return tel[b] - tel[a] || a.localeCompare(b); });
+    var tl = document.getElementById('ovDienstenTel');
+    if(tl) tl.textContent = namen.length
+      ? namen.length + ' ' + (namen.length === 1 ? 'persoon' : 'personen')
+      : 'nog niets ingevuld';
+
+    if(!LM_KOLOM){
+      vak.innerHTML = '<p class="note" style="margin:0">De kolommen '+
+        '<code>locatiemanager_id</code> en <code>locatiemanager</code> staan nog niet in de '+
+        'database. Draai eerst de migratie, dan vult deze telling zich vanzelf.</p>';
+      return;
+    }
+    if(!namen.length){
+      vak.innerHTML = '<p style="opacity:.6;font-size:14px;margin:0">'+
+        'Nog geen enkele reservering in deze maand heeft een locatiemanager. '+
+        'Open een reserveringskaart en vul daar “Locatiemanager van deze dienst” in.</p>';
+      return;
+    }
+    var hoogste = tel[namen[0]] || 1;
+    vak.innerHTML =
+      '<table class="res"><thead><tr><th>Locatiemanager</th>'+
+        '<th class="num">Diensten</th><th>Aandeel</th></tr></thead><tbody>'+
+      namen.map(function(n){
+        var breed = Math.round((tel[n] / hoogste) * 100);
+        return '<tr><td>'+esc(n)+'</td>'+
+          '<td class="num"><strong>'+tel[n]+'</strong></td>'+
+          '<td><span style="display:inline-block;height:10px;border-radius:5px;'+
+            'background:var(--ok,#2E8B57);width:'+breed+'%;min-width:6px"></span></td></tr>';
+      }).join('')+
+      '</tbody></table>'+
+      '<p style="font-size:13px;opacity:.7;margin:10px 0 0">'+
+        totaal+' reservering'+(totaal===1?'':'en')+' in deze maand'+
+        (loc ? ' op '+esc(loc) : '')+', waarvan '+zonder+' zonder locatiemanager.</p>';
+  }
+  function dienstenOpen(open){
+    var kop = document.getElementById('ovDienstenKop'),
+        blok = document.getElementById('ovDienstenBlok');
+    if(!kop || !blok) return;
+    if(open === undefined) open = kop.getAttribute('aria-expanded') !== 'true';
+    kop.setAttribute('aria-expanded', String(open));
+    blok.hidden = !open;
+    if(open) tekenDiensten();
+    try{ localStorage.setItem('bw-diensten-open', open ? '1' : '0'); }catch(e){}
+  }
+  (function(){
+    var kop = document.getElementById('ovDienstenKop'); if(!kop) return;
+    kop.addEventListener('click', function(){ dienstenOpen(); });
+    kop.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); dienstenOpen(); }
+    });
+    var m = document.getElementById('dnMaand');
+    if(m){
+      var d = new Date();
+      m.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      m.onchange = tekenDiensten;
+    }
+    var l = document.getElementById('dnLocatie');
+    if(l) l.onchange = tekenDiensten;
+    try{ if(localStorage.getItem('bw-diensten-open') === '1') dienstenOpen(true); }catch(e){}
+  })();
 
   /* De lijst staat standaard dicht; open met de kop of via een teltegel. */
   function vandaagOpen(open){
@@ -6424,6 +6574,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var n = nachten(r.aankomst, r.vertrek), n2 = naw(r);
     var h = '<dl>'+
       rij('Suite', hoofdnaam(r.locatie)) +
+      /* Angela, 06-10-2026: de naam van de locatiemanager meteen bovenaan
+         zichtbaar, niet alleen in het blok waar je hem kiest. */
+      rijRuw('Locatiemanager', lmNaam(r)
+        ? esc(lmNaam(r))
+        : '<span style="opacity:.5">nog niemand</span>') +
       rij('Aankomst', (r.aankomst||'\u2014')+(r.tijdIn?' om '+r.tijdIn:'')) +
       rij('Vertrek',  (r.vertrek||'\u2014')+(r.tijdUit?' om '+r.tijdUit:'')) +
       rij('Verblijf', n ? n+' nacht'+(n===1?'':'en') : 'Dagverblijf') +
@@ -6436,6 +6591,36 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       (r.omschrijving ? rij('Omschrijving', r.omschrijving) : '') +
       (k.notitie ? rij('Notitie', k.notitie) : '') +
       '</dl>';
+
+    /* Wie draaide de dienst (Angela, 06-10-2026). Niet te verwarren met de
+       kolom medewerker: daar zet de welkomstcall de beller in. Deze naam is
+       waar het maandoverzicht op telt, dus hij komt uit een keuzelijst en
+       wordt nooit ingetikt - "Ruth" en "Ruth Tilburg" zouden anders twee
+       verschillende mensen worden. */
+    var lmNu = (r.ruw && r.ruw.locatiemanager_id) ? String(r.ruw.locatiemanager_id) : '';
+    var lmNaamNu = (r.ruw && r.ruw.locatiemanager) ? String(r.ruw.locatiemanager) : '';
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Locatiemanager van deze dienst</b>'+
+        (lmNaamNu
+          ? '<span class="vlag ja">'+esc(lmNaamNu)+'</span>'
+          : '<span class="vlag nee">Nog niemand</span>')+
+      '</div>'+
+      (LM_KOLOM
+        ? '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+            '<div class="field" style="min-width:180px"><label for="rkLmWie">Wie draaide de dienst</label>'+
+              mensenKeuze('rkLmWie', null, lmNu)+'</div>'+
+            '<button class="knop klein vol" type="button" id="rkLmIk">Dat ben ik</button>'+
+            '<button class="knop klein vol" type="button" id="rkLmOk">Opslaan</button>'+
+            '<span id="rkLmMeld" style="font-size:13px;opacity:.75"></span>'+
+          '</div>'+
+          '<div style="font-size:12.5px;opacity:.65;margin-top:6px">'+
+            'Deze naam komt ook in het reserveringsoverzicht en in de telling '+
+            '“Diensten per locatiemanager”.</div>'
+        : '<div style="margin-top:8px;font-size:13px;color:var(--crit,#b3261e)">'+
+          'Dit veld kan nog niet worden opgeslagen: de kolommen '+
+          'locatiemanager_id en locatiemanager staan nog niet in de database.</div>')+
+      '</div>';
 
     /* Klant koppelen (Angela, 19-09-2026, stap 2). Is er een klant gekoppeld,
        dan opent "Klantgegevens" meteen díe klantkaart in klantbeheer. */
@@ -6577,11 +6762,25 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     }
     h += '</div>';
 
+    /* Schade melden, en de opvolging meteen op naam zetten (Angela, 06-10-2026).
+       Een schademelding vraagt bijna altijd om iets erna: bedrag overleggen,
+       de gast nabellen, een reparatie regelen. Dat bleef liggen zolang het
+       alleen een melding was, dus staat het toewijzen nu in hetzelfde blok. */
     var mijnSchade = SCHADE.filter(function(s){ return String(s.res_sleutel)===sleutel(r); });
-    h += '<div class="actie"><b>Schade</b>'+
-      '<span class="vlag '+(mijnSchade.length ? 'nee' : 'ja')+'">'+
-        (mijnSchade.length ? mijnSchade.length+' melding'+(mijnSchade.length===1?'':'en') : 'Geen')+'</span>'+
-      '<span class="rechts"><button class="knop klein" type="button" id="rkSchade">Schade melden</button></span></div>';
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Schade</b>'+
+        '<span class="vlag '+(mijnSchade.length ? 'nee' : 'ja')+'">'+
+          (mijnSchade.length ? mijnSchade.length+' melding'+(mijnSchade.length===1?'':'en') : 'Geen')+'</span>'+
+        '<span class="rechts" style="margin-left:auto">'+
+          '<button class="knop klein" type="button" id="rkSchade">Schade melden</button></span>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+        '<div class="field" style="min-width:180px"><label for="rkSchadeWie">Taak toewijzen aan</label>'+
+          mensenKeuze('rkSchadeWie', 'angela')+'</div>'+
+        '<button class="knop klein" type="button" id="rkSchadeTaak">Taak toewijzen</button>'+
+        '<span id="rkSchadeMeld" style="font-size:13px;opacity:.75"></span>'+
+      '</div></div>';
 
     h += '<div class="actie" style="display:block"><b>Tijden aanpassen</b>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">'+
@@ -6636,6 +6835,37 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
           (laatsteBetaling.tijdstip ? ' op '+esc(dtKort(laatsteBetaling.tijdstip)) : '')+'</div>'
         : '')+
       '<div id="rkBetaling" hidden style="margin-top:10px"></div>'+
+      '</div>';
+
+    /* Betaallink voor de klant (Angela, 06-10-2026). Staat vlak onder het
+       afrekenen: lukt pinnen niet of wil de gast later betalen, dan stuur je
+       hier meteen een link voor het openstaande bedrag. Dit gebruikt dezelfde
+       Mollie-functie als het reserveringenscherm - geen tweede weg erbij. */
+    var openNu = teBetalen(r, 'alles');
+    h += '<div class="actie" style="display:block">'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<b>Betaallink voor de klant</b>'+
+        (openNu > 0
+          ? '<span class="vlag nee">'+esc(euro(openNu))+' open</span>'
+          : '<span class="vlag ja">Niets open</span>')+
+      '</div>'+
+      (r.resId
+        ? '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+            '<div class="field" style="max-width:150px"><label for="rkLinkBedrag">Bedrag</label>'+
+              '<input type="text" inputmode="decimal" id="rkLinkBedrag" value="'+
+                esc(openNu > 0 ? String(openNu).replace('.', ',') : '')+'"></div>'+
+            '<button class="knop klein vol" type="button" id="rkLinkMaak">Betaallink maken</button>'+
+            '<span id="rkLinkMeld" style="font-size:13px;opacity:.75"></span>'+
+          '</div>'+
+          '<div id="rkLinkUit" hidden style="margin-top:10px">'+
+            '<input type="text" id="rkLink" readonly style="width:100%;font-size:13px">'+
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+
+              '<button class="knop klein" type="button" id="rkLinkKopieer">Kopiëren</button>'+
+              '<a class="knop klein whatsapp" id="rkLinkApp" target="_blank" rel="noopener" hidden>WhatsApp</a>'+
+              '<a class="knop klein gmail" id="rkLinkMail" hidden>E-mail</a>'+
+            '</div></div>'
+        : '<div style="margin-top:8px;font-size:13px;opacity:.7">'+
+          'Deze regel hangt niet aan een reservering, dus er kan geen betaallink bij.</div>')+
       '</div>';
 
     /* Overdracht aanmaken (Angela, 19-09-2026, stap 4). Een uitklapmenu, want
@@ -7021,6 +7251,156 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     };
   }
 
+  /* ---------- een taak bij deze boeking op naam zetten ----------
+     Angela, 06-10-2026. Eén keuzelijst en één opslagweg, gebruikt door het
+     schadeblok en door de overdracht. De waarde is het id uit wz_medewerkers,
+     want daar hangt wz_taken.medewerker_id aan - een naam is niet exact
+     ("Ruth" en "Ruth Tilburg" komen beide voor). */
+  function mensenKeuze(id, voorkeur, gekozenId){
+    var mensen = (MEDEWERKERS || []).filter(function(m){ return m && m.naam && m.actief !== false; });
+    var gekozen = gekozenId ? String(gekozenId) : '';
+    if(!gekozen && voorkeur){
+      for(var i=0;i<mensen.length;i++){
+        if(String(mensen[i].naam).toLowerCase().indexOf(String(voorkeur).toLowerCase()) > -1){
+          gekozen = String(mensen[i].id); break; }
+      }
+    }
+    return '<select id="'+esc(id)+'"><option value="">— kies iemand —</option>'+
+      mensen.map(function(m){
+        return '<option value="'+esc(m.id)+'"'+(String(m.id) === gekozen ? ' selected' : '')+'>'+
+          esc(m.naam)+'</option>'; }).join('')+'</select>';
+  }
+
+  /* De taak zelf. Geeft de opgeslagen rij terug, of null als het niet lukte -
+     dan staat de reden in het meldingsveld en gaat er niets stil verloren. */
+  async function taakToewijzen(r, keuzeId, meldId, titel, extra){
+    var meld = meldId ? document.getElementById(meldId) : null;
+    var sel = document.getElementById(keuzeId);
+    var wie = sel ? sel.value : '';
+    if(!wie){ if(meld) meld.textContent = '✕ Kies eerst aan wie.'; return null; }
+    var n2 = naw(r);
+    var obj = {
+      titel: titel,
+      omschrijving: 'Reservering ' + (n2.nummer || sleutel(r)) + ' · ' + hoofdnaam(r.locatie) +
+        ' · ' + (r.aankomst || 'zonder datum') + ' · ' + gastnaam(r) +
+        (extra ? '\n' + extra : ''),
+      locatie: tkPlaats(hoofdnaam(r.locatie)),
+      status: 'open',
+      medewerker_id: wie,
+      aangemaakt: new Date().toISOString()
+    };
+    var ik = tkMijnId(); if(ik) obj.aangemaakt_door = ik;
+    if(meld) meld.textContent = 'Bezig…';
+    try{
+      var res = await sb('wz_taken', { method:'POST', body:JSON.stringify(obj) });
+      if(res && res[0]) TAKEN.unshift(res[0]);
+      var naam = (sel.options[sel.selectedIndex] || {}).text || 'de collega';
+      if(meld) meld.textContent = '✓ Taak aangemaakt voor ' + naam + '.';
+      tekenTaken();
+      return (res && res[0]) ? res[0] : obj;
+    }catch(e){
+      if(meld) meld.textContent = '✕ Taak aanmaken lukte niet: ' + e.message;
+      return null;
+    }
+  }
+
+  /* ---------- locatiemanager aan de dienst hangen ----------
+     Angela, 06-10-2026. Id en naam gaan samen weg: de id is de koppeling, de
+     naam is wat elk overzicht laat zien zonder de medewerkerstabel te halen.
+     Daarom altijd beide uit dezelfde keuzelijst, nooit los. */
+  async function bewaarLocatiemanager(r){
+    var meld = document.getElementById('rkLmMeld');
+    var sel = document.getElementById('rkLmWie');
+    if(!sel) return;
+    var id = sel.value;
+    var naam = id ? ((sel.options[sel.selectedIndex] || {}).text || '') : '';
+    if(meld) meld.textContent = 'Bezig met opslaan…';
+    var knop = document.getElementById('rkLmOk');
+    if(knop) knop.disabled = true;
+    try{
+      /* Leegmaken mag: dan is de keuze "— kies iemand —" en gaan beide velden
+         op null, zodat de dienst niet half gevuld achterblijft. */
+      await bewaarKoppeling(r, {
+        locatiemanager_id: id || null,
+        locatiemanager: naam || null
+      });
+      if(r.ruw){ r.ruw.locatiemanager_id = id || null; r.ruw.locatiemanager = naam || null; }
+      if(meld) meld.textContent = id ? '✓ ' + naam + ' staat op deze dienst.' : '✓ Naam weggehaald.';
+      if(knop) knop.disabled = false;
+      /* De lijsten en de telling meteen bijwerken, zonder de pagina te herladen. */
+      try{ tekenVandaag(); }catch(e){}
+      try{ tekenDiensten(); }catch(e){}
+      openKaart(sleutel(r));
+    }catch(e){
+      if(meld) meld.textContent = '✕ Opslaan mislukt: ' + e.message;
+      if(knop) knop.disabled = false;
+    }
+  }
+
+  /* ---------- betaallink voor de klant ----------
+     Dezelfde Edge-functie als het reserveringenscherm; de sleutel blijft daar
+     en komt nooit in dit bestand. */
+  var MOLLIE_FUNCTIE = SB_URL.replace(/\/$/, '') + '/functions/v1/mollie-create-payment';
+
+  function naarBedrag(v){
+    return Math.round((parseFloat(String(v == null ? '' : v)
+      .replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
+  }
+  function linkBericht(r, url, bedrag){
+    return 'Hallo ' + (gastnaam(r) || '') + ',\n\n' +
+      'Hierbij de betaallink voor ' + euro(bedrag) + ' bij Bed & Wellness Flevoland:\n' +
+      url + '\n\nHartelijk dank!';
+  }
+  async function maakBetaallink(r){
+    var meld = document.getElementById('rkLinkMeld');
+    var knop = document.getElementById('rkLinkMaak');
+    var bedrag = naarBedrag((document.getElementById('rkLinkBedrag') || {}).value);
+    if(!(bedrag > 0)){ if(meld) meld.textContent = '✕ Vul eerst een bedrag in.'; return; }
+    if(!r.resId){ if(meld) meld.textContent = '✕ Deze regel hangt niet aan een reservering.'; return; }
+    if(knop) knop.disabled = true;
+    if(meld) meld.textContent = 'Bezig met aanmaken…';
+    try{
+      var n2 = naw(r), k2 = kop(r);
+      var res = await fetch(MOLLIE_FUNCTIE, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + token() },
+        body: JSON.stringify({
+          bedrag: bedrag,
+          omschrijving: [gastnaam(r), n2.nummer].filter(Boolean).join(' · ') || 'Bed & Wellness Flevoland',
+          reservering: n2.nummer || '',
+          reservering_id: r.resId,
+          soort: 'restant',
+          gast: gastnaam(r) || ''
+        })
+      });
+      var d = await res.json().catch(function(){ return {}; });
+      if(!res.ok && !d.error) d.error = 'fout ' + res.status;
+      if(!d.checkoutUrl) throw new Error(d.error || 'onbekende fout');
+
+      document.getElementById('rkLink').value = d.checkoutUrl;
+      document.getElementById('rkLinkUit').hidden = false;
+      var tekst = linkBericht(r, d.checkoutUrl, bedrag);
+      /* Alleen een cijfernummer kan naar wa.me; staat er geen telefoon, dan
+         verdwijnt die knop in plaats van naar een kapotte link te wijzen. */
+      var tel = String(k2.telefoon || n2.telefoon || '').replace(/\D/g, '').replace(/^0/, '31');
+      var app = document.getElementById('rkLinkApp');
+      app.hidden = !tel;
+      if(tel) app.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(tekst);
+      var adres = k2.email || n2.email || '';
+      var mail = document.getElementById('rkLinkMail');
+      mail.hidden = !adres;
+      if(adres) mail.href = 'mailto:' + encodeURIComponent(adres) +
+        '?subject=' + encodeURIComponent('Betaallink Bed & Wellness Flevoland') +
+        '&body=' + encodeURIComponent(tekst);
+
+      if(meld) meld.textContent = String(d.mode) === 'test'
+        ? '✓ Link van ' + euro(bedrag) + ' aangemaakt — LET OP: dit is een TESTbetaling.'
+        : '✓ Link van ' + euro(bedrag) + ' aangemaakt.';
+    }catch(e){
+      if(meld) meld.textContent = '✕ Betaallink maken lukte niet: ' + e.message;
+    }finally{ if(knop) knop.disabled = false; }
+  }
+
   /* Een taak voor Angela klaarzetten. Gebruikt dezelfde kolommen als het
      takenblok: medewerker_id met een wz_medewerkers.id, en locatie die alleen
      Almere of Lelystad mag zijn. */
@@ -7350,6 +7730,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '</div>'+
       '<div class="field" style="margin-top:10px"><label for="rkOverTekst">Bijzonderheden</label>'+
         '<textarea id="rkOverTekst" rows="3" placeholder="Wat moet de volgende dienst weten over deze boeking?"></textarea></div>'+
+      /* Angela, 06-10-2026: een overdracht bleef liggen als er geen taak bij
+         stond. Is er iemand gekozen, dan komt de overdracht ook als taak op
+         zijn naam. Staat de keuze op "iedereen", dan kan er geen taak bij -
+         dat zegt de regel eronder er ook bij. */
+      '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13.5px">'+
+        '<input type="checkbox" id="rkOverTaak" checked> '+
+        'Ook een taak aanmaken op naam van deze persoon</label>'+
+      '<div style="font-size:12.5px;opacity:.65;margin-top:4px">'+
+        'Kies hierboven wie het overneemt; bij “iedereen” wordt er geen taak aangemaakt.</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">'+
         '<button class="knop vol" type="button" id="rkOverOk">Overdracht opslaan</button>'+
         '<span id="rkOverMeld" style="font-size:13.5px"></span>'+
@@ -7393,8 +7782,42 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       if(veldTekst) veldTekst.value = '';
       /* Meteen in de lijst zetten, zodat de kaart hem toont zonder herladen. */
       OVERDRACHTEN.unshift(terug[0]);
+
+      /* En de taak erbij, als er iemand is gekozen. Lukt de taak niet, dan
+         blijft de overdracht wél staan - die is al opgeslagen. Dat zeggen we
+         dan ook, zodat niemand denkt dat alles mislukte. */
+      var wilTaak = !!(document.getElementById('rkOverTaak') || {}).checked;
+      var taakTekst = '';
+      if(wilTaak && aan){
+        var wie2 = (MEDEWERKERS || []).filter(function(m){
+          return m && String(m.naam) === String(aan); })[0];
+        if(!wie2){
+          taakTekst = ' De taak kon niet op naam worden gezet: ' + aan + ' staat niet in de medewerkerslijst.';
+        }else{
+          var taak = {
+            titel: '[Overdracht] ' + gastnaam(r) + ' — ' + hoofdnaam(r.locatie),
+            omschrijving: verwijzing + '\n' + tekst,
+            locatie: tkPlaats(hoofdnaam(r.locatie)),
+            status: 'open',
+            medewerker_id: wie2.id,
+            aangemaakt: new Date().toISOString()
+          };
+          var ik2 = tkMijnId(); if(ik2) taak.aangemaakt_door = ik2;
+          try{
+            var tres = await sb('wz_taken', { method:'POST', body: JSON.stringify(taak) });
+            if(tres && tres[0]) TAKEN.unshift(tres[0]);
+            tekenTaken();
+            taakTekst = ' Er staat ook een taak op naam van ' + aan + '.';
+          }catch(e2){
+            taakTekst = ' Let op: de taak aanmaken lukte niet (' + e2.message + ').';
+          }
+        }
+      }
       if(meld) meld.textContent = '✓ Overdracht opgeslagen' + (aan ? ' voor ' + aan : '') +
-        '. Hij staat op het tabblad Overdracht.';
+        '. Hij staat op het tabblad Overdracht.' + taakTekst;
+      /* De kaart wordt hieronder opnieuw getekend, dus de melding hierboven
+         verdwijnt. Daarom gaat het bericht ook als balk over het scherm. */
+      melding('Overdracht opgeslagen' + (aan ? ' voor ' + aan : '') + '.' + taakTekst, true);
       if(knop) knop.disabled = false;
       openKaart(sleutel(r));
     }catch(e){
@@ -7646,6 +8069,53 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var sch = document.getElementById('rkSchade');
     if(sch) sch.onclick = function(){ openSchade(r); };
 
+    /* Locatiemanager van deze dienst (Angela, 06-10-2026). */
+    var lmOk = document.getElementById('rkLmOk');
+    if(lmOk) lmOk.onclick = function(){ bewaarLocatiemanager(r); };
+    var lmIk = document.getElementById('rkLmIk');
+    if(lmIk) lmIk.onclick = function(){
+      var sel = document.getElementById('rkLmWie');
+      var mijn = tkMijnId();
+      var meld = document.getElementById('rkLmMeld');
+      if(!sel) return;
+      if(!mijn){
+        if(meld) meld.textContent = '✕ Je naam is hier niet bekend — log in via het portaal, of kies jezelf uit de lijst.';
+        return;
+      }
+      sel.value = String(mijn);
+      if(!sel.value){
+        if(meld) meld.textContent = '✕ Je staat niet in de keuzelijst (niet actief?). Kies iemand uit de lijst.';
+        return;
+      }
+      bewaarLocatiemanager(r);
+    };
+
+    /* Schade toewijzen en de betaallink (Angela, 06-10-2026). */
+    var schTaak = document.getElementById('rkSchadeTaak');
+    if(schTaak) schTaak.onclick = function(){
+      taakToewijzen(r, 'rkSchadeWie', 'rkSchadeMeld',
+        '[Schade] ' + gastnaam(r) + ' — ' + hoofdnaam(r.locatie),
+        'Er is schade bij deze boeking. Bedrag en vervolg overleggen.');
+    };
+    var lm = document.getElementById('rkLinkMaak');
+    if(lm) lm.onclick = function(){ maakBetaallink(r); };
+    var lk = document.getElementById('rkLinkKopieer');
+    if(lk) lk.onclick = function(){
+      var v = document.getElementById('rkLink');
+      if(!v) return;
+      v.select();
+      /* Het klembord via de nieuwe weg, met de oude als terugval: op een
+         iPhone weigert navigator.clipboard soms zonder melding. */
+      var klaar = function(){
+        var m = document.getElementById('rkLinkMeld');
+        if(m) m.textContent = '✓ Link gekopieerd.';
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(v.value).then(klaar, function(){
+          try{ document.execCommand('copy'); klaar(); }catch(x){} });
+      }else{ try{ document.execCommand('copy'); klaar(); }catch(x){} }
+    };
+
     /* De vlag "Nieuw \u00b7 klant aanmaken" maakte blind een klant aan, zonder te
        kijken of die er al stond - bij elke herhaalbezoeker een dubbele. En hij
        las telefoon en e-mail uit r in plaats van uit de koppeling, dus die
@@ -7813,6 +8283,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     borg_terug:'borg_terug', borg_ingehouden:'borg_ingehouden',
     borg_afgehandeld:'borg_afgehandeld', borg_notitie:'borg_notitie',
     notitie:'notitie', medewerker:'medewerker', klant_id:'klant_id', checkin_id:'checkin_id',
+    /* De locatiemanager die de dienst draaide - niet hetzelfde als
+       `medewerker`, waar de beller van de welkomstcall in staat. */
+    locatiemanager_id:'locatiemanager_id', locatiemanager:'locatiemanager',
     tijd_in:'incheck_tijd', tijd_uit:'uitcheck_tijd',
     review_taak_id:'review_taak_id', review_verstuurd:'review_verstuurd',
     gastlink_verstuurd:'gastlink_verstuurd'

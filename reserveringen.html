@@ -1396,6 +1396,14 @@ const IMPORT_REGEL = "handmatige regel in de SMG-planning";
    vastgesteld. Zo lang hij er niet is werkt alles gewoon door en zegt het
    reviewblok eerlijk dat de migratie nog moet draaien. */
 let REVIEW_KOLOM = false;
+
+/* Staan locatiemanager_id en locatiemanager in de database? Zelfde aanpak als
+   hierboven: zo lang ze er niet zijn werkt alles door en zegt het blok eerlijk
+   dat de migratie nog moet draaien. Angela, 06-10-2026. */
+let LM_KOLOM = false;
+/* De keuzelijst met medewerkers. Dit scherm las tot nu toe alleen de eigen
+   naam; voor het koppelen is de hele lijst nodig. */
+let MEDEWERKERS = [];
 /* De welkomstcall van de reservering die nu openstaat. De controlebalk heeft
    die nodig; zonder zou een hertekening de stap "welkomstcall gedaan" ten
    onrechte op rood zetten. undefined = nog niet opgehaald. */
@@ -1734,6 +1742,9 @@ function rijHtml(r) {
         "<span><b>" + esc(p.tijd) + "</b></span>" +
         "<span><b>" + esc(TYPES[r.type] || r.type) + "</b></span>" +
         (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
+        /* Angela, 06-10-2026: de locatiemanager ook in het overzicht, zodat je
+           zonder kaarten te openen ziet wie welke dienst draaide. */
+        (lmNaamVan(r) ? "<span>LM <b>" + esc(lmNaamVan(r)) + "</b></span>" : "") +
       "</div>" +
       (contact ? '<div class="reskaart-regels"><span>' + esc(contact) + "</span></div>" : "") +
       /* Deze regel verdween helemaal als er niets geboekt was. Angela vroeg op
@@ -2508,6 +2519,109 @@ function vulSpringmenu() {
   }
 }
 
+/* ---------- locatiemanager van de dienst ----------
+   Angela, 06-10-2026: "maak bij elke reserveringskaart een veld waarbij de
+   locatiemanagernaam gekoppeld kan worden aan de reservering."
+
+   Twee velden gaan samen weg: locatiemanager_id is de koppeling naar
+   wz_medewerkers, locatiemanager dezelfde naam als leesbare tekst. Elk
+   overzicht kan daarmee de naam tonen zonder de medewerkerstabel op te halen.
+   Niet te verwarren met de kolom `medewerker`: daar zet de welkomstcall de
+   beller in, en dat is meestal niet de locatiemanager op locatie. */
+function lmNaamVan(r) {
+  if (!r) return "";
+  if (r.locatiemanager) return String(r.locatiemanager);
+  /* Staat alleen de id gevuld - bijvoorbeeld na een reparatie in SQL - dan de
+     naam erbij zoeken in plaats van niets te laten zien. */
+  if (r.locatiemanager_id) {
+    const m = (MEDEWERKERS || []).find((x) => String(x.id) === String(r.locatiemanager_id));
+    if (m && m.naam) return String(m.naam);
+  }
+  return "";
+}
+
+function lmVakInhoud(r) {
+  if (!LM_KOLOM) {
+    return '<div style="color:#B3261E">De kolommen <code>locatiemanager_id</code> en ' +
+      "<code>locatiemanager</code> staan nog niet in de database. Draai eerst de migratie, " +
+      "dan kan dit veld worden opgeslagen.</div>";
+  }
+  const mensen = (MEDEWERKERS || []).filter((m) => m && m.naam && m.actief !== false);
+  const nu = r && r.locatiemanager_id ? String(r.locatiemanager_id) : "";
+  return '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">' +
+      '<label style="flex:1 1 180px;min-width:150px"><small style="display:block;color:var(--muted)">' +
+        "Wie draaide de dienst</small>" +
+        '<select id="vLmWie" style="width:100%">' +
+          '<option value="">&mdash; kies iemand &mdash;</option>' +
+          mensen.map((m) => '<option value="' + esc(m.id) + '"' +
+            (String(m.id) === nu ? " selected" : "") + ">" + esc(m.naam) + "</option>").join("") +
+        "</select></label>" +
+      '<button type="button" class="knop sec" id="vLmIk">Dat ben ik</button>' +
+      '<button type="button" class="knop vol" id="vLmOk">Opslaan</button>' +
+    "</div>" +
+    '<div id="vLmMeld" style="font-size:13px;color:var(--muted);margin-top:8px"></div>';
+}
+
+async function lmBewaren(id) {
+  const r = HUIDIG; if (!r) return;
+  const meld = $("#vLmMeld");
+  const knop = $("#vLmOk");
+  const sel = $("#vLmWie");
+  const keuze = id !== undefined ? id : (sel ? sel.value : "");
+  const naam = keuze
+    ? ((MEDEWERKERS || []).find((m) => String(m.id) === String(keuze)) || {}).naam || ""
+    : "";
+  if (keuze && !naam) {
+    if (meld) meld.textContent = "Die medewerker staat niet in de lijst. Kies iemand uit de keuzelijst.";
+    return;
+  }
+  if (knop) knop.disabled = true;
+  if (meld) meld.textContent = "Bezig met opslaan…";
+  try {
+    /* Leegmaken mag: beide velden gaan dan op null, zodat de dienst niet half
+       gevuld achterblijft. gewijzigd_door mee, net als bij elke andere
+       handmatige wijziging op dit scherm. */
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: {
+          locatiemanager_id: keuze || null,
+          locatiemanager: naam || null,
+          gewijzigd_door: NAAM
+        } });
+    if (!rij || !rij.length) throw new Error("de reservering kwam niet terug");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    if (knop) knop.disabled = false;
+    /* De kaart wordt hieronder opnieuw getekend, dus een melding \u00edn het blok
+       verdwijnt meteen. Daarom de balk bovenaan, die blijft staan. */
+    melding(naam
+      ? naam + " staat nu als locatiemanager op deze dienst."
+      : "De locatiemanager is van deze dienst weggehaald.");
+    tekenPersoneelKaart(rij[0]);
+    teken();
+  } catch (e) {
+    if (meld) meld.textContent = "\u2715 Opslaan mislukt: " + e.message;
+    if (knop) knop.disabled = false;
+  }
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest) return;
+  if (e.target.closest("#vLmOk")) { e.preventDefault(); lmBewaren(); return; }
+  if (e.target.closest("#vLmIk")) {
+    e.preventDefault();
+    const mij = (MEDEWERKERS || []).find((m) =>
+      m && m.naam && String(m.naam).trim().toLowerCase() === String(NAAM).trim().toLowerCase());
+    const meld = $("#vLmMeld");
+    if (!mij) {
+      if (meld) meld.textContent =
+        "Je naam (" + NAAM + ") staat niet in de medewerkerslijst. Kies jezelf uit de keuzelijst.";
+      return;
+    }
+    const sel = $("#vLmWie"); if (sel) sel.value = String(mij.id);
+    lmBewaren(String(mij.id));
+  }
+});
+
 function tekenPersoneelKaart(r) {
   const doel = $("#vPersoneelKaart"); if (!doel) return;
   const p = periode(r);
@@ -2661,6 +2775,11 @@ function tekenPersoneelKaart(r) {
     kopBalk +
     kaartVak("Reserveringsgegevens", [
       kaartRegel("Nummer", esc(resNummer(r))),
+      /* Angela, 06-10-2026: de locatiemanager van deze dienst meteen bovenaan
+         in beeld, niet alleen in het blok waar je hem kiest. */
+      kaartRegel("Locatiemanager", lmNaamVan(r)
+        ? esc(lmNaamVan(r))
+        : '<span style="color:var(--muted)">nog niemand</span>'),
       kaartRegel("Suite", esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite)),
       kaartRegel("Geboekt via", esc(KANALEN[r.kanaal] || r.kanaal)),
       kaartRegel("Aankomst", esc(p.dag + " " + p.tijd)),
@@ -2668,6 +2787,11 @@ function tekenPersoneelKaart(r) {
       kaartRegel("Personen", r.personen ? esc(r.personen) : ""),
       kaartRegel("Status", esc(STATUSSEN[r.status] || r.status))
     ], true) +
+    /* Wie draaide de dienst (Angela, 06-10-2026). Staat bovenaan, want het is
+       het eerste wat je bij het uitchecken invult. De naam komt uit een
+       keuzelijst en wordt nooit ingetikt: anders worden "Ruth" en "Ruth
+       Tilburg" twee verschillende mensen in de maandtelling. */
+    kaartVak("Locatiemanager van deze dienst", [lmVakInhoud(r)], true) +
     kaartVak("Gastgegevens", [
       kaartRegel("Naam", esc(gastNaam(r) || "—")),
       kaartRegel("Telefoon", tel
@@ -7146,6 +7270,15 @@ async function start() {
     REVIEW_KOLOM = true;
     KOLOMMEN += ",review_status";
   } catch (e) { REVIEW_KOLOM = false; }
+  /* Hetzelfde voor de twee locatiemanagerkolommen (Angela, 06-10-2026). */
+  try {
+    await api("reserveringen?select=id,locatiemanager_id,locatiemanager&limit=1", { stil: true });
+    LM_KOLOM = true;
+    KOLOMMEN += ",locatiemanager_id,locatiemanager";
+  } catch (e) { LM_KOLOM = false; }
+  try {
+    MEDEWERKERS = await api("wz_medewerkers?select=id,naam,actief&order=naam.asc", { stil: true }) || [];
+  } catch (e) { MEDEWERKERS = []; }
   await laad();
   await openUitLink();
   const tab = new URLSearchParams(location.search).get("tab");
