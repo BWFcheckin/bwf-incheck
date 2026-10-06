@@ -710,6 +710,10 @@
   var session = null;
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (err) { session = null; }
 
+  function sessieGeldig(s) {
+    return !!(s && s.access_token && s.expires_at && Date.now() < s.expires_at - 5000);
+  }
+
   /* Deze pagina had altijd een eigen inlog. Dat is lastig zodra hij in het
      dashboard wordt getoond: je bent daar al ingelogd en zou hier opnieuw
      moeten inloggen. Daarom: is er geen eigen sessie, pak dan de sessie van
@@ -734,7 +738,22 @@
     }
     return null;
   }
-  if (!session) session = sessieVanPortaal();
+  /* Niet alleen als er GEEN eigen sessie is, maar ook als die verlopen is.
+
+     Dit ging mis op 06-10-2026: op dit apparaat stond nog een oude inlog van
+     deze pagina. Die ging voor, was verlopen, en vernieuwen gaf "Invalid
+     Refresh Token: Refresh Token Not Found". Daardoor faalde elk verzoek,
+     wist de pagina niet wie je was, en viel de naam terug op de waarde die
+     bovenin dit bestand staat - bij elke medewerker stond toen "Michel". De
+     gegevens waren nooit verwisseld; alleen de naam. */
+  if (!sessieGeldig(session)) {
+    var vanPortaal = sessieVanPortaal();
+    if (vanPortaal) {
+      session = vanPortaal;
+      /* De dode sessie opruimen, anders botst hij bij de volgende keer weer. */
+      try { localStorage.removeItem(SESSION_KEY); } catch (err) { /* geen opslag */ }
+    }
+  }
 
   function storeSession(s) {
     session = s ? {
@@ -782,7 +801,16 @@
     if (!session) return Promise.reject(new Error("niet ingelogd"));
     if (Date.now() < session.expires_at) return Promise.resolve(session.access_token);
     return authCall("refresh_token", { refresh_token: session.refresh_token })
-      .then(function (data) { storeSession(data); return session.access_token; });
+      .then(function (data) { storeSession(data); return session.access_token; })
+      .catch(function (err) {
+        /* Vernieuwen mislukt - meestal een refresh token die al door een ander
+           scherm is ingewisseld. Het portaal in dezelfde browser heeft dan een
+           verse; die pakken we, in plaats van de gebruiker een foutmelding te
+           geven terwijl hij gewoon ingelogd is. */
+        var vers = sessieVanPortaal();
+        if (sessieGeldig(vers)) { session = vers; return session.access_token; }
+        throw err;
+      });
   }
 
   /* ---------- Supabase ---------- */
