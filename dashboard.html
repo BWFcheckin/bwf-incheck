@@ -295,6 +295,20 @@ td input.mini{width:66px;text-align:right;font-family:var(--f-mono);font-variant
 .stepper{display:inline-flex;align-items:center;gap:2px;justify-content:flex-end}
 td.act .btn.small{margin-left:4px}
 
+/* ---------- urenadministratie per persoon, Angela 06-10-2026 ---------- */
+.admbalk{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;
+  padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-m);
+  background:var(--surface);font-weight:600;font-size:15.5px;margin-bottom:10px}
+.admbalk::-webkit-details-marker{display:none}
+.admbalk::before{content:"\203a";display:inline-block;transition:transform .15s;
+  font-size:19px;line-height:1;opacity:.6}
+details[open] > .admbalk::before{transform:rotate(90deg)}
+.admjij{margin-left:auto;font-weight:500;font-size:12px;opacity:.6}
+.admlijf{margin:-4px 0 14px}
+.admframe{width:100%;height:1400px;border:1px solid var(--line);
+  border-radius:var(--r-m);display:block;background:var(--surface)}
+@media (max-width:700px){ .admframe{height:1100px} }
+
 /* ---------- urenpagina-kaarten ---------- */
 .urenlinks{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-bottom:18px}
 .urenkaart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;
@@ -1697,33 +1711,25 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
          Ze zijn niet verwijderd uit de database: alles wat daarmee is
          ingevoerd staat nog in wz_werkzaamheden en is te zien via de
          urenregistratie van Kelly. -->
+    <!-- Angela, 06-10-2026: "ik wil dat voor elke locatiemanager apart de
+         urenadministratie wordt weergegeven in een aparte dropdown per
+         persoon, met de naam in de balk, en dat iedereen zijn eigen uren
+         ziet."
+
+         Eén balk per persoon, uitklapbaar. De eigenaar krijgt ze allemaal; een
+         locatiemanager krijgt alleen zichzelf en die staat meteen open. Dat
+         laatste is beleefdheid, geen beveiliging: wie de link van een collega
+         intikt krijgt van de database toch niets te zien sinds de policy van
+         vanochtend. De inhoud wordt per balk pas opgehaald als je hem
+         openklapt - anders zouden er bij vier mensen vier grote pagina's
+         tegelijk laden. -->
     <div class="card">
-      <div class="card-head"><h2>Mijn administratie</h2>
-        <span class="hint">uren, boekingen en vergoedingen per maand</span></div>
-      <div class="card-body" style="padding:0">
-        <iframe id="admFrame" title="Mijn administratie"
-                data-src="administratie-michel.html"
-                style="width:100%;height:1400px;border:0;display:block"></iframe>
+      <div class="card-head"><h2>Urenadministratie</h2>
+        <span class="hint" id="admHint"></span></div>
+      <div class="card-body" id="admLijst">
+        <p class="hint" style="margin:0">Bezig met laden…</p>
       </div>
-      <div class="card-foot"><span>Past het niet goed op je scherm?
-        <a href="administratie-michel.html" target="_blank" rel="noopener">Open de administratie in een eigen tabblad</a>.</span></div>
     </div>
-    <script>
-      /* Pas ophalen wanneer de planning echt in beeld komt - zelfde aanpak als
-         bij het reserveringenscherm hierboven. De administratie is een grote
-         pagina en hoeft niet te laden zolang je op een ander tabblad zit. */
-      (function(){
-        function laadAdmFrame(){
-          var f = document.getElementById('admFrame');
-          var p = document.getElementById('panel-planning');
-          if(f && p && !p.hidden && !f.src && f.dataset.src){
-            f.src = f.dataset.src + '?v=' + Date.now();
-          }
-        }
-        document.addEventListener('click', function(){ setTimeout(laadAdmFrame, 60); });
-        setTimeout(laadAdmFrame, 1400);
-      })();
-    </script>
 </section>
 
   <!-- ============ VOORRAAD ============ -->
@@ -4164,7 +4170,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     melding(fouten.length ? 'Niet alles kon worden opgehaald ('+fouten.join(', ')+').'
       : (dubbel ? dubbel+' dubbele regel'+(dubbel===1?'':'s')+' samengevoegd.' : ''), !fouten.length);
     teamLijst().forEach(function(m,i){ if(!DIENSTKLEUR[m.id]) DIENSTKLEUR[m.id] = ['#1C6FD0','#D63A2A','#0F7B5A','#8A5BC4','#A3742A','#83334c','#2da2bb'][i%7]; });
-    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenDiensten(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
+    vulSoorten(); vulMedewerkers(); tekenLM(); tekenNieuweBoekingen(); tekenDagstart(); tekenTegels(); tekenVoorraadTegels(); tekenKalender(); tekenVandaag(); tekenDiensten(); admVoorbereiden(); tekenMijnDiensten(); tekenSectie(); tekenTaken(); tekenContact(); tekenVoet();
   }
 
   /* ---------- welkomstcalls in bulk klaarzetten ---------- */
@@ -5217,6 +5223,96 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     /* En nu kan ook de keuzelijst "Voor wie" worden gevuld; die bestaat alleen
        voor de eigenaar. Angela, 06-10-2026. */
     try{ duWieVullen(); }catch(e){ console.error('keuzelijst uren mislukte:', e); }
+  }
+
+  /* ---- urenadministratie per persoon ----
+     Angela, 06-10-2026. Eén uitklapbalk per locatiemanager met zijn naam
+     erin; de administratiepagina wordt pas opgehaald als je de balk openklapt.
+     De eigenaar ziet iedereen, een medewerker alleen zichzelf.
+
+     Dit is een weergave, geen rechtenstructuur: wie wat mag staat sinds
+     vanochtend in de policy "bwf rechten psm administratie" op de database. */
+  function admMensen(){
+    /* Iemand die uit dienst is blijft voor de eigenaar in de lijst staan, met
+       "niet meer in dienst" erbij: zijn oude maanden moeten op te zoeken
+       blijven, bijvoorbeeld voor de boekhouding. In zijn eigen scherm ziet hij
+       alleen zichzelf, dus daar maakt het niets uit. */
+    var mensen = (MEDEWERKERS || []).filter(function(m){
+      if(!m || !m.naam) return false;
+      if(m.actief === false && !urenMagAlles()) return false;
+      var rol = String(m.toegangsrol || m.rol || '').toLowerCase();
+      /* De eigenaar hoort er ook bij: Angela houdt zelf ook uren bij. Alleen
+         accounts zonder rol vallen af, die kunnen toch niets opslaan. */
+      return rol === 'locatiemanager' || rol === 'vr' || rol === 'eigenaar';
+    });
+    mensen.sort(function(a, b){ return String(a.naam).localeCompare(String(b.naam)); });
+    return mensen;
+  }
+
+  /* De balken hangen op de rol, en die komt uit de database. laadUren() haalt
+     hem niet meer op nu de urenblokken van het scherm af zijn, dus hier zelf.
+     Zonder dit zou ook de eigenaar alleen zichzelf zien. */
+  async function admVoorbereiden(){
+    if(!UREN_ROL){
+      try{ await urenRolOphalen(); }catch(e){ /* dan blijft het bij jezelf */ }
+    }
+    tekenAdministraties();
+  }
+
+  function tekenAdministraties(){
+    var vak = document.getElementById('admLijst');
+    if(!vak) return;
+    var hint = document.getElementById('admHint');
+    var mij = urenMijnId();
+    var alles = urenMagAlles();
+    var mensen = admMensen();
+
+    if(!mensen.length){
+      vak.innerHTML = '<p class="hint" style="margin:0">De medewerkerslijst kon niet worden ' +
+        'opgehaald. Ververs de pagina, of open de administratie rechtstreeks via ' +
+        '<a href="administratie-michel.html" target="_blank" rel="noopener">deze link</a>.</p>';
+      return;
+    }
+    /* Geen eigenaar? Dan alleen jezelf. Ken ik je niet, dan toch je eigen
+       pagina zonder naam in het adres - die kiest dan zelf wie je bent. */
+    var toon = alles ? mensen : mensen.filter(function(m){ return mij && String(m.id) === String(mij); });
+    var eigenOnbekend = !alles && !toon.length;
+
+    if(hint) hint.textContent = alles
+      ? toon.length + (toon.length === 1 ? ' persoon' : ' personen')
+      : 'je eigen uren en boekingen';
+
+    if(eigenOnbekend){
+      vak.innerHTML = '<details open><summary class="admbalk"><span>Mijn administratie</span></summary>' +
+        '<div class="admlijf"><iframe class="admframe" data-adm="" title="Mijn administratie"></iframe></div></details>';
+    }else{
+      vak.innerHTML = toon.map(function(m){
+        var ikzelf = mij && String(m.id) === String(mij);
+        /* Alleen de eigen balk staat open. Bij de eigenaar zouden anders vier
+           grote pagina's tegelijk gaan laden. */
+        return '<details' + (ikzelf || toon.length === 1 ? ' open' : '') + '>' +
+          '<summary class="admbalk"><span>' + esc(m.naam) + '</span>' +
+          (ikzelf ? '<span class="admjij">jij</span>'
+                  : (m.actief === false ? '<span class="admjij">niet meer in dienst</span>' : '')) +
+          '</summary>' +
+          '<div class="admlijf"><iframe class="admframe" data-adm="' + esc(m.id) +
+            '" title="Administratie ' + esc(m.naam) + '"></iframe></div></details>';
+      }).join('');
+    }
+
+    /* Pas laden bij openklappen. Een <details> stuurt "toggle", en dat gebeurt
+       ook bij de balk die al open staat. */
+    vak.querySelectorAll('details').forEach(function(d){
+      var laad = function(){
+        if(!d.open) return;
+        var f = d.querySelector('iframe.admframe');
+        if(!f || f.src) return;
+        var wie = f.getAttribute('data-adm');
+        f.src = 'administratie-michel.html?v=' + Date.now() + (wie ? '&mw=' + encodeURIComponent(wie) : '');
+      };
+      d.addEventListener('toggle', laad);
+      if(d.open) laad();
+    });
   }
 
   /* ---- losse uren: invoeren, wijzigen en verwijderen ----

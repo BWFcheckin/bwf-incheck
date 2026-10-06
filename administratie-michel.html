@@ -598,6 +598,8 @@
      database weet van wie de regel is. */
   var MIJN_ID = null;
   var MIJN_NAAM = "";
+  var MIJN_ROL = "";
+  var VOOR_ANDER = false;
   var DIENSTEN_RES = [];
   var DIENSTEN_FOUT = "";
 
@@ -881,12 +883,38 @@
      die is exact - anders dan een naam, waar "Michel" en "Michel S." allebei
      voorkomen. Lukt het niet, dan blijft MIJN_ID leeg en zegt het blok dat
      eerlijk; er wordt niets gegokt. */
+  /* Met ?mw=<id> achter het adres toont deze pagina de administratie van
+     iemand anders. Dat mag alleen de eigenaar - en dat beslist de database,
+     niet dit scherm: een locatiemanager die de parameter zelf intikt krijgt
+     van de policy toch niets te zien. Hier wordt hij alleen genegeerd, zodat
+     hij zijn eigen administratie houdt in plaats van een lege lijst met de
+     naam van een collega erboven. Angela, 06-10-2026. */
+  function gevraagdeMedewerker() {
+    try {
+      var p = new URLSearchParams(location.search).get("mw");
+      return p ? String(p).trim() : "";
+    } catch (err) { return ""; }
+  }
+
   function haalMijnId() {
     if (localMode || !configured) return Promise.resolve();
-    return api("rpc/bwf_medewerker_id", { method: "POST", body: {} })
-      .then(function (d) {
-        MIJN_ID = (typeof d === "string" && d) ? d : (d && d.id) || null;
-        return MIJN_ID ? api("wz_medewerkers?select=naam&id=eq." + encodeURIComponent(MIJN_ID)) : null;
+    var anders = gevraagdeMedewerker();
+    return api("rpc/bwf_toegangsrol", { method: "POST", body: {} })
+      .catch(function () { return null; })
+      .then(function (rol) {
+        MIJN_ROL = String(rol == null ? "" : rol).replace(/"/g, "").toLowerCase();
+        /* De eigenaar mag een andere administratie opvragen; iedereen anders
+           krijgt zijn eigen, wat er ook in het adres staat. */
+        if (anders && MIJN_ROL === "eigenaar") {
+          MIJN_ID = anders;
+          VOOR_ANDER = true;
+          return api("wz_medewerkers?select=naam&id=eq." + encodeURIComponent(anders));
+        }
+        return api("rpc/bwf_medewerker_id", { method: "POST", body: {} })
+          .then(function (d) {
+            MIJN_ID = (typeof d === "string" && d) ? d : (d && d.id) || null;
+            return MIJN_ID ? api("wz_medewerkers?select=naam&id=eq." + encodeURIComponent(MIJN_ID)) : null;
+          });
       })
       .then(function (rows) {
         if (rows && rows[0] && rows[0].naam) {
