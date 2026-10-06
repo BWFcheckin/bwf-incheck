@@ -228,7 +228,47 @@
   .btn.ghost:hover { color: var(--accent); border-color: var(--accent); filter: none; }
   .btn.small { padding: 7px 13px; font-size: .85rem; font-weight: 500; }
 
-  .tablewrap { overflow-x: auto; }
+  .tablewrap { overflow-x: auto; max-width: 100%; }
+  /* De diensten uit het dashboard: een smalle tabel in een smal kader. Zonder
+     vaste breedtes duwden een lange SMG-regel en een datum van tien tekens de
+     knop Overnemen buiten beeld. Angela, 06-10-2026. */
+  .dienstentabel table { table-layout: fixed; width: 100%; font-size: .88rem; }
+  .dienstentabel th, .dienstentabel td { padding: 8px 6px; vertical-align: middle; }
+  .dienstentabel .dt-datum { width: 68px; white-space: nowrap; }
+  .dienstentabel .dt-loc   { width: 96px; }
+  .dienstentabel .dt-gast  { width: 110px; }
+  .dienstentabel .dt-tijd  { width: 92px; white-space: nowrap; }
+  .dienstentabel .dt-knip  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dienstentabel .dt-geld  { width: 86px; white-space: nowrap; }
+  .dienstentabel .dt-knop  { width: 104px; text-align: right; white-space: nowrap; }
+  .dienstentabel .dt-knop .btn { padding: 5px 10px; font-size: .82rem; }
+  @media (max-width: 760px) {
+    /* Op een smal scherm vallen locatie en arrangement weg: datum, gast, tijd
+       en de knop zijn wat je nodig hebt om een dienst over te nemen. */
+    .dienstentabel .dt-loc, .dienstentabel th:nth-child(2),
+    .dienstentabel .dt-knip:nth-child(6), .dienstentabel th:nth-child(6) { display: none; }
+  }
+  @media (max-width: 560px) {
+    /* Op een telefoon gaat het boekingsnummer er ook af en worden de vaste
+       kolommen krapper. Gemeten 06-10-2026: zonder dit stak de tabel 36 pixels
+       buiten het kader en viel de knop er half af. De gast houdt de ruimte die
+       overblijft, want daaraan herken je de dienst. */
+    .dienstentabel .dt-knip:nth-child(5), .dienstentabel th:nth-child(5) { display: none; }
+    .dienstentabel th, .dienstentabel td { padding: 8px 4px; }
+    .dienstentabel { font-size: .84rem; }
+    .dienstentabel .dt-datum { width: 54px; }
+    /* De gast krijgt geen vaste breedte meer: bij table-layout fixed slokt de
+       kolom zonder breedte op wat er overblijft, en dan past het geheel altijd
+       precies. Met 110px erin bleef de tabel 13 pixels te breed. */
+    .dienstentabel .dt-gast  { width: auto; }
+    .dienstentabel .dt-tijd  { width: 78px; }
+    .dienstentabel .dt-geld  { width: 72px; }
+    /* De knop mag over twee regels; met nowrap duwde het woord "Overnemen"
+       de tabel 13 pixels buiten het kader, en dan moest je zijwaarts schuiven
+       voor een knop die er al was. */
+    .dienstentabel .dt-knop  { width: 84px; white-space: normal; }
+    .dienstentabel .dt-knop .btn { padding: 5px 7px; font-size: .74rem; line-height: 1.25; }
+  }
   table { width: 100%; border-collapse: collapse; font-size: .93rem; }
   th {
     text-align: left; font-size: .71rem; letter-spacing: .07em; text-transform: uppercase;
@@ -1741,6 +1781,21 @@
      boekingsnummer in dezelfde maand) wordt als overgenomen gemarkeerd, zodat
      je niet per ongeluk dubbel invoert. */
   function dienstDatum(r) { return String(r.aankomst || "").slice(0, 10); }
+  /* "do 3 sep" in plaats van "2026-09-03": dat laatste brak in de smalle kolom
+     over drie regels. De maand erbij blijft nodig, want je kunt in het
+     maandoverzicht een andere maand openklappen. */
+  function dienstDatumKort(r) {
+    var d = dienstDatum(r);
+    var p = d.split("-");
+    if (p.length !== 3) return d;
+    var mnd = ["jan", "feb", "mrt", "apr", "mei", "jun",
+               "jul", "aug", "sep", "okt", "nov", "dec"][Number(p[1]) - 1] || p[1];
+    return Number(p[2]) + " " + mnd;
+  }
+  function kortTekst(t, max) {
+    t = String(t == null ? "" : t);
+    return t.length > max ? t.slice(0, max - 1) + "\u2026" : t;
+  }
   function dienstTijd(r, welk) {
     var vast = welk === "van" ? r.incheck_tijd : r.uitcheck_tijd;
     if (vast) return String(vast).slice(0, 5);
@@ -1790,23 +1845,29 @@
       (mijn.length === 1 ? " dienst" : " diensten") + " aan jouw naam" +
       (open ? ", waarvan " + open + " nog niet in je administratie" : " \u2014 allemaal overgenomen") +
       '. Druk op \u201cOvernemen\u201d, vul de vergoeding in en sla op.</p>';
-    html += '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Datum</th><th>Locatie</th><th>Gast</th><th>Van</th><th>Tot</th>" +
+    html += '<div class="tablewrap dienstentabel"><table><thead><tr>' +
+      "<th>Datum</th><th>Locatie</th><th>Gast</th><th>Tijd</th>" +
       "<th>Boeking#</th><th>Arrangement</th><th class=\"num\">Omzet</th><th></th>" +
       "</tr></thead><tbody>";
     mijn.forEach(function (r) {
       var gedaan = alOvergenomen(r, maandlijst);
+      var van = dienstTijd(r, "van"), tot = dienstTijd(r, "tot");
+      var nr = String(r.kanaal_ref || "");
+      var arr = dienstArr(r);
       html += "<tr" + (gedaan ? ' style="opacity:.55"' : "") + ">" +
-        "<td>" + esc(dienstDatum(r)) + "</td>" +
-        "<td>" + esc(SUITE_NAAM[r.suite] || r.suite || "") + "</td>" +
-        "<td>" + esc(dienstGast(r) || "\u2014") + "</td>" +
-        "<td>" + esc(dienstTijd(r, "van") || "\u2014") + "</td>" +
-        "<td>" + esc(dienstTijd(r, "tot") || "\u2014") + "</td>" +
-        "<td>" + esc(r.kanaal_ref || "\u2014") + "</td>" +
-        "<td>" + esc(dienstArr(r) || "") + "</td>" +
-        '<td class="num">' + (r.bedrag_totaal != null ? money(num(r.bedrag_totaal)) : "") + "</td>" +
-        "<td>" + (gedaan
-          ? '<span class="mini">\u2713 overgenomen</span>'
+        '<td class="dt-datum">' + esc(dienstDatumKort(r)) + "</td>" +
+        '<td class="dt-loc">' + esc(SUITE_NAAM[r.suite] || r.suite || "") + "</td>" +
+        '<td class="dt-gast">' + esc(dienstGast(r) || "\u2014") + "</td>" +
+        '<td class="dt-tijd">' + esc(van || "\u2014") + (tot ? "&ndash;" + esc(tot) : "") + "</td>" +
+        /* Een boekingsnummer kan een hele SMG-regel of een e-mailadres van
+           Booking.com zijn. Onafgekapt duwt zo'n cel de tabel uit het kader en
+           valt de knop Overnemen eraf. Afkappen dus, met de hele waarde in de
+           tooltip zodat er niets verloren gaat. */
+        '<td class="dt-knip" title="' + esc(nr) + '">' + esc(kortTekst(nr, 18) || "\u2014") + "</td>" +
+        '<td class="dt-knip" title="' + esc(arr) + '">' + esc(kortTekst(arr, 22)) + "</td>" +
+        '<td class="num dt-geld">' + (r.bedrag_totaal != null ? money(num(r.bedrag_totaal)) : "") + "</td>" +
+        '<td class="dt-knop">' + (gedaan
+          ? '<span class="mini">\u2713 over</span>'
           : '<button type="button" class="btn small" data-act="neem-over" data-res="' +
             esc(r.id) + '">Overnemen</button>') + "</td></tr>";
     });

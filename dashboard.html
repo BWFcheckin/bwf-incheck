@@ -6617,10 +6617,61 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
         '<span class="pil'+(d.dienst==='afwezig'?' weg':'')+'">'+esc(soort)+'</span>'+
         (d.locatie?'<span>'+esc(d.locatie)+'</span>':'')+
         (d.notitie?'<em>'+esc(d.notitie)+'</em>':'')+
+        /* Angela, 06-10-2026: "pas ook aan dat ik een dienst kan verwijderen
+           bij een personeelslid, een geplande dienst uit de agenda halen."
+           Alleen voor de eigenaar: zij maakt het rooster. Een locatiemanager
+           ziet zijn diensten wel, maar haalt ze er niet zelf uit. */
+        (magDienstWeg() && d.id
+          ? '<button class="btn ghost small" type="button" data-dienstweg="' + esc(d.id) + '" ' +
+            'style="margin-left:auto;border-color:#C13E50;color:#C13E50">Verwijderen</button>'
+          : '')+
         dienstGasten(d, dag)+'</div>';
     }).join('')
       : '<p style="opacity:.55;font-size:14px;margin:0">Geen diensten binnen deze keuze.</p>';
   }
+  /* Een geplande dienst uit de agenda halen (Angela, 06-10-2026).
+     De regel gaat echt weg uit de tabel planning - zo heeft Angela het
+     gekozen. Daarom eerst een vraag met datum, naam en soort erin, zodat je
+     ziet wat je weggooit en niet op de gok drukt. */
+  function magDienstWeg(){ return urenMagAlles(); }
+
+  async function dienstWeghalen(id){
+    var d = (DIENSTEN || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!d) return;
+    var naam = (TEAM.filter(function(m){ return String(m.id)===String(d.medewerker_id); })[0]||{}).naam || 'onbekend';
+    var soort = d.dienst === 'nacht' ? 'Nachtverblijf' : d.dienst === 'schoonmaak' ? 'Schoonmaak'
+      : d.dienst === 'afwezig' ? 'Niet beschikbaar' : 'Dagverblijf';
+    var dag = String(d.datum || '').slice(0,10);
+    if(!confirm('Deze dienst uit de agenda halen?\n\n' +
+        dmyKort(dag) + ' \u00b7 ' + naam + ' \u00b7 ' + soort +
+        (d.locatie ? ' \u00b7 ' + d.locatie : '') +
+        (d.notitie ? '\n' + d.notitie : '') +
+        '\n\nDit kan niet ongedaan worden gemaakt.')) return;
+    try{
+      await sb('planning?id=eq.' + encodeURIComponent(id), { method:'DELETE' });
+      DIENSTEN = DIENSTEN.filter(function(x){ return String(x.id) !== String(id); });
+      /* Alles wat de planning laat zien opnieuw tekenen: de lijst, de strip
+         onder de dag en de kalender. Anders staat de dienst er elders nog. */
+      try{ tekenMijnDiensten(); }catch(e){}
+      try{ tekenKalender(); }catch(e){}
+      try{ tekenVandaag(); }catch(e){}
+      melding('Dienst van ' + naam + ' op ' + dmyKort(dag) + ' is uit de agenda gehaald.', true);
+    }catch(e){
+      melding(/40[13]/.test(String(e.message))
+        ? 'Verwijderen mag niet voor jouw rol. Vraag Angela, of laat mij de rechten op de planning nakijken.'
+        : 'Verwijderen lukte niet: ' + e.message);
+    }
+  }
+
+  (function(){
+    /* Eén luisteraar op de lijst: de regels worden telkens opnieuw getekend. */
+    var lijst = document.getElementById('mdLijst');
+    if(lijst) lijst.addEventListener('click', function(e){
+      var w = e.target.closest && e.target.closest('[data-dienstweg]');
+      if(w){ e.preventDefault(); dienstWeghalen(w.getAttribute('data-dienstweg')); }
+    });
+  })();
+
   (function(){
     var kop = document.getElementById('mdKop'); if(!kop) return;
     function wissel(){
