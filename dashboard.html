@@ -1657,9 +1657,27 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       <div class="card-body">
         <form class="grid-form" id="planForm">
           <div class="field"><label for="p-datum">Datum</label><input type="date" id="p-datum" required></div>
+          <!-- Angela, 07-10-2026: "ik wil graag mensen voor meerdere dagen
+               kunnen inplannen tegelijk." Leeg laten = één dag, net als
+               hiervoor. Dezelfde opzet als bij "Niet beschikbaar doorgeven"
+               eronder, zodat het hetzelfde werkt op beide plekken. -->
+          <div class="field"><label for="p-tot">Tot en met <span style="opacity:.7">(leeg = één dag)</span></label>
+            <input type="date" id="p-tot"></div>
           <div class="field"><label for="p-mw">Medewerker</label><select id="p-mw" required></select></div>
           <div class="field"><label for="p-loc">Locatie</label><select id="p-loc"><option value="Lelystad Malina">Lelystad Malina</option><option value="Almere">Almere</option></select></div>
           <div class="field"><label for="p-dienst">Soort</label><select id="p-dienst"><option value="dag">Dagverblijf</option><option value="nacht">Nachtverblijf</option><option value="schoonmaak">Alleen schoonmaak</option></select></div>
+          <div class="field" style="grid-column:span 2" id="p-dagenVak">
+            <span class="grouplabel">Alleen deze dagen <span style="opacity:.7">(niets aanvinken = alle dagen)</span></span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px" id="p-dagen">
+              <label class="chk"><input type="checkbox" data-dag="1">ma</label>
+              <label class="chk"><input type="checkbox" data-dag="2">di</label>
+              <label class="chk"><input type="checkbox" data-dag="3">wo</label>
+              <label class="chk"><input type="checkbox" data-dag="4">do</label>
+              <label class="chk"><input type="checkbox" data-dag="5">vr</label>
+              <label class="chk"><input type="checkbox" data-dag="6">za</label>
+              <label class="chk"><input type="checkbox" data-dag="0">zo</label>
+            </div>
+          </div>
           <div class="field" style="grid-column:span 2"><label for="p-notitie">Notitie</label><input type="text" id="p-notitie" placeholder="Bijv. incheck 20:00, sushi besteld"></div>
           <div class="field" style="display:flex;gap:8px;align-items:flex-end">
             <button class="btn" type="submit" id="p-opslaan">Inplannen</button>
@@ -2604,8 +2622,19 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var el = document.getElementById("p-melding");
     if (el) el.textContent = t || "Tik in de kalender op een naam om die dienst te wijzigen.";
   }
+  /* De reeksvelden horen niet bij het wijzigen van één dienst; die worden daar
+     verborgen zodat niemand ze invult en zich afvraagt waarom er niets
+     gebeurt. */
+  function planReeksTonen(aan){
+    var vakken = [document.getElementById("p-tot"), document.getElementById("p-dagenVak")];
+    vakken.forEach(function (el) {
+      var veld = el && (el.closest ? el.closest(".field") : null);
+      if (veld) veld.hidden = !aan;
+    });
+  }
   function planStopBewerken(stil){
     PLAN_BEWERK = null;
+    planReeksTonen(true);
     var ok = document.getElementById("p-opslaan");
     if (ok) ok.textContent = "Inplannen";
     ["p-weg", "p-annuleer"].forEach(function(id){
@@ -2618,6 +2647,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     var r = (state.planning || []).filter(function(x){ return String(x.id) === String(id); })[0];
     if (!r) return;
     PLAN_BEWERK = String(id);
+    planReeksTonen(false);
+    var totVeld = document.getElementById("p-tot"); if (totVeld) totVeld.value = "";
     document.getElementById("p-datum").value = r.datum || "";
     document.getElementById("p-mw").value = r.medewerkerId || "";
     var loc = document.getElementById("p-loc"); if (loc && r.locatie) loc.value = r.locatie;
@@ -3004,6 +3035,61 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       notitie: document.getElementById("p-notitie").value };
     if (!r.datum || !r.medewerkerId) return;
     kalYm = r.datum.slice(0, 7);
+
+    /* Meerdere dagen tegelijk (Angela, 07-10-2026). Alleen bij het inplannen;
+       bij het wijzigen van een bestaande dienst slaat dit over - anders zou je
+       met één druk op de knop een hele reeks nieuwe diensten maken terwijl je
+       er eentje wilde aanpassen. */
+    var tot = (document.getElementById("p-tot") || {}).value || "";
+    if (!PLAN_BEWERK && tot && tot >= r.datum) {
+      var meld = document.getElementById("p-melding");
+      /* Welke weekdagen mogen? Niets aangevinkt betekent alle dagen. */
+      var wil = [];
+      document.querySelectorAll("#p-dagen [data-dag]").forEach(function (b) {
+        if (b.checked) wil.push(Number(b.getAttribute("data-dag")));
+      });
+      /* De dagen uitrekenen met een tijdstip middenin de dag: om middernacht
+         kan de zomertijd een dag laten overslaan of verdubbelen. */
+      var dagen = [], d = new Date(r.datum + "T12:00:00"), eind = new Date(tot + "T12:00:00");
+      while (d <= eind && dagen.length < 400) {
+        if (!wil.length || wil.indexOf(d.getDay()) > -1) {
+          dagen.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+                     "-" + String(d.getDate()).padStart(2, "0"));
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      if (!dagen.length) {
+        if (meld) meld.textContent = "Tussen die twee datums valt geen enkele van de aangevinkte dagen.";
+        return;
+      }
+      /* Dagen overslaan waarop deze persoon al dezelfde dienst heeft: twee
+         keer dezelfde dienst op één dag is bijna altijd per ongeluk. */
+      var al = {};
+      (state.planning || []).forEach(function (x) {
+        if (String(x.medewerkerId) === String(r.medewerkerId) && x.dienst === r.dienst) al[x.datum] = 1;
+      });
+      var nieuwe = dagen.filter(function (x) { return !al[x]; });
+      var over = dagen.length - nieuwe.length;
+      if (!nieuwe.length) {
+        if (meld) meld.textContent = "Die dagen stonden al ingepland voor deze persoon.";
+        return;
+      }
+      var naam2 = (mwById(r.medewerkerId) || {}).naam || "";
+      mutate(function () {
+        nieuwe.forEach(function (dag) {
+          state.planning.push({ id: uid(), datum: dag, medewerkerId: r.medewerkerId,
+            locatie: r.locatie, dienst: r.dienst, notitie: r.notitie });
+        });
+      });
+      document.getElementById("p-tot").value = "";
+      document.querySelectorAll("#p-dagen [data-dag]").forEach(function (b) { b.checked = false; });
+      document.getElementById("p-notitie").value = "";
+      if (meld) meld.textContent = nieuwe.length + " dag" + (nieuwe.length === 1 ? "" : "en") +
+        " ingepland voor " + naam2 +
+        (over ? " \u2014 " + over + " dag" + (over === 1 ? "" : "en") + " stond al ingepland." : ".");
+      return;
+    }
+
     if (PLAN_BEWERK) {
       /* Wijzigen: de bestaande regel bijwerken en zijn id houden, zodat er
          geen tweede dienst naast komt te staan. */
@@ -6174,12 +6260,33 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       { id:'maand',   label:'Deze maand',  lijst:set(dstr(mStart),dstr(mEind)),           van:dstr(mStart),  tot:dstr(mEind) },
       { id:'alles',   label:'Alle reserveringen', lijst:boekingen,                        van:'', tot:'' }
     ];
+    /* Angela, 07-10-2026: een eigen tegel voor de planning, als snelkoppeling.
+       Hij telt de diensten van deze week, zodat je in één oogopslag ziet of het
+       rooster al gevuld is - een tegel die alleen een deur is zegt niets. */
+    var dezeWeek = (DIENSTEN || []).filter(function(p){
+      var dg = String(p.datum || '').slice(0,10);
+      return dg >= dstr(maStart) && dg <= dstr(zoEind) && p.dienst !== 'afwezig';
+    });
+    var zonderNaam = dezeWeek.filter(function(p){ return !p.medewerker_id; }).length;
+
     document.getElementById('ovTegels').innerHTML = groepen.map(function(g){
       var open = g.lijst.filter(function(r){ return !callGedaan(r); }).length;
       return '<button class="ov-tegel" type="button" data-van="'+g.van+'" data-tot="'+g.tot+'">'+
         '<b>'+g.lijst.length+'</b><span>'+esc(g.label)+'</span>'+
         '<small>'+g.lijst.length+' aankomsten \u00b7 '+open+' zonder welkomstcall</small></button>';
-    }).join('');
+    }).join('') +
+      '<button class="ov-tegel" type="button" id="ovPlanTegel">' +
+        '<b>' + dezeWeek.length + '</b><span>Planning</span>' +
+        '<small>' + (dezeWeek.length
+          ? 'diensten deze week' + (zonderNaam ? ' \u00b7 ' + zonderNaam + ' zonder naam' : '')
+          : 'nog niemand ingepland deze week') + '</small></button>';
+
+    var pt = document.getElementById('ovPlanTegel');
+    if(pt) pt.onclick = function(){
+      var tab = document.getElementById('tab-planning');
+      if(tab) tab.click();
+      window.scrollTo({ top:0, behavior:'smooth' });
+    };
   }
 
   /* ---------- wie staat er op de locatie ---------- */
@@ -9315,6 +9422,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
   }
   document.getElementById('ovTegels').addEventListener('click', function(e){
     var t = e.target.closest('.ov-tegel'); if(!t) return;
+    /* De planningtegel is een snelkoppeling, geen filter: hij heeft geen van/tot
+       en zou het datumfilter leegmaken en de lijst opnieuw tekenen. */
+    if(t.id === 'ovPlanTegel') return;
     document.querySelectorAll('.ov-tegel').forEach(function(x){ x.setAttribute('data-actief', x===t?'1':'0'); });
     document.getElementById('ovVan').value = t.getAttribute('data-van')||'';
     document.getElementById('ovTot').value = t.getAttribute('data-tot')||'';
