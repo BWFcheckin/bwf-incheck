@@ -273,6 +273,7 @@ const CFG = {
 
 let SESSIE = null, verversBezig = null;
 let ROL = null, IK = null;          /* IK = {id, naam, uurtarief} uit wz_medewerkers */
+const TABEL_WERK = "wz_werkzaamheden";
 let TARIEVEN = [], WERK = [], MENSEN = [], EXTRAS = [];
 /* Met ?mw=<id> toont deze pagina één persoon in plaats van iedereen. Het
    dashboard gebruikt dat om per medewerker een eigen balk te tonen. Alleen de
@@ -966,6 +967,10 @@ function maandGrenzen(maand) {
   return { van, na };
 }
 
+/* Eén keer mogen terugvallen naar de laatste maand met regels. Zonder deze
+   rem zou de pagina blijven springen als iemand echt nog niets heeft staan. */
+let MAAND_TERUGVAL = false;
+
 async function laad() {
   const g = maandGrenzen($("#fMaand").value);
   try {
@@ -980,6 +985,25 @@ async function laad() {
     $("#lijst").innerHTML = "<p class='leeg'>De regels konden niet geladen worden: " + esc(e.message) + "</p>";
     return;
   }
+  /* Staat de maand leeg, dan springen we naar de laatste maand waarin wél
+     iets staat. Angela, 06-10-2026: "bij Kelly zie ik geen totaal en ik mis de
+     gegevens van september." De pagina begon altijd in de huidige maand; stond
+     daar nog niets, dan zag je nullen en leek het alsof er niets wás, terwijl
+     september gewoon gevuld is. */
+  if (!WERK.length && !MAAND_TERUGVAL) {
+    MAAND_TERUGVAL = true;
+    try {
+      const laatste = await api(TABEL_WERK + "?select=datum" +
+        (ALLEEN_WIE ? "&medewerker_id=eq." + encodeURIComponent(ALLEEN_WIE) : "") +
+        "&order=datum.desc&limit=1", { stil: true });
+      const d = laatste && laatste[0] && String(laatste[0].datum || "").slice(0, 7);
+      if (d && d !== $("#fMaand").value) {
+        $("#fMaand").value = d;
+        return laad();
+      }
+    } catch (e) { /* dan blijft het bij de lege maand */ }
+  }
+
   tekenOverzicht();
   $("#periodeHint").textContent = ALLEEN_WIE
     ? (ALLEEN_NAAM ? "Alleen de regels van " + ALLEEN_NAAM + "." : "Alleen de regels van één persoon.")

@@ -5346,7 +5346,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
      Op voornaam, want dat staat in wz_medewerkers en dat gebruikt Angela zelf.
      Staat iemand er niet bij, dan telt zijn rol: vr krijgt werkzaamheden, de
      rest boekingen. Iemand anders indelen is hier één regel. */
-  var ADM_PER_NAAM = { ruth: 'uren', gildo: 'uren', jerry: 'lijst', michel: 'boekingen' };
+  /* Angela, 06-10-2026: "bij de planning van Angela wil ik ook alleen
+     reserveringen zien en geen berekening." Zij houdt haar eigen uren niet op
+     deze manier bij; voor haar is het overzicht van de diensten genoeg. */
+  var ADM_PER_NAAM = { ruth: 'uren', gildo: 'uren', jerry: 'lijst',
+                       michel: 'boekingen', angela: 'lijst' };
   var ADM_PAGINA = {
     boekingen: 'administratie-michel.html',
     uren: 'uren-ruth.html',
