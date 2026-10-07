@@ -707,6 +707,16 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
       <div class="raster" id="bhReviews"></div>
     </div>
 
+    <!-- Angela, 07-10-2026: de factuur. Deze gegevens komen op elke factuur te
+         staan en mogen niet in de code: een verkeerd btw- of IBAN-nummer op een
+         factuur is erger dan geen factuur. Vul ze hier eenmalig in. -->
+    <div class="card" style="padding:18px 20px">
+      <h2 style="margin-top:0">Bedrijfsgegevens voor de factuur</h2>
+      <p class="uitleg">Deze gegevens komen bovenaan en onderaan elke factuur te staan. Zolang ze leeg zijn,
+        staat er op de factuur een duidelijke waarschuwing in plaats van een verzonnen nummer.</p>
+      <div class="raster" id="bhBedrijf"></div>
+    </div>
+
     <div class="card" style="padding:18px 20px">
       <h2 style="margin-top:0">Sjablonen</h2>
       <p class="uitleg">De berichttekst gaat naar WhatsApp en e-mail; sterretjes maken een woord *vet* in
@@ -1068,6 +1078,10 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         </div>
         <div class="v-voet" style="position:static;border:0;padding:12px 0 0">
           <span class="v-melding" id="vBetaalNote" style="color:var(--muted)"></span>
+          <!-- Angela, 07-10-2026: "als je op factuur drukt moet er ook echt een
+               factuursjabloon verschijnen die je kunt aanpassen." Deze knop
+               verschijnt zodra je bij Soort bericht Factuur kiest. -->
+          <button type="button" class="knop vol" id="vFactuur" hidden>Factuur opmaken</button>
           <button type="button" class="knop sec" id="vMaakLink">Betaallink maken</button>
           <button type="button" class="knop sec" id="vApp">Via WhatsApp</button>
           <button type="button" class="knop sec" id="vMail">E-mail opstellen</button>
@@ -6758,6 +6772,261 @@ function vstReviewTekst(r) {
   return t.join("\n");
 }
 
+/* ======================= FACTUUR =======================
+   Angela, 07-10-2026: "als je op factuur drukt moet er ook echt een
+   factuursjabloon verschijnen die je kunt aanpassen, en versturen met een mooi
+   sjabloon."
+
+   Tot nu toe wisselde "Factuur" alleen de berichttekst; er werd geen document
+   gemaakt. Dit bouwt de factuur op uit de reservering zelf: de arrangementen
+   zijn de regels, de bedragen komen uit de boeking, en de bedrijfsgegevens uit
+   instellingen. Niets wordt verzonnen - ontbreekt er een nummer, dan staat dat
+   er met zoveel woorden in plaats van een plausibel ogende leugen. */
+
+function fcBedrijf() {
+  const uit = {};
+  BH_BEDRIJF.forEach((b) => { uit[b.sleutel] = String(BEHEER_WAARDEN[b.sleutel] || "").trim(); });
+  return uit;
+}
+
+/* De regels van de factuur. De arrangementen van de reservering zijn de
+   basis; staat daar niets in, dan één regel met het totaalbedrag, want een
+   factuur zonder regels kun je niet versturen. Kortingsregels (negatief) gaan
+   gewoon mee - die horen er juist op. */
+function fcRegels(r) {
+  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
+  const regels = arr.map((a) => ({
+    naam: String((typeof a === "string" ? a : (a.naam || a.titel || "")) || "Onderdeel"),
+    aantal: Number(a && a.aantal) > 0 ? Number(a.aantal) : 1,
+    bedrag: Number(a && a.bedrag) || 0
+  })).filter((x) => x.naam || x.bedrag);
+  if (regels.length) return regels;
+  const totaal = Number(r.bedrag_totaal) || 0;
+  return [{ naam: (SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + " — verblijf",
+            aantal: 1, bedrag: totaal }];
+}
+
+/* Het factuurnummer. Het reserveringsnummer is uniek en staat al op alle
+   stukken, dus daar hangen we het aan vast - dan is een factuur altijd terug
+   te vinden bij de boeking. */
+function fcNummer(r) { return "F-" + (resNummer(r) || String(r.id || "").slice(0, 8)); }
+
+function fcDatumVandaag() {
+  const d = new Date();
+  return String(d.getDate()).padStart(2, "0") + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" + d.getFullYear();
+}
+
+/* De factuur als complete webpagina. Bewust zonder externe stijlbestanden en
+   zonder afbeeldingen van buiten: dit moet ook kloppen als je het afdrukt of
+   als pdf bewaart zonder internet. */
+function fcHtml(r) {
+  const b = fcBedrijf();
+  const regels = fcRegels(r);
+  const som = regels.reduce((t, x) => t + (x.bedrag || 0), 0);
+  const totaal = Number(r.bedrag_totaal) != null && Number(r.bedrag_totaal) > 0
+    ? Number(r.bedrag_totaal) : som;
+  const betaald = Number(r.betaald_bedrag) || 0;
+  const open = r.restant_bedrag != null ? Number(r.restant_bedrag)
+             : Math.max(0, totaal - betaald);
+  const pct = Number(String(b.bedrijf_btwtarief || "").replace(",", ".")) || 0;
+  /* Btw uit het totaal halen, niet erbovenop: de prijzen die de gast betaalt
+     zijn inclusief. */
+  const btw = pct > 0 ? Math.round((totaal - totaal / (1 + pct / 100)) * 100) / 100 : 0;
+  const p = periode(r);
+  const naam = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ") || "Gast";
+  const mist = BH_BEDRIJF.filter((x) => ["bedrijf_naam", "bedrijf_kvk", "bedrijf_btw", "bedrijf_iban"]
+    .indexOf(x.sleutel) > -1 && !b[x.sleutel]).map((x) => x.label);
+
+  const rij = (naam2, waarde, dik) =>
+    '<tr><td>' + esc(naam2) + '</td><td class="geld"' + (dik ? ' style="font-weight:700"' : "") +
+    '>&euro; ' + esc(euro(waarde)) + "</td></tr>";
+
+  return '<div class="fc-blad">' +
+    (mist.length
+      ? '<p class="fc-waarschuwing">Nog in te vullen bij Beheer: ' + esc(mist.join(", ")) +
+        ". Zolang dat niet gebeurd is, mag je deze factuur niet versturen.</p>"
+      : "") +
+    '<div class="fc-kop">' +
+      "<div><h1>" + esc(b.bedrijf_naam || "Bedrijfsnaam ontbreekt") + "</h1>" +
+        (b.bedrijf_adres ? "<div>" + esc(b.bedrijf_adres) + "</div>" : "") +
+        (b.bedrijf_email ? "<div>" + esc(b.bedrijf_email) + "</div>" : "") +
+        (b.bedrijf_telefoon ? "<div>" + esc(b.bedrijf_telefoon) + "</div>" : "") +
+      "</div>" +
+      '<div class="fc-rechts"><h2>Factuur</h2>' +
+        "<div><b>" + esc(fcNummer(r)) + "</b></div>" +
+        "<div>Datum: " + esc(fcDatumVandaag()) + "</div>" +
+        "<div>Reservering: " + esc(resNummer(r)) + "</div>" +
+      "</div>" +
+    "</div>" +
+    '<div class="fc-aan"><div class="fc-label">Factuur voor</div>' +
+      "<div><b>" + esc(naam) + "</b></div>" +
+      (r.gast_email ? "<div>" + esc(r.gast_email) + "</div>" : "") +
+    "</div>" +
+    '<div class="fc-verblijf">' +
+      "<div><span>Suite</span>" + esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + "</div>" +
+      "<div><span>Aankomst</span>" + esc(p.dag + " " + p.tijd) + "</div>" +
+      (nachtenVan(r) > 0 ? "<div><span>Verblijf</span>" + esc(nachtenTekst(r)) + "</div>" : "") +
+      (r.personen ? "<div><span>Personen</span>" + esc(r.personen) + "</div>" : "") +
+    "</div>" +
+    '<table class="fc-tabel"><thead><tr><th>Omschrijving</th><th class="geld">Bedrag</th></tr></thead><tbody>' +
+      regels.map((x) =>
+        "<tr><td>" + (x.aantal > 1 ? esc(x.aantal) + "&times; " : "") + esc(x.naam) +
+        '</td><td class="geld">&euro; ' + esc(euro(x.bedrag)) + "</td></tr>").join("") +
+    "</tbody></table>" +
+    '<table class="fc-totalen"><tbody>' +
+      rij("Totaal", totaal, true) +
+      (pct > 0 ? '<tr><td>Waarvan btw ' + esc(String(pct).replace(".", ",")) +
+        '%</td><td class="geld">&euro; ' + esc(euro(btw)) + "</td></tr>" : "") +
+      (betaald > 0 ? rij("Reeds betaald", betaald) : "") +
+      /* Altijd "Nog te voldoen", ook als het nul is. "Voldaan € 0,00" leest als
+         een vraag in plaats van een antwoord. */
+      rij("Nog te voldoen", open, true) +
+    "</tbody></table>" +
+    (open > 0 && b.bedrijf_iban
+      ? '<p class="fc-betalen">Graag &euro; ' + esc(euro(open)) + " overmaken op " +
+        esc(b.bedrijf_iban) + " onder vermelding van " + esc(fcNummer(r)) + ".</p>"
+      : "") +
+    '<div class="fc-voet">' +
+      (b.bedrijf_voet ? "<div>" + esc(b.bedrijf_voet) + "</div>" : "") +
+      "<div>" +
+        [b.bedrijf_kvk ? "KvK " + b.bedrijf_kvk : "",
+         b.bedrijf_btw ? "Btw " + b.bedrijf_btw : "",
+         b.bedrijf_iban || ""].filter(Boolean).map(esc).join(" &middot; ") +
+      "</div>" +
+    "</div>" +
+  "</div>";
+}
+
+/* Het venster. De factuur staat erin als bewerkbare tekst: je kunt een regel
+   aanpassen, iets weghalen of een zin toevoegen voordat je hem afdrukt of
+   meestuurt. Wat je hier verandert gaat mee naar de afdruk. */
+function fcOpenen() {
+  const r = HUIDIG; if (!r) return;
+  const vak = $("#fcInhoud");
+  if (!vak) return;
+  /* Dezelfde opmaak in het venster als op de afdruk; zonder dit zie je een
+     kale tekstbrij en weet je niet hoe het eruit komt te zien. */
+  const st = document.getElementById("fcStijl");
+  if (st && !st.textContent) st.textContent = FC_STIJL.replace(/body\{[^}]*\}/, "");
+  const sub = $("#fcSub");
+  if (sub) sub.textContent = fcNummer(r) + " \u00b7 " + (gastNaam(r) || "gast");
+  vak.innerHTML = fcHtml(r);
+  $("#fcNote").textContent = "";
+  $("#fcVenster").showModal();
+}
+
+/* Afdrukken of als pdf bewaren. In een eigen venster, zodat het afdrukken niet
+   het hele reserveringenscherm meeneemt. */
+function fcAfdrukken() {
+  const vak = $("#fcInhoud");
+  if (!vak) return;
+  const w = window.open("", "_blank", "noopener,width=820,height=1000");
+  if (!w) { $("#fcNote").textContent = "Het afdrukvenster werd geblokkeerd. Sta pop-ups toe voor dit scherm."; return; }
+  w.document.write("<!doctype html><html lang=nl><head><meta charset=utf-8>" +
+    "<title>" + esc(fcNummer(HUIDIG || {})) + "</title><style>" + FC_STIJL + "</style></head><body>" +
+    vak.innerHTML + "</body></html>");
+  w.document.close();
+  w.focus();
+  /* Even wachten tot de opmaak staat; anders drukt hij een kale pagina af. */
+  setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
+}
+
+const FC_STIJL = [
+  "body{font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#2A2520;",
+  "  margin:0;padding:28px 32px;background:#fff}",
+  ".fc-blad{max-width:720px;margin:0 auto}",
+  ".fc-waarschuwing{border:1px solid #B3261E;background:#FDECEA;color:#B3261E;",
+  "  border-radius:10px;padding:10px 12px;margin:0 0 18px;font-size:13px}",
+  ".fc-kop{display:flex;gap:24px;justify-content:space-between;align-items:flex-start;",
+  "  border-bottom:2px solid #2A2520;padding-bottom:14px;margin-bottom:18px;flex-wrap:wrap}",
+  ".fc-kop h1{font-size:19px;margin:0 0 4px;letter-spacing:.01em}",
+  ".fc-kop h2{font-size:17px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.08em}",
+  ".fc-rechts{text-align:right;min-width:190px}",
+  ".fc-aan{margin:0 0 16px}",
+  ".fc-label{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#6E6459;margin-bottom:3px}",
+  ".fc-verblijf{display:flex;gap:26px;flex-wrap:wrap;background:#F6F3EE;border-radius:10px;",
+  "  padding:12px 14px;margin:0 0 18px;font-size:13px}",
+  ".fc-verblijf span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6E6459}",
+  ".fc-tabel{width:100%;border-collapse:collapse;margin:0 0 14px}",
+  ".fc-tabel th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;",
+  "  color:#6E6459;border-bottom:1px solid #D8D0C6;padding:0 0 7px}",
+  ".fc-tabel td{padding:8px 0;border-bottom:1px solid #EFE9E1;vertical-align:top}",
+  ".fc-tabel .geld,.fc-totalen .geld{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}",
+  ".fc-totalen{width:100%;max-width:300px;margin-left:auto;border-collapse:collapse}",
+  ".fc-totalen td{padding:5px 0;border-bottom:1px solid #EFE9E1}",
+  ".fc-betalen{margin:18px 0 0;padding:11px 13px;background:#F6F3EE;border-radius:10px;font-size:13.5px}",
+  ".fc-voet{margin-top:26px;padding-top:12px;border-top:1px solid #D8D0C6;font-size:12px;color:#6E6459}",
+  "@media print{body{padding:0}.fc-waarschuwing{border-color:#B3261E}}"
+].join("\n");
+
+/* De knoppen van het factuurvenster. Eén luisteraar op het document, net als
+   de rest van dit scherm: het venster wordt telkens opnieuw gevuld. */
+document.addEventListener("click", (e) => {
+  if (!e.target.closest) return;
+
+  if (e.target.closest("#vFactuur")) {
+    e.preventDefault();
+    /* De sjablonen moeten binnen zijn, anders staan de bedrijfsgegevens leeg
+       terwijl ze wel zijn ingevuld. */
+    if (!BEHEER_GELADEN) {
+      laadSjablonen().then(() => { BEHEER_GELADEN = true; fcOpenen(); },
+        () => fcOpenen());
+    } else fcOpenen();
+    return;
+  }
+  if (e.target.closest("#fcSluit")) { e.preventDefault(); $("#fcVenster").close(); return; }
+  if (e.target.closest("#fcPrint")) { e.preventDefault(); fcAfdrukken(); return; }
+
+  if (e.target.closest("#fcKopieer")) {
+    e.preventDefault();
+    const tekst = ($("#fcInhoud") || {}).innerText || "";
+    const klaar = () => { $("#fcNote").textContent = "De factuurtekst is gekopieerd."; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tekst).then(klaar, () => {
+        $("#fcNote").textContent = "Kopiëren lukte niet; selecteer de tekst zelf.";
+      });
+    } else $("#fcNote").textContent = "Kopiëren kan hier niet; selecteer de tekst zelf.";
+    return;
+  }
+
+  if (e.target.closest("#fcMail")) {
+    e.preventDefault();
+    const r = HUIDIG; if (!r) return;
+    const adres = String(r.gast_email || "").trim();
+    if (!adres) { $("#fcNote").textContent = "Er staat geen e-mailadres bij deze gast."; return; }
+    /* De factuur zelf gaat als pdf mee: die maak je met de afdrukknop en hang
+       je aan de mail. In de mail zelf de begeleidende tekst - met het
+       factuurnummer en het openstaande bedrag, zodat de gast weet waar het
+       over gaat zonder de bijlage te openen. */
+    const open = r.restant_bedrag != null ? Number(r.restant_bedrag) : 0;
+    const voor = (r.gast_voornaam || "").trim();
+    const eigen = String(BEHEER_WAARDEN.bericht_factuur || "").trim();
+    const tekst = eigen
+      ? vulSjabloon(eigen, vstVelden(r))
+      : ["Beste " + (voor || "gast") + ",", "",
+         "Hierbij de factuur voor je reservering bij Bed & Wellness Flevoland.",
+         "Factuurnummer: " + fcNummer(r),
+         open > 0 ? "Nog te voldoen: € " + euro(open) : "Het bedrag is voldaan. Hartelijk dank.",
+         "", "Hartelijke groet,", "Bed & Wellness Flevoland"].join("\n");
+    const onderwerp = "Factuur " + fcNummer(r) + " — Bed & Wellness Flevoland";
+    window.open("mailto:" + encodeURIComponent(adres) + "?subject=" + encodeURIComponent(onderwerp) +
+      "&body=" + encodeURIComponent(tekst), "_blank", "noopener");
+    $("#fcNote").textContent = "De e-mail staat klaar. Hang de pdf er nog aan — maak die met de afdrukknop.";
+  }
+});
+
+/* De knop "Factuur opmaken" hoort alleen in beeld als je ook echt een factuur
+   wilt sturen. Hij volgt de keuzelijst eronder. */
+function fcKnopTonen() {
+  const knop = $("#vFactuur");
+  const keuze = $("#vSjabKeuze");
+  if (knop && keuze) knop.hidden = keuze.value !== "factuur";
+}
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.id === "vSjabKeuze") fcKnopTonen();
+});
+
 function vBerichtTekst(r) {
   /* Heb je voor dit soort bericht een sjabloon opgeslagen, dan gaat dat voor.
      Zo niet, dan blijft hieronder exact de tekst staan die er altijd al was,
@@ -6980,6 +7249,9 @@ function vulBetaalvak(r) {
     }
   }
   $("#vBericht").value = vBerichtTekst(r);
+  /* En de factuurknop meteen in de juiste stand zetten, want bij het openen
+     van een kaart verandert de keuzelijst niet en gaat "change" niet af. */
+  fcKnopTonen();
 }
 
 /* De link bij Mollie aanmaken. Op één plek, want hij wordt vanaf twee knoppen
@@ -7640,10 +7912,27 @@ const BH_REVIEW_STANDAARD = {
 const bhDocSleutel = (loc) => "incheckinfo_" + loc.toLowerCase();
 const bhRevSleutel = (loc) => "reviewlink_" + loc.toLowerCase();
 
+/* Bedrijfsgegevens voor op de factuur. Angela, 07-10-2026. Deze mogen niet
+   in de code staan en worden ook niet verzonnen: een factuur met een verkeerd
+   btw- of IBAN-nummer is erger dan geen factuur. Ze staan in instellingen en
+   worden op het beheertabblad ingevuld. */
+const BH_BEDRIJF = [
+  { sleutel: "bedrijf_naam",     label: "Bedrijfsnaam",            plaats: "Bed & Wellness Flevoland" },
+  { sleutel: "bedrijf_adres",    label: "Adres",                   plaats: "Straat 1, 8232 AB Lelystad" },
+  { sleutel: "bedrijf_email",    label: "E-mailadres",             plaats: "info@..." },
+  { sleutel: "bedrijf_telefoon", label: "Telefoon",                plaats: "06 ..." },
+  { sleutel: "bedrijf_kvk",      label: "KvK-nummer",              plaats: "12345678" },
+  { sleutel: "bedrijf_btw",      label: "Btw-nummer",              plaats: "NL001234567B01" },
+  { sleutel: "bedrijf_iban",     label: "IBAN",                    plaats: "NL00 BANK 0000 0000 00" },
+  { sleutel: "bedrijf_btwtarief", label: "Btw-tarief in procenten", plaats: "9" },
+  { sleutel: "bedrijf_voet",     label: "Tekst onderaan de factuur", plaats: "Bedankt voor je bezoek." }
+];
+
 function bhAlleSleutels() {
   const s = [];
   BH_LOCATIES.forEach((l) => { s.push(bhDocSleutel(l), bhRevSleutel(l)); });
   BH_SJABLONEN.forEach((t) => { s.push(t.bericht, t.opmaak); });
+  BH_BEDRIJF.forEach((b) => { s.push(b.sleutel); });
   return s;
 }
 
@@ -7683,6 +7972,13 @@ function tekenBeheer() {
   $("#bhReviews").innerHTML = BH_LOCATIES.map((l) =>
     '<label class="veld">' + esc(l) +
       '<input type="url" id="bh-' + esc(bhRevSleutel(l)) + '" placeholder="https://…"></label>').join("");
+
+  /* De bedrijfsgegevens, in hetzelfde stramien als de rest: een veld met
+     id "bh-<sleutel>", dan pakt het bewaren ze vanzelf mee. */
+  const bedrijfVak = $("#bhBedrijf");
+  if (bedrijfVak) bedrijfVak.innerHTML = BH_BEDRIJF.map((b) =>
+    '<label class="veld">' + esc(b.label) +
+      '<input type="text" id="bh-' + esc(b.sleutel) + '" placeholder="' + esc(b.plaats) + '"></label>').join("");
 
   $("#bhSjablonen").innerHTML = BH_SJABLONEN.map((t) =>
     '<details style="margin-top:10px"><summary style="cursor:pointer;padding:6px 0"><b>' + esc(t.titel) + "</b></summary>" +
@@ -7880,6 +8176,31 @@ document.addEventListener("DOMContentLoaded", () => {
   start();
 });
 </script>
+<!-- Angela, 07-10-2026: het factuurvenster. De factuur staat erin als
+     bewerkbare tekst: aanpassen wat er moet, dan afdrukken of als pdf bewaren
+     en meesturen met de e-mail. -->
+<dialog id="fcVenster" aria-labelledby="fcTitel">
+  <div class="v-kop">
+    <div><h2 id="fcTitel">Factuur</h2>
+      <div class="sub" id="fcSub"></div></div>
+    <button type="button" class="sluit" id="fcSluit" aria-label="Sluiten">&times;</button>
+  </div>
+  <p class="uitleg" style="margin:0 14px">Je kunt hieronder alles aanpassen voordat je hem afdrukt
+    of meestuurt &mdash; een regel wijzigen, iets weghalen of een zin toevoegen. Wat je hier verandert
+    gaat mee naar de afdruk.</p>
+  <div class="v-inhoud" style="overflow:auto;flex:1 1 auto;min-height:0;padding:0 22px 14px">
+    <div id="fcInhoud" contenteditable="true" spellcheck="false"
+         style="background:#fff;border:1px solid var(--line-soft);border-radius:12px;padding:6px"></div>
+  </div>
+  <div class="v-voet">
+    <span class="v-melding" id="fcNote"></span>
+    <button type="button" class="knop sec" id="fcKopieer">Tekst kopi&euml;ren</button>
+    <button type="button" class="knop sec" id="fcMail">E-mail opstellen</button>
+    <button type="button" class="knop vol" id="fcPrint">Afdrukken / opslaan als pdf</button>
+  </div>
+</dialog>
+<style id="fcStijl"></style>
+
 <script src="bwf-kalender.js?v=25"></script>
 <script src="bwf-planweergave.js?v=1"></script>
 <!-- De rekenregels van het membershipprogramma. Apart bestand, zodat de
