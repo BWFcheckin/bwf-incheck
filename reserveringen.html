@@ -2343,12 +2343,15 @@ function tekenBijboekMelding(r, formulieren) {
           (regels.length > 8 ? "<span>\u2026 en nog " + (regels.length - 8) + "</span>" : "") +
           "</div>"
         : "") +
+      /* De betaalwijze op het formulier is een voornemen, geen bewijs. Daarom
+         staat er "nog te betalen" en niet "afgerekend". Angela, 07-10-2026. */
       (c.extras_betaalwijze || c.checkout_extra_betaalwijze
-        ? '<div class="bijboekmeld-wijze">Op locatie afgerekend via ' +
-          esc(c.extras_betaalwijze || c.checkout_extra_betaalwijze) + ".</div>"
-        : '<div class="bijboekmeld-wijze">Er staat geen betaalwijze bij; controleer of dit nog betaald moet worden.</div>') +
+        ? '<div class="bijboekmeld-wijze">Nog te betalen \u2014 de gast wil afrekenen via ' +
+          esc(c.extras_betaalwijze || c.checkout_extra_betaalwijze) +
+          ". Zet het vast bij Betaling zodra het geld er is.</div>"
+        : '<div class="bijboekmeld-wijze">Nog te betalen; er staat geen betaalwijze bij.</div>') +
       (klaar
-        ? '<div class="bijboekmeld-wijze">Deze regels staan al bij de arrangementen van deze reservering.</div>'
+        ? '<div class="bijboekmeld-wijze">Deze regels staan bij de arrangementen en tellen mee in wat er nog te betalen is. Afgerekend? Zet dat vast bij Betaling.</div>'
         : (magBewerken()
             ? '<button type="button" class="knop vol klein" id="vBijboekVerwerk" ' +
               'data-checkin="' + esc(c.id) + '">Bijboeken verwerken</button>'
@@ -2381,8 +2384,12 @@ async function bijboekVerwerken(checkinId) {
         aantal: x.aantal > 0 ? x.aantal : 1,
         bedrag: Number(x.bedrag) || 0,
         bron: "incheckformulier",
+        /* De betaalwijze op het formulier is wat de gast WIL betalen, geen
+           bewijs dat het betaald is. Angela, 07-10-2026: "als er op locatie
+           betaald wordt moet hij nog betalen." Dus altijd open; betaald wordt
+           het pas als het geld er echt is. */
         betaalwijze: c.extras_betaalwijze || c.checkout_extra_betaalwijze || null,
-        betaald: !!(c.extras_betaalwijze || c.checkout_extra_betaalwijze),
+        betaald: false,
         tijdstip: new Date().toISOString(),
         door: NAAM
       }));
@@ -2395,15 +2402,25 @@ async function bijboekVerwerken(checkinId) {
       bedrag_totaal: Math.round((totaalNu + som) * 100) / 100,
       gewijzigd_door: NAAM
     };
-    /* Is het op locatie afgerekend, dan telt het ook als betaald mee; anders
-       blijft het openstaan en ziet de assistent dat er nog geld moet komen. */
-    const alBetaald = !!(c.extras_betaalwijze || c.checkout_extra_betaalwijze);
-    if (alBetaald) {
-      body.betaald_bedrag = Math.round(((Number(r.betaald_bedrag) || 0) + som) * 100) / 100;
-    } else {
-      body.restant_bedrag = Math.round(((Number(r.restant_bedrag) || 0) + som) * 100) / 100;
-      body.betaalstatus = "deels";
-    }
+    /* Het bedrag komt altijd bij wat er nog te betalen is, ook als er een
+       betaalwijze op het formulier staat.
+
+       Angela, 07-10-2026: "als er op locatie betaald wordt moet hij nog
+       betalen, en moet jij niet de betaalstatus betaald krijgen; hij krijgt
+       alleen die betaalstatus als de Mollie-link die verstuurd is
+       daadwerkelijk betaald is."
+
+       Dat is ook hoe de rest van dit scherm werkt: betaalstatus "betaald" is
+       een vaststelling dat het geld er is, niet een voornemen. Een bijboeking
+       op het formulier zegt alleen wat de gast erbij heeft genomen. Wie het
+       daarna op locatie afrekent, zet dat zelf vast bij Betaling - en dan
+       klopt ook wie het heeft aangenomen en wanneer. */
+    const wijze = c.extras_betaalwijze || c.checkout_extra_betaalwijze || "";
+    body.restant_bedrag = Math.round(((Number(r.restant_bedrag) || 0) + som) * 100) / 100;
+    /* Stond de reservering op betaald, dan klopt dat nu niet meer: er is iets
+       bij gekomen. "deels" is dan de eerlijke stand. Stond hij al open, dan
+       blijft dat zo. */
+    if (String(r.betaalstatus || "") === "betaald") body.betaalstatus = "deels";
 
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
       { method: "PATCH", body: body });
@@ -2412,7 +2429,7 @@ async function bijboekVerwerken(checkinId) {
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
     melding(nieuw.length + (nieuw.length === 1 ? " regel" : " regels") +
       " van het incheckformulier verwerkt \u2014 \u20ac " + euro(som) +
-      (alBetaald ? " (al afgerekend op locatie)." : " (staat nog open)."));
+      " staat nu open" + (wijze ? ", af te rekenen via " + wijze : "") + ".");
     tekenPersoneelKaart(rij[0]);
     /* De koppelingen opnieuw ophalen, zodat de melding van oranje "actie
        nodig" naar groen "verwerkt" gaat in plaats van zomaar te verdwijnen.
