@@ -348,6 +348,9 @@ tbody tr.geannuleerd .gast b{text-decoration:line-through}
 .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;
   background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);margin:0 4px 4px 0}
 .pill.ok{background:var(--ok-zacht);border-color:transparent;color:var(--ok)}
+/* Meerdere nachten: een eigen kleur, zodat je in een lijst met tientallen
+   regels meteen ziet welke boekingen doorlopen. Angela, 07-10-2026. */
+.pill.nachten{background:#EDE4F3;border-color:transparent;color:#5B3B7A;font-weight:600}
 .pill.warn{background:var(--warn-zacht);border-color:transparent;color:var(--warn)}
 .pill.crit{background:var(--crit-zacht);border-color:transparent;color:var(--crit)}
 .leeg{padding:28px;text-align:center;color:var(--muted)}
@@ -1608,6 +1611,23 @@ function periode(r) {
   const tUit = fmtTijd.format(v);
   return { dag: dagA, tijd: tIn + " – " + (dagA === dagV ? "" : dagV + " ") + tUit };
 }
+/* Hoeveel nachten duurt deze reservering? Angela, 07-10-2026: "ik wil kunnen
+   zien dat het een reservering voor meerdere nachten is."
+
+   Gerekend op de kale datums, niet op de tijdstempels: een aankomst om 20:00
+   en een vertrek om 10:00 scheelt veertien uur, en dat zou naar beneden
+   afronden op nul nachten. Een dagverblijf geeft 0 terug. */
+function nachtenVan(r) {
+  const a = String((r && r.aankomst) || "").slice(0, 10);
+  const v = String((r && r.vertrek) || "").slice(0, 10);
+  if (!a || !v || v <= a) return 0;
+  return Math.round((new Date(v + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+}
+function nachtenTekst(r) {
+  const n = nachtenVan(r);
+  return n > 0 ? n + (n === 1 ? " nacht" : " nachten") : "";
+}
+
 function statusPill(s) {
   const cls = s === "bevestigd" ? "ok" : s === "optie" ? "warn" : "crit";
   return '<span class="pill ' + cls + '">' + esc(STATUSSEN[s] || s) + "</span>";
@@ -1741,6 +1761,11 @@ function rijHtml(r) {
         "<span>Aankomst <b>" + esc(p.dag) + "</b></span>" +
         "<span><b>" + esc(p.tijd) + "</b></span>" +
         "<span><b>" + esc(TYPES[r.type] || r.type) + "</b></span>" +
+        /* Bij twee of meer nachten een eigen pil: anders zie je alleen de
+           aankomstdatum en lijkt het een boeking van één nacht. */
+        (nachtenVan(r) > 1
+          ? '<span class="pill nachten">' + esc(nachtenTekst(r)) + "</span>"
+          : "") +
         (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
         /* Angela, 06-10-2026: de locatiemanager ook in het overzicht, zodat je
            zonder kaarten te openen ziet wie welke dienst draaide. */
@@ -2783,7 +2808,17 @@ function tekenPersoneelKaart(r) {
       kaartRegel("Suite", esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite)),
       kaartRegel("Geboekt via", esc(KANALEN[r.kanaal] || r.kanaal)),
       kaartRegel("Aankomst", esc(p.dag + " " + p.tijd)),
-      kaartRegel("Soort", esc(TYPES[r.type] || r.type)),
+      kaartRegel("Soort", esc(TYPES[r.type] || r.type) +
+        (nachtenVan(r) > 1
+          ? ' <span class="pill nachten">' + esc(nachtenTekst(r)) + "</span>"
+          : "")),
+      /* Bij meerdere nachten de hele periode voluit, zodat je niet hoeft te
+         rekenen vanaf de aankomstdatum. */
+      nachtenVan(r) > 1
+        ? kaartRegel("Verblijf", esc(nachtenTekst(r)) + " \u00b7 " +
+            esc(String(r.aankomst || "").slice(0, 10)) + " t/m " +
+            esc(String(r.vertrek || "").slice(0, 10)))
+        : "",
       kaartRegel("Personen", r.personen ? esc(r.personen) : ""),
       kaartRegel("Status", esc(STATUSSEN[r.status] || r.status))
     ], true) +
@@ -7572,7 +7607,7 @@ document.addEventListener("DOMContentLoaded", () => {
   start();
 });
 </script>
-<script src="bwf-kalender.js?v=24"></script>
+<script src="bwf-kalender.js?v=25"></script>
 <script src="bwf-planweergave.js?v=1"></script>
 <!-- De rekenregels van het membershipprogramma. Apart bestand, zodat de
      korting op elk scherm hetzelfde uitvalt. -->

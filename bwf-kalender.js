@@ -1019,13 +1019,29 @@
            een inchecktijd afgesproken, dan heet het "verwacht" en niet
            "aankomst" - dan weet je dat de tijd die er staat de afspraak is en
            niet de standaardtijd van het blok. */
+        /* Angela, 07-10-2026: "dat je duidelijk kan zien dat het een reservering
+           voor meerdere nachten is." Op de kale datums gerekend: een aankomst
+           om 20:00 en een vertrek om 10:00 scheelt geen hele dag en zou naar
+           beneden afronden op nul nachten. */
+        var nachten = Math.round(
+          (new Date(e.datum + "T12:00:00") - new Date(s.datum + "T12:00:00")) / 86400000);
+        var meer = isRes && nachten > 1;
+
         var beginTekst = (isRes ? (eigenTijd ? "verwacht " : "aankomst ") : "van ") +
-          dagKort(s.datum) + " " + s.tijd;
+          dagKort(s.datum) + " " + s.tijd + (meer ? " \u00b7 " + nachten + " nachten" : "");
         var eindTekst = (isRes ? "vertrek " : "tot ") + dagKort(e.datum) + " " + e.tijd;
         /* Valt de gekozen dag tussen aankomst en vertrek in, dan is dat het
-           enige wat je verder nog moet weten. Die aanduiding stond er eerder
-           ook en blijft dus staan. */
-        var midden = (s.datum !== st.dag && e.datum !== st.dag) ? "<small>verblijft</small>" : "";
+           enige wat je verder nog moet weten. Bij meerdere nachten staat erbij
+           de hoeveelste nacht het is, zodat je niet hoeft te tellen vanaf de
+           aankomstdatum. */
+        var tussenin = (s.datum !== st.dag && e.datum !== st.dag);
+        var welke = meer && tussenin
+          ? Math.round((new Date(st.dag + "T12:00:00") - new Date(s.datum + "T12:00:00")) / 86400000) + 1
+          : 0;
+        var midden = !tussenin ? ""
+          : (welke > 0 && welke <= nachten)
+            ? "<small>nacht " + welke + " van " + nachten + "</small>"
+            : "<small>verblijft</small>";
         return esc(beginTekst) + "<small>" + esc(eindTekst) + "</small>" + midden;
       }
       var regels = rijen.map(function (r) {
