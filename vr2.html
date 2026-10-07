@@ -4303,32 +4303,53 @@ function mwOptiesAllen(alleOptie){
     S.medewerkers.filter(m=>m.actief!==false)
       .map(m=>`<option value="${m.id}"${IK&&m.id===IK.id?' selected':''}>${esc(m.naam)}</option>`).join('');
 }
+/* Twee hulpjes die niet omvallen op een veld dat er niet meer is.
+
+   Dit is 07-10-2026 misgegaan en het hele dashboard lag eruit. vulSelects()
+   schreef naar #fWie en #fMaand; die velden zaten in het invoerblok voor
+   werkzaamheden dat op 06-10 is vervangen door de pagina werkzaamheden.html in
+   een venster. Eén regel die naar null schreef gooide een fout, start() stopte
+   daar, en dus laadde er daarna NIETS meer: geen reserveringen, geen taken,
+   geen tellers. Een leeg scherm terwijl er niets met de gegevens aan de hand
+   was.
+
+   Vandaar deze twee: zetten wat er is, en stil overslaan wat er niet is. Een
+   blok dat later verdwijnt mag nooit meer de rest meesleuren. */
+function zetHtml(kies, html){
+  const el = $(kies);
+  if(el) el.innerHTML = html;
+  return !!el;
+}
+function zetWaarde(kies, waarde){
+  const el = $(kies);
+  if(el) el.value = waarde;
+  return !!el;
+}
+
 function vulSelects(){
-  $('#tkMw').innerHTML  = mwOptiesAllen('Niet toegewezen');
-  $('#emMw').innerHTML  = mwOptiesAllen('Niet toegewezen');
+  zetHtml('#tkMw', mwOptiesAllen('Niet toegewezen'));
+  zetHtml('#emMw', mwOptiesAllen('Niet toegewezen'));
   /* overdracht: iedereen mag aan iedereen overdragen, ook als medewerker */
   const allen = S.medewerkers.filter(m=>m.actief!==false);
-  $('#odVan').innerHTML = allen.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
-  $('#odAan').innerHTML = `<option value="">Iedereen</option>`+
-    allen.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join('');
-  if(IK) $('#odVan').value = IK.id;
+  zetHtml('#odVan', allen.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join(''));
+  zetHtml('#odAan', `<option value="">Iedereen</option>`+
+    allen.map(m=>`<option value="${m.id}">${esc(m.naam)}</option>`).join(''));
+  if(IK) zetWaarde('#odVan', IK.id);
   /* gastenregister */
-  if(S.belasting.length){
+  if(S.belasting.length && $('#gaLoc')){
     const hl = $('#gaLoc').value;
-    $('#gaLoc').innerHTML = S.belasting.map(b=>`<option value="${esc(b.locatie)}"${b.locatie===hl?' selected':''}>${esc(b.locatie)}</option>`).join('');
+    zetHtml('#gaLoc', S.belasting.map(b=>`<option value="${esc(b.locatie)}"${b.locatie===hl?' selected':''}>${esc(b.locatie)}</option>`).join(''));
   }
-  if(!$('#gaAan').value){ const m=new Date(); m.setDate(m.getDate()+1);
-    $('#gaAan').value = vandaag(); $('#gaVer').value = m.toISOString().slice(0,10); }
-  gaHerbereken();
+  if($('#gaAan') && !$('#gaAan').value){ const m=new Date(); m.setDate(m.getDate()+1);
+    zetWaarde('#gaAan', vandaag()); zetWaarde('#gaVer', m.toISOString().slice(0,10)); }
+  try{ gaHerbereken(); }catch(e){ console.error('gastenregister herberekenen mislukte:', e); }
   /* Het invoerblok is op 06-10-2026 vervangen door de pagina
-     werkzaamheden.html in een venster; deze velden bestaan dus niet meer.
-     De code eromheen blijft staan voor het overzicht eronder, maar mag niet
-     omvallen op wat er niet is. */
-  $('#fWie').innerHTML  = mwOpties('Iedereen');
-  $('#belToewijzen').innerHTML = mwOpties('Iedereen');
-  if(!isEigenaar()) $('#fWie').value = IK.id;
-  if(!$('#fMaand').value)  $('#fMaand').value  = vandaag().slice(0,7);
-  berekenBedrag();
+     werkzaamheden.html in een venster; deze velden bestaan dus niet meer. */
+  zetHtml('#fWie', mwOpties('Iedereen'));
+  zetHtml('#belToewijzen', mwOpties('Iedereen'));
+  if(!isEigenaar() && IK) zetWaarde('#fWie', IK.id);
+  if($('#fMaand') && !$('#fMaand').value) zetWaarde('#fMaand', vandaag().slice(0,7));
+  try{ berekenBedrag(); }catch(e){ console.error('bedrag berekenen mislukte:', e); }
 }
 
 /* ---------------- systeembalk: boekingssystemen en agenda's ---------------- */
