@@ -6902,6 +6902,15 @@ function fcHtml(r) {
     '<tr><td>' + esc(naam2) + '</td><td class="geld"' + (dik ? ' style="font-weight:700"' : "") +
     '>&euro; ' + esc(euro(waarde)) + "</td></tr>";
 
+  /* Onthouden wat er in beeld staat, zodat het wisselen van een btw-tarief de
+     totalen opnieuw kan rekenen.
+
+     Dit stond eerst middenin de tekst die wordt opgebouwd, als
+     (FC_NU = ...) && '<table...'. Dat ging mis: + bindt sterker dan &&, dus
+     alles vóór dat punt - de hele kop van de factuur - viel weg. Gevonden door
+     de afdruk na te meten in plaats van hem te bekijken. Angela, 07-10-2026. */
+  FC_NU = { regels: regels, totaal: totaal, betaald: betaald, open: open };
+
   return '<div class="fc-blad">' +
     (mist.length
       ? '<p class="fc-waarschuwing">Nog in te vullen bij Beheer: ' + esc(mist.join(", ")) +
@@ -6929,7 +6938,6 @@ function fcHtml(r) {
       (nachtenVan(r) > 0 ? "<div><span>Verblijf</span>" + esc(nachtenTekst(r)) + "</div>" : "") +
       (r.personen ? "<div><span>Personen</span>" + esc(r.personen) + "</div>" : "") +
     "</div>" +
-    (FC_NU = { regels: regels, totaal: totaal, betaald: betaald, open: open }) &&
     '<table class="fc-tabel"><thead><tr><th>Omschrijving</th><th class="fc-btwkop">Btw</th>' +
       '<th class="geld">Bedrag</th></tr></thead><tbody>' +
       regels.map((x, i) =>
@@ -7003,8 +7011,7 @@ document.addEventListener("change", (e) => {
 function fcAfdrukken() {
   const vak = $("#fcInhoud");
   if (!vak) return;
-  const w = window.open("", "_blank", "noopener,width=820,height=1000");
-  if (!w) { $("#fcNote").textContent = "Het afdrukvenster werd geblokkeerd. Sta pop-ups toe voor dit scherm."; return; }
+
   /* De keuzelijsten voor het btw-tarief horen niet op een factuur. Op de
      afdruk worden ze gewone tekst - alleen het percentage, niet de uitleg
      erachter. */
@@ -7015,13 +7022,49 @@ function fcAfdrukken() {
     vervang.textContent = tekst.split("\u00b7")[0].trim();
     sel.parentNode.replaceChild(vervang, sel);
   });
-  w.document.write("<!doctype html><html lang=nl><head><meta charset=utf-8>" +
+
+  /* Afdrukken via een verborgen venster IN de pagina, niet via een nieuw
+     browservenster.
+
+     Angela, 07-10-2026: "bij factuur opslaan als pdf komt het zo" - een leeg
+     about:blank. Dat kwam door "noopener" bij window.open: met die optie geeft
+     de browser geen greep op het nieuwe venster terug, dus er viel niets in te
+     schrijven en bleef het leeg. Een ingebouwd venster heeft dat probleem
+     niet, en wordt ook nooit door een pop-upblokkering tegengehouden. */
+  const oudFrame = document.getElementById("fcPrintFrame");
+  if (oudFrame) oudFrame.remove();
+
+  const frame = document.createElement("iframe");
+  frame.id = "fcPrintFrame";
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0";
+  document.body.appendChild(frame);
+
+  const d = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+  if (!d) {
+    $("#fcNote").textContent = "Afdrukken lukte niet in deze browser. Gebruik Tekst kopiëren.";
+    frame.remove();
+    return;
+  }
+  d.open();
+  d.write("<!doctype html><html lang=\"nl\"><head><meta charset=\"utf-8\">" +
     "<title>" + esc(fcNummer(HUIDIG || {})) + "</title><style>" + FC_STIJL + "</style></head><body>" +
     kopie.innerHTML + "</body></html>");
-  w.document.close();
-  w.focus();
+  d.close();
+
+  $("#fcNote").textContent = "Het afdrukvenster wordt klaargemaakt…";
   /* Even wachten tot de opmaak staat; anders drukt hij een kale pagina af. */
-  setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
+  setTimeout(() => {
+    try {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      $("#fcNote").textContent = "Kies in het afdrukvenster \"Bewaar als pdf\".";
+    } catch (e) {
+      $("#fcNote").textContent = "Afdrukken lukte niet: " + e.message;
+    }
+    /* Het venster laten staan tot het afdrukken klaar is; daarna opruimen. */
+    setTimeout(() => { const f = document.getElementById("fcPrintFrame"); if (f) f.remove(); }, 60000);
+  }, 400);
 }
 
 const FC_STIJL = [
