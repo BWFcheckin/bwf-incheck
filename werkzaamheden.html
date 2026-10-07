@@ -761,18 +761,41 @@ function tekenOverzicht() {
     return;
   }
 
+  /* Regels zonder medewerker tellen wel mee in het totaal maar horen bij
+     niemand. Ze verdwijnen zodra je per persoon kijkt, dus dat moet je zien. */
+  const zonderNaam = lijst.filter((w) => !w.medewerker_id);
+  const waarschuwing = (ROL === "eigenaar" && zonderNaam.length)
+    ? "<p class='leeg' style='border-color:#B3261E;color:#B3261E'>" +
+      zonderNaam.length + (zonderNaam.length === 1 ? " regel staat" : " regels staan") +
+      " op niemands naam, samen " +
+      eur(zonderNaam.reduce((s2, w) => s2 + (Number(w.bedrag) || 0), 0)) +
+      ". Ze tellen hier wel mee, maar verdwijnen zodra je per persoon kijkt. " +
+      "Hieronder staan ze gemerkt met ZONDER NAAM.</p>"
+    : "";
+
   const perDag = {};
   lijst.forEach((w) => { (perDag[w.datum] = perDag[w.datum] || []).push(w); });
 
   const magAfvinken = ROL === "eigenaar";
-  $("#lijst").innerHTML = Object.keys(perDag).sort().reverse().map((d) => {
+  $("#lijst").innerHTML = waarschuwing + Object.keys(perDag).sort().reverse().map((d) => {
     const regels = perDag[d];
     const dagTot = regels.reduce((s, w) => s + (Number(w.bedrag) || 0), 0);
     return "<div class='dag'>" +
       "<div class='dag-kop'><span>" + esc(datumKort(d)) + "</span><b>" + eur(dagTot) + "</b></div>" +
       regels.map((w) => {
         const wie = MENSEN.find((m) => m.id === w.medewerker_id);
-        const toon = (ROL === "eigenaar" && wie && IK && wie.id !== IK.id) ? " · " + esc(wie.naam) : "";
+        /* Angela, 07-10-2026: "ik zie de cijfers van september van Kelly niet
+           meer, er staat alleen 7 euro."
+
+           De naam stond er alleen bij als de regel NIET van jezelf was. Een
+           regel zonder medewerker_id zag er daardoor precies zo uit als je
+           eigen regel - en zodra je per persoon filtert valt zo'n regel weg
+           zonder dat iemand ziet waarom. Nu staat er altijd een naam, en
+           "zonder naam" als er geen medewerker aan hangt. */
+        const toon = ROL !== "eigenaar" ? ""
+          : wie ? " · " + esc(wie.naam)
+          : w.medewerker_id ? " · onbekende medewerker"
+          : " · ZONDER NAAM";
         /* Een urenregel heeft geen tarief en geen bedrag; "3 × € 0,00" is dan
            onzin. Toon het aantal uur, met de tijden erbij als die er zijn. */
         const hoe = isUren(w)
