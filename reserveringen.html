@@ -1444,6 +1444,11 @@ let CALLS_LIJST = {};
    via een betaallink is betaald, ook als de reservering zelf nog niet is
    bijgewerkt - dan is de melding van Mollie niet aangekomen. */
 let MOLLIE_LIJST = {};
+/* Wat er per reservering via het incheckformulier is bijgeboekt. Angela,
+   07-10-2026: "kan er ook een melding hier verschijnen" - bij de stappenbalk.
+   Zonder deze lijst weet de balk in het overzicht er niets van; de kaart haalt
+   het formulier zelf op, maar de lijst doet dat niet per regel. */
+let BIJBOEK_LIJST = {};
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1668,8 +1673,16 @@ const STAP_KORT = {
   "Incheckformulier gekoppeld": "Incheck",
   "Betaling rond": "Betaling",
   "Reviewlink verstuurd": "Review",
+  "Bijboeking verwerkt": "Bijboeking",
   "Volledig afgerond": "Afgerond"
 };
+/* De stap over een nog te verwerken bijboeking heeft het bedrag in de naam, dus
+   die past niet in de vaste lijst hierboven. Op de kaart in het overzicht is
+   "Bijboeking" genoeg; het bedrag staat in de tooltip. */
+function stapKort(naam) {
+  if (naam.indexOf("Bijboeking") === 0) return "Bijboeking";
+  return STAP_KORT[naam] || naam;
+}
 
 function rijHtml(r) {
   const p = periode(r);
@@ -1756,7 +1769,7 @@ function rijHtml(r) {
   const stappen = '<div class="reskaart-stappen">' +
     balkStand(r, CALLS_LIJST[r.id]).map(([naam, ja]) =>
       '<span class="stap ' + (ja ? "ja" : "nee") + '" title="' + esc(naam) + '"><i>' +
-      (ja ? "&#10003;" : "&#10007;") + "</i>" + esc(STAP_KORT[naam] || naam) + "</span>").join("") +
+      (ja ? "&#10003;" : "&#10007;") + "</i>" + esc(stapKort(naam)) + "</span>").join("") +
     "</div>";
 
   return '<article class="reskaart ' + esc(r.status) + '" data-id="' + esc(r.id) + '" tabindex="0">' +
@@ -1884,6 +1897,8 @@ async function laad() {
     /* En de betaalde Mollie-links, zodat de kaart laat zien dat er betaald is
        - ook als de melding van Mollie niet is aangekomen. */
     vulMollieVoorLijst().then(teken, function () {});
+    /* En de bijboekingen uit de incheckformulieren, voor de stap in de balk. */
+    vulBijboekVoorLijst().then(teken, function () {});
   } catch (e) {
     $("#telling").textContent = "";
     melding("Reserveringen konden niet worden geladen: " + e.message, "fout");
@@ -1912,6 +1927,46 @@ async function vulCallsVoorLijst() {
     });
   }
   CALLS_LIJST = nieuw;
+}
+
+/* De incheckformulieren met bijgeboekte extra's van de geladen reserveringen.
+   Zelfde aanpak als de calls: in blokken van 80 en stil, want mislukt het dan
+   blijft de lijst gewoon staan. De koppeling loopt op twee manieren - via
+   checkin_id op de reservering, en via gekoppelde_reservering op het
+   formulier - dus allebei meenemen. */
+async function vulBijboekVoorLijst() {
+  const ids = RIJEN.map((r) => r.id).filter(Boolean);
+  if (!ids.length) { BIJBOEK_LIJST = {}; return; }
+  const nieuw = {};
+  for (let i = 0; i < ids.length; i += 80) {
+    const deel = ids.slice(i, i + 80);
+    const sleutels = deel.map((id) => "reservering:" + id);
+    const rijen = await api("checkins?select=" + CHECKIN_VELDEN + ",gekoppelde_reservering" +
+      "&gekoppelde_reservering=in.(" + sleutels.map(encodeURIComponent).join(",") + ")",
+      { stil: true }) || [];
+    rijen.forEach((c) => {
+      const resId = String(c.gekoppelde_reservering || "").replace("reservering:", "");
+      if (!resId || bijboekBedrag(c) <= 0) return;
+      /* Staat er meer dan één formulier bij een boeking, dan telt het
+         definitieve - anders zou een concept hetzelfde nog een keer melden. */
+      const bestaand = nieuw[resId];
+      if (!bestaand || (bestaand.status !== "definitief" && c.status === "definitief")) nieuw[resId] = c;
+    });
+  }
+  /* Formulieren die via checkin_id aan de reservering hangen en nog niet
+     gevonden zijn, er los bij halen. */
+  const open = RIJEN.filter((r) => r.checkin_id && !nieuw[r.id]);
+  for (let i = 0; i < open.length; i += 80) {
+    const deel = open.slice(i, i + 80);
+    const rijen = await api("checkins?select=" + CHECKIN_VELDEN +
+      "&id=in.(" + deel.map((r) => encodeURIComponent(r.checkin_id)).join(",") + ")",
+      { stil: true }) || [];
+    deel.forEach((r) => {
+      const c = rijen.find((x) => String(x.id) === String(r.checkin_id));
+      if (c && bijboekBedrag(c) > 0) nieuw[r.id] = c;
+    });
+  }
+  BIJBOEK_LIJST = nieuw;
 }
 
 /* De betaalde Mollie-links van de geladen reserveringen ophalen. Net als bij
@@ -4054,8 +4109,24 @@ function balkStand(r, w) {
     ["Betaling rond", betaling],
     [reviewNaam, review]
   ];
-  /* Volledig afgerond is geen apart veld: het is waar zodra de vijf stappen
-     hierboven alle vijf groen zijn. */
+
+  /* Angela, 07-10-2026: "kan er ook een melding hier verschijnen" - bij de
+     stappenbalk, als er via het incheckformulier is bijgeboekt.
+
+     Deze stap komt er alleen bij als er écht iets is bijgeboekt. Hem altijd
+     tonen zou bij vrijwel elke boeking een rood kruisje geven voor iets wat er
+     niet is, en dan kijkt niemand er meer naar. */
+  const bijb = BIJBOEK_LIJST[r.id];
+  if (bijb) {
+    const verwerkt = bijboekVerwerkt(r);
+    const bed = bijboekBedrag(bijb);
+    stappen.push([verwerkt
+      ? "Bijboeking verwerkt"
+      : "Bijboeking \u20ac " + euro(bed) + " nog verwerken", verwerkt]);
+  }
+
+  /* Volledig afgerond is geen apart veld: het is waar zodra alle stappen
+     hierboven groen zijn - de bijboeking telt dus mee. */
   stappen.push(["Volledig afgerond", stappen.every((x) => x[1])]);
   return stappen;
 }
