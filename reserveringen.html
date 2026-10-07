@@ -351,6 +351,17 @@ tbody tr.geannuleerd .gast b{text-decoration:line-through}
 /* Meerdere nachten: een eigen kleur, zodat je in een lijst met tientallen
    regels meteen ziet welke boekingen doorlopen. Angela, 07-10-2026. */
 .pill.nachten{background:#EDE4F3;border-color:transparent;color:#5B3B7A;font-weight:600}
+/* De melding over bijgeboekte extra's uit het incheckformulier. Staat bovenaan
+   de kaart en valt op: dit is iets wat nog moet gebeuren. Angela, 07-10-2026. */
+.bijboekmeld{border:1px solid #D9A441;background:#FFF7E8;border-radius:12px;
+  padding:12px 14px;margin:0 0 12px}
+.bijboekmeld.klaar{border-color:#2E7D5B;background:#EDF6F0}
+.bijboekmeld-kop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:14.5px}
+.bijboekmeld-bedrag{margin-left:auto;font-weight:700;font-size:16px}
+.bijboekmeld-regels{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.bijboekmeld-regels span{background:rgba(0,0,0,.05);border-radius:999px;padding:2px 9px;font-size:12.5px}
+.bijboekmeld-wijze{font-size:12.5px;color:var(--muted);margin-top:8px}
+.bijboekmeld .knop{margin-top:10px}
 .pill.warn{background:var(--warn-zacht);border-color:transparent;color:var(--warn)}
 .pill.crit{background:var(--crit-zacht);border-color:transparent;color:var(--crit)}
 .leeg{padding:28px;text-align:center;color:var(--muted)}
@@ -2245,6 +2256,43 @@ function leesUitBron(tekst) {
    plekken opnieuw getekend wordt zonder dat de koppelingen opnieuw geladen
    worden - zonder dit geheugen bleef het blok dan op "wordt geladen" staan. */
 const FORMSTAND = {};
+/* Wat we van een incheckformulier nodig hebben. Op één plek, zodat de twee
+   vragen hieronder niet uit elkaar kunnen lopen. */
+const CHECKIN_VELDEN = "id,status,datum,bestellingen,service_items,extras_totaal," +
+  "extras_betaalwijze,extra_omzet,checkout_extra_betaalwijze";
+
+/* Wat er via het formulier is bijgeboekt. bestellingen en service_items zijn
+   allebei lijsten met regels; welke van de twee gevuld is hangt af van het
+   soort formulier, dus ze tellen allebei mee. */
+function bijboekRegels(c) {
+  if (!c) return [];
+  const uit = [];
+  ["bestellingen", "service_items"].forEach((veld) => {
+    const lijst = c[veld];
+    if (!Array.isArray(lijst)) return;
+    lijst.forEach((x) => {
+      if (!x) return;
+      const naam = typeof x === "string" ? x : (x.naam || x.titel || x.omschrijving || "");
+      const aantal = Number(x && x.aantal) || 0;
+      const bedrag = Number(x && (x.bedrag != null ? x.bedrag : x.prijs)) || 0;
+      if (naam || bedrag) uit.push({ naam: String(naam), aantal: aantal, bedrag: bedrag });
+    });
+  });
+  return uit;
+}
+function bijboekBedrag(c) {
+  if (!c) return 0;
+  const uitVeld = Number(c.extras_totaal) || Number(c.extra_omzet) || 0;
+  if (uitVeld) return uitVeld;
+  return bijboekRegels(c).reduce((t, x) => t + (x.bedrag || 0), 0);
+}
+/* Is het al verwerkt in de reservering? Zodra er een arrangementregel met het
+   merkteken "incheckformulier" bij staat, is de assistent ermee klaar en hoeft
+   de melding niet meer in beeld. */
+function bijboekVerwerkt(r) {
+  const arr = Array.isArray(r && r.arrangementen) ? r.arrangementen : [];
+  return arr.some((a) => a && String(a.bron || "") === "incheckformulier");
+}
 function incheckVakHtml(resId) {
   const s = FORMSTAND[resId];
   if (!s) return '<span style="color:var(--muted)">wordt geladen&hellip;</span>';
@@ -2258,6 +2306,129 @@ function incheckVakHtml(resId) {
         esc(encodeURIComponent(s.bewerkId)) + '" target="_blank" rel="noopener">Aanpassen</a>'
       : "");
 }
+
+/* De melding bovenaan de reserveringskaart over wat er via het
+   incheckformulier is bijgeboekt. Angela, 07-10-2026: "zodat de VR-assistent
+   in één oogopslag ziet dat er actie nodig is."
+
+   Hij verdwijnt vanzelf zodra de assistent op "Bijboeken verwerken" heeft
+   gedrukt: dan staan de regels als arrangement bij de reservering, met het
+   merkteken incheckformulier, en is er niets meer te doen. */
+function tekenBijboekMelding(r, formulieren) {
+  const vak = $("#vBijboekMelding");
+  if (!vak) return;
+  const metExtras = (formulieren || []).filter((c) => bijboekBedrag(c) > 0 || bijboekRegels(c).length);
+  if (!metExtras.length) { vak.innerHTML = ""; return; }
+
+  /* Het nieuwste formulier telt: een definitief formulier overschrijft een
+     concept, en anders zou je twee keer hetzelfde bijboeken. */
+  const c = metExtras.find((x) => x.status === "definitief") || metExtras[0];
+  const regels = bijboekRegels(c);
+  const bedrag = bijboekBedrag(c);
+  const klaar = bijboekVerwerkt(r);
+
+  vak.innerHTML =
+    '<div class="bijboekmeld' + (klaar ? " klaar" : "") + '">' +
+      '<div class="bijboekmeld-kop">' +
+        "<b>" + (klaar
+          ? "\u2713 Bijgeboekt via het incheckformulier \u2014 verwerkt"
+          : "\u26a0 Bijgeboekt via het incheckformulier \u2014 actie nodig") + "</b>" +
+        (bedrag ? '<span class="bijboekmeld-bedrag">&euro; ' + esc(euro(bedrag)) + "</span>" : "") +
+      "</div>" +
+      (regels.length
+        ? '<div class="bijboekmeld-regels">' +
+          regels.slice(0, 8).map((x) =>
+            "<span>" + (x.aantal > 1 ? esc(x.aantal) + "\u00d7 " : "") + esc(x.naam || "extra") +
+            (x.bedrag ? " \u00b7 &euro; " + esc(euro(x.bedrag)) : "") + "</span>").join("") +
+          (regels.length > 8 ? "<span>\u2026 en nog " + (regels.length - 8) + "</span>" : "") +
+          "</div>"
+        : "") +
+      (c.extras_betaalwijze || c.checkout_extra_betaalwijze
+        ? '<div class="bijboekmeld-wijze">Op locatie afgerekend via ' +
+          esc(c.extras_betaalwijze || c.checkout_extra_betaalwijze) + ".</div>"
+        : '<div class="bijboekmeld-wijze">Er staat geen betaalwijze bij; controleer of dit nog betaald moet worden.</div>') +
+      (klaar
+        ? '<div class="bijboekmeld-wijze">Deze regels staan al bij de arrangementen van deze reservering.</div>'
+        : (magBewerken()
+            ? '<button type="button" class="knop vol klein" id="vBijboekVerwerk" ' +
+              'data-checkin="' + esc(c.id) + '">Bijboeken verwerken</button>'
+            : '<div class="bijboekmeld-wijze">Vraag of iemand met bewerkrechten dit verwerkt.</div>')) +
+    "</div>";
+}
+
+/* Bijgeboekt verwerken: de regels van het formulier als arrangement bij de
+   reservering zetten, met het merkteken incheckformulier. Daarmee tellen ze
+   mee in het totaal, staan ze in het arrangementenblok, en verdwijnt de
+   melding - want die kijkt naar datzelfde merkteken. */
+async function bijboekVerwerken(checkinId) {
+  const r = HUIDIG; if (!r) return;
+  const knop = $("#vBijboekVerwerk");
+  if (knop) { knop.disabled = true; knop.textContent = "Bezig\u2026"; }
+  try {
+    const gevonden = await api("checkins?select=" + CHECKIN_VELDEN +
+      "&id=eq." + encodeURIComponent(checkinId));
+    const c = gevonden && gevonden[0];
+    if (!c) throw new Error("het formulier kon niet worden gelezen");
+    const regels = bijboekRegels(c);
+    const bedrag = bijboekBedrag(c);
+    if (!regels.length && !bedrag) throw new Error("er staat niets bijgeboekt op dit formulier");
+
+    /* Staat er geen regel maar wel een bedrag, dan toch één regel maken: anders
+       verdwijnt het bedrag uit beeld terwijl het wel is afgerekend. */
+    const nieuw = (regels.length ? regels : [{ naam: "Bijgeboekt op locatie", aantal: 1, bedrag: bedrag }])
+      .map((x) => ({
+        naam: x.naam || "Bijgeboekt op locatie",
+        aantal: x.aantal > 0 ? x.aantal : 1,
+        bedrag: Number(x.bedrag) || 0,
+        bron: "incheckformulier",
+        betaalwijze: c.extras_betaalwijze || c.checkout_extra_betaalwijze || null,
+        betaald: !!(c.extras_betaalwijze || c.checkout_extra_betaalwijze),
+        tijdstip: new Date().toISOString(),
+        door: NAAM
+      }));
+    const bestaand = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+    const som = nieuw.reduce((t, x) => t + (Number(x.bedrag) || 0), 0);
+    const totaalNu = Number(r.bedrag_totaal) || 0;
+
+    const body = {
+      arrangementen: bestaand.concat(nieuw),
+      bedrag_totaal: Math.round((totaalNu + som) * 100) / 100,
+      gewijzigd_door: NAAM
+    };
+    /* Is het op locatie afgerekend, dan telt het ook als betaald mee; anders
+       blijft het openstaan en ziet de assistent dat er nog geld moet komen. */
+    const alBetaald = !!(c.extras_betaalwijze || c.checkout_extra_betaalwijze);
+    if (alBetaald) {
+      body.betaald_bedrag = Math.round(((Number(r.betaald_bedrag) || 0) + som) * 100) / 100;
+    } else {
+      body.restant_bedrag = Math.round(((Number(r.restant_bedrag) || 0) + som) * 100) / 100;
+      body.betaalstatus = "deels";
+    }
+
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
+      { method: "PATCH", body: body });
+    if (!rij || !rij.length) throw new Error("de reservering kwam niet terug");
+    HUIDIG = rij[0];
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    melding(nieuw.length + (nieuw.length === 1 ? " regel" : " regels") +
+      " van het incheckformulier verwerkt \u2014 \u20ac " + euro(som) +
+      (alBetaald ? " (al afgerekend op locatie)." : " (staat nog open)."));
+    tekenPersoneelKaart(rij[0]);
+    /* De koppelingen opnieuw ophalen, zodat de melding van oranje "actie
+       nodig" naar groen "verwerkt" gaat in plaats van zomaar te verdwijnen.
+       Verdwijnen leest als "weg is weg" en niet als "het staat er nu in". */
+    try { await vulKoppelingen(rij[0]); } catch (e2) {}
+    teken();
+  } catch (e) {
+    melding("Verwerken lukte niet: " + e.message, "fout");
+    if (knop) { knop.disabled = false; knop.textContent = "Bijboeken verwerken"; }
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("#vBijboekVerwerk");
+  if (b) { e.preventDefault(); bijboekVerwerken(b.getAttribute("data-checkin")); }
+});
 
 function kaartVak(kop, regels, open) {
   const inhoud = regels.filter(Boolean).join("");
@@ -2798,6 +2969,11 @@ function tekenPersoneelKaart(r) {
 
   doel.innerHTML =
     kopBalk +
+    /* Hier komt de melding over wat er via het incheckformulier is bijgeboekt.
+       Hij staat boven alle blokken en niet ingeklapt: je moet hem zien zonder
+       iets open te hoeven klappen. Wordt gevuld zodra de koppelingen binnen
+       zijn, want dan pas weten we wat er op het formulier stond. */
+    '<div id="vBijboekMelding"></div>' +
     kaartVak("Reserveringsgegevens", [
       kaartRegel("Nummer", esc(resNummer(r))),
       /* Angela, 06-10-2026: de locatiemanager van deze dienst meteen bovenaan
@@ -3431,7 +3607,12 @@ async function vulKoppelingen(r) {
   try {
     const [klant, checkin, calls, schade, gekoppeldeForms] = await Promise.all([
       r.klant_id ? zacht("wz_klantbeheer?select=id,voorletters,achternaam,email&id=eq." + encodeURIComponent(r.klant_id)) : null,
-      r.checkin_id ? zacht("checkins?select=id,status,datum&id=eq." + encodeURIComponent(r.checkin_id)) : null,
+      /* Angela, 07-10-2026: "als iemand heeft bijgeboekt via het
+         incheckformulier, kun je daar een melding van laten zien in de
+         reserveringskaart, zodat de VR-assistent in één oogopslag ziet dat er
+         actie nodig is." Daarvoor moeten de bijboekvelden mee: bestellingen en
+         service_items zijn de regels, extras_totaal het bedrag. */
+      r.checkin_id ? zacht("checkins?select=" + CHECKIN_VELDEN + "&id=eq." + encodeURIComponent(r.checkin_id)) : null,
       zacht("wz_welkomstcalls?select=id,status,datum,medewerker_id,notitie,notities,bijzonderheden," +
             /* samenvatting, gebeld_op en nodig horen erbij sinds de kaart alleen
                nog toont óf er gebeld is en wat er kort besproken is. Staan ze
@@ -3447,12 +3628,16 @@ async function vulKoppelingen(r) {
             "samenvatting,gebeld_op,nodig,automatisch,afgerond_op" +
             "&reservering_id=eq." + encodeURIComponent(r.id)),
       zacht("schade?select=id,omschrijving,bedrag,status&reservering_id=eq." + encodeURIComponent(r.id)),
-      zacht("checkins?select=id,status,datum&gekoppelde_reservering=eq." +
+      zacht("checkins?select=" + CHECKIN_VELDEN + "&gekoppelde_reservering=eq." +
             encodeURIComponent("reservering:" + r.id) + "&order=created_at.desc&limit=5")
     ]);
     const naam = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ");
     const zoek = r.gast_email || r.gast_telefoon || r.gast_achternaam || "";
     const regels = [];
+
+    /* De melding over bijgeboekte extra's. Van alle gevonden formulieren, want
+       een reservering kan er meer dan één hebben (concept en definitief). */
+    tekenBijboekMelding(r, [].concat(checkin || [], gekoppeldeForms || []));
 
     const k = klant && klant[0];
     regels.push(rijKoppeling("Klant",
