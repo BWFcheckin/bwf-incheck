@@ -6793,17 +6793,42 @@ function fcBedrijf() {
    basis; staat daar niets in, dan één regel met het totaalbedrag, want een
    factuur zonder regels kun je niet versturen. Kortingsregels (negatief) gaan
    gewoon mee - die horen er juist op. */
+/* Welk btw-tarief hoort bij een regel? Angela, 07-10-2026: "het is 21% voor
+   overnachtingen en 9% voor eten en drinken." Eén tarief over de hele factuur
+   klopt dan nooit, dus het gaat per regel.
+
+   Dit is een eerste gok op de naam van de regel, geen vaststelling: wat
+   "ontbijt" heet is eten, wat "suite" heet is verblijf. In het factuurvenster
+   staat per regel een keuzelijst, zodat je het zelf kunt rechtzetten voordat
+   je de factuur verstuurt - en dan rekenen de totalen meteen mee. */
+const FC_ETEN = /ontbijt|lunch|diner|brunch|menu|sushi|hapjes|borrel|bites|snack|taart|gebak|fruit|prosecco|champagne|wijn|bier|chardonnay|drank|drinken|koffie|thee|milkshake|mocktail|cocktail|water|consumptie|ontbijtservice|bbq|pizza|wings|schaal/i;
+function fcTariefGok(naam) {
+  return FC_ETEN.test(String(naam || "")) ? "laag" : "hoog";
+}
+function fcTarieven() {
+  const b = fcBedrijf();
+  const n = (x, standaard) => {
+    const v = Number(String(x || "").replace(",", "."));
+    return Number.isFinite(v) && v > 0 ? v : standaard;
+  };
+  return { hoog: n(b.bedrijf_btw_hoog, 21), laag: n(b.bedrijf_btw_laag, 9) };
+}
+
 function fcRegels(r) {
   const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).filter(Boolean);
-  const regels = arr.map((a) => ({
-    naam: String((typeof a === "string" ? a : (a.naam || a.titel || "")) || "Onderdeel"),
-    aantal: Number(a && a.aantal) > 0 ? Number(a.aantal) : 1,
-    bedrag: Number(a && a.bedrag) || 0
-  })).filter((x) => x.naam || x.bedrag);
+  const regels = arr.map((a) => {
+    const naam = String((typeof a === "string" ? a : (a.naam || a.titel || "")) || "Onderdeel");
+    return {
+      naam: naam,
+      aantal: Number(a && a.aantal) > 0 ? Number(a.aantal) : 1,
+      bedrag: Number(a && a.bedrag) || 0,
+      soort: fcTariefGok(naam)
+    };
+  }).filter((x) => x.naam || x.bedrag);
   if (regels.length) return regels;
   const totaal = Number(r.bedrag_totaal) || 0;
   return [{ naam: (SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + " — verblijf",
-            aantal: 1, bedrag: totaal }];
+            aantal: 1, bedrag: totaal, soort: "hoog" }];
 }
 
 /* Het factuurnummer. Het reserveringsnummer is uniek en staat al op alle
@@ -6820,6 +6845,44 @@ function fcDatumVandaag() {
 /* De factuur als complete webpagina. Bewust zonder externe stijlbestanden en
    zonder afbeeldingen van buiten: dit moet ook kloppen als je het afdrukt of
    als pdf bewaart zonder internet. */
+/* Een getal zonder overbodige nullen: 21 in plaats van 21,0. */
+function nettGetal(n) {
+  return String(Math.round(Number(n) * 100) / 100).replace(".", ",");
+}
+
+/* De totalen onder de factuur. Apart, want ze worden opnieuw gerekend zodra je
+   bij een regel een ander btw-tarief kiest.
+
+   De btw wordt UIT het bedrag gehaald en er niet bovenop gezet: de prijzen die
+   de gast betaalt zijn inclusief. Per tarief een eigen regel, want 21% op het
+   verblijf en 9% op eten en drinken moeten los op de factuur staan. */
+function fcTotalenHtml(regels, totaal, betaald, open) {
+  const tar = fcTarieven();
+  const pct = { hoog: tar.hoog, laag: tar.laag, geen: 0 };
+  const per = { hoog: 0, laag: 0, geen: 0 };
+  regels.forEach((x) => { per[x.soort || "hoog"] += Number(x.bedrag) || 0; });
+
+  const rij = (naam, waarde, dik) =>
+    "<tr><td>" + esc(naam) + '</td><td class="geld"' + (dik ? ' style="font-weight:700"' : "") +
+    '>&euro; ' + esc(euro(waarde)) + "</td></tr>";
+
+  let h = rij("Totaal", totaal, true);
+  ["hoog", "laag"].forEach((k) => {
+    if (per[k] <= 0 || !pct[k]) return;
+    const btw = Math.round((per[k] - per[k] / (1 + pct[k] / 100)) * 100) / 100;
+    h += "<tr><td>Waarvan btw " + esc(nettGetal(pct[k])) + "% over &euro; " +
+      esc(euro(per[k])) + '</td><td class="geld">&euro; ' + esc(euro(btw)) + "</td></tr>";
+  });
+  if (per.geen > 0) {
+    h += "<tr><td>Zonder btw</td><td class=\"geld\">&euro; " + esc(euro(per.geen)) + "</td></tr>";
+  }
+  if (betaald > 0) h += rij("Reeds betaald", betaald);
+  /* Altijd "Nog te voldoen", ook als het nul is. "Voldaan € 0,00" leest als een
+     vraag in plaats van een antwoord. */
+  h += rij("Nog te voldoen", open, true);
+  return h;
+}
+
 function fcHtml(r) {
   const b = fcBedrijf();
   const regels = fcRegels(r);
@@ -6829,10 +6892,7 @@ function fcHtml(r) {
   const betaald = Number(r.betaald_bedrag) || 0;
   const open = r.restant_bedrag != null ? Number(r.restant_bedrag)
              : Math.max(0, totaal - betaald);
-  const pct = Number(String(b.bedrijf_btwtarief || "").replace(",", ".")) || 0;
-  /* Btw uit het totaal halen, niet erbovenop: de prijzen die de gast betaalt
-     zijn inclusief. */
-  const btw = pct > 0 ? Math.round((totaal - totaal / (1 + pct / 100)) * 100) / 100 : 0;
+  const tar = fcTarieven();
   const p = periode(r);
   const naam = [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" ") || "Gast";
   const mist = BH_BEDRIJF.filter((x) => ["bedrijf_naam", "bedrijf_kvk", "bedrijf_btw", "bedrijf_iban"]
@@ -6869,19 +6929,22 @@ function fcHtml(r) {
       (nachtenVan(r) > 0 ? "<div><span>Verblijf</span>" + esc(nachtenTekst(r)) + "</div>" : "") +
       (r.personen ? "<div><span>Personen</span>" + esc(r.personen) + "</div>" : "") +
     "</div>" +
-    '<table class="fc-tabel"><thead><tr><th>Omschrijving</th><th class="geld">Bedrag</th></tr></thead><tbody>' +
-      regels.map((x) =>
-        "<tr><td>" + (x.aantal > 1 ? esc(x.aantal) + "&times; " : "") + esc(x.naam) +
-        '</td><td class="geld">&euro; ' + esc(euro(x.bedrag)) + "</td></tr>").join("") +
+    (FC_NU = { regels: regels, totaal: totaal, betaald: betaald, open: open }) &&
+    '<table class="fc-tabel"><thead><tr><th>Omschrijving</th><th class="fc-btwkop">Btw</th>' +
+      '<th class="geld">Bedrag</th></tr></thead><tbody>' +
+      regels.map((x, i) =>
+        '<tr data-fcregel="' + i + '"><td>' + (x.aantal > 1 ? esc(x.aantal) + "&times; " : "") + esc(x.naam) +
+        '</td><td class="fc-btw" contenteditable="false">' +
+          '<select data-fcbtw="' + i + '">' +
+            '<option value="hoog"' + (x.soort === "hoog" ? " selected" : "") + ">" +
+              esc(nettGetal(tar.hoog)) + "% \u00b7 verblijf</option>" +
+            '<option value="laag"' + (x.soort === "laag" ? " selected" : "") + ">" +
+              esc(nettGetal(tar.laag)) + "% \u00b7 eten en drinken</option>" +
+            '<option value="geen"' + (x.soort === "geen" ? " selected" : "") + ">0% \u00b7 geen btw</option>" +
+          "</select></td>" +
+        '<td class="geld">&euro; ' + esc(euro(x.bedrag)) + "</td></tr>").join("") +
     "</tbody></table>" +
-    '<table class="fc-totalen"><tbody>' +
-      rij("Totaal", totaal, true) +
-      (pct > 0 ? '<tr><td>Waarvan btw ' + esc(String(pct).replace(".", ",")) +
-        '%</td><td class="geld">&euro; ' + esc(euro(btw)) + "</td></tr>" : "") +
-      (betaald > 0 ? rij("Reeds betaald", betaald) : "") +
-      /* Altijd "Nog te voldoen", ook als het nul is. "Voldaan € 0,00" leest als
-         een vraag in plaats van een antwoord. */
-      rij("Nog te voldoen", open, true) +
+    '<table class="fc-totalen"><tbody id="fcTotalen">' + fcTotalenHtml(regels, totaal, betaald, open) +
     "</tbody></table>" +
     (open > 0 && b.bedrijf_iban
       ? '<p class="fc-betalen">Graag &euro; ' + esc(euro(open)) + " overmaken op " +
@@ -6901,6 +6964,10 @@ function fcHtml(r) {
 /* Het venster. De factuur staat erin als bewerkbare tekst: je kunt een regel
    aanpassen, iets weghalen of een zin toevoegen voordat je hem afdrukt of
    meestuurt. Wat je hier verandert gaat mee naar de afdruk. */
+/* Wat er in het factuurvenster staat. Nodig om opnieuw te kunnen rekenen als
+   je bij een regel een ander btw-tarief kiest. */
+let FC_NU = null;
+
 function fcOpenen() {
   const r = HUIDIG; if (!r) return;
   const vak = $("#fcInhoud");
@@ -6916,6 +6983,21 @@ function fcOpenen() {
   $("#fcVenster").showModal();
 }
 
+/* Een ander btw-tarief bij een regel: alleen de totalen opnieuw rekenen. De
+   bedragen zelf veranderen niet - de gast betaalt hetzelfde, alleen de
+   verdeling over de tarieven klopt dan. */
+document.addEventListener("change", (e) => {
+  const sel = e.target && e.target.matches && e.target.matches("[data-fcbtw]") ? e.target : null;
+  if (!sel || !FC_NU) return;
+  const i = Number(sel.getAttribute("data-fcbtw"));
+  if (!FC_NU.regels[i]) return;
+  FC_NU.regels[i].soort = sel.value;
+  const vak = document.getElementById("fcTotalen");
+  if (vak) vak.innerHTML = fcTotalenHtml(FC_NU.regels, FC_NU.totaal, FC_NU.betaald, FC_NU.open);
+  const note = $("#fcNote");
+  if (note) note.textContent = "Btw opnieuw verdeeld.";
+});
+
 /* Afdrukken of als pdf bewaren. In een eigen venster, zodat het afdrukken niet
    het hele reserveringenscherm meeneemt. */
 function fcAfdrukken() {
@@ -6923,9 +7005,19 @@ function fcAfdrukken() {
   if (!vak) return;
   const w = window.open("", "_blank", "noopener,width=820,height=1000");
   if (!w) { $("#fcNote").textContent = "Het afdrukvenster werd geblokkeerd. Sta pop-ups toe voor dit scherm."; return; }
+  /* De keuzelijsten voor het btw-tarief horen niet op een factuur. Op de
+     afdruk worden ze gewone tekst - alleen het percentage, niet de uitleg
+     erachter. */
+  const kopie = vak.cloneNode(true);
+  kopie.querySelectorAll("select[data-fcbtw]").forEach((sel) => {
+    const tekst = (sel.options[sel.selectedIndex] || {}).text || "";
+    const vervang = document.createElement("span");
+    vervang.textContent = tekst.split("\u00b7")[0].trim();
+    sel.parentNode.replaceChild(vervang, sel);
+  });
   w.document.write("<!doctype html><html lang=nl><head><meta charset=utf-8>" +
     "<title>" + esc(fcNummer(HUIDIG || {})) + "</title><style>" + FC_STIJL + "</style></head><body>" +
-    vak.innerHTML + "</body></html>");
+    kopie.innerHTML + "</body></html>");
   w.document.close();
   w.focus();
   /* Even wachten tot de opmaak staat; anders drukt hij een kale pagina af. */
@@ -6953,6 +7045,11 @@ const FC_STIJL = [
   "  color:#6E6459;border-bottom:1px solid #D8D0C6;padding:0 0 7px}",
   ".fc-tabel td{padding:8px 0;border-bottom:1px solid #EFE9E1;vertical-align:top}",
   ".fc-tabel .geld,.fc-totalen .geld{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}",
+  ".fc-btwkop{text-align:left;white-space:nowrap}",
+  ".fc-btw{white-space:nowrap;font-size:12.5px;color:#6E6459}",
+  ".fc-btw select{font:inherit;color:inherit;border:1px solid #D8D0C6;border-radius:7px;",
+  "  padding:3px 6px;background:#fff;max-width:190px}",
+  "@media print{.fc-btw select{border:0;background:none;padding:0}}",
   ".fc-totalen{width:100%;max-width:300px;margin-left:auto;border-collapse:collapse}",
   ".fc-totalen td{padding:5px 0;border-bottom:1px solid #EFE9E1}",
   ".fc-betalen{margin:18px 0 0;padding:11px 13px;background:#F6F3EE;border-radius:10px;font-size:13.5px}",
@@ -7924,7 +8021,8 @@ const BH_BEDRIJF = [
   { sleutel: "bedrijf_kvk",      label: "KvK-nummer",              plaats: "12345678" },
   { sleutel: "bedrijf_btw",      label: "Btw-nummer",              plaats: "NL001234567B01" },
   { sleutel: "bedrijf_iban",     label: "IBAN",                    plaats: "NL00 BANK 0000 0000 00" },
-  { sleutel: "bedrijf_btwtarief", label: "Btw-tarief in procenten", plaats: "9" },
+  { sleutel: "bedrijf_btw_hoog", label: "Btw hoog — overnachting en verblijf (%)", plaats: "21" },
+  { sleutel: "bedrijf_btw_laag", label: "Btw laag — eten en drinken (%)",            plaats: "9" },
   { sleutel: "bedrijf_voet",     label: "Tekst onderaan de factuur", plaats: "Bedankt voor je bezoek." }
 ];
 
