@@ -170,6 +170,57 @@
   .row2 { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 16px; }
   @media (max-width: 620px) { .row2 { grid-template-columns: 1fr; } }
 
+  /* ---------- telefoon: tabellen worden kaartjes ----------
+     Angela, 08-10-2026: "ik wil dat de urenstaat op de telefoon ook duidelijk
+     zichtbaar is, je moet nu veel opzij scrollen."
+
+     Een tabel met zes kolommen past niet op een telefoon; zijwaarts schuiven
+     betekent dat je het bedrag niet ziet terwijl je naar de datum kijkt. Elke
+     rij wordt daarom een blokje met het label vóór de waarde. Op een breed
+     scherm verandert er niets. */
+  @media (max-width: 760px) {
+    .tablewrap { overflow-x: visible; }
+    .tablewrap table, .tablewrap tbody, .tablewrap tr, .tablewrap td { display: block; width: auto; }
+    .tablewrap thead { display: none; }
+    .tablewrap tr {
+      border: 1px solid var(--rand, #E2DED6);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin: 0 0 10px;
+      background: var(--vlak, #fff);
+    }
+    .tablewrap td {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 3px 0;
+      border: 0;
+      text-align: left !important;
+    }
+    /* Het label komt uit data-k; een cel zonder label (de knoppen) krijgt er
+       geen, en staat over de volle breedte. */
+    .tablewrap td[data-k]::before {
+      content: attr(data-k);
+      flex: 0 0 auto;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--stil, #6E7872);
+    }
+    .tablewrap td.actiecel { justify-content: flex-start; padding-top: 8px; }
+    .tablewrap td.actiecel .acts { display: flex; gap: 14px; flex-wrap: wrap; }
+    /* Lege cellen nemen anders ruimte in beslag met alleen een label. */
+    .tablewrap td:empty { display: none; }
+    .tablewrap tfoot { display: block; }
+    .tablewrap tfoot tr { background: var(--zacht, #F3F1EC); }
+    .tablewrap tfoot td { justify-content: space-between; }
+    /* De datumcel heeft twee stukjes onder elkaar; op een telefoon naast
+       elkaar, anders wordt het blokje onnodig hoog. */
+    .tablewrap td.date .dow { margin-right: 6px; }
+    .tablewrap td.date .dow, .tablewrap td.date .num { display: inline; }
+  }
+
   input[type="date"], input[type="text"], select {
     font: inherit; color: var(--ink); background: var(--surface-2);
     border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; width: 100%;
@@ -794,13 +845,13 @@
     mijn.forEach(function (r) {
       var gedaan = dienstAlGebruikt(r, maandlijst);
       html += "<tr" + (gedaan ? ' style="opacity:.55"' : "") + ">" +
-        "<td>" + esc(dienstDatum(r)) + "</td>" +
-        "<td>" + esc(SUITE_NAAR_NAAM[r.suite] || r.suite || "") + "</td>" +
-        "<td>" + esc(dienstGast(r) || "—") + "</td>" +
-        "<td>" + esc(dienstNr(r) || "—") + "</td>" +
-        "<td>" + esc(VERBLIJF_LABEL[dienstVerblijf(r)] || "") +
+        "<td data-k=\"Datum\">" + esc(dienstDatum(r)) + "</td>" +
+        "<td data-k=\"Suite\">" + esc(SUITE_NAAR_NAAM[r.suite] || r.suite || "") + "</td>" +
+        "<td data-k=\"Gast\">" + esc(dienstGast(r) || "—") + "</td>" +
+        "<td data-k=\"Boeking#\">" + esc(dienstNr(r) || "—") + "</td>" +
+        "<td data-k=\"Verblijf\">" + esc(VERBLIJF_LABEL[dienstVerblijf(r)] || "") +
           (dienstSamenMet(r) ? ' <span class="mini">· gedeeld</span>' : "") + "</td>" +
-        "<td>" + esc(DEEL_LABEL[dienstMijnDeel(r)] || "") + "</td>" +
+        "<td data-k=\"Jouw deel\">" + esc(DEEL_LABEL[dienstMijnDeel(r)] || "") + "</td>" +
         "<td>" + (gedaan
           ? '<span class="mini">&#10003; overgenomen</span>'
           : '<button type="button" class="btn small" data-act="neem-dienst" data-res="' +
@@ -1058,11 +1109,11 @@
         var d = dateOf(e);
         var ty = TYPE_BY_ID[e.type];
         html += '<tr data-id="' + esc(e.id) + '">';
-        html += '<td class="date"><span class="dow">' + d.toLocaleDateString("nl-NL", { weekday: "short" }) + '</span><span class="num">' + d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }) + "</span></td>";
-        html += '<td class="suite">' + (e.suite ? esc(e.suite) : '<span class="note">—</span>');
+        html += '<td class="date" data-k="Datum"><span class="dow">' + d.toLocaleDateString("nl-NL", { weekday: "short" }) + '</span><span class="num">' + d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }) + "</span></td>";
+        html += '<td class="suite" data-k="Suite">' + (e.suite ? esc(e.suite) : '<span class="note">—</span>');
         if (e.source) html += '<span class="note">' + esc(e.source) + "</span>";
         html += "</td>";
-        html += "<td>";
+        html += '<td data-k="Dienst">';
         html += '<span class="pill">' + esc(ty ? ty.label : e.type) + "</span>";
         html += '<span class="pill soft">' + esc(VERBLIJF_LABEL[e.verblijf] || "Dagverblijf") + "</span>";
         if (e.menu) html += '<span class="pill add">menu</span>';
@@ -1070,9 +1121,9 @@
         if (e.late) html += '<span class="pill fee">laat inchecken € 25</span>';
         if (e.note) html += '<span class="note">' + esc(e.note) + "</span>";
         html += "</td>";
-        html += '<td class="ta-r num">' + fmtHours(hoursOf(e)) + "</td>";
-        html += '<td class="ta-r num">' + eur.format(amountOf(e)) + "</td>";
-        html += '<td><div class="acts">';
+        html += '<td class="ta-r num" data-k="Uren">' + fmtHours(hoursOf(e)) + "</td>";
+        html += '<td class="ta-r num" data-k="Bedrag">' + eur.format(amountOf(e)) + "</td>";
+        html += '<td class="actiecel"><div class="acts">';
         if (!readOnly) {
           html += '<button class="linkbtn" data-act="edit" data-id="' + esc(e.id) + '">Bewerken</button>';
           html += '<button class="linkbtn del" data-act="del" data-id="' + esc(e.id) + '">Verwijderen</button>';

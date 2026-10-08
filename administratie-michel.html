@@ -242,6 +242,32 @@
   .dienstentabel .dt-geld  { width: 86px; white-space: nowrap; }
   .dienstentabel .dt-knop  { width: 104px; text-align: right; white-space: nowrap; }
   .dienstentabel .dt-knop .btn { padding: 5px 10px; font-size: .82rem; }
+  /* ---------- telefoon: tabellen worden kaartjes ----------
+     Angela, 08-10-2026: op een telefoon moet je nu veel opzij scrollen. Een
+     tabel met negen kolommen past daar niet; zijwaarts schuiven betekent dat
+     je de vergoeding niet ziet terwijl je naar de datum kijkt. Elke rij wordt
+     een blokje met het label vóór de waarde. Op een breed scherm verandert er
+     niets. */
+  @media (max-width: 760px) {
+    .card.tablewrap { overflow-x: visible; }
+    .card.tablewrap table, .card.tablewrap tbody, .card.tablewrap tr,
+    .card.tablewrap td { display: block; width: auto; }
+    .card.tablewrap thead { display: none; }
+    .card.tablewrap tr { border: 1px solid var(--rand, #E2DED6); border-radius: 12px;
+      padding: 10px 12px; margin: 0 0 10px; }
+    .card.tablewrap td { display: flex; gap: 12px; align-items: baseline;
+      justify-content: space-between; padding: 3px 0; border: 0; text-align: left !important; }
+    .card.tablewrap td[data-k]::before { content: attr(data-k); flex: 0 0 auto;
+      font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--stil, #6E7872); }
+    .card.tablewrap td.actiecel { justify-content: flex-start; padding-top: 8px; }
+    .card.tablewrap td.actiecel .acts { display: flex; gap: 14px; flex-wrap: wrap; }
+    .card.tablewrap td .note { display: block; }
+    .card.tablewrap td.date .dow, .card.tablewrap td.date .num { display: inline; margin-right: 6px; }
+    .card.tablewrap tfoot { display: block; }
+    .card.tablewrap tfoot td { justify-content: space-between; }
+  }
+
   @media (max-width: 760px) {
     /* Op een smal scherm vallen locatie en arrangement weg: datum, gast, tijd
        en de knop zijn wat je nodig hebt om een dienst over te nemen. */
@@ -2049,25 +2075,25 @@
       list.forEach(function (e) {
         var d = dateOf(e);
         html += '<tr data-id="' + esc(e.id) + '">';
-        html += '<td class="date"><span class="dow">' + d.toLocaleDateString("nl-NL", { weekday: "short" }) + '</span><span class="num">' + d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }) + "</span>";
+        html += '<td class="date" data-k="Datum"><span class="dow">' + d.toLocaleDateString("nl-NL", { weekday: "short" }) + '</span><span class="num">' + d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }) + "</span>";
         if (e.van || e.tot) html += '<span class="note num">' + esc(e.van) + (e.tot ? " \u2013 " + esc(e.tot) : "") + "</span>";
         html += "</td>";
-        html += '<td class="suite">' + (e.loc ? '<span class="pill">' + esc(e.loc) + "</span>" : '<span class="note">\u2014</span>');
+        html += '<td class="suite" data-k="Locatie">' + (e.loc ? '<span class="pill">' + esc(e.loc) + "</span>" : '<span class="note">\u2014</span>');
         if (e.verblijf) html += '<span class="note">' + (e.verblijf === "nacht" ? "overnachting" : "dagverblijf") + "</span>";
         html += "</td>";
-        html += "<td>" + (e.ref ? '<span class="num">' + esc(e.ref) + "</span>" : '<span class="note">\u2014</span>');
+        html += '<td data-k="Boeking">' + (e.ref ? '<span class="num">' + esc(e.ref) + "</span>" : '<span class="note">\u2014</span>');
         if (e.arr) html += '<span class="note">' + esc(e.arr) + "</span>";
         if (e.note) html += '<span class="note">' + esc(e.note) + "</span>";
         html += "</td>";
-        html += '<td class="ta-r num">' + (e.bedrag === null || e.bedrag === undefined || e.bedrag === "" ? "\u2014" : money(e.bedrag));
+        html += '<td class="ta-r num" data-k="Totale omzet">' + (e.bedrag === null || e.bedrag === undefined || e.bedrag === "" ? "\u2014" : money(e.bedrag));
         var opLoc = r2(num(e.bank) + num(e.cash));
         if (opLoc) html += '<span class="note num">vooraf ' + money(r2(num(e.bedrag) - opLoc)) + "</span>";
         html += "</td>";
-        html += '<td class="ta-r num">' + (num(e.bank) ? money(e.bank) : "\u2014") + "</td>";
-        html += '<td class="ta-r num">' + (num(e.cash) ? money(e.cash) : "\u2014") + "</td>";
-        html += '<td class="ta-r num">' + (e.verg === null || e.verg === undefined || e.verg === "" ? "\u2014" : money(e.verg)) + "</td>";
-        html += '<td><label class="chk maandchk' + (e.uitbetaald ? " on" : "") + '"><input type="checkbox" data-act="rij-uitbetaald" data-id="' + esc(e.id) + '"' + (e.uitbetaald ? " checked" : "") + "></label></td>";
-        html += '<td><div class="acts">';
+        html += '<td class="ta-r num" data-k="Pin">' + (num(e.bank) ? money(e.bank) : "\u2014") + "</td>";
+        html += '<td class="ta-r num" data-k="Contant">' + (num(e.cash) ? money(e.cash) : "\u2014") + "</td>";
+        html += '<td class="ta-r num" data-k="Vergoeding">' + (e.verg === null || e.verg === undefined || e.verg === "" ? "\u2014" : money(e.verg)) + "</td>";
+        html += '<td data-k="Uitbetaald"><label class="chk maandchk' + (e.uitbetaald ? " on" : "") + '"><input type="checkbox" data-act="rij-uitbetaald" data-id="' + esc(e.id) + '"' + (e.uitbetaald ? " checked" : "") + "></label></td>";
+        html += '<td class="actiecel"><div class="acts">';
         html += '<button class="linkbtn" data-act="edit" data-id="' + esc(e.id) + '">Bewerken</button>';
         html += '<button class="linkbtn del" data-act="del" data-id="' + esc(e.id) + '">Verwijderen</button>';
         html += "</div></td></tr>";
