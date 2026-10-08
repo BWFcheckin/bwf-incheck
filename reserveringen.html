@@ -1794,6 +1794,7 @@ function rijHtml(r) {
   /* Dezelfde zes stappen als in het venster, maar dan op de kaart - Angela
      wilde ze zien zonder elke reservering te hoeven openen. Korte woorden,
      want er staan er zes naast elkaar; de volledige naam staat in de title. */
+  const uitcheck = ucKort(r);
   const stappen = '<div class="reskaart-stappen">' +
     balkStand(r, CALLS_LIJST[r.id]).map(([naam, ja]) =>
       '<span class="stap ' + (ja ? "ja" : "nee") + '" title="' + esc(naam) + '"><i>' +
@@ -1835,7 +1836,7 @@ function rijHtml(r) {
       /* Eigen regel voor wat er ná de boeking is bijgekomen. */
       '<div class="reskaart-regels"><span>Bijgeboekt <b>' +
         (bijTekst ? esc(bijTekst) : "niks bijgeboekt") + "</b></span></div>" +
-      geld + mollieR + stappen +
+      geld + mollieR + uitcheck + stappen +
       '<div class="reskaart-voet">' + letop.join("") +
         (gecontroleerd(r) ? '<span class="klein-grijs">&#10003; ' + esc(r.gewijzigd_door) + "</span>" : "") +
         knop +
@@ -1930,6 +1931,8 @@ async function laad() {
     vulMollieVoorLijst().then(teken, function () {});
     /* En de bijboekingen uit de incheckformulieren, voor de stap in de balk. */
     vulBijboekVoorLijst().then(teken, function () {});
+    /* En de uitkomst van het uitchecken, voor de melding op de kaart. */
+    vulUitcheckVoorLijst().then(teken, function () {});
   } catch (e) {
     $("#telling").textContent = "";
     melding("Reserveringen konden niet worden geladen: " + e.message, "fout");
@@ -1958,6 +1961,49 @@ async function vulCallsVoorLijst() {
     });
   }
   CALLS_LIJST = nieuw;
+}
+
+/* De uitcheckgegevens van alle geladen reserveringen in één keer.
+
+   Angela, 08-10-2026: "ik wil het ook in de reserveringskaart zien bij het
+   overzicht." De melding in de geopende kaart haalt zijn eigen rij op; de
+   lijst deed dat niet per regel, en kon er dus niets over zeggen. In blokken
+   van 80 vanwege de lengtegrens op de URL, en stil: mislukt het, dan blijft de
+   lijst gewoon staan. */
+async function vulUitcheckVoorLijst() {
+  const ids = RIJEN.map((r) => r.id).filter(Boolean);
+  if (!ids.length) return;
+  for (let i = 0; i < ids.length; i += 80) {
+    const deel = ids.slice(i, i + 80);
+    const rijen = await api("uitcheck?select=reservering_id,stemming,punten,afgerond_op" +
+      "&reservering_id=in.(" + deel.map(encodeURIComponent).join(",") + ")", { stil: true }) || [];
+    /* Alleen vullen wat nog niet is opgehaald: de geopende kaart leest de hele
+       rij en die mag deze beknopte versie niet overschrijven. */
+    rijen.forEach((u) => {
+      if (!u.reservering_id) return;
+      if (!UITCHECK[u.reservering_id]) UITCHECK[u.reservering_id] = u;
+    });
+  }
+}
+
+/* De uitkomst van het uitchecken, kort, voor op de kaart in het overzicht. */
+function ucKort(r) {
+  const u = UITCHECK[r.id];
+  if (!u) return "";
+  const punten = Array.isArray(u.punten) ? u.punten : [];
+  const stem = String(u.stemming || "");
+  if (!punten.length && !stem) return "";
+  const zwaar = punten.some((p) => ["ontevreden", "zwarte_lijst", "schade"].indexOf(p) > -1)
+    || stem === "ontevreden";
+  /* Kort houden: op een kaart met tien regels tekst heb je aan twee woorden
+     genoeg om te weten of je deze boeking moet openen. */
+  const kort = { netjes: "netjes", ontevreden: "ontevreden", niet_netjes: "niet netjes",
+                 zwarte_lijst: "zwarte lijst", schade: "schade", gerookt: "gerookt" };
+  const merken = punten.map((p) => kort[p]).filter(Boolean);
+  if (!merken.length && stem) merken.push(stem === "tevreden" ? "tevreden" : "ontevreden");
+  return '<div class="reskaart-regels"><span class="pill ' + (zwaar ? "crit" : "ok") + '">' +
+    (zwaar ? "&#9888; " : "&#10003; ") + "uitgecheckt &middot; " + esc(merken.join(" · ")) +
+    "</span></div>";
 }
 
 /* De incheckformulieren met bijgeboekte extra's van de geladen reserveringen.
