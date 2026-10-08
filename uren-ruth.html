@@ -672,6 +672,137 @@
       });
   }
 
+  /* ---- diensten uit het dashboard ----
+     Angela, 08-10-2026: "ik wil dat iedereen diensten kan koppelen aan de
+     urenstaat, net als Michel."
+
+     De reserveringen die aan deze persoon gekoppeld zijn, worden hier getoond
+     en niet gekopieerd: een kopie loopt uit de pas zodra de boeking verandert
+     of wordt geannuleerd. Per dienst een knop die het formulier invult; de
+     uren en het bedrag rekenen daarna zoals altijd. */
+  var DIENSTEN_RES = [];
+  var DIENSTEN_FOUT = "";
+  var SUITE_NAAR_NAAM = { malina_jacuzzi: "Malina Jacuzzi", malina_deluxe: "Malina Zwembad",
+                          angie: "Suite Angie" };
+  /* De namen moeten precies overeenkomen met de keuzelijst Bron hierboven,
+     anders blijft die leeg staan - een waarde die er niet in staat wordt door
+     een select gewoon genegeerd. Gemeten 08-10-2026. */
+  var KANAAL_NAAR_BRON = { smg: "Privé sauna", booking: "Booking.com",
+                           oo: "Origineel Overnachten", eigen: "Telefonisch",
+                           handmatig: "Telefonisch" };
+
+  function haalDiensten() {
+    if (!configured || !UR_ID) { DIENSTEN_RES = []; return Promise.resolve(); }
+    var velden = "id,kanaal_ref,suite,kanaal,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
+      "gast_voornaam,gast_achternaam,arrangementen,locatiemanager_id";
+    return api("reserveringen?select=" + velden +
+        "&locatiemanager_id=eq." + encodeURIComponent(UR_ID) +
+        "&status=neq.geannuleerd&order=aankomst.asc&limit=600")
+      .then(function (rijen) { DIENSTEN_RES = rijen || []; DIENSTEN_FOUT = ""; })
+      .catch(function (err) {
+        DIENSTEN_RES = [];
+        DIENSTEN_FOUT = /locatiemanager/.test(String(err.message))
+          ? "De kolom locatiemanager_id staat nog niet in de database. Zodra die migratie is gedraaid, verschijnen hier de diensten die aan jou gekoppeld zijn."
+          : "De diensten konden niet worden opgehaald: " + err.message;
+      });
+  }
+
+  function dienstDatum(r) { return String(r.aankomst || "").slice(0, 10); }
+  function dienstGast(r) {
+    return String((r.gast_voornaam || "") + " " + (r.gast_achternaam || "")).trim();
+  }
+  function dienstNr(r) { return String(r.kanaal_ref || ""); }
+  /* Overnachting of dagverblijf? Het soort verblijf bepaalt de richturen, dus
+     dit moet uit de boeking komen en niet geraden worden. */
+  function dienstVerblijf(r) {
+    var t = String(r.type || "").toLowerCase();
+    if (t === "dagverblijf" || t === "avond") return "dagverblijf";
+    var a = String(r.aankomst || "").slice(0, 10), v = String(r.vertrek || "").slice(0, 10);
+    return (v && a && v > a) ? "overnachting" : "dagverblijf";
+  }
+  /* Staat er een arrangement of een menu bij de boeking? Dan alvast aanvinken -
+     dat scheelt uren narekenen. Je kunt het daarna gewoon uitzetten. */
+  var MENU_WOORDEN = /ontbijt|lunch|diner|menu|sushi|brunch|hapjes|borrel/i;
+  function dienstExtras(r) {
+    var arr = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+    var namen = arr.map(function (a) {
+      return String((typeof a === "string" ? a : (a && (a.naam || a.titel))) || ""); });
+    return {
+      menu: namen.some(function (n) { return MENU_WOORDEN.test(n); }),
+      arr: namen.some(function (n) { return n && !MENU_WOORDEN.test(n); })
+    };
+  }
+  function dienstAlGebruikt(r, maandlijst) {
+    var nr = dienstNr(r);
+    if (!nr) return false;
+    return maandlijst.some(function (e) {
+      return String(e.note || "").indexOf(nr) > -1;
+    });
+  }
+
+  function dienstenHtml(maandlijst) {
+    var html = '<div class="section-title"><h2>Jouw diensten uit het dashboard</h2>' +
+      '<span class="hint">' + esc(monthLabel(view.month)) + "</span></div>";
+    if (DIENSTEN_FOUT) return html + '<div class="card"><p class="mini">' + esc(DIENSTEN_FOUT) + "</p></div>";
+    if (!UR_ID) {
+      return html + '<div class="card"><p class="mini">Je account is niet aan een medewerker ' +
+        "in het personeelsbestand gekoppeld, dus ik weet niet welke diensten van jou zijn. " +
+        "Vraag Angela om dat te koppelen.</p></div>";
+    }
+    var mijn = DIENSTEN_RES.filter(function (r) { return dienstDatum(r).slice(0, 7) === view.month; });
+    if (!mijn.length) {
+      return html + '<div class="card"><p class="mini">Er zijn deze maand nog geen reserveringen ' +
+        "aan jouw naam gekoppeld. Zodra dat in het dashboard gebeurt, staan ze hier &mdash; " +
+        "dan hoef je datum, suite en verblijfsvorm niet meer zelf op te zoeken.</p></div>";
+    }
+    var open = mijn.filter(function (r) { return !dienstAlGebruikt(r, maandlijst); }).length;
+    html += '<div class="card"><p class="mini">' + mijn.length +
+      (mijn.length === 1 ? " dienst" : " diensten") + " aan jouw naam" +
+      (open ? ", waarvan " + open + " nog niet op je urenstaat" : " &mdash; allemaal overgenomen") +
+      ". Druk op &ldquo;Overnemen&rdquo;, controleer het soort dienst en sla op.</p>";
+    html += '<div class="tablewrap"><table><thead><tr>' +
+      "<th>Datum</th><th>Suite</th><th>Gast</th><th>Boeking#</th><th>Soort</th><th></th>" +
+      "</tr></thead><tbody>";
+    mijn.forEach(function (r) {
+      var gedaan = dienstAlGebruikt(r, maandlijst);
+      html += "<tr" + (gedaan ? ' style="opacity:.55"' : "") + ">" +
+        "<td>" + esc(dienstDatum(r)) + "</td>" +
+        "<td>" + esc(SUITE_NAAR_NAAM[r.suite] || r.suite || "") + "</td>" +
+        "<td>" + esc(dienstGast(r) || "—") + "</td>" +
+        "<td>" + esc(dienstNr(r) || "—") + "</td>" +
+        "<td>" + esc(VERBLIJF_LABEL[dienstVerblijf(r)] || "") + "</td>" +
+        "<td>" + (gedaan
+          ? '<span class="mini">&#10003; overgenomen</span>'
+          : '<button type="button" class="btn small" data-act="neem-dienst" data-res="' +
+            esc(r.id) + '">Overnemen</button>') + "</td></tr>";
+    });
+    html += "</tbody></table></div></div>";
+    return html;
+  }
+
+  /* Eén dienst in het formulier zetten. Het soort dienst blijft op "volledig"
+     staan: of iemand alleen heeft ingecheckt of alleen schoongemaakt weet het
+     dashboard niet, dus dat kies je zelf voordat je opslaat. */
+  function neemDienstOver(id) {
+    var r = DIENSTEN_RES.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!r) return;
+    var ex = dienstExtras(r);
+    view.editing = null;
+    draft = {
+      date: dienstDatum(r) || todayISO(),
+      type: "volledig",
+      verblijf: dienstVerblijf(r),
+      menu: ex.menu, arr: ex.arr, late: false,
+      suite: SUITE_NAAR_NAAM[r.suite] || "",
+      source: KANAAL_NAAR_BRON[r.kanaal] || "",
+      note: [dienstNr(r), dienstGast(r)].filter(Boolean).join(" · ")
+    };
+    if (monthKey(draft.date) !== view.month) view.month = monthKey(draft.date);
+    render();
+    var veld = document.getElementById("f-date");
+    if (veld && veld.scrollIntoView) veld.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   function pull(silent) {
     if (!configured) { setSave("setup"); return Promise.resolve(); }
     /* Op het account als dat bekend is, anders nog op de naam - zo blijft de
@@ -823,6 +954,9 @@
     html += '<div><div class="label">Bruto opgebouwd</div><div class="v num">' + eur.format(rt.amount) + "</div></div>";
     html += '<div><div class="label">Gereserveerd 8%</div><div class="v num hi">' + eur.format(Math.round(rt.amount * HOLIDAY_PCT * 100) / 100) + "</div></div>";
     html += "</div></div>";
+
+    /* diensten uit het dashboard */
+    html += dienstenHtml(list);
 
     /* formulier */
     if (!readOnly) {
@@ -1062,6 +1196,7 @@
     else if (act === "goto-month") { view.month = btn.getAttribute("data-month"); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     else if (act === "type") { draft.type = btn.getAttribute("data-type"); render(); }
     else if (act === "verblijf") { draft.verblijf = btn.getAttribute("data-verblijf"); render(); }
+    else if (act === "neem-dienst") { neemDienstOver(btn.getAttribute("data-res")); }
     else if (act === "cancel-edit") { view.editing = null; draft = { date: todayISO(), type: "volledig", verblijf: "dagverblijf", menu: false, arr: false, late: false, suite: "", source: "", note: "" }; render(); }
     else if (act === "logout") { if (confirm("Afsluiten? Je moet de toegangscode dan opnieuw invullen.")) logout(); }
     else if (act === "csv-month") exportCsv("month");
@@ -1171,8 +1306,12 @@
 
   function start() {
     render();
-    /* Eerst weten op welk account gefilterd moet worden; pull() gebruikt dat. */
-    haalUrenId().then(function () { return pull(false); });
+    /* Eerst weten op welk account gefilterd moet worden; pull() gebruikt dat.
+       Daarna de diensten die aan deze persoon gekoppeld zijn. */
+    haalUrenId()
+      .then(function () { return pull(false); })
+      .then(function () { return haalDiensten(); })
+      .then(render);
     if (!pollTimer) {
       pollTimer = setInterval(function () {
         if (!document.hidden && session) pull(true);
