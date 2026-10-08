@@ -59,9 +59,12 @@ update public.uren_registratie u
 update public.uren_registratie u
    set medewerker_id = eenduidig.id
   from (
+    -- min() bestaat niet voor uuid; array_agg wel. Omdat we alleen doorgaan
+    -- waar aantal = 1 is, is het eerste element precies de enige. Angela
+    -- liep op 08-10-2026 tegen "function min(uuid) does not exist" aan.
     select lower(split_part(trim(m.naam), ' ', 1)) as voornaam,
-           min(m.id) as id,
-           count(*)  as aantal
+           (array_agg(m.id))[1]                    as id,
+           count(*)                                as aantal
       from public.wz_medewerkers m
      where m.naam is not null and trim(m.naam) <> ''
      group by 1
