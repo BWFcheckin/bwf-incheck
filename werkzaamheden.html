@@ -137,6 +137,15 @@ input:focus,select:focus{outline:2px solid var(--groen-2);outline-offset:-1px}
   font-size:12.5px;color:var(--muted);margin:0 0 5px}
 .dag-kop b{color:var(--ink);font-size:13.5px;font-variant-numeric:tabular-nums}
 .regel{display:flex;gap:10px;align-items:center;padding:5px 0;font-size:13.5px}
+/* Het vakje om een opgeslagen regel te wijzigen. Angela, 08-10-2026. */
+.regel{flex-wrap:wrap}
+.regelbewerk{flex-basis:100%}
+.bewerkrij{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
+  border-top:1px solid var(--rand,#E4E0D8);margin-top:8px;padding-top:10px}
+.bewerkrij .veld{flex:0 1 150px}
+.bewerkrij .veld.breed{flex:1 1 220px}
+.bewerkknoppen{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bewerkmeld{font-size:12.5px;color:var(--stil,#6E7872)}
 .regel .wat{flex:1 1 auto;min-width:0}
 .regel .wat em{font-style:normal;color:var(--muted);font-size:12.5px}
 .regel .bed{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
@@ -634,6 +643,133 @@ function herrekenRij(id) {
   uit.title = r.uitleg;
 }
 
+/* ---- een opgeslagen regel wijzigen ----
+   Angela, 08-10-2026: "iedereen moet ook de uren kunnen wijzigen als zij een
+   fout hebben gemaakt."
+
+   Het kon tot nu toe alleen door weggooien en opnieuw invoeren. Nu klapt er
+   onder de regel een vakje open met de datum, het aantal en de notitie. Bij een
+   urenregel staat daar het aantal uur; bij een tariefregel het aantal, en dan
+   rekent het bedrag mee met het tarief dat eraan hangt.
+
+   Alleen je eigen regels, en alleen zolang ze niet zijn uitbetaald. De
+   database houdt dat ook tegen; dit scherm verbergt alleen wat toch zou
+   falen. */
+function wzBewerkRij(id) {
+  const vak = document.querySelector("[data-vak='" + id + "']");
+  if (!vak) return;
+  if (!vak.hidden) { vak.hidden = true; vak.innerHTML = ""; return; }
+  const w = WERK.find((x) => zelfdeId(x.id, id));
+  if (!w) return;
+  const uren = isUren(w);
+  const tijden = !!(w.begintijd || w.eindtijd);
+
+  vak.hidden = false;
+  vak.innerHTML =
+    "<div class='bewerkrij'>" +
+      "<label class='veld'>Datum<input type='date' data-bw='datum' value='" +
+        esc(String(w.datum || "").slice(0, 10)) + "'></label>" +
+      (uren
+        ? "<label class='veld'>" + (tijden ? "Aantal uur (volgt uit de tijden)" : "Aantal uur") +
+          "<input type='text' inputmode='decimal' data-bw='uren'" + (tijden ? " readonly" : "") +
+          " value='" + esc(String(w.uren != null ? w.uren : (w.aantal || "")).replace(".", ",")) + "'></label>" +
+          (tijden
+            ? "<label class='veld'>Van<input type='time' data-bw='van' value='" + esc(hhmm(w.begintijd)) + "'></label>" +
+              "<label class='veld'>Tot<input type='time' data-bw='tot' value='" + esc(hhmm(w.eindtijd)) + "'></label>"
+            : "")
+        : "<label class='veld'>" + (String(w.eenheid || "") === "omzet" ? "Omzetbedrag" : "Aantal") +
+          "<input type='text' inputmode='decimal' data-bw='aantal' value='" +
+          esc(String(w.aantal != null ? w.aantal : "").replace(".", ",")) + "'></label>") +
+      "<label class='veld breed'>Notitie<input type='text' data-bw='notitie' value='" +
+        esc(w.notitie || "") + "'></label>" +
+      "<div class='bewerkknoppen'>" +
+        "<button class='knop vol klein' type='button' data-bwok='" + esc(id) + "'>Opslaan</button>" +
+        "<button class='knop klein' type='button' data-bwaf='" + esc(id) + "'>Annuleren</button>" +
+        "<span class='bewerkmeld'></span>" +
+      "</div>" +
+    "</div>";
+
+  /* Bij een regel met tijden volgt het aantal uur uit van en tot; anders zou je
+     een getal kunnen intikken dat niet klopt met de tijden ernaast. */
+  if (uren && tijden) {
+    const herreken = () => {
+      const u = urenTussen(vak.querySelector("[data-bw='van']").value,
+                           vak.querySelector("[data-bw='tot']").value);
+      const veld = vak.querySelector("[data-bw='uren']");
+      if (veld) veld.value = Number.isFinite(u) && u > 0 ? String(u).replace(".", ",") : "";
+    };
+    ["van", "tot"].forEach((k) => {
+      const el = vak.querySelector("[data-bw='" + k + "']");
+      if (el) { el.addEventListener("change", herreken); el.addEventListener("input", herreken); }
+    });
+  }
+}
+
+function wzGetal(v) {
+  const n = Number(String(v == null ? "" : v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+async function wzBewaarRij(id) {
+  const vak = document.querySelector("[data-vak='" + id + "']");
+  if (!vak) return;
+  const meld = vak.querySelector(".bewerkmeld");
+  const zeg = (t, fout) => { if (meld) { meld.textContent = t; meld.style.color = fout ? "#B3261E" : ""; } };
+  const w = WERK.find((x) => zelfdeId(x.id, id));
+  if (!w) return;
+
+  const datum = (vak.querySelector("[data-bw='datum']") || {}).value || String(w.datum || "").slice(0, 10);
+  if (!datum) { zeg("Vul een datum in.", true); return; }
+
+  const d = { datum: datum,
+              notitie: ((vak.querySelector("[data-bw='notitie']") || {}).value || "").trim() || null };
+
+  if (isUren(w)) {
+    const van = vak.querySelector("[data-bw='van']"), tot = vak.querySelector("[data-bw='tot']");
+    let u;
+    if (van && tot && van.value && tot.value) u = urenTussen(van.value, tot.value);
+    else u = wzGetal((vak.querySelector("[data-bw='uren']") || {}).value);
+    if (!Number.isFinite(u) || u <= 0) { zeg("Vul een aantal uur in dat groter is dan nul.", true); return; }
+    if (u > 24) { zeg("Meer dan 24 uur op één dag kan niet kloppen.", true); return; }
+    d.uren = Math.round(u * 100) / 100;
+    d.aantal = d.uren;
+    if (van && tot) { d.begintijd = van.value || null; d.eindtijd = tot.value || null; }
+  } else {
+    const a = wzGetal((vak.querySelector("[data-bw='aantal']") || {}).value);
+    if (!Number.isFinite(a) || a <= 0) { zeg("Vul een aantal groter dan nul in.", true); return; }
+    d.aantal = Math.round(a * 100) / 100;
+    /* Het bedrag opnieuw laten rekenen met het tarief dat aan deze regel hangt.
+       Doen we dat niet, dan blijft het bedrag bij het oude aantal staan en
+       klopt de uitbetaling niet meer. Is het tarief verdwenen, dan rekenen we
+       met wat er op de regel zelf staat. */
+    const t = TARIEVEN.find((x) => zelfdeId(x.id, w.tarief_id));
+    if (t) {
+      const r = rekenRegel(t, d.aantal, IK && IK.uurtarief);
+      d.uren = Math.round(r.uren * 100) / 100;
+      d.bedrag = Math.round(r.bedrag * 100) / 100;
+    } else if (Number(w.tarief)) {
+      d.bedrag = Math.round(d.aantal * Number(w.tarief) * 100) / 100;
+    }
+  }
+
+  zeg("Bezig met opslaan…");
+  try {
+    const terug = await api(TABEL_WERK + "?id=eq." + encodeURIComponent(id),
+      { method: "PATCH", body: d });
+    if (!terug || !terug.length) throw new Error("de regel kwam niet terug — mag jouw rol dit wijzigen?");
+    /* Springt de datum naar een andere maand, dan zou de regel uit beeld
+       vallen; de maandkeuze gaat dan mee. */
+    if ($("#fMaand") && $("#fMaand").value !== String(datum).slice(0, 7))
+      $("#fMaand").value = String(datum).slice(0, 7);
+    await laad();
+    melding("De regel is bijgewerkt.", "goed");
+  } catch (e) {
+    zeg(/40[13]/.test(String(e.message))
+      ? "✕ Wijzigen mag niet voor jouw rol, of het is niet je eigen regel."
+      : "✕ Wijzigen lukte niet: " + e.message, true);
+  }
+}
+
 async function zetErbij(id) {
   const t = TARIEVEN.find((x) => zelfdeId(x.id, id));
   const veld = document.getElementById("in-" + id);
@@ -814,9 +950,16 @@ function tekenOverzicht() {
           (magAfvinken && !w.betaald
             ? "<button class='knop klein geen-print' type='button' data-betaal='" + esc(w.id) + "'>Uitbetaald</button>"
             : "") +
+          /* Angela, 08-10-2026: "iedereen moet ook de uren kunnen wijzigen als
+             zij een fout hebben gemaakt." Alleen bij je eigen regels en alleen
+             zolang ze niet zijn uitbetaald - een uitbetaalde regel aanpassen
+             zou de administratie laten afwijken van wat er is overgemaakt. */
           (!w.betaald
-            ? "<button class='knop klein geen-print' type='button' data-weg='" + esc(w.id) + "' title='Verwijderen'>✕</button>"
+            ? "<button class='knop klein geen-print' type='button' data-bewerk='" + esc(w.id) +
+              "' title='Wijzigen'>&#9998;</button>" +
+              "<button class='knop klein geen-print' type='button' data-weg='" + esc(w.id) + "' title='Verwijderen'>✕</button>"
             : "") +
+          "<div class='regelbewerk' data-vak='" + esc(w.id) + "' hidden></div>" +
         "</div>";
       }).join("") +
     "</div>";
@@ -1148,6 +1291,10 @@ document.addEventListener("click", (e) => {
   if (k.dataset.zet)    { zetErbij(k.dataset.zet); return; }
   if (k.dataset.betaal) { zetBetaald(k.dataset.betaal); return; }
   if (k.dataset.weg)    { haalWeg(k.dataset.weg); return; }
+  /* Wijzigen van een opgeslagen regel. Angela, 08-10-2026. */
+  if (k.dataset.bewerk) { wzBewerkRij(k.dataset.bewerk); return; }
+  if (k.dataset.bwok)   { wzBewaarRij(k.dataset.bwok); return; }
+  if (k.dataset.bwaf)   { wzBewerkRij(k.dataset.bwaf); return; }
   if (k.id === "uZet")      { urenErbij(); return; }
   if (k.id === "fVernieuw") { laad(); return; }
   if (k.id === "fCsv")      { csv(); return; }
