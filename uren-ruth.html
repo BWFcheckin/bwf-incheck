@@ -353,6 +353,10 @@
     { id: "overnachting", label: "Overnachting" }
   ];
   var VERBLIJF_LABEL = { dagverblijf: "Dagverblijf", overnachting: "Overnachting" };
+  /* Dezelfde drie als in de keuzelijst Soort dienst, en dezelfde woorden die
+     de database toelaat. */
+  var DEEL_LABEL = { volledig: "Volledig", incheck: "Alleen incheck",
+                     uitcheck: "Uitcheck + schoonmaak" };
   var SOURCES = ["Privé sauna", "Origineel Overnachten", "Booking.com", "Telefonisch"];
 
   var eur = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
@@ -694,9 +698,14 @@
   function haalDiensten() {
     if (!configured || !UR_ID) { DIENSTEN_RES = []; return Promise.resolve(); }
     var velden = "id,kanaal_ref,suite,kanaal,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
-      "gast_voornaam,gast_achternaam,arrangementen,locatiemanager_id";
+      "gast_voornaam,gast_achternaam,arrangementen,locatiemanager_id,locatiemanager_deel," +
+      "locatiemanager_2_id,locatiemanager_2_deel";
+    /* Sinds 08-10-2026 kan een dienst door twee mensen gedraaid zijn. Een
+       dienst hoort dus in de urenstaat van allebei, elk met hun eigen deel -
+       vandaar "or": op de eerste naam of op de tweede. */
     return api("reserveringen?select=" + velden +
-        "&locatiemanager_id=eq." + encodeURIComponent(UR_ID) +
+        "&or=(locatiemanager_id.eq." + encodeURIComponent(UR_ID) +
+        ",locatiemanager_2_id.eq." + encodeURIComponent(UR_ID) + ")" +
         "&status=neq.geannuleerd&order=aankomst.asc&limit=600")
       .then(function (rijen) { DIENSTEN_RES = rijen || []; DIENSTEN_FOUT = ""; })
       .catch(function (err) {
@@ -732,6 +741,24 @@
       arr: namen.some(function (n) { return n && !MENU_WOORDEN.test(n); })
     };
   }
+  /* Welk deel van de dienst is van mij? Staat mijn id op de tweede plek, dan
+     telt dat tweede deel. Leeg betekent volledig. */
+  function dienstMijnDeel(r) {
+    var tweede = String(r.locatiemanager_2_id || "") === String(UR_ID);
+    var d = String((tweede ? r.locatiemanager_2_deel : r.locatiemanager_deel) || "volledig");
+    return ["volledig", "incheck", "uitcheck"].indexOf(d) > -1 ? d : "volledig";
+  }
+  /* Met wie deel ik deze dienst? Alleen om te tonen; het rekenen gebeurt op
+     het eigen deel. */
+  function dienstSamenMet(r) {
+    var tweede = String(r.locatiemanager_2_id || "") === String(UR_ID);
+    var ander = tweede ? r.locatiemanager_id : r.locatiemanager_2_id;
+    if (!ander) return "";
+    /* De naam van de ander kennen we hier niet; het nummer zegt niets, dus
+       alleen melden dát de dienst gedeeld is. */
+    return "gedeeld";
+  }
+
   function dienstAlGebruikt(r, maandlijst) {
     var nr = dienstNr(r);
     if (!nr) return false;
@@ -761,7 +788,8 @@
       (open ? ", waarvan " + open + " nog niet op je urenstaat" : " &mdash; allemaal overgenomen") +
       ". Druk op &ldquo;Overnemen&rdquo;, controleer het soort dienst en sla op.</p>";
     html += '<div class="tablewrap"><table><thead><tr>' +
-      "<th>Datum</th><th>Suite</th><th>Gast</th><th>Boeking#</th><th>Soort</th><th></th>" +
+      "<th>Datum</th><th>Suite</th><th>Gast</th><th>Boeking#</th><th>Verblijf</th>" +
+      "<th>Jouw deel</th><th></th>" +
       "</tr></thead><tbody>";
     mijn.forEach(function (r) {
       var gedaan = dienstAlGebruikt(r, maandlijst);
@@ -770,7 +798,9 @@
         "<td>" + esc(SUITE_NAAR_NAAM[r.suite] || r.suite || "") + "</td>" +
         "<td>" + esc(dienstGast(r) || "—") + "</td>" +
         "<td>" + esc(dienstNr(r) || "—") + "</td>" +
-        "<td>" + esc(VERBLIJF_LABEL[dienstVerblijf(r)] || "") + "</td>" +
+        "<td>" + esc(VERBLIJF_LABEL[dienstVerblijf(r)] || "") +
+          (dienstSamenMet(r) ? ' <span class="mini">· gedeeld</span>' : "") + "</td>" +
+        "<td>" + esc(DEEL_LABEL[dienstMijnDeel(r)] || "") + "</td>" +
         "<td>" + (gedaan
           ? '<span class="mini">&#10003; overgenomen</span>'
           : '<button type="button" class="btn small" data-act="neem-dienst" data-res="' +
@@ -790,7 +820,9 @@
     view.editing = null;
     draft = {
       date: dienstDatum(r) || todayISO(),
-      type: "volledig",
+      /* Het soort dienst komt uit wat er bij de koppeling is vastgelegd: wie
+         alleen heeft ingecheckt krijgt ook alleen die uren. Aanpassen mag. */
+      type: dienstMijnDeel(r),
       verblijf: dienstVerblijf(r),
       menu: ex.menu, arr: ex.arr, late: false,
       suite: SUITE_NAAR_NAAM[r.suite] || "",

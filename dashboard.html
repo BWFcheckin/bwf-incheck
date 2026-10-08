@@ -4216,7 +4216,8 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
          zou het dashboard leeg blijven. Daarom één keer opnieuw vragen zonder
          die kolommen: het scherm werkt dan gewoon, alleen zonder dit veld. */
       try{
-        boekingen = (await vraag(velden + ',locatiemanager_id,locatiemanager') || []).map(uitReservering);
+        boekingen = (await vraag(velden + ',locatiemanager_id,locatiemanager,' +
+          'locatiemanager_deel,locatiemanager_2_id,locatiemanager_2_deel') || []).map(uitReservering);
         LM_KOLOM = true;
       }catch(e1){
         LM_KOLOM = false;
@@ -5454,7 +5455,11 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
   function dienstenLijstHtml(m){
     var mijn = (ALLES || []).filter(function(r){
-      return r && r.ruw && String(r.ruw.locatiemanager_id || '') === String(m.id);
+      if(!r || !r.ruw) return false;
+      /* Ook de diensten die hij heeft overgenomen: dan staat zijn naam op de
+         tweede plek. */
+      return String(r.ruw.locatiemanager_id || '') === String(m.id)
+          || String(r.ruw.locatiemanager_2_id || '') === String(m.id);
     }).sort(function(a, b){ return String(b.aankomst).localeCompare(String(a.aankomst)); });
     if(!mijn.length){
       return '<p class="hint" style="margin:0">Er staan nog geen reserveringen op naam van ' +
@@ -6659,7 +6664,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<td>'+esc((r.vertrek||'')+(r.tijdUit?' '+r.tijdUit:''))+'</td>'+
       '<td>'+esc(verblijfType(r) || r.kanaal || SOORTNAAM[r.soort] || '')+'</td>'+
       '<td>'+esc(gastnaam(r))+'</td>'+
-      '<td>'+(lmNaam(r) ? esc(lmNaam(r)) : '<span style="opacity:.45">nog niemand</span>')+'</td>'+
+      '<td>'+(lmNaam(r)
+        ? esc(lmNaam(r)) + (function(){
+            var t = (r.ruw && r.ruw.locatiemanager_2_id) ? urenWieNaam(r.ruw.locatiemanager_2_id) : '';
+            return t ? ' + ' + esc(t) : '';
+          })()
+        : '<span style="opacity:.45">nog niemand</span>')+'</td>'+
       '<td>'+(b.open>0?'<strong>'+euro(b.open)+'</strong>':'<span style="opacity:.5">voldaan</span>')+'</td>'+
       '<td>'+vlag+'</td></tr>';
   }
@@ -6706,6 +6716,12 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       var naam = lmNaam(r);
       if(!naam){ zonder++; return; }
       tel[naam] = (tel[naam] || 0) + 1;
+      /* Is de dienst gedeeld, dan telt hij bij allebei. Angela, 08-10-2026:
+         twee namen op één dienst, elk met hun eigen deel. Het aantal diensten
+         is dus hoger dan het aantal reserveringen, en dat klopt - er zijn twee
+         mensen voor op pad geweest. */
+      var tweede = (r.ruw && r.ruw.locatiemanager_2_id) ? urenWieNaam(r.ruw.locatiemanager_2_id) : '';
+      if(tweede) tel[tweede] = (tel[tweede] || 0) + 1;
     });
     var namen = Object.keys(tel).sort(function(a,b){ return tel[b] - tel[a] || a.localeCompare(b); });
     var tl = document.getElementById('ovDienstenTel');
@@ -7374,25 +7390,49 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
        waar het maandoverzicht op telt, dus hij komt uit een keuzelijst en
        wordt nooit ingetikt - "Ruth" en "Ruth Tilburg" zouden anders twee
        verschillende mensen worden. */
-    var lmNu = (r.ruw && r.ruw.locatiemanager_id) ? String(r.ruw.locatiemanager_id) : '';
-    var lmNaamNu = (r.ruw && r.ruw.locatiemanager) ? String(r.ruw.locatiemanager) : '';
+    var ruwLm = r.ruw || {};
+    var lmNu = ruwLm.locatiemanager_id ? String(ruwLm.locatiemanager_id) : '';
+    var lmNaamNu = ruwLm.locatiemanager ? String(ruwLm.locatiemanager) : '';
+    /* Angela, 08-10-2026: "als iemand de dienst overneemt moet er een tweede
+       naam gekoppeld kunnen worden, en als er twee namen bij de dienst staan
+       moet je kunnen aangeven of het volledig was, alleen inchecken, alleen
+       schoonmaak."
+
+       Het deel bepaalt hoeveel uren die persoon in zijn eigen urenstaat
+       krijgt. Leeg betekent volledig - zo verandert er niets aan de boekingen
+       die er al staan. */
+    var lm2Nu = ruwLm.locatiemanager_2_id ? String(ruwLm.locatiemanager_2_id) : '';
+    var lm2Naam = lm2Nu ? urenWieNaam(lm2Nu) : '';
+    var deel1 = String(ruwLm.locatiemanager_deel || 'volledig');
+    var deel2 = String(ruwLm.locatiemanager_2_deel || 'volledig');
     h += '<div class="actie" style="display:block">'+
       '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
         '<b>Locatiemanager van deze dienst</b>'+
         (lmNaamNu
-          ? '<span class="vlag ja">'+esc(lmNaamNu)+'</span>'
+          ? '<span class="vlag ja">'+esc(lmNaamNu)+
+            (lm2Naam ? ' + '+esc(lm2Naam) : '')+'</span>'
           : '<span class="vlag nee">Nog niemand</span>')+
       '</div>'+
       (LM_KOLOM
         ? '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
-            '<div class="field" style="min-width:180px"><label for="rkLmWie">Wie draaide de dienst</label>'+
+            '<div class="field" style="min-width:170px"><label for="rkLmWie">Wie draaide de dienst</label>'+
               mensenKeuze('rkLmWie', null, lmNu)+'</div>'+
+            '<div class="field" style="min-width:160px"><label for="rkLmDeel">Wat deed hij</label>'+
+              deelKeuze('rkLmDeel', deel1)+'</div>'+
             '<button class="knop klein vol" type="button" id="rkLmIk">Dat ben ik</button>'+
+          '</div>'+
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'+
+            '<div class="field" style="min-width:170px"><label for="rkLm2Wie">Overgenomen door '+
+              '<span style="opacity:.7">(leeg = niemand)</span></label>'+
+              mensenKeuze('rkLm2Wie', null, lm2Nu)+'</div>'+
+            '<div class="field" style="min-width:160px"><label for="rkLm2Deel">Wat deed die</label>'+
+              deelKeuze('rkLm2Deel', deel2)+'</div>'+
             '<button class="knop klein vol" type="button" id="rkLmOk">Opslaan</button>'+
             '<span id="rkLmMeld" style="font-size:13px;opacity:.75"></span>'+
           '</div>'+
           '<div style="font-size:12.5px;opacity:.65;margin-top:6px">'+
-            'Deze naam komt ook in het reserveringsoverzicht en in de telling '+
+            'Beide namen zien deze dienst in hun eigen urenstaat, met hun eigen deel. '+
+            'De namen komen ook in het reserveringsoverzicht en in de telling '+
             '“Diensten per locatiemanager”.</div>'
         : '<div style="margin-top:8px;font-size:13px;color:var(--crit,#b3261e)">'+
           'Dit veld kan nog niet worden opgeslagen: de kolommen '+
@@ -8033,6 +8073,21 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
      schadeblok en door de overdracht. De waarde is het id uit wz_medewerkers,
      want daar hangt wz_taken.medewerker_id aan - een naam is niet exact
      ("Ruth" en "Ruth Tilburg" komen beide voor). */
+  /* Wat iemand bij een dienst deed. Dezelfde drie die in de urenstaat al
+     bestaan, en dezelfde woorden die de database toelaat - een vierde waarde
+     zou daar meteen geweigerd worden. Angela, 08-10-2026. */
+  var DEEL_KEUZE = [
+    ['volledig', 'Volledig — in- en uitcheck'],
+    ['incheck',  'Alleen inchecken'],
+    ['uitcheck', 'Uitchecken en schoonmaak']
+  ];
+  function deelKeuze(id, gekozen){
+    return '<select id="' + esc(id) + '">' + DEEL_KEUZE.map(function(d){
+      return '<option value="' + d[0] + '"' + (String(gekozen) === d[0] ? ' selected' : '') +
+        '>' + esc(d[1]) + '</option>';
+    }).join('') + '</select>';
+  }
+
   function mensenKeuze(id, voorkeur, gekozenId){
     var mensen = (MEDEWERKERS || []).filter(function(m){ return m && m.naam && m.actief !== false; });
     var gekozen = gekozenId ? String(gekozenId) : '';
@@ -8091,18 +8146,46 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     if(!sel) return;
     var id = sel.value;
     var naam = id ? ((sel.options[sel.selectedIndex] || {}).text || '') : '';
+    var sel2 = document.getElementById('rkLm2Wie');
+    var id2 = sel2 ? sel2.value : '';
+    var naam2 = id2 ? ((sel2.options[sel2.selectedIndex] || {}).text || '') : '';
+    var deel1 = (document.getElementById('rkLmDeel') || {}).value || 'volledig';
+    var deel2 = (document.getElementById('rkLm2Deel') || {}).value || 'volledig';
+
+    /* Twee keer dezelfde persoon is altijd een vergissing: dan zou die de
+       dienst twee keer op zijn urenstaat krijgen. */
+    if(id && id2 && String(id) === String(id2)){
+      if(meld) meld.textContent = '✕ Dat is twee keer dezelfde persoon. Kies iemand anders of laat de tweede leeg.';
+      return;
+    }
+    if(!id && id2){
+      if(meld) meld.textContent = '✕ Vul eerst in wie de dienst draaide, en dan pas wie hem overnam.';
+      return;
+    }
     if(meld) meld.textContent = 'Bezig met opslaan…';
     var knop = document.getElementById('rkLmOk');
     if(knop) knop.disabled = true;
     try{
-      /* Leegmaken mag: dan is de keuze "— kies iemand —" en gaan beide velden
-         op null, zodat de dienst niet half gevuld achterblijft. */
+      /* Leegmaken mag: dan is de keuze "— kies iemand —" en gaan de velden op
+         null, zodat de dienst niet half gevuld achterblijft. Het deel gaat
+         alleen mee als er ook een naam staat. */
       await bewaarKoppeling(r, {
         locatiemanager_id: id || null,
-        locatiemanager: naam || null
+        locatiemanager: naam || null,
+        locatiemanager_deel: id ? deel1 : null,
+        locatiemanager_2_id: id2 || null,
+        locatiemanager_2_deel: id2 ? deel2 : null
       });
-      if(r.ruw){ r.ruw.locatiemanager_id = id || null; r.ruw.locatiemanager = naam || null; }
-      if(meld) meld.textContent = id ? '✓ ' + naam + ' staat op deze dienst.' : '✓ Naam weggehaald.';
+      if(r.ruw){
+        r.ruw.locatiemanager_id = id || null;
+        r.ruw.locatiemanager = naam || null;
+        r.ruw.locatiemanager_deel = id ? deel1 : null;
+        r.ruw.locatiemanager_2_id = id2 || null;
+        r.ruw.locatiemanager_2_deel = id2 ? deel2 : null;
+      }
+      if(meld) meld.textContent = id
+        ? '✓ ' + naam + (naam2 ? ' en ' + naam2 : '') + ' staan op deze dienst.'
+        : '✓ Naam weggehaald.';
       if(knop) knop.disabled = false;
       /* De lijsten en de telling meteen bijwerken, zonder de pagina te herladen. */
       try{ tekenVandaag(); }catch(e){}
@@ -9061,8 +9144,13 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     borg_afgehandeld:'borg_afgehandeld', borg_notitie:'borg_notitie',
     notitie:'notitie', medewerker:'medewerker', klant_id:'klant_id', checkin_id:'checkin_id',
     /* De locatiemanager die de dienst draaide - niet hetzelfde als
-       `medewerker`, waar de beller van de welkomstcall in staat. */
+       `medewerker`, waar de beller van de welkomstcall in staat. Sinds
+       08-10-2026 kan een dienst door twee mensen gedraaid zijn, elk met hun
+       eigen deel. */
     locatiemanager_id:'locatiemanager_id', locatiemanager:'locatiemanager',
+    locatiemanager_deel:'locatiemanager_deel',
+    locatiemanager_2_id:'locatiemanager_2_id',
+    locatiemanager_2_deel:'locatiemanager_2_deel',
     tijd_in:'incheck_tijd', tijd_uit:'uitcheck_tijd',
     review_taak_id:'review_taak_id', review_verstuurd:'review_verstuurd',
     gastlink_verstuurd:'gastlink_verstuurd'
