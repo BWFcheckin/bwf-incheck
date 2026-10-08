@@ -353,6 +353,20 @@ tbody tr.geannuleerd .gast b{text-decoration:line-through}
 .pill.nachten{background:#EDE4F3;border-color:transparent;color:#5B3B7A;font-weight:600}
 /* De melding over bijgeboekte extra's uit het incheckformulier. Staat bovenaan
    de kaart en valt op: dit is iets wat nog moet gebeuren. Angela, 07-10-2026. */
+/* De melding over het uitchecken. Groen als alles goed ging, rood zodra er
+   iets is wat opvolging vraagt. Angela, 08-10-2026. */
+.ucmeld{border:1px solid #2E7D5B;background:#EDF6F0;border-radius:12px;padding:12px 14px;margin:0 0 12px}
+.ucmeld.zwaar{border-color:#B3261E;background:#FDECEA}
+.ucmeld-kop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:14.5px}
+.ucmeld-wanneer{margin-left:auto;font-size:12.5px;color:var(--muted)}
+.ucm-merken{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ucm-merk{border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:500;
+  background:rgba(0,0,0,.05)}
+.ucm-merk.ja{background:#DFF0E6;color:#1F5B41}
+.ucm-merk.nee{background:#F9DAD6;color:#8C2219}
+.ucm-merk.let{background:#FBEBD0;color:#7A5416}
+.ucm-tekst{font-size:13px;margin-top:8px;white-space:pre-wrap}
+
 .bijboekmeld{border:1px solid #D9A441;background:#FFF7E8;border-radius:12px;
   padding:12px 14px;margin:0 0 12px}
 .bijboekmeld.klaar{border-color:#2E7D5B;background:#EDF6F0}
@@ -1807,7 +1821,10 @@ function rijHtml(r) {
         (r.personen ? "<span>" + esc(r.personen) + " pers.</span>" : "") +
         /* Angela, 06-10-2026: de locatiemanager ook in het overzicht, zodat je
            zonder kaarten te openen ziet wie welke dienst draaide. */
-        (lmNaamVan(r) ? "<span>LM <b>" + esc(lmNaamVan(r)) + "</b></span>" : "") +
+        (lmNaamVan(r)
+          ? "<span>LM <b>" + esc(lmNaamVan(r)) +
+            (lmTweedeNaam(r) ? " + " + esc(lmTweedeNaam(r)) : "") + "</b></span>"
+          : "") +
       "</div>" +
       (contact ? '<div class="reskaart-regels"><span>' + esc(contact) + "</span></div>" : "") +
       /* Deze regel verdween helemaal als er niets geboekt was. Angela vroeg op
@@ -2261,7 +2278,11 @@ function openVenster(id) {
   /* Het uitchecken ophalen en het blok invullen. Apart van de kaart, want het
      komt uit een eigen tabel. ucVul() wordt daarna ook door
      tekenPersoneelKaart() aangeroepen, zodat hertekenen niets wist. */
-  ucLaad(r.id).then(() => { try { ucVul(r); } catch (e) {} });
+  ucLaad(r.id).then(() => {
+    try { ucVul(r); } catch (e) {}
+  try { tekenUitcheckMelding(r); } catch (e) {}
+    try { tekenUitcheckMelding(r); } catch (e) {}
+  });
   vulLog(r);
 
   /* Het springmenu vullen met de onderdelen die deze rol te zien krijgt, en de
@@ -2383,6 +2404,68 @@ function incheckVakHtml(resId) {
    Hij verdwijnt vanzelf zodra de assistent op "Bijboeken verwerken" heeft
    gedrukt: dan staan de regels als arrangement bij de reservering, met het
    merkteken incheckformulier, en is er niets meer te doen. */
+/* De uitkomst van het uitchecken, bovenaan de kaart.
+
+   Angela, 08-10-2026: "ik mis in de reserveringskaart ook, wanneer de klant is
+   uitgecheckt, de melding tevreden of zwarte lijst of contact opnemen."
+
+   Dat stond wel in het uitcheckblok, maar dat zit onderaan en ingeklapt. Wie
+   een kaart opent om te bellen of een factuur te maken, moet meteen zien dat
+   deze gast ontevreden was of op de zwarte lijst staat - dat verandert hoe je
+   het gesprek begint. */
+const UC_PUNT_TEKST = {
+  netjes:       ["ja",   "Netjes achtergelaten en tevreden"],
+  ontevreden:   ["nee",  "Ontevreden \u2014 contact opnemen"],
+  niet_netjes:  ["let",  "Niet netjes achtergelaten"],
+  zwarte_lijst: ["nee",  "Op de zwarte lijst gezet"],
+  schade:       ["nee",  "Schade \u2014 contact opnemen"],
+  gerookt:      ["let",  "Gerookt \u2014 \u20ac 150 op de rekening"]
+};
+
+function tekenUitcheckMelding(r) {
+  const vak = $("#vUitcheckMelding");
+  if (!vak) return;
+  const u = UITCHECK[r.id] || null;
+  if (!u) { vak.innerHTML = ""; return; }
+
+  const punten = Array.isArray(u.punten) ? u.punten : [];
+  const stem = String(u.stemming || "");
+  /* Niets ingevuld en geen stemming: dan valt er ook niets te melden. */
+  if (!punten.length && !stem && !u.toelichting) { vak.innerHTML = ""; return; }
+
+  /* Rood zodra er iets is wat opvolging vraagt; anders groen. */
+  const zwaar = punten.some((p) => ["ontevreden", "zwarte_lijst", "schade"].indexOf(p) > -1)
+    || stem === "ontevreden";
+  const kop = zwaar
+    ? "\u26a0 Uitgecheckt \u2014 let op bij deze gast"
+    : "\u2713 Uitgecheckt";
+
+  const merkjes = punten.map((p) => {
+    const t = UC_PUNT_TEKST[p];
+    return t ? '<span class="ucm-merk ' + t[0] + '">' + esc(t[1]) + "</span>" : "";
+  }).filter(Boolean).join("");
+
+  const stemTekst = stem === "tevreden" ? "Gast was tevreden"
+    : stem === "ontevreden" ? "Gast was ontevreden" : "";
+
+  vak.innerHTML =
+    '<div class="ucmeld' + (zwaar ? " zwaar" : "") + '">' +
+      '<div class="ucmeld-kop"><b>' + kop + "</b>" +
+        (u.afgerond_op
+          ? '<span class="ucmeld-wanneer">' + esc(String(u.afgerond_op).slice(0, 10)) + "</span>"
+          : "") +
+      "</div>" +
+      (stemTekst || merkjes
+        ? '<div class="ucm-merken">' +
+          (stemTekst ? '<span class="ucm-merk ' + (stem === "tevreden" ? "ja" : "nee") + '">' +
+            esc(stemTekst) + "</span>" : "") + merkjes + "</div>"
+        : "") +
+      (u.toelichting
+        ? '<div class="ucm-tekst">' + esc(String(u.toelichting).slice(0, 300)) + "</div>"
+        : "") +
+    "</div>";
+}
+
 function tekenBijboekMelding(r, formulieren) {
   const vak = $("#vBijboekMelding");
   if (!vak) return;
@@ -2822,6 +2905,13 @@ function lmNaamVan(r) {
   return "";
 }
 
+/* De tweede naam, als de dienst is overgenomen of gedeeld. */
+function lmTweedeNaam(r) {
+  if (!r || !r.locatiemanager_2_id) return "";
+  const m = (MEDEWERKERS || []).find((x) => String(x.id) === String(r.locatiemanager_2_id));
+  return m && m.naam ? String(m.naam) : "";
+}
+
 function lmVakInhoud(r) {
   if (!LM_KOLOM) {
     return '<div style="color:#B3261E">De kolommen <code>locatiemanager_id</code> en ' +
@@ -2830,18 +2920,42 @@ function lmVakInhoud(r) {
   }
   const mensen = (MEDEWERKERS || []).filter((m) => m && m.naam && m.actief !== false);
   const nu = r && r.locatiemanager_id ? String(r.locatiemanager_id) : "";
+  /* Angela, 08-10-2026: "dienst overgenomen door zie ik niet staan." Dat stond
+     alleen in het locatiemanager-dashboard; hier dus ook. Twee namen op één
+     dienst, elk met hun eigen deel - dat deel bepaalt hoeveel uren die persoon
+     in zijn eigen urenstaat krijgt. */
+  const nu2 = r && r.locatiemanager_2_id ? String(r.locatiemanager_2_id) : "";
+  const deel1 = String((r && r.locatiemanager_deel) || "volledig");
+  const deel2 = String((r && r.locatiemanager_2_deel) || "volledig");
+  const wieLijst = (id, gekozen, leegTekst) =>
+    '<select id="' + id + '" style="width:100%">' +
+      '<option value="">' + leegTekst + "</option>" +
+      mensen.map((m) => '<option value="' + esc(m.id) + '"' +
+        (String(m.id) === gekozen ? " selected" : "") + ">" + esc(m.naam) + "</option>").join("") +
+    "</select>";
+  const deelLijst = (id, gekozen) =>
+    '<select id="' + id + '" style="width:100%">' +
+      [["volledig", "Volledig &mdash; in- en uitcheck"],
+       ["incheck", "Alleen inchecken"],
+       ["uitcheck", "Uitchecken en schoonmaak"]].map((d) =>
+        '<option value="' + d[0] + '"' + (gekozen === d[0] ? " selected" : "") + ">" + d[1] + "</option>").join("") +
+    "</select>";
+  const vak = (kop, inhoud) =>
+    '<label style="flex:1 1 170px;min-width:140px"><small style="display:block;color:var(--muted)">' +
+      kop + "</small>" + inhoud + "</label>";
+
   return '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">' +
-      '<label style="flex:1 1 180px;min-width:150px"><small style="display:block;color:var(--muted)">' +
-        "Wie draaide de dienst</small>" +
-        '<select id="vLmWie" style="width:100%">' +
-          '<option value="">&mdash; kies iemand &mdash;</option>' +
-          mensen.map((m) => '<option value="' + esc(m.id) + '"' +
-            (String(m.id) === nu ? " selected" : "") + ">" + esc(m.naam) + "</option>").join("") +
-        "</select></label>" +
+      vak("Wie draaide de dienst", wieLijst("vLmWie", nu, "&mdash; kies iemand &mdash;")) +
+      vak("Wat deed hij", deelLijst("vLmDeel", deel1)) +
       '<button type="button" class="knop sec" id="vLmIk">Dat ben ik</button>' +
+    "</div>" +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">' +
+      vak("Dienst overgenomen door", wieLijst("vLm2Wie", nu2, "&mdash; niemand &mdash;")) +
+      vak("Wat deed die", deelLijst("vLm2Deel", deel2)) +
       '<button type="button" class="knop vol" id="vLmOk">Opslaan</button>' +
     "</div>" +
-    '<div id="vLmMeld" style="font-size:13px;color:var(--muted);margin-top:8px"></div>';
+    '<div id="vLmMeld" style="font-size:13px;color:var(--muted);margin-top:8px">' +
+      "Beide namen zien deze dienst in hun eigen urenstaat, met hun eigen deel.</div>";
 }
 
 async function lmBewaren(id) {
@@ -2857,6 +2971,23 @@ async function lmBewaren(id) {
     if (meld) meld.textContent = "Die medewerker staat niet in de lijst. Kies iemand uit de keuzelijst.";
     return;
   }
+  const sel2 = $("#vLm2Wie");
+  const keuze2 = sel2 ? sel2.value : "";
+  const naam2 = keuze2
+    ? ((MEDEWERKERS || []).find((m) => String(m.id) === String(keuze2)) || {}).naam || ""
+    : "";
+  const deel1 = ($("#vLmDeel") || {}).value || "volledig";
+  const deel2 = ($("#vLm2Deel") || {}).value || "volledig";
+  /* Twee keer dezelfde persoon is altijd een vergissing: die zou de dienst dan
+     twee keer op zijn urenstaat krijgen. */
+  if (keuze && keuze2 && String(keuze) === String(keuze2)) {
+    if (meld) meld.textContent = "Dat is twee keer dezelfde persoon. Kies iemand anders, of laat de tweede leeg.";
+    return;
+  }
+  if (!keuze && keuze2) {
+    if (meld) meld.textContent = "Vul eerst in wie de dienst draaide, en dan pas wie hem overnam.";
+    return;
+  }
   if (knop) knop.disabled = true;
   if (meld) meld.textContent = "Bezig met opslaan…";
   try {
@@ -2867,6 +2998,11 @@ async function lmBewaren(id) {
       { method: "PATCH", body: {
           locatiemanager_id: keuze || null,
           locatiemanager: naam || null,
+          /* Het deel gaat alleen mee als er ook een naam staat; anders zou er
+             een deel blijven hangen bij een dienst zonder naam. */
+          locatiemanager_deel: keuze ? deel1 : null,
+          locatiemanager_2_id: keuze2 || null,
+          locatiemanager_2_deel: keuze2 ? deel2 : null,
           gewijzigd_door: NAAM
         } });
     if (!rij || !rij.length) throw new Error("de reservering kwam niet terug");
@@ -2876,7 +3012,7 @@ async function lmBewaren(id) {
     /* De kaart wordt hieronder opnieuw getekend, dus een melding \u00edn het blok
        verdwijnt meteen. Daarom de balk bovenaan, die blijft staan. */
     melding(naam
-      ? naam + " staat nu als locatiemanager op deze dienst."
+      ? naam + (naam2 ? " en " + naam2 + " staan" : " staat") + " nu op deze dienst."
       : "De locatiemanager is van deze dienst weggehaald.");
     tekenPersoneelKaart(rij[0]);
     teken();
@@ -3059,13 +3195,14 @@ function tekenPersoneelKaart(r) {
        Hij staat boven alle blokken en niet ingeklapt: je moet hem zien zonder
        iets open te hoeven klappen. Wordt gevuld zodra de koppelingen binnen
        zijn, want dan pas weten we wat er op het formulier stond. */
+    '<div id="vUitcheckMelding"></div>' +
     '<div id="vBijboekMelding"></div>' +
     kaartVak("Reserveringsgegevens", [
       kaartRegel("Nummer", esc(resNummer(r))),
       /* Angela, 06-10-2026: de locatiemanager van deze dienst meteen bovenaan
          in beeld, niet alleen in het blok waar je hem kiest. */
       kaartRegel("Locatiemanager", lmNaamVan(r)
-        ? esc(lmNaamVan(r))
+        ? esc(lmNaamVan(r)) + (lmTweedeNaam(r) ? " + " + esc(lmTweedeNaam(r)) : "")
         : '<span style="color:var(--muted)">nog niemand</span>'),
       kaartRegel("Suite", esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite)),
       kaartRegel("Geboekt via", esc(KANALEN[r.kanaal] || r.kanaal)),
@@ -7992,9 +8129,11 @@ async function start() {
   } catch (e) { REVIEW_KOLOM = false; }
   /* Hetzelfde voor de twee locatiemanagerkolommen (Angela, 06-10-2026). */
   try {
-    await api("reserveringen?select=id,locatiemanager_id,locatiemanager&limit=1", { stil: true });
+    await api("reserveringen?select=id,locatiemanager_id,locatiemanager," +
+      "locatiemanager_deel,locatiemanager_2_id,locatiemanager_2_deel&limit=1", { stil: true });
     LM_KOLOM = true;
-    KOLOMMEN += ",locatiemanager_id,locatiemanager";
+    KOLOMMEN += ",locatiemanager_id,locatiemanager,locatiemanager_deel," +
+      "locatiemanager_2_id,locatiemanager_2_deel";
   } catch (e) { LM_KOLOM = false; }
   try {
     MEDEWERKERS = await api("wz_medewerkers?select=id,naam,actief&order=naam.asc", { stil: true }) || [];
