@@ -605,11 +605,8 @@
   }
 
   function toRow(e) {
-    return {
+    var rij = {
       medewerker: MEDEWERKER,
-      /* Zonder dit weigert de beveiligingsregel de rij zodra de urenstaat is
-         dichtgezet: with check kijkt naar medewerker_id, niet naar de naam. */
-      medewerker_id: UR_ID,
       datum: e.date,
       soort: e.type,
       verblijf: e.verblijf || "dagverblijf",
@@ -623,6 +620,11 @@
       uurtarief: RATE,
       bedrag: amountOf(e)
     };
+    /* Alleen meesturen als de kolom echt bestaat. Bestaat hij wel, dan is hij
+       nodig: de beveiligingsregel kijkt straks naar medewerker_id en niet naar
+       de naam. */
+    if (UR_KOLOM && UR_ID) rij.medewerker_id = UR_ID;
+    return rij;
   }
   function fromRow(r) {
     return {
@@ -647,19 +649,34 @@
      wz_medewerkers kan "Ruth" staan; op de naam filteren zou dan de helft van
      de regels laten verdwijnen zodra er nieuwe bijkomen. Angela, 06-10-2026. */
   var UR_ID = null;
+  /* Bestaat de kolom medewerker_id al in uren_registratie?
+
+     Dit ging op 07-10-2026 mis en het kostte Gildo zijn uren. Ik liet
+     medewerker_id meesturen bij het opslaan, vooruitlopend op de migratie die
+     die kolom aanmaakt. PostgREST weigert bij een onbekende kolom de HELE rij,
+     niet alleen dat veld - dus elke keer dat hij op opslaan drukte, werd er
+     niets weggeschreven. Daarom eerst kijken of de kolom er is, en hem alleen
+     meesturen als dat zo is. Zolang hij ontbreekt werkt alles als voorheen. */
+  var UR_KOLOM = false;
+
   function haalUrenId() {
     if (!configured) return Promise.resolve();
-    if (UR_WIE) { UR_ID = UR_WIE; return Promise.resolve(); }
-    return api("rpc/bwf_medewerker_id", { method: "POST", body: {} })
-      .then(function (d) { UR_ID = (typeof d === "string" && d) ? d : (d && d.id) || null; })
-      .catch(function () { UR_ID = null; });
+    return api(TABEL + "?select=medewerker_id&limit=1")
+      .then(function () { UR_KOLOM = true; })
+      .catch(function () { UR_KOLOM = false; })
+      .then(function () {
+        if (UR_WIE) { UR_ID = UR_WIE; return null; }
+        return api("rpc/bwf_medewerker_id", { method: "POST", body: {} })
+          .then(function (d) { UR_ID = (typeof d === "string" && d) ? d : (d && d.id) || null; })
+          .catch(function () { UR_ID = null; });
+      });
   }
 
   function pull(silent) {
     if (!configured) { setSave("setup"); return Promise.resolve(); }
     /* Op het account als dat bekend is, anders nog op de naam - zo blijft de
        pagina werken zolang de kolom medewerker_id nog niet is gevuld. */
-    var filter = UR_ID
+    var filter = (UR_KOLOM && UR_ID)
       ? "medewerker_id=eq." + encodeURIComponent(UR_ID)
       : "medewerker=eq." + encodeURIComponent(MEDEWERKER);
     return api(TABEL + "?select=*&" + filter + "&order=datum.asc")
