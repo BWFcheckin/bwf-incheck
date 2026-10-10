@@ -248,6 +248,7 @@ td input.mini{width:78px;text-align:right;font-family:var(--f-mono);font-variant
 .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:11.5px;
   font-weight:600;border:1px solid transparent;white-space:nowrap}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
+tr.bp-spec td{background:var(--surface-2,#FBF9F5);padding:10px 14px;white-space:normal}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
 .pill.crit{background:var(--crit-soft);color:var(--crit)}
 .pill.neutral{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
@@ -2112,7 +2113,7 @@ div.ag-blok{cursor:default}
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>Gast</th><th class="num">Totaal</th><th class="num">Open</th>
-            <th>Status</th><th>Betaald via</th><th>Formulier</th><th>Extra's</th></tr></thead>
+            <th>Status</th><th>Hoe betaald</th><th>Formulier</th><th>Extra's</th></tr></thead>
           <tbody id="bpLijst"></tbody>
         </table></div>
       </div>
@@ -3383,6 +3384,8 @@ div.ag-blok{cursor:default}
 <script src="bwf-voorraad.js?v=1"></script>
 <script src="bwf-chats.js?v=2"></script>
 <script src="bwf-planweergave.js?v=1"></script>
+<!-- Betaalspecificatie per reservering, dezelfde als op de reserveringskaart. -->
+<script src="bwf-betaalspec.js?v=1"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -5799,6 +5802,18 @@ document.addEventListener('click', e => {
    naar de reservering zelf, zodat het ook op de reserveringskaart en in het
    incheckformulier meteen klopt. */
 let bpFilterStand = 'open';
+/* Welke rijen zijn opengeklapt tot een specificatie. Angela, 10-10-2026. */
+const BP_OPEN = new Set();
+function bpSpec(ruw){
+  if(typeof BWFBetaalSpec === 'undefined') return null;
+  /* BETALINGEN staat verderop in dit script; zolang die regel nog niet is
+     uitgevoerd bestaat hij niet, vandaar de try. */
+  let alle = [];
+  try{ alle = BETALINGEN || []; }catch(e){}
+  const mollie = alle.filter(b => b.status === 'paid' &&
+    String(b.reservering_id) === String(ruw.id));
+  return BWFBetaalSpec.bereken(ruw, mollie);
+}
 const BP_WIJZEN = ['Contant','Flatpay','Mollie betaallink','Bankoverschrijving',
                    'Booking.com','SMG','Anders'];
 const BP_STATUS = { open:'Open', deels:'Deels betaald', aanbetaling:'Aanbetaling gedaan', betaald:'Betaald' };
@@ -5837,6 +5852,8 @@ function renderBetaalPerReservering(){
     const st = String(ruw.betaalstatus || 'open');
     const arr = Array.isArray(ruw.arrangementen) ? ruw.arrangementen : [];
     const extras = arr.filter(x => x && x.bron === 'welkomstcall').length;
+    const spec = bpSpec(ruw);
+    const open = BP_OPEN.has(String(r.resId));
     return `<tr>
       <td class="name">${esc(r.naam || 'zonder naam')}<span class="meta">${
         esc(dmy(String(r.start||'').slice(0,10)))} · ${esc(r.locatie||'')}</span></td>
@@ -5846,19 +5863,45 @@ function renderBetaalPerReservering(){
         Object.keys(BP_STATUS).map(k =>
           `<option value="${k}"${st === k ? ' selected' : ''}>${esc(BP_STATUS[k])}</option>`).join('')
       }</select></td>
-      <td><select class="bel-status" data-bpwijze="${esc(r.resId)}">
-        <option value="">— nog niet bekend —</option>${
-        BP_WIJZEN.map(w =>
-          `<option${String(ruw.betaald_via||'') === w ? ' selected' : ''}>${esc(w)}</option>`).join('')
-      }${ruw.betaald_via && BP_WIJZEN.indexOf(ruw.betaald_via) < 0
-          ? `<option selected>${esc(ruw.betaald_via)}</option>` : ''}</select></td>
+      <td>${bpHoe(r, spec)}</td>
       <td>${ruw.checkin_id ? '<span class="pill ok">gekoppeld</span>'
                            : '<span class="pill">geen</span>'}</td>
       <td>${extras ? esc(extras) + '×' : '—'}</td>
-    </tr>`;
+    </tr>${open && spec ? `<tr class="bp-spec"><td colspan="7">${BWFBetaalSpec.html(spec)}</td></tr>` : ''}`;
   }).join('')
     : `<tr><td colspan="7"><div class="empty"><strong>Niets te zien</strong>Geen reserveringen in deze selectie.</div></td></tr>`;
 }
+
+/* De kolom "Hoe betaald": per betaalwijze wat er binnen is, en een knop die de
+   volledige specificatie eronder openklapt - per post (verblijf, extra's via
+   de welkomstcall, op locatie) hoe hij is betaald. Was één keuzelijst met één
+   betaalwijze voor de hele boeking. Die keuzelijst staat er alleen nog als er
+   een betaling is waarvan de betaalwijze niet is vastgelegd: dan kun je die
+   alsnog invullen. Angela, 10-10-2026. */
+function bpHoe(r, spec){
+  const ruw = r.ruw;
+  const sam = spec ? BWFBetaalSpec.samenvatting(spec) : [];
+  const chips = sam.map(x => `<span class="pill ${/niet vastgelegd/.test(x.wijze) ? '' : 'ok'}">${
+    esc(x.wijze)} ${esc(eur(x.bedrag))}</span>`).join(' ');
+  const onbekend = !spec || spec.betalingen.some(b => b.onbekend) || !sam.length;
+  const kiezer = onbekend ? `<select class="bel-status" data-bpwijze="${esc(r.resId)}" style="margin-top:4px">
+        <option value="">— betaalwijze nog niet bekend —</option>${
+        BP_WIJZEN.map(w =>
+          `<option${String(ruw.betaald_via||'') === w ? ' selected' : ''}>${esc(w)}</option>`).join('')
+      }${ruw.betaald_via && BP_WIJZEN.indexOf(ruw.betaald_via) < 0
+          ? `<option selected>${esc(ruw.betaald_via)}</option>` : ''}</select>` : '';
+  const open = BP_OPEN.has(String(r.resId));
+  const knop = spec ? `<button type="button" class="btn ghost small" data-bpspec="${esc(r.resId)}"
+      style="margin-top:4px">${open ? 'Specificatie verbergen' : 'Specificatie'}</button>` : '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px">${chips || '<span class="pill">nog niets betaald</span>'}</div>${kiezer}${knop}`;
+}
+
+document.addEventListener('click', e => {
+  const k = e.target.closest('[data-bpspec]'); if(!k) return;
+  const id = String(k.dataset.bpspec);
+  if(BP_OPEN.has(id)) BP_OPEN.delete(id); else BP_OPEN.add(id);
+  renderBetaalPerReservering();
+});
 
 document.addEventListener('click', e => {
   const b = e.target.closest('#bpFilter button'); if(!b) return;
@@ -5909,6 +5952,8 @@ async function laadBetalingen(){
       '&order=bijgewerkt_op.desc&limit=200') || [];
   }catch(e){ BETALINGEN = []; }
   renderBetalingen();
+  /* De specificatie per reservering telt de Mollie-betalingen mee. */
+  renderBetaalPerReservering();
 }
 
 function renderBetalingen(){
