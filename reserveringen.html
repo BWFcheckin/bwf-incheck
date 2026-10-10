@@ -3294,7 +3294,9 @@ function tekenPersoneelKaart(r) {
         ? kaartRegel("Nog te betalen na arrangementen",
             "&euro; " + esc(euro((open != null ? open : 0) + extraNaCall)))
         : "",
-      kaartRegel("Betaald via", esc(r.betaald_via || "nog niet bekend"))
+      /* Angela, 10-10-2026: niet één betaalwijze voor de hele boeking, maar per
+         post hoe hij is betaald. */
+      '<div id="vBetaalSpec" style="margin-top:6px"></div>'
     ], true) +
     /* Angela, 04-10-2026: "ik wil in de reserveringskaart bepaalde gegevens
        standaard uitgeklapt zien" - de drie blokken hierboven plus de
@@ -3386,6 +3388,8 @@ function tekenPersoneelKaart(r) {
      twee keuzelijsten niet leeg blijven staan - want een lege lijst is precies
      wat er daarna overheen geschreven wordt. Angela, 05-10-2026. */
   try { ucVul(r); } catch (e) {}
+  /* De betaalspecificatie in het blok Betalingsgegevens. */
+  try { tekenBetaalSpec(r); } catch (e) {}
 
   /* De koppelingen worden apart geladen; vulKoppelingen() vult dit blok zodra
      ze binnen zijn, met de knop die bij de stand hoort - "Open pdf" als er een
@@ -3557,6 +3561,9 @@ async function bonVerzilver() {
     const betaaldNu = Math.round((betaaldWas + bedrag) * 100) / 100;
     const openNa = Math.round(Math.max(0, open - bedrag) * 100) / 100;
     const d = {
+      /* Ook de bon komt als betaling in de specificatie. */
+      arrangementen: arrMetBetaling(r, bedrag, "Cadeaubon", "restant",
+        { naam: "Cadeaubon verzilverd" + (b.code ? " — " + b.code : ""), soort: "cadeaubon" }, true),
       betaald_bedrag: betaaldNu,
       restant_bedrag: openNa,
       betaalstatus: openNa <= 0.004 ? "betaald" : "deels",
@@ -3739,18 +3746,14 @@ async function afrekenenMetGast() {
   note.textContent = "Bezig met afronden…";
   const nu = new Date().toISOString();
   const notitie = ($("#vAfrNotitie").value || "").trim();
-  /* De afgerekende extra's merken, zodat ze niet nog eens meetellen. */
-  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).map((x) => {
-    if (x && x.bron && x.bron !== "betaling" && !x.betaald && (wat === "extras" || wat === "alles")) {
-      return Object.assign({}, x, { betaald: true, betaald_op: nu, betaald_via: wijze, betaald_door: NAAM });
-    }
-    return x;
-  }).concat([{
+  /* De betaalregel legt vast wat voor betaling het is (aanbetaling, restant,
+     extra's) en welke posten hij dekt; de extra's die hiermee helemaal betaald
+     zijn krijgen hun betaalwijze. Zo staat in de specificatie achter elk item
+     hoe het is betaald. Angela, 10-10-2026. */
+  const arr = arrMetBetaling(r, bedrag, wijze, wat, {
     naam: "Afgerekend op locatie" + (notitie ? " — " + notitie : ""),
-    aantal: 1, bedrag: 0, bron: "betaling",
-    betaald_bedrag: bedrag, betaalwijze: wijze, tijdstip: nu, door: NAAM,
-    notitie: notitie || null, verdeling: delen && delen.length ? delen : null
-  }]);
+    tijdstip: nu, notitie: notitie || null, verdeling: delen && delen.length ? delen : null
+  }, true);
   const b = afrBedragen(r);
   const nieuwBetaald = Math.round((alBetaald(r, b.open) + bedrag) * 100) / 100;
   const nieuwOpen = Math.round(Math.max(0, b.open - bedrag) * 100) / 100;
@@ -6050,6 +6053,9 @@ async function toonMollieStand(r) {
       "&reservering_id=eq." + encodeURIComponent(r.id) +
       "&order=bijgewerkt_op.desc&limit=10", { stil: true }) || [];
   } catch (e) { return; }
+  /* Bewaren voor de betaalspecificatie, en die meteen bijwerken. */
+  MOLLIE_RIJEN[r.id] = rijen.filter((b) => b.status === "paid");
+  if (HUIDIG && HUIDIG.id === r.id) tekenBetaalSpec(HUIDIG);
   if (!rijen.length) return;
   const nu = Date.now();
   /* Een link die betaald is of verlopen kun je niet meer sturen. Mollie meldt
@@ -6129,10 +6135,8 @@ async function mollieOvernemen(bedrag) {
   if (!confirm("€ " + euro(bedrag) + " bij deze boeking verwerken als betaald via Mollie?")) return;
   const b = afrBedragen(r);
   const nu = new Date().toISOString();
-  const arr = (Array.isArray(r.arrangementen) ? r.arrangementen : []).concat([{
-    naam: "Betaald via Mollie-betaallink", aantal: 1, bedrag: 0, bron: "betaling",
-    betaald_bedrag: bedrag, betaalwijze: "Mollie betaallink", tijdstip: nu, door: NAAM
-  }]);
+  const arr = arrMetBetaling(r, bedrag, "Mollie betaallink", "restant",
+    { naam: "Betaald via Mollie-betaallink", tijdstip: nu }, false);
   const nieuwBetaald = Math.round((alBetaald(r, b.open) + bedrag) * 100) / 100;
   const nieuwOpen = Math.round(Math.max(0, b.open - bedrag) * 100) / 100;
   try {
@@ -6752,6 +6756,34 @@ function vDeelBedrag() {
    De betaalstatus is leidend, net als op de kaart in de lijst: betaald_bedrag
    en restant_bedrag zijn bij de meeste boekingen leeg, en daarmee rekenen gaf
    eerder twee streepjes bij een reservering die gewoon op Betaald stond. */
+/* ---------- betaalspecificatie (Angela, 10-10-2026) ----------
+   "Niet één betaalwijze per boeking, maar los van elkaar: aanbetaling,
+   restant, extra's via de welkomstcall en op locatie - en achter elk item hoe
+   het is betaald." De rekenregels staan in bwf-betaalspec.js, zodat het
+   VR-dashboard precies hetzelfde laat zien. Hier alleen het ophalen van de
+   Mollie-betalingen per boeking en het tekenen. */
+let MOLLIE_RIJEN = {};
+function tekenBetaalSpec(r) {
+  const vak = $("#vBetaalSpec");
+  if (!vak || !r || typeof BWFBetaalSpec === "undefined") return;
+  vak.innerHTML = BWFBetaalSpec.html(BWFBetaalSpec.bereken(r, MOLLIE_RIJEN[r.id] || []));
+}
+/* De arrangementenlijst na een nieuwe betaling: de extra's die hiermee helemaal
+   betaald zijn krijgen hun betaalwijze, en er komt een betaalregel bij die
+   zegt wat voor betaling het was en welke posten hij dekte. */
+function arrMetBetaling(r, bedrag, wijze, keuze, regel, metMollie) {
+  const nu = regel.tijdstip || new Date().toISOString();
+  let arr = Array.isArray(r.arrangementen) ? r.arrangementen : [];
+  let extra = {};
+  if (typeof BWFBetaalSpec !== "undefined") {
+    const nb = BWFBetaalSpec.nieuweBetaling(r, bedrag, keuze, metMollie ? (MOLLIE_RIJEN[r.id] || []) : []);
+    arr = BWFBetaalSpec.merkBetaald(arr, nb.helemaalBetaald, wijze, NAAM, nu);
+    extra = { soort: nb.soort, dekt: nb.dekt };
+  }
+  return arr.concat([Object.assign({ aantal: 1, bedrag: 0, bron: "betaling",
+    betaald_bedrag: bedrag, betaalwijze: wijze, tijdstip: nu, door: NAAM }, extra, regel)]);
+}
+
 /* Angela, 10-10-2026: een boeking stond op "betaald" toen er nog EUR 30 aan
    extra's bij kwam. De kaart bovenaan zei "EUR 30 nog te betalen", het
    afrekenvak zei "EUR 0" - want dat keek alleen naar de status. Regel voor het
@@ -8562,6 +8594,9 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- De rekenregels van het membershipprogramma. Apart bestand, zodat de
      korting op elk scherm hetzelfde uitvalt. -->
 <script src="bwf-member.js?v=1"></script>
+<!-- De betaalspecificatie: per post (verblijf, extra's) hoe hij is betaald.
+     Apart bestand, want het VR-dashboard toont dezelfde specificatie. -->
+<script src="bwf-betaalspec.js?v=1"></script>
 <script src="bwf-menu.js?v=11"></script>
 <script src="bwf-weergave.js?v=2"></script>
 <script src="bwf-account.js?v=1"></script>
