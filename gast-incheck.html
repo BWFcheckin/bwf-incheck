@@ -96,6 +96,13 @@ input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outl
 .prod .add{ border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:var(--r-s); padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer; }
 .prod.in .add{ background:var(--accent); color:var(--accent-ink); }
 .prod .subt{ font-family:var(--f-mono); font-size:12.5px; color:var(--ink-2); }
+/* Rookvrije locatie - Angela, 10-10-2026 */
+.prod.niet{ opacity:.6; }
+.prod.niet img{ filter:grayscale(1); }
+.prod .nietlabel{ font-size:12.5px; font-weight:600; color:#B3261E; }
+.rookvrij{ display:flex; gap:10px; align-items:flex-start; margin:12px 0 4px; padding:10px 12px;
+  border-radius:var(--r-s); background:#FBEAE7; color:#7A1F17; font-size:13.5px; line-height:1.45; }
+.rookvrij b{ display:block; }
 
 /* ---- overzicht / calculator ---- */
 .somlijst{ border:1px solid var(--line); border-radius:var(--r-m); overflow:hidden; }
@@ -152,6 +159,7 @@ input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outl
         <div><label for="g_locatie">Welke suite heb je geboekt? *</label><select id="g_locatie" onchange="renderCatalogus()"></select></div>
         <div><label for="g_datum">Datum van je verblijf *</label><input type="date" id="g_datum"></div>
       </div>
+      <div class="rookvrij" id="rookvrijMelding1" hidden></div>
       <div class="grid2">
         <div><label for="g_voornaam">Voornaam *</label><input id="g_voornaam" autocomplete="given-name"></div>
         <div><label for="g_achternaam">Achternaam *</label><input id="g_achternaam" autocomplete="family-name"></div>
@@ -184,6 +192,7 @@ input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outl
     <div class="section-sub">Dranken</div>
     <div class="products" id="drankGrid"></div>
     <div class="section-sub">Services</div>
+    <div class="rookvrij" id="rookvrijMelding2" hidden></div>
     <div class="products" id="srvGrid"></div>
   </section>
 
@@ -264,6 +273,22 @@ const LOCATIONS = [
   { id:'jacuzzi', naam:'Malina Jacuzzi Suite — Lelystad' },
   { id:'deluxe',  naam:'Malina Deluxe Zwembad Suite — Lelystad' },
 ];
+/* De suite uit een link of reservering omzetten naar de code van dit formulier.
+   De reservering zelf noemt ze "malina_jacuzzi" en "malina_deluxe"; dit
+   formulier "jacuzzi" en "deluxe". Dat werd niet vertaald, waardoor bij een
+   gastenlink van Malina Jacuzzi geen suite gekozen stond en de gast álle
+   extra's zag - ook het rookterras. Angela, 10-10-2026. */
+function normSuite(v){
+  const s = String(v || '').trim().toLowerCase();
+  if(s === 'malina_jacuzzi' || s === 'jacuzzi') return 'jacuzzi';
+  if(s === 'malina_deluxe' || s === 'deluxe' || s === 'zwembad') return 'deluxe';
+  if(s === 'angie' || s === 'almere') return 'angie';
+  return '';
+}
+/* Rookvrije suites. Angela, 10-10-2026: "Malina is een rookvrije locatie -
+   kun je op dat formulier specifiek voor Malina Jacuzzi Suite aangeven dat
+   het rookvrij is en het rookterras daar op niet beschikbaar zetten." */
+const ROOKVRIJ = ['jacuzzi'];
 function locGroup(id){ return id === 'angie' ? 'almere' : 'lelystad'; }
 
 /* ================= CATALOGUS =================
@@ -326,7 +351,7 @@ let CATALOGUS = [
                       niet vermelden, er valt niets te bestellen
        Malina Jacuzzi geen rookgelegenheid
      Ik had dit eerst precies omgekeerd en op beide Malina-suites gezet. */
-  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, img:'srv-rookterras.svg', suites:['angie'], maxAantal:1,
+  { id:'srv_rookterras', groep:'srv', naam:'Rookterras', prijs:10, img:'srv-rookterras.svg', suites:['angie'], maxAantal:1, roken:true,
     oms:'Gebruik van het rookterras tijdens je verblijf.' },
 
   /* Angela, 02 en 03-10-2026. Deze twee stonden alleen in de migratie, die de
@@ -386,7 +411,7 @@ async function sb(path, options={}){
 /* ================= LINK-PARAMETERS ================= */
 const params = new URLSearchParams(location.search);
 let   resCode   = (params.get('r') || '').trim();
-const linkLoc   = (params.get('loc') || '').trim();
+const linkLoc   = normSuite(params.get('loc'));
 const linkDatum = (params.get('d') || '').trim();
 const conceptId = (params.get('c') || '').trim();
 const veiligToken = (params.get('token') || '').trim();
@@ -449,7 +474,7 @@ async function laadVeiligeLink(){
      staat. */
   RES_SOORT = String(g.soort || g.type || '');
   RES_TIJD  = String(g.incheck_tijd || '').slice(0,5);
-  const loc = g.location === 'zwembad' ? 'deluxe' : g.location;
+  const loc = normSuite(g.location);
   if(LOCATIONS.some(l=>l.id===loc)) document.getElementById('g_locatie').value=loc;
   if(g.arrival) document.getElementById('g_datum').value=g.arrival;
   const zetAls=(id,w)=>{ const el=document.getElementById(id); if(el && w && !String(el.value).trim()) el.value=w; };
@@ -511,6 +536,14 @@ function prodHTML(it){
       <div class="ctl">${ctl}</div>
     </div></div>`;
 }
+function nietBeschikbaarHTML(it){
+  return `<div class="prod niet" aria-disabled="true">
+    ${it.img ? `<img src="${IMG+it.img}" alt="${it.naam}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="body">
+      <div class="naam">${it.naam}</div>
+      <div class="nietlabel">Niet beschikbaar &mdash; rookvrije locatie</div>
+    </div></div>`;
+}
 /* Wat we uit de reservering weten. Komt binnen via de veilige link; bij een
    kale link blijft het leeg. Angela, 04-10-2026: de aankomsttijd geldt alleen
    bij overnachtingen, en de tijd uit de reservering is leidend. */
@@ -523,6 +556,9 @@ function renderCatalogus(){
   const suite = huidigeSuite();
   const zichtbaar = it => {
     if(suite && !it.suites.includes(suite)) return false;
+    /* Zolang de suite niet bekend is geen rookterras tonen: het kan alleen in
+       Almere, en een gast van Malina mag het niet per ongeluk kiezen. */
+    if(!suite && it.roken) return false;
     /* Alleen weglaten als we ZEKER weten dat het een dagverblijf is. Weten we
        het niet - bijvoorbeeld bij een link zonder token - dan tonen we het
        liever wel: een overnachtingsgast die zijn tijd niet kan doorgeven is
@@ -530,11 +566,24 @@ function renderCatalogus(){
     if(it.alleenOvernachting && isDagverblijf()) return false;
     return true;
   };
+  const rookvrij = ROOKVRIJ.includes(suite);
   const grids = { arr:'arrGrid', menu:'menuGrid', drank:'drankGrid', srv:'srvGrid' };
   for(const [g,id] of Object.entries(grids)){
     const items = CATALOGUS.filter(it=>it.groep===g && zichtbaar(it));
-    document.getElementById(id).innerHTML = items.map(prodHTML).join('') || '<div class="somleeg" style="grid-column:1/-1">Niet beschikbaar voor deze suite.</div>';
+    /* In een rookvrije suite staat het rookterras er wél, maar grijs en niet
+       te kiezen - zo ziet de gast meteen dat het hier niet kan. */
+    const niet = rookvrij ? CATALOGUS.filter(it=>it.groep===g && it.roken).map(nietBeschikbaarHTML) : [];
+    document.getElementById(id).innerHTML = (items.map(prodHTML).join('') + niet.join('')) || '<div class="somleeg" style="grid-column:1/-1">Niet beschikbaar voor deze suite.</div>';
   }
+  const melding = rookvrij
+    ? '<span aria-hidden="true">&#128685;</span><span><b>' +
+      (LOCATIONS.find(l=>l.id===suite) || {naam:'Deze suite'}).naam.split(' — ')[0] +
+      ' is een rookvrije locatie.</b>Er is hier geen rookterras.</span>'
+    : '';
+  ['rookvrijMelding1','rookvrijMelding2'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.innerHTML = melding; el.hidden = !rookvrij; }
+  });
   /* arrangementen-kaart verbergen als er niets te kiezen valt */
   document.getElementById('secArr').style.display = CATALOGUS.some(it=>it.groep==='arr' && zichtbaar(it)) ? '' : 'none';
   /* keuzes die niet bij deze suite horen opruimen */
