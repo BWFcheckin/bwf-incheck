@@ -2674,6 +2674,7 @@ const KAART_ICO = {
   "Suite": "&#128716;",
   "Geboekt via": "&#127760;",
   "Aankomst": "&#128197;",
+  "Verwachte aankomst": "&#128337;",
   "Soort": "&#127968;",
   "Personen": "&#128101;",
   "Status": "&#9989;",
@@ -3255,6 +3256,9 @@ function tekenPersoneelKaart(r) {
       kaartRegel("Suite", esc(SUITES[r.suite] ? SUITES[r.suite].naam : r.suite)),
       kaartRegel("Geboekt via", esc(KANALEN[r.kanaal] || r.kanaal)),
       kaartRegel("Aankomst", esc(p.dag + " " + p.tijd)),
+      /* Gevuld door tekenVerwachteAankomst() zodra bekend is of de gast via de
+         gastenlink een andere aankomsttijd heeft doorgegeven. */
+      '<div id="vVerwachtPlek"></div>',
       kaartRegel("Soort", esc(TYPES[r.type] || r.type) +
         (nachtenVan(r) > 1
           ? ' <span class="pill nachten">' + esc(nachtenTekst(r)) + "</span>"
@@ -3390,6 +3394,8 @@ function tekenPersoneelKaart(r) {
   try { ucVul(r); } catch (e) {}
   /* De betaalspecificatie in het blok Betalingsgegevens. */
   try { tekenBetaalSpec(r); } catch (e) {}
+  /* De aankomsttijd die de gast zelf heeft doorgegeven. */
+  try { tekenVerwachteAankomst(r); } catch (e) {}
 
   /* De koppelingen worden apart geladen; vulKoppelingen() vult dit blok zodra
      ze binnen zijn, met de knop die bij de stand hoort - "Open pdf" als er een
@@ -6756,6 +6762,61 @@ function vDeelBedrag() {
    De betaalstatus is leidend, net als op de kaart in de lijst: betaald_bedrag
    en restant_bedrag zijn bij de meeste boekingen leeg, en daarmee rekenen gaf
    eerder twee streepjes bij een reservering die gewoon op Betaald stond. */
+/* ---------- verwachte aankomst (Angela, 10-10-2026) ----------
+   "Ik wil in de reserveringskaart de verwachte aankomsttijd zien als de gast
+   een andere tijd heeft aangegeven dan de inchecktijd van de reservering."
+
+   De gast geeft dat door op de gastenlink met "Later aankomen" (srv_laat).
+   Dat komt als regel in gast_aanmeldingen.extras, met de gekozen tijd als
+   variant. Hier halen we de nieuwste aanmelding bij deze boeking op - via het
+   reserveringsnummer in de link of het gekoppelde incheckformulier - en
+   tonen de tijd onder Aankomst als hij afwijkt. */
+const VERWACHT = {};
+const VERWACHT_VARIANT = {
+  t19: "19:00", t20: "20:00", t21: "21:00", t22: "22:00", t23: "23:00", t24: "00:00",
+  voor22: "vóór 22:00", tot23: "tussen 22:00 en 23:00", tot24: "tussen 23:00 en 00:00"
+};
+function verwachtUitAanmelding(a) {
+  const regel = (Array.isArray(a && a.extras) ? a.extras : [])
+    .find((x) => x && (x.id === "srv_laat" || /later aankomen/i.test(String(x.naam || ""))));
+  if (!regel) return null;
+  const tijd = VERWACHT_VARIANT[regel.variant] ||
+    String(regel.naam || "").split(" — ").slice(1).join(" — ").trim();
+  if (!tijd) return null;
+  return { tijd, prijs: Number(regel.subtotaal || regel.prijs) || 0, op: a.created_at || "" };
+}
+async function haalVerwachteAankomst(r) {
+  const sleutels = [r.id, r.kanaal_ref, resNummer(r)].filter(Boolean).map(String)
+    .filter((x, i, l) => l.indexOf(x) === i);
+  const velden = "gast_aanmeldingen?select=id,code,checkin_id,extras,created_at&order=created_at.desc&limit=5";
+  const zacht = (pad) => api(pad, { stil: true }).catch(() => []);
+  const lijsten = await Promise.all(
+    sleutels.map((k) => zacht(velden + "&code=eq." + encodeURIComponent(k)))
+      .concat(r.checkin_id ? [zacht(velden + "&checkin_id=eq." + encodeURIComponent(r.checkin_id))] : []));
+  const alle = [].concat(...lijsten.map((l) => l || []))
+    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+  for (const a of alle) {
+    const v = verwachtUitAanmelding(a);
+    if (v) return v;
+  }
+  return null;
+}
+async function tekenVerwachteAankomst(r) {
+  if (!r || !r.id) return;
+  if (!(r.id in VERWACHT)) VERWACHT[r.id] = haalVerwachteAankomst(r).catch(() => null);
+  const v = await VERWACHT[r.id];
+  const plek = $("#vVerwachtPlek");
+  if (!plek || !HUIDIG || HUIDIG.id !== r.id) return;
+  const resTijd = hhmm(r.incheck_tijd) || (r.aankomst ? fmtTijd.format(new Date(r.aankomst)) : "");
+  /* Alleen tonen als het afwijkt van wat er in de reservering staat. */
+  if (!v || v.tijd === resTijd) { plek.innerHTML = ""; return; }
+  plek.innerHTML = kaartRegel("Verwachte aankomst",
+    '<span style="color:var(--crit)">' + esc(v.tijd) + "</span>" +
+    ' <span style="font-weight:400;font-size:12.5px;color:var(--muted)">door de gast doorgegeven' +
+    (resTijd ? " &middot; reservering " + esc(resTijd) : "") +
+    (v.prijs > 0 ? " &middot; toeslag &euro; " + esc(euro(v.prijs)) : "") + "</span>");
+}
+
 /* ---------- betaalspecificatie (Angela, 10-10-2026) ----------
    "Niet één betaalwijze per boeking, maar los van elkaar: aanbetaling,
    restant, extra's via de welkomstcall en op locatie - en achter elk item hoe
