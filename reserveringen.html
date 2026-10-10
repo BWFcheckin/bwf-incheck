@@ -1760,7 +1760,9 @@ function rijHtml(r) {
   let geldR = "";
   if (totaal != null) {
     geldR = "<span>Totaal <b>&euro; " + esc(euro(totaal)) + "</b></span>";
-    if (bstat === "betaald") {
+    if (bstat === "betaald" && restantBovenNul(r) != null) {
+      geldR += '<span class="open">Nog te betalen <b>&euro; ' + esc(euro(restantBovenNul(r))) + "</b></span>";
+    } else if (bstat === "betaald") {
       /* Angela vroeg op 17-09-2026 om het openstaande bedrag ook te zien als
          het nul is. Dan lees je in één oogopslag dat er niets meer bij komt,
          in plaats van dat je het uit het woord Voldaan moet afleiden. */
@@ -3550,7 +3552,7 @@ async function bonVerzilver() {
     const nieuw = (na || [])[0];
 
     /* Stap 2: de betaling op de reservering. */
-    const betaaldWas = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+    const betaaldWas = alBetaald(r, open);
     const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
     const betaaldNu = Math.round((betaaldWas + bedrag) * 100) / 100;
     const openNa = Math.round(Math.max(0, open - bedrag) * 100) / 100;
@@ -3614,7 +3616,8 @@ function afrBedragen(r) {
      betalen". Alleen bij een status die iets anders zegt dan open of betaald
      is dat veld bewust gezet en telt het mee. */
   const stand = String(r.betaalstatus || "open");
-  const open = stand === "betaald" ? 0
+  const open = restantBovenNul(r) != null ? restantBovenNul(r)
+    : stand === "betaald" ? 0
     : stand === "open" ? (totaal != null ? totaal : 0)
     : r.restant_bedrag != null ? Number(r.restant_bedrag)
     : totaal != null ? Math.max(0, totaal - betaald) : 0;
@@ -3681,7 +3684,11 @@ function tekenAfrekenVak(r) {
     optie("aanbetaling", "Aanbetaling", b.aanbetaling) +
     optie("volledig", "Volledig bedrag", b.volledig);
   $("#vAfrekenUitleg").textContent = b.extras > 0
-    ? "De bijgeboekte extra's van € " + euro(b.extras) + " zitten in het restantbedrag."
+    ? (b.extrasTeBetalen + 0.004 >= b.extras
+        ? "De bijgeboekte extra's van € " + euro(b.extras) + " zitten in het restantbedrag."
+        : b.extrasTeBetalen > 0
+          ? "Van de extra's (samen € " + euro(b.extras) + ") staat nog € " + euro(b.extrasTeBetalen) + " open."
+          : "De extra's (samen € " + euro(b.extras) + ") zijn al betaald.")
     : "";
   const som = $("#vAfrekenSom");
   if (som) som.textContent = "€ " + euro(afrTeBetalen(r, houd));
@@ -3745,7 +3752,7 @@ async function afrekenenMetGast() {
     notitie: notitie || null, verdeling: delen && delen.length ? delen : null
   }]);
   const b = afrBedragen(r);
-  const nieuwBetaald = Math.round(((r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0) + bedrag) * 100) / 100;
+  const nieuwBetaald = Math.round((alBetaald(r, b.open) + bedrag) * 100) / 100;
   const nieuwOpen = Math.round(Math.max(0, b.open - bedrag) * 100) / 100;
   const d = {
     arrangementen: arr,
@@ -4286,9 +4293,9 @@ function balkStand(r, w) {
   const bTotaal  = r.bedrag_totaal  != null ? Number(r.bedrag_totaal)  : null;
   const bBetaald = r.betaald_bedrag != null ? Number(r.betaald_bedrag) : null;
   const bRestant = r.restant_bedrag != null ? Number(r.restant_bedrag) : null;
-  const betaling = r.betaalstatus === "betaald"
+  const betaling = restantBovenNul(r) == null && (r.betaalstatus === "betaald"
     || (bTotaal != null && bTotaal > 0 && bRestant != null && bRestant <= 0)
-    || (bTotaal != null && bTotaal > 0 && bBetaald != null && bBetaald + 0.005 >= bTotaal);
+    || (bTotaal != null && bTotaal > 0 && bBetaald != null && bBetaald + 0.005 >= bTotaal));
   /* De reviewstap is afgehandeld zodra er iets over bekend is: de link is
      verstuurd, de gast heeft het bordje gescand, of je hebt bewust besloten
      geen review te vragen. Dat laatste is óók klaar - het zou onzin zijn die
@@ -4362,6 +4369,7 @@ let UC_BEZIG = false;
    zelf opnieuw uitrekenen wat er al ergens staat. */
 function ucOpenstaand(r) {
   if (!r) return 0;
+  if (restantBovenNul(r) != null) return restantBovenNul(r);
   if (String(r.betaalstatus || "") === "betaald") return 0;
   if (r.restant_bedrag != null) return Math.max(0, Number(r.restant_bedrag));
   if (r.bedrag_totaal != null && r.betaald_bedrag != null)
@@ -4614,8 +4622,9 @@ async function ucOpslaan() {
       const d = { arrangementen: bestaand.concat(nieuw), gewijzigd_door: NAAM };
       if (r.bedrag_totaal != null)
         d.bedrag_totaal = Math.round((Number(r.bedrag_totaal) + erbij) * 100) / 100;
-      if (r.restant_bedrag != null)
-        d.restant_bedrag = Math.round((Number(r.restant_bedrag) + erbij) * 100) / 100;
+      if (r.restant_bedrag != null || String(r.betaalstatus || "") === "betaald")
+        d.restant_bedrag = Math.round(((Number(r.restant_bedrag) || 0) + erbij) * 100) / 100;
+      if (String(r.betaalstatus || "") === "betaald") d.betaalstatus = "deels";
       const bij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN,
         { method: "PATCH", body: d });
       if (bij && bij.length) {
@@ -6124,7 +6133,7 @@ async function mollieOvernemen(bedrag) {
     naam: "Betaald via Mollie-betaallink", aantal: 1, bedrag: 0, bron: "betaling",
     betaald_bedrag: bedrag, betaalwijze: "Mollie betaallink", tijdstip: nu, door: NAAM
   }]);
-  const nieuwBetaald = Math.round(((r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0) + bedrag) * 100) / 100;
+  const nieuwBetaald = Math.round((alBetaald(r, b.open) + bedrag) * 100) / 100;
   const nieuwOpen = Math.round(Math.max(0, b.open - bedrag) * 100) / 100;
   try {
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN, {
@@ -6743,6 +6752,25 @@ function vDeelBedrag() {
    De betaalstatus is leidend, net als op de kaart in de lijst: betaald_bedrag
    en restant_bedrag zijn bij de meeste boekingen leeg, en daarmee rekenen gaf
    eerder twee streepjes bij een reservering die gewoon op Betaald stond. */
+/* Angela, 10-10-2026: een boeking stond op "betaald" toen er nog EUR 30 aan
+   extra's bij kwam. De kaart bovenaan zei "EUR 30 nog te betalen", het
+   afrekenvak zei "EUR 0" - want dat keek alleen naar de status. Regel voor het
+   hele scherm: staat er in restant_bedrag een bedrag boven nul, dan staat dat
+   open, wat de status ook zegt. Een nul of leeg veld blijft "niet ingevuld". */
+function restantBovenNul(r) {
+  if (!r || r.restant_bedrag == null) return null;
+  const n = Number(r.restant_bedrag);
+  return n > 0.004 ? Math.round(n * 100) / 100 : null;
+}
+/* Wat er al binnen is. Bij een betaalde boeking is betaald_bedrag vaak leeg;
+   dan is het totaal min wat er nu nog openstaat. */
+function alBetaald(r, open) {
+  if (r.betaald_bedrag != null && Number(r.betaald_bedrag) > 0) return Number(r.betaald_bedrag);
+  if (r.bedrag_totaal != null && String(r.betaalstatus || "") !== "open")
+    return Math.max(0, Math.round((Number(r.bedrag_totaal) - (Number(open) || 0)) * 100) / 100);
+  return r.betaald_bedrag != null ? Number(r.betaald_bedrag) : 0;
+}
+
 function openstaandVan(r) {
   if (!r) return null;
   const totaal = r.bedrag_totaal != null ? Number(r.bedrag_totaal) : null;
@@ -6761,6 +6789,8 @@ function openstaandVan(r) {
      "niet ingevuld", niet "niets meer te betalen". Alleen wanneer de status
      iets anders zegt dan open of betaald telt dat veld mee - dan is het
      bewust gezet. */
+  const rb = restantBovenNul(r);
+  if (rb != null) return rb;
   if (stand === "betaald") return 0;
   if (stand === "open") return totaal;
   if (r.restant_bedrag != null) return Number(r.restant_bedrag);
