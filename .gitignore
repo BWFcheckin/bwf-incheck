@@ -9,3 +9,6 @@ exports/
 
 # Lokale status van de Supabase-CLI
 supabase/.temp/
+
+# Back-ups van tabellen (bevatten persoonsgegevens) — nooit committen
+backups/

@@ -71,6 +71,12 @@ function eventVanReservering(r: Record<string, unknown>) {
   const achternaam = String(r.last_name || "").trim();
   const naam = `${voornaam} ${achternaam}`.trim();
   const status = Number(r.status || 0);
+  /* Planyo geeft de status als optelsom van bits: 4 = bevestigd, 8 = geannuleerd
+     door ons, 16 = door de gast, 512 = automatisch. Een geannuleerde boeking
+     komt dus binnen als 9, 24 of 521 en nooit als precies 8 of 16; daardoor
+     stonden geannuleerde boekingen hier als "In behandeling". */
+  const geannuleerd = (status & (8 | 16 | 512)) !== 0;
+  const bevestigd = !geannuleerd && (status & 4) !== 0;
   const notities = String(r.admin_notes || r.user_notes || "");
   const isBlokkade = notities.includes("[BWF-BLOKKADE]") || String(r.refcode || "") === "BWF-BLOKKADE";
   const blokReden = notities.replace("[BWF-BLOKKADE]", "").trim() || "Niet beschikbaar";
@@ -80,6 +86,7 @@ function eventVanReservering(r: Record<string, unknown>) {
     start: String(r.start_time || ""),
     eind: String(r.end_time || ""),
     suite: String(r.name || ""),
+    resource_id: String(r.resource_id || ""),
     gast: isBlokkade ? "" : naam,
     voornaam,
     achternaam,
@@ -90,8 +97,8 @@ function eventVanReservering(r: Record<string, unknown>) {
     totaal: Number(r.total_price || 0),
     betaald: Number(r.amount_paid || 0),
     status,
-    statusLabel: status === 4 ? "Bevestigd" : status === 8 || status === 16 ? "Geannuleerd" : "In behandeling",
-    soort: status === 8 || status === 16 ? "geannuleerd" : isBlokkade ? "blok" : "reservering",
+    statusLabel: bevestigd ? "Bevestigd" : geannuleerd ? "Geannuleerd" : "In behandeling",
+    soort: geannuleerd ? "geannuleerd" : isBlokkade ? "blok" : "reservering",
     bron: "Planyo",
     titel: isBlokkade ? blokReden : (naam || `Reservering ${r.reservation_id || ""}`),
     omschrijving: isBlokkade ? blokReden : notities,
@@ -162,7 +169,13 @@ Deno.serve(async (request) => {
 
     if (action === "resources") {
       const data = await planyo("list_resources", { detail_level: "1" });
-      const resources = lijstUit(data, ["resources", "results"]);
+      let resources = lijstUit(data, ["resources", "results"]);
+      /* Planyo geeft de accommodaties niet als lijst maar als object met het
+         nummer als sleutel; daardoor kwam deze lijst altijd leeg terug. */
+      if (!resources.length && data.resources && typeof data.resources === "object") {
+        resources = Object.entries(data.resources as Record<string, unknown>).map(([id, r]) =>
+          r && typeof r === "object" ? { id, ...(r as Record<string, unknown>) } : { id, name: String(r ?? "") });
+      }
       return json({ resources, source: "Planyo" });
     }
 

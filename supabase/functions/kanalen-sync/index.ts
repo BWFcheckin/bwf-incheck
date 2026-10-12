@@ -366,6 +366,293 @@ function samenvatting(uitkomst: ReturnType<typeof verwerkSuite>, aantallen: Reco
   return uit;
 }
 
+/* ---------- Planyo ---------- */
+
+/* Planyo is de vierde bron (kanaal 'planyo'), naast de drie ICS-feeds. Opdracht Angela, 12-10-2026
+   (OPDRACHT-PLANYO-EN-BEDRAGEN.md). Anders dan de ICS-feeds geeft Planyo gast, bedragen en een vast nummer.
+
+   De regels zijn hier strenger dan bij de ICS-feeds:
+   - bestaat de boeking al (zelfde Planyo-nummer, of zelfde kanaal + nummer), dan wordt alleen aangevuld wat
+     leeg is, en niets als iemand de reservering met de hand heeft gewijzigd;
+   - staat er op dezelfde suite al een andere reservering met overlappende tijd, dan is het een CONFLICT:
+     er wordt niets geschreven en het wordt gemeld. Zo komt een Privésauna-blok of een eerder ingevoerde
+     Booking.com-boeking nooit dubbel te staan, ook niet als de herkenning hieronder hem mist.
+
+   Proefrun (leest alleen): ?proef=1&planyo=1, met &alleen=planyo zonder de ICS-feeds.
+   Met PLANYO_SCHRIJVEN aan loopt Planyo in elke gewone run mee, na de ICS-feeds. */
+const PLANYO_API = "https://www.planyo.com/rest/";
+const PLANYO_SCHRIJVEN = true; // aangezet 12-10-2026 na akkoord van Angela op de proefrun
+const PLANYO_DAGEN_TERUG = 3;
+
+/* Planyo geeft de status als optelsom van bits: 4 = bevestigd, 8 = geannuleerd door ons,
+   16 = geannuleerd door de gast, 512 = automatisch geannuleerd (gezien: 9 en 521 zijn geannuleerd). */
+const PLANYO_GEANNULEERD = 8 | 16 | 512;
+const PLANYO_BEVESTIGD = 4;
+
+/* Geeft de bron geen tijd (dag-accommodatie in Planyo), dan gelden deze tijden per suite
+   (Angela, 02-10-2026). */
+const STANDAARD_NACHT: Record<string, [string, string]> = {
+  angie: ["19:00", "11:00"],
+  malina_jacuzzi: ["20:00", "10:00"],
+  malina_deluxe: ["19:00", "11:00"],
+};
+
+/* Planyo heeft per suite meerdere accommodaties (overnachting, dagverblijf); de naam zegt welke suite. */
+function planyoSuite(naam: string): string | null {
+  const t = naam.toLowerCase();
+  if (t.includes("angie")) return "angie";
+  if (t.includes("jacuzzi")) return "malina_jacuzzi";
+  if (t.includes("zwembad") || t.includes("deluxe")) return "malina_deluxe";
+  return null;
+}
+
+/* "2026-11-08 10:59:59" → 8 nov 11:00. Planyo laat een blok één seconde voor het hele uur eindigen. */
+function planyoMoment(waarde: string): Moment | null {
+  const m = waarde.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return null;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0)));
+  if (d.getUTCSeconds() === 59) d.setUTCSeconds(60);
+  const iso = d.toISOString();
+  return { datum: iso.slice(0, 10), tijd: iso.slice(11, 16) };
+}
+
+/* Een tijdstip uit de database als lokale tijd in Amsterdam, in dezelfde vorm als lokaal(). */
+function lokaalUitDb(waarde: string): string {
+  const p: Record<string, string> = {};
+  for (const x of amsterdam.formatToParts(new Date(waarde))) p[x.type] = x.value;
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
+}
+
+async function planyoVraag(method: string, extra: Record<string, string>): Promise<Rij> {
+  const sleutel = Deno.env.get("PLANYO_API_KEY") ?? "";
+  if (!sleutel) throw new Error("secret PLANYO_API_KEY ontbreekt");
+  const params = new URLSearchParams({ method, api_key: sleutel, language: "NL", ...extra });
+  const r = await fetch(`${PLANYO_API}?${params.toString()}`, {
+    headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(25000),
+  });
+  let data: Rij;
+  try { data = JSON.parse(await r.text()); } catch { throw new Error("Planyo gaf geen geldig antwoord"); }
+  // response_code 0 = gelukt; elke andere code is een fout
+  const code = data.response_code === undefined ? 0 : Number(data.response_code);
+  if (!r.ok || code !== 0) {
+    throw new Error(`Planyo ${method}: ${String(data.response_message ?? `code ${code}`).slice(0, 200)}`);
+  }
+  return (data.data && typeof data.data === "object" && !Array.isArray(data.data)) ? data.data : data;
+}
+
+async function planyoReserveringen(): Promise<Rij[]> {
+  const vanaf = new Date(Date.now() - PLANYO_DAGEN_TERUG * 86400000).toISOString().slice(0, 10);
+  const tot = new Date(Date.now() + 730 * 86400000).toISOString().slice(0, 10);
+  const alle: Rij[] = [];
+  for (let page = 0; page < 20; page++) {
+    const data = await planyoVraag("list_reservations", {
+      start_time: `${vanaf} 00:00`,
+      end_time: `${tot} 23:59`,
+      detail_level: "7",
+      page: String(page),
+    });
+    const rijen: Rij[] = Array.isArray(data.results) ? data.results : Array.isArray(data.reservations) ? data.reservations : [];
+    alle.push(...rijen);
+    if (rijen.length < 500) break;
+  }
+  return alle;
+}
+
+const leeg = (v: unknown) => v === null || v === undefined || String(v).trim() === "";
+const geenBedrag = (v: unknown) => leeg(v) || Number(v) === 0;
+const euro = (v: unknown) => Math.round(Number(v || 0) * 100) / 100;
+
+/* Alle tekst van een Planyo-regel behalve de naam van de accommodatie, om het kanaal aan te herkennen. */
+function planyoTekst(r: Rij): string {
+  const delen: string[] = [];
+  const loop = (v: unknown, sleutel = "") => {
+    if (sleutel === "name") return;
+    if (typeof v === "string") delen.push(v);
+    else if (v && typeof v === "object") for (const [k, w] of Object.entries(v)) loop(w, k);
+  };
+  loop(r);
+  return delen.join("\n");
+}
+
+/* Zet één Planyo-regel om naar wat het dashboard ervan zou maken. Schrijft niets. */
+function planyoRegel(r: Rij, blokken: Tijdsblok[]): Rij {
+  const id = String(r.reservation_id ?? "").trim();
+  const status = Number(r.status ?? 0);
+  const tekst = planyoTekst(r);
+  const basis: Rij = { planyo_id: id, planyo_status: status, accommodatie: String(r.name ?? "") };
+  const suite = planyoSuite(String(r.name ?? ""));
+  if (!/^\d+$/.test(id)) return { ...basis, soort: "overslaan", reden: "geen Planyo-nummer" };
+  if (!suite) return { ...basis, soort: "overslaan", reden: "onbekende accommodatie" };
+
+  let start = planyoMoment(String(r.start_time ?? ""));
+  let eind = planyoMoment(String(r.end_time ?? ""));
+  if (!start || !eind || lokaal(eind) <= lokaal(start)) return { ...basis, suite, soort: "overslaan", reden: "onleesbare tijden" };
+  let opmerking: string | null = null;
+  if (start.tijd === "00:00" && eind.tijd === "00:00" && nachten(start.datum, eind.datum) >= 1) {
+    const std = STANDAARD_NACHT[suite];
+    start = { datum: start.datum, tijd: std[0] };
+    eind = { datum: eind.datum, tijd: std[1] };
+    opmerking = `Planyo geeft geen tijd; standaardtijd ${std[0]}–${std[1]}`;
+  }
+  basis.suite = suite;
+  basis.van = lokaal(start);
+  basis.tot = lokaal(eind);
+  basis.geannuleerd = (status & PLANYO_GEANNULEERD) !== 0;
+
+  if (/\[BWF-BLOKKADE\]/.test(tekst) || String(r.refcode ?? "") === "BWF-BLOKKADE") {
+    return { ...basis, soort: "blokkade", reden: tekst.match(/\[BWF-BLOKKADE\]\s*([^\n]*)/)?.[1]?.trim() || "Niet beschikbaar" };
+  }
+  // Blokken uit de Privésauna-ICS-import: die boekingen staan al via de SMG-feed in het dashboard.
+  if (/priv[eé]\s*sauna|special\s*moments|specialmoments|\bsmg\b|\bical\b|icalendar|\.ics\b/i.test(tekst)) {
+    return { ...basis, soort: "overslaan", reden: "blok uit de Privésauna-agenda (staat al via de SMG-feed)" };
+  }
+
+  // Booking.com via de Planyo-XML: kanaal 'booking' met het Booking-reserveringsnummer.
+  const isBooking = /booking\.com/i.test(tekst);
+  const bookingNr = isBooking ? (tekst.match(/\b(\d{10})\b/)?.[1] ?? null) : null;
+  const kanaal = isBooking ? "booking" : "planyo";
+  const totaal = euro(r.total_price);
+  const betaald = isBooking ? totaal : euro(r.amount_paid);
+  const telefoon = String(r.mobile_number || "")
+    ? (r.mobile_country_code ? `+${r.mobile_country_code}` : "") + r.mobile_number
+    : (r.phone_country_code ? `+${r.phone_country_code}` : "") + String(r.phone || r.phone_number || "");
+  const personen = parseInt(String(r.quantity ?? ""), 10);
+
+  const rij = reservering(blokken, suite, kanaal, bookingNr ?? id, `planyo:${id}`, start, eind, {
+    planyo_id: id,
+    status: (status & PLANYO_BEVESTIGD) !== 0 || isBooking ? "bevestigd" : "optie",
+    gast_voornaam: String(r.first_name ?? "").trim() || null,
+    gast_achternaam: String(r.last_name ?? "").trim() || null,
+    gast_email: String(r.email ?? "").trim() || null,
+    gast_telefoon: telefoon.trim() || null,
+    gast_adres: [r.address, r.zip, r.city, r.country].filter(Boolean).join(", ") || null,
+    personen: Number.isFinite(personen) && personen > 0 ? personen : null,
+    bedrag_totaal: totaal > 0 ? totaal : null,
+    betaald_bedrag: totaal > 0 ? betaald : null,
+    restant_bedrag: totaal > 0 ? euro(totaal - betaald) : null,
+    betaalstatus: totaal > 0 ? (betaald >= totaal ? "betaald" : betaald > 0 ? "deels" : "open") : null,
+    betaald_via: isBooking ? "Booking.com" : null,
+    bedrag_bron: totaal > 0 ? "planyo" : null,
+    brongegevens: `Planyo ${id} · ${String(r.name ?? "")}`,
+    import_opmerking: [opmerking, isBooking && !bookingNr ? "Booking.com via Planyo zonder Booking-nummer" : null]
+      .filter(Boolean).join("; ") || null,
+  });
+  return { ...basis, soort: "reservering", kanaal, kanaal_ref: rij.kanaal_ref, rij };
+}
+
+const AANVULBAAR = ["gast_voornaam", "gast_achternaam", "gast_email", "gast_telefoon", "gast_adres"];
+const BEDRAGEN = ["bedrag_totaal", "betaald_bedrag", "restant_bedrag"];
+
+/* Proefrun: wat zou er met elke Planyo-regel gebeuren? Leest alleen. Geen namen in de uitkomst. */
+async function planyoProef(blokken: Tijdsblok[]): Promise<Rij> {
+  const ruw = await planyoReserveringen();
+  const regels = ruw.map((r) => ({ r, p: planyoRegel(r, blokken) }));
+
+  const kolommen = "id,suite,kanaal,kanaal_ref,planyo_id,status,aankomst,vertrek,personen,bron_feed,aangemaakt_door," +
+    "handmatig_gewijzigd_op,bedrag_bron," + [...AANVULBAAR, ...BEDRAGEN].join(",");
+  const vanaf = new Date(Date.now() - (PLANYO_DAGEN_TERUG + 30) * 86400000).toISOString();
+  const lopend = (await rest(`reserveringen?select=${kolommen}&vertrek=gte.${vanaf}&limit=5000`)) as Rij[];
+  const nummers = [...new Set(regels.flatMap(({ p }) => [p.planyo_id, p.kanaal_ref]).filter((n) => /^\d+$/.test(String(n ?? ""))))];
+  const opNummer = nummers.length
+    ? (await rest(`reserveringen?select=${kolommen}&or=(planyo_id.in.(${nummers.join(",")}),kanaal_ref.in.(${nummers.join(",")}))`)) as Rij[]
+    : [];
+  const bestaand = [...new Map([...lopend, ...opNummer].map((b) => [b.id, b])).values()];
+
+  const telling: Record<string, number> = { nieuw: 0, bestaat_al: 0, aangevuld: 0, conflict: 0, geannuleerd_in_planyo: 0, blokkade: 0, overgeslagen: 0 };
+  const statussen: Record<string, number> = {};
+  const uit: Rij[] = [];
+  for (const { r, p } of regels) {
+    statussen[String(p.planyo_status)] = (statussen[String(p.planyo_status)] ?? 0) + 1;
+    const regel: Rij = {
+      planyo_id: p.planyo_id, suite: p.suite ?? null, accommodatie: p.accommodatie, van: p.van ?? null, tot: p.tot ?? null,
+      gast: `${String(r.first_name ?? "").trim().slice(0, 1)}.${String(r.last_name ?? "").trim().slice(0, 1)}.`,
+      totaal: euro(r.total_price), betaald: euro(r.amount_paid), planyo_status: p.planyo_status,
+    };
+    const meld = (uitkomst: string, toelichting: string, extra: Rij = {}) => {
+      telling[uitkomst]++;
+      uit.push({ ...regel, ...extra, uitkomst, toelichting });
+    };
+
+    if (p.soort === "overslaan") { meld("overgeslagen", p.reden); continue; }
+    if (p.soort === "blokkade") { meld(p.geannuleerd ? "overgeslagen" : "blokkade", p.geannuleerd ? "blokkade is in Planyo opgeheven" : p.reden); continue; }
+
+    const zelfde = bestaand.find((b) => b.planyo_id === p.planyo_id) ??
+      bestaand.find((b) => b.kanaal === p.kanaal && b.kanaal_ref === p.kanaal_ref) ??
+      bestaand.find((b) => ["planyo", "eigen", "telefonisch", "whatsapp", "handmatig"].includes(b.kanaal) && b.kanaal_ref === p.planyo_id);
+    const hier = zelfde ? { dashboard: `${zelfde.kanaal} ${zelfde.kanaal_ref ?? ""}`.trim(), dashboard_status: zelfde.status } : {};
+    regel.kanaal = p.kanaal;
+
+    if (p.geannuleerd) {
+      if (!zelfde) meld("overgeslagen", "geannuleerd in Planyo en niet in het dashboard");
+      else if (zelfde.status === "geannuleerd") meld("bestaat_al", "geannuleerd in Planyo en in het dashboard", hier);
+      else meld("geannuleerd_in_planyo", "geannuleerd in Planyo, staat hier nog actief: nalopen (de import annuleert geen boeking met gast of bedrag)", hier);
+      continue;
+    }
+    if (zelfde) {
+      if (zelfde.handmatig_gewijzigd_op) { meld("bestaat_al", "met de hand gewijzigd: de import vult niets aan", hier); continue; }
+      const velden = AANVULBAAR.filter((v) => leeg(zelfde[v]) && !leeg(p.rij[v]));
+      if (leeg(zelfde.planyo_id)) velden.push("planyo_id");
+      if (p.rij.bedrag_totaal !== null) {
+        if (BEDRAGEN.every((v) => geenBedrag(zelfde[v]))) velden.push(...BEDRAGEN);
+        else if (zelfde.bedrag_bron === "planyo" && BEDRAGEN.some((v) => euro(zelfde[v]) !== euro(p.rij[v]))) velden.push("bedragen bijgewerkt (eerder door de import gevuld)");
+      }
+      if (velden.length) meld("aangevuld", `vult aan: ${velden.join(", ")}`, hier);
+      else meld("bestaat_al", "niets aan te vullen", hier);
+      continue;
+    }
+    // Zelfde suite, overlappende tijd, ander nummer: niets schrijven en melden.
+    const botsing = bestaand.filter((b) => b.suite === p.suite && b.status !== "geannuleerd" &&
+      lokaalUitDb(b.aankomst) < p.tot && lokaalUitDb(b.vertrek) > p.van);
+    if (botsing.length) {
+      meld("conflict", "zelfde suite en overlappende tijd, ander nummer: er wordt niets geschreven", {
+        botst_met: botsing.map((b) =>
+          `${b.kanaal} ${b.kanaal_ref ?? b.id.slice(0, 8)} · ${lokaalUitDb(b.aankomst)} – ${lokaalUitDb(b.vertrek)} · ` +
+          `${String(b.gast_voornaam ?? "").slice(0, 1)}.${String(b.gast_achternaam ?? "").slice(0, 1)}. · € ${euro(b.bedrag_totaal)}`),
+      });
+      continue;
+    }
+    meld("nieuw", [p.rij.status === "optie" ? "nog niet bevestigd in Planyo → optie" : null, p.rij.import_opmerking].filter(Boolean).join("; ") || "nieuwe reservering",
+      { type: p.rij.type, met_tijdsblok: !!p.rij.tijdsblok_id });
+  }
+
+  return {
+    schrijven: PLANYO_SCHRIJVEN,
+    opgehaald: ruw.length,
+    telling,
+    planyo_statussen: statussen,
+    // Welke velden Planyo meegeeft: nodig om de herkenning van Privésauna-blokken en Booking.com te toetsen.
+    velden: [...new Set(ruw.flatMap((r) => Object.keys(r)))].sort(),
+    regels: uit,
+  };
+}
+
+/* Echte run: per suite door kanalen_verwerk (bron 'planyo'), dat zelf opnieuw controleert op bestaande
+   boekingen en conflicten en niets schrijft bij twijfel (migratie 20261012190000). */
+async function planyoSchrijf(blokken: Tijdsblok[], run: string): Promise<Rij> {
+  const regels = (await planyoReserveringen()).map((r) => planyoRegel(r, blokken));
+  const uit: Rij = { overgeslagen: regels.filter((p) => p.soort === "overslaan").length };
+  for (const suite of [...new Set(regels.map((p) => p.suite).filter(Boolean))] as string[]) {
+    const eigen = regels.filter((p) => p.suite === suite);
+    try {
+      uit[suite] = await verwerk({
+        p_bron_feed: "planyo",
+        p_suite: suite,
+        p_run: run,
+        p_reserveringen: eigen.filter((p) => p.soort === "reservering").map((p) => ({ ...p.rij, geannuleerd: p.geannuleerd })),
+        p_blokkades: eigen.filter((p) => p.soort === "blokkade").map((p) => ({
+          bron_uid: `planyo:${p.planyo_id}`, van_lokaal: p.van, tot_lokaal: p.tot, reden: p.reden, opgeheven: p.geannuleerd,
+        })),
+        p_events: eigen.length,
+      });
+    } catch (e) {
+      uit[suite] = { fout: foutTekst(e) };
+      await logFout(run, "planyo", suite, foutTekst(e));
+    }
+  }
+  return uit;
+}
+
 /* ---------- aanroep ---------- */
 
 Deno.serve(async (req) => {
@@ -375,12 +662,18 @@ Deno.serve(async (req) => {
   if (!veiligGelijk(req.headers.get("x-sync-token") ?? "", SYNC_TOKEN)) {
     return antwoord({ fout: "Niet toegestaan." }, 401);
   }
-  const proef = new URL(req.url).searchParams.get("proef") === "1";
+  const vraag = new URL(req.url).searchParams;
+  const proef = vraag.get("proef") === "1";
+  // Proefrun van Planyo: ?proef=1&planyo=1. In een gewone run loopt Planyo mee als PLANYO_SCHRIJVEN aan staat.
+  // &alleen=planyo slaat de ICS-feeds over.
+  const metPlanyo = proef && vraag.get("planyo") === "1";
+  const alleenPlanyo = vraag.get("alleen") === "planyo";
+  if (alleenPlanyo && !metPlanyo) return antwoord({ fout: "alleen=planyo kan alleen met proef=1&planyo=1." }, 400);
   const run = new Date().toISOString();
 
   try {
     const blokken = (await rest("tijdsblokken?select=id,suite,type,begin,eind,volgende_dag&actief=eq.true")) as Tijdsblok[];
-    const instellingen = (await rest(
+    const instellingen = alleenPlanyo ? [] : (await rest(
       "kanaal_instellingen?select=kanaal,suite,ics_secret&actief=eq.true&ics_secret=not.is.null",
     )) as Rij[];
 
@@ -449,7 +742,19 @@ Deno.serve(async (req) => {
       resultaat[suite] = { ...geschreven, ...uitkomst.telling };
     }
 
-    return antwoord({ versie: 4, proef, run, suites: resultaat }); // versie 4: bij een 5xx van de verwerkfunctie één keer opnieuw
+    let planyo: Rij | undefined;
+    if (metPlanyo) {
+      try { planyo = await planyoProef(blokken); } catch (e) { planyo = { fout: foutTekst(e) }; }
+    } else if (!proef && PLANYO_SCHRIJVEN) {
+      // Een fout bij Planyo mag de ICS-import hierboven niet onderuit halen.
+      try { planyo = await planyoSchrijf(blokken, run); } catch (e) {
+        planyo = { fout: foutTekst(e) };
+        await logFout(run, "planyo", "-", foutTekst(e));
+      }
+    }
+
+    // versie 6: Planyo als vierde bron (versie 5 was alleen de proefrun)
+    return antwoord({ versie: 6, proef, run, suites: resultaat, ...(planyo ? { planyo } : {}) });
   } catch (e) {
     return antwoord({ fout: foutTekst(e) }, 500);
   }
