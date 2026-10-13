@@ -495,7 +495,9 @@ function planyoRegel(r: Rij, blokken: Tijdsblok[]): Rij {
   if (start.tijd === "00:00" && eind.tijd === "23:59") {
     eind = { datum: new Date(Date.parse(`${eind.datum}T00:00:00Z`) + 86400000).toISOString().slice(0, 10), tijd: "00:00" };
   }
-  if (start.tijd === "00:00" && eind.tijd === "00:00" && nachten(start.datum, eind.datum) >= 1) {
+  // Een blokkade uit het dashboard houdt zijn eigen tijden: een hele dag dicht is geen overnachting.
+  const isBlokkade = /\[BWF-BLOKKADE\]/.test(tekst) || String(r.refcode ?? "") === "BWF-BLOKKADE";
+  if (!isBlokkade && start.tijd === "00:00" && eind.tijd === "00:00" && nachten(start.datum, eind.datum) >= 1) {
     const std = STANDAARD_NACHT[suite];
     start = { datum: start.datum, tijd: std[0] };
     eind = { datum: eind.datum, tijd: std[1] };
@@ -506,7 +508,7 @@ function planyoRegel(r: Rij, blokken: Tijdsblok[]): Rij {
   basis.tot = lokaal(eind);
   basis.geannuleerd = (status & PLANYO_GEANNULEERD) !== 0;
 
-  if (/\[BWF-BLOKKADE\]/.test(tekst) || String(r.refcode ?? "") === "BWF-BLOKKADE") {
+  if (isBlokkade) {
     return { ...basis, soort: "blokkade", reden: tekst.match(/\[BWF-BLOKKADE\]\s*([^\n]*)/)?.[1]?.trim() || "Niet beschikbaar" };
   }
   // Blokken uit de Privésauna-ICS-import: die boekingen staan al via de SMG-feed in het dashboard.
