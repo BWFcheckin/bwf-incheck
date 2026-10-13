@@ -1013,6 +1013,24 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
         </div>
       </fieldset>
 
+      <!-- Verplaatsen (Angela, 13-10-2026): andere datum, tijd of suite. Gaat ook naar Planyo. -->
+      <fieldset id="vpVak" hidden>
+        <legend>Verplaatsen</legend>
+        <div class="raster">
+          <label class="veld">Suite <select id="vpSuite"></select></label>
+          <label class="veld">Aankomst <input id="vpAanD" type="date"></label>
+          <label class="veld">Incheck-tijd <input id="vpAanT" type="time"></label>
+          <label class="veld">Vertrek <input id="vpVerD" type="date"></label>
+          <label class="veld">Uitcheck-tijd <input id="vpVerT" type="time"></label>
+        </div>
+        <p id="vpUitleg" style="margin:6px 0 0;font-size:12.5px;color:var(--muted)"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+          <button type="button" class="knop sec" id="vpKnop">Verplaatsen</button>
+          <span class="v-melding" id="vpMelding"></span>
+        </div>
+        <div id="vpKeuze" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+      </fieldset>
+
       <fieldset>
         <legend>Brongegevens</legend>
         <details class="bron" id="vBronHouder" hidden><summary>Wat er al bewaard is</summary><pre id="vBron"></pre></details>
@@ -3399,6 +3417,7 @@ function tekenPersoneelKaart(r) {
   try { ucVul(r); } catch (e) {}
   /* De betaalspecificatie in het blok Betalingsgegevens. */
   try { tekenBetaalSpec(r); } catch (e) {}
+  try { tekenVerplaats(r); } catch (e) {}
   /* De aankomsttijd die de gast zelf heeft doorgegeven. */
   try { tekenVerwachteAankomst(r); } catch (e) {}
 
@@ -5004,6 +5023,146 @@ function formWaarden() {
   }
   return d;
 }
+
+/* =========================================================
+   Verplaatsen: andere datum, tijd of suite (Angela, 13-10-2026)
+   =========================================================
+   Alleen voor boekingen die het dashboard zelf beheert (handmatig, telefonisch, WhatsApp,
+   eigen website, Planyo-website). Een boeking van Privésauna, Booking.com of Origineel
+   Overnachten verplaats je bij dat kanaal; de import neemt het dan over.
+   Volgorde, net als bij een nieuwe reservering: eerst nakijken of de nieuwe plek vrij is
+   (zonder deze boeking zelf mee te tellen), dan Planyo wijzigen, dan pas opslaan. */
+let VP_VRIJGAVE = null;
+const vpLokaal = (iso) => {
+  const p = {};
+  new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(iso)).forEach((x) => { p[x.type] = x.value; });
+  return { datum: p.year + "-" + p.month + "-" + p.day, tijd: p.hour + ":" + p.minute };
+};
+function tekenVerplaats(r) {
+  const vak = $("#vpVak");
+  if (!vak) return;
+  const eigen = PLANYO_KANALEN.includes(r.kanaal) || r.kanaal === "planyo";
+  vak.hidden = !magBewerken() || r.status === "geannuleerd";
+  if (vak.hidden) return;
+  $("#vpSuite").innerHTML = Object.entries(SUITES).map(([w, x]) => '<option value="' + esc(w) + '">' + esc(x.naam) + "</option>").join("");
+  const a = vpLokaal(r.aankomst), v = vpLokaal(r.vertrek);
+  $("#vpSuite").value = r.suite;
+  $("#vpAanD").value = a.datum; $("#vpAanT").value = a.tijd;
+  $("#vpVerD").value = v.datum; $("#vpVerT").value = v.tijd;
+  $("#vpMelding").textContent = ""; $("#vpKeuze").innerHTML = "";
+  VP_VRIJGAVE = null;
+  ["#vpSuite", "#vpAanD", "#vpAanT", "#vpVerD", "#vpVerT", "#vpKnop"].forEach((id) => { $(id).disabled = !eigen; });
+  $("#vpUitleg").textContent = !eigen
+    ? "Deze boeking komt van " + (KANALEN[r.kanaal] || r.kanaal) + ". Verplaats hem daar; het dashboard neemt de wijziging dan over."
+    : r.planyo_id ? "De wijziging gaat ook naar Planyo (nummer " + r.planyo_id + "). De prijs blijft staan; pas die zo nodig hierboven aan."
+                  : "Deze boeking staat niet in Planyo; alleen het dashboard wordt gewijzigd. De prijs blijft staan.";
+}
+function vpKeuze(knoppen) {
+  const vak = $("#vpKeuze"); vak.innerHTML = "";
+  (knoppen || []).forEach((k) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "knop"; b.textContent = k.tekst;
+    b.addEventListener("click", k.klik);
+    vak.appendChild(b);
+  });
+}
+async function verplaats() {
+  const r = HUIDIG, m = $("#vpMelding");
+  if (!r || !magBewerken()) return;
+  m.textContent = ""; vpKeuze(null);
+  const suite = $("#vpSuite").value;
+  if (!$("#vpAanD").value || !$("#vpVerD").value || !$("#vpAanT").value || !$("#vpVerT").value) { m.textContent = "Vul datum en tijd van aankomst en vertrek in."; return; }
+  const aank = lokaalNaarIso($("#vpAanD").value, $("#vpAanT").value);
+  const vert = lokaalNaarIso($("#vpVerD").value, $("#vpVerT").value);
+  if (new Date(vert) <= new Date(aank)) { m.textContent = "Het vertrek moet na de aankomst liggen."; return; }
+  if (suite === r.suite && new Date(aank).getTime() === new Date(r.aankomst).getTime() && new Date(vert).getTime() === new Date(r.vertrek).getTime()) {
+    m.textContent = "Er is niets gewijzigd."; return;
+  }
+  const sleutel = [r.id, suite, aank, vert].join("|");
+  if (!VP_VRIJGAVE || VP_VRIJGAVE.sleutel !== sleutel) VP_VRIJGAVE = { sleutel };
+  const vrij = VP_VRIJGAVE, eigenaar = ROL === "eigenaar";
+  const opnieuw = (veld) => () => { vrij[veld] = true; verplaats(); };
+  const knop = $("#vpKnop");
+  knop.disabled = true;
+  try {
+    /* 1. Is de nieuwe plek vrij in het dashboard? Deze boeking zelf telt niet mee. */
+    if (!vrij.bezet) {
+      m.textContent = "Even nakijken of de nieuwe plek vrij is…";
+      const ruimVan = new Date(new Date(aank).getTime() - BUFFER_MINUTEN * 60000).toISOString();
+      const ruimTot = new Date(new Date(vert).getTime() + BUFFER_MINUTEN * 60000).toISOString();
+      const [res, blok] = await Promise.all([
+        api("reserveringen?select=id,kanaal,kanaal_ref,aankomst,vertrek,gast_voornaam,gast_achternaam" +
+          "&suite=eq." + encodeURIComponent(suite) + "&status=neq.geannuleerd&id=neq." + encodeURIComponent(r.id) +
+          "&aankomst=lt." + encodeURIComponent(ruimTot) + "&vertrek=gt." + encodeURIComponent(ruimVan)),
+        /* Blokkades uit de Booking-agenda tellen hier niet: Booking volgt Planyo, en zo'n
+           dichte nacht is meestal deze boeking zelf. */
+        api("blokkades?select=id,van,tot,reden,bron&suite=eq." + encodeURIComponent(suite) + "&actief=eq.true&bron=neq.ics-booking" +
+          "&van=lt." + encodeURIComponent(vert) + "&tot=gt." + encodeURIComponent(aank))
+      ]);
+      const alle = res || [], dicht = blok || [];
+      const overlap = alle.filter((x) => new Date(x.aankomst) < new Date(vert) && new Date(x.vertrek) > new Date(aank));
+      const krap = alle.filter((x) => !overlap.includes(x));
+      if (overlap.length || dicht.length || krap.length) {
+        const delen = [];
+        if (overlap.length) delen.push("Daar staat al: " + overlap.map(planyoRegelTekst).join("; ") + ".");
+        if (dicht.length) delen.push("De suite is dan geblokkeerd" + (dicht[0].reden ? " (" + dicht[0].reden + ")" : "") + ".");
+        if (krap.length) delen.push("Minder dan 1,5 uur schoonmaaktijd met: " + krap.map(planyoRegelTekst).join("; ") + ".");
+        m.textContent = delen.join(" ") + " Er is niets gewijzigd." + (eigenaar ? "" : " Overleg met Angela; alleen de eigenaar kan dit doordrukken.");
+        if (eigenaar) vpKeuze([{ tekst: "Toch verplaatsen", klik: opnieuw("bezet") }]);
+        return;
+      }
+    }
+    /* 2. Planyo. */
+    const d = { suite, aankomst: aank, vertrek: vert, incheck_tijd: $("#vpAanT").value, uitcheck_tijd: $("#vpVerT").value,
+      tijdsblok_id: null, gewijzigd_door: NAAM };
+    let erbij = "";
+    if (planyoBeheert(r) && !vrij.zonderPlanyo) {
+      m.textContent = "Wijzigen in Planyo…";
+      try {
+        await planyoVraag({ action: "update-reservation", reservation_id: r.planyo_id,
+          resource_id: suite !== r.suite ? PLANYO_SUITE[suite] : undefined,
+          start_time: planyoTijd(aank), end_time: planyoTijd(vert), send_notifications: false });
+        erbij = " In Planyo is hij ook verplaatst.";
+      } catch (e) {
+        m.textContent = "Wijzigen in Planyo lukte niet: " + e.message + " Er is niets gewijzigd.";
+        vpKeuze([{ tekst: "Toch verplaatsen – NIET in Planyo", klik: opnieuw("zonderPlanyo") }]);
+        return;
+      }
+    } else if (planyoBeheert(r)) {
+      d.niet_in_planyo = true;
+      erbij = " LET OP: in Planyo staat hij nog op de oude plek (nummer " + r.planyo_id + "); pas hem daar met de hand aan.";
+    }
+    /* 3. Opslaan. */
+    const rij = await api("reserveringen?id=eq." + encodeURIComponent(r.id) + "&select=" + KOLOMMEN, { method: "PATCH", body: d });
+    if (!rij || !rij.length) throw new Error("opslaan lukte niet: geen rechten om deze reservering te wijzigen" +
+      (erbij && !d.niet_in_planyo ? ". LET OP: in Planyo is hij wel al verplaatst; zet hem daar terug of probeer het opnieuw" : ""));
+    /* Privésauna wordt met de hand geblokkeerd: daar moet de blokkade ook mee. */
+    try {
+      const nu = vpLokaal(rij[0].aankomst), was = vpLokaal(r.aankomst);
+      await api("wz_taken", { method: "POST", prefer: "return=minimal", body: {
+        titel: "[Privésauna] Verplaatst — blokkade aanpassen",
+        omschrijving: "Reservering " + (rij[0].kanaal_ref || "") + " (" + (gastNaam(rij[0]) || "zonder naam") + ") is verplaatst van " +
+          (SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + " " + was.datum + " " + was.tijd + " naar " +
+          (SUITES[suite] ? SUITES[suite].naam : suite) + " " + nu.datum + " " + nu.tijd + ". Haal de oude blokkade in Privésauna weg en zet de nieuwe erin.",
+        prioriteit: "hoog", status: "open", link: "privesauna-verplaatst:" + r.id + ":" + Date.now(),
+        locatie: suite === "angie" ? "Almere" : "Lelystad"
+      } });
+    } catch (e) { erbij += " (De taak voor Privésauna kon niet worden aangemaakt: pas de blokkade daar zelf aan.)"; }
+    VP_VRIJGAVE = null;
+    RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
+    sluitVenster();
+    teken();
+    const pn = periode(rij[0]);
+    melding("Verplaatst: " + (gastNaam(rij[0]) || "reservering") + " naar " + (SUITES[suite] ? SUITES[suite].naam : suite) +
+      ", " + pn.dag + " " + pn.tijd + "." + erbij);
+  } catch (e) {
+    m.textContent = "Verplaatsen lukte niet: " + e.message;
+  } finally {
+    knop.disabled = false;
+  }
+}
+document.addEventListener("click", (e) => { if (e.target && e.target.id === "vpKnop") verplaats(); });
 
 /* Staat deze boeking via het dashboard of de website in Planyo? Dan gaat annuleren en
    verwijderen ook naar Planyo. */
