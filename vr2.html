@@ -1642,6 +1642,10 @@ div.ag-blok{cursor:default}
       <button class="tab" role="tab" data-groep="klantbeheer">Klantbeheer<span class="badge" id="badge-groep-klantbeheer">0</span></button>
       <button class="tab" role="tab" data-groep="bellen">Belscripts<span class="badge" id="badge-groep-bellen">0</span></button>
       <button class="tab" role="tab" data-groep="werktarieven">Werk &amp; tarieven<span class="badge" id="badge-groep-werktarieven" hidden>0</span></button>
+      <!-- Angela, 13-10-2026: berichten en verzoeken van gasten via Booking.com
+           ("Kan ik om 15:00 inchecken?") in het dashboard. De teller is het
+           aantal open berichten. -->
+      <button class="tab" role="tab" data-groep="gastberichten">Gastberichten<span class="badge" id="badge-groep-gastberichten" hidden>0</span></button>
       <button class="tab" role="tab" data-groep="chats">WhatsApp</button>
       <button class="tab" role="tab" data-groep="gmail">Gmail<span class="badge" id="badge-groep-gmail" hidden>0</span></button>
     </nav>
@@ -1670,6 +1674,7 @@ div.ag-blok{cursor:default}
     <button class="tab" role="tab" id="tab-werk" data-tab="werk" aria-selected="false" aria-controls="panel-werk">Werk &amp; tarieven<span class="badge" id="badge-werk">0</span></button>
     <button class="tab" role="tab" id="tab-overdracht" data-tab="overdracht" aria-selected="false" aria-controls="panel-overdracht">Overdracht<span class="badge" id="badge-overdracht">0</span></button>
     <button class="tab" role="tab" id="tab-uploads" data-tab="uploads" aria-selected="false" aria-controls="panel-uploads">Uploads<span class="badge" id="badge-uploads">0</span></button>
+    <button class="tab" role="tab" id="tab-gastberichten" data-tab="gastberichten" aria-selected="false" aria-controls="panel-gastberichten">Gastberichten</button>
     <button class="tab" role="tab" id="tab-chats" data-tab="chats" aria-selected="false" aria-controls="panel-chats">WhatsApp</button>
     <button class="tab" role="tab" id="tab-gmail" data-tab="gmail" aria-selected="false" aria-controls="panel-gmail">Gmail</button>
   </nav>
@@ -3209,6 +3214,22 @@ div.ag-blok{cursor:default}
     </div>
   </section>
 
+  <!-- ============ GASTBERICHTEN ============
+       Angela, 13-10-2026: "kunnen de berichten en verzoeken ook in het
+       dashboard weergegeven worden." Booking.com stuurt ze alleen per mail; een
+       Google Apps Script zet ze via de Edge Function gastberichten-mail in de
+       tabel gast_berichten. Zie docs/GASTBERICHTEN-INSTALLATIE.md. -->
+  <section class="panel" id="panel-gastberichten" role="tabpanel" aria-labelledby="tab-gastberichten" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Booking.com</span>
+      <h1>Gastberichten</h1>
+      <p>Vragen en verzoeken die gasten via Booking.com sturen, zoals een vroege incheck.
+         Beantwoorden gaat in Booking.com zelf; vink het bericht daarna hier af.
+         Gekoppelde berichten staan ook op de reserveringskaart in de agenda.</p>
+    </div>
+    <div data-bwf-gastberichten></div>
+  </section>
+
   <!-- ============ WHATSAPP ============
        Angela, 21-09-2026: "ik wil via het dashboard ook alle chats kunnen
        openen van Wati." De gesprekken komen via de Edge Function wati-chats;
@@ -3380,9 +3401,10 @@ div.ag-blok{cursor:default}
 </div></form></dialog>
 
 <div class="toast" id="toast"></div>
-<script src="bwf-kalender.js?v=27"></script>
+<script src="bwf-kalender.js?v=28"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script src="bwf-chats.js?v=2"></script>
+<script src="bwf-gastberichten.js?v=1"></script>
 <script src="bwf-planweergave.js?v=1"></script>
 <!-- Betaalspecificatie per reservering, dezelfde als op de reserveringskaart. -->
 <script src="bwf-betaalspec.js?v=2"></script>
@@ -3853,6 +3875,7 @@ const GROEPEN = {
   bellen:        ['bellen'],             /* in het menu: Belscripts */
   werktarieven:  ['werk'],               /* was onbereikbaar: stond in geen groep */
   gmail:         ['gmail'],
+  gastberichten: ['gastberichten'],    /* berichten van gasten via Booking.com */
   chats:         ['chats']          /* WhatsApp-gesprekken uit Wati */
 };
 /* Klantbeheer krijgt een eigen paneel: de kaarten Nieuwe klant en Klantenbestand
@@ -4217,6 +4240,7 @@ const GROEP_KOP = {
   klantbeheer:   ['Klantbeheer', 'Klanten toevoegen, gegevens bijwerken en dubbelingen samenvoegen.'],
   bellen:        ['Belscripts', 'Werk een bellijst af met het script ernaast en vink de stappen af.'],
   werktarieven:  ['Werk & tarieven', 'Urenregistratie en de tarieven per soort werk.'],
+  gastberichten: ['Gastberichten', 'Vragen en verzoeken die gasten via Booking.com sturen. Beantwoord ze in Booking.com en vink ze hier af.'],
   chats:         ['WhatsApp', 'Alles wat er met gasten is geappt, rechtstreeks uit Wati.'],
   gmail:         ['Gmail', 'Lees en verstuur e-mail vanuit het dashboard.']
 };

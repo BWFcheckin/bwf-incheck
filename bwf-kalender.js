@@ -115,6 +115,32 @@
   }
   function gastNaam(r) { return [r.gast_voornaam, r.gast_achternaam].filter(Boolean).join(" "); }
 
+  /* ---- gastberichten van Booking.com --------------------------------------
+     Angela, 13-10-2026: "kunnen de berichten en verzoeken ook in het
+     dashboard weergegeven worden" ("Kan ik om 15:00 inchecken?"). Ze komen
+     via de functie gastberichten-mail in de tabel gast_berichten; hier staan
+     de OPEN berichten per reservering. Bestaat de tabel nog niet of mag je
+     hem niet lezen, dan blijft dit leeg en werkt de agenda gewoon. */
+  var GB = {};               /* reservering_id -> [open berichten] */
+  function gbOpen(r) { return (r && GB[r.id]) || []; }
+  function gbTijd(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    return d.toLocaleString("nl-NL", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+  function gbBlok(r) {
+    var lijst = gbOpen(r);
+    if (!lijst.length) return "";
+    return lijst.map(function (b) {
+      return '<div class="bwfk-gb"><b>' + (b.soort === "verzoek" ? "verzoek" : "bericht") +
+        " via Booking.com</b>" +
+        '<span class="bwfk-gbtekst">' + esc(b.bericht.length > 400 ? b.bericht.slice(0, 400) + "…" : b.bericht) + "</span>" +
+        '<span class="bwfk-gbvoet"><small>' + esc((b.gast_naam ? b.gast_naam + " · " : "") + gbTijd(b.ontvangen_op)) + "</small>" +
+        '<a href="' + esc(b.antwoord_link || "https://admin.booking.com/") + '" target="_blank" rel="noopener">Beantwoorden</a>' +
+        '<button type="button" data-gbaf="' + esc(b.id) + '">Afgehandeld</button></span></div>';
+    }).join("");
+  }
+
   /* ---- de stand van zaken van één boeking -------------------------------
      Angela, 04-10-2026: "de kaartjes worden de volledige reserveringskaart met
      de status van gastgegevens en incheckformulier", "verwachte aankomsttijd
@@ -147,6 +173,8 @@
     if (st === "betaald") v.push('<span class="bwfk-vlag ok">betaald</span>');
     else if (st === "deels") v.push('<span class="bwfk-vlag let">deels betaald</span>');
     else if (st) v.push('<span class="bwfk-vlag uit">' + esc(st) + "</span>");
+    var gb = gbOpen(r).length;
+    if (gb) v.unshift('<span class="bwfk-vlag gb">&#9993; ' + gb + (gb === 1 ? " open gastbericht" : " open gastberichten") + "</span>");
     return '<div class="bwfk-vlaggen">' + v.join("") + "</div>";
   }
 
@@ -168,7 +196,10 @@
   /* Vlaggetjes en notitie samen, zoals elke kaart ze onderaan krijgt. Een
      blokkade heeft geen gast en dus ook geen stand van zaken. */
   function statusBlok(r) {
-    return (!r || geenGast(r)) ? "" : statusVlaggen(r) + statusNotitie(r);
+    if (!r) return "";
+    /* Een bericht toont ook bij een regel zonder gastgegevens: dan weet je juist wie er komt. */
+    if (geenGast(r)) return gbBlok(r);
+    return statusVlaggen(r) + statusNotitie(r) + gbBlok(r);
   }
 
   /* Angela, 22-09-2026: "de reserveringenlijst onder de kalender moet ook een
@@ -364,6 +395,19 @@
       ".bwfk-vlag.ok{border-color:#3F7A55;background:#3F7A5518;color:#2F5C40}",
       ".bwfk-vlag.let{border-color:#8F6420;background:#8F642018;color:#7A5519}",
       ".bwfk-vlag.uit{border-color:#A34434;background:#A3443418;color:#8C382B}",
+      ".bwfk-vlag.gb{border-color:#1F5AA6;background:#1F5AA6;color:#fff;font-weight:600}",
+      ".bwfk-gb{margin:0 10px 10px;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.45;",
+      "  text-align:left;background:#1F5AA612;border-left:3px solid #1F5AA6;display:grid;gap:4px}",
+      ".bwfk-gb b{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#1F5AA6}",
+      ".bwfk-gbtekst{white-space:pre-wrap;word-break:break-word;font-size:13px}",
+      ".bwfk-gbvoet{display:flex;flex-wrap:wrap;gap:6px;align-items:center}",
+      ".bwfk-gbvoet small{opacity:.65;margin-right:auto}",
+      ".bwfk-gbvoet a,.bwfk-gbvoet button{font:inherit;font-size:11.5px;padding:3px 9px;border-radius:999px;",
+      "  border:1px solid #1F5AA6;background:#fff;color:#1F5AA6;text-decoration:none;cursor:pointer}",
+      ".bwfk-gbvoet button{background:#1F5AA6;color:#fff}",
+      ".bwfk-gbvoet button[disabled]{opacity:.5;cursor:wait}",
+      ".bwfk-item .bwfk-gbmerk{display:inline-block;margin-left:3px;font-size:10px;line-height:1;padding:2px 4px;",
+      "  border-radius:4px;background:#1F5AA6;color:#fff;vertical-align:1px}",
       ".bwfk-notitie{margin:0 10px 10px;padding:7px 9px;border-radius:7px;font-size:11.5px;",
       "  line-height:1.45;text-align:left;background:#8F642014;border-left:3px solid #8F6420}",
       ".bwfk-notitie b{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;",
@@ -658,6 +702,37 @@
       return r.json();
     }
 
+    /* De open gastberichten. Stil: lukt het niet (tabel nog niet aangemaakt,
+       geen leesrecht), dan geen berichten en verder niets aan de hand. */
+    async function laadGastberichten() {
+      try {
+        var rijen = await haal("gast_berichten?select=id,reservering_id,gast_naam,bericht,soort,ontvangen_op,antwoord_link" +
+          "&status=eq.open&reservering_id=not.is.null&order=ontvangen_op.asc&limit=500");
+        var nieuw = {};
+        (rijen || []).forEach(function (b) { (nieuw[b.reservering_id] = nieuw[b.reservering_id] || []).push(b); });
+        GB = nieuw;
+      } catch (e) { /* laat de vorige stand staan */ }
+    }
+
+    async function gbAfvinken(knop) {
+      knop.disabled = true;
+      try {
+        var token = await (opties.token ? opties.token() : standaardToken());
+        var r = await fetch(BASIS + "/rest/v1/rpc/gastbericht_afvinken", {
+          method: "POST",
+          headers: { apikey: ANON, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_id: Number(knop.getAttribute("data-gbaf")), p_afgehandeld: true })
+        });
+        if (!r.ok) {
+          var d = null; try { d = await r.json(); } catch (e2) {}
+          throw new Error((d && d.message) || ("Afvinken lukte niet (" + r.status + ")."));
+        }
+        try { window.dispatchEvent(new CustomEvent("bwf:gastberichten")); } catch (e3) {}
+        await laadGastberichten();
+        teken();
+      } catch (e) { status(e.message, true); knop.disabled = false; }
+    }
+
     /* rol en eigen medewerker één keer ophalen: bepaalt welke knoppen in de daglijst staan */
     async function laadRol() {
       if (st.rol !== undefined) return;
@@ -691,6 +766,7 @@
         var uit = await Promise.all(verzoeken);
         st.res = uit[0] || [];
         st.blok = uit[1] || [];
+        await laadGastberichten();
         if (uit[2]) st.blokken = uit[2];
         /* Wie er die dagen staat ingeroosterd (Angela, 21-09-2026). Apart van
            de verzoeken hierboven, zodat de volgorde van uit[] niet verschuift.
@@ -859,7 +935,8 @@
            suitenaam erin." */
         '<b class="bwfk-itijd">' + esc(tijd) + '</b> ' +
         (groot ? '' : '<span class="bwfk-isuite">' + esc(SUITES[r.suite].kort) + '</span> ') +
-        '<span class="bwfk-inaam">' + esc(naam) + '</span></button>';
+        '<span class="bwfk-inaam">' + esc(naam) + '</span>' +
+        (gbOpen(r).length ? '<span class="bwfk-gbmerk" title="open gastbericht">&#9993;</span>' : '') + '</button>';
     }
 
     /* ---------- tekenen ---------- */
@@ -1216,6 +1293,8 @@
 
     houder.addEventListener("click", async function (e) {
       var t;
+      if ((t = e.target.closest("[data-gbaf]"))) { e.stopPropagation(); gbAfvinken(t); return; }
+      if (e.target.closest(".bwfk-gb")) return;   /* de link Beantwoorden opent zelf in een nieuw venster */
       /* Een vrij blok: de pagina mag het zelf afhandelen (het reserveringenscherm opent dan
          zijn eigen formulier); anders gaat de link naar het reserveringenscherm. */
       if ((t = e.target.closest("[data-vrijblok]")) && typeof opties.opVrijBlok === "function") {
@@ -1336,6 +1415,8 @@
       if (e.key === SESSIE_SLEUTEL && e.newValue && !st.res.length) laad(true);
     });
     window.addEventListener("bwf:session", function () { laad(true); });
+    /* Afgevinkt in het overzicht Gastberichten: de kaarten bijwerken. */
+    window.addEventListener("bwf:gastberichten", async function () { await laadGastberichten(); teken(); });
     if (!opties.token) {
       /* pagina's die zelf inloggen (bijv. index.html) zetten de sessie pas later */
       var wacht = setInterval(async function () {
