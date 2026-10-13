@@ -8218,7 +8218,7 @@ async function planyoVoorOpslaan(d, m) {
   try {
     const uit = await planyoVraag({
       action: "create-reservation", resource_id: resource, start_time: van, end_time: tot, quantity: 1,
-      email: d.gast_email || PLANYO_GEEN_EMAIL,
+      email: d.gast_email || PLANYO_GEEN_EMAIL.replace("@", "+geen-email-" + Date.now() + "@"),
       first_name: d.gast_voornaam || d.gast_achternaam || "Gast",
       last_name: d.gast_voornaam ? (d.gast_achternaam || "") : "",
       phone: d.gast_telefoon || "",
