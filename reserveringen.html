@@ -5004,6 +5004,11 @@ function formWaarden() {
   return d;
 }
 
+/* Staat deze boeking via het dashboard of de website in Planyo? Dan gaat annuleren en
+   verwijderen ook naar Planyo. */
+const planyoBeheert = (r) => !!(r && r.planyo_id) && (PLANYO_KANALEN.includes(r.kanaal) || r.kanaal === "planyo");
+let V_ZONDER_PLANYO = null;
+
 async function bewaar(bevestig) {
   if (!HUIDIG || !(magBewerken() || magBeperkt())) return;
   const knoppen = [$("#vOpslaan"), $("#vBevestig")];
@@ -5013,13 +5018,44 @@ async function bewaar(bevestig) {
   if (bevestig) d.status = "bevestigd";
   knoppen.forEach((k) => { k.disabled = true; });
   try {
+    /* Annuleren doorzetten naar Planyo (stap 5B, 13-10-2026). Alleen voor boekingen
+       die via het dashboard of de website in Planyo staan. Een Booking.com-boeking
+       annuleer je bij Booking zelf: van hieruit zou Planyo hem daar als geannuleerd
+       door de accommodatie doorgeven. */
+    let erbij = "";
+    const wordtGeannuleerd = d.status === "geannuleerd" && HUIDIG.status !== "geannuleerd";
+    const wordtActief = d.status !== "geannuleerd" && HUIDIG.status === "geannuleerd";
+    if (HUIDIG.planyo_id && (wordtGeannuleerd || wordtActief)) {
+      if (!planyoBeheert(HUIDIG)) {
+        if (wordtGeannuleerd) erbij = " Let op: deze boeking komt van " + (KANALEN[HUIDIG.kanaal] || HUIDIG.kanaal) +
+          "; annuleer hem daar ook, vanuit het dashboard gaat dat niet.";
+      } else if (wordtGeannuleerd && V_ZONDER_PLANYO !== HUIDIG.id) {
+        try {
+          $("#vMelding").textContent = "Annuleren in Planyo…";
+          await planyoVraag({ action: "cancel-reservation", reservation_id: HUIDIG.planyo_id, reason: "Geannuleerd in het BWF-dashboard door " + NAAM });
+          $("#vMelding").textContent = "";
+          erbij = " In Planyo is hij ook geannuleerd.";
+        } catch (e) {
+          V_ZONDER_PLANYO = HUIDIG.id;
+          throw new Error("Annuleren in Planyo lukte niet: " + e.message + " Er is niets opgeslagen. Klik nog een keer op opslaan " +
+            "om hem alleen in het dashboard te annuleren; annuleer hem dan zelf in Planyo (nummer " + HUIDIG.planyo_id + ").");
+        }
+      } else if (wordtGeannuleerd) {
+        erbij = " LET OP: in Planyo staat hij nog (nummer " + HUIDIG.planyo_id + "); annuleer hem daar met de hand.";
+      } else {
+        /* Weer actief gemaakt: in Planyo blijft hij geannuleerd, dus daar is de suite vrij. */
+        d.niet_in_planyo = true;
+        erbij = " LET OP: in Planyo is hij nog geannuleerd. Zet hem daar opnieuw in; tot die tijd staat het rode label erbij.";
+      }
+    }
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id) + "&select=" + KOLOMMEN, { method: "PATCH", body: d });
     if (!rij || !rij.length) throw new Error("Opslaan lukte niet: je hebt geen rechten om deze reservering te wijzigen.");
+    V_ZONDER_PLANYO = null;
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
     const naam = gastNaam(rij[0]) || "reservering";
     sluitVenster();
     teken();
-    melding((bevestig ? "Bevestigd: " : "Opgeslagen: ") + naam + ".");
+    melding((bevestig ? "Bevestigd: " : "Opgeslagen: ") + naam + "." + erbij);
   } catch (e) {
     $("#vMelding").textContent = e.message;
   }
@@ -5045,6 +5081,11 @@ async function verwijderReservering() {
   const knop = $("#vVerwijder");
   knop.disabled = true;
   try {
+    /* Staat hij actief in Planyo, dan daar eerst annuleren: anders blijft de suite daar bezet. */
+    if (planyoBeheert(HUIDIG) && HUIDIG.status !== "geannuleerd") {
+      try { await planyoVraag({ action: "cancel-reservation", reservation_id: HUIDIG.planyo_id, reason: "Verwijderd in het BWF-dashboard door " + NAAM }); }
+      catch (e) { throw new Error("annuleren in Planyo lukte niet (" + e.message + "). Er is niets verwijderd; annuleer hem eerst in Planyo (nummer " + HUIDIG.planyo_id + ")."); }
+    }
     await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id), { method: "DELETE" });
     const weg = HUIDIG.id;
     RIJEN = RIJEN.filter((x) => x.id !== weg);

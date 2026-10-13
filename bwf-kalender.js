@@ -1109,9 +1109,9 @@
           '<div class="bwfk-kaartlijf">' +
             '<div class="bwfk-kaartrij"><span>bron</span><b>' +
               esc(b.bron === "handmatig" ? "Handmatig" : b.bron === "ics-booking" ? "Booking.com"
-                : b.bron === "ics-smg" ? "SMG-planning" : b.bron) + "</b></div>" +
+                : b.bron === "ics-smg" ? "SMG-planning" : b.bron === "ics-planyo" ? "Handmatig (ook in Planyo)" : b.bron) + "</b></div>" +
           "</div>" +
-          (opties.blokkadeOpheffen && b.bron === "handmatig"
+          (opties.blokkadeOpheffen && (b.bron === "handmatig" || b.bron === "ics-planyo")
             ? '<div class="bwfk-acties"><button type="button" data-opheffen="' + esc(b.id) + '">Opheffen</button></div>'
             : "") +
           "</div>";
@@ -1120,9 +1120,9 @@
           '<td><span class="bwfk-suitestip" style="background:' + SUITES[b.suite].kleur + '"></span> ' + esc(SUITES[b.suite].naam) + "<small>blokkade</small></td>" +
           '<td class="bwfk-naam" title="' + esc(b.reden || "") + '">' +
             '<span class="bwfk-blokmerk">blokkade</span>' + esc(b.reden || "gesloten") + "</td>" +
-          "<td>" + esc(b.bron === "handmatig" ? "Handmatig" : b.bron === "ics-booking" ? "Booking.com" : b.bron === "ics-smg" ? "SMG-planning" : b.bron) + "</td>" +
+          "<td>" + esc(b.bron === "handmatig" ? "Handmatig" : b.bron === "ics-booking" ? "Booking.com" : b.bron === "ics-smg" ? "SMG-planning" : b.bron === "ics-planyo" ? "Handmatig (ook in Planyo)" : b.bron) + "</td>" +
           '<td><span class="bwfk-pil">Gesloten</span></td>' +
-          '<td><div class="bwfk-acties">' + (opties.blokkadeOpheffen && b.bron === "handmatig" ? '<button type="button" data-opheffen="' + esc(b.id) + '">Opheffen</button>' : "") + "</div></td></tr>" };
+          '<td><div class="bwfk-acties">' + (opties.blokkadeOpheffen && (b.bron === "handmatig" || b.bron === "ics-planyo") ? '<button type="button" data-opheffen="' + esc(b.id) + '">Opheffen</button>' : "") + "</div></td></tr>" };
       })).sort(function (a, b) { return a.sorteer < b.sorteer ? -1 : a.sorteer > b.sorteer ? 1 : 0; });
 
       /* Angela, 27-09-2026, met schermafdrukken erbij: "de lijst daarbinnen
