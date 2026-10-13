@@ -530,7 +530,8 @@ function planyoRegel(r: Rij, blokken: Tijdsblok[]): Rij {
     status: (status & PLANYO_BEVESTIGD) !== 0 || isBooking ? "bevestigd" : "optie",
     gast_voornaam: String(r.first_name ?? "").trim() || null,
     gast_achternaam: String(r.last_name ?? "").trim() || null,
-    gast_email: String(r.email ?? "").trim() || null,
+    // Het eigen info-adres is de invulling van het dashboard voor een gast zonder e-mail: geen gastgegeven.
+    gast_email: /^info@bedenwellnessflevoland\.nl$/i.test(String(r.email ?? "").trim()) ? null : String(r.email ?? "").trim() || null,
     gast_telefoon: telefoon.trim() || null,
     gast_adres: [r.address, r.zip, r.city, r.country].filter(Boolean).join(", ") || null,
     personen: Number.isFinite(personen) && personen > 0 ? personen : null,
