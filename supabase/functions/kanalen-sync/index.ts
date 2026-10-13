@@ -469,7 +469,7 @@ const leeg = (v: unknown) => v === null || v === undefined || String(v).trim() =
    accommodatie (bijvoorbeeld alleen het dagverblijf) sluit de suite niet. Wat Planyo zelf uit een
    andere agenda inleest (Privésauna via iCal) slaan we over: dat staat al via de SMG-feed in het
    dashboard. Dagelijks, wekelijks of maandelijks herhaalde sluitingen (openingstijden) ook. */
-const PLANYO_VAKANTIES_SCHRIJVEN = false; // pas na akkoord op de proefrun
+const PLANYO_VAKANTIES_SCHRIJVEN = true; // akkoord Angela 13-10-2026: schoolvakanties ook in het dashboard dicht
 const PLANYO_BASIS: Record<string, string> = { "254072": "angie", "254073": "malina_jacuzzi", "254076": "malina_deluxe" };
 const ALLE_SUITES = ["angie", "malina_jacuzzi", "malina_deluxe"];
 const VAKANTIE_UID = "planyo-vakantie:";
