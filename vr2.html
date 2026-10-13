@@ -3385,7 +3385,7 @@ div.ag-blok{cursor:default}
 <script src="bwf-chats.js?v=2"></script>
 <script src="bwf-planweergave.js?v=1"></script>
 <!-- Betaalspecificatie per reservering, dezelfde als op de reserveringskaart. -->
-<script src="bwf-betaalspec.js?v=1"></script>
+<script src="bwf-betaalspec.js?v=2"></script>
 <script>
 /* =======================================================================
    Beden Wellness Flevoland — Werkzaamheden & Takendashboard
@@ -10707,7 +10707,7 @@ async function laadOverzicht(){
        is en of er extra's zijn bijgeboekt. Ze komen via ruw mee in RES. */
     const velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
                    'gast_voornaam,gast_achternaam,gast_telefoon,gast_email,personen,' +
-                   'bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,betaald_via,' +
+                   'bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,betaald_via,servicekosten,arrangementen_tekst,' +
                    /* handmatig_gewijzigd_op wordt gezet zodra een ingelogde
                       medewerker iets aan de boeking wijzigt (trigger
                       bwf_reservering_handmatig, migratie 20260911140000). De import

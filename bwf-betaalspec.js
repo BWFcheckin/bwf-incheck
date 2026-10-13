@@ -260,6 +260,11 @@
       betaald: r2(betalingen.reduce(function (t, b) { return t + b.bedrag; }, 0)),
       posten: posten,
       betalingen: betalingen,
+      /* Wat het kanaal zelf opgeeft (Privésauna-mail, Planyo). De servicekosten
+         zitten al in het totaal; ze staan hier alleen om te tonen. */
+      servicekosten: r.servicekosten != null && Number(r.servicekosten) > 0 ? r2(r.servicekosten) : null,
+      arrangementenTekst: String(r.arrangementen_tekst || "").split("\n")
+        .map(function (x) { return x.trim(); }).filter(Boolean),
       klopt: Math.abs(open - openPosten) < 0.01
     };
   }
@@ -360,11 +365,26 @@
   function html(s, opties) {
     zorgVoorStijl();
     opties = opties || {};
-    if (!s || (!s.posten.length && !s.betalingen.length)) {
+    if (!s || (!s.posten.length && !s.betalingen.length && !(s.arrangementenTekst || []).length)) {
       return '<div class="bspec" style="color:var(--muted,#7E8A82)">Er is nog geen bedrag of betaling bekend.</div>';
     }
     var h = '<div class="bspec">';
-    h += "<h4>Waarvoor</h4>";
+    if (s.totaal != null) {
+      var rij = function (naam, bedrag, vet) {
+        return '<div class="bs-rij"><span>' + naam + '</span><span class="bs-bedrag"' +
+          (vet ? "" : ' style="font-weight:400"') + ">" + esc(euro(bedrag)) + "</span></div>";
+      };
+      h += '<div class="bs-post">' +
+        rij("Totaal" + (s.servicekosten != null ? " (incl. servicekosten)" : ""), s.totaal, true) +
+        (s.servicekosten != null ? rij('<span class="bs-groep" style="display:inline">waarvan servicekosten</span>', s.servicekosten, false) : "") +
+        rij("Betaald", Math.max(0, r2(s.totaal - s.open)), false) +
+        rij("Nog te betalen", s.open, true) + "</div>";
+    }
+    if ((s.arrangementenTekst || []).length) {
+      h += "<h4>Arrangementen volgens het kanaal</h4>" + '<div class="bs-post">' +
+        s.arrangementenTekst.map(function (x) { return "<div>" + esc(x) + "</div>"; }).join("") + "</div>";
+    }
+    if (s.posten.length) h += "<h4>Waarvoor</h4>";
     s.posten.forEach(function (p) {
       var chips = p.delen.map(function (d) {
         var b = d.betaling;

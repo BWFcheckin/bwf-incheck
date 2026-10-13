@@ -1427,7 +1427,7 @@ const BETAAL = { open: "Open", deels: "Deels betaald", betaald: "Betaald" };
    hem er dan pas achter. */
 let KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,vertrek,incheck_tijd,uitcheck_tijd," +
   "gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,extras,bedrag_totaal,betaald_bedrag," +
-  "restant_bedrag,betaalstatus,betaald_via,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
+  "restant_bedrag,betaalstatus,betaald_via,servicekosten,arrangementen_tekst,omschrijving,notitie,medewerker,brongegevens,bron_bestanden,import_opmerking," +
   /* review_verstuurd hoort erbij sinds de controlebalk: dat veld bestaat in de
      database maar werd niet opgehaald, waardoor die stap altijd rood zou staan
      hoe vaak je de link ook verstuurd had. */
@@ -8657,7 +8657,7 @@ document.addEventListener("DOMContentLoaded", () => {
 <script src="bwf-member.js?v=1"></script>
 <!-- De betaalspecificatie: per post (verblijf, extra's) hoe hij is betaald.
      Apart bestand, want het VR-dashboard toont dezelfde specificatie. -->
-<script src="bwf-betaalspec.js?v=1"></script>
+<script src="bwf-betaalspec.js?v=2"></script>
 <script src="bwf-menu.js?v=11"></script>
 <script src="bwf-weergave.js?v=2"></script>
 <script src="bwf-account.js?v=1"></script>

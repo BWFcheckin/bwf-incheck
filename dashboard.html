@@ -4202,7 +4202,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     try{
       var velden = 'id,suite,kanaal,kanaal_ref,status,type,aankomst,vertrek,incheck_tijd,uitcheck_tijd,' +
         'gast_voornaam,gast_achternaam,gast_email,gast_telefoon,personen,arrangementen,omschrijving,' +
-        'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,notitie,medewerker,' +
+        'import_opmerking,bedrag_totaal,betaald_bedrag,restant_bedrag,betaalstatus,servicekosten,arrangementen_tekst,notitie,medewerker,' +
         'borg_bedrag,borg_wijze,borg_ontvangen,borg_terug,borg_ingehouden,borg_afgehandeld,borg_notitie,' +
         'welkomstcall_id,checkin_id,klant_id,geannuleerd_op,review_taak_id,review_verstuurd,gastlink_verstuurd,' +
         'created_at';
@@ -7456,8 +7456,15 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
       '<div id="rkKlant" hidden style="margin-top:10px"></div>'+
       '</div>';
 
+    /* Servicekosten en arrangementen zoals het kanaal ze opgeeft (Privésauna-mail,
+       Planyo). De servicekosten zitten al in het totaal. */
+    var sk = (r.ruw && r.ruw.servicekosten != null) ? (parseFloat(r.ruw.servicekosten)||0) : 0;
+    var arrTekst = String((r.ruw && r.ruw.arrangementen_tekst) || '').split('\n')
+      .map(function(x){ return x.trim(); }).filter(Boolean);
     h += '<div class="geld">'+
-      '<div class="rij"><span>Totaalbedrag</span><span>'+euro(b.totaal)+'</span></div>'+
+      '<div class="rij"><span>Totaalbedrag'+(sk > 0 ? ' (incl. servicekosten)' : '')+'</span><span>'+euro(b.totaal)+'</span></div>'+
+      (sk > 0 ? '<div class="rij" style="opacity:.7"><span>waarvan servicekosten</span><span>'+euro(sk)+'</span></div>' : '')+
+      arrTekst.map(function(x){ return '<div class="rij" style="opacity:.7"><span>'+esc(x)+'</span><span></span></div>'; }).join('')+
       '<div class="rij"><span>Reeds betaald</span><span>'+euro(b.betaald)+'</span></div>'+
       (b.wc ? '<div class="rij"><span>Betaald vanuit welkomstcall</span><span>'+euro(b.wc)+
         (k.wc_betaalwijze ? ' <small style="opacity:.6">'+esc(k.wc_betaalwijze)+'</small>' : '')+'</span></div>' : '')+
