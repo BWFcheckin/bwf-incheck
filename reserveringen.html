@@ -1431,7 +1431,10 @@ let KOLOMMEN = "id,suite,kanaal,kanaal_ref,status,type,tijdsblok_id,aankomst,ver
   /* review_verstuurd hoort erbij sinds de controlebalk: dat veld bestaat in de
      database maar werd niet opgehaald, waardoor die stap altijd rood zou staan
      hoe vaak je de link ook verstuurd had. */
-  "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door,review_verstuurd";
+  "klant_id,checkin_id,welkomstcall_id,nachtregister_id,geannuleerd_op,handmatig_gewijzigd_op,gewijzigd_door,review_verstuurd," +
+  /* Planyo-koppeling (stap 5, 13-10-2026): het Planyo-nummer en het merkteken
+     "toch opgeslagen terwijl Planyo weigerde". */
+  "planyo_id,niet_in_planyo";
 const IMPORT_REGEL = "handmatige regel in de SMG-planning";
 
 /* Staat de kolom review_status in de database? Wordt bij het opstarten
@@ -1716,6 +1719,7 @@ function rijHtml(r) {
   const p = periode(r);
   const naam = gastNaam(r);
   const letop = [];
+  if (r.niet_in_planyo) letop.push('<span class="pill crit" data-nip="' + esc(r.id) + '" style="font-weight:700;cursor:pointer" title="Deze reservering staat niet in Planyo: de website, Booking.com en Origineel Overnachten zijn niet geblokkeerd. Klik als hij er nu wel in staat.">NIET in Planyo</span>');
   if (gastOntbreekt(r)) letop.push('<span class="pill warn">gastgegevens ontbreken</span>');
   if (tijdenControleren(r)) letop.push('<span class="pill crit" title="' + esc(r.import_opmerking) + '">tijden controleren</span>');
   else if (r.import_opmerking) letop.push('<span class="pill" title="' + esc(r.import_opmerking) + '">SMG-planningregel</span>');
@@ -8049,6 +8053,192 @@ document.addEventListener("click", (e) => {
   }
 });
 
+/* =========================================================
+   Reserveren vanuit het dashboard naar Planyo (stap 5B, 13-10-2026)
+   =========================================================
+   Vóór het opslaan van een nieuwe reservering:
+     1. is het blok nog vrij in `reserveringen` en `blokkades`, met 1,5 uur
+        schoonmaak ervoor en erna;
+     2. is het vrij in Planyo (live);
+     3. aanmaken in Planyo, en het Planyo-nummer mee opslaan zodat de import
+        hem herkent en niet dubbel invoert.
+   Planyo rekent per suite met een losse eenheid waar alle accommodaties
+   (dagverblijf, overnachting, ...) aan hangen. Op die eenheid wordt gekeken
+   en geboekt: dan gaan ze allemaal dicht (getest 13-10-2026).
+
+   Alleen kanalen die niet zelf al in Planyo komen gaan erheen. Privésauna,
+   Booking.com en Origineel Overnachten bereiken Planyo langs hun eigen weg;
+   die nog een keer sturen zou ze daar dubbel zetten. */
+const PLANYO_SUITE = { angie: "254072", malina_jacuzzi: "254073", malina_deluxe: "254076" };
+const PLANYO_KANALEN = ["eigen", "telefonisch", "whatsapp", "handmatig"];
+const PLANYO_GEEN_EMAIL = "info@bedenwellnessflevoland.nl";   // Planyo eist een adres (Angela, 13-10-2026)
+const BUFFER_MINUTEN = 90;
+/* Wat de medewerker voor precies dit blok heeft vrijgegeven:
+   { sleutel, bezet: true, zonderPlanyo: true } */
+let N_VRIJGAVE = null;
+
+/* Het rode label weghalen zodra de reservering alsnog in Planyo staat. */
+document.addEventListener("click", async (e) => {
+  const pil = e.target && e.target.closest ? e.target.closest("[data-nip]") : null;
+  if (!pil) return;
+  e.preventDefault(); e.stopPropagation();
+  if (!magBewerken()) return;
+  if (!window.confirm("Staat deze reservering nu wel in Planyo? Dan gaat het rode label weg.")) return;
+  try {
+    const id = pil.getAttribute("data-nip");
+    await api("reserveringen?id=eq." + encodeURIComponent(id), { method: "PATCH", body: { niet_in_planyo: false, gewijzigd_door: NAAM } });
+    const rij = RIJEN.find((x) => String(x.id) === String(id));
+    if (rij) rij.niet_in_planyo = false;
+    teken();
+  } catch (err) { melding("Label weghalen lukte niet: " + err.message, "fout"); }
+}, true);
+
+async function planyoVraag(body) {
+  const token = await geldigToken();
+  if (!token) throw new Error("Niet ingelogd.");
+  const r = await fetch(CFG.url + "/functions/v1/planyo-bridge", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "Planyo gaf fout " + r.status);
+  return data;
+}
+
+/* "2027-06-15 19:00" in Nederlandse tijd, zoals Planyo het verwacht. */
+function planyoTijd(iso) {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit",
+    day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso)).replace(",", "");
+}
+
+/* De keuzeknoppen onder de melding. knoppen: [{tekst, klik}] of null om ze weg te halen. */
+function planyoKeuze(knoppen) {
+  let vak = $("#nPlanyoKeuze");
+  if (!knoppen || !knoppen.length) { if (vak) vak.remove(); return; }
+  if (!vak) {
+    vak = document.createElement("div");
+    vak.id = "nPlanyoKeuze";
+    vak.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:8px";
+    $("#nMelding").insertAdjacentElement("afterend", vak);
+  }
+  vak.innerHTML = "";
+  knoppen.forEach((k) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "knop"; b.textContent = k.tekst;
+    b.addEventListener("click", k.klik);
+    vak.appendChild(b);
+  });
+}
+
+function planyoRegelTekst(r) {
+  return (KANALEN[r.kanaal] || r.kanaal || "reservering") + " " + (r.kanaal_ref || "") + " · " +
+    fmtDag.format(new Date(r.aankomst)) + " " + fmtTijd.format(new Date(r.aankomst)) + " – " +
+    fmtTijd.format(new Date(r.vertrek)) + (gastNaam(r) ? " · " + gastNaam(r) : "");
+}
+
+/* Geeft true als de reservering mag worden opgeslagen. Zet dan d.planyo_id,
+   of d.niet_in_planyo als de medewerker daar uitdrukkelijk voor koos. */
+async function planyoVoorOpslaan(d, m) {
+  const sleutel = [d.suite, d.aankomst, d.vertrek].join("|");
+  if (!N_VRIJGAVE || N_VRIJGAVE.sleutel !== sleutel) N_VRIJGAVE = { sleutel };
+  const vrij = N_VRIJGAVE;
+  const opnieuw = (veld) => () => { vrij[veld] = true; planyoKeuze(null); maakReservering(); };
+  planyoKeuze(null);
+  const eigenaar = ROL === "eigenaar";
+
+  /* 1. Het dashboard zelf: reserveringen en blokkades op deze suite. */
+  if (!vrij.bezet) {
+    m.textContent = "Even nakijken of dit blok nog vrij is…";
+    const ruimVan = new Date(new Date(d.aankomst).getTime() - BUFFER_MINUTEN * 60000).toISOString();
+    const ruimTot = new Date(new Date(d.vertrek).getTime() + BUFFER_MINUTEN * 60000).toISOString();
+    let res, blok;
+    try {
+      [res, blok] = await Promise.all([
+        api("reserveringen?select=id,kanaal,kanaal_ref,aankomst,vertrek,gast_voornaam,gast_achternaam" +
+          "&suite=eq." + encodeURIComponent(d.suite) + "&status=neq.geannuleerd" +
+          "&aankomst=lt." + encodeURIComponent(ruimTot) + "&vertrek=gt." + encodeURIComponent(ruimVan)),
+        api("blokkades?select=id,van,tot,reden&suite=eq." + encodeURIComponent(d.suite) + "&actief=eq.true" +
+          "&van=lt." + encodeURIComponent(d.vertrek) + "&tot=gt." + encodeURIComponent(d.aankomst))
+      ]);
+    } catch (e) {
+      m.textContent = "Nakijken of het blok vrij is lukte niet (" + e.message + "). Er is niets opgeslagen.";
+      return false;
+    }
+    res = res || []; blok = blok || [];
+    const overlap = res.filter((r) => new Date(r.aankomst) < new Date(d.vertrek) && new Date(r.vertrek) > new Date(d.aankomst));
+    const krap = res.filter((r) => !overlap.includes(r));
+    if (overlap.length || blok.length || krap.length) {
+      const delen = [];
+      if (overlap.length) delen.push("Dit blok is al bezet: " + overlap.map(planyoRegelTekst).join("; ") + ".");
+      if (blok.length) delen.push("De suite is dan geblokkeerd: " + blok.map((b) =>
+        fmtDag.format(new Date(b.van)) + " – " + fmtDag.format(new Date(b.tot)) + (b.reden ? " (" + b.reden + ")" : "")).join("; ") + ".");
+      if (krap.length) delen.push("Minder dan 1,5 uur schoonmaaktijd met: " + krap.map(planyoRegelTekst).join("; ") + ".");
+      const alleenBuffer = !overlap.length && !blok.length;
+      m.textContent = delen.join(" ") + " Er is niets opgeslagen." +
+        (eigenaar ? "" : alleenBuffer ? " Alleen de eigenaar mag de schoonmaaktijd overschrijven."
+                                      : " Staat de gast er al in, open dan die reservering en vul hem aan.");
+      if (eigenaar) planyoKeuze([{ tekst: alleenBuffer ? "Schoonmaaktijd overschrijven en opslaan" : "Toch opslaan (dubbel)", klik: opnieuw("bezet") }]);
+      return false;
+    }
+  }
+
+  /* 2 en 3. Planyo. */
+  if (!PLANYO_KANALEN.includes(d.kanaal) || vrij.zonderPlanyo) {
+    if (vrij.zonderPlanyo) d.niet_in_planyo = true;
+    return true;
+  }
+  const resource = PLANYO_SUITE[d.suite];
+  const van = planyoTijd(d.aankomst), tot = planyoTijd(d.vertrek);
+  const tochKnop = { tekst: "Toch opslaan – NIET in Planyo", klik: opnieuw("zonderPlanyo") };
+  if (!resource) {
+    m.textContent = "Voor deze suite is geen Planyo-accommodatie bekend. Er is niets opgeslagen.";
+    planyoKeuze([tochKnop]);
+    return false;
+  }
+  m.textContent = "Even nakijken in Planyo…";
+  try {
+    const c = await planyoVraag({ action: "check", resource_id: resource, start_time: van, end_time: tot });
+    const uit = (c.resources || [])[0] || {};
+    if (uit.fout) throw new Error(uit.fout);
+    if (uit.beschikbaar !== true) {
+      m.textContent = "In Planyo is dit blok al bezet" + (uit.reden ? " (" + uit.reden + ")" : "") +
+        ". Er is niets opgeslagen. Kijk in Planyo wat daar staat." +
+        (eigenaar ? "" : " Alleen de eigenaar mag dan toch opslaan.");
+      if (eigenaar) planyoKeuze([tochKnop]);
+      return false;
+    }
+  } catch (e) {
+    m.textContent = "Planyo nakijken lukte niet (" + e.message + "). Er is niets opgeslagen.";
+    planyoKeuze([tochKnop]);
+    return false;
+  }
+
+  m.textContent = "Reservering in Planyo zetten…";
+  try {
+    const uit = await planyoVraag({
+      action: "create-reservation", resource_id: resource, start_time: van, end_time: tot, quantity: 1,
+      email: d.gast_email || PLANYO_GEEN_EMAIL,
+      first_name: d.gast_voornaam || d.gast_achternaam || "Gast",
+      last_name: d.gast_voornaam ? (d.gast_achternaam || "") : "",
+      phone: d.gast_telefoon || "",
+      notes: "BWF-dashboard " + d.kanaal_ref + " · " + (KANALEN[d.kanaal] || d.kanaal) + " · " + d.type +
+        " · " + (d.personen || 2) + " personen",
+      refcode: d.kanaal_ref,
+      custom_price: d.bedrag_totaal || 0,
+      send_notifications: false
+    });
+    if (!uit || !uit.reservation_id) throw new Error("Planyo gaf geen reserveringsnummer terug");
+    d.planyo_id = String(uit.reservation_id);
+    m.textContent = "";
+    return true;
+  } catch (e) {
+    m.textContent = "Planyo weigerde de reservering: " + e.message + " Er is niets opgeslagen.";
+    planyoKeuze([tochKnop]);
+    return false;
+  }
+}
+
 async function maakReservering() {
   const m = $("#nMelding");
   m.textContent = "";
@@ -8119,8 +8309,26 @@ async function maakReservering() {
   const knop = $("#nBewaar");
   knop.disabled = true;
   try {
-    const rij = await api("reserveringen?select=" + KOLOMMEN, { method: "POST", body: d });
-    if (!rij || !rij.length) throw new Error("de reservering is niet opgeslagen");
+    /* Eerst nakijken of het blok nog vrij is en de reservering in Planyo zetten;
+       pas daarna opslaan (stap 5B). Bij false is er een melding getoond. */
+    if (!(await planyoVoorOpslaan(d, m))) { knop.disabled = false; return; }
+    let rij;
+    try {
+      rij = await api("reserveringen?select=" + KOLOMMEN, { method: "POST", body: d });
+      if (!rij || !rij.length) throw new Error("de reservering is niet opgeslagen");
+    } catch (e) {
+      /* Planyo had hem al, het dashboard niet: in Planyo weer annuleren, zodat
+         daar geen reservering achterblijft die hier niet bestaat. */
+      if (d.planyo_id) {
+        let terug = "In Planyo is hij weer geannuleerd.";
+        try { await planyoVraag({ action: "cancel-reservation", reservation_id: d.planyo_id, reason: "Opslaan in het dashboard mislukte" }); }
+        catch (e2) { terug = "LET OP: in Planyo staat hij nog wel (nummer " + d.planyo_id + "). Annuleer hem daar met de hand."; }
+        throw new Error(e.message + " " + terug);
+      }
+      throw e;
+    }
+    N_VRIJGAVE = null;
+    planyoKeuze(null);
     RIJEN.unshift(rij[0]);
     leegNieuw();
     melding("Reservering aangemaakt: " + (gastNaam(rij[0]) || "zonder naam") + " · nummer " + rij[0].kanaal_ref + ".");
