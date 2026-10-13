@@ -460,6 +460,91 @@ async function planyoReserveringen(): Promise<Rij[]> {
 }
 
 const leeg = (v: unknown) => v === null || v === undefined || String(v).trim() === "";
+
+/* ---------- vakantieperiodes (sluitingen) uit Planyo ----------
+   Een sluiting in Planyo (bijvoorbeeld de zomersluiting) is geen reservering en kwam dus niet in
+   het dashboard: een medewerker kon er dwars doorheen boeken (gezien 13-10-2026). Ze komen nu als
+   blokkade binnen (bron ics-planyo, bron_uid planyo-vakantie:…).
+   Alleen sluitingen voor de hele site of voor de losse eenheid van een suite. Een sluiting van één
+   accommodatie (bijvoorbeeld alleen het dagverblijf) sluit de suite niet. Wat Planyo zelf uit een
+   andere agenda inleest (Privésauna via iCal) slaan we over: dat staat al via de SMG-feed in het
+   dashboard. Dagelijks, wekelijks of maandelijks herhaalde sluitingen (openingstijden) ook. */
+const PLANYO_VAKANTIES_SCHRIJVEN = false; // pas na akkoord op de proefrun
+const PLANYO_BASIS: Record<string, string> = { "254072": "angie", "254073": "malina_jacuzzi", "254076": "malina_deluxe" };
+const ALLE_SUITES = ["angie", "malina_jacuzzi", "malina_deluxe"];
+const VAKANTIE_UID = "planyo-vakantie:";
+
+async function planyoVakanties(): Promise<Rij[]> {
+  const vanaf = new Date(Date.now() - PLANYO_DAGEN_TERUG * 86400000).toISOString().slice(0, 10);
+  const tot = new Date(Date.now() + 730 * 86400000).toISOString().slice(0, 10);
+  const data = await planyoVraag("list_vacations", {
+    start_time: `${vanaf} 00:00`,
+    end_time: `${tot} 23:59`,
+    resource_id: "all",
+    include_site_vacations: "true",
+    type: "all",
+    vacation_recurrence_type: "all",
+    expand_recurring: "true",
+  });
+  const rijen: Rij[] = Array.isArray(data.results) ? data.results : [];
+  return rijen.map((v) => {
+    const soort = leeg(v.type) ? 0 : Number(v.type);
+    const res = leeg(v.resource_id) || Number(v.resource_id) === 0 ? null : String(v.resource_id);
+    const periode = leeg(v.period_type) ? 1 : Number(v.period_type);
+    const start = planyoMoment(String(v.start_time ?? ""));
+    const eind = planyoMoment(String(v.end_time ?? ""));
+    const basis: Rij = {
+      vacation_id: String(v.vacation_id ?? ""), resource_id: res, type: soort, period_type: periode,
+      ruw_van: v.start_time ?? null, ruw_tot: v.end_time ?? null,
+      reden: String(v.comment ?? "").trim() || "Gesloten (Planyo)",
+    };
+    if (!basis.vacation_id) return { ...basis, overslaan: "geen nummer" };
+    if (!start || !eind || lokaal(eind) <= lokaal(start)) return { ...basis, overslaan: "onleesbare tijden" };
+    basis.van = lokaal(start);
+    basis.tot = lokaal(eind);
+    if (soort !== 0 && soort !== 1) return { ...basis, overslaan: "ingelezen uit een andere agenda of wachtlijst" };
+    if (res && !PLANYO_BASIS[res]) return { ...basis, overslaan: "geldt voor één accommodatie, niet voor de hele suite" };
+    if (periode !== 1 && periode !== 5) return { ...basis, overslaan: "herhaalt dagelijks, wekelijks of maandelijks" };
+    return { ...basis, suites: res ? [PLANYO_BASIS[res]] : ALLE_SUITES, bron_uid: `${VAKANTIE_UID}${basis.vacation_id}:${start.datum}` };
+  });
+}
+
+/* De blokkades die eerder uit een vakantieperiode zijn gemaakt en nog actief zijn. */
+async function vakantieBlokkades(): Promise<Rij[]> {
+  return (await rest(`blokkades?select=suite,bron_uid,van,tot,reden&bron=eq.ics-planyo&actief=eq.true&bron_uid=like.${VAKANTIE_UID}*`)) as Rij[];
+}
+
+async function vakantieProef(): Promise<Rij> {
+  const lijst = await planyoVakanties();
+  const bestaand = await vakantieBlokkades();
+  const regels: Rij[] = [];
+  const telling: Record<string, number> = { nieuw: 0, bestaat_al: 0, vervalt: 0, overgeslagen: 0 };
+  for (const v of lijst) {
+    if (v.overslaan) {
+      telling.overgeslagen++;
+      continue;
+    }
+    for (const suite of v.suites as string[]) {
+      const er = bestaand.some((b) => b.suite === suite && b.bron_uid === v.bron_uid);
+      telling[er ? "bestaat_al" : "nieuw"]++;
+      regels.push({ suite, van: v.van, tot: v.tot, reden: v.reden, uitkomst: er ? "bestaat_al" : "nieuw" });
+    }
+  }
+  for (const b of bestaand) {
+    if (!lijst.some((v) => !v.overslaan && v.bron_uid === b.bron_uid && (v.suites as string[]).includes(b.suite))) {
+      telling.vervalt++;
+      regels.push({ suite: b.suite, van: lokaalUitDb(b.van), tot: lokaalUitDb(b.tot), reden: b.reden, uitkomst: "vervalt" });
+    }
+  }
+  // Overgeslagen: per reden geteld, met één voorbeeld, zodat te zien is wat er niet meekomt.
+  const overgeslagen: Record<string, Rij> = {};
+  for (const v of lijst.filter((x) => x.overslaan)) {
+    const k = String(v.overslaan);
+    overgeslagen[k] ??= { aantal: 0, voorbeeld: { resource_id: v.resource_id, type: v.type, period_type: v.period_type, van: v.van ?? v.ruw_van, tot: v.tot ?? v.ruw_tot, reden: v.reden } };
+    overgeslagen[k].aantal++;
+  }
+  return { schrijven: PLANYO_VAKANTIES_SCHRIJVEN, opgehaald: lijst.length, telling, regels, overgeslagen };
+}
 const geenBedrag = (v: unknown) => leeg(v) || Number(v) === 0;
 const euro = (v: unknown) => Math.round(Number(v || 0) * 100) / 100;
 
@@ -633,6 +718,7 @@ async function planyoProef(blokken: Tijdsblok[]): Promise<Rij> {
     // Welke velden Planyo meegeeft: nodig om de herkenning van Privésauna-blokken en Booking.com te toetsen.
     velden: [...new Set(ruw.flatMap((r) => Object.keys(r)))].sort(),
     regels: uit,
+    vakanties: await vakantieProef().catch((e) => ({ fout: foutTekst(e) })),
   };
 }
 
@@ -641,7 +727,27 @@ async function planyoProef(blokken: Tijdsblok[]): Promise<Rij> {
 async function planyoSchrijf(blokken: Tijdsblok[], run: string): Promise<Rij> {
   const regels = (await planyoReserveringen()).map((r) => planyoRegel(r, blokken));
   const uit: Rij = { overgeslagen: regels.filter((p) => p.soort === "overslaan").length };
-  for (const suite of [...new Set(regels.map((p) => p.suite).filter(Boolean))] as string[]) {
+  /* Sluitingen uit Planyo als blokkade. Lukt het ophalen niet, dan blijft alles staan zoals het was:
+     er wordt dan ook niets opgeheven. */
+  let vak: Rij[] = [], vakWeg: Rij[] = [];
+  if (PLANYO_VAKANTIES_SCHRIJVEN) {
+    try {
+      const lijst = (await planyoVakanties()).filter((v) => !v.overslaan);
+      const bestaand = await vakantieBlokkades();
+      vak = lijst;
+      vakWeg = bestaand.filter((b) => !lijst.some((v) => v.bron_uid === b.bron_uid && (v.suites as string[]).includes(b.suite)));
+    } catch (e) {
+      uit.vakanties = { fout: foutTekst(e) };
+    }
+  }
+  const vakVoor = (suite: string) => [
+    ...vak.filter((v) => (v.suites as string[]).includes(suite))
+      .map((v) => ({ bron_uid: v.bron_uid, van_lokaal: v.van, tot_lokaal: v.tot, reden: v.reden, opgeheven: false })),
+    ...vakWeg.filter((b) => b.suite === suite).map((b) => ({ bron_uid: b.bron_uid, opgeheven: true })),
+  ];
+  const suites = new Set(regels.map((p) => p.suite).filter(Boolean) as string[]);
+  for (const s of ALLE_SUITES) if (vakVoor(s).length) suites.add(s);
+  for (const suite of suites) {
     const eigen = regels.filter((p) => p.suite === suite);
     try {
       uit[suite] = await verwerk({
@@ -649,9 +755,9 @@ async function planyoSchrijf(blokken: Tijdsblok[], run: string): Promise<Rij> {
         p_suite: suite,
         p_run: run,
         p_reserveringen: eigen.filter((p) => p.soort === "reservering").map((p) => ({ ...p.rij, geannuleerd: p.geannuleerd })),
-        p_blokkades: eigen.filter((p) => p.soort === "blokkade").map((p) => ({
+        p_blokkades: [...eigen.filter((p) => p.soort === "blokkade").map((p) => ({
           bron_uid: `planyo:${p.planyo_id}`, van_lokaal: p.van, tot_lokaal: p.tot, reden: p.reden, opgeheven: p.geannuleerd,
-        })),
+        })), ...vakVoor(suite)],
         p_events: eigen.length,
       });
     } catch (e) {
