@@ -408,7 +408,7 @@ function planyoSuite(naam: string): string | null {
 
 /* "2026-11-08 10:59:59" → 8 nov 11:00. Planyo laat een blok één seconde voor het hele uur eindigen. */
 function planyoMoment(waarde: string): Moment | null {
-  const m = waarde.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  const m = waarde.trim().match(/^(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); // vakanties komen met schuine strepen
   if (!m) return null;
   const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0)));
   if (d.getUTCSeconds() === 59) d.setUTCSeconds(60);
@@ -492,7 +492,8 @@ async function planyoVakanties(): Promise<Rij[]> {
     const res = leeg(v.resource_id) || Number(v.resource_id) === 0 ? null : String(v.resource_id);
     const periode = leeg(v.period_type) ? 1 : Number(v.period_type);
     const start = planyoMoment(String(v.start_time ?? ""));
-    const eind = planyoMoment(String(v.end_time ?? ""));
+    // Een sluiting eindigt op :59 ("23:59:00"): dat is tot het hele uur.
+    const eind = planyoMoment(String(v.end_time ?? "").replace(/:59(:00)?$/, ":59:59"));
     const basis: Rij = {
       vacation_id: String(v.vacation_id ?? ""), resource_id: res, type: soort, period_type: periode,
       ruw_van: v.start_time ?? null, ruw_tot: v.end_time ?? null,
