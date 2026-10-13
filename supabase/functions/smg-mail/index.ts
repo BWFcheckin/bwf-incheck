@@ -51,7 +51,7 @@ function bedragNa(tekst: string, label: string): number | null {
    Totaal is in beide wat de gast betaalt, inclusief servicekosten. */
 function leesMail(mail: Rij): Rij {
   const onderwerp = String(mail.onderwerp ?? "");
-  const tekst = String(mail.tekst ?? "").replace(/ /g, " ");
+  const tekst = String(mail.tekst ?? "").replace(/ /g, " ").replace(/\*/g, ""); // sterretjes weg: Gmail zet vetgedrukte labels als *Totaal*
   const soort = /^\s*Verhuur-oke/i.test(onderwerp) ? "verhuur" : /^\s*Bevestiging\s*#/i.test(onderwerp) ? "bevestiging" : null;
   const nummer = onderwerp.match(/#\s*(\d{5,8})/)?.[1] ?? tekst.match(/Reservering\s*#\s*(\d{5,8})/)?.[1] ?? null;
 
