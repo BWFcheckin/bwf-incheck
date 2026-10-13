@@ -489,6 +489,12 @@ function planyoRegel(r: Rij, blokken: Tijdsblok[]): Rij {
   let eind = planyoMoment(String(r.end_time ?? ""));
   if (!start || !eind || lokaal(eind) <= lokaal(start)) return { ...basis, suite, soort: "overslaan", reden: "onleesbare tijden" };
   let opmerking: string | null = null;
+  /* Een nacht-accommodatie komt als hele dagen: "15 juni 00:00 – 15 juni 23:59" is de nacht van
+     15 op 16 juni. Het vertrek is dus de dag na de laatste nacht (gezien 13-10-2026, Planyo 20428202:
+     die kwam binnen als dagverblijf van 00:00 tot 23:59). */
+  if (start.tijd === "00:00" && eind.tijd === "23:59") {
+    eind = { datum: new Date(Date.parse(`${eind.datum}T00:00:00Z`) + 86400000).toISOString().slice(0, 10), tijd: "00:00" };
+  }
   if (start.tijd === "00:00" && eind.tijd === "00:00" && nachten(start.datum, eind.datum) >= 1) {
     const std = STANDAARD_NACHT[suite];
     start = { datum: start.datum, tijd: std[0] };
