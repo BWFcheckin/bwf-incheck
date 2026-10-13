@@ -105,7 +105,7 @@ function smgStuur_(draden, proef) {
         datum: b.getDate().toISOString(),
         onderwerp: b.getSubject(),
         van: b.getFrom(),
-        tekst: b.getPlainBody().slice(0, 20000)
+        tekst: b.getPlainBody().replace(/\*/g, '').slice(0, 20000) // sterretjes (vetgedrukt) weg: anders wordt *Totaal* niet herkend
       });
     });
   });
