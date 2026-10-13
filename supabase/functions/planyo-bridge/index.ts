@@ -205,7 +205,7 @@ Deno.serve(async (request) => {
         user_notes: String(body.notes || ""),
         refcode: String(body.refcode || "BWF-dashboard"),
         admin_mode: "true",
-        send_notifications: body.send_notifications === false ? "false" : "true"
+        send_notifications: body.send_notifications === true ? "true" : "false" // Angela 13-10-2026: geen Planyo-mail naar de gast, tenzij uitdrukkelijk gevraagd
       };
       if (userId) params.user_id = userId;
       const price = Number(body.custom_price || 0);
@@ -320,6 +320,43 @@ Deno.serve(async (request) => {
         source: "Planyo",
         updatedAt: new Date().toISOString()
       });
+    }
+
+    if (action === "check") {
+      /* Alleen lezen: kan dit blok nog worden geboekt? Per accommodatie, zodat ook te
+         zien is of een boeking op de ene accommodatie de andere van dezelfde suite sluit. */
+      const ids = String(body.resource_ids || body.resource_id || "").split(",").map((x) => x.trim()).filter((x) => /^\d+$/.test(x)).slice(0, 25);
+      const startTime = String(body.start_time || "").trim();
+      const endTime = String(body.end_time || "").trim();
+      if (!ids.length || !startTime || !endTime) return json({ error: "Accommodatie, begin en einde zijn verplicht." }, 400);
+      const uit: Record<string, unknown>[] = [];
+      for (const id of ids) {
+        const rij: Record<string, unknown> = { resource_id: id };
+        try {
+          const d = await planyo("is_resource_available", { resource_id: id, start_time: startTime, end_time: endTime, quantity: "1" });
+          rij.beschikbaar = d.is_available === true || String(d.is_available) === "true" || String(d.is_available) === "1";
+          if (d.reason) rij.reden = String(d.reason);
+          if (d.problem_time) rij.vanaf = String(d.problem_time);
+        } catch (e) {
+          rij.fout = e instanceof Error ? e.message : String(e);
+        }
+        uit.push(rij);
+      }
+      return json({ start_time: startTime, end_time: endTime, resources: uit, source: "Planyo" });
+    }
+
+    if (action === "cancel-reservation") {
+      /* Annuleren in Planyo: de reservering blijft daar bestaan met status geannuleerd. */
+      if (request.method !== "POST") return json({ error: "Gebruik POST om een reservering te annuleren." }, 405);
+      const reservationId = String(body.reservation_id || "").trim();
+      if (!/^\d+$/.test(reservationId)) return json({ error: "Een geldig Planyo-reserveringsnummer is verplicht." }, 400);
+      const data = await planyo("do_reservation_action", {
+        reservation_id: reservationId,
+        action: "Cancel",
+        comment: String(body.reason || "Geannuleerd vanuit het BWF-dashboard").slice(0, 300),
+        is_quiet: body.send_notifications === true ? "false" : "true"
+      });
+      return json({ reservation_id: reservationId, cancelled: true, status: data.status, source: "Planyo" });
     }
 
     if (action === "create-block") {
