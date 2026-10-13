@@ -383,7 +383,9 @@ Deno.serve(async (request) => {
         start_time: startTime,
         end_time: endTime,
         quantity: "1",
-        email: "info@bedenwellnessflevoland.nl",
+        /* Een uniek adres per blokkade: op het gewone info-adres weigert Planyo ("bestaat al")
+           en de bestaande klant is via de API niet terug te vinden (gezien 13-10-2026). */
+        email: `info+blokkade-${Date.now()}@bedenwellnessflevoland.nl`,
         first_name: "Niet beschikbaar",
         last_name: reason,
         user_notes: `[BWF-BLOKKADE] ${reason}`,
