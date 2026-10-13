@@ -5440,6 +5440,29 @@ function vulNieuwBlokken() {
   }).join("");
 }
 
+/* Het formulier "Nieuwe reservering" openen met suite, datum en tijdsblok al ingevuld
+   (klik op een vrij blok in de agenda). Type, tijden en prijs volgen uit het blok, via
+   dezelfde weg als wanneer je het blok zelf kiest. */
+function openNieuwMetBlok(keuze) {
+  if (!keuze || !magBewerken()) return;
+  if (!SUITES[keuze.suite] || !/^\d{4}-\d{2}-\d{2}$/.test(String(keuze.datum || ""))) return;
+  toonTab("nieuw");
+  const zet = (id, waarde) => { $(id).value = waarde; $(id).dispatchEvent(new Event("change", { bubbles: true })); };
+  zet("#nSuite", keuze.suite);
+  zet("#nAankomst", keuze.datum);
+  const optie = Array.from($("#nBlok").options).find((o) => String(o.value) === String(keuze.blok || ""));
+  /* Een overnachting loopt door tot de volgende dag. */
+  let vertrek = keuze.datum;
+  if (optie && String(optie.dataset.eind).slice(0, 5) <= String(optie.dataset.begin).slice(0, 5)) {
+    const d = new Date(keuze.datum + "T12:00:00"); d.setDate(d.getDate() + 1);
+    vertrek = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  zet("#nVertrek", vertrek);
+  if (optie) zet("#nBlok", optie.value);
+  const naam = $("#nVoornaam");
+  if (naam) { naam.scrollIntoView({ behavior: "smooth", block: "center" }); naam.focus({ preventScroll: true }); }
+}
+
 function vulNieuwKeuzes() {
   $("#nSuite").innerHTML = Object.entries(SUITES).map(([w, s]) =>
     '<option value="' + esc(w) + '">' + esc(s.naam) + "</option>").join("");
@@ -8584,8 +8607,13 @@ async function start() {
   } catch (e) { MEDEWERKERS = []; }
   await laad();
   await openUitLink();
-  const tab = new URLSearchParams(location.search).get("tab");
+  const vraag = new URLSearchParams(location.search);
+  const tab = vraag.get("tab");
   if (["nieuw", "incheck"].includes(tab) || (tab === "beheer" && ROL === "eigenaar")) toonTab(tab);
+  /* Vanuit een vrij blok in een agenda: ?tab=nieuw&suite=…&datum=…&blok=… */
+  if (tab === "nieuw" && vraag.get("suite") && vraag.get("datum")) {
+    openNieuwMetBlok({ suite: vraag.get("suite"), datum: vraag.get("datum"), blok: vraag.get("blok") });
+  }
 }
 
 /* reservering-beheer.html?id=<uuid> opent meteen die reservering (bijv. vanuit de agenda),
@@ -8925,7 +8953,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </dialog>
 <style id="fcStijl"></style>
 
-<script src="bwf-kalender.js?v=25"></script>
+<script src="bwf-kalender.js?v=27"></script>
 <script src="bwf-planweergave.js?v=1"></script>
 <!-- De rekenregels van het membershipprogramma. Apart bestand, zodat de
      korting op elk scherm hetzelfde uitvalt. -->
@@ -8963,7 +8991,11 @@ document.addEventListener("DOMContentLoaded", () => {
          hetzelfde onder elkaar leest als een fout. Hier dus alleen de kalender;
          op de agenda en de dashboards, waar geen eigen lijst staat, blijven de
          kaartjes wel. */
-      lijst: false
+      lijst: false,
+      /* De vrije tijdsblokken van de gekozen dag, met prijs. Een klik opent het
+         formulier "Nieuwe reservering" met alles al ingevuld (stap 5A). */
+      vrijeBlokken: true,
+      opVrijBlok: openNieuwMetBlok
     });
     gemaakt = true;
   }

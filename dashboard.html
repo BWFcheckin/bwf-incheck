@@ -3544,7 +3544,7 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
 
 <!-- ================= einde BWF-menu ================= -->
 <script src="bwf-planyo.js?v=11"></script>
-<script src="bwf-kalender.js?v=25"></script>
+<script src="bwf-kalender.js?v=27"></script>
 <script src="bwf-voorraad.js?v=1"></script>
 <script>
 /* ================= BWF Locatie Lelystad — overzicht, kaart en taken ================= */
@@ -9637,7 +9637,9 @@ window.SUPABASE_KEY = "sb_publishable_SfQjQTwKa3BgCtjwE-8ljw_mTpqEY3U";
     window.BWFKalender.maak(document.getElementById('lelystadKalender'), {
       weergave: window.innerWidth < 760 ? 'maand' : 'week',
       suites: ['malina_jacuzzi', 'malina_deluxe'],
-      lijst: true
+      lijst: true,
+      /* vrije tijdsblokken met prijs; eigenaar en VR kunnen erop klikken om te reserveren */
+      vrijeBlokken: true
     });
   }
 

@@ -426,7 +426,12 @@
       ".bwfk-acties a,.bwfk-acties button{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--k-line);background:var(--k-bg2);color:var(--k-ink);text-decoration:none;white-space:nowrap;cursor:pointer}",
       ".bwfk-acties a:hover,.bwfk-acties button:hover{border-color:var(--k-accent);color:var(--k-accent)}",
       ".bwfk-vrij{padding:10px 14px;border-top:1px solid var(--k-line);font-size:13px;display:grid;gap:6px}",
-      ".bwfk-vrij span.blok{display:inline-block;margin:2px 4px 2px 0;padding:1px 8px;border-radius:999px;background:#E6F2EA;color:#2E7D53;font-size:12px}",
+      ".bwfk-vrij .blok{display:inline-block;margin:2px 4px 2px 0;padding:2px 9px;border-radius:999px;background:#E6F2EA;color:#2E7D53;font-size:12px;text-decoration:none}",
+      ".bwfk-vrij a.blok{cursor:pointer;border:1px solid #2E7D53}",
+      ".bwfk-vrij a.blok:hover{background:#2E7D53;color:#fff}",
+      ".bwfk-vrijhouder{margin-top:12px;border:1px solid var(--k-line);border-radius:12px;background:var(--k-bg)}",
+      ".bwfk-vrijhouder:empty{display:none}",
+      ".bwfk-vrijhouder .bwfk-vrij{border-top:0}",
       /* taakvenster */
       ".bwfk-taakvenster{border:0;border-radius:16px;padding:0;width:min(480px,calc(100vw - 20px));box-shadow:0 30px 90px -30px rgba(0,0,0,.45);color:var(--k-ink);background:var(--k-bg)}",
       ".bwfk-taakvenster::backdrop{background:rgba(20,52,42,.45)}",
@@ -599,6 +604,7 @@
         '<span><i style="border:1px dashed #999"></i>optie</span>' +
       '</div>' +
       (opties.lijst === false ? '' : '<details class="bwfk-lijst" open><summary></summary><div class="bwfk-lijstinhoud"></div></details>') +
+      (opties.vrijeBlokken ? '<div class="bwfk-vrijhouder"></div>' : '') +
       '<dialog class="bwfk-taakvenster"><form method="dialog" class="bwfk-taakform">' +
         '<h3>Taak aanmaken</h3><p class="bwfk-taaksub"></p>' +
         '<label>Titel <input name="titel" type="text" required></label>' +
@@ -681,7 +687,7 @@
           haal("reserveringen?select=" + KOLOMMEN + "&aankomst=lt." + encodeURIComponent(tot) + "&vertrek=gt." + encodeURIComponent(van) + "&order=aankomst.asc&limit=3000"),
           haal("blokkades?select=id,suite,van,tot,reden,bron&actief=eq.true&van=lt." + encodeURIComponent(tot) + "&tot=gt." + encodeURIComponent(van) + "&order=van.asc&limit=1000")
         ];
-        if (opties.vrijeBlokken && !st.blokken) verzoeken.push(haal("tijdsblokken?select=suite,naam,begin,eind,volgende_dag&actief=eq.true&order=suite.asc,sortering.asc"));
+        if (opties.vrijeBlokken && !st.blokken) verzoeken.push(haal("bwf_tariefblokken?select=id,suite,verblijf,dagtype,naam,starttijd,eindtijd,prijs&actief=eq.true&order=suite.asc,sortering.asc").catch(function () { return []; }));
         var uit = await Promise.all(verzoeken);
         st.res = uit[0] || [];
         st.blok = uit[1] || [];
@@ -952,25 +958,50 @@
         }
       }
       tekenLijst(lijst);
+      var vrijHouder = $(".bwfk-vrijhouder");
+      if (vrijHouder) vrijHouder.innerHTML = vrijeBlokkenHtml();
     }
 
+    /* Vrije tijdsblokken op de gekozen dag, met prijs (stap 5A, 13-10-2026).
+       De blokken en prijzen komen uit bwf_tariefblokken: dezelfde lijst als het formulier
+       "Nieuwe reservering", zodat hier nooit een andere prijs staat dan daar.
+       Vrij = geen reservering binnen 1,5 uur ervoor of erna (schoonmaak) en geen blokkade.
+       Planyo zit daar al in: reserveringen, blokkades en sluitingen komen elk kwartier
+       binnen, en bij het opslaan wordt Planyo nog een keer live nagekeken. */
+    var TARIEFSUITE = { angie: "angie", malina_jacuzzi: "jacuzzi", malina_deluxe: "zwembad" };
+    var SCHOONMAAK_MS = 90 * 60000;
     function vrijeBlokkenHtml() {
-      if (!opties.vrijeBlokken || !st.blokken) return "";
-      var dagStart = moment(st.dag, "00:00").getTime();
+      if (!opties.vrijeBlokken || !st.blokken || !st.blokken.length) return "";
+      var wd = weekdag(st.dag);                       /* 0 = maandag */
+      var dagtype = wd <= 2 ? "week" : "weekend";      /* ma t/m wo is week, do t/m zo weekend */
+      var magBoeken = st.rol === "eigenaar" || st.rol === "vr";
       var regels = toegestaan.filter(function (s) { return !st.suite || s === st.suite; }).map(function (s) {
-        var bezet = st.res.filter(function (r) { return r.suite === s && r.status !== "geannuleerd" && r.status !== "no_show"; })
-          .map(function (r) { return [Date.parse(r.aankomst), Date.parse(r.vertrek)]; })
-          .concat(st.blok.filter(function (b) { return b.suite === s; }).map(function (b) { return [Date.parse(b.van), Date.parse(b.tot)]; }));
-        var vrij = st.blokken.filter(function (tb) { return tb.suite === s; }).filter(function (tb) {
-          var b = moment(st.dag, hhmm(tb.begin)).getTime();
-          var e = moment(tb.volgende_dag ? plusDagen(st.dag, 1) : st.dag, hhmm(tb.eind)).getTime();
-          if (e <= Date.now()) return false;
+        var res = st.res.filter(function (r) { return r.suite === s && r.status !== "geannuleerd" && r.status !== "no_show"; })
+          .map(function (r) { return [Date.parse(r.aankomst) - SCHOONMAAK_MS, Date.parse(r.vertrek) + SCHOONMAAK_MS]; });
+        var dicht = st.blok.filter(function (b) { return b.suite === s; }).map(function (b) { return [Date.parse(b.van), Date.parse(b.tot)]; });
+        var bezet = res.concat(dicht);
+        var vrij = st.blokken.filter(function (tb) {
+          return tb.suite === TARIEFSUITE[s] && (tb.dagtype === "alle" || tb.dagtype === dagtype);
+        }).filter(function (tb) {
+          var begin = hhmm(tb.starttijd), eind = hhmm(tb.eindtijd);
+          var b = moment(st.dag, begin).getTime();
+          var e = moment(eind <= begin ? plusDagen(st.dag, 1) : st.dag, eind).getTime();
+          if (b <= Date.now()) return false;
           return !bezet.some(function (x) { return x[0] < e && x[1] > b; });
         });
         return '<div><span class="bwfk-suitestip" style="background:' + SUITES[s].kleur + '"></span> <b>' + esc(SUITES[s].naam) + '</b>: ' +
-          (vrij.length ? vrij.map(function (tb) { return '<span class="blok">' + esc(tb.naam) + '</span>'; }).join("") : '<span class="bwfk-leeg">niets meer vrij</span>') + '</div>';
+          (vrij.length ? vrij.map(function (tb) {
+            var tekst = esc(tb.naam) + " " + esc(hhmm(tb.starttijd)) + "–" + esc(hhmm(tb.eindtijd)) + " · € " +
+              esc(Number(tb.prijs || 0).toLocaleString("nl-NL", { maximumFractionDigits: 2 }));
+            return magBoeken
+              ? '<a class="blok" data-vrijblok="' + esc(tb.id) + '" data-suite="' + esc(s) + '" data-datum="' + esc(st.dag) +
+                '" href="reserveringen.html?tab=nieuw&suite=' + encodeURIComponent(s) + '&datum=' + encodeURIComponent(st.dag) +
+                '&blok=' + encodeURIComponent(tb.id) + '" title="Nieuwe reservering met dit blok">' + tekst + '</a>'
+              : '<span class="blok">' + tekst + '</span>';
+          }).join("") : '<span class="bwfk-leeg">niets meer vrij</span>') + '</div>';
       });
-      return dagStart ? '<div class="bwfk-vrij"><div><b>Nog vrij op deze dag</b></div>' + regels.join("") + '</div>' : "";
+      return '<div class="bwfk-vrij"><div><b>Nog vrij op ' + esc(dagLang(st.dag)) + '</b>' +
+        (magBoeken ? ' <small style="color:var(--k-muted)">klik op een blok om te reserveren</small>' : '') + '</div>' + regels.join("") + '</div>';
     }
 
     function tekenLijst(lijst) {
@@ -1136,7 +1167,7 @@
          staat op de kaart, inclusief de knoppen. */
       $(".bwfk-lijstinhoud").innerHTML = (regels.length
         ? '<div class="bwfk-kaartjes">' + regels.map(function (x) { return x.kaart || x.html; }).join("") + "</div>"
-        : '<div class="bwfk-leeg" style="padding:12px 14px">Geen reserveringen of blokkades op deze dag.</div>') + vrijeBlokkenHtml();
+        : '<div class="bwfk-leeg" style="padding:12px 14px">Geen reserveringen of blokkades op deze dag.</div>');
     }
 
     /* ---------- bediening ---------- */
@@ -1185,6 +1216,13 @@
 
     houder.addEventListener("click", async function (e) {
       var t;
+      /* Een vrij blok: de pagina mag het zelf afhandelen (het reserveringenscherm opent dan
+         zijn eigen formulier); anders gaat de link naar het reserveringenscherm. */
+      if ((t = e.target.closest("[data-vrijblok]")) && typeof opties.opVrijBlok === "function") {
+        e.preventDefault();
+        opties.opVrijBlok({ suite: t.getAttribute("data-suite"), datum: t.getAttribute("data-datum"), blok: t.getAttribute("data-vrijblok") });
+        return;
+      }
       if ((t = e.target.closest("[data-opheffen]"))) {
         var blok = st.blok.find(function (b) { return b.id === t.getAttribute("data-opheffen"); });
         if (!blok || !opties.blokkadeOpheffen) return;
