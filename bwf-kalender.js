@@ -429,6 +429,17 @@
       ".bwfk-vrij .blok{display:inline-block;margin:2px 4px 2px 0;padding:2px 9px;border-radius:999px;background:#E6F2EA;color:#2E7D53;font-size:12px;text-decoration:none}",
       ".bwfk-vrij a.blok{cursor:pointer;border:1px solid #2E7D53}",
       ".bwfk-vrij a.blok:hover{background:#2E7D53;color:#fff}",
+      /* vrije blokken ín de kalender: licht groen met een stippellijn, zodat ze
+         nooit met een boeking te verwarren zijn */
+      ".bwfk-vrijin{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}",
+      ".bwfk-vrijin-groot{flex-direction:column;margin-top:8px;padding-top:6px;border-top:1px dashed var(--k-line)}",
+      ".bwfk-vrijitem,.bwfk-vrijcel{display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:1.3;padding:1px 6px;border-radius:6px;",
+        "border:1px dashed #2E7D53;border-left:3px solid var(--sk,#2E7D53);background:#F1F8F3;color:#2E7D53;text-decoration:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;cursor:pointer}",
+      ".bwfk-vrijin-groot .bwfk-vrijitem{font-size:12.5px;padding:4px 8px;white-space:normal}",
+      "a.bwfk-vrijitem:hover,.bwfk-vrijcel:hover{background:#2E7D53;color:#fff}",
+      "span.bwfk-vrijitem{cursor:default}",
+      ".bwfk-vrijlabel{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2E7D53;align-self:center}",
+      "@media(max-width:640px){.bwfk-vrijin-kort .bwfk-vrijlabel{display:none}.bwfk-vrijcel{font-size:10px;padding:0 4px}}",
       ".bwfk-vrijhouder{margin-top:12px;border:1px solid var(--k-line);border-radius:12px;background:var(--k-bg)}",
       ".bwfk-vrijhouder:empty{display:none}",
       ".bwfk-vrijhouder .bwfk-vrij{border-top:0}",
@@ -561,6 +572,9 @@
       blokkades: opties.blokkadesTonen !== false,
       /* rooster: wie er per dag werkt (tabel planning); mw: de namen erbij. */
       rooster: [], mw: null,
+      /* Vrije tijdsblokken ook ín de kalender (Angela, 13-10-2026). Aan te
+         zetten met het vinkje; de keuze blijft per browser bewaard. */
+      vrijInKalender: (function () { try { return localStorage.getItem("bwfk-vrij-tonen") !== "0"; } catch (e) { return true; } })(),
       res: [], blok: [], blokken: null, bereik: "", bezig: false, uitgelicht: null, timer: null,
       rol: undefined, sub: null, mijnId: null, medewerkers: null, taakRes: null
     };
@@ -592,6 +606,8 @@
              daarmee was niet duidelijk dat het de blokkades aan- en uitzet. */
           '<label class="bwfk-vink" title="Blokkades zijn dagen waarop er niemand komt: gesloten, onderhoud of via een kanaal dichtgezet.">' +
             '<input type="checkbox" class="bwfk-blok"' + (st.blokkades ? " checked" : "") + '> blokkades tonen</label>' +
+          (opties.vrijeBlokken ? '<label class="bwfk-vink" title="Toont per dag welke tijdsblokken nog te boeken zijn.">' +
+            '<input type="checkbox" class="bwfk-vrijvink"' + (st.vrijInKalender ? " checked" : "") + '> vrije blokken tonen</label>' : '') +
           '<button type="button" class="bwfk-knop" data-k="ververs">Verversen</button>' +
         '</div>' +
       '</div>' +
@@ -890,7 +906,8 @@
               roosterHtml(ds, true) +
               '<div class="bwfk-dagnr"><b>' + Number(ds.slice(8)) + '</b><span class="bwfk-meer">' + (dag.length ? dag.length : "") + '</span></div>' +
               dag.slice(0, 3).map(function (x) { return itemHtml(x, ds); }).join("") +
-              (dag.length > 3 ? '<div class="bwfk-meer">+' + (dag.length - 3) + ' meer</div>' : "") + "</div>";
+              (dag.length > 3 ? '<div class="bwfk-meer">+' + (dag.length - 3) + ' meer</div>' : "") +
+              vrijInCelHtml(ds, "kort") + "</div>";
           }
           html += "</div>";
         }
@@ -905,14 +922,15 @@
           var opDeze = opDag(lijst, ds);
           return '<div class="bwfk-vdagrij" role="button" tabindex="0" data-cel="' + ds + '"' +
             ' data-vandaag="' + (ds === vd ? 1 : 0) + '" data-gekozen="' + (ds === st.dag ? 1 : 0) + '"' +
-            ' data-leeg="' + (opDeze.length ? 0 : 1) + '">' +
+            ' data-leeg="' + (opDeze.length || vrijInCelHtml(ds, "midden") ? 0 : 1) + '">' +
             '<div class="bwfk-vdag"><b>' + Number(ds.slice(8)) + '</b>' +
               '<span>' + esc(dagKort(ds).split(" ")[0]) + "</span></div>" +
             '<div class="bwfk-vinhoud">' +
               roosterHtml(ds, true) +
               (opDeze.length
                 ? opDeze.map(function (x) { return itemHtml(x, ds, true); }).join("")
-                : '<span class="bwfk-leeg">&mdash;</span>') +
+                : (vrijInCelHtml(ds, "midden") ? '' : '<span class="bwfk-leeg">&mdash;</span>')) +
+              vrijInCelHtml(ds, "midden") +
             "</div></div>";
         }).join("") + "</div>";
       } else if (st.weergave === "week") {
@@ -922,7 +940,8 @@
           html += '<div class="bwfk-cel" role="button" tabindex="0" data-cel="' + dw + '" data-vandaag="' + (dw === vd ? 1 : 0) + '" data-gekozen="' + (dw === st.dag ? 1 : 0) + '" data-leeg="' + (dagW.length ? 0 : 1) + '">' +
             '<div class="bwfk-dagnr"><b>' + esc(dagKort(dw)) + '</b></div>' +
             roosterHtml(dw, true) +
-            (dagW.length ? dagW.map(function (x) { return itemHtml(x, dw); }).join("") : '<div class="bwfk-leeg">—</div>') + "</div>";
+            (dagW.length ? dagW.map(function (x) { return itemHtml(x, dw); }).join("") : (vrijInCelHtml(dw, "midden") ? '' : '<div class="bwfk-leeg">—</div>')) +
+            vrijInCelHtml(dw, "midden") + "</div>";
         }
         html += "</div>";
       } else {
@@ -933,7 +952,8 @@
           '<div class="bwfk-dagkolommen">' + suites.map(function (s) {
           var eigen = dagD.filter(function (x) { return (x.r || x.b).suite === s; });
           return '<div class="bwfk-dagkolom"><h4><i style="background:' + SUITES[s].kleur + '"></i>' + esc(SUITES[s].naam) + '</h4>' +
-            (eigen.length ? eigen.map(function (x) { return itemHtml(x, st.dag, true); }).join("") : '<div class="bwfk-leeg">Niets geboekt.</div>') + "</div>";
+            (eigen.length ? eigen.map(function (x) { return itemHtml(x, st.dag, true); }).join("") : '<div class="bwfk-leeg">Niets geboekt.</div>') +
+            vrijInCelHtml(st.dag, "groot", s) + "</div>";
         }).join("") + "</div>";
       }
       $(".bwfk-rooster").innerHTML = html;
@@ -970,25 +990,69 @@
        binnen, en bij het opslaan wordt Planyo nog een keer live nagekeken. */
     var TARIEFSUITE = { angie: "angie", malina_jacuzzi: "jacuzzi", malina_deluxe: "zwembad" };
     var SCHOONMAAK_MS = 90 * 60000;
+    /* Welke tijdsblokken van suite s zijn op datum nog vrij? Eén rekenregel
+       voor de lijst onder de kalender én de blokjes in de kalender zelf. */
+    function vrijOpDag(datum, s) {
+      if (!opties.vrijeBlokken || !st.blokken || !st.blokken.length) return [];
+      var wd = weekdag(datum);                         /* 0 = maandag */
+      var dagtype = wd <= 2 ? "week" : "weekend";      /* ma t/m wo is week, do t/m zo weekend */
+      var res = st.res.filter(function (r) { return r.suite === s && r.status !== "geannuleerd" && r.status !== "no_show"; })
+        .map(function (r) { return [Date.parse(r.aankomst) - SCHOONMAAK_MS, Date.parse(r.vertrek) + SCHOONMAAK_MS]; });
+      var dicht = st.blok.filter(function (b) { return b.suite === s; }).map(function (b) { return [Date.parse(b.van), Date.parse(b.tot)]; });
+      var bezet = res.concat(dicht);
+      var nu = Date.now();
+      return st.blokken.filter(function (tb) {
+        return tb.suite === TARIEFSUITE[s] && (tb.dagtype === "alle" || tb.dagtype === dagtype);
+      }).filter(function (tb) {
+        var begin = hhmm(tb.starttijd), eind = hhmm(tb.eindtijd);
+        var b = moment(datum, begin).getTime();
+        var e = moment(eind <= begin ? plusDagen(datum, 1) : datum, eind).getTime();
+        if (b <= nu) return false;
+        return !bezet.some(function (x) { return x[0] < e && x[1] > b; });
+      });
+    }
+    function prijsTekst(tb) { return "€ " + Number(tb.prijs || 0).toLocaleString("nl-NL", { maximumFractionDigits: 2 }); }
+
+    /* De vrije blokken als blokjes in een kalendercel (Angela, 13-10-2026:
+       "kan je beschikbare tijdblokken van de dag ook in de kalender zelf
+       weergeven"). vorm: "kort" = maandcel (per suite een telling), "midden" =
+       week/verticaal (tijd + suite), "groot" = dagkolom van één suite (met prijs). */
+    function vrijInCelHtml(datum, vorm, alleenSuite) {
+      if (!opties.vrijeBlokken || !st.vrijInKalender || !st.blokken || !st.blokken.length) return "";
+      var magBoeken = st.rol === "eigenaar" || st.rol === "vr";
+      var suites = alleenSuite ? [alleenSuite] : toegestaan.filter(function (s) { return !st.suite || s === st.suite; });
+      var delen = [];
+      suites.forEach(function (s) {
+        var vrij = vrijOpDag(datum, s);
+        if (!vrij.length) return;
+        if (vorm === "kort") {
+          var lijstje = vrij.map(function (tb) { return tb.naam + " " + hhmm(tb.starttijd) + "–" + hhmm(tb.eindtijd) + " · " + prijsTekst(tb); }).join("\n");
+          delen.push('<span class="bwfk-vrijcel" data-vrijdag="' + esc(datum) + '" style="--sk:' + SUITES[s].kleur + '" title="' +
+            esc(SUITES[s].naam + " — nog vrij:\n" + lijstje) + '">' + esc(SUITES[s].kort) + ' <b>' + vrij.length + '</b></span>');
+          return;
+        }
+        vrij.forEach(function (tb) {
+          var tijd = hhmm(tb.starttijd) + "–" + hhmm(tb.eindtijd);
+          var tekst = vorm === "groot"
+            ? esc(tb.naam) + " " + esc(tijd) + " · " + esc(prijsTekst(tb))
+            : '<b>' + esc(hhmm(tb.starttijd)) + '</b> ' + esc(SUITES[s].kort);
+          var titel = SUITES[s].naam + " — vrij: " + tb.naam + " " + tijd + " · " + prijsTekst(tb) + (magBoeken ? " (klik om te reserveren)" : "");
+          delen.push(magBoeken
+            ? '<a class="bwfk-vrijitem" data-vrijblok="' + esc(tb.id) + '" data-suite="' + esc(s) + '" data-datum="' + esc(datum) +
+              '" style="--sk:' + SUITES[s].kleur + '" href="reserveringen.html?tab=nieuw&suite=' + encodeURIComponent(s) + '&datum=' + encodeURIComponent(datum) +
+              '&blok=' + encodeURIComponent(tb.id) + '" title="' + esc(titel) + '">' + tekst + '</a>'
+            : '<span class="bwfk-vrijitem" style="--sk:' + SUITES[s].kleur + '" title="' + esc(titel) + '">' + tekst + '</span>');
+        });
+      });
+      if (!delen.length) return "";
+      return '<div class="bwfk-vrijin bwfk-vrijin-' + vorm + '">' + (vorm === "kort" ? '<span class="bwfk-vrijlabel">vrij</span>' : '') + delen.join("") + '</div>';
+    }
+
     function vrijeBlokkenHtml() {
       if (!opties.vrijeBlokken || !st.blokken || !st.blokken.length) return "";
-      var wd = weekdag(st.dag);                       /* 0 = maandag */
-      var dagtype = wd <= 2 ? "week" : "weekend";      /* ma t/m wo is week, do t/m zo weekend */
       var magBoeken = st.rol === "eigenaar" || st.rol === "vr";
       var regels = toegestaan.filter(function (s) { return !st.suite || s === st.suite; }).map(function (s) {
-        var res = st.res.filter(function (r) { return r.suite === s && r.status !== "geannuleerd" && r.status !== "no_show"; })
-          .map(function (r) { return [Date.parse(r.aankomst) - SCHOONMAAK_MS, Date.parse(r.vertrek) + SCHOONMAAK_MS]; });
-        var dicht = st.blok.filter(function (b) { return b.suite === s; }).map(function (b) { return [Date.parse(b.van), Date.parse(b.tot)]; });
-        var bezet = res.concat(dicht);
-        var vrij = st.blokken.filter(function (tb) {
-          return tb.suite === TARIEFSUITE[s] && (tb.dagtype === "alle" || tb.dagtype === dagtype);
-        }).filter(function (tb) {
-          var begin = hhmm(tb.starttijd), eind = hhmm(tb.eindtijd);
-          var b = moment(st.dag, begin).getTime();
-          var e = moment(eind <= begin ? plusDagen(st.dag, 1) : st.dag, eind).getTime();
-          if (b <= Date.now()) return false;
-          return !bezet.some(function (x) { return x[0] < e && x[1] > b; });
-        });
+        var vrij = vrijOpDag(st.dag, s);
         return '<div><span class="bwfk-suitestip" style="background:' + SUITES[s].kleur + '"></span> <b>' + esc(SUITES[s].naam) + '</b>: ' +
           (vrij.length ? vrij.map(function (tb) {
             var tekst = esc(tb.naam) + " " + esc(hhmm(tb.starttijd)) + "–" + esc(hhmm(tb.eindtijd)) + " · € " +
@@ -1059,7 +1123,7 @@
         var meer = isRes && nachten > 1;
 
         var beginTekst = (isRes ? (eigenTijd ? "verwacht " : "aankomst ") : "van ") +
-          dagKort(s.datum) + " " + s.tijd + (meer ? " \u00b7 " + nachten + " nachten" : "");
+          dagKort(s.datum) + " " + s.tijd + (meer ? " · " + nachten + " nachten" : "");
         var eindTekst = (isRes ? "vertrek " : "tot ") + dagKort(e.datum) + " " + e.tijd;
         /* Valt de gekozen dag tussen aankomst en vertrek in, dan is dat het
            enige wat je verder nog moet weten. Bij meerdere nachten staat erbij
@@ -1223,6 +1287,8 @@
         opties.opVrijBlok({ suite: t.getAttribute("data-suite"), datum: t.getAttribute("data-datum"), blok: t.getAttribute("data-vrijblok") });
         return;
       }
+      if (e.target.closest("a[data-vrijblok]")) return;
+      if ((t = e.target.closest("[data-vrijdag]"))) { e.stopPropagation(); kiesDag(t.getAttribute("data-vrijdag"), null); return; }
       if ((t = e.target.closest("[data-opheffen]"))) {
         var blok = st.blok.find(function (b) { return b.id === t.getAttribute("data-opheffen"); });
         if (!blok || !opties.blokkadeOpheffen) return;
@@ -1267,6 +1333,11 @@
       if (e.target.classList.contains("bwfk-suite")) { st.suite = e.target.value; teken(); }
       if (e.target.classList.contains("bwfk-geann")) { st.geannuleerd = e.target.checked; teken(); }
       if (e.target.classList.contains("bwfk-blok")) { st.blokkades = e.target.checked; teken(); }
+      if (e.target.classList.contains("bwfk-vrijvink")) {
+        st.vrijInKalender = e.target.checked;
+        try { localStorage.setItem("bwfk-vrij-tonen", st.vrijInKalender ? "1" : "0"); } catch (err) {}
+        teken();
+      }
     });
 
     /* ---------- taak aanmaken ---------- */
