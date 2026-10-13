@@ -487,7 +487,15 @@ async function planyoVakanties(): Promise<Rij[]> {
     expand_recurring: "true",
   });
   const rijen: Rij[] = Array.isArray(data.results) ? data.results : [];
-  return rijen.map((v) => {
+  // De namen van de accommodaties: daaraan is te zien bij welke suite een sluiting hoort.
+  const namen: Record<string, string> = {};
+  try {
+    const res = await planyoVraag("list_resources", { detail_level: "1" });
+    const lijst = res.resources ?? res.results ?? {};
+    if (Array.isArray(lijst)) for (const x of lijst) namen[String(x.id ?? x.resource_id)] = String(x.name ?? "");
+    else for (const id of Object.keys(lijst)) namen[id] = String(lijst[id]?.name ?? "");
+  } catch { /* zonder namen blijven sluitingen per accommodatie overgeslagen */ }
+  const enkel: Rij[] = rijen.map((v) => {
     const soort = leeg(v.type) ? 0 : Number(v.type);
     const res = leeg(v.resource_id) || Number(v.resource_id) === 0 ? null : String(v.resource_id);
     const periode = leeg(v.period_type) ? 1 : Number(v.period_type);
@@ -504,10 +512,36 @@ async function planyoVakanties(): Promise<Rij[]> {
     basis.van = lokaal(start);
     basis.tot = lokaal(eind);
     if (soort !== 0 && soort !== 1) return { ...basis, overslaan: "ingelezen uit een andere agenda of wachtlijst" };
-    if (res && !PLANYO_BASIS[res]) return { ...basis, overslaan: "geldt voor één accommodatie, niet voor de hele suite" };
     if (periode !== 1 && periode !== 5) return { ...basis, overslaan: "herhaalt dagelijks, wekelijks of maandelijks" };
+    if (res && !PLANYO_BASIS[res]) {
+      return { ...basis, overslaan: "geldt voor één accommodatie, niet voor de hele suite", naam: namen[res] ?? "", suite: planyoSuite(namen[res] ?? "") };
+    }
     return { ...basis, suites: res ? [PLANYO_BASIS[res]] : ALLE_SUITES, bron_uid: `${VAKANTIE_UID}${basis.vacation_id}:${start.datum}` };
   });
+
+  /* Een sluiting die per accommodatie is ingevoerd (zo staat de zomersluiting in Planyo). Staat
+     dezelfde periode bij zowel het dagverblijf als de gewone overnachting van een suite, dan is de
+     suite dicht: één blokkade voor die periode. */
+  const groepen = new Map<string, Rij[]>();
+  for (const v of enkel) {
+    if (!v.overslaan || !v.suite || !v.naam) continue;
+    const k = `${v.suite}|${String(v.van).slice(0, 10)}|${String(v.tot).slice(0, 10)}`;
+    groepen.set(k, [...(groepen.get(k) ?? []), v]);
+  }
+  const samen: Rij[] = [];
+  for (const [k, groep] of groepen) {
+    const dag = groep.some((v) => /dagverblijf/i.test(v.naam));
+    const nacht = groep.some((v) => /overnachting/i.test(v.naam) && !/late|honeymoon/i.test(v.naam));
+    if (!dag || !nacht) continue;
+    const [suite, vanDag] = k.split("|");
+    const van = groep.map((v) => String(v.van)).sort()[0];
+    const tot = groep.map((v) => String(v.tot)).sort().reverse()[0];
+    const reden = groep.map((v) => v.reden).find((r) => r !== "Gesloten (Planyo)") ?? "Gesloten (Planyo)";
+    for (const v of groep) v.samengevoegd = true;
+    samen.push({ van, tot, reden, suites: [suite], bron_uid: `${VAKANTIE_UID}groep:${vanDag}:${tot.slice(0, 10)}`,
+      accommodaties: groep.map((v) => v.naam) });
+  }
+  return [...enkel.filter((v) => !v.samengevoegd), ...samen];
 }
 
 /* De blokkades die eerder uit een vakantieperiode zijn gemaakt en nog actief zijn. */
@@ -528,7 +562,8 @@ async function vakantieProef(): Promise<Rij> {
     for (const suite of v.suites as string[]) {
       const er = bestaand.some((b) => b.suite === suite && b.bron_uid === v.bron_uid);
       telling[er ? "bestaat_al" : "nieuw"]++;
-      regels.push({ suite, van: v.van, tot: v.tot, reden: v.reden, uitkomst: er ? "bestaat_al" : "nieuw" });
+      regels.push({ suite, van: v.van, tot: v.tot, reden: v.reden, uitkomst: er ? "bestaat_al" : "nieuw",
+        ...(v.accommodaties ? { accommodaties: (v.accommodaties as string[]).length } : {}) });
     }
   }
   for (const b of bestaand) {
@@ -544,7 +579,10 @@ async function vakantieProef(): Promise<Rij> {
     overgeslagen[k] ??= { aantal: 0, voorbeeld: { resource_id: v.resource_id, type: v.type, period_type: v.period_type, van: v.van ?? v.ruw_van, tot: v.tot ?? v.ruw_tot, reden: v.reden } };
     overgeslagen[k].aantal++;
   }
-  return { schrijven: PLANYO_VAKANTIES_SCHRIJVEN, opgehaald: lijst.length, telling, regels, overgeslagen };
+  // Eenmalige sluitingen van één accommodatie die niet meekomen: om te zien of de regel klopt.
+  const los = lijst.filter((x) => x.overslaan === "geldt voor één accommodatie, niet voor de hele suite")
+    .map((x) => ({ accommodatie: x.naam, van: x.van, tot: x.tot, reden: x.reden })).slice(0, 80);
+  return { schrijven: PLANYO_VAKANTIES_SCHRIJVEN, opgehaald: lijst.length, telling, regels, overgeslagen, eenmalig_los: los };
 }
 const geenBedrag = (v: unknown) => leeg(v) || Number(v) === 0;
 const euro = (v: unknown) => Math.round(Number(v || 0) * 100) / 100;
