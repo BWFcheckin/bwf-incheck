@@ -1720,6 +1720,7 @@ function rijHtml(r) {
   const naam = gastNaam(r);
   const letop = [];
   if (r.niet_in_planyo) letop.push('<span class="pill crit" data-nip="' + esc(r.id) + '" style="font-weight:700;cursor:pointer" title="Deze reservering staat niet in Planyo: de website, Booking.com en Origineel Overnachten zijn niet geblokkeerd. Klik als hij er nu wel in staat.">NIET in Planyo</span>');
+  if (wachtOpOverleg(r)) letop.push('<span class="pill crit" title="' + esc(r.notitie) + '">blokkade: overleg met Angela</span>');
   if (gastOntbreekt(r)) letop.push('<span class="pill warn">gastgegevens ontbreken</span>');
   if (tijdenControleren(r)) letop.push('<span class="pill crit" title="' + esc(r.import_opmerking) + '">tijden controleren</span>');
   else if (r.import_opmerking) letop.push('<span class="pill" title="' + esc(r.import_opmerking) + '">SMG-planningregel</span>');
@@ -5016,6 +5017,8 @@ async function bewaar(bevestig) {
   let d;
   try { d = formWaarden(); } catch (e) { $("#vMelding").textContent = e.message; return; }
   if (bevestig) d.status = "bevestigd";
+  if (wachtOpOverleg(HUIDIG) && d.status === "bevestigd" && ROL !== "eigenaar" &&
+      !confirm("Deze optie is aangemaakt tijdens een blokkade.\n\nHeb je met Angela overlegd en mag hij worden bevestigd?")) return;
   knoppen.forEach((k) => { k.disabled = true; });
   try {
     /* Annuleren doorzetten naar Planyo (stap 5B, 13-10-2026). Alleen voor boekingen
@@ -5100,6 +5103,8 @@ async function verwijderReservering() {
 
 async function snelBevestigen(id, knop) {
   if (!magBewerken()) return;
+  if (wachtOpOverleg(RIJEN.find((x) => String(x.id) === String(id))) && ROL !== "eigenaar" &&
+      !confirm("Deze optie is aangemaakt tijdens een blokkade.\n\nHeb je met Angela overlegd en mag hij worden bevestigd?")) return;
   knop.disabled = true; knop.textContent = "Bezig…";
   try {
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(id) + "&select=" + KOLOMMEN,
@@ -8114,6 +8119,9 @@ const PLANYO_SUITE = { angie: "254072", malina_jacuzzi: "254073", malina_deluxe:
 const PLANYO_KANALEN = ["eigen", "telefonisch", "whatsapp", "handmatig"];
 const PLANYO_GEEN_EMAIL = "info@bedenwellnessflevoland.nl";   // Planyo eist een adres (Angela, 13-10-2026)
 const BUFFER_MINUTEN = 90;
+/* Zo begint de notitie van een optie die tijdens een blokkade is aangemaakt. */
+const BLOKKADE_MERK = "Aangemaakt tijdens een blokkade:";
+const wachtOpOverleg = (r) => !!r && r.status === "optie" && String(r.notitie || "").startsWith(BLOKKADE_MERK);
 /* Wat de medewerker voor precies dit blok heeft vrijgegeven:
    { sleutel, bezet: true, zonderPlanyo: true } */
 let N_VRIJGAVE = null;
@@ -8209,6 +8217,23 @@ async function planyoVoorOpslaan(d, m) {
     res = res || []; blok = blok || [];
     const overlap = res.filter((r) => new Date(r.aankomst) < new Date(d.vertrek) && new Date(r.vertrek) > new Date(d.aankomst));
     const krap = res.filter((r) => !overlap.includes(r));
+    const blokTekst = blok.map((b) =>
+      fmtDag.format(new Date(b.van)) + " – " + fmtDag.format(new Date(new Date(b.tot).getTime() - 60000)) + (b.reden ? " (" + b.reden + ")" : "")).join("; ");
+    /* Alleen een blokkade in de weg (Angela, 13-10-2026): de VR-assistent mag de reservering
+       dan wel aanmaken, maar als optie, en pas bevestigen na overleg. Hij gaat niet naar
+       Planyo: daar is de periode al dicht. */
+    if (blok.length && !overlap.length && !krap.length && !eigenaar) {
+      if (!vrij.blokOptie) {
+        m.textContent = "Let op: er staat een blokkade in deze periode: " + blokTekst + ". Overleg met Angela. " +
+          "Je kunt de reservering als optie opslaan; bevestigen kan pas na overleg. Er is nog niets opgeslagen.";
+        planyoKeuze([{ tekst: "Opslaan als optie (overleg met Angela)", klik: opnieuw("blokOptie") }]);
+        return false;
+      }
+      d.status = "optie";
+      d.notitie = BLOKKADE_MERK + " " + blokTekst + ". Overleg met Angela vóór bevestigen. Staat niet in Planyo.";
+      m.textContent = "";
+      return true;
+    }
     if (overlap.length || blok.length || krap.length) {
       const delen = [];
       if (overlap.length) delen.push("Dit blok is al bezet: " + overlap.map(planyoRegelTekst).join("; ") + ".");
@@ -8372,7 +8397,8 @@ async function maakReservering() {
     planyoKeuze(null);
     RIJEN.unshift(rij[0]);
     leegNieuw();
-    melding("Reservering aangemaakt: " + (gastNaam(rij[0]) || "zonder naam") + " · nummer " + rij[0].kanaal_ref + ".");
+    melding("Reservering aangemaakt: " + (gastNaam(rij[0]) || "zonder naam") + " · nummer " + rij[0].kanaal_ref + "." +
+      (wachtOpOverleg(rij[0]) ? " Opgeslagen als OPTIE: er staat een blokkade in deze periode. Overleg met Angela voordat je bevestigt." : ""));
     toonTab("lijst");
     teken();
     openVenster(rij[0].id);
