@@ -179,6 +179,40 @@ async function maakReservering(params: Record<string, string>): Promise<Record<s
   }
 }
 
+const PLANYO_SITE_ID = Deno.env.get("PLANYO_SITE_ID") || "70822";
+/* Zo herkent de import (kanalen-sync) een sluiting die het dashboard zette. */
+const BLOKKADE_MERK = "[BWF-BLOKKADE]";
+/* De naam van de eigenschap met de gastenlink bij een Planyo-reservering. Met fixed_ ervoor
+   houdt Planyo de waarde vast, ook al staat het veld niet in het boekingsformulier. */
+const GASTLINK_VELD = "fixed_gastenlink";
+
+async function vakantiesLijst(startTime: string, endTime: string): Promise<Record<string, unknown>[]> {
+  const dag = (t: string, plus: number) => {
+    const d = new Date(Date.parse(t.slice(0, 10) + "T00:00:00Z") + plus * 86400000);
+    return d.toISOString().slice(0, 10);
+  };
+  const data = await planyo("list_vacations", {
+    start_time: `${dag(startTime, -1)} 00:00`,
+    end_time: `${dag(endTime, 1)} 23:59`,
+    resource_id: "all",
+    include_site_vacations: "true",
+    type: "all",
+    vacation_recurrence_type: "all"
+  });
+  return lijstUit(data, ["results", "vacations"]) as Record<string, unknown>[];
+}
+
+/* add_vacation geeft (volgens de documentatie) geen nummer terug; dan zoeken we hem op. */
+async function vakantieZoeken(resourceId: string, startTime: string, endTime: string, comment: string): Promise<string> {
+  const lijst = await vakantiesLijst(startTime, endTime);
+  const dag = (x: unknown) => String(x ?? "").replace(/\//g, "-").slice(0, 10);
+  const hit = lijst
+    .filter((v) => String(v.resource_id) === resourceId && String(v.comment ?? "") === comment && dag(v.start_time) === startTime.slice(0, 10))
+    .sort((a, b) => Number(b.vacation_id) - Number(a.vacation_id))[0];
+  if (!hit) throw new Error("De sluiting staat in Planyo, maar het nummer werd niet teruggevonden.");
+  return String(hit.vacation_id);
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return json({ ok: true });
   if (request.method !== "GET" && request.method !== "POST") return json({ error: "Methode niet toegestaan." }, 405);
@@ -370,38 +404,121 @@ Deno.serve(async (request) => {
     }
 
     if (action === "create-block") {
+      /* Blokkade als vakantieperiode in Planyo (Angela, 14-10-2026): geen reservering met een
+         nep-klant meer, maar een sluiting zoals de Privésauna-sluitingen. Op de hoofdeenheid én op
+         alle accommodaties van de suite, zodat overnachting, dagverblijf en bruidsnacht allemaal
+         dicht zijn. De import (kanalen-sync) leest de sluiting van de hoofdeenheid in als blokkade
+         met bron_uid planyo-vakantie:<nummer>:<datum>; die geven we hier terug, zodat het dashboard
+         precies dezelfde blokkade opslaat en de import hem niet dubbel neerzet. */
       if (request.method !== "POST") return json({ error: "Gebruik POST om een blokkade aan te maken." }, 405);
-      const resourceId = String(body.resource_id || "").trim();
+      const hoofd = String(body.resource_id || "").trim();
       const startTime = String(body.start_time || "").trim();
       const endTime = String(body.end_time || "").trim();
       const reason = String(body.reason || "Niet beschikbaar").trim().slice(0, 180);
-      if (!resourceId || !startTime || !endTime) {
+      if (!/^\d+$/.test(hoofd) || !startTime || !endTime) {
         return json({ error: "Suite, begindatum en einddatum zijn verplicht." }, 400);
       }
-      const data = await maakReservering({
-        resource_id: resourceId,
-        start_time: startTime,
-        end_time: endTime,
-        quantity: "1",
-        /* Een uniek adres per blokkade: op het gewone info-adres weigert Planyo ("bestaat al")
-           en de bestaande klant is via de API niet terug te vinden (gezien 13-10-2026). */
-        email: `info+blokkade-${Date.now()}@bedenwellnessflevoland.nl`,
-        first_name: "Niet beschikbaar",
-        last_name: reason,
-        user_notes: `[BWF-BLOKKADE] ${reason}`,
-        admin_notes: `[BWF-BLOKKADE] ${reason}`,
-        refcode: "BWF-BLOKKADE",
-        admin_mode: "true",
-        send_notifications: "false",
-        custom_price: "0"
-      });
+      const ids = [hoofd, ...String(body.resource_ids || "").split(",").map((x) => x.trim())
+        .filter((x) => /^\d+$/.test(x) && x !== hoofd)].slice(0, 12);
+      const comment = `${BLOKKADE_MERK} ${reason}`;
+      const gemaakt: string[] = [];
+      try {
+        for (const id of ids) {
+          const d = await planyo("add_vacation", {
+            site_id: PLANYO_SITE_ID,
+            resource_id: id,
+            start_time: startTime,
+            end_time: endTime,
+            comment,
+            /* De accommodaties zijn per dag of per nacht; Planyo zet de tijden dan zelf goed.
+               De hoofdeenheid werkt met uren en houdt de tijden zoals ze zijn. */
+            validate: id === hoofd ? "false" : "true"
+          });
+          const nr = String(d.vacation_id ?? d.id ?? "");
+          gemaakt.push(nr || await vakantieZoeken(id, startTime, endTime, comment));
+        }
+      } catch (e) {
+        /* Half gelukt: wat er al stond weer weghalen, anders blijft een deel dicht. */
+        for (const nr of gemaakt) {
+          if (nr) { try { await planyo("remove_vacation", { vacation_id: nr }); } catch { /* best effort */ } }
+        }
+        throw e;
+      }
+      const hoofdNr = gemaakt[0];
+      if (!hoofdNr) throw new Error("Planyo gaf geen nummer van de sluiting terug.");
       return json({
-        block_id: data.reservation_id,
-        reservation_id: data.reservation_id,
-        status: data.status,
+        vacation_id: hoofdNr,
+        vacation_ids: gemaakt,
+        bron_uid: `planyo-vakantie:${hoofdNr}:${startTime.slice(0, 10)}`,
         source: "Planyo",
-        type: "block"
+        type: "vacation"
       }, 201);
+    }
+
+    if (action === "remove-block") {
+      /* Een sluiting opheffen: de sluiting zelf (vacation_id) en de sluitingen die het dashboard
+         tegelijk op de accommodaties van die suite zette (zelfde merk, zelfde begin en einde). */
+      if (request.method !== "POST") return json({ error: "Gebruik POST om een blokkade op te heffen." }, 405);
+      const nr = String(body.vacation_id || "").trim();
+      if (!/^\d+$/.test(nr)) return json({ error: "Een geldig nummer van de sluiting is verplicht." }, 400);
+      const ids = String(body.resource_ids || "").split(",").map((x) => x.trim()).filter((x) => /^\d+$/.test(x)).slice(0, 12);
+      const startTime = String(body.start_time || "").trim();
+      const endTime = String(body.end_time || "").trim();
+      /* Eerst de broertjes opzoeken, want na het weghalen van de hoofdsluiting is het merk
+         niet meer terug te vinden. */
+      if (!startTime || !endTime) return json({ error: "Begin en einde van de sluiting zijn verplicht." }, 400);
+      const broers: string[] = [];
+      const lijst = await vakantiesLijst(startTime, endTime);
+      const hoofdSluiting = lijst.find((v) => String(v.vacation_id) === nr);
+      if (!hoofdSluiting) return json({ error: "Deze sluiting staat niet (meer) in Planyo." }, 404);
+      const merk = String(hoofdSluiting.comment ?? "");
+      /* Een sluiting die niet uit het dashboard komt (schoolvakantie, Privésauna-sluiting) kan een
+         lange of herhaalde periode zijn: alleen opheffen als dat uitdrukkelijk bevestigd is. */
+      if (!merk.startsWith(BLOKKADE_MERK) && body.ook_extern !== true) {
+        return json({ error: "EXTERN: deze sluiting is niet vanuit het dashboard gemaakt" +
+          (merk ? " (" + merk.slice(0, 80) + ")" : "") + " en loopt van " + String(hoofdSluiting.start_time ?? "") +
+          " tot " + String(hoofdSluiting.end_time ?? "") + "." }, 409);
+      }
+      {
+        if (merk.startsWith(BLOKKADE_MERK)) {
+          const dag = (x: unknown) => String(x ?? "").replace(/\//g, "-").slice(0, 10);
+          for (const v of lijst) {
+            if (String(v.vacation_id) === nr) continue;
+            if (!ids.includes(String(v.resource_id))) continue;
+            if (String(v.comment ?? "") !== merk) continue;
+            if (dag(v.start_time) !== dag(hoofdSluiting.start_time)) continue;
+            broers.push(String(v.vacation_id));
+          }
+        }
+      }
+      await planyo("remove_vacation", { vacation_id: nr });
+      const mislukt: string[] = [];
+      for (const b of broers) {
+        try { await planyo("remove_vacation", { vacation_id: b }); } catch { mislukt.push(b); }
+      }
+      return json({ removed: [nr, ...broers.filter((b) => !mislukt.includes(b))], failed: mislukt, source: "Planyo" });
+    }
+
+    if (action === "set-gastlink") {
+      /* De beveiligde gastenlink als eigenschap bij de Planyo-reservering, voor sjabloon 1 en 2. */
+      if (request.method !== "POST") return json({ error: "Gebruik POST." }, 405);
+      const reservationId = String(body.reservation_id || "").trim();
+      const link = String(body.link || "").trim();
+      if (!/^\d+$/.test(reservationId)) return json({ error: "Een geldig Planyo-reserveringsnummer is verplicht." }, 400);
+      if (!/^https:\/\/bwfcheckin\.github\.io\/bwf-incheck\/gast-incheck\.html\?token=[0-9a-f]{64}$/.test(link)) {
+        return json({ error: "Dit is geen beveiligde gastenlink." }, 400);
+      }
+      await planyo("set_custom_property", { type: "reservation", id: reservationId, name: GASTLINK_VELD, value: link });
+      return json({ reservation_id: reservationId, veld: GASTLINK_VELD, source: "Planyo" });
+    }
+
+    if (action === "form-items") {
+      /* Alleen lezen: welke formuliervelden heeft een accommodatie (nodig om arrangementen en de
+         aanbetalingskeuze met de goede naam mee te sturen). */
+      const id = String(body.resource_id || url.searchParams.get("resource_id") || "").trim();
+      if (!/^\d+$/.test(id)) return json({ error: "Een geldig accommodatienummer is verplicht." }, 400);
+      const data = await planyo("get_form_items", { resource_id: id });
+      return json({ resource_id: id, form: data, source: "Planyo" });
     }
 
     if (action === "create-payment") {

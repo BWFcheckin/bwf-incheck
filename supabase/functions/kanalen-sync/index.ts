@@ -473,6 +473,7 @@ const PLANYO_VAKANTIES_SCHRIJVEN = true; // akkoord Angela 13-10-2026: schoolvak
 const PLANYO_BASIS: Record<string, string> = { "254072": "angie", "254073": "malina_jacuzzi", "254076": "malina_deluxe" };
 const ALLE_SUITES = ["angie", "malina_jacuzzi", "malina_deluxe"];
 const VAKANTIE_UID = "planyo-vakantie:";
+const BLOKKADE_MERK = "[BWF-BLOKKADE]";
 
 async function planyoVakanties(): Promise<Rij[]> {
   const vanaf = new Date(Date.now() - PLANYO_DAGEN_TERUG * 86400000).toISOString().slice(0, 10);
@@ -505,14 +506,19 @@ async function planyoVakanties(): Promise<Rij[]> {
     const basis: Rij = {
       vacation_id: String(v.vacation_id ?? ""), resource_id: res, type: soort, period_type: periode,
       ruw_van: v.start_time ?? null, ruw_tot: v.end_time ?? null,
-      reden: String(v.comment ?? "").trim() || "Gesloten (Planyo)",
+      reden: String(v.comment ?? "").replace(BLOKKADE_MERK, "").trim() || "Gesloten (Planyo)",
     };
+    const vanDashboard = String(v.comment ?? "").trim().startsWith(BLOKKADE_MERK);
     if (!basis.vacation_id) return { ...basis, overslaan: "geen nummer" };
     if (!start || !eind || lokaal(eind) <= lokaal(start)) return { ...basis, overslaan: "onleesbare tijden" };
     basis.van = lokaal(start);
     basis.tot = lokaal(eind);
     if (soort !== 0 && soort !== 1) return { ...basis, overslaan: "ingelezen uit een andere agenda of wachtlijst" };
     if (periode !== 1 && periode !== 5) return { ...basis, overslaan: "herhaalt dagelijks, wekelijks of maandelijks" };
+    /* Een blokkade uit het dashboard zet de sluiting op de hoofdeenheid én op alle accommodaties van
+       de suite (14-10-2026). Alleen die van de hoofdeenheid wordt de blokkade; de rest zou hem
+       anders als groep nog een keer neerzetten. */
+    if (vanDashboard && res && !PLANYO_BASIS[res]) return { ...basis, overslaan: "blokkade uit het dashboard op een losse accommodatie (staat al via de hoofdeenheid)" };
     if (res && !PLANYO_BASIS[res]) {
       return { ...basis, overslaan: "geldt voor één accommodatie, niet voor de hele suite", naam: namen[res] ?? "", suite: planyoSuite(namen[res] ?? "") };
     }
@@ -807,6 +813,66 @@ async function planyoSchrijf(blokken: Tijdsblok[], run: string): Promise<Rij> {
   return uit;
 }
 
+/* ---------- gastenlink naar Planyo ----------
+   Angela, 14-10-2026: de beveiligde gastenlink moet als veld bij de Planyo-reservering staan, zodat
+   sjabloon 1 en 2 hem kunnen gebruiken en het gastformulier vooraf is ingevuld. Ook voor boekingen
+   die via de website in Planyo binnenkomen. Per run hooguit GASTLINK_PER_RUN reserveringen, zodat de
+   import niet traag wordt; de rest volgt in de volgende run. */
+const GASTLINK_AAN = true;
+const GASTLINK_PER_RUN = 25;
+const GASTLINK_VELD = "fixed_gastenlink";
+const GASTLINK_BASIS = "https://bwfcheckin.github.io/bwf-incheck/gast-incheck.html?token=";
+
+function nieuwToken(): string {
+  return (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
+}
+
+async function gastlinksNaarPlanyo(): Promise<Rij> {
+  const nu = new Date();
+  const res = (await rest(
+    "reserveringen?select=id,planyo_id,vertrek&planyo_id=not.is.null&status=neq.geannuleerd" +
+    `&geannuleerd_op=is.null&vertrek=gte.${encodeURIComponent(nu.toISOString())}&order=aankomst.asc&limit=500`,
+  )) as Rij[];
+  const metNummer = res.filter((r) => /^\d+$/.test(String(r.planyo_id ?? "")));
+  if (!metNummer.length) return { gezet: 0 };
+  const links = (await rest(
+    `bwf_gastlink?select=token,reservering_id,verloopt_op,planyo_gezet_op&reservering_id=in.(${metNummer.map((r) => r.id).join(",")})` +
+    `&verloopt_op=gt.${encodeURIComponent(nu.toISOString())}&order=aangemaakt_op.desc`,
+  )) as Rij[];
+  const telling: Rij = { gezet: 0, nieuw_token: 0, fouten: 0 };
+  let gedaan = 0;
+  for (const r of metNummer) {
+    if (gedaan >= GASTLINK_PER_RUN) break;
+    // Zelfde keuze als bwf_gastlink_maak: de nieuwste geldige link van deze boeking.
+    let link = links.find((l) => l.reservering_id === r.id);
+    // Een link moet minstens tot na het vertrek werken.
+    const minstens = new Date(Math.max(Date.parse(String(r.vertrek)) + 7 * 86400000, nu.getTime() + 90 * 86400000)).toISOString();
+    if (!link || Date.parse(String(link.verloopt_op)) < Date.parse(String(r.vertrek))) {
+      try {
+        const rij = (await rest("bwf_gastlink?select=token,reservering_id,verloopt_op,planyo_gezet_op", "POST",
+          { token: nieuwToken(), reservering_id: r.id, verloopt_op: minstens })) as Rij[];
+        link = rij[0];
+        telling.nieuw_token++;
+      } catch (e) {
+        telling.fouten++;
+        telling.laatste_fout = foutTekst(e);
+        continue;
+      }
+    }
+    if (link.planyo_gezet_op) continue;
+    gedaan++;
+    try {
+      await planyoVraag("set_custom_property", { type: "reservation", id: String(r.planyo_id), name: GASTLINK_VELD, value: GASTLINK_BASIS + link.token });
+      await rest(`bwf_gastlink?token=eq.${encodeURIComponent(String(link.token))}`, "PATCH", { planyo_gezet_op: new Date().toISOString() });
+      telling.gezet++;
+    } catch (e) {
+      telling.fouten++;
+      telling.laatste_fout = foutTekst(e);
+    }
+  }
+  return telling;
+}
+
 /* ---------- aanroep ---------- */
 
 Deno.serve(async (req) => {
@@ -904,6 +970,11 @@ Deno.serve(async (req) => {
       try { planyo = await planyoSchrijf(blokken, run); } catch (e) {
         planyo = { fout: foutTekst(e) };
         await logFout(run, "planyo", "-", foutTekst(e));
+      }
+      if (GASTLINK_AAN) {
+        try { (planyo ??= {}).gastlinks = await gastlinksNaarPlanyo(); } catch (e) {
+          (planyo ??= {}).gastlinks = { fout: foutTekst(e) };
+        }
       }
     }
 

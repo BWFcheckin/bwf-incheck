@@ -214,10 +214,13 @@ async function bewaarBlokkade() {
   if (BK_ZONDER_PLANYO !== sleutel) {
     try {
       m.textContent = "Blokkade in Planyo zetten…";
+      /* Als vakantieperiode (sluiting) in Planyo, zoals de Privésauna-sluitingen: op de hoofdeenheid
+         en alle accommodaties van de suite (Angela, 14-10-2026). */
       const uit = await planyoVraag({ action: "create-block", resource_id: PLANYO_SUITE[suite],
+        resource_ids: (PLANYO_EENHEDEN[suite] || []).join(","),
         start_time: vanD + " " + vanT, end_time: totD + " " + totT, reason: reden });
-      if (!uit || !uit.reservation_id) throw new Error("Planyo gaf geen nummer terug");
-      planyoId = String(uit.reservation_id);
+      if (!uit || !uit.bron_uid) throw new Error("Planyo gaf geen nummer terug");
+      planyoId = String(uit.bron_uid);
       m.textContent = "";
     } catch (e) {
       BK_ZONDER_PLANYO = sleutel;
@@ -229,7 +232,7 @@ async function bewaarBlokkade() {
   }
   try {
     const rij = await api("blokkades", { method: "POST", body: planyoId
-      ? { suite, van, tot, reden, bron: "ics-planyo", bron_uid: "planyo:" + planyoId, aangemaakt_door: NAAM }
+      ? { suite, van, tot, reden, bron: "ics-planyo", bron_uid: planyoId, aangemaakt_door: NAAM }
       : { suite, van, tot, reden, bron: "handmatig", aangemaakt_door: NAAM } });
     if (!rij || !rij.length) throw new Error("geen rechten om te blokkeren");
     BK_ZONDER_PLANYO = null;
@@ -238,8 +241,8 @@ async function bewaarBlokkade() {
   } catch (e) {
     let extra = "";
     if (planyoId) {
-      try { await planyoVraag({ action: "cancel-reservation", reservation_id: planyoId, reason: "Opslaan in het dashboard mislukte" }); extra = " In Planyo is hij weer opgeheven."; }
-      catch (e2) { extra = " LET OP: in Planyo staat hij nog wel (nummer " + planyoId + "); hef hem daar met de hand op."; }
+      try { await planyoHefOp(suite, planyoId, vanD + " " + vanT, totD + " " + totT); extra = " In Planyo is hij weer opgeheven."; }
+      catch (e2) { extra = " LET OP: in Planyo staat de sluiting nog wel (" + planyoId + "); hef hem daar met de hand op."; }
     }
     m.textContent = "Blokkeren lukte niet: " + e.message + extra;
   }
@@ -247,7 +250,27 @@ async function bewaarBlokkade() {
 }
 /* De losse eenheid per suite in Planyo; daar hangen alle accommodaties aan. */
 const PLANYO_SUITE = { angie: "254072", malina_jacuzzi: "254073", malina_deluxe: "254076" };
+/* De accommodaties per suite (overnachting, dagverblijf, late check-in, honeymoon, bruidsnacht). */
+const PLANYO_EENHEDEN = {
+  angie: ["251803", "252021", "252022", "252023", "255048"],
+  malina_jacuzzi: ["252400", "255047", "252405", "252406", "252407", "255049"],
+  malina_deluxe: ["252390", "252396", "255051", "252398", "252399", "255050"]
+};
 let BK_ZONDER_PLANYO = null;
+/* Een sluiting in Planyo opheffen. uid is de bron_uid van de blokkade:
+   planyo-vakantie:<nummer>:<datum> (sluiting) of planyo:<nummer> (oude blokkade als reservering). */
+async function planyoHefOp(suite, uid, start, eind, ookExtern) {
+  const oud = String(uid || "").match(/^planyo:(\d+)$/);
+  if (oud) return planyoVraag({ action: "cancel-reservation", reservation_id: oud[1], reason: "Blokkade opgeheven in het dashboard" });
+  const vak = String(uid || "").match(/^planyo-vakantie:(\d+):/);
+  if (!vak) throw new Error("Deze sluiting staat in Planyo op meerdere accommodaties tegelijk; hef hem in Planyo op.");
+  return planyoVraag({ action: "remove-block", vacation_id: vak[1],
+    resource_ids: (PLANYO_EENHEDEN[suite] || []).join(","), start_time: start, end_time: eind, ook_extern: ookExtern === true });
+}
+function lokaalTekst(iso) {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso)).replace(",", "");
+}
 async function planyoVraag(body) {
   const token = await geldigToken();
   if (!token) throw new Error("Niet ingelogd.");
@@ -263,15 +286,18 @@ async function planyoVraag(body) {
 async function blokkadeOpheffen(blok) {
   if (!confirm("Blokkade opheffen?\n" + (blok.reden || ""))) throw new Error("Niet opgeheven.");
   /* Staat hij ook in Planyo, dan eerst daar opheffen; anders blijft de website dicht. */
-  let pm = null;
   if (blok.bron === "ics-planyo") {
-    const vol = await api("blokkades?select=bron_uid&id=eq." + encodeURIComponent(blok.id));
-    pm = String((vol && vol[0] && vol[0].bron_uid) || "").match(/^planyo:(\d+)$/);
-    if (!pm) throw new Error("Het Planyo-nummer van deze blokkade is niet gevonden. Er is niets gewijzigd; hef hem in Planyo op.");
-  }
-  if (pm) {
-    try { await planyoVraag({ action: "cancel-reservation", reservation_id: pm[1], reason: "Blokkade opgeheven in het dashboard" }); }
-    catch (e) { throw new Error("Opheffen in Planyo lukte niet (" + e.message + "). Er is niets gewijzigd."); }
+    const vol = await api("blokkades?select=bron_uid,suite,van,tot&id=eq." + encodeURIComponent(blok.id));
+    const v = (vol && vol[0]) || {};
+    if (!v.bron_uid) throw new Error("Het Planyo-nummer van deze blokkade is niet gevonden. Er is niets gewijzigd; hef hem in Planyo op.");
+    try { await planyoHefOp(v.suite, v.bron_uid, lokaalTekst(v.van), lokaalTekst(v.tot)); }
+    catch (e) {
+      if (!/^EXTERN:/.test(e.message)) throw new Error("Opheffen in Planyo lukte niet (" + e.message + "). Er is niets gewijzigd.");
+      const tekst = e.message.replace(/^EXTERN:\s*/, "");
+      if (!confirm("Let op: " + tekst + "\n\nDe hele sluiting gaat dan in Planyo weg. Toch opheffen?")) throw new Error("Niet opgeheven.");
+      try { await planyoHefOp(v.suite, v.bron_uid, lokaalTekst(v.van), lokaalTekst(v.tot), true); }
+      catch (e2) { throw new Error("Opheffen in Planyo lukte niet (" + e2.message + "). Er is niets gewijzigd."); }
+    }
   }
   const rij = await api("blokkades?id=eq." + encodeURIComponent(blok.id), { method: "PATCH", body: { actief: false } });
   if (!rij || !rij.length) throw new Error("Opheffen lukte niet: geen rechten.");

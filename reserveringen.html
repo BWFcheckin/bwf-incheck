@@ -5124,10 +5124,31 @@ async function verplaats() {
       tijdsblok_id: null, gewijzigd_door: NAAM };
     let erbij = "";
     if (planyoBeheert(r) && !vrij.zonderPlanyo) {
+      const eenheid = planyoEenheid(suite, r.type, aank, vert);
+      /* Eerst nakijken of de nieuwe plek in Planyo vrij is. De accommodatie waar deze boeking nu
+         op staat telt niet mee als de nieuwe tijd de oude overlapt: daar staat hij zelf. */
+      if (!vrij.planyoBezet) {
+        m.textContent = "Even nakijken in Planyo…";
+        let bezet = null;
+        try {
+          const oud = planyoEenheid(r.suite, r.type, r.aankomst, r.vertrek);
+          const overlapt = suite === r.suite && new Date(aank) < new Date(r.vertrek) && new Date(vert) > new Date(r.aankomst);
+          bezet = await planyoBezet(suite, aank, vert, overlapt ? [oud, PLANYO_SUITE[r.suite]] : []);
+        } catch (e) {
+          m.textContent = "Nakijken in Planyo lukte niet: " + e.message + " Er is niets gewijzigd.";
+          return;
+        }
+        if (bezet) {
+          m.textContent = "In Planyo is de nieuwe plek niet vrij: " + bezet + ". Er is niets gewijzigd." +
+            (eigenaar ? "" : " Overleg met Angela; alleen de eigenaar kan dit doordrukken.");
+          if (eigenaar) vpKeuze([{ tekst: "Toch verplaatsen", klik: opnieuw("planyoBezet") }]);
+          return;
+        }
+      }
       m.textContent = "Wijzigen in Planyo…";
       try {
         await planyoVraag({ action: "update-reservation", reservation_id: r.planyo_id,
-          resource_id: suite !== r.suite ? PLANYO_SUITE[suite] : undefined,
+          resource_id: eenheid || undefined,
           start_time: planyoTijd(aank), end_time: planyoTijd(vert), send_notifications: false });
         erbij = " In Planyo is hij ook verplaatst.";
       } catch (e) {
@@ -8367,6 +8388,59 @@ document.addEventListener("click", (e) => {
    Booking.com en Origineel Overnachten bereiken Planyo langs hun eigen weg;
    die nog een keer sturen zou ze daar dubbel zetten. */
 const PLANYO_SUITE = { angie: "254072", malina_jacuzzi: "254073", malina_deluxe: "254076" };
+/* De accommodaties per suite in Planyo (opgehaald 14-10-2026). Op de hoofdeenheid (PLANYO_SUITE)
+   staan geen tijden, arrangementen of aanbetalingskeuze; een boeking hoort daarom op de
+   accommodatie die bij het soort verblijf past. */
+const PLANYO_EENHEDEN = {
+  angie:          { dag: "251803", nacht: "252021", late: "252022", honeymoon: "252023", bruid: "255048" },
+  malina_jacuzzi: { dag: "252400", dag25: "255047", nacht: "252405", late: "252406", honeymoon: "252407", bruid: "255049" },
+  malina_deluxe:  { dag: "252390", nacht: "252396", early: "255051", late: "252398", honeymoon: "252399", bruid: "255050" }
+};
+const PLANYO_NAMEN = {
+  "254072": "Suite Angie (hoofdeenheid)", "251803": "Angie Dagverblijf", "252021": "Angie Overnachting",
+  "252022": "Angie Late check-in 20:00", "252023": "Angie Honeymoon", "255048": "Angie Bruidsnacht 01:00",
+  "254073": "Malina Jacuzzi (hoofdeenheid)", "252400": "Jacuzzi Dagverblijf", "255047": "Jacuzzi Dagverblijf 2,5 uur",
+  "252405": "Jacuzzi Overnachting", "252406": "Jacuzzi Late check-in 20:00", "252407": "Jacuzzi Honeymoon",
+  "255049": "Jacuzzi Bruidsnacht 01:00",
+  "254076": "Malina Zwembad (hoofdeenheid)", "252390": "Zwembad Dagverblijf", "252396": "Zwembad Overnachting",
+  "255051": "Zwembad Early check-in 13:00", "252398": "Zwembad Late check-in 20:00", "252399": "Zwembad Honeymoon",
+  "255050": "Zwembad Bruidsnacht 01:00"
+};
+/* Alle Planyo-nummers van een suite: de hoofdeenheid en alle accommodaties. */
+function planyoAlleVan(suite) {
+  const e = PLANYO_EENHEDEN[suite] || {};
+  return [PLANYO_SUITE[suite]].concat(Object.keys(e).map((k) => e[k])).filter(Boolean);
+}
+/* Welke accommodatie hoort bij dit verblijf? */
+function planyoEenheid(suite, type, aankomstIso, vertrekIso) {
+  const e = PLANYO_EENHEDEN[suite];
+  if (!e) return PLANYO_SUITE[suite] || "";
+  const tijd = planyoTijd(aankomstIso).slice(11, 16);
+  const minuten = Math.round((new Date(vertrekIso) - new Date(aankomstIso)) / 60000);
+  if (type === "dagverblijf" || type === "avond") return (e.dag25 && minuten <= 150) ? e.dag25 : e.dag;
+  if (type === "honeymoon") return tijd < "06:00" ? e.bruid : e.honeymoon;
+  if (type === "late_checkin") return e.late;
+  /* overnachting */
+  if (suite === "angie") return tijd >= "19:00" ? e.late : e.nacht;          // Relax & Stay en Wellness Experience 13:00; 20:00 is late check-in
+  if (suite === "malina_deluxe") return tijd < "17:00" ? e.early : e.nacht;  // standaard 19:00, early check-in 13:00
+  return e.nacht;                                                             // Jacuzzi: 20:00 en early 14:00 op dezelfde accommodatie
+}
+/* Is dit blok in Planyo vrij, op alle accommodaties van de suite? zonder: Planyo-nummers die niet
+   meetellen (bij verplaatsen de accommodatie waar de boeking zelf al op staat).
+   Geeft null als alles vrij is, anders een leesbare tekst. */
+async function planyoBezet(suite, aankomstIso, vertrekIso, zonder) {
+  const ids = planyoAlleVan(suite).filter((id) => !(zonder || []).includes(id));
+  if (!ids.length) return null;
+  const c = await planyoVraag({ action: "check", resource_ids: ids.join(","),
+    start_time: planyoTijd(aankomstIso), end_time: planyoTijd(vertrekIso) });
+  const lijst = c.resources || [];
+  const fout = lijst.find((x) => x.fout);
+  if (fout) throw new Error(fout.fout);
+  const dicht = lijst.filter((x) => x.beschikbaar !== true);
+  if (!dicht.length) return null;
+  return dicht.map((x) => (PLANYO_NAMEN[x.resource_id] || "accommodatie " + x.resource_id) +
+    (x.vanaf ? " (vanaf " + x.vanaf + ")" : "") + (x.reden ? " – " + x.reden : "")).join("; ");
+}
 const PLANYO_KANALEN = ["eigen", "telefonisch", "whatsapp", "handmatig"];
 const PLANYO_GEEN_EMAIL = "info@bedenwellnessflevoland.nl";   // Planyo eist een adres (Angela, 13-10-2026)
 const BUFFER_MINUTEN = 90;
@@ -8392,6 +8466,14 @@ document.addEventListener("click", async (e) => {
     teken();
   } catch (err) { melding("Label weghalen lukte niet: " + err.message, "fout"); }
 }, true);
+
+async function gastlinkNaarPlanyo(r) {
+  try {
+    const link = new URL(await veiligeGastLink(r), location.href).href;
+    if (!/[?&]token=/.test(link)) return;
+    await planyoVraag({ action: "set-gastlink", reservation_id: r.planyo_id, link });
+  } catch (e) { /* stil: kanalen-sync zet hem er later neer */ }
+}
 
 async function planyoVraag(body) {
   const token = await geldigToken();
@@ -8505,7 +8587,8 @@ async function planyoVoorOpslaan(d, m) {
     if (vrij.zonderPlanyo) d.niet_in_planyo = true;
     return true;
   }
-  const resource = PLANYO_SUITE[d.suite];
+  /* Op de accommodatie die bij het verblijf past, niet op de hoofdeenheid (Angela, 14-10-2026). */
+  const resource = planyoEenheid(d.suite, d.type, d.aankomst, d.vertrek);
   const van = planyoTijd(d.aankomst), tot = planyoTijd(d.vertrek);
   const tochKnop = { tekst: "Toch opslaan – NIET in Planyo", klik: opnieuw("zonderPlanyo") };
   if (!resource) {
@@ -8515,11 +8598,12 @@ async function planyoVoorOpslaan(d, m) {
   }
   m.textContent = "Even nakijken in Planyo…";
   try {
-    const c = await planyoVraag({ action: "check", resource_id: resource, start_time: van, end_time: tot });
-    const uit = (c.resources || [])[0] || {};
-    if (uit.fout) throw new Error(uit.fout);
-    if (uit.beschikbaar !== true) {
-      m.textContent = "In Planyo is dit blok al bezet" + (uit.reden ? " (" + uit.reden + ")" : "") +
+    /* Alle accommodaties van de suite, niet alleen de hoofdeenheid: een sluiting of boeking staat
+       in Planyo vaak alleen op de overnachting of het dagverblijf (6 juli 2027 kon zo toch
+       geboekt worden, 13-10-2026). */
+    const bezet = await planyoBezet(d.suite, d.aankomst, d.vertrek);
+    if (bezet) {
+      m.textContent = "In Planyo is dit blok niet vrij: " + bezet +
         ". Er is niets opgeslagen. Kijk in Planyo wat daar staat." +
         (eigenaar ? "" : " Alleen de eigenaar mag dan toch opslaan.");
       if (eigenaar) planyoKeuze([tochKnop]);
@@ -8540,7 +8624,9 @@ async function planyoVoorOpslaan(d, m) {
       last_name: d.gast_voornaam ? (d.gast_achternaam || "") : "",
       phone: d.gast_telefoon || "",
       notes: "BWF-dashboard " + d.kanaal_ref + " · " + (KANALEN[d.kanaal] || d.kanaal) + " · " + d.type +
-        " · " + (d.personen || 2) + " personen",
+        " · " + (d.personen || 2) + " personen" +
+        " · inchecken " + van.slice(11) + ", uitchecken " + tot.slice(11) +
+        ((d.arrangementen || []).length ? " · " + d.arrangementen.map((x) => x.naam + (x.aantal > 1 ? " ×" + x.aantal : "")).join(", ") : ""),
       refcode: d.kanaal_ref,
       custom_price: d.bedrag_totaal || 0,
       send_notifications: false
@@ -8646,6 +8732,9 @@ async function maakReservering() {
     }
     N_VRIJGAVE = null;
     planyoKeuze(null);
+    /* De beveiligde gastenlink bij de Planyo-reservering zetten (voor sjabloon 1 en 2). Lukt het
+       niet, dan doet de import het bij de volgende ronde. */
+    if (rij[0].planyo_id) gastlinkNaarPlanyo(rij[0]);
     RIJEN.unshift(rij[0]);
     leegNieuw();
     melding("Reservering aangemaakt: " + (gastNaam(rij[0]) || "zonder naam") + " · nummer " + rij[0].kanaal_ref + "." +
