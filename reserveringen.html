@@ -8415,15 +8415,11 @@ function planyoAlleVan(suite) {
 function planyoEenheid(suite, type, aankomstIso, vertrekIso) {
   const e = PLANYO_EENHEDEN[suite];
   if (!e) return PLANYO_SUITE[suite] || "";
-  const tijd = planyoTijd(aankomstIso).slice(11, 16);
   const minuten = Math.round((new Date(vertrekIso) - new Date(aankomstIso)) / 60000);
   if (type === "dagverblijf" || type === "avond") return (e.dag25 && minuten <= 150) ? e.dag25 : e.dag;
-  if (type === "honeymoon") return tijd < "06:00" ? e.bruid : e.honeymoon;
-  if (type === "late_checkin") return e.late;
-  /* overnachting */
-  if (suite === "angie") return tijd >= "19:00" ? e.late : e.nacht;          // Relax & Stay en Wellness Experience 13:00; 20:00 is late check-in
-  if (suite === "malina_deluxe") return tijd < "17:00" ? e.early : e.nacht;  // standaard 19:00, early check-in 13:00
-  return e.nacht;                                                             // Jacuzzi: 20:00 en early 14:00 op dezelfde accommodatie
+  /* Late check-in, Honeymoon, Bruidsnacht en Early check-in zijn in Planyo mogelijk niet aan de suite gekoppeld: een boeking
+     daarop houdt de suite niet dicht. Daarom gaan die (en elke overnachting) naar Overnachting. */
+  return e.nacht;
 }
 /* Is dit blok in Planyo vrij, op alle accommodaties van de suite? zonder: Planyo-nummers die niet
    meetellen (bij verplaatsen de accommodatie waar de boeking zelf al op staat).
