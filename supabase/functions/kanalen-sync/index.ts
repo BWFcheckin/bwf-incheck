@@ -831,7 +831,7 @@ async function gastlinksNaarPlanyo(): Promise<Rij> {
   const nu = new Date();
   const res = (await rest(
     "reserveringen?select=id,planyo_id,vertrek&planyo_id=not.is.null&status=neq.geannuleerd" +
-    `&geannuleerd_op=is.null&vertrek=gte.${encodeURIComponent(nu.toISOString())}&order=aankomst.asc&limit=500`,
+    `&geannuleerd_op=is.null&vertrek=gte.${encodeURIComponent(nu.toISOString())}&order=aankomst.asc&limit=150`,
   )) as Rij[];
   const metNummer = res.filter((r) => /^\d+$/.test(String(r.planyo_id ?? "")));
   if (!metNummer.length) return { gezet: 0 };
