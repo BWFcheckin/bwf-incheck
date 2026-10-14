@@ -8421,11 +8421,17 @@ function planyoEenheid(suite, type, aankomstIso, vertrekIso) {
      daarop houdt de suite niet dicht. Daarom gaan die (en elke overnachting) naar Overnachting. */
   return e.nacht;
 }
-/* Is dit blok in Planyo vrij, op alle accommodaties van de suite? zonder: Planyo-nummers die niet
+/* Is dit blok in Planyo vrij, op de accommodaties van de suite? zonder: Planyo-nummers die niet
    meetellen (bij verplaatsen de accommodatie waar de boeking zelf al op staat).
    Geeft null als alles vrij is, anders een leesbare tekst. */
 async function planyoBezet(suite, aankomstIso, vertrekIso, zonder) {
-  const ids = planyoAlleVan(suite).filter((id) => !(zonder || []).includes(id));
+  /* Late check-in, Honeymoon en Bruidsnacht niet: die hebben in Planyo vaste begintijden, dus
+     Planyo meldt ze bij elke andere tijd als "niet vrij" ook als er niets staat (Bruidsnacht 01:00
+     op 7 sep 2027, 14-10-2026). Er wordt niet meer op geboekt, en een boeking die er in Planyo
+     toch op staat, komt via de import in het dashboard en telt daar mee. */
+  const e = PLANYO_EENHEDEN[suite] || {};
+  const vasteTijden = [e.late, e.honeymoon, e.bruid].filter(Boolean);
+  const ids = planyoAlleVan(suite).filter((id) => !vasteTijden.includes(id) && !(zonder || []).includes(id));
   if (!ids.length) return null;
   const c = await planyoVraag({ action: "check", resource_ids: ids.join(","),
     start_time: planyoTijd(aankomstIso), end_time: planyoTijd(vertrekIso) });
