@@ -5033,9 +5033,12 @@ function formWaarden() {
 /* =========================================================
    Verplaatsen: andere datum, tijd of suite (Angela, 13-10-2026)
    =========================================================
-   Alleen voor boekingen die het dashboard zelf beheert (handmatig, telefonisch, WhatsApp,
-   eigen website, Planyo-website). Een boeking van Privésauna, Booking.com of Origineel
-   Overnachten verplaats je bij dat kanaal; de import neemt het dan over.
+   Boekingen die het dashboard zelf beheert (handmatig, telefonisch, WhatsApp, eigen website,
+   Planyo-website) verplaatst het dashboard zelf, ook in Planyo. Een boeking van Privésauna,
+   Booking.com of Origineel Overnachten kan alleen bij dat kanaal worden gewijzigd, en de import
+   zet de datum altijd terug naar wat het kanaal zegt. Daarvoor zet het dashboard het nieuwe blok
+   meteen dicht in Planyo (tijdelijke blokkade) en maakt het een taak: wijzigen bij het kanaal en
+   daarna de tijdelijke blokkade opheffen. Zie verplaatsKanaal (Angela, 14-10-2026).
    Volgorde, net als bij een nieuwe reservering: eerst nakijken of de nieuwe plek vrij is
    (zonder deze boeking zelf mee te tellen), dan Planyo wijzigen, dan pas opslaan. */
 let VP_VRIJGAVE = null;
@@ -5058,9 +5061,10 @@ function tekenVerplaats(r) {
   $("#vpVerD").value = v.datum; $("#vpVerT").value = v.tijd;
   $("#vpMelding").textContent = ""; $("#vpKeuze").innerHTML = "";
   VP_VRIJGAVE = null;
-  ["#vpSuite", "#vpAanD", "#vpAanT", "#vpVerD", "#vpVerT", "#vpKnop"].forEach((id) => { $(id).disabled = !eigen; });
+  ["#vpSuite", "#vpAanD", "#vpAanT", "#vpVerD", "#vpVerT", "#vpKnop"].forEach((id) => { $(id).disabled = false; });
   $("#vpUitleg").textContent = !eigen
-    ? "Deze boeking komt van " + (KANALEN[r.kanaal] || r.kanaal) + ". Verplaats hem daar; het dashboard neemt de wijziging dan over."
+    ? "Deze boeking komt van " + (KANALEN[r.kanaal] || r.kanaal) + ". Het dashboard zet het nieuwe blok meteen dicht in Planyo " +
+      "en maakt een taak om hem bij " + (KANALEN[r.kanaal] || r.kanaal) + " te verplaatsen. De datum hier verandert pas als dat gebeurd is."
     : r.planyo_id ? "De wijziging gaat ook naar Planyo (nummer " + r.planyo_id + "). De prijs blijft staan; pas die zo nodig hierboven aan."
                   : "Deze boeking staat niet in Planyo; alleen het dashboard wordt gewijzigd. De prijs blijft staan.";
 }
@@ -5118,6 +5122,10 @@ async function verplaats() {
         if (eigenaar) vpKeuze([{ tekst: "Toch verplaatsen", klik: opnieuw("bezet") }]);
         return;
       }
+    }
+    if (!(PLANYO_KANALEN.includes(r.kanaal) || r.kanaal === "planyo")) {
+      await verplaatsKanaal(r, suite, aank, vert, m, vrij, opnieuw);
+      return;
     }
     /* 2. Planyo. */
     const d = { suite, aankomst: aank, vertrek: vert, incheck_tijd: $("#vpAanT").value, uitcheck_tijd: $("#vpVerT").value,
@@ -5188,6 +5196,110 @@ async function verplaats() {
   } finally {
     knop.disabled = false;
   }
+}
+/* Het deel van [van, tot) dat nog niet door de boeking zelf wordt bezet (zelfde suite).
+   Geeft 0, 1 of 2 stukken terug. */
+function vpNieuweStukken(r, suite, van, tot) {
+  if (suite !== r.suite) return [[van, tot]];
+  const a = new Date(van).getTime(), b = new Date(tot).getTime();
+  const oa = new Date(r.aankomst).getTime(), ob = new Date(r.vertrek).getTime();
+  if (b <= oa || a >= ob) return [[van, tot]];
+  const uit = [];
+  if (a < oa) uit.push([van, new Date(oa).toISOString()]);
+  if (b > ob) uit.push([new Date(ob).toISOString(), tot]);
+  return uit;
+}
+/* Verplaatsen van een boeking van Privésauna, Booking.com of Origineel Overnachten.
+   De reservering zelf wordt niet gewijzigd: de import neemt de nieuwe datum over zodra het
+   kanaal is aangepast. */
+async function verplaatsKanaal(r, suite, aank, vert, m, vrij, opnieuw) {
+  const kanaal = KANALEN[r.kanaal] || r.kanaal || "het kanaal";
+  const eigenaar = ROL === "eigenaar";
+  const naamSuite = (s) => (SUITES[s] ? SUITES[s].naam : s);
+  const stukken = vpNieuweStukken(r, suite, aank, vert);
+  /* 1. Is het nieuwe deel in Planyo vrij? Het oude blok telt niet mee: daar staat de boeking zelf. */
+  if (!vrij.planyoBezet && stukken.length) {
+    m.textContent = "Even nakijken in Planyo…";
+    let bezet = null;
+    try {
+      for (const [van, tot] of stukken) { bezet = bezet || await planyoBezet(suite, van, tot); }
+    } catch (e) {
+      m.textContent = "Nakijken in Planyo lukte niet: " + e.message + " Er is niets gewijzigd.";
+      return;
+    }
+    if (bezet) {
+      m.textContent = "In Planyo is de nieuwe plek niet vrij: " + bezet + ". Er is niets gewijzigd." +
+        (eigenaar ? "" : " Overleg met Angela; alleen de eigenaar kan dit doordrukken.");
+      if (eigenaar) vpKeuze([{ tekst: "Toch verplaatsen", klik: opnieuw("planyoBezet") }]);
+      return;
+    }
+  }
+  /* 2. Het nieuwe deel meteen dichtzetten in Planyo en in het dashboard, zodat niemand het
+        intussen boekt. Lukt dat niet, dan wordt er niets gedaan. */
+  const reden = "Verplaatsing " + kanaal + " " + (r.kanaal_ref || "") + " (" + (gastNaam(r) || "zonder naam") + "): wacht op wijziging bij " + kanaal;
+  const gezet = [];
+  try {
+    for (const [van, tot] of stukken) {
+      m.textContent = "Nieuwe plek dichtzetten in Planyo…";
+      const uit = await planyoVraag({ action: "create-block", resource_id: PLANYO_SUITE[suite],
+        resource_ids: planyoAlleVan(suite).filter((id) => id !== PLANYO_SUITE[suite]).join(","),
+        start_time: planyoTijd(van), end_time: planyoTijd(tot), reason: reden });
+      if (!uit || !uit.bron_uid) throw new Error("Planyo gaf geen nummer terug");
+      const stuk = { van, tot, vacation_id: String(uit.vacation_id) };
+      gezet.push(stuk);
+      const rij = await api("blokkades", { method: "POST", body:
+        { suite, van, tot, reden, bron: "ics-planyo", bron_uid: String(uit.bron_uid), aangemaakt_door: NAAM } });
+      if (!rij || !rij.length) throw new Error("geen rechten om te blokkeren");
+      stuk.opgeslagen = true;
+    }
+  } catch (e) {
+    let extra = "";
+    for (const st of gezet) {
+      try {
+        await planyoVraag({ action: "remove-block", vacation_id: st.vacation_id,
+          resource_ids: planyoAlleVan(suite).join(","), start_time: planyoTijd(st.van), end_time: planyoTijd(st.tot) });
+        if (st.opgeslagen) extra += " Er staat wel een blokkade in de agenda (" + naamSuite(suite) + " " + vpLokaal(st.van).datum + "); hef die daar op.";
+      } catch (e2) { extra += " LET OP: in Planyo staat nog een sluiting (" + st.vacation_id + "); hef die met de hand op."; }
+    }
+    m.textContent = "Dichtzetten lukte niet: " + e.message + ". Er is geen taak gemaakt." + extra;
+    return;
+  }
+  /* 3. Taken voor de VR-assistent. */
+  const was = vpLokaal(r.aankomst), wasT = vpLokaal(r.vertrek), nu = vpLokaal(aank), nuT = vpLokaal(vert);
+  const oudTekst = naamSuite(r.suite) + " " + was.datum + " " + was.tijd + " – " + wasT.datum + " " + wasT.tijd;
+  const nieuwTekst = naamSuite(suite) + " " + nu.datum + " " + nu.tijd + " – " + nuT.datum + " " + nuT.tijd;
+  const tijdelijk = stukken.map(([van, tot]) => vpLokaal(van).datum + " " + vpLokaal(van).tijd + " – " + vpLokaal(tot).datum + " " + vpLokaal(tot).tijd);
+  const taken = [{
+    titel: "[" + kanaal + "] Verplaatsen bij het kanaal — " + (gastNaam(r) || "zonder naam"),
+    omschrijving: "Verplaats reservering " + (r.kanaal_ref || r.id) + " bij " + kanaal + ".\nVan: " + oudTekst + "\nNaar: " + nieuwTekst +
+      (!tijdelijk.length ? "" : r.kanaal === "smg"
+        ? "\n\nDaarna: hef in de agenda de tijdelijke blokkade op (" + naamSuite(suite) + ", " + tijdelijk.join(" en ") + "). " +
+          "Doe dat pas als de boeking bij " + kanaal + " is verplaatst, anders kan iemand anders dat blok intussen boeken."
+        /* Booking.com en Origineel Overnachten krijgen hun beschikbaarheid van Planyo: zolang de
+           tijdelijke blokkade staat, is de nieuwe datum daar dicht en lukt het wijzigen niet. */
+        : "\n\nVolgorde: hef eerst in de agenda de tijdelijke blokkade op (" + naamSuite(suite) + ", " + tijdelijk.join(" en ") + ") " +
+          "en verplaats de boeking dan meteen bij " + kanaal + ". Zolang de blokkade staat, is de nieuwe datum bij " + kanaal + " dicht.") +
+      "\nDe prijs pas je zo nodig zelf aan. Gevraagd door " + NAAM + ".",
+    link: "kanaal-verplaatst:" + r.id + ":" + Date.now()
+  }];
+  if (r.kanaal !== "smg") taken.push({
+    titel: "[Privésauna] Verplaatst — blokkade aanpassen",
+    omschrijving: "Reservering " + (r.kanaal_ref || "") + " (" + (gastNaam(r) || "zonder naam") + ", " + kanaal + ") wordt verplaatst van " +
+      oudTekst + " naar " + nieuwTekst + ". Haal de oude blokkade in Privésauna weg en zet de nieuwe erin.",
+    link: "privesauna-verplaatst:" + r.id + ":" + Date.now()
+  });
+  let erbij = "";
+  for (const t of taken) {
+    try {
+      await api("wz_taken", { method: "POST", prefer: "return=minimal", body: Object.assign(t,
+        { prioriteit: "hoog", status: "open", locatie: suite === "angie" ? "Almere" : "Lelystad" }) });
+    } catch (e) { erbij += " De taak \"" + t.titel + "\" kon niet worden aangemaakt: doe dit zelf."; }
+  }
+  VP_VRIJGAVE = null;
+  sluitVenster();
+  if (typeof laad === "function") { try { await laad(); } catch (e) { /* lijst ververst bij de volgende keer */ } }
+  melding("Nieuwe plek dichtgezet: " + nieuwTekst + ". Er staat een taak klaar om hem bij " + kanaal + " te verplaatsen" +
+    (tijdelijk.length ? " en daarna de tijdelijke blokkade op te heffen" : "") + ". De datum in het dashboard verandert zodra " + kanaal + " is aangepast." + erbij);
 }
 document.addEventListener("click", (e) => { if (e.target && e.target.id === "vpKnop") verplaats(); });
 
@@ -5279,8 +5391,7 @@ async function bewaar(bevestig) {
     const wordtActief = d.status !== "geannuleerd" && HUIDIG.status === "geannuleerd";
     if (HUIDIG.planyo_id && (wordtGeannuleerd || wordtActief)) {
       if (!planyoBeheert(HUIDIG)) {
-        if (wordtGeannuleerd) erbij = " Let op: deze boeking komt van " + (KANALEN[HUIDIG.kanaal] || HUIDIG.kanaal) +
-          "; annuleer hem daar ook, vanuit het dashboard gaat dat niet.";
+        /* Komt van een kanaal: zie kanaalAnnuleerTaken na het opslaan. */
       } else if (wordtGeannuleerd && V_ZONDER_PLANYO !== HUIDIG.id) {
         try {
           $("#vMelding").textContent = "Annuleren in Planyo…";
@@ -5303,6 +5414,12 @@ async function bewaar(bevestig) {
     const rij = await api("reserveringen?id=eq." + encodeURIComponent(HUIDIG.id) + "&select=" + KOLOMMEN, { method: "PATCH", body: d });
     if (!rij || !rij.length) throw new Error("Opslaan lukte niet: je hebt geen rechten om deze reservering te wijzigen.");
     V_ZONDER_PLANYO = null;
+    /* Geannuleerd terwijl de boeking van een kanaal komt: dat kan alleen bij het kanaal zelf.
+       Daarvoor een taak, en bij Booking.com en Origineel Overnachten ook de Privésauna-blokkade
+       (Angela, 14-10-2026). */
+    if (wordtGeannuleerd && ["smg", "booking", "oo"].includes(HUIDIG.kanaal)) {
+      erbij = await kanaalAnnuleerTaken(HUIDIG);
+    }
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
     const naam = gastNaam(rij[0]) || "reservering";
     sluitVenster();
@@ -5312,6 +5429,32 @@ async function bewaar(bevestig) {
     $("#vMelding").textContent = e.message;
   }
   knoppen.forEach((k) => { k.disabled = false; });
+}
+
+async function kanaalAnnuleerTaken(r) {
+  const kanaal = KANALEN[r.kanaal] || r.kanaal;
+  const p = periode(r);
+  const wat = (SUITES[r.suite] ? SUITES[r.suite].naam : r.suite) + ", " + p.dag + " " + p.tijd;
+  const taken = [{
+    titel: "[" + kanaal + "] Annuleren bij het kanaal — " + (gastNaam(r) || "zonder naam"),
+    omschrijving: "Reservering " + (r.kanaal_ref || r.id) + " (" + wat + ") is in het dashboard geannuleerd door " + NAAM +
+      ". Annuleer hem ook bij " + kanaal + ": vanuit het dashboard kan dat niet. Pas daarna gaat de suite in Planyo en op de andere kanalen weer open.",
+    link: "kanaal-geannuleerd:" + r.id
+  }];
+  if (r.kanaal !== "smg") taken.push({
+    titel: "[Privésauna] Geannuleerd — blokkade weghalen",
+    omschrijving: "Reservering " + (r.kanaal_ref || "") + " (" + (gastNaam(r) || "zonder naam") + ", " + kanaal + ", " + wat +
+      ") is geannuleerd. Haal de blokkade in Privésauna weg, maar pas als hij ook bij " + kanaal + " is geannuleerd.",
+    link: "privesauna-geannuleerd:" + r.id
+  });
+  let fout = "";
+  for (const t of taken) {
+    try {
+      await api("wz_taken", { method: "POST", prefer: "return=minimal", body: Object.assign(t,
+        { prioriteit: "hoog", status: "open", locatie: r.suite === "angie" ? "Almere" : "Lelystad" }) });
+    } catch (e) { fout += " De taak \"" + t.titel + "\" kon niet worden aangemaakt: doe dit zelf."; }
+  }
+  return " Er staat een taak klaar om hem bij " + kanaal + " te annuleren" + (r.kanaal !== "smg" ? " en de blokkade in Privésauna weg te halen" : "") + "." + fout;
 }
 
 /* Een dubbele reservering weghalen. Wat verdwijnt wordt eerst vastgelegd in de
