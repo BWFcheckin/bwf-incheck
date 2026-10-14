@@ -788,6 +788,8 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
          moet. Angela, 17-09-2026. Staat onder de kop, die blijft plakken, dus
          je ziet de stand terwijl je door de reservering scrollt. -->
     <div id="vBalk" class="v-balk"></div>
+    <!-- Gastberichten van Booking.com bij deze reservering (Angela, 14-10-2026). -->
+    <div id="vGastberichten" hidden></div>
     <!-- Angela, 27-09-2026: "hier wil ik een dropdownmenu met grote knoppen,
          zodat je niet eindeloos hoeft te scrollen."
 
@@ -1737,6 +1739,9 @@ function rijHtml(r) {
   const p = periode(r);
   const naam = gastNaam(r);
   const letop = [];
+  if ((GB[r.id] || []).length) letop.push('<span class="pill" style="background:#1F5AA6;border-color:#1F5AA6;color:#fff;font-weight:600" title="' +
+    esc(GB[r.id].map((b) => b.bericht).join(" · ").slice(0, 300)) + '">&#9993; ' + GB[r.id].length +
+    (GB[r.id].length === 1 ? " open gastbericht" : " open gastberichten") + "</span>");
   if (r.niet_in_planyo) letop.push('<span class="pill crit" data-nip="' + esc(r.id) + '" style="font-weight:700;cursor:pointer" title="Deze reservering staat niet in Planyo: de website, Booking.com en Origineel Overnachten zijn niet geblokkeerd. Klik als hij er nu wel in staat.">NIET in Planyo</span>');
   if (wachtOpOverleg(r)) letop.push('<span class="pill crit" title="' + esc(r.notitie) + '">blokkade: overleg met Angela</span>');
   if (gastOntbreekt(r)) letop.push('<span class="pill warn">gastgegevens ontbreken</span>');
@@ -3418,6 +3423,7 @@ function tekenPersoneelKaart(r) {
   /* De betaalspecificatie in het blok Betalingsgegevens. */
   try { tekenBetaalSpec(r); } catch (e) {}
   try { tekenVerplaats(r); } catch (e) {}
+  try { tekenGastberichten(r); } catch (e) {}
   /* De aankomsttijd die de gast zelf heeft doorgegeven. */
   try { tekenVerwachteAankomst(r); } catch (e) {}
 
@@ -5163,6 +5169,69 @@ async function verplaats() {
   }
 }
 document.addEventListener("click", (e) => { if (e.target && e.target.id === "vpKnop") verplaats(); });
+
+/* =========================================================
+   Gastberichten van Booking.com (Angela, 14-10-2026)
+   =========================================================
+   De berichten staan in gast_berichten (gevuld door de functie gastberichten-mail).
+   Op de kaart in de lijst: een blauw label met het aantal open berichten. In het venster:
+   alle berichten bij deze reservering, met Beantwoorden (opent het gesprek bij
+   Booking.com) en Afgehandeld. Lukt het ophalen niet, dan gewoon geen berichten. */
+let GB = {};
+async function laadGastberichten() {
+  try {
+    const rijen = await api("gast_berichten?select=id,reservering_id,bericht&status=eq.open&reservering_id=not.is.null&limit=1000", { stil: true });
+    const nieuw = {};
+    (rijen || []).forEach((b) => { (nieuw[b.reservering_id] = nieuw[b.reservering_id] || []).push(b); });
+    GB = nieuw;
+  } catch (e) { /* tabel nog niet aanwezig of geen leesrecht: niets tonen */ }
+}
+async function tekenGastberichten(r) {
+  const vak = $("#vGastberichten");
+  if (!vak) return;
+  vak.hidden = true; vak.innerHTML = "";
+  let rijen = [];
+  try {
+    rijen = await api("gast_berichten?select=id,gast_naam,bericht,soort,ontvangen_op,antwoord_link,status,afgehandeld_op,afgehandeld_door" +
+      "&reservering_id=eq." + encodeURIComponent(r.id) + "&order=ontvangen_op.desc&limit=50", { stil: true }) || [];
+  } catch (e) { return; }
+  if (!HUIDIG || HUIDIG.id !== r.id || !rijen.length) return;
+  const open = rijen.filter((b) => b.status === "open").length;
+  const tijd = (iso) => iso ? fmtDag.format(new Date(iso)) + " " + fmtTijd.format(new Date(iso)) : "";
+  vak.innerHTML = '<div style="margin:10px 0 4px;padding:10px 12px;border:1px solid #1F5AA6;border-radius:10px;background:color-mix(in srgb,#1F5AA6 7%,transparent)">' +
+    '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap">' +
+      '<b style="color:#1F5AA6">&#9993; Gastberichten via Booking.com</b>' +
+      '<small style="color:var(--muted)">' + (open ? open + " open" : "alles afgehandeld") + "</small></div>" +
+    rijen.map((b) => '<div style="margin-top:8px;padding-top:8px;border-top:1px solid color-mix(in srgb,#1F5AA6 25%,transparent)' +
+        (b.status === "open" ? "" : ";opacity:.6") + '">' +
+      '<div style="font-size:12px;color:var(--muted)">' + esc([b.soort === "verzoek" ? "Verzoek" : "Bericht", b.gast_naam, tijd(b.ontvangen_op)].filter(Boolean).join(" · ")) +
+        (b.status === "open" ? "" : " · afgehandeld" + (b.afgehandeld_door ? " door " + esc(b.afgehandeld_door) : "")) + "</div>" +
+      '<div style="white-space:pre-wrap;margin:3px 0 6px">' + esc(b.bericht || "") + "</div>" +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        /* Alleen een gewone https-link: de link komt uit een mail en mag nooit iets anders uitvoeren. */
+        (/^https:\/\//i.test(String(b.antwoord_link || "")) ? '<a class="knop klein" href="' + esc(b.antwoord_link) + '" target="_blank" rel="noopener">Beantwoorden in Booking.com</a>' : "") +
+        '<button type="button" class="knop klein sec" data-gbzet="' + esc(b.id) + '" data-gbnaar="' + (b.status === "open" ? "1" : "0") + '">' +
+          (b.status === "open" ? "Afgehandeld" : "Weer open zetten") + "</button>" +
+      "</div></div>").join("") +
+    "</div>";
+  vak.hidden = false;
+}
+document.addEventListener("click", async (e) => {
+  const knop = e.target && e.target.closest ? e.target.closest("[data-gbzet]") : null;
+  if (!knop) return;
+  e.preventDefault();
+  knop.disabled = true;
+  try {
+    await api("rpc/gastbericht_afvinken", { method: "POST", body: { p_id: Number(knop.dataset.gbzet), p_afgehandeld: knop.dataset.gbnaar === "1" } });
+    await laadGastberichten();
+    teken();
+    if (HUIDIG) await tekenGastberichten(HUIDIG);
+    try { window.dispatchEvent(new CustomEvent("bwf:gastberichten")); } catch (e2) {}
+  } catch (err) {
+    knop.disabled = false;
+    melding("Gastbericht bijwerken lukte niet: " + err.message, "fout");
+  }
+});
 
 /* Staat deze boeking via het dashboard of de website in Planyo? Dan gaat annuleren en
    verwijderen ook naar Planyo. */
@@ -8765,6 +8834,8 @@ async function start() {
     MEDEWERKERS = await api("wz_medewerkers?select=id,naam,actief&order=naam.asc", { stil: true }) || [];
   } catch (e) { MEDEWERKERS = []; }
   await laad();
+  await laadGastberichten();
+  teken();
   await openUitLink();
   const vraag = new URLSearchParams(location.search);
   const tab = vraag.get("tab");
