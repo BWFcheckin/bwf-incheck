@@ -5342,7 +5342,7 @@ async function tekenGastberichten(r) {
       '<div style="white-space:pre-wrap;margin:3px 0 6px">' + esc(b.bericht || "") + "</div>" +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
         /* Alleen een gewone https-link: de link komt uit een mail en mag nooit iets anders uitvoeren. */
-        (/^https:\/\//i.test(String(b.antwoord_link || "")) ? '<a class="knop klein" href="' + esc(b.antwoord_link) + '" target="_blank" rel="noopener">Beantwoorden in Booking.com</a>' : "") +
+        (/^https:\/\//i.test(String(b.antwoord_link || "")) ? '<a class="knop klein" style="background:#1F5AA6;border-color:#1F5AA6;color:#fff;text-decoration:none" href="' + esc(b.antwoord_link) + '" target="_blank" rel="noopener">Beantwoorden in Booking.com</a>' : "") +
         '<button type="button" class="knop klein sec" data-gbzet="' + esc(b.id) + '" data-gbnaar="' + (b.status === "open" ? "1" : "0") + '">' +
           (b.status === "open" ? "Afgehandeld" : "Weer open zetten") + "</button>" +
       "</div></div>").join("") +
