@@ -5134,14 +5134,13 @@ async function verplaats() {
     if (planyoBeheert(r) && !vrij.zonderPlanyo) {
       const eenheid = planyoEenheid(suite, r.type, aank, vert);
       /* Eerst nakijken of de nieuwe plek in Planyo vrij is. De accommodatie waar deze boeking nu
-         op staat telt niet mee als de nieuwe tijd de oude overlapt: daar staat hij zelf. */
+         op staat telt niet mee als de nieuwe tijd de oude overlapt of binnen de schoonmaaktijd
+         ervan valt: daar staat hij zelf (zie planyoZonderEigen). */
       if (!vrij.planyoBezet) {
         m.textContent = "Even nakijken in Planyo…";
         let bezet = null;
         try {
-          const oud = planyoEenheid(r.suite, r.type, r.aankomst, r.vertrek);
-          const overlapt = suite === r.suite && new Date(aank) < new Date(r.vertrek) && new Date(vert) > new Date(r.aankomst);
-          bezet = await planyoBezet(suite, aank, vert, overlapt ? [oud, PLANYO_SUITE[r.suite]] : []);
+          bezet = await planyoBezet(suite, aank, vert, planyoZonderEigen(r, suite, aank, vert));
         } catch (e) {
           m.textContent = "Nakijken in Planyo lukte niet: " + e.message + " Er is niets gewijzigd.";
           return;
@@ -5197,6 +5196,22 @@ async function verplaats() {
     knop.disabled = false;
   }
 }
+/* Welke Planyo-accommodaties tellen niet mee bij het nakijken van een verplaatsing?
+   Planyo houdt vóór en na elke boeking schoonmaaktijd aan (net als BUFFER_MINUTEN, 90 minuten),
+   zowel bij de bestaande boeking als bij de nieuwe tijd die we nakijken. Liggen de oude en de
+   nieuwe tijd op dezelfde suite minder dan 2 x 90 minuten uit elkaar (bv. een dag later: oud
+   vertrek 11:00, nieuwe aankomst 13:00), dan meldt Planyo de boeking zelf als "niet vrij". De
+   accommodatie waar hij nu op staat en de hoofdeenheid tellen dan niet mee. Andere boekingen op
+   die dagen vangt de controle op het dashboard hierboven nog steeds af.
+   (Gevonden bij de test van 15-10-2026: TEST, Angie 7 sep 2027 -> 8 sep.) */
+function planyoZonderEigen(r, suite, aank, vert) {
+  if (!r || suite !== r.suite || !r.aankomst || !r.vertrek) return [];
+  const marge = 2 * BUFFER_MINUTEN * 60000;
+  const raakt = new Date(aank).getTime() < new Date(r.vertrek).getTime() + marge
+             && new Date(vert).getTime() > new Date(r.aankomst).getTime() - marge;
+  if (!raakt) return [];
+  return [planyoEenheid(r.suite, r.type, r.aankomst, r.vertrek), PLANYO_SUITE[r.suite]].filter(Boolean);
+}
 /* Het deel van [van, tot) dat nog niet door de boeking zelf wordt bezet (zelfde suite).
    Geeft 0, 1 of 2 stukken terug. */
 function vpNieuweStukken(r, suite, van, tot) {
@@ -5222,7 +5237,7 @@ async function verplaatsKanaal(r, suite, aank, vert, m, vrij, opnieuw) {
     m.textContent = "Even nakijken in Planyo…";
     let bezet = null;
     try {
-      for (const [van, tot] of stukken) { bezet = bezet || await planyoBezet(suite, van, tot); }
+      for (const [van, tot] of stukken) { bezet = bezet || await planyoBezet(suite, van, tot, planyoZonderEigen(r, suite, van, tot)); }
     } catch (e) {
       m.textContent = "Nakijken in Planyo lukte niet: " + e.message + " Er is niets gewijzigd.";
       return;
