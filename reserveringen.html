@@ -836,6 +836,7 @@ details.bron pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-
           <label class="veld">Tijdsblok <select id="vBlok"></select></label>
           <label class="veld">Type <select id="vType"></select></label>
           <label class="veld">Incheck-tijd <input id="vIncheck" type="time"><small>staat voorgevuld op de tijd van de boeking; pas aan als het afwijkt</small></label>
+          <label class="veld">Vertrekdatum <input id="vVertrekD" type="date"><small>dag van uitchecken; bij een overnachting de dag na aankomst</small></label>
           <label class="veld">Uitcheck-tijd <input id="vUitcheck" type="time"><small>staat voorgevuld op de tijd van de boeking; pas aan als het afwijkt</small></label>
         </div>
       </fieldset>
@@ -1487,6 +1488,8 @@ let SESSIE = null, ROL = null, NAAM = "", RIJEN = [], BLOKKEN = [], HUIDIG = nul
    Jan van Briemen misgegaan: drie regels van samen € 108 op de kaart, maar het
    totaalbedrag stond nog op het bedrag van voor het bijboeken. */
 let BEDRAG_START = { totaal: "", betaald: "", restant: "" };
+/* Tijden zoals ze in het bewerkvenster geladen zijn; zie vulVenster en bewaar. */
+let TIJD_START = { in: "", uit: "", vd: "" };
 /* De welkomstcall per reservering, voor de stappen op de kaart in de lijst.
    Sleutel is reservering_id. Leeg zolang ze nog niet opgehaald zijn.
    Angela, 21-09-2026. */
@@ -2180,6 +2183,11 @@ function openVenster(id) {
      tijd van de boeking zelf. Zo staat er nooit een leeg tijdveld. */
   $("#vIncheck").value = hhmm(r.incheck_tijd) || tijdVan(r.aankomst);
   $("#vUitcheck").value = hhmm(r.uitcheck_tijd) || tijdVan(r.vertrek);
+  /* Vertrekdatum + tijden onthouden: verandert er bij Opslaan iets aan, dan gaat de
+     wijziging via verplaats(), zodat ook aankomst/vertrek en Planyo meeveranderen
+     (Angela, 16-10-2026: uitchecktijd bleef op de kaart 18:00 staan). */
+  $("#vVertrekD").value = r.vertrek ? vpLokaal(r.vertrek).datum : "";
+  TIJD_START = { in: $("#vIncheck").value, uit: $("#vUitcheck").value, vd: $("#vVertrekD").value };
   /* Dit tekstvak beheert alleen de arrangementen zónder merkteken: dat zijn de
      regels die vooraf geboekt zijn. Wat later is bijgeboekt draagt een bron
      (welkomstcall of bijgeboekt) en hoort in de eigen lijst eronder. Stond het
@@ -5086,6 +5094,9 @@ async function verplaats() {
   const aank = lokaalNaarIso($("#vpAanD").value, $("#vpAanT").value);
   const vert = lokaalNaarIso($("#vpVerD").value, $("#vpVerT").value);
   if (new Date(vert) <= new Date(aank)) { m.textContent = "Het vertrek moet na de aankomst liggen."; return; }
+  if (NACHTTYPES.includes(r.type) && $("#vpVerD").value <= $("#vpAanD").value) {
+    m.textContent = "Bij een overnachting moet de vertrekdatum na de aankomstdatum liggen."; return;
+  }
   if (suite === r.suite && new Date(aank).getTime() === new Date(r.aankomst).getTime() && new Date(vert).getTime() === new Date(r.vertrek).getTime()) {
     m.textContent = "Er is niets gewijzigd."; return;
   }
@@ -5393,6 +5404,22 @@ async function bewaar(bevestig) {
   let d;
   try { d = formWaarden(); } catch (e) { $("#vMelding").textContent = e.message; return; }
   if (bevestig) d.status = "bevestigd";
+  /* Zijn incheck-tijd, vertrekdatum of uitcheck-tijd veranderd? Dan eerst de rest opslaan
+     en daarna de tijden via verplaats() doorvoeren (vrij-controle + Planyo + kaart). */
+  const tijdNu = { in: $("#vIncheck").value, uit: $("#vUitcheck").value, vd: $("#vVertrekD").value };
+  const tijdAnders = tijdNu.in !== TIJD_START.in || tijdNu.uit !== TIJD_START.uit || tijdNu.vd !== TIJD_START.vd;
+  const viaVerplaats = tijdAnders && magBewerken() && d.status !== "geannuleerd" && !!HUIDIG.aankomst;
+  if (viaVerplaats) {
+    if (!tijdNu.in || !tijdNu.uit || !tijdNu.vd) { $("#vMelding").textContent = "Vul incheck-tijd, vertrekdatum en uitcheck-tijd in."; return; }
+    const aanD = vpLokaal(HUIDIG.aankomst).datum;
+    if (NACHTTYPES.includes(d.type) && tijdNu.vd <= aanD) {
+      $("#vMelding").textContent = "Bij een overnachting moet de vertrekdatum na de aankomstdatum (" + aanD + ") liggen."; return;
+    }
+    if (new Date(lokaalNaarIso(tijdNu.vd, tijdNu.uit)) <= new Date(lokaalNaarIso(aanD, tijdNu.in))) {
+      $("#vMelding").textContent = "Het vertrek moet na de aankomst liggen."; return;
+    }
+    delete d.incheck_tijd; delete d.uitcheck_tijd;
+  }
   if (wachtOpOverleg(HUIDIG) && d.status === "bevestigd" && ROL !== "eigenaar" &&
       !confirm("Deze optie is aangemaakt tijdens een blokkade.\n\nHeb je met Angela overlegd en mag hij worden bevestigd?")) return;
   knoppen.forEach((k) => { k.disabled = true; });
@@ -5437,6 +5464,16 @@ async function bewaar(bevestig) {
     }
     RIJEN = RIJEN.map((x) => (x.id === rij[0].id ? rij[0] : x));
     const naam = gastNaam(rij[0]) || "reservering";
+    if (viaVerplaats) {
+      HUIDIG = rij[0];
+      tekenVerplaats(HUIDIG);
+      $("#vpAanT").value = tijdNu.in; $("#vpVerD").value = tijdNu.vd; $("#vpVerT").value = tijdNu.uit;
+      $("#vMelding").textContent = "Overige gegevens opgeslagen. De nieuwe tijden worden nu doorgevoerd (zie Verplaatsen hieronder)…";
+      knoppen.forEach((k) => { k.disabled = false; });
+      const vak = $("#vpVak"); if (vak && vak.scrollIntoView) vak.scrollIntoView({ behavior: "smooth", block: "center" });
+      await verplaats();
+      return;
+    }
     sluitVenster();
     teken();
     melding((bevestig ? "Bevestigd: " : "Opgeslagen: ") + naam + "." + erbij);
