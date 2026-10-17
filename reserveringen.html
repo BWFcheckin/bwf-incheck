@@ -5407,13 +5407,35 @@ async function bewaar(bevestig) {
   /* Zijn incheck-tijd, vertrekdatum of uitcheck-tijd veranderd? Dan eerst de rest opslaan
      en daarna de tijden via verplaats() doorvoeren (vrij-controle + Planyo + kaart). */
   const tijdNu = { in: $("#vIncheck").value, uit: $("#vUitcheck").value, vd: $("#vVertrekD").value };
+  /* Type op overnachting gezet maar de vertrekdatum niet aangeraakt (staat nog op de aankomstdag)?
+     Dan vertrek automatisch de dag erna, anders loopt het opslaan vast (Kelly, 17-10-2026). */
+  if (HUIDIG.aankomst && NACHTTYPES.includes(d.type) && tijdNu.vd === TIJD_START.vd) {
+    const aanD0 = vpLokaal(HUIDIG.aankomst).datum;
+    if (!tijdNu.vd || tijdNu.vd <= aanD0) {
+      const [jj, mm, dd] = aanD0.split("-").map(Number);
+      tijdNu.vd = new Date(Date.UTC(jj, mm - 1, dd + 1)).toISOString().slice(0, 10);
+      $("#vVertrekD").value = tijdNu.vd;
+    }
+  }
   const tijdAnders = tijdNu.in !== TIJD_START.in || tijdNu.uit !== TIJD_START.uit || tijdNu.vd !== TIJD_START.vd;
-  const viaVerplaats = tijdAnders && magBewerken() && d.status !== "geannuleerd" && !!HUIDIG.aankomst;
+  /* Kanaalboeking met alleen andere tijden (zelfde dagen): gewoon incheck_tijd/uitcheck_tijd
+     opslaan zoals vóór 16-10-2026, niet via verplaats(). */
+  const kanaalBoeking = !(PLANYO_KANALEN.includes(HUIDIG.kanaal) || HUIDIG.kanaal === "planyo");
+  const alleenTijden = tijdNu.vd === TIJD_START.vd;
+  const viaVerplaats = tijdAnders && magBewerken() && d.status !== "geannuleerd" && !!HUIDIG.aankomst &&
+                       !(kanaalBoeking && alleenTijden);
   if (viaVerplaats) {
-    if (!tijdNu.in || !tijdNu.uit || !tijdNu.vd) { $("#vMelding").textContent = "Vul incheck-tijd, vertrekdatum en uitcheck-tijd in."; return; }
+    if (!tijdNu.in || !tijdNu.uit || !tijdNu.vd) {
+      $("#vMelding").textContent = "Vul incheck-tijd, vertrekdatum en uitcheck-tijd in (blok Verblijf). Er is nog niets opgeslagen.";
+      $(!tijdNu.in ? "#vIncheck" : !tijdNu.vd ? "#vVertrekD" : "#vUitcheck").focus();
+      return;
+    }
     const aanD = vpLokaal(HUIDIG.aankomst).datum;
     if (NACHTTYPES.includes(d.type) && tijdNu.vd <= aanD) {
-      $("#vMelding").textContent = "Bij een overnachting moet de vertrekdatum na de aankomstdatum (" + aanD + ") liggen."; return;
+      $("#vMelding").textContent = "Bij een overnachting moet de vertrekdatum na de aankomstdatum (" + aanD + ") liggen." +
+        " Pas de vertrekdatum aan in het blok Verblijf. Er is nog niets opgeslagen.";
+      $("#vVertrekD").focus();
+      return;
     }
     if (new Date(lokaalNaarIso(tijdNu.vd, tijdNu.uit)) <= new Date(lokaalNaarIso(aanD, tijdNu.in))) {
       $("#vMelding").textContent = "Het vertrek moet na de aankomst liggen."; return;
