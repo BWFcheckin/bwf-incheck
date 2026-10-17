@@ -319,6 +319,9 @@ Deno.serve(async (request) => {
           reservation_id: reservationId,
           admin_mode: "true",
           send_notifications: body.send_notifications === true ? "true" : "false",
+          /* Planyo rekent bij een andere datum standaard de prijs opnieuw uit; de prijs
+             uit het dashboard moet blijven staan (Angela, 17-10-2026). */
+          recalculate_price: body.recalculate_price === true ? "true" : "false",
           ...basis
         });
         wijzigingen.push("datum/tijd");
